@@ -40,7 +40,7 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
             className="pointer-events-none absolute z-10 flex w-fit max-w-[32%] flex-col items-center justify-center gap-px rounded-md text-center text-slate-900 sm:rounded-lg"
             style={{
               left: 'calc(49% + 1.3cm - 3mm)',
-              top: 'calc(41.5% + 1cm)',
+              top: 'calc(41.5% + 1cm + 3mm)',
               padding: '0.25cm 0.32cm',
               backgroundColor: BASIN_BLUE
             }}
