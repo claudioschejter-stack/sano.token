@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { VACA_MUERTA_OPERATORS, VACA_MUERTA_OPERATOR_COUNT } from '../../data/vacaMuertaOperators';
+import { VACA_MUERTA_OPERATORS } from '../../data/vacaMuertaOperators';
 import { useTranslation } from '../../i18n/LocaleProvider';
 
 function OperatorCard({ name, logoUrl }: { name: string; logoUrl: string }) {
@@ -26,24 +26,11 @@ function OperatorCard({ name, logoUrl }: { name: string; logoUrl: string }) {
   );
 }
 
-function OperatorsSubtitle({ text }: { text: string }) {
-  const count = String(VACA_MUERTA_OPERATOR_COUNT);
-  const hasLeadingCount = text.startsWith(count);
-  const rest = hasLeadingCount ? text.slice(count.length).trimStart() : text;
-
+function OperatorsHighlight({ text }: { text: string }) {
   return (
-    <p className="mx-auto mt-6 max-w-3xl text-center">
-      <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border border-blue-200/70 bg-gradient-to-r from-blue-50/90 via-white to-orange-50/80 px-5 py-2.5 text-sm shadow-sm ring-1 ring-slate-900/[0.04] sm:px-6 sm:text-[0.95rem]">
-        {hasLeadingCount ? (
-          <>
-            <span className="bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-base font-bold tracking-tight text-transparent sm:text-lg">
-              {count}
-            </span>
-            <span className="font-medium text-slate-700">{rest}</span>
-          </>
-        ) : (
-          <span className="font-medium text-slate-700">{text}</span>
-        )}
+    <p className="mx-auto max-w-3xl text-center">
+      <span className="inline-flex flex-wrap items-center justify-center rounded-full border border-blue-200/70 bg-gradient-to-r from-blue-50/90 via-white to-orange-50/80 px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-900/[0.04] sm:px-6 sm:text-[0.95rem]">
+        {text}
       </span>
     </p>
   );
@@ -51,7 +38,7 @@ function OperatorsSubtitle({ text }: { text: string }) {
 
 export function VacaMuertaOperators() {
   const t = useTranslation();
-  const subtitle = t.landing.operators.subtitle;
+  const { title, subtitle } = t.landing.operators;
 
   return (
     <section
@@ -67,14 +54,17 @@ export function VacaMuertaOperators() {
       />
       <div className="relative mx-auto max-w-7xl px-6 py-16 sm:py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">Vaca Muerta</p>
           <h2
             id="vaca-muerta-operators-title"
-            className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl"
+            className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl"
           >
-            {t.landing.operators.title}
+            {title}
           </h2>
-          {subtitle ? <OperatorsSubtitle text={subtitle} /> : null}
+          {subtitle ? (
+            <div className="mt-6">
+              <OperatorsHighlight text={subtitle} />
+            </div>
+          ) : null}
         </div>
 
         <ul className="mt-12 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-6 lg:gap-5">
