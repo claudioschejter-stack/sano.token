@@ -5,6 +5,8 @@ import Image from 'next/image';
 export type MarqueeLogo = {
   src: string;
   alt: string;
+  /** Visible label under the logo (defaults to alt). */
+  name?: string;
   className?: string;
 };
 
@@ -56,17 +58,24 @@ export function OperatorLogoMarquee({
             const isDuplicate = index >= logos.length;
             const key = `${logo.src}-${index}`;
 
+            const displayName = logo.name ?? logo.alt;
+
             return (
               <li
                 key={key}
                 className="operator-marquee__item"
                 aria-hidden={isDuplicate}
               >
-                <MarqueeLogoImage
-                  src={logo.src}
-                  alt={isDuplicate ? '' : logo.alt}
-                  className={logo.className ?? DEFAULT_LOGO_CLASS}
-                />
+                <div className="operator-marquee__card">
+                  <MarqueeLogoImage
+                    src={logo.src}
+                    alt={isDuplicate ? '' : logo.alt}
+                    className={logo.className ?? DEFAULT_LOGO_CLASS}
+                  />
+                  <p className="operator-marquee__name" aria-hidden={isDuplicate}>
+                    {displayName}
+                  </p>
+                </div>
               </li>
             );
           })}

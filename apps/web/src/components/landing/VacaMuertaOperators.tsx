@@ -21,6 +21,7 @@ export function VacaMuertaOperators() {
   const marqueeLogos = VACA_MUERTA_OPERATORS.map((operator) => ({
     src: operator.logoUrl,
     alt: operator.name,
+    name: operator.name,
     className: operator.logoClassName
   }));
 
