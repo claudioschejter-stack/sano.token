@@ -15,6 +15,7 @@ import { MARKETPLACE_FALLBACK_LISTINGS } from '../../data/marketplaceFallback';
 import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
+import { HeroSubtitle } from './HeroSubtitle';
 import { VacaMuertaOperators } from './VacaMuertaOperators';
 
 export function LandingPage() {
@@ -33,8 +34,8 @@ export function LandingPage() {
               'radial-gradient(circle at 20% 20%, #3B82F6 0%, transparent 40%), radial-gradient(circle at 80% 60%, #F97316 0%, transparent 35%)'
           }}
         />
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-20 lg:grid-cols-2 lg:items-center lg:py-28">
-          <div>
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:gap-12 sm:py-20 lg:grid-cols-2 lg:items-stretch lg:gap-14 lg:py-28">
+          <div className="flex flex-col justify-center lg:max-w-xl lg:pr-2 xl:max-w-[34rem]">
             <p className="text-sm font-semibold uppercase tracking-widest text-blue-300">{l.hero.eyebrow}</p>
             <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
               {l.hero.title.split('\n').map((line) => (
@@ -43,7 +44,7 @@ export function LandingPage() {
                 </span>
               ))}
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-300">{l.hero.subtitle}</p>
+            <HeroSubtitle hero={l.hero} />
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
                 href="/marketplace"
@@ -62,8 +63,8 @@ export function LandingPage() {
             <p className="mt-8 text-sm text-slate-400">{l.hero.trustLine}</p>
           </div>
 
-          <div className="relative hidden lg:block">
-            <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
+          <div className="relative hidden lg:flex lg:flex-col lg:justify-center">
+            <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
               <Image
                 src={MARKETPLACE_FALLBACK_LISTINGS[0]!.imageUrl}
                 alt={MARKETPLACE_FALLBACK_LISTINGS[0]!.title}

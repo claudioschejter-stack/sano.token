@@ -304,6 +304,9 @@ export type Messages = {
       eyebrow: string;
       title: string;
       subtitle: string;
+      subtitleLead?: string;
+      subtitleHighlight?: string;
+      subtitleClose?: string;
       ctaPrimary: string;
       ctaSecondary: string;
       trustLine: string;
