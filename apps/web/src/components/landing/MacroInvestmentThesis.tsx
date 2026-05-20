@@ -1,90 +1,86 @@
 'use client';
 
+import Link from 'next/link';
+import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { PatagoniaBasinMap } from './PatagoniaBasinMap';
 
-function DataStatCard({ value, label }: { value: string; label: string }) {
-  return (
-    <article className="rounded-xl border border-slate-200/90 bg-white/70 px-5 py-5 shadow-sm backdrop-blur-sm transition duration-300 hover:border-blue-200/80 hover:shadow-md hover:shadow-blue-500/5">
-      <p className="font-mono text-2xl font-semibold tracking-tight text-blue-600 sm:text-3xl">
-        {value}
-      </p>
-      <p className="mt-2 text-sm font-medium leading-snug text-slate-600">{label}</p>
-    </article>
-  );
-}
-
-function MapCaption({ lead, detail }: { lead: string; detail: string }) {
-  return (
-    <figcaption className="mt-4 shrink-0 border-t border-slate-200/90 pt-4 md:mt-5">
-      <p className="text-sm font-semibold tracking-tight text-slate-800">{lead}</p>
-      <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-500">{detail}</p>
-    </figcaption>
-  );
-}
+const MAP_SRC = '/mapa-vaca-muerta.png';
 
 /**
- * Macro context & investment thesis — Vaca Muerta energy → RWA real estate bridge.
+ * Macro context & investment thesis — terminal-style RWA landing block.
  */
 export function MacroInvestmentThesis() {
   const m = useTranslation().landing.macroThesis;
 
-  const stats = [
-    { value: m.stat1Value, label: m.stat1Label },
-    { value: m.stat2Value, label: m.stat2Label },
-    { value: m.stat3Value, label: m.stat3Label }
-  ];
-
   return (
     <section
       id="macro-thesis"
-      className="relative border-b border-slate-200 bg-white"
+      className="relative border-b border-slate-800 bg-[#0A0E17] text-slate-100"
       aria-labelledby="macro-thesis-title"
     >
       <div
-        className="pointer-events-none absolute inset-0 opacity-50"
+        className="pointer-events-none absolute inset-0 opacity-40"
         style={{
           backgroundImage:
-            'radial-gradient(circle at 90% 10%, rgba(59,130,246,0.06) 0%, transparent 45%), radial-gradient(circle at 5% 90%, rgba(15,23,42,0.04) 0%, transparent 40%)'
+            'radial-gradient(circle at 15% 0%, rgba(59,130,246,0.12) 0%, transparent 45%), radial-gradient(circle at 85% 100%, rgba(249,115,22,0.08) 0%, transparent 40%)'
         }}
       />
-      <div className="relative mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-24">
-        <div className="grid grid-cols-1 gap-10 md:gap-12 lg:grid-cols-12 lg:items-stretch lg:gap-16">
-          <figure className="flex flex-col lg:col-span-5">
-            <PatagoniaBasinMap className="flex-1" />
-            <MapCaption lead={m.mapCaptionLead} detail={m.mapCaptionDetail} />
+      <div className="relative mx-auto flex w-full max-w-7xl flex-col px-4 py-24 md:px-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-400">
+          {m.eyebrow}
+        </p>
+
+        <div className="mt-10 flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:items-start lg:gap-16">
+          <figure className="flex w-full flex-col lg:col-span-5">
+            <div className="overflow-hidden rounded-xl border border-slate-700/80 bg-slate-900/50 shadow-lg ring-1 ring-white/5">
+              <img
+                src={MAP_SRC}
+                alt="Mapa de Sudamérica con la ubicación de Vaca Muerta en la Patagonia, Argentina"
+                className="aspect-[17/26] h-auto w-full object-contain object-center sm:aspect-[2/3]"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
+            <figcaption className="mt-4 text-sm text-slate-400">{m.mapCaption}</figcaption>
           </figure>
 
-          <div className="flex flex-col lg:col-span-7">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">
-              {m.eyebrow}
-            </p>
+          <div className="flex w-full flex-col lg:col-span-7">
             <h2
               id="macro-thesis-title"
-              className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl lg:text-[2.35rem] lg:leading-tight"
+              className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl"
             >
-              {m.title.split('\n').map((line) => (
-                <span key={line} className="block">
-                  {line}
-                </span>
-              ))}
+              {m.title}
             </h2>
-            <p className="mt-6 text-base leading-relaxed text-slate-600 sm:text-lg">{m.intro}</p>
+            <p className="mt-6 text-base leading-relaxed text-slate-300 lg:text-lg">{m.intro}</p>
 
-            <div className="mt-8 grid grid-cols-1 gap-4 md:mt-10 md:grid-cols-2 lg:grid-cols-3">
-              {stats.map((stat) => (
-                <DataStatCard key={stat.label} value={stat.value} label={stat.label} />
+            <h3 className="mt-10 text-xl font-semibold tracking-tight text-white">
+              {m.thesisTitle}
+            </h3>
+            <p className="mt-4 text-base leading-relaxed text-slate-300 lg:text-lg">
+              {m.thesisDesc}
+            </p>
+
+            <ul className="mt-8 space-y-4" role="list">
+              {m.benefits.map((item) => (
+                <li key={item} className="flex gap-3">
+                  <CheckCircle2
+                    className="mt-0.5 h-5 w-5 shrink-0 text-blue-400"
+                    aria-hidden
+                  />
+                  <span className="text-sm leading-relaxed text-slate-300 sm:text-base">
+                    {item}
+                  </span>
+                </li>
               ))}
-            </div>
+            </ul>
 
-            <div className="mt-14 border-t border-slate-200/90 pt-10">
-              <h3 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                {m.thesisTitle}
-              </h3>
-              <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
-                {m.thesisDesc}
-              </p>
-            </div>
+            <Link
+              href="/marketplace"
+              className="mt-10 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-500 md:w-auto md:text-sm"
+            >
+              {m.cta}
+              <ArrowRight size={18} aria-hidden />
+            </Link>
           </div>
         </div>
       </div>

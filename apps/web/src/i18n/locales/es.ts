@@ -133,21 +133,22 @@ export const es = {
         'Estas son algunas de las empresas petroleras y gasíferas con operaciones en la cuenca'
     },
     macroThesis: {
-      eyebrow: 'Contexto Macro y Tesis de Inversión',
-      title: 'Vaca Muerta:\nEl Epicentro Energético Global',
+      eyebrow: 'Contexto Macro & Tesis de Inversión',
+      title: 'El Motor Energético de Occidente: Oportunidad en Activos Reales',
       intro:
-        'Ubicada en la Patagonia Argentina, Vaca Muerta no es una promesa exploratoria; es el yacimiento de shale (no convencional) de mayor crecimiento fuera de Norteamérica. Las principales operadoras energéticas del mundo ya están escalando su producción, consolidando un flujo de capital institucional histórico.',
-      mapCaptionLead: 'Vaca Muerta, Argentina',
-      mapCaptionDetail: '30.000 km² (Superficie equivalente a Bélgica)',
-      stat1Value: '2°',
-      stat1Label: 'Reserva Mundial de Shale Gas',
-      stat2Value: '4°',
-      stat2Label: 'Reserva Mundial de Shale Oil',
-      stat3Value: '+US$ 9.000M',
-      stat3Label: 'Inversión Anual Proyectada',
-      thesisTitle: 'El Déficit de Infraestructura: La Verdadera Oportunidad',
+        'Vaca Muerta no es una promesa exploratoria; es la segunda reserva mundial de shale gas y la cuarta de shale oil. Con una escala comparable a la cuenca Permian en EE. UU., las principales multinacionales energéticas inyectan más de US$ 9.000 millones anuales para expandir su producción.',
+      mapCaption:
+        '📍 Patagonia, Argentina | 30.000 km² (Superficie equivalente a Bélgica)',
+      thesisTitle: 'El Déficit de Infraestructura: Nuestra Tesis de Inversión',
       thesisDesc:
-        'El vertiginoso desarrollo de la cuenca ha superado ampliamente la capacidad de la infraestructura local. Añelo, el núcleo operativo, enfrenta un déficit crítico de plazas hoteleras, centros corporativos y servicios logísticos. Proveemos la infraestructura prime que las multinacionales necesitan para operar. Esta demanda corporativa inelástica genera tasas de capitalización significativamente superiores a los mercados inmobiliarios tradicionales.'
+        'Esta aceleración masiva exige instalaciones físicas que la región hoy no posee. Sanova Global tokeniza la infraestructura prime que sostiene esta operación monumental.',
+      benefits: [
+        'Demanda Corporativa Inelástica (B2B): Complejos alquilados directamente a operadoras.',
+        'Contratos Resilientes: Cap Rates superiores impulsados por la urgencia industrial.',
+        'Eficiencia Estructural: Arquitectura fiscal optimizada.',
+        'Flujo de Caja Global (USDC): Dividendos liquidados en su billetera sin fricción fronteriza.'
+      ],
+      cta: 'Explorar Activos Tokenizados'
     },
     howItWorks: {
       title: 'Invertí en cuatro pasos',

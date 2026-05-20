@@ -131,20 +131,21 @@ export const en = {
     },
     macroThesis: {
       eyebrow: 'Macro Context & Investment Thesis',
-      title: 'Vaca Muerta: The Global Energy Epicenter',
+      title: 'The Energy Engine of the West: Real-Asset Opportunity',
       intro:
-        'Located in Argentine Patagonia, Vaca Muerta is not an exploratory promise — it is the fastest-growing unconventional shale play outside North America. The world\'s leading energy operators are already scaling production, consolidating a historic flow of institutional capital.',
-      mapCaptionLead: 'Vaca Muerta, Argentina',
-      mapCaptionDetail: '30,000 km² (Surface area comparable to Belgium)',
-      stat1Value: '2nd',
-      stat1Label: 'Global Shale Gas Reserves',
-      stat2Value: '4th',
-      stat2Label: 'Global Shale Oil Reserves',
-      stat3Value: '+US$ 9B',
-      stat3Label: 'Projected Annual Investment',
-      thesisTitle: 'The Infrastructure Gap: The Real Opportunity',
+        'Vaca Muerta is not an exploratory promise — it holds the world\'s second-largest shale gas reserves and fourth-largest shale oil reserves. At a scale comparable to the U.S. Permian Basin, leading energy multinationals invest over US$ 9 billion annually to expand production.',
+      mapCaption:
+        '📍 Patagonia, Argentina | 30,000 km² (Surface area comparable to Belgium)',
+      thesisTitle: 'The Infrastructure Gap: Our Investment Thesis',
       thesisDesc:
-        'The basin\'s rapid development has far outpaced local infrastructure capacity. Añelo, the operational hub, faces a critical shortage of hotel rooms, corporate centers, and logistics services. We provide the prime infrastructure multinationals need to operate. This inelastic corporate demand generates capitalization rates significantly above traditional real estate markets.'
+        'This massive acceleration requires physical facilities the region does not yet have. Sanova Global tokenizes the prime infrastructure that supports this monumental operation.',
+      benefits: [
+        'Inelastic Corporate Demand (B2B): Complexes leased directly to operators.',
+        'Resilient Contracts: Superior cap rates driven by industrial urgency.',
+        'Structural Efficiency: Optimized tax architecture.',
+        'Global Cash Flow (USDC): Dividends settled to your wallet without cross-border friction.'
+      ],
+      cta: 'Explore Tokenized Assets'
     },
     howItWorks: {
       title: 'Invest in four steps',
@@ -362,16 +363,11 @@ export type Messages = {
       eyebrow: string;
       title: string;
       intro: string;
-      mapCaptionLead: string;
-      mapCaptionDetail: string;
-      stat1Value: string;
-      stat1Label: string;
-      stat2Value: string;
-      stat2Label: string;
-      stat3Value: string;
-      stat3Label: string;
+      mapCaption: string;
       thesisTitle: string;
       thesisDesc: string;
+      benefits: string[];
+      cta: string;
     };
     howItWorks: {
       title: string;
