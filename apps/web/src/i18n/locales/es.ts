@@ -157,7 +157,7 @@ export const es = {
       incomeDesc: 'Distribuciones semanales o mensuales del flujo operativo, liquidadas on-chain.',
       liquidityTitle: 'Liquidez programada',
       liquidityDesc:
-        'Salida vía tesorería Sanova o mercado secundario. Recompramos tus tokenes o lo puedes vender en nuestra plataforma. Con liquidez inmediata.',
+        'Salida vía tesorería Sanova o mercado secundario. Recompramos tus tokenes o los puedes vender en nuestra plataforma. Con liquidez inmediata.',
       complianceTitle: 'Cumplimiento primero',
       complianceDesc:
         'KYC, disclosure legal de documentación del mundo real y registros on-chain auditables.'
