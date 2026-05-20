@@ -137,6 +137,9 @@ export const de: Messages = {
         'Vaca Muerta is not an exploratory promise — it holds the world\'s second-largest shale gas reserves and fourth-largest shale oil reserves. At a scale comparable to the U.S. Permian Basin, leading energy multinationals invest over US$ 9 billion annually to expand production.',
       mapCaption:
         '📍 Patagonia, Argentina | 30,000 km² (Surface area comparable to Belgium)',
+      mapFormationLine1: 'Formation',
+      mapFormationLine2: 'VACA',
+      mapFormationLine3: 'MUERTA',
       thesisTitle: 'The Infrastructure Gap: Our Investment Thesis',
       thesisDesc:
         'This massive acceleration requires physical facilities the region does not yet have. Sanova Global tokenizes the prime infrastructure that supports this monumental operation.',
