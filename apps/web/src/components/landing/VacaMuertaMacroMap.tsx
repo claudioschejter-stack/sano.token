@@ -40,23 +40,23 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
             className="pointer-events-none absolute z-10 flex w-fit max-w-[32%] flex-col items-center justify-center gap-px text-center text-slate-900"
             style={{
               left: 'calc(49% + 1.5cm)',
-              top: 'calc(41.5% + 3cm)',
+              top: 'calc(41.5% + 1cm)',
               padding: '0.65cm 0.32cm',
               backgroundColor: BASIN_BLUE
             }}
             aria-hidden
           >
-            <span className="text-[9px] font-bold tracking-wide sm:text-[11px] md:text-sm">
+            <span className="text-[9px] font-extrabold tracking-wide sm:text-[11px] md:text-sm">
               {mapFormationLine1}
             </span>
             <span
-              className="inline-block origin-center text-[11px] font-medium leading-none tracking-[-0.06em] sm:text-[13px] md:text-base"
+              className="inline-block origin-center text-[11px] font-extrabold leading-none tracking-[-0.06em] sm:text-[13px] md:text-base"
               style={{ transform: 'scaleX(0.88) scaleY(1.22)' }}
             >
               {mapFormationLine2}
             </span>
             <span
-              className="inline-block origin-center text-[11px] font-medium leading-none tracking-[-0.06em] sm:text-[13px] md:text-base"
+              className="inline-block origin-center text-[11px] font-extrabold leading-none tracking-[-0.06em] sm:text-[13px] md:text-base"
               style={{ transform: 'scaleX(0.88) scaleY(1.22)' }}
             >
               {mapFormationLine3}
