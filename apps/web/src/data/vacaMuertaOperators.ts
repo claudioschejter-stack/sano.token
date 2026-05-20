@@ -6,33 +6,38 @@ export type VacaMuertaOperator = {
   /** Used for accessibility only; not shown in the UI. */
   name: string;
   domain: string;
-  /** Optional direct logo URL when Clearbit/favicon lookups are unreliable. */
-  logoUrl?: string;
+  /** Local color logo in /public/logos/operators */
+  logoUrl: string;
 };
 
 export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
-  { id: 'ypf', name: 'YPF', domain: 'ypf.com' },
-  { id: 'chevron', name: 'Chevron', domain: 'chevron.com' },
-  { id: 'shell', name: 'Shell', domain: 'shell.com' },
-  { id: 'total', name: 'TotalEnergies', domain: 'totalenergies.com' },
-  { id: 'exxon', name: 'ExxonMobil', domain: 'exxonmobil.com' },
-  { id: 'pae', name: 'Pan American Energy', domain: 'pan-energy.com' },
-  { id: 'pampa', name: 'Pampa Energía', domain: 'pampa.com.ar' },
-  { id: 'vista', name: 'Vista Energy', domain: 'vistaenergy.com' },
-  { id: 'tecpetrol', name: 'Tecpetrol', domain: 'tecpetrol.com' },
-  { id: 'pluspetrol', name: 'Pluspetrol', domain: 'pluspetrol.com' },
-  { id: 'cgc', name: 'CGC', domain: 'cgc.energy' },
-  { id: 'equinor', name: 'Equinor', domain: 'equinor.com' },
-  { id: 'bp', name: 'BP', domain: 'bp.com' },
-  { id: 'geopark', name: 'GeoPark', domain: 'geopark.com' },
-  { id: 'qatarenergy', name: 'QatarEnergy', domain: 'qatarenergy.qa' },
-  { id: 'petronas', name: 'Petronas', domain: 'petronas.com' },
-  { id: 'madalena', name: 'Madalena Energy', domain: 'madalenaenergy.com' },
-  { id: 'gyp', name: 'GyP', domain: 'gyp.com.ar' },
-  { id: 'murphy', name: 'Murphy Oil', domain: 'murphyoilcorp.com' },
-  { id: 'conocophillips', name: 'ConocoPhillips', domain: 'conocophillips.com' },
-  { id: 'repsol', name: 'Repsol', domain: 'repsol.com' },
-  { id: 'eni', name: 'Eni', domain: 'eni.com' },
-  { id: 'apache', name: 'Apache Corporation', domain: 'apacorp.com' },
-  { id: 'harbour', name: 'Harbour Energy', domain: 'harbourenergy.com' }
+  { id: 'ypf', name: 'YPF', domain: 'ypf.com', logoUrl: '/logos/operators/ypf.png' },
+  { id: 'chevron', name: 'Chevron', domain: 'chevron.com', logoUrl: '/logos/operators/chevron.png' },
+  { id: 'shell', name: 'Shell', domain: 'shell.com', logoUrl: '/logos/operators/shell.png' },
+  { id: 'total', name: 'TotalEnergies', domain: 'totalenergies.com', logoUrl: '/logos/operators/total.png' },
+  { id: 'exxon', name: 'ExxonMobil', domain: 'exxonmobil.com', logoUrl: '/logos/operators/exxon.svg' },
+  { id: 'pae', name: 'Pan American Energy', domain: 'pan-energy.com', logoUrl: '/logos/operators/pae.png' },
+  { id: 'pampa', name: 'Pampa Energía', domain: 'pampa.com.ar', logoUrl: '/logos/operators/pampa.svg' },
+  { id: 'vista', name: 'Vista Energy', domain: 'vistaenergy.com', logoUrl: '/logos/operators/vista.png' },
+  { id: 'tecpetrol', name: 'Tecpetrol', domain: 'tecpetrol.com', logoUrl: '/logos/operators/tecpetrol.svg' },
+  { id: 'pluspetrol', name: 'Pluspetrol', domain: 'pluspetrol.com', logoUrl: '/logos/operators/pluspetrol.svg' },
+  { id: 'cgc', name: 'CGC', domain: 'cgc.energy', logoUrl: '/logos/operators/cgc.png' },
+  { id: 'equinor', name: 'Equinor', domain: 'equinor.com', logoUrl: '/logos/operators/equinor.png' },
+  { id: 'bp', name: 'BP', domain: 'bp.com', logoUrl: '/logos/operators/bp.png' },
+  { id: 'geopark', name: 'GeoPark', domain: 'geopark.com', logoUrl: '/logos/operators/geopark.png' },
+  { id: 'qatarenergy', name: 'QatarEnergy', domain: 'qatarenergy.qa', logoUrl: '/logos/operators/qatarenergy.svg' },
+  { id: 'petronas', name: 'Petronas', domain: 'petronas.com', logoUrl: '/logos/operators/petronas.svg' },
+  { id: 'madalena', name: 'Madalena Energy', domain: 'madalenaenergy.com', logoUrl: '/logos/operators/madalena.png' },
+  { id: 'gyp', name: 'GyP', domain: 'gyp.com.ar', logoUrl: '/logos/operators/gyp.png' },
+  { id: 'murphy', name: 'Murphy Oil', domain: 'murphyoilcorp.com', logoUrl: '/logos/operators/murphy.png' },
+  {
+    id: 'conocophillips',
+    name: 'ConocoPhillips',
+    domain: 'conocophillips.com',
+    logoUrl: '/logos/operators/conocophillips.png'
+  },
+  { id: 'repsol', name: 'Repsol', domain: 'repsol.com', logoUrl: '/logos/operators/repsol.png' },
+  { id: 'eni', name: 'Eni', domain: 'eni.com', logoUrl: '/logos/operators/eni.png' },
+  { id: 'apache', name: 'Apache Corporation', domain: 'apacorp.com', logoUrl: '/logos/operators/apache.svg' },
+  { id: 'harbour', name: 'Harbour Energy', domain: 'harbourenergy.com', logoUrl: '/logos/operators/harbour.png' }
 ];
