@@ -62,3 +62,5 @@ apps/web/next-env.d.ts
 # IDE
 .idea/
 .vscode/
+
+.vercel

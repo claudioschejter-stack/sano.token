@@ -43,7 +43,7 @@ export function PropertyCard({
 }: PropertyCardProps) {
   const t = useTranslation();
   const { label: ctaLabel } = useCtaVariant();
-  const { formatFromUsd, formatPercent } = useLocalCurrency();
+  const { formatFromUsd } = useLocalCurrency();
 
   const isVerified = kycStatus === 'APPROVED';
   const estimatedAnnualYieldUsd = pricePerTokenUsd * (apyPercent / 100);
@@ -74,7 +74,11 @@ export function PropertyCard({
             {t.propertyCard.limitedAvailability}
           </span>
         ) : null}
-        <p className="absolute bottom-4 left-4 right-4 text-lg font-semibold text-terminal-text">{title}</p>
+        <div className="absolute bottom-4 left-4 rounded-lg border border-terminal-border bg-terminal-bg/90 p-3 backdrop-blur-sm">
+          <p className="text-xs text-terminal-muted">{t.common.projectedApy}</p>
+          <p className="mt-1 font-mono text-xl font-bold text-terminal-success">{apyPercent.toFixed(2)}%</p>
+        </div>
+        <p className="absolute bottom-24 left-4 right-4 text-lg font-semibold text-terminal-text">{title}</p>
       </div>
 
       <div className="space-y-4 p-5">
@@ -99,15 +103,9 @@ export function PropertyCard({
           <span className="line-clamp-1">{location}</span>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3">
-            <p className="text-xs text-terminal-muted">{t.common.projectedApy}</p>
-            <p className="mt-1 font-mono text-xl font-bold text-terminal-success">{formatPercent(apyPercent)}</p>
-          </div>
-          <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3">
-            <p className="text-xs text-terminal-muted">{t.propertyCard.tokenPrice}</p>
-            <p className="mt-1 font-mono text-xl font-bold text-terminal-text">{formatFromUsd(pricePerTokenUsd)}</p>
-          </div>
+        <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3">
+          <p className="text-xs text-terminal-muted">{t.propertyCard.tokenPrice}</p>
+          <p className="mt-1 font-mono text-xl font-bold text-terminal-text">{formatFromUsd(pricePerTokenUsd)}</p>
         </div>
 
         <div className="flex items-start gap-2 rounded-lg border border-terminal-success/20 bg-terminal-success/5 p-3">
