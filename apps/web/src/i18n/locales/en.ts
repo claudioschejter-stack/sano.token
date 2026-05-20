@@ -9,7 +9,9 @@ export const en = {
     completeKyc: 'Complete KYC',
     projectedApy: 'Projected APY',
     location: 'Location',
-    backToMarketplace: 'Back to marketplace'
+    backToMarketplace: 'Back to marketplace',
+    whatsappLabel: 'Chat with us on WhatsApp',
+    whatsappMessage: 'Hello, I am contacting you from the Sanova Global website.'
   },
   propertyCard: {
     kycRequired: 'Identity verification required before purchase.',
@@ -221,6 +223,8 @@ export type Messages = {
     projectedApy: string;
     location: string;
     backToMarketplace: string;
+    whatsappLabel: string;
+    whatsappMessage: string;
   };
   propertyCard: {
     kycRequired: string;

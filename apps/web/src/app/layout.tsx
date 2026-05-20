@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { PwaRegister } from '../components/PwaRegister';
+import { WhatsAppFloat } from '../components/WhatsAppFloat';
 import { AppProviders } from '../components/providers/AppProviders';
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProviders>
           <PwaRegister />
           {children}
+          <WhatsAppFloat />
         </AppProviders>
       </body>
     </html>

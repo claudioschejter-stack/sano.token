@@ -11,7 +11,9 @@ export const es = {
     completeKyc: 'Completar KYC',
     projectedApy: 'APY Proyectado',
     location: 'Ubicación',
-    backToMarketplace: 'Volver al marketplace'
+    backToMarketplace: 'Volver al marketplace',
+    whatsappLabel: 'Escribinos por WhatsApp',
+    whatsappMessage: 'Hola, me contacto desde el sitio web de Sanova Global.'
   },
   propertyCard: {
     kycRequired: 'Se requiere verificación de identidad antes de la compra.',
