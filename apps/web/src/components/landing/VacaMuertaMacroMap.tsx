@@ -16,7 +16,8 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
     >
       <div className="relative aspect-[5/4] w-full min-h-[280px] sm:min-h-[320px] lg:min-h-[400px]">
         <span
-          className="pointer-events-none absolute left-[22%] top-[58%] z-20 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center sm:h-12 sm:w-12"
+          className="pointer-events-none absolute z-20 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center sm:h-12 sm:w-12"
+          style={{ left: 'calc(22% - 0.5cm)', top: 'calc(58% - 3cm)' }}
           aria-hidden
         >
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-40" />
