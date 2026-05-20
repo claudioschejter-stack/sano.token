@@ -305,8 +305,6 @@ export type Messages = {
       title: string;
       subtitle: string;
       subtitleLead?: string;
-      subtitleHighlight?: string;
-      subtitleClose?: string;
       ctaPrimary: string;
       ctaSecondary: string;
       trustLine: string;
