@@ -75,7 +75,7 @@ export function LandingPage() {
                 priority
               />
               </div>
-              <div className="absolute -bottom-5 -left-5 rounded-xl border border-white/20 bg-[#111827]/95 p-4 shadow-xl backdrop-blur">
+              <div className="absolute -bottom-5 -left-[calc(1.25rem+0.5cm)] rounded-xl border border-white/20 bg-[#111827]/95 p-4 shadow-xl backdrop-blur">
                 <p className="text-xs uppercase tracking-wider text-slate-400">APY Proyectado</p>
                 <p className="mt-1 font-mono text-3xl font-bold text-emerald-400">9,20%</p>
                 <p className="mt-1 text-sm text-slate-300">Anelo Tower — Oficinas Premium</p>
