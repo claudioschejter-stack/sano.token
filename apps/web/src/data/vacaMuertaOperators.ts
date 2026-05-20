@@ -1,4 +1,6 @@
 /** Major oil & gas operators with activity in Vaca Muerta, Neuquén. */
+export const VACA_MUERTA_OPERATOR_COUNT = 24;
+
 export type VacaMuertaOperator = {
   id: string;
   /** Used for accessibility only; not shown in the UI. */

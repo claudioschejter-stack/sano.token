@@ -124,7 +124,8 @@ export const en = {
       avgApy: 'Avg. projected APY'
     },
     operators: {
-      title: 'Currently operating in Vaca Muerta'
+      title: 'Currently operating in Vaca Muerta',
+      subtitle: '24 oil & gas companies active in the basin'
     },
     howItWorks: {
       title: 'Invest in three steps',
@@ -317,6 +318,7 @@ export type Messages = {
     };
     operators: {
       title: string;
+      subtitle?: string;
     };
     howItWorks: {
       title: string;

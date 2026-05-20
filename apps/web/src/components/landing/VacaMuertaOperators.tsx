@@ -63,15 +63,19 @@ export function VacaMuertaOperators() {
         >
           {t.landing.operators.title}
         </h2>
-        <ul className="mt-10 grid grid-cols-2 items-center gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {t.landing.operators.subtitle ? (
+          <p className="mt-3 text-center text-sm text-slate-600">{t.landing.operators.subtitle}</p>
+        ) : null}
+        <ul className="mt-10 grid grid-cols-2 items-stretch gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
           {VACA_MUERTA_OPERATORS.map((operator) => (
             <li
               key={operator.id}
-              className="flex min-h-[3.5rem] items-center justify-center px-2"
+              className="flex min-h-[4.5rem] flex-col items-center justify-center gap-2 px-1"
               aria-label={operator.name}
               title={operator.name}
             >
               <OperatorLogo domain={operator.domain} logoUrl={operator.logoUrl} />
+              <span className="sr-only">{operator.name}</span>
             </li>
           ))}
         </ul>
