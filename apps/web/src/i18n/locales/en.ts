@@ -124,7 +124,7 @@ export const en = {
       avgApy: 'Avg. projected APY'
     },
     operators: {
-      title: 'Companies currently operating in Vaca Muerta',
+      title: 'Companies operating in Vaca Muerta',
       subtitle: 'These are some of the oil and gas companies with operations in the basin'
     },
     howItWorks: {

@@ -126,7 +126,7 @@ export const es = {
       avgApy: 'APY proyectado prom.'
     },
     operators: {
-      title: 'Empresas que operan actualmente en Vaca Muerta',
+      title: 'Empresas que operan en Vaca Muerta',
       subtitle:
         'Estas son algunas de las empresas petroleras y gasíferas con operaciones en la cuenca'
     },
