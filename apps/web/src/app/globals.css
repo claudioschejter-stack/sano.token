@@ -1,3 +1,109 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Operator logo marquee — pure CSS infinite scroll */
+@keyframes operator-marquee-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.operator-marquee {
+  --operator-marquee-duration: 72s;
+  position: relative;
+  width: 100%;
+}
+
+.operator-marquee__viewport {
+  overflow: hidden;
+  width: 100%;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 8%,
+    #000 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    #000 8%,
+    #000 92%,
+    transparent 100%
+  );
+}
+
+.operator-marquee__track {
+  display: flex;
+  width: max-content;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  animation: operator-marquee-scroll var(--operator-marquee-duration) linear infinite;
+  will-change: transform;
+}
+
+.operator-marquee:hover .operator-marquee__track {
+  animation-play-state: paused;
+}
+
+.operator-marquee__item {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.75rem;
+}
+
+@media (min-width: 640px) {
+  .operator-marquee__item {
+    padding: 0.875rem 2.25rem;
+  }
+}
+
+.operator-marquee__logo {
+  display: block;
+  filter: grayscale(100%);
+  opacity: 0.5;
+  transform: scale(1);
+  transition:
+    filter 0.4s ease,
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+
+.operator-marquee__item:hover .operator-marquee__logo {
+  filter: grayscale(0%);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operator-marquee__viewport {
+    -webkit-mask-image: none;
+    mask-image: none;
+    overflow: visible;
+  }
+
+  .operator-marquee__track {
+    animation: none;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    gap: 0.25rem 0.5rem;
+  }
+
+  .operator-marquee:hover .operator-marquee__track {
+    animation-play-state: running;
+  }
+
+  .operator-marquee__item[aria-hidden='true'] {
+    display: none;
+  }
+}
