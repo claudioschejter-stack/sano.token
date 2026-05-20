@@ -6,7 +6,7 @@ export function mergeLocale(patch: {
   brand?: Partial<Messages['brand']>;
   common?: Partial<Messages['common']>;
   nav?: Partial<Messages['nav']>;
-  landing?: Partial<Messages['landing']> & {
+  landing?: Partial<Omit<Messages['landing'], 'nav' | 'hero' | 'stats' | 'operators' | 'howItWorks' | 'featured' | 'benefits' | 'cta' | 'footer'>> & {
     nav?: Partial<Messages['landing']['nav']>;
     hero?: Partial<Messages['landing']['hero']>;
     stats?: Partial<Messages['landing']['stats']>;
