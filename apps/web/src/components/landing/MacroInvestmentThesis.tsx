@@ -60,7 +60,11 @@ export function MacroInvestmentThesis() {
               id="macro-thesis-title"
               className="mt-3 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl lg:text-[2.35rem] lg:leading-tight"
             >
-              {m.title}
+              {m.title.split('\n').map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
             </h2>
             <p className="mt-6 text-base leading-relaxed text-slate-600 sm:text-lg">{m.intro}</p>
 

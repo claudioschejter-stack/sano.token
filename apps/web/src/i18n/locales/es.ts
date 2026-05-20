@@ -133,8 +133,8 @@ export const es = {
         'Estas son algunas de las empresas petroleras y gasíferas con operaciones en la cuenca'
     },
     macroThesis: {
-      eyebrow: 'Contexto Macro & Tesis de Inversión',
-      title: 'Vaca Muerta: El Epicentro Energético Global',
+      eyebrow: 'Contexto Macro y Tesis de Inversión',
+      title: 'Vaca Muerta:\nEl Epicentro Energético Global',
       intro:
         'Ubicada en la Patagonia Argentina, Vaca Muerta no es una promesa exploratoria; es el yacimiento de shale (no convencional) de mayor crecimiento fuera de Norteamérica. Las principales operadoras energéticas del mundo ya están escalando su producción, consolidando un flujo de capital institucional histórico.',
       mapCaption:
