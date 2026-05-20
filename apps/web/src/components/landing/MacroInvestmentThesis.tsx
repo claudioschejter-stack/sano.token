@@ -14,12 +14,17 @@ function DataStatCard({ value, label }: { value: string; label: string }) {
   );
 }
 
+function MapCaption({ lead, detail }: { lead: string; detail: string }) {
+  return (
+    <figcaption className="mt-4 shrink-0 border-t border-slate-200/90 pt-4 md:mt-5">
+      <p className="text-sm font-semibold tracking-tight text-slate-800">{lead}</p>
+      <p className="mt-1.5 text-xs font-medium leading-relaxed text-slate-500">{detail}</p>
+    </figcaption>
+  );
+}
+
 /**
  * Macro context & investment thesis — Vaca Muerta energy → RWA real estate bridge.
- *
- * @example
- * import { MacroInvestmentThesis } from './MacroInvestmentThesis';
- * <MacroInvestmentThesis />
  */
 export function MacroInvestmentThesis() {
   const m = useTranslation().landing.macroThesis;
@@ -44,15 +49,13 @@ export function MacroInvestmentThesis() {
         }}
       />
       <div className="relative mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-24">
-        <div className="grid grid-cols-1 gap-10 md:gap-12 lg:grid-cols-12 lg:gap-16 lg:items-start">
-          <div className="lg:col-span-5">
-            <PatagoniaBasinMap />
-            <p className="mt-5 font-mono text-[11px] font-medium uppercase leading-relaxed tracking-wider text-slate-500 sm:text-xs">
-              {m.mapCaption}
-            </p>
-          </div>
+        <div className="grid grid-cols-1 gap-10 md:gap-12 lg:grid-cols-12 lg:items-stretch lg:gap-16">
+          <figure className="flex flex-col lg:col-span-5">
+            <PatagoniaBasinMap className="flex-1" />
+            <MapCaption lead={m.mapCaptionLead} detail={m.mapCaptionDetail} />
+          </figure>
 
-          <div className="lg:col-span-7">
+          <div className="flex flex-col lg:col-span-7">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-600">
               {m.eyebrow}
             </p>

@@ -137,8 +137,8 @@ export const es = {
       title: 'Vaca Muerta:\nEl Epicentro Energético Global',
       intro:
         'Ubicada en la Patagonia Argentina, Vaca Muerta no es una promesa exploratoria; es el yacimiento de shale (no convencional) de mayor crecimiento fuera de Norteamérica. Las principales operadoras energéticas del mundo ya están escalando su producción, consolidando un flujo de capital institucional histórico.',
-      mapCaption:
-        '📍 Patagonia, Argentina | 30.000 km² (Superficie equivalente a Bélgica)',
+      mapCaptionLead: 'Vaca Muerta, Argentina',
+      mapCaptionDetail: '30.000 km² (Superficie equivalente a Bélgica)',
       stat1Value: '2°',
       stat1Label: 'Reserva Mundial de Shale Gas',
       stat2Value: '4°',

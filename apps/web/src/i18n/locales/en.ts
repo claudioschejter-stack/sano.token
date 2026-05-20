@@ -134,8 +134,8 @@ export const en = {
       title: 'Vaca Muerta: The Global Energy Epicenter',
       intro:
         'Located in Argentine Patagonia, Vaca Muerta is not an exploratory promise — it is the fastest-growing unconventional shale play outside North America. The world\'s leading energy operators are already scaling production, consolidating a historic flow of institutional capital.',
-      mapCaption:
-        '📍 Patagonia, Argentina | 30,000 km² (Surface area comparable to Belgium)',
+      mapCaptionLead: 'Vaca Muerta, Argentina',
+      mapCaptionDetail: '30,000 km² (Surface area comparable to Belgium)',
       stat1Value: '2nd',
       stat1Label: 'Global Shale Gas Reserves',
       stat2Value: '4th',
@@ -362,7 +362,8 @@ export type Messages = {
       eyebrow: string;
       title: string;
       intro: string;
-      mapCaption: string;
+      mapCaptionLead: string;
+      mapCaptionDetail: string;
       stat1Value: string;
       stat1Label: string;
       stat2Value: string;
