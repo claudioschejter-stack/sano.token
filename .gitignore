@@ -1,0 +1,64 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules/
+**/node_modules/
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+**/coverage/
+
+# next.js
+.next/
+**/.next/
+/out/
+**/out/
+
+# nest / typescript build
+dist/
+**/dist/
+*.tsbuildinfo
+
+# hardhat / contracts
+artifacts/
+**/artifacts/
+cache/
+**/cache/
+typechain-types/
+**/typechain-types/
+
+# turbo
+.turbo/
+**/.turbo/
+
+# production
+/build
+**/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env
+.env*.local
+.env.local
+
+# vercel
+.vercel
+
+# prisma generated (hoisted client lives under root node_modules)
+# next-env is generated per app — keep ignored
+next-env.d.ts
+apps/web/next-env.d.ts
+
+# IDE
+.idea/
+.vscode/

@@ -1,0 +1,35 @@
+{
+  "name": "sanova-rwa-platform",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@11.12.1",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "db:generate": "turbo db:generate --filter=@sanova/database",
+    "db:push": "turbo db:push --filter=@sanova/database",
+    "db:seed": "npm run db:seed -w @sanova/database",
+    "contracts:compile": "turbo compile --filter=@sanova/contracts",
+    "contracts:export-abis": "npm run export:abis -w @sanova/contracts",
+    "contracts:test": "turbo test --filter=@sanova/contracts",
+    "web:dev": "npm run dev -w @sanova/web",
+    "api:dev": "npm run dev -w @sanova/api",
+    "infra:up": "docker compose up postgres redis -d",
+    "infra:down": "docker compose down",
+    "dev:all": "node scripts/dev-all.mjs"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.7.3"
+  },
+  "overrides": {
+    "@noble/hashes": "1.8.0",
+    "@noble/curves": "1.9.7"
+  }
+}

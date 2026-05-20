@@ -1,0 +1,28 @@
+{
+  "name": "@sanova/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "compile": "hardhat compile",
+    "export:abis": "npm run compile && node scripts/export-abis.js",
+    "test": "hardhat test",
+    "stress:test": "hardhat run scripts/stress-test.ts --network localhost",
+    "clean": "hardhat clean",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    "./abi/escrow-lending-pool": "./abi/escrow-lending-pool.abi.ts",
+    "./abi/sanova-asset-token": "./abi/sanova-asset-token.abi.ts"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.1.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.0.0",
+    "@types/node": "^20.17.10",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}

@@ -1,0 +1,244 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum InvestorType {
+  RETAIL
+  INSTITUTIONAL
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InvestmentStatus {
+  ACTIVE
+  PENDING
+  LIQUIDATED
+}
+
+enum PayoutStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum FiscalRegime {
+  LEY_19640
+  GENERAL
+}
+
+enum AdvisorTier {
+  JUNIOR
+  SENIOR
+  PARTNER
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  walletAddress   String    @unique
+  investorId      String?   @unique
+  kycStatus       KycStatus @default(PENDING)
+  kycProviderId   String?
+  jurisdiction    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  investor              Investor?              @relation(fields: [investorId], references: [id], onDelete: SetNull)
+  portfolio             Portfolio?
+  dividendDistributions DividendDistribution[]
+  advisor               Advisor?
+
+  @@index([walletAddress])
+  @@index([investorId])
+  @@index([kycStatus])
+  @@index([jurisdiction])
+}
+
+model Advisor {
+  id                String      @id @default(cuid())
+  userId            String      @unique
+  uplineId          String?
+  tier              AdvisorTier @default(JUNIOR)
+  accumulatedVolume Decimal     @default(0) @db.Decimal(20, 6)
+  commissionRateBps Int         @default(100)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  upline   Advisor?  @relation("AdvisorHierarchy", fields: [uplineId], references: [id], onDelete: SetNull)
+  downline Advisor[] @relation("AdvisorHierarchy")
+
+  @@index([uplineId])
+  @@index([tier])
+}
+
+model Investor {
+  id                 String       @id @default(cuid())
+  email              String       @unique
+  fullName           String
+  cuit               String       @unique
+  walletAddress      String       @unique
+  investorType       InvestorType @default(RETAIL)
+  kycStatus          KycStatus    @default(PENDING)
+  kycVerifiedAt      DateTime?
+  originOfFunds      String?
+  brokerAccountRef   String?
+  dividendPreference String       @default("CASH")
+  totalCapital       Decimal      @default(0) @db.Decimal(20, 6)
+  marginDebt         Decimal      @default(0) @db.Decimal(20, 6)
+  ltv                Decimal      @default(0) @db.Decimal(8, 4)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  investments           Investment[]
+  payoutReceipts        PayoutReceipt[]
+  dividendDistributions DividendDistribution[]
+  user                  User?
+
+  @@index([kycStatus])
+  @@index([walletAddress])
+  @@index([brokerAccountRef])
+}
+
+model Portfolio {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  totalCapital     Decimal  @default(0) @db.Decimal(20, 6)
+  activeMarginDebt Decimal  @default(0) @db.Decimal(20, 6)
+  ltv              Decimal  @default(0) @db.Decimal(8, 4)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Project {
+  id               String       @id
+  title            String
+  description      String
+  location         String
+  image            String?
+  totalTokens      Int
+  availableTokens  Int
+  pricePerToken    Decimal      @db.Decimal(20, 6)
+  targetYield      Decimal      @db.Decimal(8, 4)
+  fiscalRegime     FiscalRegime @default(LEY_19640)
+  fiscalLawRef     String       @default("Ley 19.640")
+  taxExemptionNote String?
+  jurisdiction     String?
+  promoterEntity   String?
+  contractAddress  String?
+  usdcVaultAddress String?
+  chainId          Int?
+  isActive         Boolean      @default(true)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  investments Investment[]
+  payouts     PayoutHistory[]
+
+  @@index([fiscalRegime])
+  @@index([isActive])
+  @@index([isActive, createdAt])
+}
+
+model Investment {
+  id               String           @id @default(cuid())
+  investorId       String
+  projectId        String
+  tokenCount       Int
+  purchasePriceUsd Decimal          @db.Decimal(20, 6)
+  status           InvestmentStatus @default(PENDING)
+  txHash           String?
+  purchasedAt      DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  investor Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([investorId, projectId, txHash])
+  @@index([investorId])
+  @@index([projectId])
+  @@index([status])
+  @@index([purchasedAt])
+}
+
+model PayoutHistory {
+  id              String       @id @default(cuid())
+  projectId       String
+  totalAmountPaid Decimal      @db.Decimal(20, 6)
+  txHash          String       @unique
+  status          PayoutStatus @default(PENDING)
+  debtOffsetUsd   Decimal      @default(0) @db.Decimal(20, 6)
+  liquidPaidUsd   Decimal      @default(0) @db.Decimal(20, 6)
+  executedAt      DateTime     @default(now())
+
+  project  Project         @relation(fields: [projectId], references: [id])
+  receipts PayoutReceipt[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([executedAt])
+}
+
+model PayoutReceipt {
+  id               String  @id @default(cuid())
+  payoutHistoryId  String
+  investorId       String
+  amountReceived   Decimal @db.Decimal(20, 6)
+  debtCancelledUsd Decimal @default(0) @db.Decimal(20, 6)
+  walletSentTo     String
+
+  payout   PayoutHistory @relation(fields: [payoutHistoryId], references: [id], onDelete: Cascade)
+  investor Investor      @relation(fields: [investorId], references: [id])
+
+  @@index([payoutHistoryId])
+  @@index([investorId])
+}
+
+model DividendDistribution {
+  id              String    @id @default(uuid())
+  assetId         String
+  userId          String
+  platformUserId  String?
+  amount          Decimal   @db.Decimal(20, 6)
+  appliedAmount   Decimal   @default(0) @db.Decimal(20, 6)
+  currency        String    @default("USD")
+  txHash          String?   @unique
+  distributedAt   DateTime  @default(now())
+  status          String
+  appliedToMargin Boolean   @default(false)
+  appliedAt       DateTime?
+
+  investor Investor @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [platformUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([platformUserId])
+  @@index([assetId])
+}
+
+model BlockchainEvent {
+  id              String   @id @default(cuid())
+  txHash          String
+  eventName       String
+  contractAddress String
+  payload         Json?
+  processedAt     DateTime @default(now())
+
+  @@unique([txHash, eventName, contractAddress])
+  @@index([eventName])
+  @@index([contractAddress])
+  @@index([processedAt])
+  @@index([txHash])
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Sanova Global RWA",
+  "short_name": "Sanova RWA",
+  "description": "Marketplace de activos reales tokenizados",
+  "start_url": "/marketplace",
+  "display": "standalone",
+  "background_color": "#0A0E17",
+  "theme_color": "#3B82F6",
+  "icons": []
+}
