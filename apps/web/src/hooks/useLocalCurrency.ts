@@ -21,7 +21,10 @@ const LOCALE_CURRENCY: Record<Locale, string> = {
   ru: 'RUB',
   ur: 'PKR',
   id: 'IDR',
-  de: 'EUR'
+  de: 'EUR',
+  ja: 'JPY',
+  sw: 'KES',
+  mr: 'INR'
 };
 
 const FALLBACK_FX: Record<string, number> = {
@@ -34,7 +37,9 @@ const FALLBACK_FX: Record<string, number> = {
   INR: 83,
   BDT: 110,
   PKR: 278,
-  IDR: 15800
+  IDR: 15800,
+  JPY: 150,
+  KES: 130
 };
 
 async function fetchFxRates(): Promise<Record<string, number>> {

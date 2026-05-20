@@ -6,17 +6,51 @@ import { es } from './locales/es';
 import { fr } from './locales/fr';
 import { hi } from './locales/hi';
 import { id } from './locales/id';
+import { ja } from './locales/ja';
+import { mr } from './locales/mr';
 import { pt } from './locales/pt';
 import { ru } from './locales/ru';
+import { sw } from './locales/sw';
 import { ur } from './locales/ur';
 import { zh } from './locales/zh';
 
-/** Twelve most widely spoken languages worldwide (by total speakers). */
-export type Locale = 'en' | 'zh' | 'hi' | 'es' | 'fr' | 'ar' | 'bn' | 'pt' | 'ru' | 'ur' | 'id' | 'de';
+/** Fifteen most widely spoken languages worldwide (by total speakers). */
+export type Locale =
+  | 'en'
+  | 'zh'
+  | 'hi'
+  | 'es'
+  | 'fr'
+  | 'ar'
+  | 'bn'
+  | 'pt'
+  | 'ru'
+  | 'ur'
+  | 'id'
+  | 'de'
+  | 'ja'
+  | 'sw'
+  | 'mr';
 
 export const defaultLocale: Locale = 'es';
 
-export const locales: Locale[] = ['en', 'zh', 'hi', 'es', 'fr', 'ar', 'bn', 'pt', 'ru', 'ur', 'id', 'de'];
+export const locales: Locale[] = [
+  'en',
+  'zh',
+  'hi',
+  'es',
+  'fr',
+  'ar',
+  'bn',
+  'pt',
+  'ru',
+  'ur',
+  'id',
+  'de',
+  'ja',
+  'sw',
+  'mr'
+];
 
 export const localeOptions: Array<{
   value: Locale;
@@ -34,7 +68,10 @@ export const localeOptions: Array<{
   { value: 'ru', flag: '🇷🇺', label: 'Русский' },
   { value: 'ur', flag: '🇵🇰', label: 'اردو' },
   { value: 'id', flag: '🇮🇩', label: 'Bahasa Indonesia' },
-  { value: 'de', flag: '🇩🇪', label: 'Deutsch' }
+  { value: 'de', flag: '🇩🇪', label: 'Deutsch' },
+  { value: 'ja', flag: '🇯🇵', label: '日本語' },
+  { value: 'sw', flag: '🇰🇪', label: 'Kiswahili' },
+  { value: 'mr', flag: '🇮🇳', label: 'मराठी' }
 ];
 
 export const intlLocaleByCode: Record<Locale, string> = {
@@ -49,7 +86,10 @@ export const intlLocaleByCode: Record<Locale, string> = {
   ru: 'ru-RU',
   ur: 'ur-PK',
   id: 'id-ID',
-  de: 'de-DE'
+  de: 'de-DE',
+  ja: 'ja-JP',
+  sw: 'sw-KE',
+  mr: 'mr-IN'
 };
 
 /** Locales that use right-to-left layout. */
@@ -67,7 +107,10 @@ export const messagesByLocale: Record<Locale, Messages> = {
   ru,
   ur,
   id,
-  de
+  de,
+  ja,
+  sw,
+  mr
 };
 
 export function resolveLocale(input?: string | null): Locale {
