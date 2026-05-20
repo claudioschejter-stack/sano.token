@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
-import { setDemoKycStatus } from '../../hooks/useKycStatus';
+import { setDemoKycStatus } from '../../../hooks/useKycStatus';
 
 function KycPageContent() {
   const searchParams = useSearchParams();

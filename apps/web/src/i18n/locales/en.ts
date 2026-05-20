@@ -39,6 +39,7 @@ export const en = {
   },
   nav: {
     language: 'Language',
+    home: 'Home',
     dashboard: 'Dashboard',
     marketplace: 'Marketplace',
     myAssets: 'My Assets',
@@ -99,6 +100,65 @@ export const en = {
     unavailable: 'Chart unavailable',
     unavailableHint: 'The rest of the dashboard remains operational. Reload the page to retry.'
   },
+  landing: {
+    nav: {
+      howItWorks: 'How it works',
+      properties: 'Properties',
+      marketplace: 'Marketplace',
+      portal: 'Investor portal'
+    },
+    hero: {
+      eyebrow: 'Tokenized real estate',
+      title: 'Own fractional real assets.\nEarn rental income on-chain.',
+      subtitle:
+        'Sanova Global connects verified investors with income-producing properties across Latin America — transparent yields, KYC compliance, and instant settlement.',
+      ctaPrimary: 'Browse properties',
+      ctaSecondary: 'How it works',
+      trustLine: 'Regulated frameworks · KYC/AML · On-chain distributions in USDC'
+    },
+    stats: {
+      properties: 'Live offerings',
+      investors: 'Verified investors',
+      distributed: 'USDC distributed',
+      avgApy: 'Avg. projected APY'
+    },
+    howItWorks: {
+      title: 'Invest in three steps',
+      subtitle: 'From discovery to on-chain ownership — designed for global retail and institutional investors.',
+      step1Title: 'Complete KYC',
+      step1Desc: 'Verify your identity once. Sanova partners with regulated onboarding providers.',
+      step2Title: 'Choose a property',
+      step2Desc: 'Browse tokenized assets with disclosed fiscal regime, APY, and placement progress.',
+      step3Title: 'Receive distributions',
+      step3Desc: 'Rental income flows to your wallet in USDC. Track everything in the investor portal.'
+    },
+    featured: {
+      title: 'Featured properties',
+      subtitle: 'Curated real-world assets with transparent token economics.',
+      viewAll: 'View all listings'
+    },
+    benefits: {
+      title: 'Why Sanova RWA',
+      incomeTitle: 'Recurring rental income',
+      incomeDesc: 'Monthly distributions from operating cash flow, settled on-chain.',
+      liquidityTitle: 'Programmed liquidity',
+      liquidityDesc: 'Exit via SanovaAMM treasury or secondary mechanisms when available.',
+      complianceTitle: 'Compliance-first',
+      complianceDesc: 'KYC, fiscal disclosure per jurisdiction, and auditable on-chain records.'
+    },
+    cta: {
+      title: 'Start building your real-asset portfolio',
+      subtitle: 'Join investors accessing institutional-grade tokenized real estate.',
+      button: 'Open marketplace'
+    },
+    footer: {
+      disclaimer:
+        'This site is for informational purposes only and does not constitute an offer to sell or solicitation to buy securities. Past performance does not guarantee future results. Consult licensed advisors before investing.',
+      rights: '© 2019–2026 Sanova Global. All rights reserved.',
+      privacy: 'Privacy',
+      terms: 'Terms'
+    }
+  },
   error: {
     eyebrow: 'Something went wrong',
     title: 'We could not load this view',
@@ -151,6 +211,7 @@ export type Messages = {
   };
   nav: {
     language: string;
+    home: string;
     dashboard: string;
     marketplace: string;
     myAssets: string;
@@ -209,6 +270,63 @@ export type Messages = {
   chart: {
     unavailable: string;
     unavailableHint: string;
+  };
+  landing: {
+    nav: {
+      howItWorks: string;
+      properties: string;
+      marketplace: string;
+      portal: string;
+    };
+    hero: {
+      eyebrow: string;
+      title: string;
+      subtitle: string;
+      ctaPrimary: string;
+      ctaSecondary: string;
+      trustLine: string;
+    };
+    stats: {
+      properties: string;
+      investors: string;
+      distributed: string;
+      avgApy: string;
+    };
+    howItWorks: {
+      title: string;
+      subtitle: string;
+      step1Title: string;
+      step1Desc: string;
+      step2Title: string;
+      step2Desc: string;
+      step3Title: string;
+      step3Desc: string;
+    };
+    featured: {
+      title: string;
+      subtitle: string;
+      viewAll: string;
+    };
+    benefits: {
+      title: string;
+      incomeTitle: string;
+      incomeDesc: string;
+      liquidityTitle: string;
+      liquidityDesc: string;
+      complianceTitle: string;
+      complianceDesc: string;
+    };
+    cta: {
+      title: string;
+      subtitle: string;
+      button: string;
+    };
+    footer: {
+      disclaimer: string;
+      rights: string;
+      privacy: string;
+      terms: string;
+    };
   };
   error: {
     eyebrow: string;

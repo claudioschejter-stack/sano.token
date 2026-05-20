@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDownToLine, Banknote, CheckCircle2, CircleDollarSign, Landmark } from 'lucide-react';
-import { apiClient } from '../../../lib/apiClient';
-import { usePortfolioStore } from '../../../store/usePortfolioStore';
+import { apiClient } from '../../../../lib/apiClient';
+import { usePortfolioStore } from '../../../../store/usePortfolioStore';
 
 const formatUsd = (value: number) =>
   new Intl.NumberFormat('en-US', {

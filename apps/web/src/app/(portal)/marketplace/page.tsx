@@ -1,5 +1,5 @@
-import { MarketplaceView } from '../../components/marketplace/MarketplaceView';
-import { fetchMarketplaceFeed } from '../../lib/marketplaceApi';
+import { MarketplaceView } from '../../../components/marketplace/MarketplaceView';
+import { fetchMarketplaceFeed } from '../../../lib/marketplaceApi';
 
 export const revalidate = 30;
 

@@ -1,12 +1,13 @@
 'use client';
 
-import { Building, LayoutDashboard, LogOut, ShoppingBag, Wallet } from 'lucide-react';
+import { Building, Home, LayoutDashboard, LogOut, ShoppingBag, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { LocaleSwitcher } from '../marketplace/LocaleSwitcher';
 
 const navItems = [
+  { href: '/', icon: Home, labelKey: 'home' as const },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' as const },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' as const },
   { href: '/dashboard/portfolio', icon: Building, labelKey: 'myAssets' as const },
@@ -26,7 +27,10 @@ export function AppSidebar() {
 
       <nav className="flex-1 space-y-2 px-4 py-6">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive =
+            item.href === '/'
+              ? pathname === '/'
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           const label = t.nav[item.labelKey];
 

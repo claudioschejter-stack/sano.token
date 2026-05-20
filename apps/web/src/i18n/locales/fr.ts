@@ -42,6 +42,7 @@ export const fr: Messages = {
   },
   nav: {
     language: 'Langue',
+    home: 'Accueil',
     dashboard: 'Tableau de bord',
     marketplace: 'Marketplace',
     myAssets: 'Mes actifs',
@@ -101,6 +102,65 @@ export const fr: Messages = {
   chart: {
     unavailable: 'Graphique indisponible',
     unavailableHint: 'Le reste du tableau de bord reste opérationnel. Rechargez la page pour réessayer.'
+  },
+  landing: {
+    nav: {
+      howItWorks: 'How it works',
+      properties: 'Properties',
+      marketplace: 'Marketplace',
+      portal: 'Investor portal'
+    },
+    hero: {
+      eyebrow: 'Tokenized real estate',
+      title: 'Own fractional real assets.\nEarn rental income on-chain.',
+      subtitle:
+        'Sanova Global connects verified investors with income-producing properties across Latin America.',
+      ctaPrimary: 'Browse properties',
+      ctaSecondary: 'How it works',
+      trustLine: 'Regulated frameworks · KYC/AML · On-chain distributions in USDC'
+    },
+    stats: {
+      properties: 'Live offerings',
+      investors: 'Verified investors',
+      distributed: 'USDC distributed',
+      avgApy: 'Avg. projected APY'
+    },
+    howItWorks: {
+      title: 'Invest in three steps',
+      subtitle: 'From discovery to on-chain ownership.',
+      step1Title: 'Complete KYC',
+      step1Desc: 'Verify your identity once with regulated onboarding partners.',
+      step2Title: 'Choose a property',
+      step2Desc: 'Browse tokenized assets with disclosed fiscal regime and APY.',
+      step3Title: 'Receive distributions',
+      step3Desc: 'Rental income flows to your wallet in USDC.'
+    },
+    featured: {
+      title: 'Featured properties',
+      subtitle: 'Curated real-world assets with transparent token economics.',
+      viewAll: 'View all listings'
+    },
+    benefits: {
+      title: 'Why Sanova RWA',
+      incomeTitle: 'Recurring rental income',
+      incomeDesc: 'Monthly distributions from operating cash flow, settled on-chain.',
+      liquidityTitle: 'Programmed liquidity',
+      liquidityDesc: 'Exit via SanovaAMM treasury when available.',
+      complianceTitle: 'Compliance-first',
+      complianceDesc: 'KYC, fiscal disclosure, and auditable on-chain records.'
+    },
+    cta: {
+      title: 'Start building your real-asset portfolio',
+      subtitle: 'Access institutional-grade tokenized real estate.',
+      button: 'Open marketplace'
+    },
+    footer: {
+      disclaimer:
+        'This site is for informational purposes only and does not constitute an offer to sell securities.',
+      rights: '© 2019–2026 Sanova Global. All rights reserved.',
+      privacy: 'Privacy',
+      terms: 'Terms'
+    }
   },
   error: {
     eyebrow: 'Une erreur est survenue',

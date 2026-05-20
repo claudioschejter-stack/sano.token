@@ -41,6 +41,7 @@ export const es = {
   },
   nav: {
     language: 'Idioma',
+    home: 'Inicio',
     dashboard: 'Dashboard',
     marketplace: 'Marketplace',
     myAssets: 'Mis Activos',
@@ -100,6 +101,65 @@ export const es = {
   chart: {
     unavailable: 'Gráfico no disponible',
     unavailableHint: 'El resto del dashboard sigue operativo. Reintenta recargando la página.'
+  },
+  landing: {
+    nav: {
+      howItWorks: 'Cómo funciona',
+      properties: 'Propiedades',
+      marketplace: 'Marketplace',
+      portal: 'Portal inversor'
+    },
+    hero: {
+      eyebrow: 'Real estate tokenizado',
+      title: 'Poseé activos reales fraccionados.\nCobrá rentas on-chain.',
+      subtitle:
+        'Sanova Global conecta inversores verificados con propiedades productivas en Latinoamérica — rendimientos transparentes, cumplimiento KYC y liquidación instantánea.',
+      ctaPrimary: 'Ver propiedades',
+      ctaSecondary: 'Cómo funciona',
+      trustLine: 'Marcos regulatorios · KYC/AML · Distribuciones on-chain en USDC'
+    },
+    stats: {
+      properties: 'Ofertas activas',
+      investors: 'Inversores verificados',
+      distributed: 'USDC distribuidos',
+      avgApy: 'APY proyectado prom.'
+    },
+    howItWorks: {
+      title: 'Invertí en tres pasos',
+      subtitle: 'Del descubrimiento a la titularidad on-chain — para inversores retail e institucionales.',
+      step1Title: 'Completá KYC',
+      step1Desc: 'Verificá tu identidad una vez. Sanova integra proveedores de onboarding regulados.',
+      step2Title: 'Elegí una propiedad',
+      step2Desc: 'Explorá activos tokenizados con régimen fiscal, APY y avance de colocación informados.',
+      step3Title: 'Recibí distribuciones',
+      step3Desc: 'Los ingresos por alquiler llegan a tu wallet en USDC. Seguimiento en el portal inversor.'
+    },
+    featured: {
+      title: 'Propiedades destacadas',
+      subtitle: 'Activos del mundo real con economía de tokens transparente.',
+      viewAll: 'Ver todos los listados'
+    },
+    benefits: {
+      title: 'Por qué Sanova RWA',
+      incomeTitle: 'Ingresos recurrentes',
+      incomeDesc: 'Distribuciones mensuales del flujo operativo, liquidadas on-chain.',
+      liquidityTitle: 'Liquidez programada',
+      liquidityDesc: 'Salida vía tesorería SanovaAMM o mercado secundario cuando esté disponible.',
+      complianceTitle: 'Cumplimiento primero',
+      complianceDesc: 'KYC, disclosure fiscal por jurisdicción y registros on-chain auditables.'
+    },
+    cta: {
+      title: 'Empezá tu portfolio de activos reales',
+      subtitle: 'Accedé a real estate tokenizado con estándar institucional.',
+      button: 'Abrir marketplace'
+    },
+    footer: {
+      disclaimer:
+        'Este sitio tiene fines informativos y no constituye oferta de venta ni solicitud de compra de valores. El rendimiento pasado no garantiza resultados futuros. Consultá asesores habilitados antes de invertir.',
+      rights: '© 2019–2026 Sanova Global. Todos los derechos reservados.',
+      privacy: 'Privacidad',
+      terms: 'Términos'
+    }
   },
   error: {
     eyebrow: 'Algo salió mal',
