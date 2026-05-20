@@ -172,8 +172,8 @@ export const es = {
     footer: {
       tagline: 'RWA · Real estate tokenizado',
       disclaimer:
-        'Este sitio tiene fines informativos y no constituye oferta de venta ni solicitud de compra de valores. El rendimiento pasado no garantiza resultados futuros. Consultá asesores habilitados antes de invertir.',
-      rights: '© 2019–2026 Sanova Global. Todos los derechos reservados.',
+        'Gestión de capital con foco en la integridad y la preservación de valor. Sanova Global SAS provee este ecosistema digital con fines informativos, integrando tecnología de vanguardia con la solidez de los activos físicos. Comprendemos que toda inversión involucra alguna variable de mercado y que los resultados previos son, en algunos casos, referenciales y no garantías absolutas. Diseñamos nuestras operaciones con los más altos estándares de integridad, cumplimiento y compromiso para su tranquilidad.',
+      rights: '© 2026 Sanova Global SAS. Todos los derechos reservados.',
       contact: 'Contacto',
       privacy: 'Privacidad',
       terms: 'Términos'
