@@ -39,7 +39,8 @@ export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
     name: 'Pluspetrol',
     domain: 'pluspetrol.com',
     logoUrl: '/logos/operators/pluspetrol.svg',
-    logoClassName: 'mx-auto h-8 w-auto max-w-[7.75rem] object-contain sm:h-9 sm:max-w-[8.25rem]'
+    logoClassName:
+      'mx-auto h-[calc(2rem+2mm)] w-auto max-w-[calc(7.75rem+2mm)] object-contain sm:h-[calc(2.25rem+2mm)] sm:max-w-[calc(8.25rem+2mm)]'
   },
   { id: 'cgc', name: 'CGC', domain: 'cgc.energy', logoUrl: '/logos/operators/cgc.png' },
   { id: 'equinor', name: 'Equinor', domain: 'equinor.com', logoUrl: '/logos/operators/equinor.png' },
