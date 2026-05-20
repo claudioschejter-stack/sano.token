@@ -166,9 +166,24 @@ export const de: Messages = {
       disclaimer:
         'This site is for informational purposes only and does not constitute an offer to sell securities.',
       rights: '© 2019–2026 Sanova Global. All rights reserved.',
+      contact: 'Contact',
       privacy: 'Privacy',
       terms: 'Terms'
     }
+  },
+  contact: {
+    title: 'Contact',
+    subtitle: 'Send us your inquiry and our team will get back to you shortly.',
+    nameLabel: 'Full name',
+    namePlaceholder: 'Your name',
+    emailLabel: 'Email',
+    emailPlaceholder: 'you@email.com',
+    messageLabel: 'Message',
+    messagePlaceholder: 'How can we help you?',
+    submit: 'Send message',
+    successTitle: 'Message sent',
+    successDesc: 'Thank you for contacting Sanova Global. We will respond as soon as possible.',
+    backHome: 'Back to home'
   },
   access: {
     title: 'Plattformzugang',

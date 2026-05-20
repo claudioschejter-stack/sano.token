@@ -18,6 +18,7 @@ export function mergeLocale(patch: {
     footer?: Partial<Messages['landing']['footer']>;
   };
   access?: Partial<Messages['access']>;
+  contact?: Partial<Messages['contact']>;
 }): Messages {
   const landing = patch.landing;
 
@@ -41,6 +42,7 @@ export function mergeLocale(patch: {
           footer: { ...en.landing.footer, ...landing.footer }
         }
       : en.landing,
-    access: { ...en.access, ...patch.access }
+    access: { ...en.access, ...patch.access },
+    contact: { ...en.contact, ...patch.contact }
   };
 }

@@ -172,9 +172,24 @@ export const es = {
       disclaimer:
         'Este sitio tiene fines informativos y no constituye oferta de venta ni solicitud de compra de valores. El rendimiento pasado no garantiza resultados futuros. Consultá asesores habilitados antes de invertir.',
       rights: '© 2019–2026 Sanova Global. Todos los derechos reservados.',
+      contact: 'Contacto',
       privacy: 'Privacidad',
       terms: 'Términos'
     }
+  },
+  contact: {
+    title: 'Contacto',
+    subtitle: 'Envianos tu consulta y nuestro equipo te responderá a la brevedad.',
+    nameLabel: 'Nombre completo',
+    namePlaceholder: 'Tu nombre',
+    emailLabel: 'Email',
+    emailPlaceholder: 'tu@email.com',
+    messageLabel: 'Mensaje',
+    messagePlaceholder: '¿En qué podemos ayudarte?',
+    submit: 'Enviar mensaje',
+    successTitle: 'Mensaje enviado',
+    successDesc: 'Gracias por contactar a Sanova Global. Te responderemos lo antes posible.',
+    backHome: 'Volver al inicio'
   },
   access: {
     title: 'Acceso a la plataforma',

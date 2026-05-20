@@ -211,7 +211,10 @@ export function LandingPage() {
               <p className="text-xl font-bold text-white">Sanova Global</p>
               <p className="mt-2 text-sm">{l.footer.tagline}</p>
             </div>
-            <div className="flex gap-6 text-sm">
+            <div className="flex flex-wrap gap-6 text-sm">
+              <Link href="/contacto" className="hover:text-white">
+                {l.footer.contact}
+              </Link>
               <Link href="/marketplace" className="hover:text-white">
                 {l.nav.marketplace}
               </Link>
