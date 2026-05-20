@@ -37,22 +37,28 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
 
           {/* Cubre el cartel pixelado del callout — mismo celeste que la cuenca */}
           <div
-            className="pointer-events-none absolute z-10 flex w-fit max-w-[38%] flex-col items-center justify-center gap-0 text-center leading-[1.08] text-slate-900"
+            className="pointer-events-none absolute z-10 flex w-fit max-w-[32%] flex-col items-center justify-center gap-px text-center text-slate-900"
             style={{
-              left: 'calc(49% + 2cm)',
+              left: 'calc(49% + 1.5cm)',
               top: 'calc(41.5% + 3cm)',
-              padding: '0.5cm',
+              padding: '0.65cm 0.32cm',
               backgroundColor: BASIN_BLUE
             }}
             aria-hidden
           >
-            <span className="text-[9px] font-extrabold tracking-wide sm:text-[11px] md:text-sm">
+            <span className="text-[9px] font-bold tracking-wide sm:text-[11px] md:text-sm">
               {mapFormationLine1}
             </span>
-            <span className="text-[10px] font-black tracking-[0.18em] sm:text-xs md:text-sm">
+            <span
+              className="inline-block origin-center text-[11px] font-medium leading-none tracking-[-0.06em] sm:text-[13px] md:text-base"
+              style={{ transform: 'scaleX(0.88) scaleY(1.22)' }}
+            >
               {mapFormationLine2}
             </span>
-            <span className="text-[10px] font-black tracking-[0.18em] sm:text-xs md:text-sm">
+            <span
+              className="inline-block origin-center text-[11px] font-medium leading-none tracking-[-0.06em] sm:text-[13px] md:text-base"
+              style={{ transform: 'scaleX(0.88) scaleY(1.22)' }}
+            >
               {mapFormationLine3}
             </span>
           </div>
