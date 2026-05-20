@@ -112,7 +112,7 @@ export const es = {
     languageLabel: 'Idioma',
     hero: {
       eyebrow: 'Real estate tokenizado',
-      title: 'Poseé activos reales fraccionados.\nCobrá rentas on-chain.',
+      title: 'Poseé activos reales en Vaca Muerta.\nCobrá rentas on-chain.',
       subtitle:
         'Sanova Global conecta inversores verificados con propiedades productivas en Vaca Muerta, Neuquén, Argentina — epicentro global del shale oil & gas no convencional, con la segunda reserva de gas del planeta, infraestructura de clase mundial, costos operativos entre los más competitivos y un enorme potencial de producción petrolera y gasífera — además de rendimientos transparentes, cumplimiento KYC y liquidación instantánea.',
       ctaPrimary: 'Ver propiedades',
