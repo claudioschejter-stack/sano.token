@@ -95,11 +95,14 @@ export function useLocalCurrency() {
 
   const formatFromUsd = (amountUsd: number) => formatter.format(convertFromUsd(amountUsd));
 
-  const formatPercent = (apyPercent: number) =>
+  const formatPercent = (
+    apyPercent: number,
+    fractionDigits: { minimum?: number; maximum?: number } = {}
+  ) =>
     new Intl.NumberFormat(intlLocale, {
       style: 'percent',
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1
+      minimumFractionDigits: fractionDigits.minimum ?? 1,
+      maximumFractionDigits: fractionDigits.maximum ?? 1
     }).format(apyPercent / 100);
 
   return {

@@ -43,7 +43,7 @@ export function PropertyCard({
 }: PropertyCardProps) {
   const t = useTranslation();
   const { label: ctaLabel } = useCtaVariant();
-  const { formatFromUsd } = useLocalCurrency();
+  const { formatFromUsd, formatPercent } = useLocalCurrency();
 
   const isVerified = kycStatus === 'APPROVED';
   const estimatedAnnualYieldUsd = pricePerTokenUsd * (apyPercent / 100);
@@ -76,7 +76,9 @@ export function PropertyCard({
         ) : null}
         <div className="absolute bottom-4 left-4 rounded-lg border border-terminal-border bg-terminal-bg/90 p-3 backdrop-blur-sm">
           <p className="text-xs text-terminal-muted">{t.common.projectedApy}</p>
-          <p className="mt-1 font-mono text-xl font-bold text-terminal-success">{apyPercent.toFixed(2)}%</p>
+          <p className="mt-1 font-mono text-xl font-bold text-terminal-success">
+            {formatPercent(apyPercent, { minimum: 2, maximum: 2 })}
+          </p>
         </div>
         <p className="absolute bottom-24 left-4 right-4 text-lg font-semibold text-terminal-text">{title}</p>
       </div>
