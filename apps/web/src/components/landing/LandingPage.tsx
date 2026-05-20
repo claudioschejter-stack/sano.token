@@ -64,7 +64,8 @@ export function LandingPage() {
           </div>
 
           <div className="relative hidden lg:flex lg:flex-col lg:justify-center">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
+            <div className="relative">
+              <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
               <Image
                 src={MARKETPLACE_FALLBACK_LISTINGS[0]!.imageUrl}
                 alt={MARKETPLACE_FALLBACK_LISTINGS[0]!.title}
@@ -73,7 +74,8 @@ export function LandingPage() {
                 className="h-[420px] w-full object-cover"
                 priority
               />
-              <div className="absolute bottom-0 left-0 rounded-tr-xl border border-white/20 bg-[#111827]/95 p-4 shadow-xl backdrop-blur">
+              </div>
+              <div className="absolute -bottom-5 -left-5 rounded-xl border border-white/20 bg-[#111827]/95 p-4 shadow-xl backdrop-blur">
                 <p className="text-xs uppercase tracking-wider text-slate-400">APY Proyectado</p>
                 <p className="mt-1 font-mono text-3xl font-bold text-emerald-400">9,20%</p>
                 <p className="mt-1 text-sm text-slate-300">Anelo Tower — Oficinas Premium</p>
