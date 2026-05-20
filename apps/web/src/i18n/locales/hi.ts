@@ -36,6 +36,9 @@ export const hi = mergeLocale({
       distributed: 'वितरित USDC',
       avgApy: 'औसत अनुमानित APY'
     },
+    operators: {
+      title: 'वर्तमान में वाका मुएर्ता में संचालित'
+    },
     howItWorks: {
       title: 'तीन चरणों में निवेश',
       subtitle: 'खोज से ऑन-चेन स्वामित्व तक — खुदरा और संस्थागत निवेशकों के लिए।',

@@ -36,6 +36,9 @@ export const ja = mergeLocale({
       distributed: '分配USDC',
       avgApy: '平均予想APY'
     },
+    operators: {
+      title: '現在バカ・ムエルタで稼働中'
+    },
     howItWorks: {
       title: '3ステップで投資',
       subtitle: '発見からオンチェーン所有まで — 個人・機関投資家向け。',

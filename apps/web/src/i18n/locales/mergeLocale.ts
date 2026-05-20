@@ -10,6 +10,7 @@ export function mergeLocale(patch: {
     nav?: Partial<Messages['landing']['nav']>;
     hero?: Partial<Messages['landing']['hero']>;
     stats?: Partial<Messages['landing']['stats']>;
+    operators?: Partial<Messages['landing']['operators']>;
     howItWorks?: Partial<Messages['landing']['howItWorks']>;
     featured?: Partial<Messages['landing']['featured']>;
     benefits?: Partial<Messages['landing']['benefits']>;
@@ -32,6 +33,7 @@ export function mergeLocale(patch: {
           nav: { ...en.landing.nav, ...landing.nav },
           hero: { ...en.landing.hero, ...landing.hero },
           stats: { ...en.landing.stats, ...landing.stats },
+          operators: { ...en.landing.operators, ...landing.operators },
           howItWorks: { ...en.landing.howItWorks, ...landing.howItWorks },
           featured: { ...en.landing.featured, ...landing.featured },
           benefits: { ...en.landing.benefits, ...landing.benefits },

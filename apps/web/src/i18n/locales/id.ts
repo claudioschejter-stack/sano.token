@@ -36,6 +36,9 @@ export const id = mergeLocale({
       distributed: 'USDC didistribusikan',
       avgApy: 'Rata-rata APY proyeksi'
     },
+    operators: {
+      title: 'Saat ini beroperasi di Vaca Muerta'
+    },
     howItWorks: {
       title: 'Investasi dalam tiga langkah',
       subtitle: 'Dari penemuan hingga kepemilikan on-chain — untuk investor ritel dan institusional.',

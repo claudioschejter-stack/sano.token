@@ -123,6 +123,9 @@ export const en = {
       distributed: 'USDC distributed',
       avgApy: 'Avg. projected APY'
     },
+    operators: {
+      title: 'Currently operating in Vaca Muerta'
+    },
     howItWorks: {
       title: 'Invest in three steps',
       subtitle: 'From discovery to on-chain ownership — designed for global retail and institutional investors.',
@@ -310,6 +313,9 @@ export type Messages = {
       investors: string;
       distributed: string;
       avgApy: string;
+    };
+    operators: {
+      title: string;
     };
     howItWorks: {
       title: string;

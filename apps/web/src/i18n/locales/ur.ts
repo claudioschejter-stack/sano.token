@@ -36,6 +36,9 @@ export const ur = mergeLocale({
       distributed: 'تقسیم شدہ USDC',
       avgApy: 'اوسط متوقع APY'
     },
+    operators: {
+      title: 'فی الحال واکا مورٹا میں آپریٹ کر رہے ہیں'
+    },
     howItWorks: {
       title: 'تین مراحل میں سرمایہ کاری',
       subtitle: 'دریافت سے آن چین ملکیت تک — خوردہ اور ادارہ جاتی سرمایہ کاروں کے لیے۔',

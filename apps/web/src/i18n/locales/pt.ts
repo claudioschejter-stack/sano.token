@@ -36,6 +36,9 @@ export const pt = mergeLocale({
       distributed: 'USDC distribuídos',
       avgApy: 'APY médio projetado'
     },
+    operators: {
+      title: 'Operam atualmente em Vaca Muerta'
+    },
     howItWorks: {
       title: 'Invista em três passos',
       subtitle: 'Da descoberta à propriedade on-chain — para investidores de varejo e institucionais.',

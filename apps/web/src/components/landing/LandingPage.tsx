@@ -15,13 +15,7 @@ import { MARKETPLACE_FALLBACK_LISTINGS } from '../../data/marketplaceFallback';
 import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
-
-const STATS = [
-  { key: 'properties' as const, value: '12+' },
-  { key: 'investors' as const, value: '2.4k+' },
-  { key: 'distributed' as const, value: '$18M+' },
-  { key: 'avgApy' as const, value: '9.7%' }
-];
+import { VacaMuertaOperators } from './VacaMuertaOperators';
 
 export function LandingPage() {
   const t = useTranslation();
@@ -90,16 +84,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="border-b border-slate-200 bg-slate-50">
-        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-6 py-12 md:grid-cols-4">
-          {STATS.map((stat) => (
-            <div key={stat.key} className="text-center">
-              <p className="font-mono text-3xl font-bold text-slate-900">{stat.value}</p>
-              <p className="mt-2 text-sm text-slate-600">{l.stats[stat.key]}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <VacaMuertaOperators />
 
       <section id="how-it-works" className="mx-auto max-w-7xl px-6 py-20">
         <div className="mx-auto max-w-2xl text-center">

@@ -36,6 +36,9 @@ export const sw = mergeLocale({
       distributed: 'USDC yaliyogawanywa',
       avgApy: 'Wastani wa APY inayotarajiwa'
     },
+    operators: {
+      title: 'Wanafanya kazi sasa Vaca Muerta'
+    },
     howItWorks: {
       title: 'Wekeza kwa hatua 3',
       subtitle: 'Kutoka ugunduzi hadi umiliki on-chain — kwa wawekezaji wa rejareja na taasisi.',

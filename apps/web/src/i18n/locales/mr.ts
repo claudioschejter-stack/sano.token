@@ -36,6 +36,9 @@ export const mr = mergeLocale({
       distributed: 'वितरित USDC',
       avgApy: 'सरासरी अंदाजे APY'
     },
+    operators: {
+      title: 'सध्या वाका मुएर्ता मध्ये कार्यरत'
+    },
     howItWorks: {
       title: 'तीन पायऱ्यांमध्ये गुंतवणूक',
       subtitle: 'शोधापासून ऑन-चेन मालकीपर्यंत — किरकोळ आणि संस्थात्मक गुंतवणूकदारांसाठी.',

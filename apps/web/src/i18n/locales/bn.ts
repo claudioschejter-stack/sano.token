@@ -36,6 +36,9 @@ export const bn = mergeLocale({
       distributed: 'বিতরণকৃত USDC',
       avgApy: 'গড় অনুমানিত APY'
     },
+    operators: {
+      title: 'বর্তমানে ভাকা মুয়ের্তায় পরিচালনা করছে'
+    },
     howItWorks: {
       title: 'তিন ধাপে বিনিয়োগ',
       subtitle: 'আবিষ্কার থেকে অন-চেইন মালিকানা — খুচরা ও প্রাতিষ্ঠানিক বিনিয়োগকারীদের জন্য।',

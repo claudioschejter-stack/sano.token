@@ -36,6 +36,9 @@ export const ar = mergeLocale({
       distributed: 'USDC موزّع',
       avgApy: 'متوسط APY المتوقع'
     },
+    operators: {
+      title: 'يعملون حاليًا في فاكا مويرتا'
+    },
     howItWorks: {
       title: 'استثمر في ثلاث خطوات',
       subtitle: 'من الاكتشاف إلى الملكية على السلسلة — للمستثمرين الأفراد والمؤسسات.',

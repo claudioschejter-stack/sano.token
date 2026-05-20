@@ -125,6 +125,9 @@ export const ru: Messages = {
       distributed: 'USDC distributed',
       avgApy: 'Avg. projected APY'
     },
+    operators: {
+      title: 'В настоящее время работают в Вака-Муэрте'
+    },
     howItWorks: {
       title: 'Invest in three steps',
       subtitle: 'From discovery to on-chain ownership.',

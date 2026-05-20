@@ -124,6 +124,9 @@ export const zh: Messages = {
       distributed: 'USDC distributed',
       avgApy: 'Avg. projected APY'
     },
+    operators: {
+      title: '目前在瓦卡穆埃尔塔运营'
+    },
     howItWorks: {
       title: 'Invest in three steps',
       subtitle: 'From discovery to on-chain ownership.',

@@ -125,6 +125,9 @@ export const es = {
       distributed: 'USDC distribuidos',
       avgApy: 'APY proyectado prom.'
     },
+    operators: {
+      title: 'Operan actualmente en Vaca Muerta'
+    },
     howItWorks: {
       title: 'Invertí en tres pasos',
       subtitle: 'Del descubrimiento a la titularidad on-chain — para inversores retail e institucionales.',
