@@ -29,7 +29,8 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
           alt="Mapa de Argentina. La formación Vaca Muerta se ubica en el oeste, en Neuquén y provincias limítrofes."
           fill
           className="object-contain object-center p-2 sm:p-3"
-          sizes="(max-width: 1024px) 100vw, 42vw"
+          sizes="(max-width: 1024px) 100vw, 560px"
+          quality={95}
           priority={false}
         />
       </div>
