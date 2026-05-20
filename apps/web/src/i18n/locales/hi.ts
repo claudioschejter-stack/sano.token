@@ -1,0 +1,93 @@
+import { mergeLocale } from './mergeLocale';
+
+export const hi = mergeLocale({
+  brand: { portalSubtitle: 'RWA पोर्टल' },
+  common: {
+    investNow: 'अभी निवेश करें',
+    backToMarketplace: 'मार्केटप्लेस पर वापस',
+    projectedApy: 'अनुमानित APY'
+  },
+  nav: {
+    home: 'होम',
+    language: 'भाषा',
+    marketplace: 'मार्केटप्लेस',
+    dashboard: 'डैशबोर्ड'
+  },
+  landing: {
+    languageLabel: 'भाषा',
+    nav: {
+      howItWorks: 'यह कैसे काम करता है',
+      properties: 'संपत्तियाँ',
+      marketplace: 'मार्केटप्लेस',
+      platformAccess: 'प्लेटफ़ॉर्म एक्सेस'
+    },
+    hero: {
+      eyebrow: 'टोकनाइज़्ड रियल एस्टेट',
+      title: 'आंशिक वास्तविक संपत्ति के मालिक बनें।\nऑन-चेन किराया आय अर्जित करें।',
+      subtitle:
+        'Sanova Global सत्यापित निवेशकों को लैटिन अमेरिका में आय-उत्पादक संपत्तियों से जोड़ता है — पारदर्शी रिटर्न, KYC अनुपालन और त्वरित निपटान।',
+      ctaPrimary: 'संपत्तियाँ देखें',
+      ctaSecondary: 'यह कैसे काम करता है',
+      trustLine: 'विनियमित ढाँचे · KYC/AML · USDC में ऑन-चेन वितरण'
+    },
+    stats: {
+      properties: 'सक्रिय ऑफ़र',
+      investors: 'सत्यापित निवेशक',
+      distributed: 'वितरित USDC',
+      avgApy: 'औसत अनुमानित APY'
+    },
+    howItWorks: {
+      title: 'तीन चरणों में निवेश',
+      subtitle: 'खोज से ऑन-चेन स्वामित्व तक — खुदरा और संस्थागत निवेशकों के लिए।',
+      step1Title: 'KYC पूरा करें',
+      step1Desc: 'एक बार पहचान सत्यापित करें। Sanova विनियमित ऑनबोर्डिंग प्रदाताओं के साथ काम करता है।',
+      step2Title: 'संपत्ति चुनें',
+      step2Desc: 'कर व्यवस्था, APY और प्लेसमेंट प्रगति के साथ टोकनाइज़्ड संपत्तियाँ देखें।',
+      step3Title: 'वितरण प्राप्त करें',
+      step3Desc: 'किराया आय USDC में आपके वॉलेट में आती है। निवेशक पोर्टल में ट्रैक करें।'
+    },
+    featured: {
+      title: 'विशेष संपत्तियाँ',
+      subtitle: 'पारदर्शी टोकन अर्थशास्त्र के साथ वास्तविक संपत्तियाँ।',
+      viewAll: 'सभी लिस्टिंग देखें',
+      soldPercent: '{percent}% बिका',
+      apyBadge: '{apy}% APY'
+    },
+    benefits: {
+      title: 'Sanova RWA क्यों',
+      incomeTitle: 'आवर्ती किराया आय',
+      incomeDesc: 'परिचालन नकदी प्रवाह से मासिक वितरण, ऑन-चेन निपटान।',
+      liquidityTitle: 'नियोजित तरलता',
+      liquidityDesc: 'SanovaAMM ट्रेजरी या सेकंडरी मार्केट के माध्यम से निकासी।',
+      complianceTitle: 'अनुपालन-प्रथम',
+      complianceDesc: 'KYC, कर प्रकटीकरण और ऑडिट योग्य ऑन-चेन रिकॉर्ड।'
+    },
+    cta: {
+      title: 'अपना वास्तविक-संपत्ति पोर्टफोलियो बनाएं',
+      subtitle: 'संस्थागत-ग्रेड टोकनाइज़्ड रियल एस्टेट तक पहुँचें।',
+      button: 'मार्केटप्लेस खोलें'
+    },
+    footer: {
+      tagline: 'RWA · टोकनाइज़्ड रियल एस्टेट',
+      disclaimer:
+        'यह साइट केवल सूचनात्मक है और प्रतिभूति बिक्री या खरीद का प्रस्ताव नहीं है। पिछला प्रदर्शन भविष्य की गारंटी नहीं देता।',
+      rights: '© 2019–2026 Sanova Global. सर्वाधिकार सुरक्षित।',
+      privacy: 'गोपनीयता',
+      terms: 'शर्तें'
+    }
+  },
+  access: {
+    title: 'प्लेटफ़ॉर्म एक्सेस',
+    subtitle: 'यदि खाता है तो साइन इन करें, या पंजीकरण करें और KYC पूरा करें।',
+    loginTitle: 'साइन इन',
+    loginDesc: 'सत्यापित खाते और वॉलेट के साथ मार्केटप्लेस और पोर्टफोलियो तक पहुँच।',
+    loginButton: 'मार्केटप्लेस पर जाएँ',
+    registerTitle: 'खाता बनाएँ',
+    registerDesc: 'नए निवेशक के रूप में पंजीकरण। पहली खरीद से पहले KYC आवश्यक।',
+    registerButton: 'पंजीकरण और KYC शुरू',
+    kycTitle: 'पहचान सत्यापन (KYC)',
+    kycDesc: 'विनियामक अनुपालन के लिए पहचान सत्यापन आवश्यक है।',
+    kycButton: 'KYC जारी रखें',
+    backHome: 'होम पर वापस'
+  }
+});

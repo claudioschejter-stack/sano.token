@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { defaultLocale, intlLocaleByCode, messagesByLocale, resolveLocale, type Locale } from './index';
+import { defaultLocale, intlLocaleByCode, messagesByLocale, resolveLocale, rtlLocales, type Locale } from './index';
 import type { Messages } from './locales/en';
 
 const STORAGE_KEY = 'sanova.locale';
@@ -24,6 +24,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     const resolved = resolveLocale(stored);
     setLocaleState(resolved);
     document.documentElement.lang = resolved;
+    document.documentElement.dir = rtlLocales.includes(resolved) ? 'rtl' : 'ltr';
     setHydrated(true);
   }, []);
 
@@ -31,6 +32,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setLocaleState(nextLocale);
     window.localStorage.setItem(STORAGE_KEY, nextLocale);
     document.documentElement.lang = nextLocale;
+    document.documentElement.dir = rtlLocales.includes(nextLocale) ? 'rtl' : 'ltr';
   }, []);
 
   const value = useMemo(

@@ -11,10 +11,16 @@ type FxRatesResponse = {
 
 const LOCALE_CURRENCY: Record<Locale, string> = {
   en: 'USD',
-  es: 'ARS',
-  ru: 'RUB',
   zh: 'CNY',
+  hi: 'INR',
+  es: 'ARS',
   fr: 'EUR',
+  ar: 'USD',
+  bn: 'BDT',
+  pt: 'BRL',
+  ru: 'RUB',
+  ur: 'PKR',
+  id: 'IDR',
   de: 'EUR'
 };
 
@@ -24,7 +30,11 @@ const FALLBACK_FX: Record<string, number> = {
   EUR: 0.92,
   BRL: 5.1,
   RUB: 92,
-  CNY: 7.2
+  CNY: 7.2,
+  INR: 83,
+  BDT: 110,
+  PKR: 278,
+  IDR: 15800
 };
 
 async function fetchFxRates(): Promise<Record<string, number>> {

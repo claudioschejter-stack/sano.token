@@ -20,7 +20,7 @@ export function LanguageDropdown({ variant = 'light' }: LanguageDropdownProps) {
       : 'border-terminal-border bg-terminal-card text-terminal-text focus:border-terminal-primary focus:ring-terminal-primary';
 
   return (
-    <label className={`flex items-center gap-2 text-sm font-medium ${labelClass}`}>
+    <label className={`ml-[0.5cm] flex items-center gap-2 text-sm font-medium ${labelClass}`}>
       <span className="whitespace-nowrap">{t.landing.languageLabel}</span>
       <select
         value={locale}
