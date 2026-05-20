@@ -8,15 +8,30 @@ export type VacaMuertaOperator = {
   domain: string;
   /** Local color logo in /public/logos/operators */
   logoUrl: string;
+  /** Optional Tailwind classes to fine-tune logo fit inside the card */
+  logoClassName?: string;
 };
 
 export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
-  { id: 'ypf', name: 'YPF', domain: 'ypf.com', logoUrl: '/logos/operators/ypf.png' },
+  {
+    id: 'ypf',
+    name: 'YPF',
+    domain: 'ypf.com',
+    logoUrl: '/logos/operators/ypf.svg',
+    logoClassName: 'h-10 w-10 object-contain sm:h-11 sm:w-11'
+  },
   { id: 'chevron', name: 'Chevron', domain: 'chevron.com', logoUrl: '/logos/operators/chevron.png' },
   { id: 'shell', name: 'Shell', domain: 'shell.com', logoUrl: '/logos/operators/shell.png' },
   { id: 'total', name: 'TotalEnergies', domain: 'totalenergies.com', logoUrl: '/logos/operators/total.png' },
   { id: 'exxon', name: 'ExxonMobil', domain: 'exxonmobil.com', logoUrl: '/logos/operators/exxon.svg' },
-  { id: 'pae', name: 'Pan American Energy', domain: 'pan-energy.com', logoUrl: '/logos/operators/pae.png' },
+  {
+    id: 'pae',
+    name: 'Pan American Energy',
+    domain: 'pan-energy.com',
+    logoUrl: '/logos/operators/pae.png',
+    logoClassName:
+      'mx-auto h-10 w-auto max-w-[8.75rem] object-contain invert sm:h-12 sm:max-w-[9.25rem]'
+  },
   { id: 'pampa', name: 'Pampa Energía', domain: 'pampa.com.ar', logoUrl: '/logos/operators/pampa.svg' },
   { id: 'vista', name: 'Vista Energy', domain: 'vistaenergy.com', logoUrl: '/logos/operators/vista.png' },
   { id: 'tecpetrol', name: 'Tecpetrol', domain: 'tecpetrol.com', logoUrl: '/logos/operators/tecpetrol.svg' },

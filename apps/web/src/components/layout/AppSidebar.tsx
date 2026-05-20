@@ -17,6 +17,8 @@ const navItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const t = useTranslation();
+  const hideLanguageSwitcher =
+    pathname === '/marketplace' || pathname.startsWith('/marketplace/');
 
   return (
     <aside className="flex w-64 flex-col border-r border-terminal-border bg-terminal-card text-terminal-text">
@@ -54,7 +56,7 @@ export function AppSidebar() {
       </nav>
 
       <div className="space-y-4 border-t border-terminal-border p-4">
-        <LocaleSwitcher />
+        {hideLanguageSwitcher ? null : <LocaleSwitcher />}
         <button
           type="button"
           className="flex w-full items-center gap-3 px-3 py-2 text-terminal-muted transition-colors hover:text-terminal-text"
