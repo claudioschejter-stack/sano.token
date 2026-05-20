@@ -18,7 +18,8 @@ export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
     name: 'YPF',
     domain: 'ypf.com',
     logoUrl: '/logos/operators/ypf.svg',
-    logoClassName: 'h-10 w-10 object-contain sm:h-11 sm:w-11'
+    logoClassName:
+      'mx-auto h-11 w-11 max-h-[3.25rem] max-w-[3.25rem] object-contain object-center sm:h-12 sm:w-12 sm:max-h-[3.5rem] sm:max-w-[3.5rem]'
   },
   { id: 'chevron', name: 'Chevron', domain: 'chevron.com', logoUrl: '/logos/operators/chevron.png' },
   { id: 'shell', name: 'Shell', domain: 'shell.com', logoUrl: '/logos/operators/shell.png' },
@@ -29,8 +30,7 @@ export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
     name: 'Pan American Energy',
     domain: 'pan-energy.com',
     logoUrl: '/logos/operators/pae.png',
-    logoClassName:
-      'mx-auto h-10 w-auto max-w-[8.75rem] object-contain invert sm:h-12 sm:max-w-[9.25rem]'
+    logoClassName: 'mx-auto h-9 w-auto max-w-[8.5rem] object-contain sm:h-10 sm:max-w-[9rem]'
   },
   { id: 'pampa', name: 'Pampa Energía', domain: 'pampa.com.ar', logoUrl: '/logos/operators/pampa.svg' },
   { id: 'vista', name: 'Vista Energy', domain: 'vistaenergy.com', logoUrl: '/logos/operators/vista.png' },

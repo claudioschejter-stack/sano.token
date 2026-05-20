@@ -114,7 +114,7 @@ export const es = {
       eyebrow: 'Real estate tokenizado',
       title: 'Poseé activos reales en Vaca Muerta.\nCobrá rentas on-chain.',
       subtitle:
-        'Vaca Muerta es el epicentro global del shale oil & gas no convencional, con la segunda reserva de gas del planeta, infraestructura de clase mundial, costos operativos muy competitivos y un enorme potencial de producción petrolera y gasífera. Sanova Global conecta inversores verificados con propiedades productivas en Vaca Muerta, Argentina. Otorgando rendimientos transparentes y muy rentables, con cumplimiento KYC y liquidación instantánea.',
+        'Vaca Muerta no es solo la segunda reserva de gas del planeta; es el epicentro global del shale no convencional. Su acelerado crecimiento ha generado un déficit crítico de infraestructura estratégica. A través de la tokenización de activos (RWA), Sanova Global conecta capital global con desarrollos inmobiliarios y comerciales prime en el corredor estratégico de la cuenca, respaldados por contratos de alquiler B2B con las principales operadoras energéticas. Ofrecemos exposición directa al sector más dinámico de Argentina con rendimientos en moneda dura, cumplimiento regulatorio (KYC) estricto y liquidación automatizada de dividendos.',
       ctaPrimary: 'Ver propiedades',
       ctaSecondary: 'Cómo funciona',
       trustLine: 'Marcos regulatorios · KYC/AML · Distribuciones on-chain en USDC'
