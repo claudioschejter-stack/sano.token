@@ -32,7 +32,9 @@ export function MacroInvestmentThesis() {
         <div className="mt-10 flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:items-stretch">
           <figure className="flex w-full flex-col lg:col-span-5">
             <VacaMuertaMacroMap className="flex-1" />
-            <figcaption className="mt-4 text-sm text-slate-400">{m.mapCaption}</figcaption>
+            <figcaption className="mt-4 whitespace-pre-line text-sm text-slate-400">
+              {m.mapCaption}
+            </figcaption>
           </figure>
 
           <div className="flex w-full flex-col lg:col-span-7">

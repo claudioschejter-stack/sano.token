@@ -138,7 +138,7 @@ export const es = {
       intro:
         'Vaca Muerta no es una promesa exploratoria; es la segunda reserva mundial de shale gas y la cuarta de shale oil. Con una escala comparable a la cuenca Permian en EE. UU., las principales multinacionales energéticas inyectan más de US$ 9.000 millones anuales para expandir su producción.',
       mapCaption:
-        '📍 Patagonia, Argentina (38°S) | Cuenca Vaca Muerta: 30.000 km² — equivalente a Bélgica',
+        '📍 Patagonia, Argentina (38°S)\n    Cuenca Vaca Muerta: 30.000 km² — equivalente a Bélgica',
       thesisTitle: 'El Déficit de Infraestructura: Nuestra Tesis de Inversión',
       thesisDesc:
         'Esta aceleración masiva exige instalaciones físicas que la región hoy no posee. Sanova Global tokeniza la infraestructura prime que sostiene esta operación monumental.',
