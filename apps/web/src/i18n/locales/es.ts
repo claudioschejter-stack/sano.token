@@ -114,13 +114,11 @@ export const es = {
       eyebrow: 'Real estate tokenizado',
       title: 'Poseé activos reales en Vaca Muerta.\nCobrá rentas on-chain.',
       subtitle:
-        'Sanova Global conecta inversores verificados con propiedades productivas en Vaca Muerta, Argentina — Epicentro global del shale oil & gas no convencional, con la segunda reserva de gas del planeta, infraestructura de clase mundial, costos operativos entre los más competitivos y un enorme potencial de producción petrolera y gasífera — además de rendimientos transparentes, cumplimiento KYC y liquidación instantánea.',
-      subtitleLead:
-        'Sanova Global conecta inversores verificados con propiedades productivas en Vaca Muerta, Argentina —',
+        'Vaca Muerta es el epicentro global del shale oil & gas no convencional, con la segunda reserva de gas del planeta, infraestructura de clase mundial, costos operativos entre los más competitivos y un enorme potencial de producción petrolera y gasífera. Sanova Global conecta inversores verificados con propiedades productivas en Vaca Muerta, Argentina. Otorgando rendimientos transparentes y muy rentables, con cumplimiento KYC y liquidación instantánea.',
       subtitleHighlight:
-        'Epicentro global del shale oil & gas no convencional, con la segunda reserva de gas del planeta, infraestructura de clase mundial, costos operativos entre los más competitivos y un enorme potencial de producción petrolera y gasífera.',
+        'Vaca Muerta es el epicentro global del shale oil & gas no convencional, con la segunda reserva de gas del planeta, infraestructura de clase mundial, costos operativos entre los más competitivos y un enorme potencial de producción petrolera y gasífera.',
       subtitleClose:
-        '— además de rendimientos transparentes, cumplimiento KYC y liquidación instantánea.',
+        'Sanova Global conecta inversores verificados con propiedades productivas en Vaca Muerta, Argentina. Otorgando rendimientos transparentes y muy rentables, con cumplimiento KYC y liquidación instantánea.',
       ctaPrimary: 'Ver propiedades',
       ctaSecondary: 'Cómo funciona',
       trustLine: 'Marcos regulatorios · KYC/AML · Distribuciones on-chain en USDC'
