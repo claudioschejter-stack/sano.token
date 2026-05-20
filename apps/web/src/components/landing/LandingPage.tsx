@@ -12,8 +12,9 @@ import {
   Wallet
 } from 'lucide-react';
 import { MARKETPLACE_FALLBACK_LISTINGS } from '../../data/marketplaceFallback';
+import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { LocaleSwitcher } from '../marketplace/LocaleSwitcher';
+import { LandingHeader } from './LandingHeader';
 
 const STATS = [
   { key: 'properties' as const, value: '12+' },
@@ -157,7 +158,7 @@ export function LandingPage() {
                     className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                   />
                   <span className="absolute right-3 top-3 rounded-full bg-emerald-500 px-3 py-1 text-xs font-bold text-white">
-                    {listing.apyPercent}% APY
+                    {formatMessage(l.featured.apyBadge, { apy: listing.apyPercent })}
                   </span>
                 </div>
                 <div className="p-5">
@@ -167,7 +168,9 @@ export function LandingPage() {
                     <span className="text-slate-600">
                       ${listing.pricePerTokenUsd} / {t.propertyCard.perToken}
                     </span>
-                    <span className="font-medium text-slate-900">{listing.soldPercent}% sold</span>
+                    <span className="font-medium text-slate-900">
+                      {formatMessage(l.featured.soldPercent, { percent: listing.soldPercent })}
+                    </span>
                   </div>
                   <Link
                     href={`/marketplace/${listing.id}/checkout`}
@@ -218,14 +221,14 @@ export function LandingPage() {
           <div className="flex flex-col gap-8 md:flex-row md:justify-between">
             <div>
               <p className="text-xl font-bold text-white">Sanova Global</p>
-              <p className="mt-2 text-sm">RWA · Tokenized real estate</p>
+              <p className="mt-2 text-sm">{l.footer.tagline}</p>
             </div>
             <div className="flex gap-6 text-sm">
               <Link href="/marketplace" className="hover:text-white">
                 {l.nav.marketplace}
               </Link>
-              <Link href="/dashboard" className="hover:text-white">
-                {l.nav.portal}
+              <Link href="/acceso" className="hover:text-white">
+                {l.nav.platformAccess}
               </Link>
               <span className="cursor-default hover:text-white">{l.footer.privacy}</span>
               <span className="cursor-default hover:text-white">{l.footer.terms}</span>
@@ -239,37 +242,3 @@ export function LandingPage() {
   );
 }
 
-function LandingHeader() {
-  const t = useTranslation();
-  const l = t.landing;
-
-  return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-        <Link href="/" className="text-xl font-bold tracking-tight text-slate-900">
-          Sanova <span className="text-blue-600">Global</span>
-        </Link>
-        <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-          <a href="#how-it-works" className="hover:text-slate-900">
-            {l.nav.howItWorks}
-          </a>
-          <a href="#properties" className="hover:text-slate-900">
-            {l.nav.properties}
-          </a>
-          <Link href="/marketplace" className="hover:text-slate-900">
-            {l.nav.marketplace}
-          </Link>
-        </nav>
-        <div className="flex items-center gap-3">
-          <LocaleSwitcher compact />
-          <Link
-            href="/marketplace"
-            className="hidden rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 sm:inline-flex"
-          >
-            {l.nav.portal}
-          </Link>
-        </div>
-      </div>
-    </header>
-  );
-}

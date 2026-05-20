@@ -107,8 +107,9 @@ export const de: Messages = {
       howItWorks: 'How it works',
       properties: 'Properties',
       marketplace: 'Marketplace',
-      portal: 'Investor portal'
+      platformAccess: 'Plattformzugang'
     },
+    languageLabel: 'Sprache',
     hero: {
       eyebrow: 'Tokenized real estate',
       title: 'Own fractional real assets.\nEarn rental income on-chain.',
@@ -137,7 +138,9 @@ export const de: Messages = {
     featured: {
       title: 'Featured properties',
       subtitle: 'Curated real-world assets with transparent token economics.',
-      viewAll: 'View all listings'
+      viewAll: 'View all listings',
+      soldPercent: '{percent}% platziert',
+      apyBadge: '{apy}% APY'
     },
     benefits: {
       title: 'Why Sanova RWA',
@@ -154,12 +157,27 @@ export const de: Messages = {
       button: 'Open marketplace'
     },
     footer: {
+      tagline: 'RWA · Tokenisierte Immobilien',
       disclaimer:
         'This site is for informational purposes only and does not constitute an offer to sell securities.',
       rights: '© 2019–2026 Sanova Global. All rights reserved.',
       privacy: 'Privacy',
       terms: 'Terms'
     }
+  },
+  access: {
+    title: 'Plattformzugang',
+    subtitle: 'Melden Sie sich an oder registrieren Sie sich und schließen Sie KYC ab, um zu investieren.',
+    loginTitle: 'Anmelden',
+    loginDesc: 'Zugang zum Marketplace und Portfolio mit verifiziertem Konto und Wallet.',
+    loginButton: 'Zum Marketplace',
+    registerTitle: 'Konto erstellen',
+    registerDesc: 'Als neuer Investor registrieren. KYC ist vor dem ersten Kauf erforderlich.',
+    registerButton: 'Registrieren & KYC starten',
+    kycTitle: 'Identitätsprüfung (KYC)',
+    kycDesc: 'Regulatorische Compliance erfordert eine Identitätsprüfung über unseren Partner.',
+    kycButton: 'Weiter zu KYC',
+    backHome: 'Zur Startseite'
   },
   error: {
     eyebrow: 'Etwas ist schiefgelaufen',

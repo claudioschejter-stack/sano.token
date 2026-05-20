@@ -106,8 +106,9 @@ export const zh: Messages = {
       howItWorks: 'How it works',
       properties: 'Properties',
       marketplace: 'Marketplace',
-      portal: 'Investor portal'
+      platformAccess: '平台访问'
     },
+    languageLabel: '语言',
     hero: {
       eyebrow: 'Tokenized real estate',
       title: 'Own fractional real assets.\nEarn rental income on-chain.',
@@ -136,7 +137,9 @@ export const zh: Messages = {
     featured: {
       title: 'Featured properties',
       subtitle: 'Curated real-world assets with transparent token economics.',
-      viewAll: 'View all listings'
+      viewAll: 'View all listings',
+      soldPercent: '已售 {percent}%',
+      apyBadge: '{apy}% APY'
     },
     benefits: {
       title: 'Why Sanova RWA',
@@ -153,12 +156,27 @@ export const zh: Messages = {
       button: 'Open marketplace'
     },
     footer: {
+      tagline: 'RWA · 代币化房地产',
       disclaimer:
         'This site is for informational purposes only and does not constitute an offer to sell securities.',
       rights: '© 2019–2026 Sanova Global. All rights reserved.',
       privacy: 'Privacy',
       terms: 'Terms'
     }
+  },
+  access: {
+    title: '平台访问',
+    subtitle: '登录已有账户，或注册并完成 KYC 后投资代币化房产。',
+    loginTitle: '登录',
+    loginDesc: '使用已验证账户和钱包访问市场与投资组合。',
+    loginButton: '前往市场',
+    registerTitle: '创建账户',
+    registerDesc: '注册新投资者。首次购买前需完成 KYC。',
+    registerButton: '注册并开始 KYC',
+    kycTitle: '身份验证 (KYC)',
+    kycDesc: '合规要求通过受监管的入驻合作伙伴完成身份验证。',
+    kycButton: '继续 KYC',
+    backHome: '返回首页'
   },
   error: {
     eyebrow: '出现问题',

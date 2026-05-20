@@ -107,8 +107,9 @@ export const ru: Messages = {
       howItWorks: 'How it works',
       properties: 'Properties',
       marketplace: 'Marketplace',
-      portal: 'Investor portal'
+      platformAccess: 'Доступ к платформе'
     },
+    languageLabel: 'Язык',
     hero: {
       eyebrow: 'Tokenized real estate',
       title: 'Own fractional real assets.\nEarn rental income on-chain.',
@@ -137,7 +138,9 @@ export const ru: Messages = {
     featured: {
       title: 'Featured properties',
       subtitle: 'Curated real-world assets with transparent token economics.',
-      viewAll: 'View all listings'
+      viewAll: 'View all listings',
+      soldPercent: '{percent}% размещено',
+      apyBadge: '{apy}% APY'
     },
     benefits: {
       title: 'Why Sanova RWA',
@@ -154,12 +157,27 @@ export const ru: Messages = {
       button: 'Open marketplace'
     },
     footer: {
+      tagline: 'RWA · Токенизированная недвижимость',
       disclaimer:
         'This site is for informational purposes only and does not constitute an offer to sell securities.',
       rights: '© 2019–2026 Sanova Global. All rights reserved.',
       privacy: 'Privacy',
       terms: 'Terms'
     }
+  },
+  access: {
+    title: 'Доступ к платформе',
+    subtitle: 'Войдите или зарегистрируйтесь и пройдите KYC для инвестиций.',
+    loginTitle: 'Вход',
+    loginDesc: 'Доступ к маркетплейсу и портфелю с верифицированным аккаунтом.',
+    loginButton: 'Перейти в маркетплейс',
+    registerTitle: 'Создать аккаунт',
+    registerDesc: 'Регистрация инвестора. KYC обязателен перед первой покупкой.',
+    registerButton: 'Регистрация и KYC',
+    kycTitle: 'Верификация личности (KYC)',
+    kycDesc: 'Регуляторные требования — проверка через нашего партнёра.',
+    kycButton: 'Перейти к KYC',
+    backHome: 'На главную'
   },
   error: {
     eyebrow: 'Что-то пошло не так',

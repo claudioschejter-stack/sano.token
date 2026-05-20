@@ -105,8 +105,9 @@ export const en = {
       howItWorks: 'How it works',
       properties: 'Properties',
       marketplace: 'Marketplace',
-      portal: 'Investor portal'
+      platformAccess: 'Platform access'
     },
+    languageLabel: 'Language',
     hero: {
       eyebrow: 'Tokenized real estate',
       title: 'Own fractional real assets.\nEarn rental income on-chain.',
@@ -135,7 +136,9 @@ export const en = {
     featured: {
       title: 'Featured properties',
       subtitle: 'Curated real-world assets with transparent token economics.',
-      viewAll: 'View all listings'
+      viewAll: 'View all listings',
+      soldPercent: '{percent}% sold',
+      apyBadge: '{apy}% APY'
     },
     benefits: {
       title: 'Why Sanova RWA',
@@ -152,12 +155,27 @@ export const en = {
       button: 'Open marketplace'
     },
     footer: {
+      tagline: 'RWA · Tokenized real estate',
       disclaimer:
         'This site is for informational purposes only and does not constitute an offer to sell or solicitation to buy securities. Past performance does not guarantee future results. Consult licensed advisors before investing.',
       rights: '© 2019–2026 Sanova Global. All rights reserved.',
       privacy: 'Privacy',
       terms: 'Terms'
     }
+  },
+  access: {
+    title: 'Platform access',
+    subtitle: 'Sign in if you already have an account, or register and complete KYC to invest in tokenized properties.',
+    loginTitle: 'Sign in',
+    loginDesc: 'Access the marketplace and your portfolio with your verified account and connected wallet.',
+    loginButton: 'Go to marketplace',
+    registerTitle: 'Create account',
+    registerDesc: 'Register as a new investor. You will need to complete identity verification (KYC) before your first purchase.',
+    registerButton: 'Register & start KYC',
+    kycTitle: 'Identity verification (KYC)',
+    kycDesc: 'Regulatory compliance requires verifying your identity. The process is handled by our regulated onboarding partner.',
+    kycButton: 'Continue to KYC',
+    backHome: 'Back to home'
   },
   error: {
     eyebrow: 'Something went wrong',
@@ -276,8 +294,9 @@ export type Messages = {
       howItWorks: string;
       properties: string;
       marketplace: string;
-      portal: string;
+      platformAccess: string;
     };
+    languageLabel: string;
     hero: {
       eyebrow: string;
       title: string;
@@ -306,6 +325,8 @@ export type Messages = {
       title: string;
       subtitle: string;
       viewAll: string;
+      soldPercent: string;
+      apyBadge: string;
     };
     benefits: {
       title: string;
@@ -322,11 +343,26 @@ export type Messages = {
       button: string;
     };
     footer: {
+      tagline: string;
       disclaimer: string;
       rights: string;
       privacy: string;
       terms: string;
     };
+  };
+  access: {
+    title: string;
+    subtitle: string;
+    loginTitle: string;
+    loginDesc: string;
+    loginButton: string;
+    registerTitle: string;
+    registerDesc: string;
+    registerButton: string;
+    kycTitle: string;
+    kycDesc: string;
+    kycButton: string;
+    backHome: string;
   };
   error: {
     eyebrow: string;

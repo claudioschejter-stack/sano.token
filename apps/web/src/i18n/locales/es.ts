@@ -107,8 +107,9 @@ export const es = {
       howItWorks: 'Cómo funciona',
       properties: 'Propiedades',
       marketplace: 'Marketplace',
-      portal: 'Portal inversor'
+      platformAccess: 'Acceso a Plataforma'
     },
+    languageLabel: 'Idioma',
     hero: {
       eyebrow: 'Real estate tokenizado',
       title: 'Poseé activos reales fraccionados.\nCobrá rentas on-chain.',
@@ -137,7 +138,9 @@ export const es = {
     featured: {
       title: 'Propiedades destacadas',
       subtitle: 'Activos del mundo real con economía de tokens transparente.',
-      viewAll: 'Ver todos los listados'
+      viewAll: 'Ver todos los listados',
+      soldPercent: '{percent}% colocado',
+      apyBadge: '{apy}% APY'
     },
     benefits: {
       title: 'Por qué Sanova RWA',
@@ -154,12 +157,27 @@ export const es = {
       button: 'Abrir marketplace'
     },
     footer: {
+      tagline: 'RWA · Real estate tokenizado',
       disclaimer:
         'Este sitio tiene fines informativos y no constituye oferta de venta ni solicitud de compra de valores. El rendimiento pasado no garantiza resultados futuros. Consultá asesores habilitados antes de invertir.',
       rights: '© 2019–2026 Sanova Global. Todos los derechos reservados.',
       privacy: 'Privacidad',
       terms: 'Términos'
     }
+  },
+  access: {
+    title: 'Acceso a la plataforma',
+    subtitle: 'Iniciá sesión si ya tenés cuenta, o registrate y completá el KYC para invertir en propiedades tokenizadas.',
+    loginTitle: 'Iniciar sesión',
+    loginDesc: 'Accedé al marketplace y a tu portfolio con tu cuenta verificada y wallet conectada.',
+    loginButton: 'Ir al marketplace',
+    registerTitle: 'Crear cuenta',
+    registerDesc: 'Registrate como nuevo inversor. Deberás completar la verificación de identidad (KYC) antes de tu primera compra.',
+    registerButton: 'Registrarse e iniciar KYC',
+    kycTitle: 'Verificación de identidad (KYC)',
+    kycDesc: 'El cumplimiento regulatorio exige verificar tu identidad. El proceso lo gestiona nuestro partner de onboarding regulado.',
+    kycButton: 'Continuar al KYC',
+    backHome: 'Volver al inicio'
   },
   error: {
     eyebrow: 'Algo salió mal',
