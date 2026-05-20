@@ -366,7 +366,7 @@ export type Messages = {
       mapCaption: string;
       thesisTitle: string;
       thesisDesc: string;
-      benefits: string[];
+      benefits: readonly string[];
       cta: string;
     };
     howItWorks: {
