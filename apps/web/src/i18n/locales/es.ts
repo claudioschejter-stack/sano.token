@@ -154,11 +154,13 @@ export const es = {
     benefits: {
       title: 'Por qué Sanova RWA',
       incomeTitle: 'Ingresos recurrentes',
-      incomeDesc: 'Distribuciones mensuales del flujo operativo, liquidadas on-chain.',
+      incomeDesc: 'Distribuciones semanales o mensuales del flujo operativo, liquidadas on-chain.',
       liquidityTitle: 'Liquidez programada',
-      liquidityDesc: 'Salida vía tesorería SanovaAMM o mercado secundario cuando esté disponible.',
+      liquidityDesc:
+        'Salida vía tesorería Sanova o mercado secundario. Recompramos tus tokenes o lo puedes vender en nuestra plataforma. Con liquidez inmediata.',
       complianceTitle: 'Cumplimiento primero',
-      complianceDesc: 'KYC, disclosure fiscal por jurisdicción y registros on-chain auditables.'
+      complianceDesc:
+        'KYC, disclosure legal de documentación del mundo real y registros on-chain auditables.'
     },
     cta: {
       title: 'Empezá tu portfolio de activos reales',
