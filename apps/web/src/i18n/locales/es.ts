@@ -143,10 +143,10 @@ export const es = {
       thesisDesc:
         'Esta aceleración masiva exige instalaciones físicas que la región hoy no posee. Sanova Global tokeniza la infraestructura prime que sostiene esta operación monumental.',
       benefits: [
-        'Demanda Corporativa Inelástica (B2B): Complejos alquilados directamente a operadoras.',
-        'Contratos Resilientes: Cap Rates superiores impulsados por la urgencia industrial.',
-        'Eficiencia Estructural: Arquitectura fiscal optimizada.',
-        'Flujo de Caja Global (USDC): Dividendos liquidados en su billetera sin fricción fronteriza.'
+        'Demanda Corporativa Inelástica (B2B): Complejos alquilados a operadoras.',
+        'Contratos Resilientes: Cap Rates superiores al mercado global.',
+        'Eficiencia Estructural: Arquitectura fiscal e impositiva optimizada.',
+        'Flujo de Caja Global (USDC): Dividendos en efectivo directo a su wallet.'
       ],
       cta: 'Explorar Activos Tokenizados'
     },

@@ -141,10 +141,10 @@ export const de: Messages = {
       thesisDesc:
         'This massive acceleration requires physical facilities the region does not yet have. Sanova Global tokenizes the prime infrastructure that supports this monumental operation.',
       benefits: [
-        'Inelastic Corporate Demand (B2B): Complexes leased directly to operators.',
-        'Resilient Contracts: Superior cap rates driven by industrial urgency.',
-        'Structural Efficiency: Optimized tax architecture.',
-        'Global Cash Flow (USDC): Dividends settled to your wallet without cross-border friction.'
+        'Inelastic Corporate Demand (B2B): Complexes leased to operators.',
+        'Resilient Contracts: Cap rates above the global market.',
+        'Structural Efficiency: Optimized tax and fiscal architecture.',
+        'Global Cash Flow (USDC): Cash dividends directly to your wallet.'
       ],
       cta: 'Explore Tokenized Assets'
     },
