@@ -36,11 +36,11 @@ export function VacaMuertaOperators() {
             'radial-gradient(circle at 15% 0%, rgba(59,130,246,0.08) 0%, transparent 42%), radial-gradient(circle at 85% 100%, rgba(249,115,22,0.06) 0%, transparent 38%)'
         }}
       />
-      <div className="relative mx-auto max-w-7xl px-6 py-16 sm:py-20">
-        <div className="mx-auto max-w-3xl text-center">
+      <div className="relative mx-auto w-full max-w-7xl px-4 py-12 md:px-6 md:py-16 lg:py-20">
+        <div className="mx-auto w-full max-w-3xl text-center">
           <h2
             id="vaca-muerta-operators-title"
-            className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl"
+            className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl"
           >
             {title}
           </h2>

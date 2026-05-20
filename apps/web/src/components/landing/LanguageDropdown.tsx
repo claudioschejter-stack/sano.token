@@ -6,9 +6,10 @@ import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 type LanguageDropdownProps = {
   /** light = landing header (white bg); dark = optional future use */
   variant?: 'light' | 'dark';
+  className?: string;
 };
 
-export function LanguageDropdown({ variant = 'light' }: LanguageDropdownProps) {
+export function LanguageDropdown({ variant = 'light', className = '' }: LanguageDropdownProps) {
   const { locale, setLocale } = useLocale();
   const t = useTranslation();
 
@@ -20,12 +21,14 @@ export function LanguageDropdown({ variant = 'light' }: LanguageDropdownProps) {
       : 'border-terminal-border bg-terminal-card text-terminal-text focus:border-terminal-primary focus:ring-terminal-primary';
 
   return (
-    <label className={`ml-[0.5cm] flex items-center gap-2 text-sm font-medium ${labelClass}`}>
+    <label
+      className={`flex w-full flex-col gap-2 text-sm font-medium sm:flex-row sm:items-center lg:ml-[0.5cm] lg:w-auto ${labelClass} ${className}`.trim()}
+    >
       <span className="whitespace-nowrap">{t.landing.languageLabel}</span>
       <select
         value={locale}
         onChange={(event) => setLocale(event.target.value as Locale)}
-        className={`cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium shadow-sm outline-none focus:ring-2 ${selectClass}`}
+        className={`min-h-12 w-full cursor-pointer rounded-lg border px-3 py-3 text-base font-medium shadow-sm outline-none focus:ring-2 sm:min-h-0 sm:w-auto sm:py-2 sm:text-sm ${selectClass}`}
         aria-label={t.landing.languageLabel}
       >
         {localeOptions.map((option) => (

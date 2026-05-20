@@ -23,12 +23,14 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
   const bestApyPercent = borrowRate ? (borrowRate.best.borrowApyBps / 100).toFixed(2) : null;
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-sm font-medium uppercase tracking-wider text-terminal-primary">{t.marketplace.brandLabel}</p>
-          <h1 className="mt-2 text-3xl font-bold text-terminal-text">{t.marketplace.title}</h1>
-          <p className="mt-2 max-w-2xl text-terminal-muted">{t.marketplace.subtitle}</p>
+    <div className="mx-auto w-full max-w-7xl">
+      <header className="mb-6 flex w-full flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="w-full">
+          <p className="text-xs font-medium uppercase tracking-wider text-terminal-primary md:text-sm">
+            {t.marketplace.brandLabel}
+          </p>
+          <h1 className="mt-2 text-2xl font-bold text-terminal-text md:text-3xl">{t.marketplace.title}</h1>
+          <p className="mt-2 max-w-2xl text-base text-terminal-muted md:text-lg">{t.marketplace.subtitle}</p>
         </div>
       </header>
 
@@ -62,7 +64,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       {listings.length === 0 ? (
         <p className="text-terminal-muted">{t.marketplace.empty}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
             <PropertyCard
               key={listing.id}

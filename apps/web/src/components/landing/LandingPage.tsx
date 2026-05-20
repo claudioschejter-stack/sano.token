@@ -17,6 +17,7 @@ import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
 import { HeroSubtitle } from './HeroSubtitle';
+import { MacroInvestmentThesis } from './MacroInvestmentThesis';
 import { VacaMuertaOperators } from './VacaMuertaOperators';
 
 export function LandingPage() {
@@ -35,10 +36,12 @@ export function LandingPage() {
               'radial-gradient(circle at 20% 20%, #3B82F6 0%, transparent 40%), radial-gradient(circle at 80% 60%, #F97316 0%, transparent 35%)'
           }}
         />
-        <div className="relative mx-auto grid max-w-7xl gap-10 px-6 py-16 sm:gap-12 sm:py-20 lg:grid-cols-2 lg:items-stretch lg:gap-14 lg:py-28">
-          <div className="flex flex-col justify-center lg:max-w-xl lg:pr-2 xl:max-w-[34rem]">
-            <p className="text-sm font-semibold uppercase tracking-widest text-blue-300">{l.hero.eyebrow}</p>
-            <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-4 py-12 sm:gap-12 sm:px-6 sm:py-16 md:py-20 lg:grid-cols-2 lg:items-stretch lg:gap-14 lg:py-28">
+          <div className="flex w-full flex-col justify-center lg:max-w-xl lg:pr-2 xl:max-w-[34rem]">
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-300 sm:text-sm">
+              {l.hero.eyebrow}
+            </p>
+            <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight md:text-4xl lg:text-6xl">
               {l.hero.title.split('\n').map((line) => (
                 <span key={line} className="block last:text-blue-200">
                   {line}
@@ -46,22 +49,22 @@ export function LandingPage() {
               ))}
             </h1>
             <HeroSubtitle hero={l.hero} />
-            <div className="mt-8 flex flex-wrap gap-4">
+            <div className="mt-8 flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:gap-4">
               <Link
                 href="/marketplace"
-                className="inline-flex items-center gap-2 rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-400"
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-400 md:w-auto md:text-sm"
               >
                 {l.hero.ctaPrimary}
                 <ArrowRight size={18} />
               </Link>
               <a
                 href="#how-it-works"
-                className="inline-flex items-center rounded-full border border-white/30 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/30 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 md:w-auto md:text-sm"
               >
                 {l.hero.ctaSecondary}
               </a>
             </div>
-            <p className="mt-8 text-sm text-slate-400">{l.hero.trustLine}</p>
+            <p className="mt-6 text-sm text-slate-400 sm:mt-8">{l.hero.trustLine}</p>
           </div>
 
           <div className="relative hidden lg:flex lg:flex-col lg:justify-center">
@@ -88,12 +91,14 @@ export function LandingPage() {
 
       <VacaMuertaOperators />
 
-      <section id="how-it-works" className="mx-auto max-w-7xl px-6 py-20">
+      <MacroInvestmentThesis />
+
+      <section id="how-it-works" className="mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold text-slate-900">{l.howItWorks.title}</h2>
-          <p className="mt-4 text-slate-600">{l.howItWorks.subtitle}</p>
+          <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">{l.howItWorks.title}</h2>
+          <p className="mt-4 text-base text-slate-600 md:text-lg">{l.howItWorks.subtitle}</p>
         </div>
-        <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-1 gap-6 md:mt-14 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
           {[
             { icon: UserCheck, title: l.howItWorks.step1Title, desc: l.howItWorks.step1Desc },
             { icon: Building2, title: l.howItWorks.step2Title, desc: l.howItWorks.step2Desc },
@@ -102,7 +107,7 @@ export function LandingPage() {
           ].map((step, index) => (
             <article
               key={step.title}
-              className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-blue-200 hover:shadow-md md:p-8"
             >
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                 <step.icon size={24} />
@@ -115,29 +120,29 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section id="properties" className="bg-slate-50 py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-3xl font-bold text-slate-900">{l.featured.title}</h2>
-              <p className="mt-2 text-slate-600">{l.featured.subtitle}</p>
+      <section id="properties" className="bg-slate-50 py-16 md:py-20">
+        <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
+          <div className="flex w-full flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="w-full">
+              <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">{l.featured.title}</h2>
+              <p className="mt-2 text-base text-slate-600 md:text-lg">{l.featured.subtitle}</p>
             </div>
             <Link
               href="/marketplace"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-500"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-blue-600 transition hover:border-blue-200 hover:text-blue-500 md:w-auto md:min-h-0 md:border-0 md:bg-transparent md:px-0 md:py-0"
             >
               {l.featured.viewAll}
               <ArrowRight size={16} />
             </Link>
           </div>
 
-          <div className="mt-10 grid gap-8 md:grid-cols-3">
+          <div className="mt-8 grid grid-cols-1 gap-6 md:mt-10 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
             {MARKETPLACE_FALLBACK_LISTINGS.map((listing) => (
               <article
                 key={listing.id}
                 className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
               >
-                <div className="relative h-52 overflow-hidden">
+                <div className="relative h-48 overflow-hidden sm:h-52">
                   <Image
                     src={listing.imageUrl}
                     alt={listing.title}
@@ -162,7 +167,7 @@ export function LandingPage() {
                   </div>
                   <Link
                     href={`/marketplace/${listing.id}/checkout`}
-                    className="mt-5 flex w-full items-center justify-center rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-600"
+                    className="mt-5 flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600"
                   >
                     {t.common.investNow}
                   </Link>
@@ -173,15 +178,15 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-20">
-        <h2 className="text-center text-3xl font-bold text-slate-900">{l.benefits.title}</h2>
-        <div className="mt-12 grid gap-8 md:grid-cols-3">
+      <section className="mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-20">
+        <h2 className="text-center text-3xl font-bold text-slate-900 md:text-4xl">{l.benefits.title}</h2>
+        <div className="mt-10 grid grid-cols-1 gap-6 md:mt-12 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
           {[
             { icon: CircleDollarSign, title: l.benefits.incomeTitle, desc: l.benefits.incomeDesc },
             { icon: TrendingUp, title: l.benefits.liquidityTitle, desc: l.benefits.liquidityDesc },
             { icon: ShieldCheck, title: l.benefits.complianceTitle, desc: l.benefits.complianceDesc }
           ].map((item) => (
-            <article key={item.title} className="rounded-2xl border border-slate-200 p-8">
+            <article key={item.title} className="rounded-2xl border border-slate-200 p-6 md:p-8">
               <item.icon className="text-blue-600" size={32} />
               <h3 className="mt-4 text-xl font-bold text-slate-900">{item.title}</h3>
               <p className="mt-3 text-slate-600">{item.desc}</p>
@@ -190,13 +195,13 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-16 text-white">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <h2 className="text-3xl font-bold">{l.cta.title}</h2>
-          <p className="mt-4 text-blue-100">{l.cta.subtitle}</p>
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-12 text-white md:py-16">
+        <div className="mx-auto w-full max-w-3xl px-4 text-center md:px-6">
+          <h2 className="text-3xl font-bold md:text-4xl">{l.cta.title}</h2>
+          <p className="mt-4 text-base text-blue-100 md:text-lg">{l.cta.subtitle}</p>
           <Link
             href="/marketplace"
-            className="mt-8 inline-flex items-center gap-2 rounded-full bg-white px-8 py-3 text-sm font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50"
+            className="mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-base font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50 md:w-auto md:text-sm"
           >
             {l.cta.button}
             <ArrowRight size={18} />
@@ -204,14 +209,17 @@ export function LandingPage() {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 bg-slate-900 px-6 py-12 text-slate-400">
-        <div className="mx-auto max-w-7xl">
-          <div className="flex flex-col gap-8 md:flex-row md:justify-between">
-            <div>
-              <p className="text-xl font-bold text-white">Sanova Global</p>
-              <p className="mt-2 text-sm">{l.footer.tagline}</p>
+      <footer className="border-t border-slate-200 bg-slate-900 px-4 py-10 text-slate-400 md:px-6 md:py-12">
+        <div className="mx-auto w-full max-w-7xl">
+          <div className="flex w-full flex-col gap-8 md:flex-row md:justify-between">
+            <div className="w-full">
+              <p className="text-lg font-bold text-white md:text-xl">Sanova Global</p>
+              <p className="mt-2 text-sm leading-relaxed">{l.footer.tagline}</p>
             </div>
-            <div className="flex flex-wrap gap-6 text-sm">
+            <nav
+              className="flex w-full flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:gap-6"
+              aria-label="Footer"
+            >
               <Link href="/contacto" className="hover:text-white">
                 {l.footer.contact}
               </Link>
@@ -223,9 +231,9 @@ export function LandingPage() {
               </Link>
               <span className="cursor-default hover:text-white">{l.footer.privacy}</span>
               <span className="cursor-default hover:text-white">{l.footer.terms}</span>
-            </div>
+            </nav>
           </div>
-          <p className="mt-10 text-xs leading-relaxed">{l.footer.disclaimer}</p>
+          <p className="mt-8 text-xs leading-relaxed md:mt-10">{l.footer.disclaimer}</p>
           <p className="mt-4 text-xs">{l.footer.rights}</p>
         </div>
       </footer>

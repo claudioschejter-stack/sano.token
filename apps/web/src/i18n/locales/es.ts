@@ -132,6 +132,23 @@ export const es = {
       subtitle:
         'Estas son algunas de las empresas petroleras y gasíferas con operaciones en la cuenca'
     },
+    macroThesis: {
+      eyebrow: 'Contexto Macro & Tesis de Inversión',
+      title: 'Vaca Muerta: El Epicentro Energético Global',
+      intro:
+        'Ubicada en la Patagonia Argentina, Vaca Muerta no es una promesa exploratoria; es el yacimiento de shale (no convencional) de mayor crecimiento fuera de Norteamérica. Las principales operadoras energéticas del mundo ya están escalando su producción, consolidando un flujo de capital institucional histórico.',
+      mapCaption:
+        '📍 Patagonia, Argentina | 30.000 km² (Superficie equivalente a Bélgica)',
+      stat1Value: '2°',
+      stat1Label: 'Reserva Mundial de Shale Gas',
+      stat2Value: '4°',
+      stat2Label: 'Reserva Mundial de Shale Oil',
+      stat3Value: '+US$ 9.000M',
+      stat3Label: 'Inversión Anual Proyectada',
+      thesisTitle: 'El Déficit de Infraestructura: La Verdadera Oportunidad',
+      thesisDesc:
+        'El vertiginoso desarrollo de la cuenca ha superado ampliamente la capacidad de la infraestructura local. Añelo, el núcleo operativo, enfrenta un déficit crítico de plazas hoteleras, centros corporativos y servicios logísticos. Proveemos la infraestructura prime que las multinacionales necesitan para operar. Esta demanda corporativa inelástica genera tasas de capitalización significativamente superiores a los mercados inmobiliarios tradicionales.'
+    },
     howItWorks: {
       title: 'Invertí en cuatro pasos',
       subtitle: 'Del descubrimiento a la titularidad on-chain — para inversores retail e institucionales.',

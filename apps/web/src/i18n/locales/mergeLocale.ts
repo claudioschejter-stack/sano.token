@@ -6,11 +6,12 @@ export function mergeLocale(patch: {
   brand?: Partial<Messages['brand']>;
   common?: Partial<Messages['common']>;
   nav?: Partial<Messages['nav']>;
-  landing?: Partial<Omit<Messages['landing'], 'nav' | 'hero' | 'stats' | 'operators' | 'howItWorks' | 'featured' | 'benefits' | 'cta' | 'footer'>> & {
+  landing?: Partial<Omit<Messages['landing'], 'nav' | 'hero' | 'stats' | 'operators' | 'macroThesis' | 'howItWorks' | 'featured' | 'benefits' | 'cta' | 'footer'>> & {
     nav?: Partial<Messages['landing']['nav']>;
     hero?: Partial<Messages['landing']['hero']>;
     stats?: Partial<Messages['landing']['stats']>;
     operators?: Partial<Messages['landing']['operators']>;
+    macroThesis?: Partial<Messages['landing']['macroThesis']>;
     howItWorks?: Partial<Messages['landing']['howItWorks']>;
     featured?: Partial<Messages['landing']['featured']>;
     benefits?: Partial<Messages['landing']['benefits']>;
@@ -35,6 +36,7 @@ export function mergeLocale(patch: {
           hero: { ...en.landing.hero, ...landing.hero },
           stats: { ...en.landing.stats, ...landing.stats },
           operators: { ...en.landing.operators, ...landing.operators },
+          macroThesis: { ...en.landing.macroThesis, ...landing.macroThesis },
           howItWorks: { ...en.landing.howItWorks, ...landing.howItWorks },
           featured: { ...en.landing.featured, ...landing.featured },
           benefits: { ...en.landing.benefits, ...landing.benefits },

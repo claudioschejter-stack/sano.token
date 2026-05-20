@@ -130,6 +130,23 @@ export const de: Messages = {
     operators: {
       title: 'Derzeit in Vaca Muerta tätig'
     },
+    macroThesis: {
+      eyebrow: 'Macro Context & Investment Thesis',
+      title: 'Vaca Muerta: The Global Energy Epicenter',
+      intro:
+        'Located in Argentine Patagonia, Vaca Muerta is not an exploratory promise — it is the fastest-growing unconventional shale play outside North America. The world\'s leading energy operators are already scaling production, consolidating a historic flow of institutional capital.',
+      mapCaption:
+        '📍 Patagonia, Argentina | 30,000 km² (Surface area comparable to Belgium)',
+      stat1Value: '2nd',
+      stat1Label: 'Global Shale Gas Reserves',
+      stat2Value: '4th',
+      stat2Label: 'Global Shale Oil Reserves',
+      stat3Value: '+US$ 9B',
+      stat3Label: 'Projected Annual Investment',
+      thesisTitle: 'The Infrastructure Gap: The Real Opportunity',
+      thesisDesc:
+        'The basin\'s rapid development has far outpaced local infrastructure capacity. Añelo, the operational hub, faces a critical shortage of hotel rooms, corporate centers, and logistics services. We provide the prime infrastructure multinationals need to operate. This inelastic corporate demand generates capitalization rates significantly above traditional real estate markets.'
+    },
     howItWorks: {
       title: 'Invest in four steps',
       subtitle: 'From discovery to on-chain ownership.',

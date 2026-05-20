@@ -129,6 +129,23 @@ export const en = {
       title: 'Companies operating in Vaca Muerta',
       subtitle: 'These are some of the oil and gas companies with operations in the basin'
     },
+    macroThesis: {
+      eyebrow: 'Macro Context & Investment Thesis',
+      title: 'Vaca Muerta: The Global Energy Epicenter',
+      intro:
+        'Located in Argentine Patagonia, Vaca Muerta is not an exploratory promise — it is the fastest-growing unconventional shale play outside North America. The world\'s leading energy operators are already scaling production, consolidating a historic flow of institutional capital.',
+      mapCaption:
+        '📍 Patagonia, Argentina | 30,000 km² (Surface area comparable to Belgium)',
+      stat1Value: '2nd',
+      stat1Label: 'Global Shale Gas Reserves',
+      stat2Value: '4th',
+      stat2Label: 'Global Shale Oil Reserves',
+      stat3Value: '+US$ 9B',
+      stat3Label: 'Projected Annual Investment',
+      thesisTitle: 'The Infrastructure Gap: The Real Opportunity',
+      thesisDesc:
+        'The basin\'s rapid development has far outpaced local infrastructure capacity. Añelo, the operational hub, faces a critical shortage of hotel rooms, corporate centers, and logistics services. We provide the prime infrastructure multinationals need to operate. This inelastic corporate demand generates capitalization rates significantly above traditional real estate markets.'
+    },
     howItWorks: {
       title: 'Invest in four steps',
       subtitle: 'From discovery to on-chain ownership — designed for global retail and institutional investors.',
@@ -340,6 +357,20 @@ export type Messages = {
     operators: {
       title: string;
       subtitle?: string;
+    };
+    macroThesis: {
+      eyebrow: string;
+      title: string;
+      intro: string;
+      mapCaption: string;
+      stat1Value: string;
+      stat1Label: string;
+      stat2Value: string;
+      stat2Label: string;
+      stat3Value: string;
+      stat3Label: string;
+      thesisTitle: string;
+      thesisDesc: string;
     };
     howItWorks: {
       title: string;

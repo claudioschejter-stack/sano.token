@@ -20,12 +20,12 @@ export function ContactPage() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <LandingHeader />
 
-      <main className="mx-auto max-w-2xl px-6 py-16">
+      <main className="mx-auto w-full max-w-2xl px-4 py-12 md:px-6 md:py-16">
         <div className="text-center">
           <div className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
             <Mail size={24} />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{c.title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{c.title}</h1>
           <p className="mx-auto mt-4 max-w-xl text-slate-600">{c.subtitle}</p>
         </div>
 
@@ -37,7 +37,7 @@ export function ContactPage() {
         ) : (
           <form
             onSubmit={handleSubmit}
-            className="mt-12 space-y-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm"
+            className="mt-10 space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:mt-12 md:p-8"
           >
             <div>
               <label htmlFor="contact-name" className="block text-sm font-semibold text-slate-900">
@@ -85,7 +85,7 @@ export function ContactPage() {
 
             <button
               type="submit"
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-sm font-semibold text-white transition hover:bg-blue-500"
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-blue-500 md:text-sm"
             >
               {c.submit}
               <Send size={18} />

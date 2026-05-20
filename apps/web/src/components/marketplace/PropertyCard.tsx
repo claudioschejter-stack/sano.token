@@ -60,7 +60,7 @@ export function PropertyCard({
 
   return (
     <article className="group overflow-hidden rounded-xl border border-terminal-border bg-terminal-card shadow-[0_0_0_1px_rgba(31,41,55,0.5)] transition-all duration-300 hover:border-terminal-primary/50 hover:shadow-[0_0_24px_rgba(59,130,246,0.12)]">
-      <div className="relative h-56 w-full overflow-hidden">
+      <div className="relative h-48 w-full overflow-hidden sm:h-56">
         <Image
           src={imageUrl}
           alt={title}
@@ -74,16 +74,18 @@ export function PropertyCard({
             {t.propertyCard.limitedAvailability}
           </span>
         ) : null}
-        <div className="absolute bottom-4 left-4 rounded-lg border border-terminal-border bg-terminal-bg/90 p-3 backdrop-blur-sm">
-          <p className="text-xs text-terminal-muted">{t.common.projectedApy}</p>
-          <p className="mt-1 font-mono text-xl font-bold text-terminal-success">
+        <div className="absolute bottom-3 left-3 rounded-lg border border-terminal-border bg-terminal-bg/90 p-2.5 backdrop-blur-sm sm:bottom-4 sm:left-4 sm:p-3">
+          <p className="text-[10px] text-terminal-muted sm:text-xs">{t.common.projectedApy}</p>
+          <p className="mt-0.5 font-mono text-lg font-bold text-terminal-success sm:mt-1 sm:text-xl">
             {formatPercent(apyPercent, { minimum: 2, maximum: 2 })}
           </p>
         </div>
-        <p className="absolute bottom-24 left-4 right-4 text-lg font-semibold text-terminal-text">{title}</p>
+        <p className="absolute bottom-20 left-3 right-3 text-base font-semibold leading-snug text-terminal-text sm:bottom-24 sm:left-4 sm:right-4 sm:text-lg">
+          {title}
+        </p>
       </div>
 
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-4 sm:p-5">
         <div>
           <div className="mb-1 flex items-center justify-between text-xs text-terminal-muted">
             <span>{t.propertyCard.placementProgress}</span>
@@ -162,7 +164,7 @@ export function PropertyCard({
         <button
           type="button"
           onClick={handlePrimaryAction}
-          className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+          className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-base font-semibold transition-all duration-200 sm:text-sm ${
             isVerified
               ? 'bg-terminal-primary text-white hover:bg-blue-500 hover:shadow-lg hover:shadow-terminal-primary/25'
               : 'border border-terminal-warning/50 bg-terminal-bg text-terminal-warning hover:bg-terminal-warning/10'
