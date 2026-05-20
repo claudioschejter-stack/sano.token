@@ -39,9 +39,9 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
           <div
             className="pointer-events-none absolute z-10 flex w-fit max-w-[32%] flex-col items-center justify-center gap-px text-center text-slate-900"
             style={{
-              left: 'calc(49% + 1.5cm)',
+              left: 'calc(49% + 1.3cm)',
               top: 'calc(41.5% + 1cm)',
-              padding: '0.65cm 0.32cm',
+              padding: '0.25cm 0.32cm',
               backgroundColor: BASIN_BLUE
             }}
             aria-hidden
