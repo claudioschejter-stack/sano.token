@@ -21,8 +21,10 @@ export function AppSidebar() {
   return (
     <aside className="flex w-64 flex-col border-r border-terminal-border bg-terminal-card text-terminal-text">
       <div className="border-b border-terminal-border p-6">
-        <h2 className="text-2xl font-bold tracking-tight">Sanova Global</h2>
-        <p className="mt-1 text-sm text-terminal-muted">{t.brand.portalSubtitle}</p>
+        <Link href="/" className="block transition-opacity hover:opacity-90">
+          <h2 className="text-2xl font-bold tracking-tight">Sanova Global</h2>
+          <p className="mt-1 text-sm text-terminal-muted">{t.brand.portalSubtitle}</p>
+        </Link>
       </div>
 
       <nav className="flex-1 space-y-2 px-4 py-6">
