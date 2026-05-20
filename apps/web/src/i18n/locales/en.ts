@@ -128,14 +128,16 @@ export const en = {
       subtitle: 'These are some of the oil and gas companies with operations in the basin'
     },
     howItWorks: {
-      title: 'Invest in three steps',
+      title: 'Invest in four steps',
       subtitle: 'From discovery to on-chain ownership — designed for global retail and institutional investors.',
       step1Title: 'Complete KYC',
       step1Desc: 'Verify your identity once. Sanova partners with regulated onboarding providers.',
       step2Title: 'Choose a property',
       step2Desc: 'Browse tokenized assets with disclosed fiscal regime, APY, and placement progress.',
       step3Title: 'Receive distributions',
-      step3Desc: 'Rental income flows to your wallet in USDC. Track everything in the investor portal.'
+      step3Desc: 'Rental income flows to your wallet in USDC. Track everything in the investor portal.',
+      step4Title: 'Join our Secondary Market',
+      step4Desc: 'Buy and sell your tokens with other investors on the platform.'
     },
     featured: {
       title: 'Featured properties',
@@ -329,6 +331,8 @@ export type Messages = {
       step2Desc: string;
       step3Title: string;
       step3Desc: string;
+      step4Title: string;
+      step4Desc: string;
     };
     featured: {
       title: string;

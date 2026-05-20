@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import {
+  ArrowLeftRight,
   ArrowRight,
   Building2,
   CircleDollarSign,
@@ -92,11 +93,12 @@ export function LandingPage() {
           <h2 className="text-3xl font-bold text-slate-900">{l.howItWorks.title}</h2>
           <p className="mt-4 text-slate-600">{l.howItWorks.subtitle}</p>
         </div>
-        <div className="mt-14 grid gap-8 md:grid-cols-3">
+        <div className="mt-14 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {[
             { icon: UserCheck, title: l.howItWorks.step1Title, desc: l.howItWorks.step1Desc },
             { icon: Building2, title: l.howItWorks.step2Title, desc: l.howItWorks.step2Desc },
-            { icon: Wallet, title: l.howItWorks.step3Title, desc: l.howItWorks.step3Desc }
+            { icon: Wallet, title: l.howItWorks.step3Title, desc: l.howItWorks.step3Desc },
+            { icon: ArrowLeftRight, title: l.howItWorks.step4Title, desc: l.howItWorks.step4Desc }
           ].map((step, index) => (
             <article
               key={step.title}

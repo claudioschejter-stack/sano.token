@@ -131,14 +131,16 @@ export const es = {
         'Estas son algunas de las empresas petroleras y gasíferas con operaciones en la cuenca'
     },
     howItWorks: {
-      title: 'Invertí en tres pasos',
+      title: 'Invertí en cuatro pasos',
       subtitle: 'Del descubrimiento a la titularidad on-chain — para inversores retail e institucionales.',
       step1Title: 'Completá KYC',
       step1Desc: 'Verificá tu identidad una vez. Sanova integra proveedores de onboarding regulados.',
       step2Title: 'Elegí una propiedad',
       step2Desc: 'Explorá activos tokenizados con régimen fiscal, APY y avance de colocación informados.',
       step3Title: 'Recibí distribuciones',
-      step3Desc: 'Los ingresos por alquiler llegan a tu wallet en USDC. Seguimiento en el portal inversor.'
+      step3Desc: 'Los ingresos por alquiler llegan a tu wallet en USDC. Seguimiento en el portal inversor.',
+      step4Title: 'Participá de nuestro Mercado Secundario',
+      step4Desc: 'Comprá y vende tus tokenes a otros inversores de la plataforma.'
     },
     featured: {
       title: 'Propiedades destacadas',

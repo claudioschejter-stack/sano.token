@@ -129,14 +129,16 @@ export const de: Messages = {
       title: 'Derzeit in Vaca Muerta tätig'
     },
     howItWorks: {
-      title: 'Invest in three steps',
+      title: 'Invest in four steps',
       subtitle: 'From discovery to on-chain ownership.',
       step1Title: 'Complete KYC',
       step1Desc: 'Verify your identity once with regulated onboarding partners.',
       step2Title: 'Choose a property',
       step2Desc: 'Browse tokenized assets with disclosed fiscal regime and APY.',
       step3Title: 'Receive distributions',
-      step3Desc: 'Rental income flows to your wallet in USDC.'
+      step3Desc: 'Rental income flows to your wallet in USDC.',
+      step4Title: 'Join our Secondary Market',
+      step4Desc: 'Buy and sell your tokens with other investors on the platform.'
     },
     featured: {
       title: 'Featured properties',
