@@ -18,8 +18,7 @@ export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
     name: 'YPF',
     domain: 'ypf.com',
     logoUrl: '/logos/operators/ypf.svg',
-    logoClassName:
-      'mx-auto h-11 w-11 max-h-[3.25rem] max-w-[3.25rem] object-contain object-center sm:h-12 sm:w-12 sm:max-h-[3.5rem] sm:max-w-[3.5rem]'
+    logoClassName: 'mx-auto h-9 w-auto max-w-[7rem] object-contain sm:h-10 sm:max-w-[7.5rem]'
   },
   { id: 'chevron', name: 'Chevron', domain: 'chevron.com', logoUrl: '/logos/operators/chevron.png' },
   { id: 'shell', name: 'Shell', domain: 'shell.com', logoUrl: '/logos/operators/shell.png' },
@@ -29,13 +28,19 @@ export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
     id: 'pae',
     name: 'Pan American Energy',
     domain: 'pan-energy.com',
-    logoUrl: '/logos/operators/pae.png',
-    logoClassName: 'mx-auto h-9 w-auto max-w-[8.5rem] object-contain sm:h-10 sm:max-w-[9rem]'
+    logoUrl: '/logos/operators/pae.svg',
+    logoClassName: 'mx-auto h-9 w-auto max-w-[8.75rem] object-contain sm:h-10 sm:max-w-[9.25rem]'
   },
   { id: 'pampa', name: 'Pampa Energía', domain: 'pampa.com.ar', logoUrl: '/logos/operators/pampa.svg' },
   { id: 'vista', name: 'Vista Energy', domain: 'vistaenergy.com', logoUrl: '/logos/operators/vista.png' },
   { id: 'tecpetrol', name: 'Tecpetrol', domain: 'tecpetrol.com', logoUrl: '/logos/operators/tecpetrol.svg' },
-  { id: 'pluspetrol', name: 'Pluspetrol', domain: 'pluspetrol.com', logoUrl: '/logos/operators/pluspetrol.svg' },
+  {
+    id: 'pluspetrol',
+    name: 'Pluspetrol',
+    domain: 'pluspetrol.com',
+    logoUrl: '/logos/operators/pluspetrol.svg',
+    logoClassName: 'mx-auto h-8 w-auto max-w-[7.75rem] object-contain sm:h-9 sm:max-w-[8.25rem]'
+  },
   { id: 'cgc', name: 'CGC', domain: 'cgc.energy', logoUrl: '/logos/operators/cgc.png' },
   { id: 'equinor', name: 'Equinor', domain: 'equinor.com', logoUrl: '/logos/operators/equinor.png' },
   { id: 'bp', name: 'BP', domain: 'bp.com', logoUrl: '/logos/operators/bp.png' },
