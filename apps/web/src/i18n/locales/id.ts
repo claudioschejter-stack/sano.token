@@ -25,7 +25,7 @@ export const id = mergeLocale({
       eyebrow: 'Real estat tokenisasi',
       title: 'Miliki aset riil fraksional.\nDapatkan pendapatan sewa on-chain.',
       subtitle:
-        'Sanova Global menghubungkan investor terverifikasi dengan properti penghasil di Amerika Latin — imbal hasil transparan dan kepatuhan KYC.',
+        'Sanova Global menghubungkan investor terverifikasi dengan properti produktif di Vaca Muerta, Neuquén, Argentina — pusat global shale oil & gas tidak konvensional, cadangan gas terbesar kedua di dunia, infrastruktur kelas dunia, biaya operasi sangat kompetitif, dan potensi produksi minyak & gas yang besar — plus imbal hasil transparan, kepatuhan KYC, dan penyelesaian instan.',
       ctaPrimary: 'Lihat properti',
       ctaSecondary: 'Cara kerja',
       trustLine: 'Kerangka regulasi · KYC/AML · Distribusi on-chain dalam USDC'

@@ -49,7 +49,7 @@ export function LandingPage() {
                 </span>
               ))}
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-slate-300">{l.hero.subtitle}</p>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-300">{l.hero.subtitle}</p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link
                 href="/marketplace"

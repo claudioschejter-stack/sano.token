@@ -25,7 +25,7 @@ export const ja = mergeLocale({
       eyebrow: 'トークン化不動産',
       title: '分割された実物資産を保有。\nオンチェーンで賃料収入。',
       subtitle:
-        'Sanova Globalは認証済み投資家と中南米の収益不動産をつなぎます — 透明な利回り、KYCコンプライアンス、即時決済。',
+        'Sanova Globalは認証済み投資家とアルゼンチン・ネウケン州バカ・ムエルタ（Vaca Muerta）の生産性資産をつなぎます — 世界有数の非従来型シェールオイル・ガス拠点、世界第2位のガス埋蔵量、世界クラスのインフラ、競争力のある操業コスト、巨大な石油・ガス生産ポテンシャル — 透明な利回り、KYCコンプライアンス、即時決済も。',
       ctaPrimary: '物件を見る',
       ctaSecondary: '仕組み',
       trustLine: '規制枠組み · KYC/AML · USDCオンチェーン分配'

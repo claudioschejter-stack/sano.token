@@ -114,7 +114,7 @@ export const ru: Messages = {
       eyebrow: 'Tokenized real estate',
       title: 'Own fractional real assets.\nEarn rental income on-chain.',
       subtitle:
-        'Sanova Global connects verified investors with income-producing properties across Latin America.',
+        'Sanova Global связывает верифицированных инвесторов с продуктивной недвижимостью в Вака-Муэрта, Неукен, Аргентина — мировой центр сланцевой нефти и газа, вторая по величине запас газа, инфраструктура мирового класса, конкурентные операционные затраты и огромный потенциал добычи — плюс прозрачная доходность, KYC и мгновенные расчёты.',
       ctaPrimary: 'Browse properties',
       ctaSecondary: 'How it works',
       trustLine: 'Regulated frameworks · KYC/AML · On-chain distributions in USDC'

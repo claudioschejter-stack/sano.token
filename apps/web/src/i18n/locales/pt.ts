@@ -25,7 +25,7 @@ export const pt = mergeLocale({
       eyebrow: 'Imóveis tokenizados',
       title: 'Possua ativos reais fracionados.\nReceba renda de aluguel on-chain.',
       subtitle:
-        'A Sanova Global conecta investidores verificados a propriedades produtoras de renda na América Latina — rendimentos transparentes e conformidade KYC.',
+        'A Sanova Global conecta investidores verificados a propriedades produtivas em Vaca Muerta, Neuquén, Argentina — principal polo global de shale oil & gas não convencional, com a segunda maior reserva de gás do mundo, infraestrutura de classe mundial, custos operacionais altamente competitivos e enorme potencial de produção de petróleo e gás — além de rendimentos transparentes, conformidade KYC e liquidação instantânea.',
       ctaPrimary: 'Ver propriedades',
       ctaSecondary: 'Como funciona',
       trustLine: 'Marcos regulatórios · KYC/AML · Distribuições on-chain em USDC'

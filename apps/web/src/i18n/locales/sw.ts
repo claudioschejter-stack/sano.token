@@ -25,7 +25,7 @@ export const sw = mergeLocale({
       eyebrow: 'Mali isiyohamishika iliyobadilishwa token',
       title: 'Umiliki mali halisi za sehemu.\nPata mapato ya kodi on-chain.',
       subtitle:
-        'Sanova Global inaunganisha wawekezaji waliohakikiwa na mali zinazozalisha mapato Amerika ya Latini — faida wazi, utii wa KYC.',
+        'Sanova Global inaunganisha wawekezaji waliohakikiwa na mali za uzalishaji katika Vaca Muerta, Neuquén, Argentina — kitovu cha dunia cha shale oil & gas visivyo vya kawaida, akiba ya pili kubwa ya gesi duniani, miundombinu ya kiwango cha dunia, gharama za uendeshaji zenye ushindani, na uwezo mkubwa wa uzalishaji wa mafuta na gesi — pamoja na faida wazi, utii wa KYC na malipo ya papo hapo.',
       ctaPrimary: 'Tazama mali',
       ctaSecondary: 'Jinsi inavyofanya kazi',
       trustLine: 'Mifumo ya udhibiti · KYC/AML · Mgawanyo on-chain kwa USDC'
