@@ -11,7 +11,9 @@ export const zh: Messages = {
     completeKyc: '完成 KYC',
     projectedApy: '预计 APY',
     location: '位置',
-    backToMarketplace: '返回市场'
+    backToMarketplace: '返回市场',
+    whatsappLabel: 'Chat with us on WhatsApp',
+    whatsappMessage: 'Hello, I am contacting you from the Sanova Global website.'
   },
   propertyCard: {
     kycRequired: '购买前需完成身份验证。',

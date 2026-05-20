@@ -11,7 +11,9 @@ export const de: Messages = {
     completeKyc: 'KYC abschließen',
     projectedApy: 'Prognostizierte APY',
     location: 'Standort',
-    backToMarketplace: 'Zurück zum Marketplace'
+    backToMarketplace: 'Zurück zum Marketplace',
+    whatsappLabel: 'Chat with us on WhatsApp',
+    whatsappMessage: 'Hello, I am contacting you from the Sanova Global website.'
   },
   propertyCard: {
     kycRequired: 'Vor dem Kauf ist eine Identitätsprüfung erforderlich.',

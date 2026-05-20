@@ -11,7 +11,9 @@ export const ru: Messages = {
     completeKyc: 'Пройти KYC',
     projectedApy: 'Прогноз APY',
     location: 'Локация',
-    backToMarketplace: 'Вернуться в маркетплейс'
+    backToMarketplace: 'Вернуться в маркетплейс',
+    whatsappLabel: 'Chat with us on WhatsApp',
+    whatsappMessage: 'Hello, I am contacting you from the Sanova Global website.'
   },
   propertyCard: {
     kycRequired: 'Перед покупкой требуется верификация личности.',
