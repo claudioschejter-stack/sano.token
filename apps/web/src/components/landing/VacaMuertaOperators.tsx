@@ -1,28 +1,52 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
+import { Building2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { VACA_MUERTA_OPERATORS } from '../../data/vacaMuertaOperators';
 import { useTranslation } from '../../i18n/LocaleProvider';
 
-function OperatorLogo({ name, domain }: { name: string; domain: string }) {
-  const [failed, setFailed] = useState(false);
-  const logoUrl = `https://logo.clearbit.com/${domain}`;
+function logoSources(domain: string, logoUrl?: string) {
+  if (logoUrl) {
+    return [logoUrl];
+  }
 
-  if (failed) {
+  return [
+    `https://logo.clearbit.com/${domain}`,
+    `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+    `https://icons.duckduckgo.com/ip3/${domain}.ico`
+  ];
+}
+
+function OperatorLogo({ domain, logoUrl }: { domain: string; logoUrl?: string }) {
+  const sources = useMemo(() => logoSources(domain, logoUrl), [domain, logoUrl]);
+  const [sourceIndex, setSourceIndex] = useState(0);
+
+  const currentSrc = sources[sourceIndex];
+  const isFavicon = currentSrc?.includes('favicons') || currentSrc?.includes('duckduckgo');
+
+  if (!currentSrc) {
     return (
-      <span className="text-center text-sm font-semibold tracking-tight text-slate-700">{name}</span>
+      <span
+        className="flex h-12 w-28 items-center justify-center rounded-md bg-slate-200/80 text-slate-400"
+        aria-hidden
+      >
+        <Building2 size={22} strokeWidth={1.5} />
+      </span>
     );
   }
 
   return (
     <Image
-      src={logoUrl}
-      alt={name}
-      width={140}
-      height={48}
-      className="mx-auto h-10 w-auto max-w-[8.5rem] object-contain grayscale transition duration-300 hover:grayscale-0"
-      onError={() => setFailed(true)}
+      src={currentSrc}
+      alt=""
+      width={isFavicon ? 48 : 140}
+      height={isFavicon ? 48 : 48}
+      unoptimized={isFavicon}
+      className={`mx-auto object-contain grayscale transition duration-300 hover:grayscale-0 ${
+        isFavicon ? 'h-10 w-10' : 'h-10 w-auto max-w-[8.5rem]'
+      }`}
+      onError={() => setSourceIndex((index) => index + 1)}
     />
   );
 }
@@ -41,8 +65,13 @@ export function VacaMuertaOperators() {
         </h2>
         <ul className="mt-10 grid grid-cols-2 items-center gap-x-6 gap-y-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
           {VACA_MUERTA_OPERATORS.map((operator) => (
-            <li key={operator.id} className="flex min-h-[3.5rem] items-center justify-center px-2">
-              <OperatorLogo name={operator.name} domain={operator.domain} />
+            <li
+              key={operator.id}
+              className="flex min-h-[3.5rem] items-center justify-center px-2"
+              aria-label={operator.name}
+              title={operator.name}
+            >
+              <OperatorLogo domain={operator.domain} logoUrl={operator.logoUrl} />
             </li>
           ))}
         </ul>

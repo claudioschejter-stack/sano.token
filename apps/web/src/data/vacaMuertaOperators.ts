@@ -1,8 +1,11 @@
 /** Major oil & gas operators with activity in Vaca Muerta, Neuquén. */
 export type VacaMuertaOperator = {
   id: string;
+  /** Used for accessibility only; not shown in the UI. */
   name: string;
   domain: string;
+  /** Optional direct logo URL when Clearbit/favicon lookups are unreliable. */
+  logoUrl?: string;
 };
 
 export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
@@ -25,5 +28,9 @@ export const VACA_MUERTA_OPERATORS: VacaMuertaOperator[] = [
   { id: 'madalena', name: 'Madalena Energy', domain: 'madalenaenergy.com' },
   { id: 'gyp', name: 'GyP', domain: 'gyp.com.ar' },
   { id: 'murphy', name: 'Murphy Oil', domain: 'murphyoilcorp.com' },
-  { id: 'conocophillips', name: 'ConocoPhillips', domain: 'conocophillips.com' }
+  { id: 'conocophillips', name: 'ConocoPhillips', domain: 'conocophillips.com' },
+  { id: 'repsol', name: 'Repsol', domain: 'repsol.com' },
+  { id: 'eni', name: 'Eni', domain: 'eni.com' },
+  { id: 'apache', name: 'Apache Corporation', domain: 'apacorp.com' },
+  { id: 'harbour', name: 'Harbour Energy', domain: 'harbourenergy.com' }
 ];
