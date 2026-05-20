@@ -52,7 +52,7 @@ export const locales: Locale[] = [
   'mr'
 ];
 
-export const localeOptions: Array<{
+const localeOptionsSource: Array<{
   value: Locale;
   flag: string;
   label: string;
@@ -73,6 +73,11 @@ export const localeOptions: Array<{
   { value: 'sw', flag: '🇰🇪', label: 'Kiswahili' },
   { value: 'mr', flag: '🇮🇳', label: 'मराठी' }
 ];
+
+/** Language picker options sorted A→Z by display label. */
+export const localeOptions = [...localeOptionsSource].sort((a, b) =>
+  a.label.localeCompare(b.label, undefined, { sensitivity: 'base', numeric: true })
+);
 
 export const intlLocaleByCode: Record<Locale, string> = {
   en: 'en-US',
