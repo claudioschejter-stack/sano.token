@@ -37,21 +37,22 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
 
           {/* Cubre el cartel pixelado del callout — mismo celeste que la cuenca */}
           <div
-            className="pointer-events-none absolute z-10 flex w-fit max-w-[34%] flex-col items-center justify-center gap-0 px-0.5 py-px text-center leading-[1.05] text-slate-900 sm:px-1 sm:py-0.5"
+            className="pointer-events-none absolute z-10 flex w-fit max-w-[38%] flex-col items-center justify-center gap-0 text-center leading-[1.08] text-slate-900"
             style={{
-              left: '49%',
-              top: '41.5%',
+              left: 'calc(49% + 2cm)',
+              top: 'calc(41.5% + 3cm)',
+              padding: '0.5cm',
               backgroundColor: BASIN_BLUE
             }}
             aria-hidden
           >
-            <span className="text-[7px] font-extrabold tracking-wide sm:text-[9px] md:text-[10px]">
+            <span className="text-[9px] font-extrabold tracking-wide sm:text-[11px] md:text-sm">
               {mapFormationLine1}
             </span>
-            <span className="text-[8px] font-black tracking-[0.18em] sm:text-[10px] md:text-[11px]">
+            <span className="text-[10px] font-black tracking-[0.18em] sm:text-xs md:text-sm">
               {mapFormationLine2}
             </span>
-            <span className="text-[8px] font-black tracking-[0.18em] sm:text-[10px] md:text-[11px]">
+            <span className="text-[10px] font-black tracking-[0.18em] sm:text-xs md:text-sm">
               {mapFormationLine3}
             </span>
           </div>
