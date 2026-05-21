@@ -10,10 +10,39 @@ export function ContactPage() {
   const t = useTranslation();
   const c = t.contact;
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitted(true);
+    setError(null);
+
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    const name = String(data.get('name') ?? '').trim();
+    const email = String(data.get('email') ?? '').trim();
+    const message = String(data.get('message') ?? '').trim();
+
+    setSending(true);
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message })
+      });
+
+      if (!response.ok) {
+        setError(c.errorSend);
+        return;
+      }
+
+      setSubmitted(true);
+    } catch {
+      setError(c.errorSend);
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -83,11 +112,18 @@ export function ContactPage() {
               />
             </div>
 
+            {error ? (
+              <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
+                {error}
+              </p>
+            ) : null}
+
             <button
               type="submit"
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-blue-500 md:text-sm"
+              disabled={sending}
+              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60 md:text-sm"
             >
-              {c.submit}
+              {sending ? c.submitting : c.submit}
               <Send size={18} />
             </button>
           </form>

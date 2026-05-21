@@ -204,6 +204,8 @@ export const en = {
     messageLabel: 'Message',
     messagePlaceholder: 'How can we help you?',
     submit: 'Send message',
+    submitting: 'Sending…',
+    errorSend: 'We could not send your message. Please try again in a few minutes.',
     successTitle: 'Message sent',
     successDesc: 'Thank you for contacting Sanova Global. We will respond as soon as possible.',
     backHome: 'Back to home'
@@ -487,6 +489,8 @@ export type Messages = {
     messageLabel: string;
     messagePlaceholder: string;
     submit: string;
+    submitting: string;
+    errorSend: string;
     successTitle: string;
     successDesc: string;
     backHome: string;
