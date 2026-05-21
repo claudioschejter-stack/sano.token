@@ -18,6 +18,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
 import { HeroSubtitle } from './HeroSubtitle';
 import { MacroInvestmentThesis } from './MacroInvestmentThesis';
+import { TrustBadges } from './TrustBadges';
 import { VacaMuertaOperators } from './VacaMuertaOperators';
 
 export function LandingPage() {
@@ -82,7 +83,9 @@ export function LandingPage() {
               <div className="absolute -bottom-5 -left-[calc(1.25rem+0.5cm)] rounded-xl border border-white/20 bg-[#111827]/95 p-4 shadow-xl backdrop-blur">
                 <p className="text-xs uppercase tracking-wider text-slate-400">APY Proyectado</p>
                 <p className="mt-1 font-mono text-3xl font-bold text-emerald-400">9,20%</p>
-                <p className="mt-1 text-sm text-slate-300">Anelo Tower — Oficinas Premium</p>
+                <p className="mt-1 text-sm text-slate-300">
+                  {MARKETPLACE_FALLBACK_LISTINGS[0]!.title}
+                </p>
               </div>
             </div>
           </div>
@@ -175,6 +178,7 @@ export function LandingPage() {
               </article>
             ))}
           </div>
+          <TrustBadges className="mt-8 md:mt-10" />
         </div>
       </section>
 
@@ -206,6 +210,12 @@ export function LandingPage() {
             {l.cta.button}
             <ArrowRight size={18} />
           </Link>
+          <div className="mx-auto mt-6 max-w-2xl">
+            <TrustBadges
+              variant="dark"
+              className="justify-center [&_li]:border-white/20 [&_li]:bg-white/10 [&_li]:text-blue-50"
+            />
+          </div>
         </div>
       </section>
 

@@ -4,7 +4,7 @@ export const en = {
   },
   common: {
     buyNow: 'Buy Now',
-    investNow: 'Invest now',
+    investNow: 'Access USDC rental yields',
     reserveTokens: 'Reserve tokens',
     completeKyc: 'Complete KYC',
     projectedApy: 'Projected APY',
@@ -116,9 +116,17 @@ export const en = {
       title: 'Own fractional real assets.\nEarn rental income on-chain.',
       subtitle:
         'Sanova Global connects verified investors with productive properties in Vaca Muerta, Neuquén, Argentina — a premier global unconventional shale oil & gas hub with the world\'s second-largest gas reserves, world-class infrastructure, highly competitive operating costs, and vast oil & gas production potential — plus transparent yields, KYC compliance, and instant settlement.',
-      ctaPrimary: 'Browse properties',
+      ctaPrimary: 'Discover B2B cash flows',
       ctaSecondary: 'How it works',
       trustLine: 'Regulated frameworks · KYC/AML · On-chain distributions in USDC'
+    },
+    trustBadges: {
+      ariaLabel: 'Institutional trust signals',
+      labels: [
+        'Automated on-chain settlement',
+        'Real-estate legal audit',
+        'Strict institutional compliance'
+      ]
     },
     stats: {
       properties: 'Live offerings',
@@ -413,6 +421,10 @@ export type Messages = {
       ctaPrimary: string;
       ctaSecondary: string;
       trustLine: string;
+    };
+    trustBadges: {
+      ariaLabel: string;
+      labels: readonly string[];
     };
     stats: {
       properties: string;

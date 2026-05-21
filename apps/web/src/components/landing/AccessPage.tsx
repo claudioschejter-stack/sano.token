@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { LogIn, ShieldCheck, UserPlus } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
+import { TrustBadges } from './TrustBadges';
 
 export function AccessPage() {
   const t = useTranslation();
@@ -48,6 +49,8 @@ export function AccessPage() {
             </Link>
           </article>
         </div>
+
+        <TrustBadges className="mt-6 justify-center md:mt-8" />
 
         <article className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 md:mt-8 md:p-8">
           <div className="flex w-full flex-col gap-6 md:flex-row md:items-center md:justify-between">

@@ -6,7 +6,7 @@ export const es = {
   },
   common: {
     buyNow: 'Comprar Ahora',
-    investNow: 'Invertir ahora',
+    investNow: 'Acceder a rentas en USDC',
     reserveTokens: 'Reservar tokens',
     completeKyc: 'Completar KYC',
     projectedApy: 'APY Proyectado',
@@ -118,9 +118,17 @@ export const es = {
       title: 'Poseé activos reales en Vaca Muerta.\nCobrá rentas on-chain.',
       subtitle:
         'Vaca Muerta no es solo la segunda reserva de gas del planeta; es el epicentro global del shale no convencional. Su acelerado crecimiento ha generado un déficit crítico de infraestructura estratégica. A través de la tokenización de activos (RWA), Sanova Global conecta capital global con desarrollos inmobiliarios y comerciales prime en el corredor estratégico de la cuenca, respaldados por contratos de alquiler B2B con las principales operadoras energéticas. Ofrecemos exposición directa al sector más dinámico de Argentina con rendimientos en moneda dura, cumplimiento regulatorio (KYC) estricto y liquidación automatizada de dividendos.',
-      ctaPrimary: 'Ver propiedades',
+      ctaPrimary: 'Descubrir flujos de caja B2B',
       ctaSecondary: 'Cómo funciona',
       trustLine: 'Marcos regulatorios · KYC/AML · Distribuciones on-chain en USDC'
+    },
+    trustBadges: {
+      ariaLabel: 'Garantías institucionales',
+      labels: [
+        'Liquidación automatizada on-chain',
+        'Auditoría Legal Inmobiliaria',
+        'Cumplimiento estricto e institucional'
+      ]
     },
     stats: {
       properties: 'Ofertas activas',
@@ -225,7 +233,7 @@ export const es = {
     loginButton: 'Ir al marketplace',
     registerTitle: 'Crear cuenta',
     registerDesc: 'Registrate como nuevo inversor. Deberás completar la verificación de identidad (KYC) antes de tu primera compra.',
-    registerButton: 'Registrarse e iniciar KYC',
+    registerButton: 'Ver contrato y proyección',
     kycTitle: 'Verificación de identidad (KYC)',
     kycDesc: 'El cumplimiento regulatorio exige verificar tu identidad. El proceso lo gestiona nuestro partner de onboarding regulado.',
     kycButton: 'Continuar al KYC',
