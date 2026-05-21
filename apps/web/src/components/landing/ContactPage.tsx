@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { Mail, Send } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { submitContactFormClient } from '../../lib/contact/submitContactFormClient';
 import { LandingHeader } from './LandingHeader';
 
 export function ContactPage() {
@@ -26,13 +27,9 @@ export function ContactPage() {
     setSending(true);
 
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message })
-      });
+      const sent = await submitContactFormClient(name, email, message);
 
-      if (!response.ok) {
+      if (!sent) {
         setError(c.errorSend);
         return;
       }
