@@ -221,6 +221,8 @@ export const es = {
     submit: 'Enviar mensaje',
     submitting: 'Enviando…',
     errorSend: 'No se pudo enviar el mensaje. Intentá de nuevo en unos minutos.',
+    formNote:
+      'Al enviar serás redirigido un instante y volverás a esta página. Si es la primera vez, revisá tu bandeja de entrada (claudioschejter@gmail.com) y activá el enlace de FormSubmit — solo una vez.',
     successTitle: 'Mensaje enviado',
     successDesc: 'Gracias por contactar a Sanova Global. Te responderemos lo antes posible.',
     backHome: 'Volver al inicio'

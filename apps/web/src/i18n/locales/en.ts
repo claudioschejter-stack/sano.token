@@ -214,6 +214,8 @@ export const en = {
     submit: 'Send message',
     submitting: 'Sending…',
     errorSend: 'We could not send your message. Please try again in a few minutes.',
+    formNote:
+      'You will be redirected briefly and return here. On first use, check your inbox (claudioschejter@gmail.com) and activate the one-time FormSubmit confirmation link.',
     successTitle: 'Message sent',
     successDesc: 'Thank you for contacting Sanova Global. We will respond as soon as possible.',
     backHome: 'Back to home'
@@ -503,6 +505,7 @@ export type Messages = {
     submit: string;
     submitting: string;
     errorSend: string;
+    formNote: string;
     successTitle: string;
     successDesc: string;
     backHome: string;

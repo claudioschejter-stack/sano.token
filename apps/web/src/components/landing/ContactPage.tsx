@@ -1,10 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Mail, Send } from 'lucide-react';
+import {
+  CONTACT_SITE_URL,
+  CONTACT_SUCCESS_PATH,
+  FORM_SUBMIT_ACTION
+} from '../../lib/contact/contactConfig';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { submitContactFormClient } from '../../lib/contact/submitContactFormClient';
 import { LandingHeader } from './LandingHeader';
 
 export function ContactPage() {
@@ -12,13 +16,24 @@ export function ContactPage() {
   const c = t.contact;
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('enviado') === '1') {
+      setSubmitted(true);
+      window.history.replaceState({}, '', CONTACT_SUCCESS_PATH.split('?')[0]);
+    }
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-
     const form = event.currentTarget;
+
+    if (form.dataset.submitMode === 'native') {
+      return;
+    }
+
+    event.preventDefault();
+
     const data = new FormData(form);
     const name = String(data.get('name') ?? '').trim();
     const email = String(data.get('email') ?? '').trim();
@@ -27,20 +42,27 @@ export function ContactPage() {
     setSending(true);
 
     try {
-      const sent = await submitContactFormClient(name, email, message);
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message })
+      });
 
-      if (!sent) {
-        setError(c.errorSend);
+      if (response.ok) {
+        setSubmitted(true);
         return;
       }
-
-      setSubmitted(true);
     } catch {
-      setError(c.errorSend);
+      // API no disponible o sin Resend: continuar con FormSubmit nativo
     } finally {
       setSending(false);
     }
+
+    form.dataset.submitMode = 'native';
+    form.submit();
   }
+
+  const redirectAfterSubmit = `${CONTACT_SITE_URL}${CONTACT_SUCCESS_PATH}`;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -62,9 +84,16 @@ export function ContactPage() {
           </article>
         ) : (
           <form
+            action={FORM_SUBMIT_ACTION}
+            method="POST"
             onSubmit={handleSubmit}
             className="mt-10 space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:mt-12 md:p-8"
           >
+            <input type="hidden" name="_next" value={redirectAfterSubmit} />
+            <input type="hidden" name="_captcha" value="false" />
+            <input type="hidden" name="_template" value="table" />
+            <input type="hidden" name="_subject" value="[Sanova Contacto] Nuevo mensaje" />
+
             <div>
               <label htmlFor="contact-name" className="block text-sm font-semibold text-slate-900">
                 {c.nameLabel}
@@ -109,11 +138,7 @@ export function ContactPage() {
               />
             </div>
 
-            {error ? (
-              <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-                {error}
-              </p>
-            ) : null}
+            <p className="text-xs leading-relaxed text-slate-500">{c.formNote}</p>
 
             <button
               type="submit"
