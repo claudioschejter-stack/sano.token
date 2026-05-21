@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "npm run db:generate",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",

@@ -5,7 +5,7 @@ const apiOrigin = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const monorepoRoot = path.join(__dirname, '../..');
 
 const nextConfig = {
-  output: 'standalone',
+  ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   webpack: (config) => {
     config.resolve.modules = [
       path.join(__dirname, 'node_modules'),

@@ -1,15 +1,10 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import type { SystemRole } from './lib/auth/roles';
+import authConfig from './auth.config';
 import { verifyCredentials } from './lib/auth/credentialsService';
 
-type AuthToken = {
-  accessToken?: string;
-  role?: SystemRole;
-  roles?: SystemRole[];
-};
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       name: 'credentials',
@@ -44,46 +39,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
       }
     })
-  ],
-  pages: {
-    signIn: '/acceso',
-    error: '/acceso'
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 60 * 60 * 12
-  },
-  secret: process.env.AUTH_SECRET,
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        const authUser = user as {
-          role?: SystemRole;
-          roles?: SystemRole[];
-          accessToken?: string;
-        };
-
-        token.accessToken = authUser.accessToken;
-        token.role = authUser.role;
-        token.roles = authUser.roles;
-        token.email = user.email;
-      }
-
-      return token;
-    },
-    async session({ session, token }) {
-      const authToken = token as AuthToken & { authError?: string };
-
-      if (session.user) {
-        session.user.role = authToken.role;
-        session.user.roles = authToken.roles;
-        session.user.accessToken = authToken.accessToken;
-        session.user.email = token.email ?? session.user.email;
-      }
-
-      session.authError = authToken.authError;
-      return session;
-    }
-  },
-  trustHost: true
+  ]
 });
