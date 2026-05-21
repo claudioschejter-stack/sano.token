@@ -13,7 +13,7 @@ const MAP_SRC = '/maps/vaca-muerta-cuenca.png';
 const BASIN_BLUE = '#38bdf8';
 
 /**
- * Locator map — cuenca Vaca Muerta. El cartel del callout derecho se cubre con texto vectorial nítido.
+ * Mapa unificado: imagen + cartel + marcador comparten el mismo lienzo (5:4) y escalan juntos.
  */
 export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) {
   const { mapFormationLine1, mapFormationLine2, mapFormationLine3 } =
@@ -23,53 +23,54 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
     <div
       className={`relative w-full overflow-hidden rounded-xl border border-slate-700/80 bg-[#0A0E17] shadow-lg ring-1 ring-white/5 ${className}`.trim()}
     >
-      <div className="relative aspect-[5/4] w-full min-h-[280px] sm:min-h-[320px] lg:min-h-[400px]">
-        <div className="absolute inset-2 sm:inset-3">
+      <div className="relative aspect-[5/4] w-full min-h-[280px] p-2 sm:min-h-[320px] sm:p-3 lg:min-h-[400px]">
+        {/* Capa única — foto y overlays se mueven y escalan como una sola imagen */}
+        <div className="relative h-full w-full select-none [container-type:size]">
           <Image
             src={MAP_SRC}
             alt="Mapa de Argentina. La formación Vaca Muerta se ubica en el oeste, en Neuquén y provincias limítrofes."
             fill
-            className="object-contain object-center"
+            className="pointer-events-none object-cover object-center"
             sizes="(max-width: 1024px) 100vw, 560px"
             quality={95}
             priority={false}
+            draggable={false}
           />
 
-          {/* Cubre el cartel pixelado del callout — mismo celeste que la cuenca */}
           <div
-            className="pointer-events-none absolute z-10 flex w-fit max-w-[32%] flex-col items-center justify-center gap-px rounded-md text-center text-slate-900 sm:rounded-lg"
+            className="pointer-events-none absolute z-10 flex w-fit max-w-[34%] flex-col items-center justify-center gap-px rounded-md text-center leading-[1.08] text-slate-900 sm:rounded-lg"
             style={{
-              left: 'calc(49% + 1.3cm - 3mm)',
-              top: 'calc(41.5% + 1cm + 3mm)',
-              padding: '0.25cm 0.32cm',
+              left: '62%',
+              top: '55%',
+              padding: '3% 4.5%',
               backgroundColor: BASIN_BLUE
             }}
             aria-hidden
           >
-            <span className="text-[9px] font-extrabold tracking-wide sm:text-[11px] md:text-sm">
+            <span className="font-extrabold tracking-wide" style={{ fontSize: '3.2cqi' }}>
               {mapFormationLine1}
             </span>
             <span
-              className="inline-block origin-center text-[11px] font-extrabold leading-none tracking-[-0.06em] sm:text-[13px] md:text-base"
-              style={{ transform: 'scaleX(0.88) scaleY(1.22)' }}
+              className="inline-block origin-center font-extrabold leading-none tracking-[-0.06em]"
+              style={{ fontSize: '3.8cqi', transform: 'scaleX(0.88) scaleY(1.22)' }}
             >
               {mapFormationLine2}
             </span>
             <span
-              className="inline-block origin-center text-[11px] font-extrabold leading-none tracking-[-0.06em] sm:text-[13px] md:text-base"
-              style={{ transform: 'scaleX(0.88) scaleY(1.22)' }}
+              className="inline-block origin-center font-extrabold leading-none tracking-[-0.06em]"
+              style={{ fontSize: '3.8cqi', transform: 'scaleX(0.88) scaleY(1.22)' }}
             >
               {mapFormationLine3}
             </span>
           </div>
 
           <span
-            className="pointer-events-none absolute z-20 flex h-10 w-10 -translate-x-1/2 -translate-y-1/2 items-center justify-center sm:h-12 sm:w-12"
-            style={{ left: 'calc(22% + 0.5cm)', top: 'calc(58% - 3cm)' }}
+            className="pointer-events-none absolute z-20 flex aspect-square min-h-2.5 min-w-2.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+            style={{ left: '28%', top: '58%', width: '4.5cqi' }}
             aria-hidden
           >
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-40" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sky-400 ring-2 ring-[#0A0E17]" />
+            <span className="relative inline-flex h-[38%] w-[38%] min-h-2 min-w-2 rounded-full bg-sky-400 ring-2 ring-[#0A0E17]" />
           </span>
         </div>
       </div>

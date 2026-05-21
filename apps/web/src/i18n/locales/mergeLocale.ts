@@ -2,49 +2,29 @@ import type { Messages } from './en';
 import { en } from './en';
 
 /** Shallow-merge locale patches onto English defaults (full Messages shape). */
-export function mergeLocale(patch: {
-  brand?: Partial<Messages['brand']>;
-  common?: Partial<Messages['common']>;
-  nav?: Partial<Messages['nav']>;
-  landing?: Partial<Omit<Messages['landing'], 'nav' | 'hero' | 'stats' | 'operators' | 'macroThesis' | 'howItWorks' | 'featured' | 'benefits' | 'cta' | 'footer'>> & {
-    nav?: Partial<Messages['landing']['nav']>;
-    hero?: Partial<Messages['landing']['hero']>;
-    stats?: Partial<Messages['landing']['stats']>;
-    operators?: Partial<Messages['landing']['operators']>;
-    macroThesis?: Partial<Messages['landing']['macroThesis']>;
-    howItWorks?: Partial<Messages['landing']['howItWorks']>;
-    featured?: Partial<Messages['landing']['featured']>;
-    benefits?: Partial<Messages['landing']['benefits']>;
-    cta?: Partial<Messages['landing']['cta']>;
-    footer?: Partial<Messages['landing']['footer']>;
-  };
-  access?: Partial<Messages['access']>;
-  contact?: Partial<Messages['contact']>;
-}): Messages {
-  const landing = patch.landing;
+export function mergeLocale(patch: Record<string, unknown>): Messages {
+  const result: Record<string, unknown> = { ...en };
 
-  return {
-    ...en,
-    brand: { ...en.brand, ...patch.brand },
-    common: { ...en.common, ...patch.common },
-    nav: { ...en.nav, ...patch.nav },
-    landing: landing
-      ? {
-          ...en.landing,
-          ...landing,
-          nav: { ...en.landing.nav, ...landing.nav },
-          hero: { ...en.landing.hero, ...landing.hero },
-          stats: { ...en.landing.stats, ...landing.stats },
-          operators: { ...en.landing.operators, ...landing.operators },
-          macroThesis: { ...en.landing.macroThesis, ...landing.macroThesis },
-          howItWorks: { ...en.landing.howItWorks, ...landing.howItWorks },
-          featured: { ...en.landing.featured, ...landing.featured },
-          benefits: { ...en.landing.benefits, ...landing.benefits },
-          cta: { ...en.landing.cta, ...landing.cta },
-          footer: { ...en.landing.footer, ...landing.footer }
-        }
-      : en.landing,
-    access: { ...en.access, ...patch.access },
-    contact: { ...en.contact, ...patch.contact }
-  };
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === undefined) {
+      continue;
+    }
+
+    const base = result[key];
+    if (
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      base &&
+      typeof base === 'object' &&
+      !Array.isArray(base)
+    ) {
+      result[key] = { ...base, ...value };
+      continue;
+    }
+
+    result[key] = value;
+  }
+
+  return result as Messages;
 }

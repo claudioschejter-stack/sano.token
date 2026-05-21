@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const ru: Messages = {
+export const ru = mergeLocale({
   brand: {
     portalSubtitle: 'Портал RWA'
   },
@@ -231,4 +231,4 @@ export const ru: Messages = {
     globalTitle: 'Непредвиденная ошибка',
     globalHint: 'Произошла ошибка приложения. Ваша сессия и данные защищены.'
   }
-};
+});

@@ -3,41 +3,17 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Building2, CircleDollarSign, Landmark, ShieldCheck, TrendingUp } from 'lucide-react';
 import { useRealTimeDividends } from '../../hooks/useRealTimeDividends';
+import {
+  translateAssetLabel,
+  translateDistributionConcept,
+  translateLiquidatedStatus
+} from '../../i18n/demoLabels';
+import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { useDividendStore } from '../../store/useDividendStore';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { LiveDividendStream } from './LiveDividendStream';
 import { MonthlyCashFlowChart } from './MonthlyCashFlowChart';
-
-const formatUsdc = (value: number) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0
-  }).format(value);
-
-const formatPercent = (value: number) =>
-  new Intl.NumberFormat('es-AR', {
-    style: 'percent',
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1
-  }).format(value / 100);
-
-function formatMonthLabel(monthKey: string, intlLocale: string) {
-  const [year, month] = monthKey.split('-');
-  const date = new Date(Number(year), Number(month) - 1, 1);
-  return new Intl.DateTimeFormat(intlLocale, { month: 'short', year: '2-digit' }).format(date);
-}
-
-function formatDistributionDate(isoDate: string, intlLocale: string) {
-  return new Intl.DateTimeFormat(intlLocale, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  }).format(new Date(isoDate));
-}
 
 type KpiCardProps = {
   label: string;
@@ -67,6 +43,10 @@ export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
   const t = useTranslation();
   const { intlLocale } = useLocale();
+  const { formatUsd: formatUsdc, formatPercent, formatDateTime, formatMonthLabel } = useMemo(
+    () => createIntlFormatters(intlLocale),
+    [intlLocale]
+  );
 
   const distributions = useDividendStore((state) => state.distributions);
   const totalCashDividendsUsdc = useDividendStore((state) => state.totalCashDividendsUsdc);
@@ -89,11 +69,11 @@ export function FinancialOverview() {
   const chartData = useMemo(
     () =>
       monthlyComparison.map((point) => ({
-        month: formatMonthLabel(point.month, intlLocale),
+        month: formatMonthLabel(point.month),
         dividendos: point.dividendIncome,
         deuda: point.debtService
       })),
-    [intlLocale, monthlyComparison]
+    [formatMonthLabel, monthlyComparison]
   );
 
   if (!mounted) {
@@ -205,16 +185,20 @@ export function FinancialOverview() {
                     className="transition-colors hover:bg-terminal-bg/60"
                   >
                     <td className="whitespace-nowrap px-6 py-4 text-terminal-muted">
-                      {formatDistributionDate(row.date, intlLocale)}
+                      {formatDateTime(row.date)}
                     </td>
-                    <td className="px-6 py-4 font-medium text-terminal-text">{row.assetId}</td>
-                    <td className="max-w-xs px-6 py-4 text-terminal-muted">{row.concept}</td>
+                    <td className="px-6 py-4 font-medium text-terminal-text">
+                      {translateAssetLabel(row.assetId, t)}
+                    </td>
+                    <td className="max-w-xs px-6 py-4 text-terminal-muted">
+                      {translateDistributionConcept(row.id, row.concept, t)}
+                    </td>
                     <td className="px-6 py-4 text-right font-mono font-bold text-terminal-accent">
                       {formatUsdc(row.amountUsdc)}
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex rounded border border-terminal-success/30 bg-terminal-bg px-3 py-1 text-xs font-semibold text-terminal-success">
-                        {row.status}
+                        {translateLiquidatedStatus(row.status, t)}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-xs text-terminal-muted">{row.txHash ?? '—'}</td>

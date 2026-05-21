@@ -13,7 +13,8 @@ export const es = {
     location: 'Ubicación',
     backToMarketplace: 'Volver al marketplace',
     whatsappLabel: 'Escribinos por WhatsApp',
-    whatsappMessage: 'Hola, me contacto desde el sitio web de Sanova Global.'
+    whatsappMessage: 'Hola, me contacto desde el sitio web de Sanova Global.',
+    loadingGeneric: 'Cargando…'
   },
   propertyCard: {
     kycRequired: 'Se requiere verificación de identidad antes de la compra.',
@@ -227,6 +228,65 @@ export const es = {
     kycDesc: 'El cumplimiento regulatorio exige verificar tu identidad. El proceso lo gestiona nuestro partner de onboarding regulado.',
     kycButton: 'Continuar al KYC',
     backHome: 'Volver al inicio'
+  },
+  kyc: {
+    title: 'Verificación KYC',
+    description:
+      'Integración con proveedor Sumsub. Tras la aprobación automática, el webhook actualizará tu estado a verificado.',
+    simulateButton: 'Simular aprobación KYC (demo)',
+    cancel: 'Cancelar',
+    loading: 'Cargando KYC…'
+  },
+  cashFlow: {
+    eyebrow: 'Flujo de Caja',
+    title: 'Dividendos en efectivo para repago de margen',
+    subtitle:
+      'Los rendimientos operativos se liquidan estrictamente en cash para facilitar la amortización de pasivos de la cuenta de inversión.',
+    availableCashLabel: 'Efectivo acumulado disponible para repago',
+    coverageLabel: 'Cobertura contra deuda activa',
+    repayButton: 'Aplicar al repago de margen',
+    repaying: 'Procesando repago…',
+    repayError: 'No se pudo aplicar el repago de margen.',
+    totalDistributedLabel: 'Total distribuido',
+    historyTitle: 'Histórico de distribución de dividendos',
+    colConcept: 'Concepto',
+    colDate: 'Fecha',
+    colAsset: 'Activo',
+    colAmount: 'Monto USD',
+    colStatus: 'Estado'
+  },
+  portfolio: {
+    title: 'Mis activos',
+    subtitle: 'Vista consolidada de tus tenencias tokenizadas y posiciones on-chain.',
+    comingSoon:
+      'La vista detallada del portfolio estará disponible pronto. Mientras tanto, explorá el marketplace o el dashboard de flujo de caja.'
+  },
+  status: {
+    liquidatedCash: 'Liquidado en efectivo'
+  },
+  demo: {
+    assets: {
+      aneloOps: 'Operaciones Añelo',
+      tolhuin: 'Tolhuin',
+      mendoza: 'Mendoza'
+    },
+    concepts: {
+      aneloYield: 'Yield distribuido — tramo cash (USDC)',
+      aneloAmortization: 'Amortización parcial indexada vía listener',
+      tolhuinDividend: 'Dividendo operativo RWA liquidado en cash',
+      debtServiceCoverage: 'Servicio de deuda — cobertura con flujo operativo',
+      mendozaQuarterly: 'Distribución trimestral de rendimiento en efectivo',
+      liveDistribution: 'Distribución liquidada en tiempo real (SSE)'
+    },
+    cashFlowConcepts: {
+      tolhuinDividend: 'Dividendo operativo RWA liquidado en cash',
+      mendozaQuarterly: 'Distribución trimestral de rendimiento en efectivo'
+    }
+  },
+  meta: {
+    title: 'Sanova Global — Real Estate Tokenizado',
+    description: 'Invertí en activos reales tokenizados con rentas on-chain y cumplimiento KYC.',
+    pwaTitle: 'Sanova RWA'
   },
   error: {
     eyebrow: 'Algo salió mal',

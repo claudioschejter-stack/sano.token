@@ -11,7 +11,7 @@ export function LocaleSwitcher({ compact = false }: { compact?: boolean }) {
     <div
       className={compact ? 'flex flex-wrap gap-1.5' : 'flex flex-col gap-2'}
       role="group"
-      aria-label="Language"
+      aria-label={t.nav.language}
     >
       {!compact ? (
         <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">{t.nav.language}</p>

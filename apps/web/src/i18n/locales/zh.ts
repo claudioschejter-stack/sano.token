@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const zh: Messages = {
+export const zh = mergeLocale({
   brand: {
     portalSubtitle: 'RWA 门户'
   },
@@ -230,4 +230,4 @@ export const zh: Messages = {
     globalTitle: '意外错误',
     globalHint: '应用程序发生错误。您的会话和数据受到保护。'
   }
-};
+});

@@ -5,8 +5,11 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ShieldCheck } from 'lucide-react';
 import { setDemoKycStatus } from '../../../hooks/useKycStatus';
+import { useTranslation } from '../../../i18n/LocaleProvider';
 
 function KycPageContent() {
+  const t = useTranslation();
+  const k = t.kyc;
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo') ?? '/marketplace';
 
@@ -22,22 +25,19 @@ function KycPageContent() {
           <ShieldCheck size={24} />
         </div>
 
-        <h1 className="text-2xl font-bold text-terminal-text">Verificación KYC</h1>
-        <p className="mt-3 text-terminal-muted">
-          Integración con proveedor Sumsub. Tras la aprobación automática, el webhook actualizará tu estado a
-          verificado.
-        </p>
+        <h1 className="text-2xl font-bold text-terminal-text">{k.title}</h1>
+        <p className="mt-3 text-terminal-muted">{k.description}</p>
 
         <button
           type="button"
           onClick={completeDemoKyc}
           className="mt-6 w-full rounded-lg bg-terminal-primary px-4 py-3 font-semibold text-white hover:bg-blue-500"
         >
-          Simular aprobación KYC (demo)
+          {k.simulateButton}
         </button>
 
         <Link href={returnTo} className="mt-4 block text-center text-sm text-terminal-muted hover:text-terminal-text">
-          Cancelar
+          {k.cancel}
         </Link>
       </article>
     </section>
@@ -45,8 +45,10 @@ function KycPageContent() {
 }
 
 export default function KycPage() {
+  const t = useTranslation();
+
   return (
-    <Suspense fallback={<p className="text-terminal-muted">Cargando KYC…</p>}>
+    <Suspense fallback={<p className="text-terminal-muted">{t.kyc.loading}</p>}>
       <KycPageContent />
     </Suspense>
   );

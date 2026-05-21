@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const fr: Messages = {
+export const fr = mergeLocale({
   brand: {
     portalSubtitle: 'Portail RWA'
   },
@@ -232,4 +232,4 @@ export const fr: Messages = {
     globalTitle: 'Erreur inattendue',
     globalHint: 'Une erreur applicative est survenue. Votre session et vos données sont protégées.'
   }
-};
+});

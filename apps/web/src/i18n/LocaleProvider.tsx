@@ -6,6 +6,14 @@ import type { Messages } from './locales/en';
 
 const STORAGE_KEY = 'sanova.locale';
 
+function readStoredLocale(): Locale {
+  if (typeof window === 'undefined') {
+    return defaultLocale;
+  }
+
+  return resolveLocale(window.localStorage.getItem(STORAGE_KEY));
+}
+
 type LocaleContextValue = {
   locale: Locale;
   intlLocale: string;
@@ -16,12 +24,11 @@ type LocaleContextValue = {
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
+  const [locale, setLocaleState] = useState<Locale>(readStoredLocale);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    const resolved = resolveLocale(stored);
+    const resolved = readStoredLocale();
     setLocaleState(resolved);
     document.documentElement.lang = resolved;
     document.documentElement.dir = rtlLocales.includes(resolved) ? 'rtl' : 'ltr';

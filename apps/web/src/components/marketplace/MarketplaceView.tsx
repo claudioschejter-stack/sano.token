@@ -6,6 +6,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { useKycStatus } from '../../hooks/useKycStatus';
 import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import type { MarketplaceFeed } from '../../types/marketplace';
+import { LocaleSwitcher } from './LocaleSwitcher';
 import { PropertyCard } from './PropertyCard';
 import { TrustStrip } from './TrustStrip';
 
@@ -32,6 +33,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
           <h1 className="mt-2 text-2xl font-bold text-terminal-text md:text-3xl">{t.marketplace.title}</h1>
           <p className="mt-2 max-w-2xl text-base text-terminal-muted md:text-lg">{t.marketplace.subtitle}</p>
         </div>
+        <LocaleSwitcher compact />
       </header>
 
       <TrustStrip />

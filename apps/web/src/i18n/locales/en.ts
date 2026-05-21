@@ -11,7 +11,8 @@ export const en = {
     location: 'Location',
     backToMarketplace: 'Back to marketplace',
     whatsappLabel: 'Chat with us on WhatsApp',
-    whatsappMessage: 'Hello, I am contacting you from the Sanova Global website.'
+    whatsappMessage: 'Hello, I am contacting you from the Sanova Global website.',
+    loadingGeneric: 'Loading…'
   },
   propertyCard: {
     kycRequired: 'Identity verification required before purchase.',
@@ -221,6 +222,64 @@ export const en = {
     kycButton: 'Continue to KYC',
     backHome: 'Back to home'
   },
+  kyc: {
+    title: 'KYC verification',
+    description:
+      'Integration with Sumsub provider. After automatic approval, the webhook will update your status to verified.',
+    simulateButton: 'Simulate KYC approval (demo)',
+    cancel: 'Cancel',
+    loading: 'Loading KYC…'
+  },
+  cashFlow: {
+    eyebrow: 'Cash flow',
+    title: 'Cash dividends for margin repayment',
+    subtitle:
+      'Operating yields are settled strictly in cash to support amortization of investment account liabilities.',
+    availableCashLabel: 'Available cash accumulated for repayment',
+    coverageLabel: 'Coverage against active debt',
+    repayButton: 'Apply to margin repayment',
+    repaying: 'Processing repayment…',
+    repayError: 'Could not apply margin repayment.',
+    totalDistributedLabel: 'Total distributed',
+    historyTitle: 'Dividend distribution history',
+    colConcept: 'Concept',
+    colDate: 'Date',
+    colAsset: 'Asset',
+    colAmount: 'Amount USD',
+    colStatus: 'Status'
+  },
+  portfolio: {
+    title: 'My assets',
+    subtitle: 'Consolidated view of your tokenized holdings and on-chain positions.',
+    comingSoon: 'Detailed portfolio view coming soon. Meanwhile, explore the marketplace or your cash-flow dashboard.'
+  },
+  status: {
+    liquidatedCash: 'Liquidated in cash'
+  },
+  demo: {
+    assets: {
+      aneloOps: 'Añelo Operations',
+      tolhuin: 'Tolhuin',
+      mendoza: 'Mendoza'
+    },
+    concepts: {
+      aneloYield: 'Distributed yield — cash tranche (USDC)',
+      aneloAmortization: 'Partial amortization indexed via listener',
+      tolhuinDividend: 'Operating RWA dividend liquidated in cash',
+      debtServiceCoverage: 'Debt service — covered with operating cash flow',
+      mendozaQuarterly: 'Quarterly performance distribution in cash',
+      liveDistribution: 'Distribution liquidated in real time (SSE)'
+    },
+    cashFlowConcepts: {
+      tolhuinDividend: 'Operating RWA dividend liquidated in cash',
+      mendozaQuarterly: 'Quarterly performance distribution in cash'
+    }
+  },
+  meta: {
+    title: 'Sanova Global — Tokenized Real Estate',
+    description: 'Invest in tokenized real assets with on-chain rental income and KYC compliance.',
+    pwaTitle: 'Sanova RWA'
+  },
   error: {
     eyebrow: 'Something went wrong',
     title: 'We could not load this view',
@@ -246,6 +305,7 @@ export type Messages = {
     backToMarketplace: string;
     whatsappLabel: string;
     whatsappMessage: string;
+    loadingGeneric: string;
   };
   propertyCard: {
     kycRequired: string;
@@ -444,6 +504,62 @@ export type Messages = {
     kycDesc: string;
     kycButton: string;
     backHome: string;
+  };
+  kyc: {
+    title: string;
+    description: string;
+    simulateButton: string;
+    cancel: string;
+    loading: string;
+  };
+  cashFlow: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    availableCashLabel: string;
+    coverageLabel: string;
+    repayButton: string;
+    repaying: string;
+    repayError: string;
+    totalDistributedLabel: string;
+    historyTitle: string;
+    colConcept: string;
+    colDate: string;
+    colAsset: string;
+    colAmount: string;
+    colStatus: string;
+  };
+  portfolio: {
+    title: string;
+    subtitle: string;
+    comingSoon: string;
+  };
+  status: {
+    liquidatedCash: string;
+  };
+  demo: {
+    assets: {
+      aneloOps: string;
+      tolhuin: string;
+      mendoza: string;
+    };
+    concepts: {
+      aneloYield: string;
+      aneloAmortization: string;
+      tolhuinDividend: string;
+      debtServiceCoverage: string;
+      mendozaQuarterly: string;
+      liveDistribution: string;
+    };
+    cashFlowConcepts: {
+      tolhuinDividend: string;
+      mendozaQuarterly: string;
+    };
+  };
+  meta: {
+    title: string;
+    description: string;
+    pwaTitle: string;
   };
   error: {
     eyebrow: string;
