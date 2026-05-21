@@ -17,14 +17,14 @@ export class InvestorController {
 
   @Post('repay-margin')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'TREASURY', 'OPERATOR', 'INVESTOR')
+  @Roles('ADMIN', 'ADVISOR_MANAGER', 'ADVISOR', 'TREASURY', 'OPERATOR', 'INVESTOR')
   repayMargin(@Body() body: RepayMarginDto) {
     return this.investorService.repayMarginWithAvailableCash(body.userId);
   }
 
   @Get('cash-flow')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'TREASURY', 'OPERATOR', 'INVESTOR')
+  @Roles('ADMIN', 'ADVISOR_MANAGER', 'ADVISOR', 'TREASURY', 'OPERATOR', 'INVESTOR')
   getCashFlowHistory() {
     return this.investorService.getCashFlowHistory();
   }

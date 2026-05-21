@@ -229,15 +229,48 @@ export const es = {
   },
   access: {
     title: 'Acceso a la plataforma',
-    subtitle: 'Iniciá sesión si ya tenés cuenta, o registrate y completá el KYC para invertir en propiedades tokenizadas.',
+    subtitle:
+      'Iniciá sesión con tu email y contraseña. Según tu perfil accedés como administrador, asesor, asesor de asesor o inversor.',
     loginTitle: 'Iniciar sesión',
-    loginDesc: 'Accedé al marketplace y a tu portfolio con tu cuenta verificada y wallet conectada.',
+    loginDesc: 'Accedé al marketplace y a tu portfolio con tu cuenta verificada.',
     loginButton: 'Ir al marketplace',
+    emailLabel: 'Email',
+    emailPlaceholder: 'tu@email.com',
+    passwordLabel: 'Contraseña',
+    passwordPlaceholder: 'Tu contraseña',
+    signInButton: 'Ingresar',
+    invalidCredentials: 'Email o contraseña incorrectos.',
+    signingIn: 'Ingresando…',
+    signedInAs: 'Sesión activa:',
+    roleLabel: 'Rol',
+    continueButton: 'Continuar',
+    authError: 'No pudimos completar el ingreso. Verificá la configuración OAuth o intentá de nuevo.',
+    rolesTitle: 'Roles de la plataforma',
+    rolesDesc: 'Tras el ingreso, tu cuenta se clasifica automáticamente según el email autorizado.',
+    roles: {
+      ADMIN: 'Administrador',
+      ADVISOR_MANAGER: 'Asesor de asesor',
+      ADVISOR: 'Asesor',
+      INVESTOR: 'Inversor',
+      TREASURY: 'Tesorería',
+      OPERATOR: 'Operador'
+    },
+    roleDescriptions: {
+      ADMIN: 'Gestión institucional, usuarios y operaciones.',
+      ADVISOR_MANAGER: 'Supervisa red de asesores y comisiones.',
+      ADVISOR: 'Acompaña inversores y gestiona cartera asignada.',
+      INVESTOR: 'Accede al marketplace y portfolio tokenizado.',
+      TREASURY: 'Operaciones de tesorería y flujo de caja.',
+      OPERATOR: 'Operaciones internas de la plataforma.'
+    },
+    staffPanelHint: 'Panel operativo según permisos de tu rol.',
     registerTitle: 'Crear cuenta',
-    registerDesc: 'Registrate como nuevo inversor. Deberás completar la verificación de identidad (KYC) antes de tu primera compra.',
+    registerDesc:
+      'Registrate como nuevo inversor. Deberás completar la verificación de identidad (KYC) antes de tu primera compra.',
     registerButton: 'Ver contrato y proyección',
     kycTitle: 'Verificación de identidad (KYC)',
-    kycDesc: 'El cumplimiento regulatorio exige verificar tu identidad. El proceso lo gestiona nuestro partner de onboarding regulado.',
+    kycDesc:
+      'El cumplimiento regulatorio exige verificar tu identidad. El proceso lo gestiona nuestro partner de onboarding regulado.',
     kycButton: 'Continuar al KYC',
     backHome: 'Volver al inicio'
   },

@@ -222,15 +222,48 @@ export const en = {
   },
   access: {
     title: 'Platform access',
-    subtitle: 'Sign in if you already have an account, or register and complete KYC to invest in tokenized properties.',
+    subtitle:
+      'Sign in with your email and password. Your profile determines whether you access as admin, advisor, advisor manager, or investor.',
     loginTitle: 'Sign in',
-    loginDesc: 'Access the marketplace and your portfolio with your verified account and connected wallet.',
+    loginDesc: 'Access the marketplace and your portfolio with your verified account.',
     loginButton: 'Go to marketplace',
+    emailLabel: 'Email',
+    emailPlaceholder: 'you@email.com',
+    passwordLabel: 'Password',
+    passwordPlaceholder: 'Your password',
+    signInButton: 'Sign in',
+    invalidCredentials: 'Incorrect email or password.',
+    signingIn: 'Signing in…',
+    signedInAs: 'Signed in as',
+    roleLabel: 'Role',
+    continueButton: 'Continue',
+    authError: 'We could not complete sign-in. Check OAuth configuration or try again.',
+    rolesTitle: 'Platform roles',
+    rolesDesc: 'After sign-in, your account is classified automatically based on your authorized email.',
+    roles: {
+      ADMIN: 'Administrator',
+      ADVISOR_MANAGER: 'Advisor manager',
+      ADVISOR: 'Advisor',
+      INVESTOR: 'Investor',
+      TREASURY: 'Treasury',
+      OPERATOR: 'Operator'
+    },
+    roleDescriptions: {
+      ADMIN: 'Institutional management, users, and operations.',
+      ADVISOR_MANAGER: 'Supervises advisor network and commissions.',
+      ADVISOR: 'Supports investors and manages assigned portfolio.',
+      INVESTOR: 'Accesses marketplace and tokenized portfolio.',
+      TREASURY: 'Treasury operations and cash flow.',
+      OPERATOR: 'Internal platform operations.'
+    },
+    staffPanelHint: 'Operational panel based on your role permissions.',
     registerTitle: 'Create account',
-    registerDesc: 'Register as a new investor. You will need to complete identity verification (KYC) before your first purchase.',
+    registerDesc:
+      'Register as a new investor. You will need to complete identity verification (KYC) before your first purchase.',
     registerButton: 'Register & start KYC',
     kycTitle: 'Identity verification (KYC)',
-    kycDesc: 'Regulatory compliance requires verifying your identity. The process is handled by our regulated onboarding partner.',
+    kycDesc:
+      'Regulatory compliance requires verifying your identity. The process is handled by our regulated onboarding partner.',
     kycButton: 'Continue to KYC',
     backHome: 'Back to home'
   },
@@ -516,6 +549,28 @@ export type Messages = {
     loginTitle: string;
     loginDesc: string;
     loginButton: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    signInButton: string;
+    invalidCredentials: string;
+    signingIn: string;
+    signedInAs: string;
+    roleLabel: string;
+    continueButton: string;
+    authError: string;
+    rolesTitle: string;
+    rolesDesc: string;
+    roles: Record<
+      'ADMIN' | 'ADVISOR_MANAGER' | 'ADVISOR' | 'INVESTOR' | 'TREASURY' | 'OPERATOR',
+      string
+    >;
+    roleDescriptions: Record<
+      'ADMIN' | 'ADVISOR_MANAGER' | 'ADVISOR' | 'INVESTOR' | 'TREASURY' | 'OPERATOR',
+      string
+    >;
+    staffPanelHint: string;
     registerTitle: string;
     registerDesc: string;
     registerButton: string;
