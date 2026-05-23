@@ -619,7 +619,7 @@ export const es = {
         'Explorá activos tokenizados con información real de contratos, APY y avance de colocación informados.',
       step3Title: 'Recibí distribuciones',
       step3Desc: 'Los ingresos por alquiler llegan a tu wallet en USDC. Seguimiento en el portal inversor.',
-      step4Title: 'Participá de nuestro Mercado Secundario',
+      step4Title: 'Participá en el Mercado Secundario',
       step4Desc:
         'Comprá y vende tus tokenes a otros inversores de la plataforma. Obteniendo liquidez inmediata.'
     },
