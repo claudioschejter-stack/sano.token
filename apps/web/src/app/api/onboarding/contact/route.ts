@@ -31,6 +31,10 @@ export async function POST(request: Request) {
     const emailResult = await issueVerificationCode(ctx.userId, 'EMAIL', user.email);
     const phoneResult = await issueVerificationCode(ctx.userId, 'PHONE', phone);
 
+    if (!emailResult.delivered || !phoneResult.delivered) {
+      return NextResponse.json({ error: 'VERIFICATION_DELIVERY_FAILED' }, { status: 502 });
+    }
+
     return NextResponse.json({
       ok: true,
       email: user.email,

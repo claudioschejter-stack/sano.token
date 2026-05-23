@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdminAsset, updateAdminAsset } from '../../../../../../lib/admin/assetsService';
-import { buildSmartContractDocUrl } from '../../../../../../lib/blockchain/deployAssetToken';
-import { deployLaunchToken } from '../../../../../../lib/blockchain/deployLaunchToken';
-import { registerProjectCollateral } from '../../../../../../lib/collateral/collateralOrchestrator';
+import { buildSmartContractDocUrl } from '../../../../../../lib/blockchain/explorerUrls';
 import { requireAdminSession } from '../../../../../../lib/admin/requireAdmin';
 
 type RouteContext = {
@@ -35,6 +33,7 @@ export async function POST(_request: Request, context: RouteContext) {
 
     await updateAdminAsset(projectId, { tokenDeployStatus: 'PENDING' });
 
+    const { deployLaunchToken } = await import('../../../../../../lib/blockchain/deployLaunchToken');
     const result = await deployLaunchToken({
       tokenStandard: asset.tokenStandard,
       tokenInstrumentType: asset.tokenInstrumentType,
@@ -61,6 +60,9 @@ export async function POST(_request: Request, context: RouteContext) {
 
       let collateralSummary = null;
       if (updated?.collateralTargets.length) {
+        const { registerProjectCollateral } = await import(
+          '../../../../../../lib/collateral/collateralOrchestrator'
+        );
         collateralSummary = await registerProjectCollateral(projectId);
       }
 

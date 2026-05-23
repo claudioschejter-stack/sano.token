@@ -108,6 +108,8 @@ export async function listAdminInvestors(filter: InvestorListFilter = 'ALL'): Pr
   const users = await prisma.user.findMany({
     where: {
       systemRole: 'INVESTOR',
+      emailVerifiedAt: { not: null },
+      phoneVerifiedAt: { not: null },
       ...(filter === 'ALL' ? {} : { kycStatus: filter })
     },
     include: {

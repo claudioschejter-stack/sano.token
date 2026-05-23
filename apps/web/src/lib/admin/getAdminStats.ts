@@ -22,9 +22,25 @@ export async function getAdminStats(): Promise<AdminStats> {
     staffUsers,
     capitalAgg
   ] = await Promise.all([
-    prisma.user.count(),
-    prisma.user.count({ where: { systemRole: 'INVESTOR' } }),
-    prisma.user.count({ where: { kycStatus: 'PENDING', systemRole: 'INVESTOR' } }),
+    prisma.user.count({
+      where: {
+        OR: [
+          { systemRole: { not: 'INVESTOR' } },
+          { systemRole: 'INVESTOR', emailVerifiedAt: { not: null }, phoneVerifiedAt: { not: null } }
+        ]
+      }
+    }),
+    prisma.user.count({
+      where: { systemRole: 'INVESTOR', emailVerifiedAt: { not: null }, phoneVerifiedAt: { not: null } }
+    }),
+    prisma.user.count({
+      where: {
+        kycStatus: 'PENDING',
+        systemRole: 'INVESTOR',
+        emailVerifiedAt: { not: null },
+        phoneVerifiedAt: { not: null }
+      }
+    }),
     prisma.project.count({ where: { isActive: true } }),
     prisma.investor.count(),
     prisma.investment.count({ where: { status: 'ACTIVE' } }),

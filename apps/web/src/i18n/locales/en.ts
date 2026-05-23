@@ -746,6 +746,8 @@ export const en = {
         WEAK_PASSWORD: 'Password must be at least 8 characters.',
         INVALID_EMAIL: 'Enter a valid email address (e.g. you@email.com).',
         INVALID_PHONE: 'Enter a valid mobile number with country code.',
+        VERIFICATION_DELIVERY_FAILED:
+          'We could not send the email and SMS codes. The account was not activated; please try again in a few minutes.',
         SIGN_IN_FAILED: 'Account created, but automatic sign-in failed.'
       }
     },
@@ -807,6 +809,8 @@ export const en = {
       INVALID_CODE: 'Invalid or expired code.',
       INVALID_PHONE: 'Enter a valid phone number with country code.',
       RATE_LIMIT: 'Too many attempts. Wait a few minutes.',
+      VERIFICATION_DELIVERY_FAILED:
+        'We could not send the email and SMS codes. Check email/SMS configuration or try again.',
       DIDIT_NOT_CONFIGURED: 'Didit is not configured on the server yet. Contact support.',
       CONTACT_NOT_VERIFIED: 'Verify your email and phone before starting KYC.'
     }
@@ -1570,6 +1574,7 @@ export type Messages = {
         WEAK_PASSWORD: string;
         INVALID_EMAIL: string;
         INVALID_PHONE: string;
+        VERIFICATION_DELIVERY_FAILED: string;
         SIGN_IN_FAILED: string;
       };
     };
@@ -1628,6 +1633,7 @@ export type Messages = {
       INVALID_CODE: string;
       INVALID_PHONE: string;
       RATE_LIMIT: string;
+      VERIFICATION_DELIVERY_FAILED: string;
       DIDIT_NOT_CONFIGURED: string;
       CONTACT_NOT_VERIFIED: string;
     };

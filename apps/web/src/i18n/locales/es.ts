@@ -753,6 +753,8 @@ export const es = {
         WEAK_PASSWORD: 'La contraseña debe tener al menos 8 caracteres.',
         INVALID_EMAIL: 'Ingresá un correo electrónico válido (ej. tu@email.com).',
         INVALID_PHONE: 'Ingresá un teléfono móvil válido con código de país.',
+        VERIFICATION_DELIVERY_FAILED:
+          'No pudimos enviar los códigos de email y SMS. La cuenta no fue dada de alta; intentá de nuevo en unos minutos.',
         SIGN_IN_FAILED: 'Cuenta creada, pero no pudimos iniciar sesión automáticamente.'
       }
     },
@@ -814,6 +816,8 @@ export const es = {
       INVALID_CODE: 'Código incorrecto o vencido.',
       INVALID_PHONE: 'Ingresá un teléfono válido con código de país.',
       RATE_LIMIT: 'Demasiados intentos. Esperá unos minutos.',
+      VERIFICATION_DELIVERY_FAILED:
+        'No pudimos enviar los códigos de email y SMS. Revisá la configuración de correo/SMS o intentá de nuevo.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
       CONTACT_NOT_VERIFIED: 'Primero verificá tu email y teléfono antes de iniciar el KYC.'
     }

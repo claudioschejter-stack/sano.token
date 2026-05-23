@@ -78,11 +78,8 @@ export async function issueVerificationCode(
     }
   }
 
-  const forceExpose =
+  const exposeDevCode =
     process.env.ONBOARDING_DEV_EXPOSE_CODE === 'true' || process.env.NODE_ENV !== 'production';
-
-  // If Resend/Twilio are not configured, show the code on screen so onboarding can continue.
-  const exposeDevCode = forceExpose || !delivered;
 
   return {
     delivered,

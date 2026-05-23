@@ -69,6 +69,14 @@ export async function registerInvestor(input: RegisterInput) {
   const emailOtp = await issueVerificationCode(user.id, 'EMAIL', email);
   const phoneOtp = await issueVerificationCode(user.id, 'PHONE', phoneE164);
 
+  if (!emailOtp.delivered || !phoneOtp.delivered) {
+    if (!existing) {
+      await prisma.user.delete({ where: { id: user.id } });
+    }
+
+    throw new Error('VERIFICATION_DELIVERY_FAILED');
+  }
+
   return {
     userId: user.id,
     email,
