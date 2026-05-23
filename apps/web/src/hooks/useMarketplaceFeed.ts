@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { buildFallbackFeed, fetchMarketplaceFeedClient } from '../lib/marketplaceApi';
+import { fetchMarketplaceFeedClient } from '../lib/marketplaceApi';
 import type { MarketplaceFeed } from '../types/marketplace';
 
 export function useMarketplaceFeed(initialFeed: MarketplaceFeed) {
@@ -17,11 +17,6 @@ export function useMarketplaceFeed(initialFeed: MarketplaceFeed) {
       try {
         const nextFeed = await fetchMarketplaceFeedClient();
         if (cancelled) {
-          return;
-        }
-
-        if (nextFeed.listings.length === 0) {
-          setFeed(buildFallbackFeed());
           return;
         }
 

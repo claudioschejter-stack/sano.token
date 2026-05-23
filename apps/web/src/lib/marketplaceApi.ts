@@ -1,14 +1,19 @@
 import { MARKETPLACE_FALLBACK_LISTINGS } from '../data/marketplaceFallback';
+import { fetchMarketplaceFeedFromDb } from './marketplace/marketplaceFeedService';
 import type { MarketplaceFeed } from '../types/marketplace';
 
-const REVALIDATE_SECONDS = 30;
+const FEED_PATH = '/api/marketplace/feed';
 
-function apiBaseUrl() {
+function feedUrl() {
   if (typeof window !== 'undefined') {
-    return '';
+    return FEED_PATH;
   }
 
-  return process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+  return `${origin}${FEED_PATH}`;
 }
 
 export function buildFallbackFeed(): MarketplaceFeed {
@@ -28,42 +33,30 @@ export function buildFallbackFeed(): MarketplaceFeed {
 
 const API_TIMEOUT_MS = 4_000;
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+async function fetchFeed(init?: RequestInit): Promise<MarketplaceFeed> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${apiBaseUrl()}/api/v1${path}`, {
+    const response = await fetch(feedUrl(), {
       ...init,
       signal: controller.signal
     });
 
     if (!response.ok) {
-      throw new Error(`Marketplace API error: ${response.status}`);
+      throw new Error(`Marketplace feed error: ${response.status}`);
     }
 
-    return (await response.json()) as T;
+    return (await response.json()) as MarketplaceFeed;
   } finally {
     clearTimeout(timeout);
   }
 }
 
-/** Server-side fetch with ISR cache (marketplace SSR). */
+/** Server-side fetch for marketplace SSR. */
 export async function fetchMarketplaceFeed(): Promise<MarketplaceFeed> {
   try {
-    const payload = await fetchJson<Omit<MarketplaceFeed, 'usedFallback'>>('/marketplace/feed', {
-      next: { revalidate: REVALIDATE_SECONDS }
-    });
-
-    if (payload.listings.length === 0) {
-      return buildFallbackFeed();
-    }
-
-    return {
-      ...payload,
-      dataSource: payload.dataSource === 'live' ? 'live' : 'fallback',
-      usedFallback: false
-    };
+    return await fetchMarketplaceFeedFromDb();
   } catch {
     return buildFallbackFeed();
   }
@@ -71,5 +64,5 @@ export async function fetchMarketplaceFeed(): Promise<MarketplaceFeed> {
 
 /** Client-side refresh after hydration. */
 export function fetchMarketplaceFeedClient() {
-  return fetchJson<MarketplaceFeed>('/marketplace/feed', { cache: 'no-store' });
+  return fetchFeed({ cache: 'no-store' });
 }
