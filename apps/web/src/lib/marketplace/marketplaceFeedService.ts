@@ -2,6 +2,7 @@ import { prisma } from '@sanova/database';
 import { parseMediaGallery } from '../admin/launchTypes';
 import { geocodeLocation } from '../geocoding/geocodeLocation';
 import { fetchBestBorrowRate } from '../lending/bestBorrowRate';
+import { syncActiveProjectsFromStorage } from '../storage/syncLaunchStorage';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
 
 function buildMapEmbedUrl(location: string, latitude?: unknown, longitude?: unknown) {
@@ -116,6 +117,10 @@ async function backfillProjectCoordinates(project: {
 }
 
 export async function fetchMarketplaceFeedFromDb(): Promise<MarketplaceFeed> {
+  if (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY) {
+    await syncActiveProjectsFromStorage().catch(() => undefined);
+  }
+
   const projects = await prisma.project.findMany({
     where: { isActive: true },
     orderBy: { createdAt: 'desc' }

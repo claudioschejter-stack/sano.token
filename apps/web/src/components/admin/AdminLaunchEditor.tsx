@@ -13,7 +13,7 @@ import {
   Trash2,
   Video
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { AdminAssetRecord, CreateAdminAssetInput } from '../../lib/admin/assetsService';
 import {
@@ -201,6 +201,8 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
   const [tokenStatus, setTokenStatus] = useState<string | null>(null);
   const [collateralTargets, setCollateralTargets] = useState<CollateralTarget[]>([]);
   const [registeringCollateral, setRegisteringCollateral] = useState(false);
+  const skipAutoSaveRef = useRef(true);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const mapPreview = useMemo(() => {
     const lat = form.latitude ? Number.parseFloat(form.latitude) : null;
@@ -220,6 +222,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       setForm(assetToForm(data.asset));
       setTokenStatus(data.asset.tokenDeployStatus);
       setCollateralTargets(data.asset.collateralTargets);
+      skipAutoSaveRef.current = true;
     } catch {
       setError(l.loadError);
     } finally {
@@ -411,6 +414,68 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
     }
   }
 
+  async function persistDraft(options?: { silent?: boolean }) {
+    if (mode !== 'edit' || !projectId || loading) {
+      return;
+    }
+
+    const smartContractUrl =
+      form.contracts.smartContract ||
+      (form.contractAddress ? buildSmartContractDocUrl(null, form.contractAddress) : null);
+
+    const response = await fetch(`/api/admin/assets/${projectId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...buildPayload(),
+        availableTokens: Number.parseInt(form.availableTokens, 10),
+        contractAddress: form.contractAddress || null,
+        contracts: {
+          ...form.contracts,
+          smartContract: smartContractUrl ?? form.contracts.smartContract
+        }
+      })
+    });
+
+    if (!response.ok) {
+      if (!options?.silent) {
+        setError(l.saveError);
+      }
+      throw new Error('save failed');
+    }
+
+    if (!options?.silent) {
+      setMessage(l.saveSuccess);
+    } else {
+      setMessage(l.mediaSaved);
+    }
+  }
+
+  useEffect(() => {
+    if (mode !== 'edit' || !projectId || loading) {
+      return;
+    }
+
+    if (skipAutoSaveRef.current) {
+      skipAutoSaveRef.current = false;
+      return;
+    }
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      void persistDraft({ silent: true }).catch(() => undefined);
+    }, 1500);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [form, mode, projectId, loading]);
+
   function mapUploadError(code?: string): string {
     if (code === 'STORAGE_NOT_CONFIGURED') {
       return l.uploadStorageNotConfigured;
@@ -501,30 +566,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
 
       if (!projectId) return;
 
-      const smartContractUrl =
-        form.contracts.smartContract ||
-        (form.contractAddress ? buildSmartContractDocUrl(null, form.contractAddress) : null);
-
-      const response = await fetch(`/api/admin/assets/${projectId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...buildPayload(),
-          availableTokens: Number.parseInt(form.availableTokens, 10),
-          contractAddress: form.contractAddress || null,
-          contracts: {
-            ...form.contracts,
-            smartContract: smartContractUrl ?? form.contracts.smartContract
-          }
-        })
-      });
-
-      if (!response.ok) {
-        setError(l.saveError);
-        return;
-      }
-
-      setMessage(l.saveSuccess);
+      await persistDraft();
       await loadAsset();
     } catch {
       setError(l.saveError);

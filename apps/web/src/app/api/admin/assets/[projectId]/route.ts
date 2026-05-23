@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAdminAsset, updateAdminAsset, type UpdateAdminAssetInput } from '../../../../../lib/admin/assetsService';
 import { requireAdminSession } from '../../../../../lib/admin/requireAdmin';
+import { syncProjectAssetsFromStorage } from '../../../../../lib/storage/syncLaunchStorage';
 
 type RouteContext = {
   params: Promise<{ projectId: string }>;
@@ -14,6 +15,7 @@ export async function GET(_request: Request, context: RouteContext) {
   const { projectId } = await context.params;
 
   try {
+    await syncProjectAssetsFromStorage(projectId);
     const asset = await getAdminAsset(projectId);
     if (!asset) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });

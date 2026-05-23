@@ -1,5 +1,6 @@
 import { prisma, type FiscalRegime, type Prisma } from '@sanova/database';
 import { geocodeLocation } from '../geocoding/geocodeLocation';
+import { syncProjectAssetsFromStorage } from '../storage/syncLaunchStorage';
 import {
   autoFillCentrifugeChecklist,
   parseCentrifugeChecklist,
@@ -433,7 +434,10 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
     include: projectInclude
   });
 
-  return mapProject(project);
+  await syncProjectAssetsFromStorage(id).catch(() => undefined);
+
+  const synced = await getAdminAsset(id);
+  return synced ?? mapProject(project);
 }
 
 export async function updateAdminAsset(
