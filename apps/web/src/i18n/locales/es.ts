@@ -679,7 +679,7 @@ export const es = {
     subtitle:
       'Iniciá sesión con tu email y contraseña. Según tu perfil accedés como administrador, asesor, asesor de asesor o inversor.',
     loginTitle: 'Iniciar sesión',
-    loginDesc: 'Accedé al marketplace y a tu portfolio con tu cuenta verificada.',
+    loginDesc: 'Accedé a los inmuebles y a tu cartera con tu cuenta verificada.',
     loginButton: 'Ir al marketplace',
     emailLabel: 'Email',
     emailPlaceholder: 'tu@email.com',
@@ -721,7 +721,7 @@ export const es = {
     staffPanelHint: 'Panel operativo según permisos de tu rol.',
     registerTitle: 'Crear cuenta',
     registerDesc:
-      'Correo y teléfono. Tras el registro validás email y SMS para activar tu cuenta.',
+      'Aqui vamos a validar tu correo y telefono, luego pasamos a un KYC para asegurarnos que realmente eres tu.',
     registerButton: 'Crear cuenta y continuar',
     register: {
       fullNameLabel: 'Nombre completo',
