@@ -24,6 +24,8 @@ dist/
 # hardhat / contracts
 artifacts/
 **/artifacts/
+!apps/web/src/lib/blockchain/artifacts/
+!apps/web/src/lib/blockchain/artifacts/**
 cache/
 **/cache/
 typechain-types/
