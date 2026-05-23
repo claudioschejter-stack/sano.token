@@ -13,9 +13,7 @@ import { RegisterForm } from '../auth/RegisterForm';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { LandingHeader } from './LandingHeader';
 import { TrustBadges } from './TrustBadges';
-import { isStaffRole, type SystemRole } from '../../lib/auth/roles';
-
-const ROLE_KEYS: SystemRole[] = ['ADMIN', 'ADVISOR_MANAGER', 'ADVISOR', 'INVESTOR'];
+import { isStaffRole } from '../../lib/auth/roles';
 
 function AccessPageContent() {
   const router = useRouter();
@@ -29,7 +27,6 @@ function AccessPageContent() {
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
 
   const { isOperational, loading: accountLoading, profile } = useAccountStatus();
-  const roleLabels = a.roles as Record<SystemRole, string>;
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
   const role = session?.user?.role;
   const registered = searchParams.get('registered') === '1';
@@ -104,7 +101,6 @@ function AccessPageContent() {
       <main className="mx-auto w-full max-w-4xl px-4 py-12 md:px-6 md:py-16">
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{a.title}</h1>
-          <p className="mx-auto mt-4 max-w-2xl text-slate-600">{a.subtitle}</p>
         </div>
 
         {authError ? (
@@ -134,22 +130,6 @@ function AccessPageContent() {
             </div>
           </article>
         </div>
-
-        <article className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 md:mt-8 md:p-8">
-          <h2 className="text-lg font-bold text-slate-900">{a.rolesTitle}</h2>
-          <p className="mt-2 text-sm text-slate-600">{a.rolesDesc}</p>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {ROLE_KEYS.map((role) => (
-              <li
-                key={role}
-                className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
-              >
-                <span className="font-semibold text-slate-900">{roleLabels[role]}</span>
-                <span className="mt-1 block text-slate-600">{a.roleDescriptions[role]}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
 
         <TrustBadges className="mt-6 justify-center md:mt-8" />
 
