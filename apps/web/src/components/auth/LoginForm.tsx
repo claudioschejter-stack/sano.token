@@ -73,21 +73,22 @@ export function LoginForm({ callbackUrl = '/acceso/callback', className = '' }: 
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
 
-      <div className="flex items-center gap-3">
-        <button
-          type="submit"
-          disabled={loading}
-          className="flex min-h-12 flex-1 items-center justify-center rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? t.access.signingIn : t.access.signInButton}
-        </button>
+      <button
+        type="submit"
+        disabled={loading}
+        className="flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {loading ? t.access.signingIn : t.access.signInButton}
+      </button>
+
+      <p className="text-right">
         <Link
           href="/contacto"
-          className="shrink-0 text-right text-sm font-medium text-blue-600 transition hover:text-blue-500"
+          className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
         >
           {t.access.forgotPassword}
         </Link>
-      </div>
+      </p>
     </form>
   );
 }
