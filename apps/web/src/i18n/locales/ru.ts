@@ -195,18 +195,18 @@ export const ru = mergeLocale({
     }
   },
   contact: {
-    title: 'Contact',
-    subtitle: 'Send us your inquiry and our team will get back to you shortly.',
-    nameLabel: 'Full name',
-    namePlaceholder: 'Your name',
-    emailLabel: 'Email',
+    title: 'Контакты',
+    subtitle: 'Отправьте запрос, и наша команда свяжется с вами в ближайшее время.',
+    nameLabel: 'Полное имя',
+    namePlaceholder: 'Ваше имя',
+    emailLabel: 'Электронная почта',
     emailPlaceholder: 'you@email.com',
-    messageLabel: 'Message',
-    messagePlaceholder: 'How can we help you?',
-    submit: 'Send message',
-    successTitle: 'Message sent',
-    successDesc: 'Thank you for contacting Sanova Global. We will respond as soon as possible.',
-    backHome: 'Back to home'
+    messageLabel: 'Сообщение',
+    messagePlaceholder: 'Чем мы можем помочь?',
+    submit: 'Отправить сообщение',
+    successTitle: 'Сообщение отправлено',
+    successDesc: 'Спасибо за обращение в Sanova Global. Мы ответим как можно скорее.',
+    backHome: 'На главную'
   },
   access: {
     title: 'Доступ к платформе',

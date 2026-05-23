@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDownToLine, Banknote, CheckCircle2, CircleDollarSign, Landmark } from 'lucide-react';
-import { apiClient } from '../../../../lib/apiClient';
 import {
   translateAssetLabel,
   translateCashFlowConcept,
@@ -21,7 +20,6 @@ export default function CashFlowPage() {
   const [mounted, setMounted] = useState(false);
   const [isRepaying, setIsRepaying] = useState(false);
   const [repaymentError, setRepaymentError] = useState<string | null>(null);
-  const userId = usePortfolioStore((state) => state.userId);
   const availableCash = usePortfolioStore((state) => state.availableCash);
   const marginDebt = usePortfolioStore((state) => state.marginDebt);
   const cashFlowHistory = usePortfolioStore((state) => state.cashFlowHistory);
@@ -31,7 +29,7 @@ export default function CashFlowPage() {
 
   useEffect(() => {
     setMounted(true);
-    fetchPortfolio();
+    void fetchPortfolio();
   }, [fetchPortfolio]);
 
   const totalDistributed = useMemo(
@@ -46,12 +44,7 @@ export default function CashFlowPage() {
     setRepaymentError(null);
 
     try {
-      await apiClient('/portfolio/repay-margin', {
-        method: 'POST',
-        body: { userId }
-      });
-      applyCashToMarginRepayment();
-      fetchPortfolio();
+      await applyCashToMarginRepayment();
     } catch (error) {
       setRepaymentError(error instanceof Error ? error.message : c.repayError);
     } finally {

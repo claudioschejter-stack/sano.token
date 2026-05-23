@@ -26,6 +26,7 @@ export function CheckoutView({ projectId }: CheckoutViewProps) {
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [tokenQty, setTokenQty] = useState(10);
   const [status, setStatus] = useState<'idle' | 'submitting' | 'done'>('idle');
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,8 +67,39 @@ export function CheckoutView({ projectId }: CheckoutViewProps) {
     }
 
     setStatus('submitting');
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    setStatus('done');
+    setPurchaseError(null);
+
+    try {
+      const response = await fetch(`/api/marketplace/${projectId}/purchase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tokenCount: tokenQty, walletAddress: address })
+      });
+
+      const data = (await response.json()) as { error?: string; purchase?: { availableTokens: number } };
+
+      if (!response.ok) {
+        if (data.error === 'ACCOUNT_NOT_OPERATIONAL' || data.error === 'KYC_NOT_APPROVED') {
+          window.location.href = `/kyc?returnTo=/marketplace/${projectId}/checkout`;
+          return;
+        }
+
+        setPurchaseError(data.error ?? 'PURCHASE_FAILED');
+        setStatus('idle');
+        return;
+      }
+
+      if (data.purchase?.availableTokens != null) {
+        setListing((current) =>
+          current ? { ...current, availableTokens: data.purchase!.availableTokens } : current
+        );
+      }
+
+      setStatus('done');
+    } catch {
+      setPurchaseError('PURCHASE_FAILED');
+      setStatus('idle');
+    }
   };
 
   if (!listing) {
@@ -162,6 +194,11 @@ export function CheckoutView({ projectId }: CheckoutViewProps) {
 
           <div className="flex flex-col gap-3">
             <WalletConnectButton />
+            {purchaseError ? (
+              <p className="rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-3 py-2 text-xs text-terminal-warning">
+                {purchaseError}
+              </p>
+            ) : null}
             <button
               type="button"
               disabled={!isConnected || status === 'submitting'}

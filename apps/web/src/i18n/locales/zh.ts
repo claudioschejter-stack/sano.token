@@ -194,18 +194,18 @@ export const zh = mergeLocale({
     }
   },
   contact: {
-    title: 'Contact',
-    subtitle: 'Send us your inquiry and our team will get back to you shortly.',
-    nameLabel: 'Full name',
-    namePlaceholder: 'Your name',
-    emailLabel: 'Email',
+    title: '联系我们',
+    subtitle: '发送您的咨询，我们的团队会尽快回复。',
+    nameLabel: '姓名',
+    namePlaceholder: '您的姓名',
+    emailLabel: '电子邮箱',
     emailPlaceholder: 'you@email.com',
-    messageLabel: 'Message',
-    messagePlaceholder: 'How can we help you?',
-    submit: 'Send message',
-    successTitle: 'Message sent',
-    successDesc: 'Thank you for contacting Sanova Global. We will respond as soon as possible.',
-    backHome: 'Back to home'
+    messageLabel: '留言',
+    messagePlaceholder: '我们能如何帮助您？',
+    submit: '发送消息',
+    successTitle: '消息已发送',
+    successDesc: '感谢联系 Sanova Global，我们会尽快回复。',
+    backHome: '返回首页'
   },
   access: {
     title: '平台访问',

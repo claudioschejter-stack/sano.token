@@ -1,5 +1,7 @@
 import { prisma } from '@sanova/database';
 import { parseMediaGallery } from '../admin/launchTypes';
+import { geocodeLocation } from '../geocoding/geocodeLocation';
+import { fetchBestBorrowRate } from '../lending/bestBorrowRate';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
 
 function buildMapEmbedUrl(location: string, latitude?: unknown, longitude?: unknown) {
@@ -84,17 +86,49 @@ function mapProject(project: {
   };
 }
 
+async function backfillProjectCoordinates(project: {
+  id: string;
+  location: string;
+  latitude: { toString(): string } | null;
+  longitude: { toString(): string } | null;
+}) {
+  if (project.latitude != null && project.longitude != null) {
+    return;
+  }
+
+  const coords = await geocodeLocation(project.location);
+  if (!coords) {
+    return;
+  }
+
+  await prisma.project.update({
+    where: { id: project.id },
+    data: {
+      latitude: coords.latitude,
+      longitude: coords.longitude
+    }
+  });
+
+  Object.assign(project, {
+    latitude: coords.latitude,
+    longitude: coords.longitude
+  });
+}
+
 export async function fetchMarketplaceFeedFromDb(): Promise<MarketplaceFeed> {
   const projects = await prisma.project.findMany({
     where: { isActive: true },
     orderBy: { createdAt: 'desc' }
   });
 
+  await Promise.all(projects.map((project) => backfillProjectCoordinates(project)));
+
+  const borrowRate = await fetchBestBorrowRate().catch(() => null);
   const listings = projects.map(mapProject);
 
   return {
     listings,
-    borrowRate: null,
+    borrowRate,
     cachedAt: new Date().toISOString(),
     dataSource: listings.length > 0 ? 'live' : 'empty',
     usedFallback: false

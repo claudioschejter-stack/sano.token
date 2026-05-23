@@ -1,6 +1,31 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalDependencies": [".env", ".env.local"],
+  "globalEnv": [
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "AUTH_SECRET",
+    "JWT_SECRET",
+    "AUTH_ADMIN_EMAILS",
+    "AUTH_ADMIN_PASSWORD",
+    "AUTH_DEFAULT_ROLE",
+    "RESEND_API_KEY",
+    "ONBOARDING_FROM_EMAIL",
+    "TWILIO_ACCOUNT_SID",
+    "TWILIO_AUTH_TOKEN",
+    "TWILIO_PHONE_NUMBER",
+    "DIDIT_API_KEY",
+    "DIDIT_WORKFLOW_ID",
+    "DIDIT_WEBHOOK_SECRET",
+    "NEXT_PUBLIC_WC_PROJECT_ID",
+    "THIRDWEB_SECRET_KEY",
+    "TOKEN_DEPLOY_PRIVATE_KEY",
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "AAVE_BORROW_APY_BPS",
+    "COMPOUND_BORROW_APY_BPS",
+    "MAKER_BORROW_APY_BPS"
+  ],
   "tasks": {
     "dev": {
       "cache": false,

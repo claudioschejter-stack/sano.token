@@ -1,4 +1,5 @@
 import { prisma, type FiscalRegime, type Prisma } from '@sanova/database';
+import { geocodeLocation } from '../geocoding/geocodeLocation';
 import {
   autoFillCentrifugeChecklist,
   parseCentrifugeChecklist,
@@ -116,6 +117,27 @@ export type UpdateAdminAssetInput = {
   chainId?: number | null;
   tokenDeployStatus?: TokenDeployStatus;
 };
+
+async function applyGeocodingIfNeeded(input: {
+  location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}): Promise<{ latitude?: number | null; longitude?: number | null }> {
+  if (input.latitude != null && input.longitude != null) {
+    return { latitude: input.latitude, longitude: input.longitude };
+  }
+
+  if (!input.location?.trim()) {
+    return {};
+  }
+
+  const coords = await geocodeLocation(input.location);
+  if (!coords) {
+    return {};
+  }
+
+  return { latitude: coords.latitude, longitude: coords.longitude };
+}
 
 function computeSoldPercent(availableTokens: number, totalTokens: number): number {
   if (totalTokens <= 0) {
@@ -344,6 +366,11 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
   const id = await generateProjectId(input.title);
   const gallery = input.mediaGallery ?? [];
   const primaryImage = input.image ?? gallery.find((item) => item.type === 'image')?.url ?? null;
+  const geocoded = await applyGeocodingIfNeeded({
+    location: input.location.trim(),
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null
+  });
   const collateralContext = toCollateralContext(
     {
       id,
@@ -376,8 +403,8 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       title: input.title.trim(),
       description: input.description.trim(),
       location: input.location.trim(),
-      latitude: input.latitude ?? null,
-      longitude: input.longitude ?? null,
+      latitude: geocoded.latitude ?? input.latitude ?? null,
+      longitude: geocoded.longitude ?? input.longitude ?? null,
       image: primaryImage,
       mediaGallery: gallery as Prisma.InputJsonValue,
       contractTrustUrl: input.contracts?.trust ?? null,
@@ -429,6 +456,27 @@ export async function updateAdminAsset(
   if (typeof input.location === 'string') data.location = input.location.trim();
   if (input.latitude !== undefined) data.latitude = input.latitude;
   if (input.longitude !== undefined) data.longitude = input.longitude;
+
+  const nextLocation =
+    typeof input.location === 'string' ? input.location.trim() : existing.location;
+  const nextLatitude =
+    input.latitude !== undefined ? input.latitude : existing.latitude != null ? Number(existing.latitude) : null;
+  const nextLongitude =
+    input.longitude !== undefined ? input.longitude : existing.longitude != null ? Number(existing.longitude) : null;
+
+  if (
+    (typeof input.location === 'string' || input.latitude !== undefined || input.longitude !== undefined) &&
+    (nextLatitude == null || nextLongitude == null)
+  ) {
+    const geocoded = await applyGeocodingIfNeeded({
+      location: nextLocation,
+      latitude: nextLatitude,
+      longitude: nextLongitude
+    });
+
+    if (geocoded.latitude != null) data.latitude = geocoded.latitude;
+    if (geocoded.longitude != null) data.longitude = geocoded.longitude;
+  }
   if (input.image !== undefined) data.image = input.image;
   if (input.mediaGallery !== undefined) {
     data.mediaGallery = input.mediaGallery as Prisma.InputJsonValue;

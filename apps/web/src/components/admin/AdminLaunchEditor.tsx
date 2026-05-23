@@ -320,10 +320,19 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
     const result = await uploadFile(file, folder);
     if (!result?.url) return;
 
+    const nextContracts = { ...form.contracts, [key]: result.url };
+
     setForm((current) => ({
       ...current,
-      contracts: { ...current.contracts, [key]: result.url }
+      contracts: nextContracts
     }));
+
+    try {
+      await persistContracts(nextContracts);
+      setMessage(l.mediaSaved);
+    } catch {
+      setError(l.saveError);
+    }
   }
 
   function addReelUrl() {
@@ -370,10 +379,31 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       return;
     }
 
+    const primaryImage = gallery.find((item) => item.type === 'image')?.url ?? null;
+
     const response = await fetch(`/api/admin/assets/${projectId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mediaGallery: gallery })
+      body: JSON.stringify({
+        mediaGallery: gallery,
+        ...(primaryImage ? { image: primaryImage } : {})
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('save failed');
+    }
+  }
+
+  async function persistContracts(contracts: FormState['contracts']) {
+    if (mode !== 'edit' || !projectId) {
+      return;
+    }
+
+    const response = await fetch(`/api/admin/assets/${projectId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contracts })
     });
 
     if (!response.ok) {

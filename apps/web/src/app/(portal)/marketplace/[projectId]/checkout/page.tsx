@@ -1,10 +1,35 @@
-'use client';
-
-import { useParams } from 'next/navigation';
+import { redirect } from 'next/navigation';
+import { auth } from '../../../../../auth';
 import { CheckoutView } from '../../../../../components/marketplace/CheckoutView';
+import { isAccountOperational } from '../../../../../lib/onboarding/accountStatus';
+import { prisma } from '@sanova/database';
 
-export default function MarketplaceCheckoutPage() {
-  const params = useParams<{ projectId: string }>();
+type CheckoutPageProps = {
+  params: { projectId: string };
+};
+
+export default async function MarketplaceCheckoutPage({ params }: CheckoutPageProps) {
+  const session = await auth();
+
+  if (!session?.user?.accessToken || !session.user.id) {
+    redirect('/acceso');
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      email: true,
+      phone: true,
+      emailVerifiedAt: true,
+      phoneVerifiedAt: true,
+      kycStatus: true,
+      accountStatus: true
+    }
+  });
+
+  if (!user || !isAccountOperational(user)) {
+    redirect(`/kyc?returnTo=/marketplace/${params.projectId}/checkout`);
+  }
 
   return <CheckoutView projectId={params.projectId} />;
 }

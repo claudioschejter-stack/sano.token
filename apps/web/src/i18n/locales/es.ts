@@ -800,6 +800,7 @@ export const es = {
   portfolio: {
     title: 'Mis activos',
     subtitle: 'Vista consolidada de tus tenencias tokenizadas y posiciones on-chain.',
+    empty: 'Todavía no tenés posiciones activas. Explorá el marketplace para invertir.',
     comingSoon:
       'La vista detallada del portfolio estará disponible pronto. Mientras tanto, explorá el marketplace o el dashboard de flujo de caja.'
   },

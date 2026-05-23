@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: 'Sanova Global — Real Estate Tokenizado',
   description: 'Invertí en activos reales tokenizados con rentas on-chain y cumplimiento KYC.',
   manifest: '/manifest.json',
-  themeColor: '#2563eb',
   appleWebApp: {
     capable: true,
     title: 'Sanova RWA',

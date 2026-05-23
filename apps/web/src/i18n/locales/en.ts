@@ -793,6 +793,7 @@ export const en = {
   portfolio: {
     title: 'My assets',
     subtitle: 'Consolidated view of your tokenized holdings and on-chain positions.',
+    empty: 'You have no active positions yet. Explore the marketplace to invest.',
     comingSoon: 'Detailed portfolio view coming soon. Meanwhile, explore the marketplace or your cash-flow dashboard.'
   },
   status: {
@@ -1580,6 +1581,7 @@ export type Messages = {
   portfolio: {
     title: string;
     subtitle: string;
+    empty: string;
     comingSoon: string;
   };
   status: {

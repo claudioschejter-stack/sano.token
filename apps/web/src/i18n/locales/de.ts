@@ -195,18 +195,18 @@ export const de = mergeLocale({
     }
   },
   contact: {
-    title: 'Contact',
-    subtitle: 'Send us your inquiry and our team will get back to you shortly.',
-    nameLabel: 'Full name',
-    namePlaceholder: 'Your name',
-    emailLabel: 'Email',
-    emailPlaceholder: 'you@email.com',
-    messageLabel: 'Message',
-    messagePlaceholder: 'How can we help you?',
-    submit: 'Send message',
-    successTitle: 'Message sent',
-    successDesc: 'Thank you for contacting Sanova Global. We will respond as soon as possible.',
-    backHome: 'Back to home'
+    title: 'Kontakt',
+    subtitle: 'Senden Sie uns Ihre Anfrage und unser Team meldet sich in Kürze.',
+    nameLabel: 'Vollständiger Name',
+    namePlaceholder: 'Ihr Name',
+    emailLabel: 'E-Mail',
+    emailPlaceholder: 'ihre@email.com',
+    messageLabel: 'Nachricht',
+    messagePlaceholder: 'Wie können wir Ihnen helfen?',
+    submit: 'Nachricht senden',
+    successTitle: 'Nachricht gesendet',
+    successDesc: 'Vielen Dank für Ihre Kontaktaufnahme. Wir antworten so schnell wie möglich.',
+    backHome: 'Zur Startseite'
   },
   access: {
     title: 'Plattformzugang',

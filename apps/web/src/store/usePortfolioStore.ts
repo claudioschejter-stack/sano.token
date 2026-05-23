@@ -3,10 +3,10 @@ import { create } from 'zustand';
 export type CashFlowRecord = {
   id: string;
   date: string;
-  assetId: 'Tolhuin' | 'Mendoza';
+  assetId: string;
   concept: string;
   amountUsd: number;
-  status: 'Liquidado en Efectivo';
+  status: string;
 };
 
 type PortfolioState = {
@@ -16,76 +16,105 @@ type PortfolioState = {
   ltv: number;
   availableCash: number;
   cashFlowHistory: CashFlowRecord[];
+  activePositions: Array<{
+    id: string;
+    projectId: string;
+    projectTitle: string;
+    tokenCount: number;
+    purchasePriceUsd: string;
+    purchasedAt: string;
+    status: string;
+  }>;
   isLoading: boolean;
-  repaymentApplied: boolean;
-  fetchPortfolio: () => void;
-  applyCashToMarginRepayment: () => void;
+  fetchPortfolio: () => Promise<void>;
+  applyCashToMarginRepayment: () => Promise<void>;
 };
 
-const BASE_CASH_FLOW_HISTORY: CashFlowRecord[] = [
-  {
-    id: 'cf-tolhuin-001',
-    date: '2026-05-15',
-    assetId: 'Tolhuin',
-    concept: 'Dividendo operativo RWA liquidado en cash',
-    amountUsd: 7250,
-    status: 'Liquidado en Efectivo'
-  },
-  {
-    id: 'cf-mendoza-001',
-    date: '2026-05-01',
-    assetId: 'Mendoza',
-    concept: 'Distribución trimestral de rendimiento en efectivo',
-    amountUsd: 5250,
-    status: 'Liquidado en Efectivo'
-  }
-];
-
 export const usePortfolioStore = create<PortfolioState>((set, get) => ({
-  userId: 'demo-investor-id',
+  userId: '',
   capital: 0,
   marginDebt: 0,
   ltv: 0,
   availableCash: 0,
   cashFlowHistory: [],
+  activePositions: [],
   isLoading: false,
-  repaymentApplied: false,
-  fetchPortfolio: () => {
+  fetchPortfolio: async () => {
     if (get().isLoading) {
       return;
     }
 
     set({ isLoading: true });
 
-    setTimeout(() => {
-      set((state) => {
-        const marginDebt = state.repaymentApplied ? 437500 : 450000;
-        const availableCash = state.repaymentApplied ? 0 : 12500;
+    try {
+      const [portfolioResponse, cashFlowResponse] = await Promise.all([
+        fetch('/api/portfolio', { cache: 'no-store' }),
+        fetch('/api/portfolio/cash-flow', { cache: 'no-store' })
+      ]);
 
-        return {
-          capital: 1250000,
-          marginDebt,
-          ltv: Number(((marginDebt / 1250000) * 100).toFixed(2)),
-          availableCash,
-          cashFlowHistory: state.repaymentApplied ? [] : BASE_CASH_FLOW_HISTORY,
-          isLoading: false
+      if (!portfolioResponse.ok) {
+        set({ isLoading: false });
+        return;
+      }
+
+      const portfolioData = (await portfolioResponse.json()) as {
+        portfolio?: {
+          activePositions?: PortfolioState['activePositions'];
         };
-      });
-    }, 1000);
-  },
-  applyCashToMarginRepayment: () => {
-    set((state) => {
-      const repaymentAmount = Math.min(state.availableCash, state.marginDebt);
-      const marginDebt = state.marginDebt - repaymentAmount;
-      const ltv = state.capital > 0 ? Number(((marginDebt / state.capital) * 100).toFixed(2)) : 0;
-
-      return {
-        availableCash: state.availableCash - repaymentAmount,
-        marginDebt,
-        ltv,
-        cashFlowHistory: [],
-        repaymentApplied: true
+        summary?: {
+          userId?: string;
+          capital?: number;
+          marginDebt?: number;
+          ltv?: number;
+          availableCash?: number;
+        };
       };
-    });
+
+      let cashFlowHistory: CashFlowRecord[] = [];
+
+      if (cashFlowResponse.ok) {
+        const cashFlowData = (await cashFlowResponse.json()) as {
+          records?: Array<{
+            id: string;
+            date: string;
+            assetId: string;
+            concept: string;
+            liquidatedAmountUsd: string;
+            status: string;
+          }>;
+        };
+
+        cashFlowHistory = (cashFlowData.records ?? []).map((record) => ({
+          id: record.id,
+          date: record.date,
+          assetId: record.assetId,
+          concept: record.concept,
+          amountUsd: Number(record.liquidatedAmountUsd),
+          status: record.status
+        }));
+      }
+
+      set({
+        userId: portfolioData.summary?.userId ?? '',
+        capital: portfolioData.summary?.capital ?? 0,
+        marginDebt: portfolioData.summary?.marginDebt ?? 0,
+        ltv: portfolioData.summary?.ltv ?? 0,
+        availableCash: portfolioData.summary?.availableCash ?? 0,
+        activePositions: portfolioData.portfolio?.activePositions ?? [],
+        cashFlowHistory,
+        isLoading: false
+      });
+    } catch {
+      set({ isLoading: false });
+    }
+  },
+  applyCashToMarginRepayment: async () => {
+    const response = await fetch('/api/portfolio/repay-margin', { method: 'POST' });
+
+    if (!response.ok) {
+      return;
+    }
+
+    await get().fetchPortfolio();
   }
 }));
