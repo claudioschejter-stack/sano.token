@@ -5,6 +5,7 @@ declare module 'next-auth' {
   interface Session {
     authError?: string;
     user: DefaultSession['user'] & {
+      id?: string;
       role?: SystemRole;
       roles?: SystemRole[];
       accessToken?: string;

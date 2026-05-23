@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-import { ArrowRight, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { MarketplaceCtaLink } from './MarketplaceCtaLink';
 import { VacaMuertaMacroMap } from './VacaMuertaMacroMap';
 
 /**
@@ -64,13 +64,7 @@ export function MacroInvestmentThesis() {
               ))}
             </ul>
 
-            <Link
-              href="/marketplace"
-              className="mt-10 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-sky-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-sky-500/25 transition hover:bg-sky-600 md:w-auto md:text-sm"
-            >
-              {m.cta}
-              <ArrowRight size={18} aria-hidden />
-            </Link>
+            <MarketplaceCtaLink className="mt-10">{m.cta}</MarketplaceCtaLink>
           </div>
         </div>
       </div>

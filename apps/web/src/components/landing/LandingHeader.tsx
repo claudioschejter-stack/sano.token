@@ -1,18 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, X } from 'lucide-react';
+import { ArrowRight, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { LanguageDropdown } from './LanguageDropdown';
+import { platformEntryCtaClassName } from './MarketplaceCtaLink';
 
 const navLinkClass =
   'block w-full rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 lg:inline-block lg:w-auto lg:rounded-none lg:px-0 lg:py-0 lg:text-sm';
 
-const platformCtaClass =
-  'inline-flex min-h-12 w-full items-center justify-center rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 md:w-auto lg:min-h-0 lg:py-2';
+type LandingHeaderProps = {
+  /** Language selector is shown only on the main landing page. */
+  showLanguageSelector?: boolean;
+};
 
-export function LandingHeader() {
+export function LandingHeader({ showLanguageSelector = false }: LandingHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const t = useTranslation();
   const l = t.landing;
@@ -29,7 +32,7 @@ export function LandingHeader() {
   const navItems = [
     { href: '/#how-it-works', label: l.nav.howItWorks },
     { href: '/#properties', label: l.nav.properties },
-    { href: '/marketplace', label: l.nav.marketplace }
+    { href: '/acceso', label: l.nav.marketplace }
   ] as const;
 
   return (
@@ -61,9 +64,10 @@ export function LandingHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <LanguageDropdown />
-          <Link href="/acceso" className={platformCtaClass}>
-            {l.nav.platformAccess}
+          {showLanguageSelector ? <LanguageDropdown /> : null}
+          <Link href="/acceso" className={platformEntryCtaClassName}>
+            {l.nav.enterPlatform}
+            <ArrowRight size={18} aria-hidden />
           </Link>
         </div>
 
@@ -128,9 +132,14 @@ export function LandingHeader() {
           </div>
 
           <div className="flex flex-col gap-4 border-t border-slate-200 px-4 py-6">
-            <LanguageDropdown className="w-full" />
-            <Link href="/acceso" className={platformCtaClass} onClick={closeMenu}>
-              {l.nav.platformAccess}
+            {showLanguageSelector ? <LanguageDropdown className="w-full" /> : null}
+            <Link
+              href="/acceso"
+              className={platformEntryCtaClassName}
+              onClick={closeMenu}
+            >
+              {l.nav.enterPlatform}
+              <ArrowRight size={18} aria-hidden />
             </Link>
           </div>
         </nav>

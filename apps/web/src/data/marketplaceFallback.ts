@@ -16,6 +16,8 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     availableTokens: 3250,
     totalTokens: 10000,
     soldPercent: 68,
+    tokenInstrumentType: 'EQUITY',
+    equitySharePercent: 100,
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   },
@@ -34,6 +36,8 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     availableTokens: 11400,
     totalTokens: 25000,
     soldPercent: 54,
+    tokenInstrumentType: 'DEBT',
+    maturityDate: '2029-06-30T00:00:00.000Z',
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   },
@@ -52,6 +56,8 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     availableTokens: 8200,
     totalTokens: 18000,
     soldPercent: 61,
+    tokenInstrumentType: 'EQUITY',
+    equitySharePercent: 100,
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   },
@@ -70,6 +76,8 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     availableTokens: 5400,
     totalTokens: 12000,
     soldPercent: 72,
+    tokenInstrumentType: 'EQUITY',
+    equitySharePercent: 100,
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   },
@@ -88,6 +96,8 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     availableTokens: 2100,
     totalTokens: 8000,
     soldPercent: 86,
+    tokenInstrumentType: 'DEBT',
+    maturityDate: '2028-12-31T00:00:00.000Z',
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   }

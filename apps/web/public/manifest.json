@@ -1,10 +1,26 @@
 {
   "name": "Sanova Global RWA",
-  "short_name": "Sanova RWA",
-  "description": "Marketplace de activos reales tokenizados",
-  "start_url": "/marketplace",
+  "short_name": "Sanova",
+  "description": "Invertí en activos reales tokenizados desde tu celular",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0A0E17",
-  "theme_color": "#3B82F6",
-  "icons": []
+  "orientation": "portrait-primary",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "categories": ["finance", "business"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
 }

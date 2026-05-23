@@ -22,10 +22,15 @@ export default {
     async jwt({ token, user }) {
       if (user) {
         const authUser = user as {
+          id?: string;
           role?: SystemRole;
           roles?: SystemRole[];
           accessToken?: string;
         };
+
+        if (authUser.id) {
+          token.sub = authUser.id;
+        }
 
         token.accessToken = authUser.accessToken;
         token.role = authUser.role;
@@ -36,9 +41,10 @@ export default {
       return token;
     },
     async session({ session, token }) {
-      const authToken = token as AuthToken & { authError?: string };
+      const authToken = token as AuthToken & { authError?: string; sub?: string };
 
       if (session.user) {
+        session.user.id = authToken.sub;
         session.user.role = authToken.role;
         session.user.roles = authToken.roles;
         session.user.accessToken = authToken.accessToken;

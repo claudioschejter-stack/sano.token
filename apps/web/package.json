@@ -10,9 +10,10 @@
         "typecheck": "tsc --noEmit --pretty false"
     },
     "dependencies": {
-        "bcryptjs": "^3.0.2",
         "@sanova/database": "*",
         "@sentry/nextjs": "^9.5.0",
+        "@supabase/supabase-js": "^2.106.1",
+        "bcryptjs": "^3.0.2",
         "jose": "^6.0.11",
         "lucide-react": "^0.363.0",
         "next": "14.2.35",
@@ -21,6 +22,7 @@
         "react-dom": "^18.2.0",
         "react-error-boundary": "^5.0.0",
         "recharts": "^2.15.0",
+        "thirdweb": "^5.120.0",
         "zustand": "^5.0.3"
     },
     "devDependencies": {

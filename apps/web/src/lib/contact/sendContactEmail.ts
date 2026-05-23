@@ -1,3 +1,5 @@
+import { getPublicPlatformConfig } from '../platform/platformConfigService';
+
 const DEFAULT_TO = 'claudioschejter@gmail.com';
 
 function escapeHtml(value: string): string {
@@ -44,6 +46,7 @@ export async function sendContactEmail(
   email: string,
   message: string
 ): Promise<boolean> {
-  const to = process.env.CONTACT_TO_EMAIL?.trim() || DEFAULT_TO;
+  const config = await getPublicPlatformConfig();
+  const to = config.contactEmail || process.env.CONTACT_TO_EMAIL?.trim() || DEFAULT_TO;
   return sendViaResend(to, name, email, message);
 }

@@ -42,6 +42,12 @@ enum AdvisorTier {
   PARTNER
 }
 
+enum AdvisorNominationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum SystemRole {
   ADMIN
   ADVISOR_MANAGER
@@ -51,32 +57,70 @@ enum SystemRole {
   OPERATOR
 }
 
+enum AccountStatus {
+  ONBOARDING
+  OPERATIONAL
+  SUSPENDED
+}
+
+enum VerificationChannel {
+  EMAIL
+  PHONE
+}
+
 model User {
-  id                String     @id @default(cuid())
-  email             String     @unique
+  id                String        @id @default(cuid())
+  email             String        @unique
+  phone             String?
   name              String?
   image             String?
-  walletAddress     String?    @unique
-  systemRole        SystemRole @default(INVESTOR)
+  walletAddress     String?       @unique
+  systemRole        SystemRole    @default(INVESTOR)
   passwordHash      String?
   oauthProvider     String?
   oauthProviderId   String?
-  investorId        String?    @unique
-  kycStatus         KycStatus  @default(PENDING)
+  investorId        String?       @unique
+  kycStatus         KycStatus     @default(PENDING)
   kycProviderId     String?
+  kycFullName       String?
+  kycDocumentId     String?
+  diditSessionId    String?
+  emailVerifiedAt   DateTime?
+  phoneVerifiedAt   DateTime?
+  accountStatus     AccountStatus @default(ONBOARDING)
   jurisdiction      String?
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   investor              Investor?              @relation(fields: [investorId], references: [id], onDelete: SetNull)
   portfolio             Portfolio?
   dividendDistributions DividendDistribution[]
   advisor               Advisor?
+  reviewedNominations   AdvisorNomination[]    @relation("NominationReviewedBy")
+  verificationCodes     VerificationCode[]
 
   @@index([walletAddress])
   @@index([investorId])
   @@index([kycStatus])
+  @@index([accountStatus])
+  @@index([phone])
   @@index([jurisdiction])
+}
+
+model VerificationCode {
+  id         String              @id @default(cuid())
+  userId     String
+  channel    VerificationChannel
+  target     String
+  codeHash   String
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime            @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, channel])
+  @@index([expiresAt])
 }
 
 model Advisor {
@@ -93,8 +137,34 @@ model Advisor {
   upline   Advisor?  @relation("AdvisorHierarchy", fields: [uplineId], references: [id], onDelete: SetNull)
   downline Advisor[] @relation("AdvisorHierarchy")
 
+  incorporatedInvestors Investor[]            @relation("InvestorIncorporatedBy")
+  nominationsSuggested  AdvisorNomination[]   @relation("NominationSuggestedBy")
+  nominationsAsUpline     AdvisorNomination[]   @relation("NominationProposedUpline")
+
   @@index([uplineId])
   @@index([tier])
+}
+
+model AdvisorNomination {
+  id                   String                  @id @default(cuid())
+  email                String
+  name                 String?
+  suggestedByAdvisorId String
+  proposedUplineId     String?
+  status               AdvisorNominationStatus @default(PENDING)
+  reviewedByUserId     String?
+  reviewedAt           DateTime?
+  rejectionReason      String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  suggestedBy    Advisor  @relation("NominationSuggestedBy", fields: [suggestedByAdvisorId], references: [id], onDelete: Cascade)
+  proposedUpline Advisor? @relation("NominationProposedUpline", fields: [proposedUplineId], references: [id], onDelete: SetNull)
+  reviewedBy     User?    @relation("NominationReviewedBy", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([suggestedByAdvisorId])
+  @@index([email])
 }
 
 model Investor {
@@ -110,11 +180,14 @@ model Investor {
   brokerAccountRef   String?
   dividendPreference String       @default("CASH")
   totalCapital       Decimal      @default(0) @db.Decimal(20, 6)
-  marginDebt         Decimal      @default(0) @db.Decimal(20, 6)
-  ltv                Decimal      @default(0) @db.Decimal(8, 4)
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
+  marginDebt               Decimal      @default(0) @db.Decimal(20, 6)
+  ltv                      Decimal      @default(0) @db.Decimal(8, 4)
+  incorporatedByAdvisorId  String?
+  incorporatedAt           DateTime?
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
 
+  incorporatedBy        Advisor? @relation("InvestorIncorporatedBy", fields: [incorporatedByAdvisorId], references: [id], onDelete: SetNull)
   investments           Investment[]
   payoutReceipts        PayoutReceipt[]
   dividendDistributions DividendDistribution[]
@@ -123,6 +196,7 @@ model Investor {
   @@index([kycStatus])
   @@index([walletAddress])
   @@index([brokerAccountRef])
+  @@index([incorporatedByAdvisorId])
 }
 
 model Portfolio {
@@ -139,26 +213,45 @@ model Portfolio {
 }
 
 model Project {
-  id               String       @id
-  title            String
-  description      String
-  location         String
-  image            String?
-  totalTokens      Int
-  availableTokens  Int
-  pricePerToken    Decimal      @db.Decimal(20, 6)
-  targetYield      Decimal      @db.Decimal(8, 4)
-  fiscalRegime     FiscalRegime @default(LEY_19640)
-  fiscalLawRef     String       @default("Ley 19.640")
-  taxExemptionNote String?
-  jurisdiction     String?
-  promoterEntity   String?
-  contractAddress  String?
-  usdcVaultAddress String?
-  chainId          Int?
-  isActive         Boolean      @default(true)
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  id                   String       @id
+  title                String
+  description          String
+  location             String
+  image                String?
+  latitude             Decimal?     @db.Decimal(10, 7)
+  longitude            Decimal?     @db.Decimal(10, 7)
+  mediaGallery         Json         @default("[]")
+  contractTrustUrl     String?
+  contractPurchaseUrl  String?
+  contractLeaseUrl     String?
+  contractSmartUrl     String?
+  tokenName            String?
+  tokenSymbol          String?
+  tokenStandard        String       @default("SANOVA_KYC")
+  tokenInstrumentType  String       @default("EQUITY")
+  maturityDate         DateTime?
+  equitySharePercent   Decimal?     @db.Decimal(8, 4)
+  tokenDeployStatus    String       @default("NOT_REQUESTED")
+  collateralTargets    Json         @default("[]")
+  centrifugeChecklist  Json         @default("{}")
+  spvEntityName        String?
+  navOracleUrl         String?
+  totalTokens          Int
+  availableTokens      Int
+  pricePerToken        Decimal      @db.Decimal(20, 6)
+  targetYield          Decimal      @db.Decimal(8, 4)
+  fiscalRegime         FiscalRegime @default(LEY_19640)
+  fiscalLawRef         String       @default("Ley 19.640")
+  taxExemptionNote     String?
+  jurisdiction         String?
+  promoterEntity       String?
+  contractAddress      String?
+  usdcVaultAddress     String?
+  vaultAddress         String?
+  chainId              Int?
+  isActive             Boolean      @default(true)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
 
   investments Investment[]
   payouts     PayoutHistory[]
@@ -257,4 +350,12 @@ model BlockchainEvent {
   @@index([contractAddress])
   @@index([processedAt])
   @@index([txHash])
+}
+
+model PlatformConfig {
+  id            String   @id @default("default")
+  whatsappPhone String?
+  contactEmail  String?
+  siteUrl       String?
+  updatedAt     DateTime @updatedAt
 }

@@ -6,13 +6,23 @@ const monorepoRoot = path.join(__dirname, '../..');
 
 const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
-  webpack: (config) => {
+  experimental: {
+    serverComponentsExternalPackages: ['thirdweb', 'ethers']
+  },
+  webpack: (config, { isServer }) => {
     config.resolve.modules = [
       path.join(__dirname, 'node_modules'),
       path.join(monorepoRoot, 'node_modules'),
       ...(config.resolve.modules ?? []),
       'node_modules'
     ];
+
+    if (isServer) {
+      const externals = Array.isArray(config.externals) ? config.externals : [config.externals].filter(Boolean);
+      externals.push('thirdweb', 'ethers');
+      config.externals = externals;
+    }
+
     return config;
   },
   images: {
@@ -34,8 +44,8 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'icons.duckduckgo.com',
-        pathname: '/ip3/**'
+        hostname: 'ugdmfewgxohbwggdiahp.supabase.co',
+        pathname: '/storage/v1/object/public/**'
       }
     ]
   },

@@ -1,7 +1,8 @@
 'use client';
 
-import { getWhatsAppUrl } from '../config/site';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '../i18n/LocaleProvider';
+import { getWhatsAppPhone, getWhatsAppUrl } from '../config/site';
 
 function WhatsAppIcon() {
   return (
@@ -13,7 +14,20 @@ function WhatsAppIcon() {
 
 export function WhatsAppFloat() {
   const t = useTranslation();
-  const href = getWhatsAppUrl(t.common.whatsappMessage);
+  const [phone, setPhone] = useState(() => getWhatsAppPhone());
+
+  useEffect(() => {
+    void fetch('/api/site-config')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { whatsappPhone?: string } | null) => {
+        if (data?.whatsappPhone) {
+          setPhone(data.whatsappPhone.replace(/\D/g, ''));
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const href = getWhatsAppUrl(t.common.whatsappMessage, phone);
 
   if (!href) return null;
 

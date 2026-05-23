@@ -7,6 +7,9 @@ export type MarketplaceListingDto = {
   location: string;
   imageUrl: string;
   mapEmbedUrl: string;
+  tokenInstrumentType: 'DEBT' | 'EQUITY';
+  maturityDate: string | null;
+  equitySharePercent: number | null;
   apyPercent: number;
   pricePerTokenUsd: number;
   availableTokens: number;
@@ -14,6 +17,14 @@ export type MarketplaceListingDto = {
   soldPercent: number;
   fiscalRegime: string;
   jurisdiction: string | null;
+  tokenSymbol: string | null;
+  mediaGallery: Array<{ type: 'image' | 'reel'; url: string; caption?: string }>;
+  contracts: {
+    trust?: string | null;
+    purchase?: string | null;
+    lease?: string | null;
+    smartContract?: string | null;
+  };
 };
 
 export type MarketplaceFeedDto = {

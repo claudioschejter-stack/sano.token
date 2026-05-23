@@ -12,14 +12,15 @@ module.exports = {
   paths: {
     sources: "./contracts",
   },
-  // Configuración estricta del compilador para todos tus contratos (0.8.20)
+  // Compilador 0.8.24 — requerido por OpenZeppelin ERC4626
   solidity: {
-    version: "0.8.20",
+    version: "0.8.24",
     settings: {
       optimizer: {
         enabled: true,
-        runs: 200, // Optimiza el peso del gas para la lógica de Whitelist
+        runs: 200,
       },
+      evmVersion: "cancun",
     },
   },
   // Configuración de redes de desarrollo y producción

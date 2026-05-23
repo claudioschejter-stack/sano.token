@@ -3,13 +3,15 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
-import { resolvePostLoginPath } from '../../../../lib/auth/roles';
+import { resolveAuthenticatedDestination } from '../../../../lib/auth/redirects';
 import type { SystemRole } from '../../../../lib/auth/roles';
+import { useAccountStatus } from '../../../../hooks/useAccountStatus';
 
 export default function AccessCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+  const { isOperational } = useAccountStatus();
 
   useEffect(() => {
     if (status === 'loading') {
@@ -23,9 +25,9 @@ export default function AccessCallbackClient() {
 
     const returnTo = searchParams.get('returnTo');
     const role = (session?.user?.role ?? 'INVESTOR') as SystemRole;
-    const destination = returnTo ?? resolvePostLoginPath(role);
+    const destination = resolveAuthenticatedDestination(role, returnTo, isOperational);
     router.replace(destination);
-  }, [router, searchParams, session?.authError, session?.user?.role, status]);
+  }, [isOperational, router, searchParams, session?.authError, session?.user?.role, status]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-700">

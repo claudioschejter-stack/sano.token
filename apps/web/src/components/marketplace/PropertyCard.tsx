@@ -2,9 +2,12 @@
 
 import Image from 'next/image';
 import { MapPin, ShieldAlert, TrendingUp, Wallet, Zap } from 'lucide-react';
+import { useState } from 'react';
 import { useCtaVariant } from '../../hooks/useCtaVariant';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useLocalCurrency } from '../../hooks/useLocalCurrency';
+import type { LaunchContracts, LaunchMediaItem } from '../../lib/admin/launchTypes';
+import { LaunchContractsPanel } from './LaunchContractsPanel';
 
 export type PropertyCardProps = {
   id: string;
@@ -19,6 +22,12 @@ export type PropertyCardProps = {
   soldPercent: number;
   jurisdiction?: string | null;
   fiscalRegime?: string;
+  tokenInstrumentType?: 'DEBT' | 'EQUITY';
+  maturityDate?: string | null;
+  equitySharePercent?: number | null;
+  tokenSymbol?: string | null;
+  mediaGallery?: LaunchMediaItem[];
+  contracts?: LaunchContracts;
   kycStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
   onBuy?: (propertyId: string) => void;
   onStartKyc?: (propertyId: string) => void;
@@ -37,6 +46,12 @@ export function PropertyCard({
   soldPercent,
   jurisdiction,
   fiscalRegime,
+  tokenInstrumentType = 'EQUITY',
+  maturityDate,
+  equitySharePercent,
+  tokenSymbol,
+  mediaGallery = [],
+  contracts = {},
   kycStatus,
   onBuy,
   onStartKyc
@@ -44,6 +59,12 @@ export function PropertyCard({
   const t = useTranslation();
   const { label: ctaLabel } = useCtaVariant();
   const { formatFromUsd, formatPercent } = useLocalCurrency();
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  const images = mediaGallery.filter((item) => item.type === 'image');
+  const reels = mediaGallery.filter((item) => item.type === 'reel');
+  const heroUrl = images[heroIndex]?.url ?? imageUrl;
+  const isExternalMedia = heroUrl.startsWith('http');
 
   const isVerified = kycStatus === 'APPROVED';
   const estimatedAnnualYieldUsd = pricePerTokenUsd * (apyPercent / 100);
@@ -58,24 +79,51 @@ export function PropertyCard({
     onStartKyc?.(id);
   };
 
+  const isDebt = tokenInstrumentType === 'DEBT';
+  const yieldLabel = isDebt ? t.propertyCard.fixedCoupon : t.common.projectedApy;
+  const incomeLabel = isDebt ? t.propertyCard.fixedAnnualPayment : t.propertyCard.estimatedAnnualIncome;
+
   return (
     <article className="group overflow-hidden rounded-xl border border-terminal-border bg-terminal-card shadow-[0_0_0_1px_rgba(31,41,55,0.5)] transition-all duration-300 hover:border-terminal-primary/50 hover:shadow-[0_0_24px_rgba(59,130,246,0.12)]">
       <div className="relative h-48 w-full overflow-hidden sm:h-56">
         <Image
-          src={imageUrl}
+          src={heroUrl}
           alt={title}
           fill
+          unoptimized={isExternalMedia}
           className="object-cover transition-transform duration-500 group-hover:scale-105"
           sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
         />
+        {images.length > 1 ? (
+          <div className="absolute bottom-3 right-3 flex gap-1">
+            {images.map((item, index) => (
+              <button
+                key={item.url}
+                type="button"
+                onClick={() => setHeroIndex(index)}
+                className={`h-2 w-2 rounded-full ${index === heroIndex ? 'bg-terminal-primary' : 'bg-white/60'}`}
+                aria-label={`Image ${index + 1}`}
+              />
+            ))}
+          </div>
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-terminal-bg via-terminal-bg/20 to-transparent" />
         {isScarce ? (
           <span className="absolute right-3 top-3 rounded-full border border-terminal-accent/40 bg-terminal-bg/90 px-3 py-1 text-xs font-semibold text-terminal-accent">
             {t.propertyCard.limitedAvailability}
           </span>
         ) : null}
+        <span
+          className={`absolute right-3 ${isScarce ? 'top-12' : 'top-3'} rounded-full border px-3 py-1 text-xs font-semibold ${
+            isDebt ?
+              'border-terminal-warning/40 bg-terminal-bg/90 text-terminal-warning'
+            : 'border-terminal-primary/40 bg-terminal-bg/90 text-terminal-primary'
+          }`}
+        >
+          {isDebt ? t.propertyCard.instrumentDebt : t.propertyCard.instrumentEquity}
+        </span>
         <div className="absolute bottom-3 left-3 rounded-lg border border-terminal-border bg-terminal-bg/90 p-2.5 backdrop-blur-sm sm:bottom-4 sm:left-4 sm:p-3">
-          <p className="text-[10px] text-terminal-muted sm:text-xs">{t.common.projectedApy}</p>
+          <p className="text-[10px] text-terminal-muted sm:text-xs">{yieldLabel}</p>
           <p className="mt-0.5 font-mono text-lg font-bold text-terminal-success sm:mt-1 sm:text-xl">
             {formatPercent(apyPercent, { minimum: 2, maximum: 2 })}
           </p>
@@ -115,10 +163,20 @@ export function PropertyCard({
         <div className="flex items-start gap-2 rounded-lg border border-terminal-success/20 bg-terminal-success/5 p-3">
           <TrendingUp size={16} className="mt-0.5 shrink-0 text-terminal-success" />
           <div>
-            <p className="text-xs text-terminal-muted">{t.propertyCard.estimatedAnnualIncome}</p>
+            <p className="text-xs text-terminal-muted">{incomeLabel}</p>
             <p className="font-mono text-sm font-semibold text-terminal-success">
               {formatFromUsd(estimatedAnnualYieldUsd)} / {t.propertyCard.perToken}
             </p>
+            {isDebt && maturityDate ? (
+              <p className="mt-1 text-[10px] text-terminal-muted">
+                {t.propertyCard.maturity}: {new Date(maturityDate).toLocaleDateString()}
+              </p>
+            ) : null}
+            {!isDebt && equitySharePercent != null ? (
+              <p className="mt-1 text-[10px] text-terminal-muted">
+                {t.propertyCard.equityParticipation}: {equitySharePercent}%
+              </p>
+            ) : null}
           </div>
         </div>
 
@@ -156,6 +214,24 @@ export function PropertyCard({
             />
           </details>
         ) : null}
+
+        {reels.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {reels.map((reel) => (
+              <a
+                key={reel.url}
+                href={reel.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-semibold text-terminal-primary underline"
+              >
+                {t.propertyCard.viewReel}
+              </a>
+            ))}
+          </div>
+        ) : null}
+
+        <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} />
 
         <p className="text-xs text-terminal-muted">
           {isVerified ? t.propertyCard.readyForCheckout : t.propertyCard.kycRequired}

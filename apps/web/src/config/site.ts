@@ -6,8 +6,8 @@ export function getWhatsAppPhone(): string {
   return raw.replace(/\D/g, '');
 }
 
-export function getWhatsAppUrl(message: string): string | null {
-  const phone = getWhatsAppPhone();
+export function getWhatsAppUrl(message: string, phoneOverride?: string): string | null {
+  const phone = (phoneOverride ?? getWhatsAppPhone()).replace(/\D/g, '');
   if (!phone) return null;
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
 }

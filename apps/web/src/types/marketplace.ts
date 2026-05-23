@@ -10,8 +10,19 @@ export type MarketplaceListing = {
   availableTokens: number;
   totalTokens: number;
   soldPercent: number;
+  tokenInstrumentType: 'DEBT' | 'EQUITY';
+  maturityDate?: string | null;
+  equitySharePercent?: number | null;
   fiscalRegime: string;
   jurisdiction: string | null;
+  tokenSymbol?: string | null;
+  mediaGallery?: Array<{ type: 'image' | 'reel'; url: string; caption?: string }>;
+  contracts?: {
+    trust?: string | null;
+    purchase?: string | null;
+    lease?: string | null;
+    smartContract?: string | null;
+  };
 };
 
 export type BestBorrowRateResponse = {

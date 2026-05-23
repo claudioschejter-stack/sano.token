@@ -4,7 +4,6 @@ import Image from 'next/image';
 import Link from 'next/link';
 import {
   ArrowLeftRight,
-  ArrowRight,
   Building2,
   CircleDollarSign,
   ShieldCheck,
@@ -18,6 +17,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
 import { HeroSubtitle } from './HeroSubtitle';
 import { MacroInvestmentThesis } from './MacroInvestmentThesis';
+import { MarketplaceCtaLink } from './MarketplaceCtaLink';
 import { TrustBadges } from './TrustBadges';
 import { VacaMuertaOperators } from './VacaMuertaOperators';
 
@@ -27,7 +27,7 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
-      <LandingHeader />
+      <LandingHeader showLanguageSelector />
 
       <section className="relative overflow-hidden bg-gradient-to-br from-[#0A0E17] via-[#111827] to-[#1e3a5f] text-white">
         <div
@@ -51,13 +51,7 @@ export function LandingPage() {
             </h1>
             <HeroSubtitle hero={l.hero} />
             <div className="mt-8 flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:gap-4">
-              <Link
-                href="/marketplace"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-400 md:w-auto md:text-sm"
-              >
-                {l.hero.ctaPrimary}
-                <ArrowRight size={18} />
-              </Link>
+              <MarketplaceCtaLink>{l.hero.ctaPrimary}</MarketplaceCtaLink>
               <a
                 href="#how-it-works"
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/30 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 md:w-auto md:text-sm"
@@ -130,13 +124,7 @@ export function LandingPage() {
               <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">{l.featured.title}</h2>
               <p className="mt-2 text-base text-slate-600 md:text-lg">{l.featured.subtitle}</p>
             </div>
-            <Link
-              href="/marketplace"
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-blue-600 transition hover:border-blue-200 hover:text-blue-500 md:w-auto md:min-h-0 md:border-0 md:bg-transparent md:px-0 md:py-0"
-            >
-              {l.featured.viewAll}
-              <ArrowRight size={16} />
-            </Link>
+            <MarketplaceCtaLink className="md:shrink-0">{l.featured.viewAll}</MarketplaceCtaLink>
           </div>
 
           <div className="mt-8 grid grid-cols-1 gap-6 md:mt-10 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
@@ -168,12 +156,7 @@ export function LandingPage() {
                       {formatMessage(l.featured.soldPercent, { percent: listing.soldPercent })}
                     </span>
                   </div>
-                  <Link
-                    href={`/marketplace/${listing.id}/checkout`}
-                    className="mt-5 flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600"
-                  >
-                    {t.common.investNow}
-                  </Link>
+                  <MarketplaceCtaLink className="mt-5">{t.common.investNow}</MarketplaceCtaLink>
                 </div>
               </article>
             ))}
@@ -203,13 +186,7 @@ export function LandingPage() {
         <div className="mx-auto w-full max-w-3xl px-4 text-center md:px-6">
           <h2 className="text-3xl font-bold md:text-4xl">{l.cta.title}</h2>
           <p className="mt-4 text-base text-blue-100 md:text-lg">{l.cta.subtitle}</p>
-          <Link
-            href="/marketplace"
-            className="mt-8 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-white px-8 py-3 text-base font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50 md:w-auto md:text-sm"
-          >
-            {l.cta.button}
-            <ArrowRight size={18} />
-          </Link>
+          <MarketplaceCtaLink className="mt-8">{l.cta.button}</MarketplaceCtaLink>
           <div className="mx-auto mt-6 max-w-2xl">
             <TrustBadges
               variant="dark"
@@ -233,7 +210,7 @@ export function LandingPage() {
               <Link href="/contacto" className="hover:text-white">
                 {l.footer.contact}
               </Link>
-              <Link href="/marketplace" className="hover:text-white">
+              <Link href="/acceso" className="hover:text-white">
                 {l.nav.marketplace}
               </Link>
               <Link href="/acceso" className="hover:text-white">

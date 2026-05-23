@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { PasswordInput } from './PasswordInput';
 
 type LoginFormProps = {
   callbackUrl?: string;
@@ -58,22 +59,14 @@ export function LoginForm({ callbackUrl = '/acceso/callback', className = '' }: 
         />
       </div>
 
-      <div>
-        <label htmlFor="access-password" className="mb-1.5 block text-sm font-medium text-slate-700">
-          {t.access.passwordLabel}
-        </label>
-        <input
-          id="access-password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          placeholder={t.access.passwordPlaceholder}
-        />
-      </div>
+      <PasswordInput
+        id="access-password"
+        label={t.access.passwordLabel}
+        placeholder={t.access.passwordPlaceholder}
+        autoComplete="current-password"
+        value={password}
+        onChange={setPassword}
+      />
 
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
