@@ -233,6 +233,11 @@ function buildCollateralTargets(
   return buildInitialCollateralTargets(project, protocols);
 }
 
+function normalizeOptionalUrl(value?: string | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
 function mapProject(project: {
   id: string;
   title: string;
@@ -281,10 +286,10 @@ function mapProject(project: {
     longitude: project.longitude != null ? Number(project.longitude) : null,
     mediaGallery: parseMediaGallery(project.mediaGallery),
     contracts: {
-      trust: project.contractTrustUrl,
-      purchase: project.contractPurchaseUrl,
-      lease: project.contractLeaseUrl,
-      smartContract: project.contractSmartUrl
+      trust: normalizeOptionalUrl(project.contractTrustUrl),
+      purchase: normalizeOptionalUrl(project.contractPurchaseUrl),
+      lease: normalizeOptionalUrl(project.contractLeaseUrl),
+      smartContract: normalizeOptionalUrl(project.contractSmartUrl)
     },
     tokenName: project.tokenName,
     tokenSymbol: project.tokenSymbol,
@@ -608,11 +613,6 @@ export async function updateAdminAsset(
   });
 
   return mapProject(updated);
-}
-
-function normalizeOptionalUrl(value?: string | null): string | null {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : null;
 }
 
 /** Published assets from the admin editor, synced for marketplace cards. */

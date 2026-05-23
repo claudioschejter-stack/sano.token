@@ -23,6 +23,7 @@ export type MarketplaceAssetSource = {
   fiscalRegime: string;
   jurisdiction: string | null;
   tokenSymbol: string | null;
+  tokenName?: string | null;
 };
 
 function fallbackImage(seed: string) {
@@ -60,6 +61,7 @@ export function mapAdminAssetToMarketplaceListing(asset: MarketplaceAssetSource)
     fiscalRegime: asset.fiscalRegime,
     jurisdiction: asset.jurisdiction,
     tokenSymbol: asset.tokenSymbol,
+    tokenName: asset.tokenName ?? null,
     mediaGallery: gallery,
     contracts: {
       trust: normalizeUrl(asset.contracts.trust),
