@@ -95,7 +95,7 @@ export function LandingPage() {
           <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">{l.howItWorks.title}</h2>
           <p className="mt-4 text-base text-slate-600 md:text-lg">{l.howItWorks.subtitle}</p>
         </div>
-        <div className="mt-10 grid grid-cols-1 gap-6 md:mt-14 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-1 gap-6 md:mt-14 md:grid-cols-2 md:gap-8 xl:grid-cols-4">
           {[
             { icon: UserCheck, title: l.howItWorks.step1Title, desc: l.howItWorks.step1Desc },
             { icon: Building2, title: l.howItWorks.step2Title, desc: l.howItWorks.step2Desc },
@@ -106,14 +106,14 @@ export function LandingPage() {
               key={step.title}
               className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-blue-200 hover:shadow-md md:p-8"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                   <step.icon size={24} />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-blue-600">0{index + 1}</p>
-                  <h3 className="mt-0.5 text-xl font-bold leading-snug text-slate-900">{step.title}</h3>
-                </div>
+                <h3 className="min-w-0 text-base font-bold leading-snug text-slate-900 md:text-lg">
+                  <span className="mr-2 text-sm font-semibold text-blue-600">0{index + 1}</span>
+                  {step.title}
+                </h3>
               </div>
               <p className="mt-3 text-slate-600">{step.desc}</p>
             </article>
