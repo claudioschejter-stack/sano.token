@@ -65,7 +65,7 @@ export function PropertyCard({
 }: PropertyCardProps) {
   const t = useTranslation();
   const { label: ctaLabel } = useCtaVariant();
-  const { formatUsd, formatPercent } = useLocalCurrency();
+  const { formatUsd, formatUsdPlain, formatPercent } = useLocalCurrency();
   const [heroIndex, setHeroIndex] = useState(0);
 
   const slides = useMemo<MediaSlide[]>(() => {
@@ -175,9 +175,9 @@ export function PropertyCard({
         >
           {isDebt ? t.propertyCard.instrumentDebt : t.propertyCard.instrumentEquity}
         </span>
-        <div className="absolute bottom-3 left-3 rounded-lg border border-terminal-border bg-terminal-bg/90 p-2.5 backdrop-blur-sm sm:bottom-4 sm:left-4 sm:p-3">
+        <div className="absolute bottom-3 left-3 rounded-lg border border-terminal-border bg-terminal-bg/90 px-3 py-2 text-center backdrop-blur-sm sm:bottom-4 sm:left-4">
           <p className="text-[10px] text-terminal-muted sm:text-xs">{yieldLabel}</p>
-          <p className="mt-0.5 font-mono text-lg font-bold text-terminal-success sm:mt-1 sm:text-xl">
+          <p className="font-mono text-lg font-bold leading-tight text-terminal-success sm:text-xl">
             {formatPercent(apyPercent, { minimum: 2, maximum: 2 })}
           </p>
         </div>
@@ -212,9 +212,11 @@ export function PropertyCard({
           <p className="line-clamp-3 text-sm leading-relaxed text-terminal-muted">{description}</p>
         ) : null}
 
-        <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3">
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2">
           <p className="text-xs text-terminal-muted">{t.propertyCard.tokenPrice}</p>
-          <p className="mt-1 font-mono text-xl font-bold text-terminal-text">{formatUsd(pricePerTokenUsd)}</p>
+          <p className="font-mono text-xl font-bold leading-none text-terminal-text">
+            USD {formatUsdPlain(pricePerTokenUsd)}
+          </p>
         </div>
 
         <div className="flex items-start gap-2 rounded-lg border border-terminal-success/20 bg-terminal-success/5 p-3">
@@ -222,7 +224,7 @@ export function PropertyCard({
           <div>
             <p className="text-xs text-terminal-muted">{incomeLabel}</p>
             <p className="font-mono text-sm font-semibold text-terminal-success">
-              {formatUsd(estimatedAnnualYieldUsd)} / {t.propertyCard.perToken}
+              {formatUsd(estimatedAnnualYieldUsd, { min: 2, max: 2 })} / {t.propertyCard.perToken}
             </p>
             {isDebt && maturityDate ? (
               <p className="mt-1 text-[10px] text-terminal-muted">
@@ -233,10 +235,12 @@ export function PropertyCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          <span className="rounded-md border border-terminal-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-terminal-muted">
+            {t.propertyCard.tokenSymbolLabel}
+          </span>
           {tokenSymbol ? (
-            <span className="rounded-md border border-terminal-border px-2 py-0.5 text-[10px] tracking-wide text-terminal-muted">
-              <span className="uppercase">{t.propertyCard.tokenSymbolLabel}</span>
-              <span className="ml-1 font-mono font-semibold normal-case text-terminal-text">{tokenSymbol}</span>
+            <span className="rounded-md border border-terminal-border px-2 py-0.5 font-mono text-[10px] font-semibold text-terminal-text">
+              {tokenSymbol}
             </span>
           ) : null}
           <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />

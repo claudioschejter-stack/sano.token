@@ -95,12 +95,18 @@ export function useLocalCurrency() {
 
   const formatFromUsd = (amountUsd: number) => formatter.format(convertFromUsd(amountUsd));
 
-  const formatUsd = (amountUsd: number) =>
+  const formatUsd = (amountUsd: number, fractionDigits = { min: 0, max: 2 }) =>
     new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2
+      minimumFractionDigits: fractionDigits.min,
+      maximumFractionDigits: fractionDigits.max
+    }).format(amountUsd);
+
+  const formatUsdPlain = (amountUsd: number, fractionDigits = { min: 0, max: 0 }) =>
+    new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: fractionDigits.min,
+      maximumFractionDigits: fractionDigits.max
     }).format(amountUsd);
 
   const formatPercent = (
@@ -120,6 +126,7 @@ export function useLocalCurrency() {
     convertFromUsd,
     formatFromUsd,
     formatUsd,
+    formatUsdPlain,
     formatPercent
   };
 }
