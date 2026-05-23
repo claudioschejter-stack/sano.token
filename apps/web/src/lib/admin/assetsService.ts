@@ -430,7 +430,13 @@ export async function updateAdminAsset(
   if (input.latitude !== undefined) data.latitude = input.latitude;
   if (input.longitude !== undefined) data.longitude = input.longitude;
   if (input.image !== undefined) data.image = input.image;
-  if (input.mediaGallery !== undefined) data.mediaGallery = input.mediaGallery as Prisma.InputJsonValue;
+  if (input.mediaGallery !== undefined) {
+    data.mediaGallery = input.mediaGallery as Prisma.InputJsonValue;
+    const primaryImage = input.mediaGallery.find((item) => item.type === 'image')?.url ?? null;
+    if (primaryImage) {
+      data.image = primaryImage;
+    }
+  }
   if (input.contracts?.trust !== undefined) data.contractTrustUrl = input.contracts.trust;
   if (input.contracts?.purchase !== undefined) data.contractPurchaseUrl = input.contracts.purchase;
   if (input.contracts?.lease !== undefined) data.contractLeaseUrl = input.contracts.lease;

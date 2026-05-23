@@ -102,11 +102,11 @@ async function uploadToLocalDisk(input: UploadLaunchAssetInput): Promise<UploadL
 
 export async function uploadLaunchAsset(input: UploadLaunchAssetInput): Promise<UploadLaunchAssetResult> {
   if (isSupabaseStorageConfigured()) {
-    try {
-      return await uploadToSupabase(input);
-    } catch (error) {
-      console.error('[uploadLaunchAsset] Supabase failed, falling back to local disk:', error);
-    }
+    return uploadToSupabase(input);
+  }
+
+  if (process.env.VERCEL) {
+    throw new Error('STORAGE_NOT_CONFIGURED');
   }
 
   return uploadToLocalDisk(input);

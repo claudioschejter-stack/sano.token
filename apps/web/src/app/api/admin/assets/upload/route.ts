@@ -40,7 +40,13 @@ export async function POST(request: Request) {
       storage: result.storage
     });
   } catch (error) {
+    const code = error instanceof Error ? error.message : 'UNKNOWN';
     console.error('[admin/assets/upload]', error);
+
+    if (code === 'STORAGE_NOT_CONFIGURED') {
+      return NextResponse.json({ error: 'STORAGE_NOT_CONFIGURED' }, { status: 503 });
+    }
+
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
   }
 }

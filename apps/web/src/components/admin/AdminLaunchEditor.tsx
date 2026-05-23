@@ -101,7 +101,7 @@ const EMPTY_FORM: FormState = {
   jurisdiction: 'AR',
   contractAddress: '',
   isActive: false,
-  deployToken: true,
+  deployToken: false,
   collateralCentrifuge: false,
   collateralSky: false,
   collateralMorpho: false,
@@ -250,6 +250,10 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       }
 
       return data;
+    } catch (error) {
+      const code = error instanceof Error ? error.message : undefined;
+      setError(mapUploadError(code));
+      throw error;
     } finally {
       setUploading(false);
     }
@@ -260,13 +264,49 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
     if (!file) return;
 
     const folder = projectId ?? 'draft';
-    const result = await uploadFile(file, folder);
-    if (!result?.url) return;
 
-    setForm((current) => ({
-      ...current,
-      mediaGallery: [...current.mediaGallery, { type: 'image', url: result.url, caption: file.name }]
-    }));
+    try {
+      const result = await uploadFile(file, folder);
+      if (!result?.url) return;
+
+      const nextGallery = [
+        ...form.mediaGallery,
+        { type: 'image' as const, url: result.url, caption: file.name }
+      ];
+
+      setForm((current) => ({ ...current, mediaGallery: nextGallery }));
+      await persistMediaGallery(nextGallery);
+      setMessage(l.mediaSaved);
+    } catch {
+      // uploadFile already sets error message
+    } finally {
+      event.target.value = '';
+    }
+  }
+
+  async function handleVideoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const folder = `${projectId ?? 'draft'}/reels`;
+
+    try {
+      const result = await uploadFile(file, folder);
+      if (!result?.url) return;
+
+      const nextGallery = [
+        ...form.mediaGallery,
+        { type: 'reel' as const, url: result.url, caption: file.name }
+      ];
+
+      setForm((current) => ({ ...current, mediaGallery: nextGallery }));
+      await persistMediaGallery(nextGallery);
+      setMessage(l.mediaSaved);
+    } catch {
+      // uploadFile already sets error message
+    } finally {
+      event.target.value = '';
+    }
   }
 
   async function handleContractUpload(
@@ -290,18 +330,28 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
     const url = form.reelUrl.trim();
     if (!url) return;
 
+    const nextGallery = [...form.mediaGallery, { type: 'reel' as const, url }];
     setForm((current) => ({
       ...current,
-      mediaGallery: [...current.mediaGallery, { type: 'reel', url }],
+      mediaGallery: nextGallery,
       reelUrl: ''
     }));
+
+    void persistMediaGallery(nextGallery)
+      .then(() => setMessage(l.mediaSaved))
+      .catch(() => setError(l.saveError));
   }
 
   function removeMedia(index: number) {
+    const nextGallery = form.mediaGallery.filter((_, i) => i !== index);
     setForm((current) => ({
       ...current,
-      mediaGallery: current.mediaGallery.filter((_, i) => i !== index)
+      mediaGallery: nextGallery
     }));
+
+    void persistMediaGallery(nextGallery)
+      .then(() => setMessage(l.mediaSaved))
+      .catch(() => setError(l.saveError));
   }
 
   function applyInstrumentDefaults(type: TokenInstrumentType) {
@@ -310,16 +360,41 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       ...current,
       tokenInstrumentType: type,
       tokenStandard: defaults.tokenStandard,
-      collateralCentrifuge: defaults.collateralProtocols.includes('CENTRIFUGE'),
-      collateralSky: false,
-      collateralMorpho: defaults.collateralProtocols.includes('MORPHO'),
-      collateralAaveHorizon: false,
-      collateralMaple: defaults.collateralProtocols.includes('MAPLE'),
-      collateralClearpool: defaults.collateralProtocols.includes('CLEARPOOL'),
-      collateralFigure: false,
       maturityDate: type === 'DEBT' ? current.maturityDate : '',
       equitySharePercent: type === 'EQUITY' ? current.equitySharePercent || '100' : ''
     }));
+  }
+
+  async function persistMediaGallery(gallery: LaunchMediaItem[]) {
+    if (mode !== 'edit' || !projectId) {
+      return;
+    }
+
+    const response = await fetch(`/api/admin/assets/${projectId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mediaGallery: gallery })
+    });
+
+    if (!response.ok) {
+      throw new Error('save failed');
+    }
+  }
+
+  function mapUploadError(code?: string): string {
+    if (code === 'STORAGE_NOT_CONFIGURED') {
+      return l.uploadStorageNotConfigured;
+    }
+
+    if (code === 'Unsupported file type') {
+      return l.uploadUnsupportedType;
+    }
+
+    if (code === 'File too large (max 20 MB)') {
+      return l.uploadTooLarge;
+    }
+
+    return l.uploadError;
   }
 
   function buildPayload(): CreateAdminAssetInput {
@@ -504,7 +579,16 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       }
 
       if (data.skipped && data.reason) {
-        setMessage(`${l.tokenSkipped}: ${data.reason}`);
+        if (
+          data.reason.includes('TOKEN_DEPLOY_PRIVATE_KEY') ||
+          data.reason.includes('PRIVATE_KEY')
+        ) {
+          setMessage(l.tokenDeployOptionalHint);
+        } else if (data.reason.includes('THIRDWEB_SECRET_KEY')) {
+          setMessage(l.tokenDeployThirdwebHint);
+        } else {
+          setMessage(`${l.tokenSkipped}: ${data.reason}`);
+        }
       } else if (data.explorerUrl) {
         const vaultNote =
           data.asset?.vaultAddress && form.tokenStandard === 'ERC4626'
@@ -693,6 +777,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                 <div className="mt-6 rounded-lg border border-terminal-border bg-terminal-bg p-4">
                   <p className="text-sm font-medium text-terminal-text">{l.tokenDeployTitle}</p>
                   <p className="mt-1 text-xs text-terminal-muted">{l.tokenDeployDesc}</p>
+                  <p className="mt-2 text-xs text-terminal-muted">{l.tokenDeployOptionalHint}</p>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <label className="block min-w-[16rem] flex-1 text-sm">
                       <span className="text-terminal-muted">{l.fieldContractAddress}</span>
@@ -730,31 +815,47 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
 
             <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
               <h2 className="text-lg font-semibold text-terminal-text">{l.sectionMedia}</h2>
+              <p className="mt-1 text-sm text-terminal-muted">{l.mediaDesc}</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-terminal-border px-4 py-2 text-sm text-terminal-text hover:border-terminal-primary/40">
                   <ImagePlus size={16} />
                   {uploading ? l.uploading : l.uploadPhoto}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => void handleImageUpload(e)} />
                 </label>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-terminal-border px-4 py-2 text-sm text-terminal-text hover:border-terminal-primary/40">
+                  <Video size={16} />
+                  {uploading ? l.uploading : l.uploadVideo}
+                  <input type="file" accept="video/mp4,video/webm" className="hidden" onChange={(e) => void handleVideoUpload(e)} />
+                </label>
               </div>
               <div className="mt-4 flex gap-2">
                 <input value={form.reelUrl} onChange={(e) => setForm({ ...form, reelUrl: e.target.value })} placeholder={l.reelPlaceholder} className={inputClass} />
                 <button type="button" onClick={addReelUrl} className="shrink-0 rounded-lg border border-terminal-border px-3 py-2 text-sm text-terminal-text">
-                  <Video size={16} />
+                  {l.addReelUrl}
                 </button>
               </div>
               {form.mediaGallery.length > 0 ? (
-                <ul className="mt-4 space-y-2">
+                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
                   {form.mediaGallery.map((item, index) => (
-                    <li key={`${item.url}-${index}`} className="flex items-center justify-between rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm">
-                      <span className="truncate text-terminal-muted">{item.type}: {item.url}</span>
-                      <button type="button" onClick={() => removeMedia(index)} className="text-red-400">
-                        <Trash2 size={14} />
-                      </button>
+                    <li key={`${item.url}-${index}`} className="overflow-hidden rounded-lg border border-terminal-border bg-terminal-bg">
+                      {item.type === 'image' ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.url} alt={item.caption ?? item.url} className="h-32 w-full object-cover" />
+                      ) : (
+                        <video src={item.url} controls className="h-32 w-full object-cover" />
+                      )}
+                      <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-terminal-muted">
+                        <span className="truncate">{item.type}: {item.caption ?? item.url}</span>
+                        <button type="button" onClick={() => removeMedia(index)} className="shrink-0 text-red-400">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
-              ) : null}
+              ) : (
+                <p className="mt-4 text-sm text-terminal-muted">{l.mediaEmpty}</p>
+              )}
             </section>
 
             <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
@@ -783,9 +884,16 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
               </div>
             </section>
 
-            <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-              <h2 className="text-lg font-semibold text-terminal-text">{l.sectionCentrifuge}</h2>
-              <p className="mt-1 text-sm text-terminal-muted">{l.centrifugeDesc}</p>
+            <details className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+              <summary className="cursor-pointer list-none text-lg font-semibold text-terminal-text [&::-webkit-details-marker]:hidden">
+                <span className="inline-flex flex-wrap items-center gap-2">
+                  {l.sectionCentrifuge}
+                  <span className="rounded-full border border-terminal-border px-2 py-0.5 text-xs font-medium text-terminal-muted">
+                    {l.optionalBadge}
+                  </span>
+                </span>
+              </summary>
+              <p className="mt-3 text-sm text-terminal-muted">{l.centrifugeDesc}</p>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 <label className="block text-sm">
                   <span className="text-terminal-muted">{l.fieldSpvEntity}</span>
@@ -817,11 +925,18 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                   </label>
                 ))}
               </ul>
-            </section>
+            </details>
 
-            <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-              <h2 className="text-lg font-semibold text-terminal-text">{l.sectionCollateral}</h2>
-              <p className="mt-1 text-sm text-terminal-muted">{l.collateralDesc}</p>
+            <details className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+              <summary className="cursor-pointer list-none text-lg font-semibold text-terminal-text [&::-webkit-details-marker]:hidden">
+                <span className="inline-flex flex-wrap items-center gap-2">
+                  {l.sectionCollateral}
+                  <span className="rounded-full border border-terminal-border px-2 py-0.5 text-xs font-medium text-terminal-muted">
+                    {l.optionalBadge}
+                  </span>
+                </span>
+              </summary>
+              <p className="mt-3 text-sm text-terminal-muted">{l.collateralDesc}</p>
               <div className="mt-4 space-y-3">
                 {COLLATERAL_FORM_KEYS.map(({ key, protocol, label }) => {
                   const target = collateralTargetFor(protocol);
@@ -869,7 +984,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
               <p className="mt-4 rounded-lg border border-dashed border-terminal-border px-3 py-2 text-xs text-terminal-muted">
                 {l.collateralNote}
               </p>
-            </section>
+            </details>
 
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-terminal-text">

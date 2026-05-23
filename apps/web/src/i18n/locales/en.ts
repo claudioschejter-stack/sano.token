@@ -182,6 +182,17 @@ export const en = {
     sectionBasic: 'Project information',
     sectionToken: 'Token & issuance',
     sectionMedia: 'Photos & reels',
+    mediaDesc: 'Photos and videos save automatically and appear on the marketplace card when published.',
+    mediaEmpty: 'No photos or videos yet. Upload files or paste a reel URL.',
+    mediaSaved: 'Media saved to the card.',
+    uploadVideo: 'Upload video',
+    addReelUrl: 'Add URL',
+    uploadError: 'Could not upload the file.',
+    uploadStorageNotConfigured:
+      'Storage is not configured on Vercel. Add SUPABASE_KEY (service role) and the launches bucket in Supabase.',
+    uploadUnsupportedType: 'Unsupported file type.',
+    uploadTooLarge: 'File too large (max 20 MB).',
+    optionalBadge: 'Optional',
     sectionContracts: 'Legal contracts',
     sectionCollateral: 'DeFi protocol collateral',
     fieldTitle: 'Asset name',
@@ -220,7 +231,7 @@ export const en = {
     tokenStandardErc4626Desc: 'Deploys SanovaAssetToken + KYC-gated ERC-4626 vault. DeFi-compatible shares.',
     tokenStandardThirdwebDesc: 'Generic ERC-20 via Thirdweb. Demos only; not institutional collateral.',
     sectionCentrifuge: 'Centrifuge checklist',
-    centrifugeDesc: 'Prerequisites before registering the asset on Centrifuge / Tinlake.',
+    centrifugeDesc: 'Optional. Only needed if you plan to register the asset on Centrifuge / Tinlake.',
     centrifugeReadiness: 'Centrifuge readiness',
     centrifugeChecklist: {
       spvDocumented: 'SPV / trust documented',
@@ -243,7 +254,7 @@ export const en = {
     },
     noFile: 'No file',
     uploadPdf: 'Upload PDF',
-    collateralDesc: 'Select credit protocols where the token will be registered as collateral. The platform validates requirements and submits automatically when credentials are configured.',
+    collateralDesc: 'Optional. Select DeFi protocols only if you want to register the token as collateral later.',
     collateralNote: 'Centrifuge, Sky, Morpho, Aave Horizon, Maple, Clearpool, and Figure require institutional review. Sanova validates requirements, builds the collateral package, and submits via API/webhook when credentials are set in .env (Settings → DeFi integrations).',
     registerCollateral: 'Register collateral with protocols',
     collateralRegisterSuccess: 'Collateral submitted to selected protocols.',
@@ -264,9 +275,13 @@ export const en = {
     },
     publishOnSave: 'Publish on marketplace when saving',
     tokenDeployTitle: 'On-chain token issuance',
-    tokenDeployDesc: 'Sanova KYC or ERC-4626 via native contracts (ethers + wallet funded on Base Sepolia). Thirdweb for demos only. Requires TOKEN_DEPLOY_PRIVATE_KEY or PRIVATE_KEY.',
+    tokenDeployDesc: 'Optional. Issue the token on-chain or paste the contract address manually.',
+    tokenDeployOptionalHint:
+      'Automatic issuance is not configured (TOKEN_DEPLOY_PRIVATE_KEY missing). You can still publish the card and enter the contract address manually.',
+    tokenDeployThirdwebHint:
+      'Thirdweb is not configured. Use manual contract entry or set THIRDWEB_SECRET_KEY for demos only.',
     deployToken: 'Issue token',
-    autoDeployOnCreate: 'Request automatic issuance on create',
+    autoDeployOnCreate: 'Try automatic issuance on create (optional)',
     tokenStatus: 'Status',
     tokenSkipped: 'Automatic issuance skipped',
     tokenDeployed: 'Token deployed. Check the explorer.',
@@ -1001,6 +1016,16 @@ export type Messages = {
     sectionBasic: string;
     sectionToken: string;
     sectionMedia: string;
+    mediaDesc: string;
+    mediaEmpty: string;
+    mediaSaved: string;
+    uploadVideo: string;
+    addReelUrl: string;
+    uploadError: string;
+    uploadStorageNotConfigured: string;
+    uploadUnsupportedType: string;
+    uploadTooLarge: string;
+    optionalBadge: string;
     sectionContracts: string;
     sectionCollateral: string;
     fieldTitle: string;
@@ -1074,6 +1099,8 @@ export type Messages = {
     publishOnSave: string;
     tokenDeployTitle: string;
     tokenDeployDesc: string;
+    tokenDeployOptionalHint: string;
+    tokenDeployThirdwebHint: string;
     deployToken: string;
     autoDeployOnCreate: string;
     tokenStatus: string;
