@@ -13,7 +13,6 @@ export type PropertyCardProps = {
   id: string;
   title: string;
   description?: string;
-  tokenName?: string | null;
   location: string;
   imageUrl: string;
   mapEmbedUrl?: string;
@@ -47,7 +46,6 @@ export function PropertyCard({
   id,
   title,
   description,
-  tokenName,
   location,
   imageUrl,
   mapEmbedUrl,
@@ -56,7 +54,6 @@ export function PropertyCard({
   availableTokens,
   totalTokens,
   soldPercent,
-  jurisdiction,
   tokenInstrumentType = 'EQUITY',
   maturityDate,
   tokenSymbol,
@@ -187,11 +184,6 @@ export function PropertyCard({
         <p className="absolute bottom-20 left-3 right-3 text-base font-semibold leading-snug text-terminal-text sm:bottom-24 sm:left-4 sm:right-4 sm:text-lg">
           {title}
         </p>
-        {tokenName && tokenName !== title ? (
-          <p className="absolute bottom-14 left-3 right-3 truncate text-xs text-terminal-muted sm:bottom-16 sm:left-4 sm:right-4">
-            {tokenName}
-          </p>
-        ) : null}
       </div>
 
       <div className="space-y-4 p-4 sm:p-5">
@@ -241,9 +233,10 @@ export function PropertyCard({
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {jurisdiction ? (
-            <span className="rounded-md border border-terminal-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-terminal-muted">
-              {jurisdiction}
+          {tokenSymbol ? (
+            <span className="rounded-md border border-terminal-border px-2 py-0.5 text-[10px] tracking-wide text-terminal-muted">
+              <span className="uppercase">{t.propertyCard.tokenSymbolLabel}</span>
+              <span className="ml-1 font-mono font-semibold normal-case text-terminal-text">{tokenSymbol}</span>
             </span>
           ) : null}
           <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />

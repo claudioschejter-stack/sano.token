@@ -19,6 +19,7 @@ export const en = {
     readyForCheckout: 'You are verified. Proceed to Web3 checkout.',
     placementProgress: 'Placement progress',
     tokenPrice: 'Price / token',
+    tokenSymbolLabel: 'Token symbol',
     estimatedAnnualIncome: 'Est. annual income',
     fixedAnnualPayment: 'Fixed annual coupon',
     fixedCoupon: 'Fixed coupon',
@@ -857,6 +858,7 @@ export type Messages = {
     readyForCheckout: string;
     placementProgress: string;
     tokenPrice: string;
+    tokenSymbolLabel: string;
     estimatedAnnualIncome: string;
     fixedAnnualPayment: string;
     fixedCoupon: string;

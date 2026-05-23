@@ -72,7 +72,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               id={listing.id}
               title={listing.title}
               description={listing.description}
-              tokenName={listing.tokenName}
               location={listing.location}
               imageUrl={listing.imageUrl}
               mapEmbedUrl={listing.mapEmbedUrl}
@@ -81,8 +80,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               availableTokens={listing.availableTokens}
               totalTokens={listing.totalTokens}
               soldPercent={listing.soldPercent}
-              jurisdiction={listing.jurisdiction}
-              fiscalRegime={listing.fiscalRegime}
               tokenInstrumentType={listing.tokenInstrumentType}
               maturityDate={listing.maturityDate}
               equitySharePercent={listing.equitySharePercent}

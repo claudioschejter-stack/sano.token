@@ -21,6 +21,7 @@ export const es = {
     readyForCheckout: 'Estás verificado. Continúa al checkout Web3.',
     placementProgress: 'Progreso de colocación',
     tokenPrice: 'Precio / token',
+    tokenSymbolLabel: 'Símbolo del token',
     estimatedAnnualIncome: 'Renta anual estimada',
     fixedAnnualPayment: 'Cupón fijo anual',
     fixedCoupon: 'Cupón fijo',

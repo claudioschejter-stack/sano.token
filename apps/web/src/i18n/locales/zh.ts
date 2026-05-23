@@ -22,6 +22,7 @@ export const zh = mergeLocale({
     tokenPrice: '单价 / 代币',
     estimatedAnnualIncome: '预计年收入',
     perToken: '代币',
+    tokenSymbolLabel: '代币符号',
     instantLiquidity: '通过国库即时退出（−3% SanovaAMM）',
     legalContractsBadge: '法律合同',
     contractUnavailable: '待上传',

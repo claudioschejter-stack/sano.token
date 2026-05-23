@@ -22,6 +22,7 @@ export const ru = mergeLocale({
     tokenPrice: 'Цена / токен',
     estimatedAnnualIncome: 'Ожидаемый годовой доход',
     perToken: 'токен',
+    tokenSymbolLabel: 'Символ токена',
     instantLiquidity: 'Мгновенный выход через казначейство (−3% SanovaAMM)',
     legalContractsBadge: 'Юридические договоры',
     contractUnavailable: 'ожидает загрузки',

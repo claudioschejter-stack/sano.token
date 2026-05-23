@@ -22,6 +22,7 @@ export const fr = mergeLocale({
     tokenPrice: 'Prix / token',
     estimatedAnnualIncome: 'Revenu annuel estimé',
     perToken: 'token',
+    tokenSymbolLabel: 'Symbole du token',
     instantLiquidity: 'Sortie instantanée via trésorerie (−3 % SanovaAMM)',
     legalContractsBadge: 'Contrats légaux',
     contractUnavailable: 'en attente',
