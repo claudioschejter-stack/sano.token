@@ -7,6 +7,7 @@ export async function fetchBestBorrowRate(): Promise<BestBorrowRateResponse | nu
   const quotes = WORLD_LENDERS.map((lender) => ({
     id: lender.id,
     name: lender.name,
+    protocol: lender.id,
     region: lender.region,
     category: lender.category,
     borrowApyBps: readLenderBorrowApyBps(lender),
