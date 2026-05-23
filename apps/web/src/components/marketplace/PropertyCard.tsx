@@ -12,6 +12,7 @@ import { LaunchContractsPanel } from './LaunchContractsPanel';
 export type PropertyCardProps = {
   id: string;
   title: string;
+  description?: string;
   location: string;
   imageUrl: string;
   mapEmbedUrl?: string;
@@ -36,6 +37,7 @@ export type PropertyCardProps = {
 export function PropertyCard({
   id,
   title,
+  description,
   location,
   imageUrl,
   mapEmbedUrl,
@@ -154,6 +156,10 @@ export function PropertyCard({
           <MapPin size={16} className="shrink-0 text-terminal-primary" />
           <span className="line-clamp-1">{location}</span>
         </div>
+
+        {description ? (
+          <p className="line-clamp-3 text-sm leading-relaxed text-terminal-muted">{description}</p>
+        ) : null}
 
         <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3">
           <p className="text-xs text-terminal-muted">{t.propertyCard.tokenPrice}</p>

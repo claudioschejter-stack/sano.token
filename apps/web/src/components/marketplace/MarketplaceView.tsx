@@ -71,6 +71,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               key={listing.id}
               id={listing.id}
               title={listing.title}
+              description={listing.description}
               location={listing.location}
               imageUrl={listing.imageUrl}
               mapEmbedUrl={listing.mapEmbedUrl}

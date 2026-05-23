@@ -35,7 +35,7 @@ function classifyContractKey(name: string): keyof LaunchContracts | null {
   return null;
 }
 
-async function listObjects(prefix: string): Promise<string[]> {
+async function listAllFiles(prefix: string): Promise<string[]> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
 
@@ -49,9 +49,22 @@ async function listObjects(prefix: string): Promise<string[]> {
     return [];
   }
 
-  return data
-    .filter((entry) => entry.name && entry.metadata)
-    .map((entry) => (prefix ? `${prefix}/${entry.name}` : entry.name));
+  const files: string[] = [];
+
+  for (const entry of data) {
+    if (!entry.name) continue;
+
+    const path = prefix ? `${prefix}/${entry.name}` : entry.name;
+
+    if (entry.id === null) {
+      files.push(...(await listAllFiles(path)));
+      continue;
+    }
+
+    files.push(path);
+  }
+
+  return files;
 }
 
 function mergeGallery(existing: LaunchMediaItem[], discovered: LaunchMediaItem[]): LaunchMediaItem[] {
@@ -91,12 +104,16 @@ export async function discoverLaunchAssetsFromStorage(projectId: string): Promis
   const contractSlots: Array<keyof LaunchContracts> = ['trust', 'purchase', 'lease', 'smartContract'];
   let nextContractSlot = 0;
 
-  const prefixes = [projectId, `${projectId}/reels`, `${projectId}/contracts`, `${projectId}/images`];
+  const scanRoots = [projectId, `draft/${projectId}`];
+  const objectPaths = new Set<string>();
 
-  for (const prefix of prefixes) {
-    const objects = await listObjects(prefix);
+  for (const root of scanRoots) {
+    for (const objectPath of await listAllFiles(root)) {
+      objectPaths.add(objectPath);
+    }
+  }
 
-    for (const objectPath of objects) {
+  for (const objectPath of objectPaths) {
       const name = objectPath.split('/').pop() ?? objectPath;
       const url = getPublicStorageUrl(objectPath);
       const mediaType = classifyMedia(name);
@@ -112,7 +129,6 @@ export async function discoverLaunchAssetsFromStorage(projectId: string): Promis
           contracts[key] = url;
         }
       }
-    }
   }
 
   const primaryImage = mediaGallery.find((item) => item.type === 'image')?.url ?? null;

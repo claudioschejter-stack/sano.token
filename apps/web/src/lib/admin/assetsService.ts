@@ -1,6 +1,8 @@
 import { prisma, type FiscalRegime, type Prisma } from '@sanova/database';
 import { geocodeLocation } from '../geocoding/geocodeLocation';
+import { mapAdminAssetToMarketplaceListing } from '../marketplace/mapAdminAssetToListing';
 import { syncProjectAssetsFromStorage } from '../storage/syncLaunchStorage';
+import type { MarketplaceListing } from '../../types/marketplace';
 import {
   autoFillCentrifugeChecklist,
   parseCentrifugeChecklist,
@@ -489,10 +491,18 @@ export async function updateAdminAsset(
       data.image = primaryImage;
     }
   }
-  if (input.contracts?.trust !== undefined) data.contractTrustUrl = input.contracts.trust;
-  if (input.contracts?.purchase !== undefined) data.contractPurchaseUrl = input.contracts.purchase;
-  if (input.contracts?.lease !== undefined) data.contractLeaseUrl = input.contracts.lease;
-  if (input.contracts?.smartContract !== undefined) data.contractSmartUrl = input.contracts.smartContract;
+  if (input.contracts?.trust !== undefined) {
+    data.contractTrustUrl = normalizeOptionalUrl(input.contracts.trust);
+  }
+  if (input.contracts?.purchase !== undefined) {
+    data.contractPurchaseUrl = normalizeOptionalUrl(input.contracts.purchase);
+  }
+  if (input.contracts?.lease !== undefined) {
+    data.contractLeaseUrl = normalizeOptionalUrl(input.contracts.lease);
+  }
+  if (input.contracts?.smartContract !== undefined) {
+    data.contractSmartUrl = normalizeOptionalUrl(input.contracts.smartContract);
+  }
   if (input.tokenName !== undefined) data.tokenName = input.tokenName;
   if (input.tokenSymbol !== undefined) data.tokenSymbol = input.tokenSymbol?.toUpperCase() ?? null;
   if (input.tokenStandard !== undefined) data.tokenStandard = input.tokenStandard;
@@ -598,6 +608,52 @@ export async function updateAdminAsset(
   });
 
   return mapProject(updated);
+}
+
+function normalizeOptionalUrl(value?: string | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+/** Published assets from the admin editor, synced for marketplace cards. */
+export async function listMarketplaceListings(): Promise<MarketplaceListing[]> {
+  const activeProjects = await prisma.project.findMany({
+    where: { isActive: true },
+    select: { id: true },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  const listings: MarketplaceListing[] = [];
+
+  for (const { id } of activeProjects) {
+    if (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY) {
+      await syncProjectAssetsFromStorage(id).catch(() => undefined);
+    }
+
+    const asset = await getAdminAsset(id);
+    if (!asset) {
+      continue;
+    }
+
+    if (asset.latitude == null || asset.longitude == null) {
+      const coords = await geocodeLocation(asset.location);
+      if (coords) {
+        await prisma.project.update({
+          where: { id },
+          data: {
+            latitude: coords.latitude,
+            longitude: coords.longitude
+          }
+        });
+        asset.latitude = coords.latitude;
+        asset.longitude = coords.longitude;
+      }
+    }
+
+    listings.push(mapAdminAssetToMarketplaceListing(asset));
+  }
+
+  return listings;
 }
 
 export async function markTokenDeployResult(
