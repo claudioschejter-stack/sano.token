@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { MapPin, ShieldAlert, TrendingUp, Wallet } from 'lucide-react';
+import { ShieldAlert, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useCtaVariant } from '../../hooks/useCtaVariant';
 import { useTranslation } from '../../i18n/LocaleProvider';
@@ -46,7 +46,6 @@ export function PropertyCard({
   id,
   title,
   description,
-  location,
   imageUrl,
   mapEmbedUrl,
   apyPercent,
@@ -65,7 +64,7 @@ export function PropertyCard({
 }: PropertyCardProps) {
   const t = useTranslation();
   const { label: ctaLabel } = useCtaVariant();
-  const { formatUsd, formatUsdPlain, formatPercent } = useLocalCurrency();
+  const { formatUsdPlain, formatPercent } = useLocalCurrency();
   const [heroIndex, setHeroIndex] = useState(0);
 
   const slides = useMemo<MediaSlide[]>(() => {
@@ -203,11 +202,6 @@ export function PropertyCard({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-terminal-muted">
-          <MapPin size={16} className="shrink-0 text-terminal-primary" />
-          <span className="line-clamp-1">{location}</span>
-        </div>
-
         {description ? (
           <p className="line-clamp-3 text-sm leading-relaxed text-terminal-muted">{description}</p>
         ) : null}
@@ -219,19 +213,18 @@ export function PropertyCard({
           </p>
         </div>
 
-        <div className="flex items-start gap-2 rounded-lg border border-terminal-success/20 bg-terminal-success/5 p-3">
-          <TrendingUp size={16} className="mt-0.5 shrink-0 text-terminal-success" />
-          <div>
+        <div className="rounded-lg border border-terminal-success/20 bg-terminal-success/5 px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
             <p className="text-xs text-terminal-muted">{incomeLabel}</p>
-            <p className="font-mono text-sm font-semibold text-terminal-success">
-              {formatUsd(estimatedAnnualYieldUsd, { min: 2, max: 2 })} / {t.propertyCard.perToken}
+            <p className="font-mono text-sm font-semibold leading-none text-terminal-success">
+              USD {formatUsdPlain(estimatedAnnualYieldUsd, { min: 2, max: 2 })} / {t.propertyCard.perToken}
             </p>
-            {isDebt && maturityDate ? (
-              <p className="mt-1 text-[10px] text-terminal-muted">
-                {t.propertyCard.maturity}: {new Date(maturityDate).toLocaleDateString()}
-              </p>
-            ) : null}
           </div>
+          {isDebt && maturityDate ? (
+            <p className="mt-1 text-[10px] text-terminal-muted">
+              {t.propertyCard.maturity}: {new Date(maturityDate).toLocaleDateString()}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap gap-2">
