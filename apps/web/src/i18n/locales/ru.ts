@@ -23,6 +23,8 @@ export const ru = mergeLocale({
     estimatedAnnualIncome: 'Ожидаемый годовой доход',
     perToken: 'токен',
     instantLiquidity: 'Мгновенный выход через казначейство (−3% SanovaAMM)',
+    legalContractsBadge: 'Юридические договоры',
+    contractUnavailable: 'ожидает загрузки',
     limitedAvailability: 'Ограниченная доступность',
     viewMap: 'Показать на карте'
   },

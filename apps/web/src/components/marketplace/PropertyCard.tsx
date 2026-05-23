@@ -1,8 +1,8 @@
 'use client';
 
 import Image from 'next/image';
-import { MapPin, ShieldAlert, TrendingUp, Wallet, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { MapPin, ShieldAlert, TrendingUp, Wallet } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCtaVariant } from '../../hooks/useCtaVariant';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useLocalCurrency } from '../../hooks/useLocalCurrency';
@@ -35,6 +35,14 @@ export type PropertyCardProps = {
   onStartKyc?: (propertyId: string) => void;
 };
 
+type MediaSlide = {
+  type: 'image' | 'reel';
+  url: string;
+  caption?: string;
+};
+
+const GALLERY_INTERVAL_MS = 5000;
+
 export function PropertyCard({
   id,
   title,
@@ -49,10 +57,8 @@ export function PropertyCard({
   totalTokens,
   soldPercent,
   jurisdiction,
-  fiscalRegime,
   tokenInstrumentType = 'EQUITY',
   maturityDate,
-  equitySharePercent,
   tokenSymbol,
   mediaGallery = [],
   contracts = {},
@@ -62,12 +68,43 @@ export function PropertyCard({
 }: PropertyCardProps) {
   const t = useTranslation();
   const { label: ctaLabel } = useCtaVariant();
-  const { formatFromUsd, formatPercent } = useLocalCurrency();
+  const { formatUsd, formatPercent } = useLocalCurrency();
   const [heroIndex, setHeroIndex] = useState(0);
 
-  const images = mediaGallery.filter((item) => item.type === 'image');
-  const reels = mediaGallery.filter((item) => item.type === 'reel');
-  const heroUrl = images[heroIndex]?.url ?? imageUrl;
+  const slides = useMemo<MediaSlide[]>(() => {
+    const reels = mediaGallery.filter((item) => item.type === 'reel');
+    const images = mediaGallery.filter((item) => item.type === 'image');
+    const ordered = [...reels, ...images];
+
+    if (ordered.length > 0) {
+      return ordered;
+    }
+
+    if (imageUrl) {
+      return [{ type: 'image', url: imageUrl }];
+    }
+
+    return [];
+  }, [mediaGallery, imageUrl]);
+
+  useEffect(() => {
+    setHeroIndex(0);
+  }, [slides.length, id]);
+
+  useEffect(() => {
+    if (slides.length <= 1) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setHeroIndex((current) => (current + 1) % slides.length);
+    }, GALLERY_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, [slides.length]);
+
+  const currentSlide = slides[heroIndex] ?? slides[0];
+  const heroUrl = currentSlide?.url ?? imageUrl;
   const isExternalMedia = heroUrl.startsWith('http');
 
   const isVerified = kycStatus === 'APPROVED';
@@ -90,23 +127,38 @@ export function PropertyCard({
   return (
     <article className="group overflow-hidden rounded-xl border border-terminal-border bg-terminal-card shadow-[0_0_0_1px_rgba(31,41,55,0.5)] transition-all duration-300 hover:border-terminal-primary/50 hover:shadow-[0_0_24px_rgba(59,130,246,0.12)]">
       <div className="relative h-48 w-full overflow-hidden sm:h-56">
-        <Image
-          src={heroUrl}
-          alt={title}
-          fill
-          unoptimized={isExternalMedia}
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-          sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-        />
-        {images.length > 1 ? (
+        {currentSlide?.type === 'reel' ? (
+          <video
+            key={heroUrl}
+            src={heroUrl}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <Image
+            key={heroUrl}
+            src={heroUrl}
+            alt={title}
+            fill
+            unoptimized={isExternalMedia}
+            className="object-cover transition-opacity duration-500 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+          />
+        )}
+        {slides.length > 1 ? (
           <div className="absolute bottom-3 right-3 flex gap-1">
-            {images.map((item, index) => (
+            {slides.map((item, index) => (
               <button
-                key={item.url}
+                key={`${item.url}-${index}`}
                 type="button"
                 onClick={() => setHeroIndex(index)}
-                className={`h-2 w-2 rounded-full ${index === heroIndex ? 'bg-terminal-primary' : 'bg-white/60'}`}
-                aria-label={`Image ${index + 1}`}
+                className={`h-2 w-2 rounded-full ${
+                  index === heroIndex ? 'bg-terminal-primary' : 'bg-white/60'
+                }`}
+                aria-label={`${item.type} ${index + 1}`}
               />
             ))}
           </div>
@@ -119,9 +171,9 @@ export function PropertyCard({
         ) : null}
         <span
           className={`absolute right-3 ${isScarce ? 'top-12' : 'top-3'} rounded-full border px-3 py-1 text-xs font-semibold ${
-            isDebt ?
-              'border-terminal-warning/40 bg-terminal-bg/90 text-terminal-warning'
-            : 'border-terminal-primary/40 bg-terminal-bg/90 text-terminal-primary'
+            isDebt
+              ? 'border-terminal-warning/40 bg-terminal-bg/90 text-terminal-warning'
+              : 'border-terminal-primary/40 bg-terminal-bg/90 text-terminal-primary'
           }`}
         >
           {isDebt ? t.propertyCard.instrumentDebt : t.propertyCard.instrumentEquity}
@@ -170,7 +222,7 @@ export function PropertyCard({
 
         <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3">
           <p className="text-xs text-terminal-muted">{t.propertyCard.tokenPrice}</p>
-          <p className="mt-1 font-mono text-xl font-bold text-terminal-text">{formatFromUsd(pricePerTokenUsd)}</p>
+          <p className="mt-1 font-mono text-xl font-bold text-terminal-text">{formatUsd(pricePerTokenUsd)}</p>
         </div>
 
         <div className="flex items-start gap-2 rounded-lg border border-terminal-success/20 bg-terminal-success/5 p-3">
@@ -178,40 +230,24 @@ export function PropertyCard({
           <div>
             <p className="text-xs text-terminal-muted">{incomeLabel}</p>
             <p className="font-mono text-sm font-semibold text-terminal-success">
-              {formatFromUsd(estimatedAnnualYieldUsd)} / {t.propertyCard.perToken}
+              {formatUsd(estimatedAnnualYieldUsd)} / {t.propertyCard.perToken}
             </p>
             {isDebt && maturityDate ? (
               <p className="mt-1 text-[10px] text-terminal-muted">
                 {t.propertyCard.maturity}: {new Date(maturityDate).toLocaleDateString()}
               </p>
             ) : null}
-            {!isDebt && equitySharePercent != null ? (
-              <p className="mt-1 text-[10px] text-terminal-muted">
-                {t.propertyCard.equityParticipation}: {equitySharePercent}%
-              </p>
-            ) : null}
           </div>
         </div>
 
-        <p className="flex items-center gap-2 text-xs text-terminal-muted">
-          <Zap size={14} className="text-terminal-accent" />
-          {t.propertyCard.instantLiquidity}
-        </p>
-
-        {(jurisdiction || fiscalRegime) && (
-          <div className="flex flex-wrap gap-2">
-            {jurisdiction ? (
-              <span className="rounded-md border border-terminal-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-terminal-muted">
-                {jurisdiction}
-              </span>
-            ) : null}
-            {fiscalRegime ? (
-              <span className="rounded-md border border-terminal-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-terminal-muted">
-                {fiscalRegime.replace('_', ' ')}
-              </span>
-            ) : null}
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {jurisdiction ? (
+            <span className="rounded-md border border-terminal-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-terminal-muted">
+              {jurisdiction}
+            </span>
+          ) : null}
+          <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />
+        </div>
 
         {mapEmbedUrl ? (
           <details className="overflow-hidden rounded-lg border border-terminal-border">
@@ -227,24 +263,6 @@ export function PropertyCard({
             />
           </details>
         ) : null}
-
-        {reels.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
-            {reels.map((reel) => (
-              <a
-                key={reel.url}
-                href={reel.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-semibold text-terminal-primary underline"
-              >
-                {t.propertyCard.viewReel}
-              </a>
-            ))}
-          </div>
-        ) : null}
-
-        <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} />
 
         <p className="text-xs text-terminal-muted">
           {isVerified ? t.propertyCard.readyForCheckout : t.propertyCard.kycRequired}

@@ -23,6 +23,8 @@ export const fr = mergeLocale({
     estimatedAnnualIncome: 'Revenu annuel estimé',
     perToken: 'token',
     instantLiquidity: 'Sortie instantanée via trésorerie (−3 % SanovaAMM)',
+    legalContractsBadge: 'Contrats légaux',
+    contractUnavailable: 'en attente',
     limitedAvailability: 'Disponibilité limitée',
     viewMap: 'Voir sur la carte'
   },

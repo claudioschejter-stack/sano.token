@@ -95,6 +95,14 @@ export function useLocalCurrency() {
 
   const formatFromUsd = (amountUsd: number) => formatter.format(convertFromUsd(amountUsd));
 
+  const formatUsd = (amountUsd: number) =>
+    new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2
+    }).format(amountUsd);
+
   const formatPercent = (
     apyPercent: number,
     fractionDigits: { minimum?: number; maximum?: number } = {}
@@ -111,6 +119,7 @@ export function useLocalCurrency() {
     rates,
     convertFromUsd,
     formatFromUsd,
+    formatUsd,
     formatPercent
   };
 }

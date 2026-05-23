@@ -30,6 +30,8 @@ export const es = {
     equityParticipation: 'Participación en el activo',
     perToken: 'token',
     instantLiquidity: 'Salida instantánea vía tesorería (−3% SanovaAMM)',
+    legalContractsBadge: 'Contratos legales',
+    contractUnavailable: 'pendiente de carga',
     limitedAvailability: 'Alta demanda',
     viewMap: 'Ver en mapa',
     viewReel: 'Ver reel',

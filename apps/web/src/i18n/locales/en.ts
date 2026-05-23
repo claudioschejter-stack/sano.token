@@ -28,6 +28,8 @@ export const en = {
     equityParticipation: 'Asset participation',
     perToken: 'token',
     instantLiquidity: 'Instant exit via treasury (−3% SanovaAMM)',
+    legalContractsBadge: 'Legal contracts',
+    contractUnavailable: 'pending upload',
     limitedAvailability: 'Limited availability',
     viewMap: 'View on map',
     viewReel: 'View reel',
@@ -864,6 +866,8 @@ export type Messages = {
     equityParticipation: string;
     perToken: string;
     instantLiquidity: string;
+    legalContractsBadge: string;
+    contractUnavailable: string;
     limitedAvailability: string;
     viewMap: string;
     viewReel: string;
