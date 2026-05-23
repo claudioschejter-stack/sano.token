@@ -51,11 +51,34 @@ export const es = {
     subtitle: 'Activos reales tokenizados con liquidez inmediata y tasas de préstamo competitivas.',
     brandLabel: 'Sanova RWA',
     bestBorrowRate: 'Mejor tasa de endeudamiento',
+    allBorrowRatesTitle: 'Tasas de endeudamiento mundiales',
+    allBorrowRatesDesc:
+      'Comparativa de tasas de préstamo contra colateral RWA en protocolos DeFi e institucionales de todo el mundo.',
+    colLender: 'Prestamista',
+    colRegion: 'Región',
+    colCategory: 'Tipo',
+    colBorrowRate: 'Tasa APY',
+    bestBadge: 'Mejor',
+    lendingRatesFootnote:
+      'Tasas indicativas en APY. Configurables por entorno; conectá APIs on-chain para datos en tiempo real.',
+    lenderRegions: {
+      global: 'Global',
+      americas: 'Américas',
+      europe: 'Europa',
+      asia_pacific: 'Asia-Pacífico',
+      mea: 'Medio Oriente y África'
+    },
+    lenderCategories: {
+      money_market: 'Money market',
+      credit_pool: 'Pool de crédito',
+      rwa: 'RWA / activos reales',
+      institutional: 'Institucional'
+    },
     tokensAvailable: 'tokens disponibles',
     loading: 'Cargando oportunidades…',
     empty: 'No hay listados activos por el momento.',
     error: 'No se pudieron cargar datos en vivo. Mostrando listados demo.',
-    lendingBanner: 'Agregado desde Aave, Compound y Maker',
+    lendingBanner: 'Agregado desde prestamistas DeFi e institucionales globales',
     syncing: 'Sincronizando datos en vivo…',
     trustKyc: 'Inversores con KYC',
     trustRegulation: 'Régimen fiscal informado',

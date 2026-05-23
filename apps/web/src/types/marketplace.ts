@@ -26,17 +26,23 @@ export type MarketplaceListing = {
   };
 };
 
+export type BorrowRateQuote = {
+  id: string;
+  name: string;
+  protocol: string;
+  borrowApyBps: number;
+  region: 'global' | 'americas' | 'europe' | 'asia_pacific' | 'mea';
+  category: 'money_market' | 'credit_pool' | 'rwa' | 'institutional';
+  source?: string;
+  fetchedAt?: string;
+};
+
 export type BestBorrowRateResponse = {
-  best: {
-    protocol: string;
-    borrowApyBps: number;
+  best: BorrowRateQuote & {
     source: string;
     fetchedAt: string;
   };
-  quotes: Array<{
-    protocol: string;
-    borrowApyBps: number;
-  }>;
+  quotes: BorrowRateQuote[];
 };
 
 export type MarketplaceFeed = {

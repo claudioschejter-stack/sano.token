@@ -1,11 +1,11 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { Percent } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import type { MarketplaceFeed } from '../../types/marketplace';
+import { BorrowRatesTable } from './BorrowRatesTable';
 import { PropertyCard } from './PropertyCard';
 import { TrustStrip } from './TrustStrip';
 
@@ -23,7 +23,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
 
   const { listings, borrowRate, usedFallback } = feed;
-  const bestApyPercent = borrowRate ? (borrowRate.best.borrowApyBps / 100).toFixed(2) : null;
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -37,20 +36,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
 
       <TrustStrip />
 
-      {bestApyPercent ? (
-        <section className="mb-8 flex items-start gap-3 rounded-xl border border-terminal-primary/30 bg-terminal-card p-4">
-          <div className="rounded-lg border border-terminal-border bg-terminal-bg p-2 text-terminal-primary">
-            <Percent size={20} />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-terminal-text">{t.marketplace.bestBorrowRate}</p>
-            <p className="mt-1 font-mono text-2xl font-bold text-terminal-success">{bestApyPercent}% APY</p>
-            <p className="mt-1 text-xs text-terminal-muted">
-              {borrowRate?.best.protocol.toUpperCase()} · {t.marketplace.lendingBanner}
-            </p>
-          </div>
-        </section>
-      ) : null}
+      {borrowRate ? <BorrowRatesTable borrowRate={borrowRate} /> : null}
 
       {usedFallback ? (
         <p className="mb-6 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">

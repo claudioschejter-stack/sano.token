@@ -49,11 +49,34 @@ export const en = {
     subtitle: 'Tokenized real assets with instant liquidity and competitive lending rates.',
     brandLabel: 'Sanova RWA',
     bestBorrowRate: 'Best borrow rate',
+    allBorrowRatesTitle: 'Worldwide borrow rates',
+    allBorrowRatesDesc:
+      'Compare lending rates against RWA collateral across DeFi and institutional lenders worldwide.',
+    colLender: 'Lender',
+    colRegion: 'Region',
+    colCategory: 'Type',
+    colBorrowRate: 'APY rate',
+    bestBadge: 'Best',
+    lendingRatesFootnote:
+      'Indicative APY rates. Configurable via environment; connect on-chain APIs for live data.',
+    lenderRegions: {
+      global: 'Global',
+      americas: 'Americas',
+      europe: 'Europe',
+      asia_pacific: 'Asia-Pacific',
+      mea: 'Middle East & Africa'
+    },
+    lenderCategories: {
+      money_market: 'Money market',
+      credit_pool: 'Credit pool',
+      rwa: 'RWA / real assets',
+      institutional: 'Institutional'
+    },
     tokensAvailable: 'tokens available',
     loading: 'Loading listings…',
     empty: 'No active listings at the moment.',
     error: 'Could not load live data. Showing demo listings.',
-    lendingBanner: 'Aggregated from Aave, Compound and Maker',
+    lendingBanner: 'Aggregated from global DeFi and institutional lenders',
     syncing: 'Syncing live data…',
     trustKyc: 'KYC verified investors',
     trustRegulation: 'Fiscal regime disclosed',
@@ -903,6 +926,16 @@ export type Messages = {
     subtitle: string;
     brandLabel: string;
     bestBorrowRate: string;
+    allBorrowRatesTitle: string;
+    allBorrowRatesDesc: string;
+    colLender: string;
+    colRegion: string;
+    colCategory: string;
+    colBorrowRate: string;
+    bestBadge: string;
+    lendingRatesFootnote: string;
+    lenderRegions: Record<'global' | 'americas' | 'europe' | 'asia_pacific' | 'mea', string>;
+    lenderCategories: Record<'money_market' | 'credit_pool' | 'rwa' | 'institutional', string>;
     tokensAvailable: string;
     loading: string;
     empty: string;

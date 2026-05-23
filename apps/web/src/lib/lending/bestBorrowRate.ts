@@ -1,39 +1,36 @@
 import type { BestBorrowRateResponse } from '../../types/marketplace';
-
-type BorrowRateQuote = BestBorrowRateResponse['quotes'][number] & {
-  source: string;
-  fetchedAt: string;
-};
-
-function readBps(envKey: string, fallback: number): BorrowRateQuote {
-  const borrowApyBps = Number(process.env[envKey] ?? fallback);
-
-  return {
-    protocol: envKey.split('_')[0].toLowerCase(),
-    borrowApyBps,
-    source: `${envKey.split('_')[0].toLowerCase()}-configured`,
-    fetchedAt: new Date().toISOString()
-  };
-}
+import { readLenderBorrowApyBps, WORLD_LENDERS } from './lendersRegistry';
 
 export async function fetchBestBorrowRate(): Promise<BestBorrowRateResponse | null> {
-  const quotes: BorrowRateQuote[] = [
-    { ...readBps('AAVE_BORROW_APY_BPS', 485), protocol: 'aave' },
-    { ...readBps('COMPOUND_BORROW_APY_BPS', 512), protocol: 'compound' },
-    { ...readBps('MAKER_BORROW_APY_BPS', 438), protocol: 'maker' }
-  ];
+  const fetchedAt = new Date().toISOString();
 
-  const best = quotes.reduce((current, candidate) =>
-    candidate.borrowApyBps < current.borrowApyBps ? candidate : current
-  );
+  const quotes = WORLD_LENDERS.map((lender) => ({
+    id: lender.id,
+    name: lender.name,
+    region: lender.region,
+    category: lender.category,
+    borrowApyBps: readLenderBorrowApyBps(lender),
+    source: lender.envKey ? `${lender.id}-configured` : `${lender.id}-default`,
+    fetchedAt
+  })).sort((a, b) => a.borrowApyBps - b.borrowApyBps);
+
+  if (quotes.length === 0) {
+    return null;
+  }
+
+  const best = quotes[0];
 
   return {
     best: {
-      protocol: best.protocol,
+      id: best.id,
+      name: best.name,
+      protocol: best.id,
       borrowApyBps: best.borrowApyBps,
+      region: best.region,
+      category: best.category,
       source: best.source,
       fetchedAt: best.fetchedAt
     },
-    quotes: quotes.map(({ protocol, borrowApyBps }) => ({ protocol, borrowApyBps }))
+    quotes
   };
 }
