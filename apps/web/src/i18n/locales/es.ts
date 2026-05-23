@@ -679,7 +679,7 @@ export const es = {
     subtitle:
       'Iniciá sesión con tu email y contraseña. Según tu perfil accedés como administrador, asesor, asesor de asesor o inversor.',
     loginTitle: 'Iniciar sesión',
-    loginDesc: 'Accedé a los inmuebles y a tu cartera con tu cuenta verificada.',
+    loginDesc: 'Accedé a la plataforma y a tu cartera con tu cuenta verificada.',
     loginButton: 'Ir al marketplace',
     emailLabel: 'Email',
     emailPlaceholder: 'tu@email.com',
@@ -719,9 +719,9 @@ export const es = {
       OPERATOR: 'Operaciones internas de la plataforma.'
     },
     staffPanelHint: 'Panel operativo según permisos de tu rol.',
-    registerTitle: 'Crear cuenta',
+    registerTitle: 'Crear nueva cuenta',
     registerDesc:
-      'Aqui vamos a validar tu correo y telefono, luego pasamos a un KYC para asegurarnos que realmente eres tu.',
+      'Aqui vamos a validar tu correo y telefono.\nLuego pasamos a un KYC para asegurarnos que realmente eres tu.',
     registerButton: 'Crear cuenta y continuar',
     register: {
       fullNameLabel: 'Nombre completo',
@@ -740,11 +740,11 @@ export const es = {
       passwordHint: 'Usá al menos 8 caracteres. Podés mostrar u ocultar la contraseña con el ícono del ojo.',
       phoneLabel: 'Teléfono móvil',
       phonePlaceholder: '2617513426',
-      phoneHint: 'Ingresá el número sin 0 ni 15. Para Argentina usamos el código +54 automáticamente.',
+      phoneHint: '',
       countryLabel: 'Código de país',
       submitButton: 'Crear cuenta y verificar',
       submitting: 'Creando cuenta…',
-      flowHint: 'Paso 1: registro · Paso 2: email · Paso 3: SMS',
+      flowHint: 'Paso 1: Registro · Paso 2: Confirmar email · Paso 3: Confirmar SMS',
       devCodes: 'Códigos de verificación',
       codesOnScreenHint: 'Usá estos códigos en el siguiente paso (email/SMS aún sin proveedor):',
       errors: {

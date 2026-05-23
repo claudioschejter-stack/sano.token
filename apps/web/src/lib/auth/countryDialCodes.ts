@@ -2,24 +2,25 @@ import { buildAndValidateE164Phone } from './contactValidation';
 
 export type CountryDialOption = {
   code: string;
+  iso: string;
   label: string;
   flag: string;
 };
 
 /** Default Argentina — primary market. */
 export const COUNTRY_DIAL_CODES: CountryDialOption[] = [
-  { code: '+54', label: 'Argentina', flag: '🇦🇷' },
-  { code: '+1', label: 'Estados Unidos', flag: '🇺🇸' },
-  { code: '+52', label: 'México', flag: '🇲🇽' },
-  { code: '+56', label: 'Chile', flag: '🇨🇱' },
-  { code: '+57', label: 'Colombia', flag: '🇨🇴' },
-  { code: '+51', label: 'Perú', flag: '🇵🇪' },
-  { code: '+598', label: 'Uruguay', flag: '🇺🇾' },
-  { code: '+55', label: 'Brasil', flag: '🇧🇷' },
-  { code: '+34', label: 'España', flag: '🇪🇸' },
-  { code: '+49', label: 'Alemania', flag: '🇩🇪' },
-  { code: '+33', label: 'Francia', flag: '🇫🇷' },
-  { code: '+39', label: 'Italia', flag: '🇮🇹' }
+  { code: '+54', iso: 'AR', label: 'Argentina', flag: '🇦🇷' },
+  { code: '+1', iso: 'US', label: 'Estados Unidos', flag: '🇺🇸' },
+  { code: '+52', iso: 'MX', label: 'México', flag: '🇲🇽' },
+  { code: '+56', iso: 'CL', label: 'Chile', flag: '🇨🇱' },
+  { code: '+57', iso: 'CO', label: 'Colombia', flag: '🇨🇴' },
+  { code: '+51', iso: 'PE', label: 'Perú', flag: '🇵🇪' },
+  { code: '+598', iso: 'UY', label: 'Uruguay', flag: '🇺🇾' },
+  { code: '+55', iso: 'BR', label: 'Brasil', flag: '🇧🇷' },
+  { code: '+34', iso: 'ES', label: 'España', flag: '🇪🇸' },
+  { code: '+49', iso: 'DE', label: 'Alemania', flag: '🇩🇪' },
+  { code: '+33', iso: 'FR', label: 'Francia', flag: '🇫🇷' },
+  { code: '+39', iso: 'IT', label: 'Italia', flag: '🇮🇹' }
 ];
 
 export const DEFAULT_DIAL_CODE = '+54';

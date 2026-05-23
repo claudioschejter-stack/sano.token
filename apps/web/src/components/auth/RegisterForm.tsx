@@ -263,11 +263,11 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
             value={dialCode}
             disabled={readOnly || phoneVerified}
             onChange={(event) => setDialCode(event.target.value)}
-            className="min-h-12 w-[7.5rem] shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-600"
+            className="min-h-12 w-[8.5rem] shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-600"
           >
             {COUNTRY_DIAL_CODES.map((country) => (
               <option key={country.code} value={country.code}>
-                {country.flag} {country.code}
+                {country.flag} {country.iso} {country.code}
               </option>
             ))}
           </select>
@@ -300,7 +300,7 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
             placeholder={r.phonePlaceholder}
           />
         </div>
-        <p className="mt-1.5 text-xs text-slate-500">{r.phoneHint}</p>
+        {r.phoneHint ? <p className="mt-1.5 text-xs text-slate-500">{r.phoneHint}</p> : null}
         {fieldErrors.phone ? (
           <p className="mt-1.5 text-xs text-red-600">{fieldErrors.phone}</p>
         ) : null}

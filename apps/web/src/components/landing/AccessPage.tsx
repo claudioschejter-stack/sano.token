@@ -120,11 +120,13 @@ function AccessPageContent() {
           </article>
 
           <article className="flex w-full flex-col rounded-2xl border border-blue-200 bg-white p-6 shadow-sm ring-1 ring-blue-100 md:p-8">
-            <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-              <UserPlus size={24} />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                <UserPlus size={24} />
+              </div>
+              <h2 className="text-xl font-bold text-slate-900">{a.registerTitle}</h2>
             </div>
-            <h2 className="text-xl font-bold text-slate-900">{a.registerTitle}</h2>
-            <p className="mt-3 text-sm text-slate-600">{a.registerDesc}</p>
+            <p className="whitespace-pre-line text-sm text-slate-600">{a.registerDesc}</p>
             <div className="mt-6">
               <RegisterForm />
             </div>
