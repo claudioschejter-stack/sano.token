@@ -106,11 +106,15 @@ export function LandingPage() {
               key={step.title}
               className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-blue-200 hover:shadow-md md:p-8"
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                <step.icon size={24} />
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <step.icon size={24} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-blue-600">0{index + 1}</p>
+                  <h3 className="mt-0.5 text-xl font-bold leading-snug text-slate-900">{step.title}</h3>
+                </div>
               </div>
-              <p className="mt-6 text-sm font-semibold text-blue-600">0{index + 1}</p>
-              <h3 className="mt-2 text-xl font-bold text-slate-900">{step.title}</h3>
               <p className="mt-3 text-slate-600">{step.desc}</p>
             </article>
           ))}
