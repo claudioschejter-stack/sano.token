@@ -179,10 +179,16 @@ export function LandingPage() {
             { icon: TrendingUp, title: l.benefits.liquidityTitle, desc: l.benefits.liquidityDesc },
             { icon: ShieldCheck, title: l.benefits.complianceTitle, desc: l.benefits.complianceDesc }
           ].map((item) => (
-            <article key={item.title} className="rounded-2xl border border-slate-200 p-6 md:p-8">
-              <item.icon className="text-blue-600" size={32} />
-              <h3 className="mt-4 text-xl font-bold text-slate-900">{item.title}</h3>
-              <p className="mt-3 text-slate-600">{item.desc}</p>
+            <article key={item.title} className="flex flex-col rounded-2xl border border-slate-200 p-6 md:p-8">
+              <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-center gap-x-3">
+                <div className="flex h-8 items-center text-blue-600">
+                  <item.icon size={32} aria-hidden="true" />
+                </div>
+                <h3 className="flex h-8 items-center text-xl font-bold leading-tight text-slate-900">
+                  {item.title}
+                </h3>
+              </div>
+              <p className="mt-4 w-full text-sm leading-relaxed text-slate-600">{item.desc}</p>
             </article>
           ))}
         </div>
