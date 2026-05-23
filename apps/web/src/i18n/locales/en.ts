@@ -733,6 +733,7 @@ export const en = {
       passwordHint: 'Use at least 8 characters. Toggle visibility with the eye icon.',
       phoneLabel: 'Mobile phone',
       phonePlaceholder: '2617513426',
+      phoneHint: 'Enter the number without leading 0 or 15. Country code is selected separately.',
       countryLabel: 'Country code',
       submitButton: 'Create account and verify',
       submitting: 'Creating account…',
@@ -743,7 +744,8 @@ export const en = {
         GENERIC: 'We could not create your account. Please try again.',
         EMAIL_IN_USE: 'This email is already registered. Sign in instead.',
         WEAK_PASSWORD: 'Password must be at least 8 characters.',
-        INVALID_PHONE: 'Enter a valid phone number.',
+        INVALID_EMAIL: 'Enter a valid email address (e.g. you@email.com).',
+        INVALID_PHONE: 'Enter a valid mobile number with country code.',
         SIGN_IN_FAILED: 'Account created, but automatic sign-in failed.'
       }
     },
@@ -776,7 +778,9 @@ export const en = {
     fields: {
       email: 'Email',
       phone: 'Mobile phone',
-      phonePlaceholder: 'e.g. 5492617513426'
+      phonePlaceholder: '2617513426',
+      countryLabel: 'Country code',
+      phoneHint: 'Without leading 0 or 15. Example with +54: 2617513426.'
     },
     steps: {
       contactTitle: 'Contact details',
@@ -1553,6 +1557,7 @@ export type Messages = {
       passwordHint: string;
       phoneLabel: string;
       phonePlaceholder: string;
+      phoneHint: string;
       countryLabel: string;
       submitButton: string;
       submitting: string;
@@ -1563,6 +1568,7 @@ export type Messages = {
         GENERIC: string;
         EMAIL_IN_USE: string;
         WEAK_PASSWORD: string;
+        INVALID_EMAIL: string;
         INVALID_PHONE: string;
         SIGN_IN_FAILED: string;
       };
@@ -1595,6 +1601,8 @@ export type Messages = {
       email: string;
       phone: string;
       phonePlaceholder: string;
+      countryLabel: string;
+      phoneHint: string;
     };
     steps: {
       contactTitle: string;

@@ -4,8 +4,8 @@ import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { buildAndValidateE164Phone, normalizeEmail } from '../../lib/auth/contactValidation';
 import {
-  buildE164Phone,
   COUNTRY_DIAL_CODES,
   DEFAULT_DIAL_CODE,
   parseE164Phone
@@ -17,6 +17,11 @@ import { VerificationStatusBadge } from './VerificationStatusBadge';
 type RegisterFormProps = {
   /** When set, shows contact fields as read-only with onboarding data. */
   profile?: OnboardingProfile | null;
+};
+
+type FieldErrors = {
+  email?: string;
+  phone?: string;
 };
 
 export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
@@ -31,6 +36,7 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
   const [phoneLocal, setPhoneLocal] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [devHint, setDevHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,6 +85,28 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
     };
   }, [profileProp, session?.user?.accessToken, status]);
 
+  function validateContactFields(): { email: string; phone: string } | null {
+    const nextErrors: FieldErrors = {};
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!normalizedEmail) {
+      nextErrors.email = r.errors.INVALID_EMAIL;
+    }
+
+    const phone = buildAndValidateE164Phone(dialCode, phoneLocal);
+    if (!phone) {
+      nextErrors.phone = r.errors.INVALID_PHONE;
+    }
+
+    setFieldErrors(nextErrors);
+
+    if (!normalizedEmail || !phone) {
+      return null;
+    }
+
+    return { email: normalizedEmail, phone };
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -88,18 +116,22 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
 
     setError(null);
     setDevHint(null);
-    setLoading(true);
 
-    const phone = buildE164Phone(dialCode, phoneLocal);
+    const contact = validateContactFields();
+    if (!contact) {
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.trim(),
+          email: contact.email,
           password,
-          phone
+          phone: contact.phone
         })
       });
 
@@ -111,7 +143,14 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
 
       if (!response.ok) {
         const key = data.error ?? 'GENERIC';
-        setError(r.errors[key as keyof typeof r.errors] ?? r.errors.GENERIC);
+        const message = r.errors[key as keyof typeof r.errors] ?? r.errors.GENERIC;
+        if (key === 'INVALID_EMAIL') {
+          setFieldErrors({ email: message });
+        } else if (key === 'INVALID_PHONE') {
+          setFieldErrors({ phone: message });
+        } else {
+          setError(message);
+        }
         setLoading(false);
         return;
       }
@@ -127,7 +166,7 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
       }
 
       const signInResult = await signIn('credentials', {
-        email: email.trim(),
+        email: contact.email,
         password,
         redirect: false
       });
@@ -146,7 +185,7 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <label htmlFor="register-email" className="text-sm font-medium text-slate-700">
@@ -166,10 +205,28 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
           required
           readOnly={readOnly || emailVerified}
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50 read-only:text-slate-600"
+          onChange={(event) => {
+            setEmail(event.target.value);
+            if (fieldErrors.email) {
+              setFieldErrors((current) => ({ ...current, email: undefined }));
+            }
+          }}
+          onBlur={() => {
+            if (!readOnly && email.trim() && !normalizeEmail(email)) {
+              setFieldErrors((current) => ({ ...current, email: r.errors.INVALID_EMAIL }));
+            }
+          }}
+          aria-invalid={Boolean(fieldErrors.email)}
+          className={`min-h-12 w-full rounded-lg border px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-2 read-only:bg-slate-50 read-only:text-slate-600 ${
+            fieldErrors.email
+              ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+              : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+          }`}
           placeholder={r.emailPlaceholder}
         />
+        {fieldErrors.email ? (
+          <p className="mt-1.5 text-xs text-red-600">{fieldErrors.email}</p>
+        ) : null}
       </div>
 
       {!readOnly ? (
@@ -223,11 +280,30 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
             required
             readOnly={readOnly || phoneVerified}
             value={phoneLocal}
-            onChange={(event) => setPhoneLocal(event.target.value.replace(/\D/g, ''))}
-            className="min-h-12 min-w-0 flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50 read-only:text-slate-600"
+            onChange={(event) => {
+              setPhoneLocal(event.target.value.replace(/\D/g, ''));
+              if (fieldErrors.phone) {
+                setFieldErrors((current) => ({ ...current, phone: undefined }));
+              }
+            }}
+            onBlur={() => {
+              if (!readOnly && phoneLocal.trim() && !buildAndValidateE164Phone(dialCode, phoneLocal)) {
+                setFieldErrors((current) => ({ ...current, phone: r.errors.INVALID_PHONE }));
+              }
+            }}
+            aria-invalid={Boolean(fieldErrors.phone)}
+            className={`min-h-12 min-w-0 flex-1 rounded-lg border px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-2 read-only:bg-slate-50 read-only:text-slate-600 ${
+              fieldErrors.phone
+                ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
+                : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
+            }`}
             placeholder={r.phonePlaceholder}
           />
         </div>
+        <p className="mt-1.5 text-xs text-slate-500">{r.phoneHint}</p>
+        {fieldErrors.phone ? (
+          <p className="mt-1.5 text-xs text-red-600">{fieldErrors.phone}</p>
+        ) : null}
       </div>
 
       {devHint ? (

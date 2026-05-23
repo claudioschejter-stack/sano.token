@@ -14,6 +14,12 @@ import {
   Smartphone
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { buildAndValidateE164Phone } from '../../lib/auth/contactValidation';
+import {
+  COUNTRY_DIAL_CODES,
+  DEFAULT_DIAL_CODE,
+  parseE164Phone
+} from '../../lib/auth/countryDialCodes';
 import { safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { InstallAppBanner } from '../pwa/InstallAppBanner';
@@ -66,7 +72,8 @@ function OnboardingContent() {
   const { data: session, status } = useSession();
   const { checklist, loading, refresh, isOperational } = useAccountStatus();
 
-  const [phone, setPhone] = useState('');
+  const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
+  const [phoneLocal, setPhoneLocal] = useState('');
   const [emailCode, setEmailCode] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -83,10 +90,21 @@ function OnboardingContent() {
   const progressIndex = ['contact', 'email', 'phone', 'identity', 'done'].indexOf(step);
 
   useEffect(() => {
-    if (checklist?.phone && !phone) {
-      setPhone(checklist.phone.replace('+', ''));
+    if (!checklist?.phone || phoneLocal) {
+      return;
     }
-  }, [checklist?.phone, phone]);
+
+    const parsed = parseE164Phone(checklist.phone);
+    if (parsed) {
+      setDialCode(parsed.dialCode);
+      setPhoneLocal(parsed.local);
+    }
+  }, [checklist?.phone, phoneLocal]);
+
+  const validatedPhone = useMemo(
+    () => buildAndValidateE164Phone(dialCode, phoneLocal),
+    [dialCode, phoneLocal]
+  );
 
   useEffect(() => {
     if (isOperational) {
@@ -101,6 +119,12 @@ function OnboardingContent() {
   }, [diditReturn, refresh]);
 
   const submitContact = useCallback(async () => {
+    const phone = buildAndValidateE164Phone(dialCode, phoneLocal);
+    if (!phone) {
+      setError(o.errors.INVALID_PHONE);
+      return;
+    }
+
     setBusy(true);
     setError(null);
     setDevHint(null);
@@ -109,7 +133,7 @@ function OnboardingContent() {
       const response = await fetch('/api/onboarding/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: `+${phone.replace(/\D/g, '')}` })
+        body: JSON.stringify({ phone })
       });
       const data = (await response.json()) as {
         error?: string;
@@ -134,7 +158,7 @@ function OnboardingContent() {
     } finally {
       setBusy(false);
     }
-  }, [o.errors, phone, refresh]);
+  }, [dialCode, o.errors, phoneLocal, refresh]);
 
   const verifyEmail = useCallback(async () => {
     setBusy(true);
@@ -335,15 +359,30 @@ function OnboardingContent() {
               <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
                 <Phone size={16} /> {o.fields.phone}
               </span>
-              <input
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                placeholder={o.fields.phonePlaceholder}
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-base outline-none ring-blue-500 focus:ring-2"
-              />
+              <div className="flex gap-2">
+                <select
+                  aria-label={o.fields.countryLabel}
+                  value={dialCode}
+                  onChange={(event) => setDialCode(event.target.value)}
+                  className="min-h-14 w-[7.5rem] shrink-0 rounded-2xl border border-slate-200 bg-white px-2 py-4 text-base outline-none ring-blue-500 focus:ring-2"
+                >
+                  {COUNTRY_DIAL_CODES.map((country) => (
+                    <option key={country.code} value={country.code}>
+                      {country.flag} {country.code}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel-national"
+                  placeholder={o.fields.phonePlaceholder}
+                  value={phoneLocal}
+                  onChange={(event) => setPhoneLocal(event.target.value.replace(/\D/g, ''))}
+                  className="min-h-14 min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-base outline-none ring-blue-500 focus:ring-2"
+                />
+              </div>
+              <p className="mt-2 text-xs text-slate-500">{o.fields.phoneHint}</p>
             </label>
           </section>
         ) : null}
@@ -434,7 +473,7 @@ function OnboardingContent() {
           <div className="mx-auto w-full max-w-md">
             <button
               type="button"
-              disabled={busy || (step === 'contact' && phone.replace(/\D/g, '').length < 10)}
+              disabled={busy || (step === 'contact' && !validatedPhone) || (step === 'email' && emailCode.length !== 6) || (step === 'phone' && phoneCode.length !== 6)}
               onClick={() => {
                 if (step === 'contact') void submitContact();
                 else if (step === 'email') void verifyEmail();

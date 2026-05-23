@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
-import { issueVerificationCode, normalizePhoneE164 } from '../onboarding/verification';
+import { normalizeEmail, normalizePhoneE164 } from './contactValidation';
+import { issueVerificationCode } from '../onboarding/verification';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -13,13 +14,17 @@ export type RegisterInput = {
 };
 
 export async function registerInvestor(input: RegisterInput) {
-  const email = input.email.trim().toLowerCase();
+  const email = normalizeEmail(input.email);
   const password = input.password;
   const phoneE164 = normalizePhoneE164(input.phone);
   const fullName = input.fullName?.trim() || null;
   const taxId = input.taxId?.trim().replace(/\s/g, '') || null;
 
-  if (!email || !password) {
+  if (!email) {
+    throw new Error('INVALID_EMAIL');
+  }
+
+  if (!password) {
     throw new Error('INVALID_INPUT');
   }
 

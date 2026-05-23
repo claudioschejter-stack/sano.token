@@ -1,3 +1,5 @@
+import { buildAndValidateE164Phone } from './contactValidation';
+
 export type CountryDialOption = {
   code: string;
   label: string;
@@ -23,9 +25,7 @@ export const COUNTRY_DIAL_CODES: CountryDialOption[] = [
 export const DEFAULT_DIAL_CODE = '+54';
 
 export function buildE164Phone(dialCode: string, localNumber: string): string {
-  const digits = localNumber.replace(/\D/g, '');
-  const codeDigits = dialCode.replace(/\D/g, '');
-  return `+${codeDigits}${digits}`;
+  return buildAndValidateE164Phone(dialCode, localNumber) ?? '';
 }
 
 /** Splits E.164 into dial code + local digits for form prefill. */
@@ -41,10 +41,13 @@ export function parseE164Phone(e164: string | null | undefined): {
 
   for (const country of sorted) {
     if (e164.startsWith(country.code)) {
-      return {
-        dialCode: country.code,
-        local: e164.slice(country.code.length).replace(/\D/g, '')
-      };
+      let local = e164.slice(country.code.length).replace(/\D/g, '');
+
+      if (country.code === '+54' && local.startsWith('9')) {
+        local = local.slice(1);
+      }
+
+      return { dialCode: country.code, local };
     }
   }
 

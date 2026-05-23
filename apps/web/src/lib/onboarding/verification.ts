@@ -2,6 +2,9 @@ import { createHash, randomInt } from 'crypto';
 import { prisma, VerificationChannel } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
 import { sendSms } from '../sms/sendSms';
+import { normalizePhoneE164 } from '../auth/contactValidation';
+
+export { normalizePhoneE164 };
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS_WINDOW_MS = 60 * 60 * 1000;
@@ -13,15 +16,6 @@ function hashCode(code: string): string {
 
 function generateCode(): string {
   return String(randomInt(100000, 999999));
-}
-
-export function normalizePhoneE164(raw: string): string | null {
-  const digits = raw.replace(/\D/g, '');
-  if (digits.length < 10 || digits.length > 15) {
-    return null;
-  }
-
-  return `+${digits}`;
 }
 
 async function assertRateLimit(userId: string, channel: VerificationChannel) {

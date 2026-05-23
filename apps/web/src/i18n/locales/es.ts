@@ -740,6 +740,7 @@ export const es = {
       passwordHint: 'Usá al menos 8 caracteres. Podés mostrar u ocultar la contraseña con el ícono del ojo.',
       phoneLabel: 'Teléfono móvil',
       phonePlaceholder: '2617513426',
+      phoneHint: 'Ingresá el número sin 0 ni 15. Para Argentina usamos el código +54 automáticamente.',
       countryLabel: 'Código de país',
       submitButton: 'Crear cuenta y verificar',
       submitting: 'Creando cuenta…',
@@ -750,7 +751,8 @@ export const es = {
         GENERIC: 'No pudimos crear la cuenta. Intentá de nuevo.',
         EMAIL_IN_USE: 'Este email ya está registrado. Iniciá sesión.',
         WEAK_PASSWORD: 'La contraseña debe tener al menos 8 caracteres.',
-        INVALID_PHONE: 'Ingresá un teléfono válido.',
+        INVALID_EMAIL: 'Ingresá un correo electrónico válido (ej. tu@email.com).',
+        INVALID_PHONE: 'Ingresá un teléfono móvil válido con código de país.',
         SIGN_IN_FAILED: 'Cuenta creada, pero no pudimos iniciar sesión automáticamente.'
       }
     },
@@ -783,7 +785,9 @@ export const es = {
     fields: {
       email: 'Correo electrónico',
       phone: 'Teléfono móvil',
-      phonePlaceholder: 'Ej. 5492617513426'
+      phonePlaceholder: '2617513426',
+      countryLabel: 'Código de país',
+      phoneHint: 'Sin 0 ni 15. Ejemplo Mendoza: 2617513426 con +54.'
     },
     steps: {
       contactTitle: 'Datos de contacto',

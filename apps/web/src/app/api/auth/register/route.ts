@@ -39,7 +39,10 @@ export async function POST(request: Request) {
     const status =
       code === 'EMAIL_IN_USE'
         ? 409
-        : code === 'WEAK_PASSWORD' || code === 'INVALID_PHONE' || code === 'INVALID_INPUT'
+        : code === 'WEAK_PASSWORD' ||
+            code === 'INVALID_PHONE' ||
+            code === 'INVALID_EMAIL' ||
+            code === 'INVALID_INPUT'
           ? 400
           : code === 'RATE_LIMIT'
             ? 429
