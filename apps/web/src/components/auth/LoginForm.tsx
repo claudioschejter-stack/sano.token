@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
@@ -79,6 +80,15 @@ export function LoginForm({ callbackUrl = '/acceso/callback', className = '' }: 
       >
         {loading ? t.access.signingIn : t.access.signInButton}
       </button>
+
+      <p className="text-center">
+        <Link
+          href="/contacto"
+          className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
+        >
+          {t.access.forgotPassword}
+        </Link>
+      </p>
     </form>
   );
 }

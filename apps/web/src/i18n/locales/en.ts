@@ -642,6 +642,7 @@ export const en = {
     passwordLabel: 'Password',
     passwordPlaceholder: 'Your password',
     signInButton: 'Sign in',
+    forgotPassword: 'Forgot password',
     invalidCredentials: 'Incorrect email or password.',
     signingIn: 'Signing in…',
     signedInAs: 'Signed in as',
@@ -649,9 +650,9 @@ export const en = {
     continueButton: 'Continue',
     sessionActiveTitle: 'You already have an active session',
     sessionPendingDesc:
-      'Your account is not operational yet. Verify email and phone first; KYC unlocks after both are confirmed.',
+      'Your account is not operational yet. Verify your email and phone to continue.',
     sessionRegisteredDesc:
-      'Account created successfully. Verify your email and phone first; you can complete KYC after that.',
+      'Account created successfully. Verify your email and phone to activate your account.',
     continueVerification: 'Continue onboarding',
     switchAccount: 'Sign out and use another account',
     authError: 'We could not complete sign-in. Check OAuth configuration or try again.',
@@ -676,7 +677,7 @@ export const en = {
     staffPanelHint: 'Operational panel based on your role permissions.',
     registerTitle: 'Create account',
     registerDesc:
-      'Full name, tax ID, email, and phone. After sign-up you verify email and SMS; KYC unlocks only once both are confirmed.',
+      'Email and phone. After sign-up you verify email and SMS to activate your account.',
     registerButton: 'Create account and continue',
     register: {
       fullNameLabel: 'Full name',
@@ -698,7 +699,7 @@ export const en = {
       countryLabel: 'Country code',
       submitButton: 'Create account and verify',
       submitting: 'Creating account…',
-      flowHint: 'Step 1: sign up · Step 2: email · Step 3: SMS · Step 4: KYC (after email & phone)',
+      flowHint: 'Step 1: sign up · Step 2: email · Step 3: SMS',
       devCodes: 'Verification codes',
       codesOnScreenHint: 'Use these codes in the next steps (email/SMS provider not configured yet):',
       errors: {
@@ -1449,6 +1450,7 @@ export type Messages = {
     passwordLabel: string;
     passwordPlaceholder: string;
     signInButton: string;
+    forgotPassword: string;
     invalidCredentials: string;
     signingIn: string;
     signedInAs: string;

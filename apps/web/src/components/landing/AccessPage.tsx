@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldCheck, UserPlus } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { LoginForm } from '../auth/LoginForm';
-import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
+import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { RegisterForm } from '../auth/RegisterForm';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
@@ -25,7 +25,7 @@ function AccessPageContent() {
   const { data: session, status } = useSession();
   const authError = searchParams.get('error');
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
-  const kycHref = buildKycUrl(DEFAULT_POST_ONBOARDING_PATH);
+  const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}`;
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
 
   const { isOperational, loading: accountLoading, profile } = useAccountStatus();
@@ -72,7 +72,7 @@ function AccessPageContent() {
 
             <div className="mt-6 flex flex-col gap-3">
               <Link
-                href={buildKycUrl(DEFAULT_POST_ONBOARDING_PATH)}
+                href={onboardingHref}
                 className="flex min-h-12 items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-blue-500"
               >
                 {a.continueVerification}
@@ -152,26 +152,6 @@ function AccessPageContent() {
         </article>
 
         <TrustBadges className="mt-6 justify-center md:mt-8" />
-
-        <article className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 md:mt-8 md:p-8">
-          <div className="flex w-full flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                <ShieldCheck size={24} />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">{a.kycTitle}</h2>
-                <p className="mt-2 text-sm text-slate-600">{a.kycDesc}</p>
-              </div>
-            </div>
-            <Link
-              href={kycHref}
-              className="flex min-h-12 w-full shrink-0 items-center justify-center rounded-lg border border-slate-300 px-5 py-3 text-center text-base font-semibold text-slate-900 transition hover:border-blue-500 hover:text-blue-600 md:w-auto md:min-h-0 md:py-2.5 md:text-sm"
-            >
-              {a.kycButton}
-            </Link>
-          </div>
-        </article>
 
         <p className="mt-10 text-center text-sm text-slate-500">
           <Link href="/" className="font-medium text-blue-600 hover:text-blue-500">

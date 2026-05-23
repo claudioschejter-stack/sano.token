@@ -15,7 +15,7 @@ import { PasswordInput } from './PasswordInput';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
 
 type RegisterFormProps = {
-  /** When set, shows identity fields as read-only with KYC/onboarding data. */
+  /** When set, shows contact fields as read-only with onboarding data. */
   profile?: OnboardingProfile | null;
 };
 
@@ -25,15 +25,12 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [fullName, setFullName] = useState('');
-  const [taxId, setTaxId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
-  const [kycFilled, setKycFilled] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devHint, setDevHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -41,12 +38,6 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
   const readOnly = Boolean(profileProp);
 
   function applyProfile(profile: OnboardingProfile) {
-    if (profile.fullName) {
-      setFullName(profile.fullName);
-    }
-    if (profile.identification) {
-      setTaxId(profile.identification);
-    }
     setEmail(profile.email);
     setEmailVerified(profile.emailVerified);
     setPhoneVerified(profile.phoneVerified);
@@ -55,10 +46,6 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
     if (parsed) {
       setDialCode(parsed.dialCode);
       setPhoneLocal(parsed.local);
-    }
-
-    if (profile.kycApproved) {
-      setKycFilled(true);
     }
   }
 
@@ -112,9 +99,7 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
         body: JSON.stringify({
           email: email.trim(),
           password,
-          phone,
-          fullName: fullName.trim(),
-          taxId: taxId.trim()
+          phone
         })
       });
 
@@ -160,53 +145,8 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
     }
   }
 
-  const identityLocked = readOnly || kycFilled;
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {kycFilled && !readOnly ? (
-        <p className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-800">
-          {r.kycPrefillHint}
-        </p>
-      ) : null}
-
-      <div>
-        <label htmlFor="register-fullName" className="mb-1.5 block text-sm font-medium text-slate-700">
-          {r.fullNameLabel}
-        </label>
-        <input
-          id="register-fullName"
-          name="fullName"
-          type="text"
-          autoComplete="name"
-          required
-          readOnly={identityLocked && Boolean(fullName)}
-          value={fullName}
-          onChange={(event) => setFullName(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50 read-only:text-slate-600"
-          placeholder={r.fullNamePlaceholder}
-        />
-      </div>
-
-      <div>
-        <label htmlFor="register-taxId" className="mb-1.5 block text-sm font-medium text-slate-700">
-          {r.taxIdLabel}
-        </label>
-        <input
-          id="register-taxId"
-          name="taxId"
-          type="text"
-          inputMode="numeric"
-          autoComplete="off"
-          required
-          readOnly={identityLocked && Boolean(taxId)}
-          value={taxId}
-          onChange={(event) => setTaxId(event.target.value.replace(/\s/g, ''))}
-          className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 read-only:bg-slate-50 read-only:text-slate-600"
-          placeholder={r.taxIdPlaceholder}
-        />
-      </div>
-
       <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <label htmlFor="register-email" className="text-sm font-medium text-slate-700">

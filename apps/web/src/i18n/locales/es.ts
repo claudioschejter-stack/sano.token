@@ -649,6 +649,7 @@ export const es = {
     passwordLabel: 'Contraseña',
     passwordPlaceholder: 'Tu contraseña',
     signInButton: 'Ingresar',
+    forgotPassword: 'Olvidé mi contraseña',
     invalidCredentials: 'Email o contraseña incorrectos.',
     signingIn: 'Ingresando…',
     signedInAs: 'Sesión activa:',
@@ -656,9 +657,9 @@ export const es = {
     continueButton: 'Continuar',
     sessionActiveTitle: 'Ya tenés una sesión activa',
     sessionPendingDesc:
-      'Tu cuenta aún no está operativa. Primero verificá email y teléfono; el KYC se habilita después.',
+      'Tu cuenta aún no está operativa. Verificá tu email y teléfono para continuar.',
     sessionRegisteredDesc:
-      'Cuenta creada correctamente. Primero verificá tu email y teléfono; luego podrás completar el KYC.',
+      'Cuenta creada correctamente. Verificá tu email y teléfono para activar tu cuenta.',
     continueVerification: 'Continuar onboarding',
     switchAccount: 'Cerrar sesión e ingresar con otra cuenta',
     authError: 'No pudimos completar el ingreso. Verificá la configuración OAuth o intentá de nuevo.',
@@ -683,7 +684,7 @@ export const es = {
     staffPanelHint: 'Panel operativo según permisos de tu rol.',
     registerTitle: 'Crear cuenta',
     registerDesc:
-      'Nombre, identificación fiscal, correo y teléfono. Tras el registro validás email y SMS; el KYC se habilita solo cuando ambos estén confirmados.',
+      'Correo y teléfono. Tras el registro validás email y SMS para activar tu cuenta.',
     registerButton: 'Crear cuenta y continuar',
     register: {
       fullNameLabel: 'Nombre completo',
@@ -705,7 +706,7 @@ export const es = {
       countryLabel: 'Código de país',
       submitButton: 'Crear cuenta y verificar',
       submitting: 'Creando cuenta…',
-      flowHint: 'Paso 1: registro · Paso 2: email · Paso 3: SMS · Paso 4: KYC (solo tras email y teléfono)',
+      flowHint: 'Paso 1: registro · Paso 2: email · Paso 3: SMS',
       devCodes: 'Códigos de verificación',
       codesOnScreenHint: 'Usá estos códigos en el siguiente paso (email/SMS aún sin proveedor):',
       errors: {

@@ -8,18 +8,18 @@ export type RegisterInput = {
   email: string;
   password: string;
   phone: string;
-  fullName: string;
-  taxId: string;
+  fullName?: string;
+  taxId?: string;
 };
 
 export async function registerInvestor(input: RegisterInput) {
   const email = input.email.trim().toLowerCase();
   const password = input.password;
   const phoneE164 = normalizePhoneE164(input.phone);
-  const fullName = input.fullName.trim();
-  const taxId = input.taxId.trim().replace(/\s/g, '');
+  const fullName = input.fullName?.trim() || null;
+  const taxId = input.taxId?.trim().replace(/\s/g, '') || null;
 
-  if (!email || !password || !fullName || !taxId) {
+  if (!email || !password) {
     throw new Error('INVALID_INPUT');
   }
 
@@ -46,7 +46,7 @@ export async function registerInvestor(input: RegisterInput) {
       email,
       passwordHash,
       phone: phoneE164,
-      name: fullName,
+      name: fullName ?? email.split('@')[0],
       kycFullName: fullName,
       kycDocumentId: taxId,
       systemRole: defaultRole
@@ -54,7 +54,7 @@ export async function registerInvestor(input: RegisterInput) {
     update: {
       passwordHash,
       phone: phoneE164,
-      name: fullName,
+      name: fullName ?? email.split('@')[0],
       kycFullName: fullName,
       kycDocumentId: taxId,
       systemRole: defaultRole
