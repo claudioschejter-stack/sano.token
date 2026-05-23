@@ -123,8 +123,11 @@ export const en = {
     colEmail: 'Email',
     colWallet: 'Wallet',
     colKyc: 'KYC',
+    colIdentity: 'Identity',
     colRegistered: 'Registered',
     colActions: 'Actions',
+    viewIdentity: 'View data',
+    hideIdentity: 'Hide',
     approve: 'Approve',
     reject: 'Reject',
     refresh: 'Refresh',
@@ -132,6 +135,17 @@ export const en = {
     error: 'Could not load investors. Try again.',
     empty: 'No investors match this filter.',
     contactPendingHint: 'Investor must verify email and phone before KYC can be approved.'
+  },
+  identityProfile: {
+    title: 'Identity data (Didit)',
+    empty: 'No identity data yet. It is filled automatically after Didit verification.',
+    fullName: 'Full name',
+    documentId: 'Document / tax ID',
+    dateOfBirth: 'Date of birth',
+    nationality: 'Nationality',
+    documentType: 'Document type',
+    documentExpiry: 'Expiry date',
+    gender: 'Gender'
   },
   adminAssets: {
     eyebrow: 'Marketplace assets',
@@ -962,8 +976,11 @@ export type Messages = {
     colEmail: string;
     colWallet: string;
     colKyc: string;
+    colIdentity: string;
     colRegistered: string;
     colActions: string;
+    viewIdentity: string;
+    hideIdentity: string;
     approve: string;
     reject: string;
     refresh: string;
@@ -971,6 +988,17 @@ export type Messages = {
     error: string;
     empty: string;
     contactPendingHint: string;
+  };
+  identityProfile: {
+    title: string;
+    empty: string;
+    fullName: string;
+    documentId: string;
+    dateOfBirth: string;
+    nationality: string;
+    documentType: string;
+    documentExpiry: string;
+    gender: string;
   };
   adminAssets: {
     eyebrow: string;

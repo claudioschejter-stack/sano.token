@@ -1,4 +1,8 @@
 import { prisma, type KycStatus } from '@sanova/database';
+import {
+  buildKycIdentitySnapshot,
+  type KycIdentitySnapshot
+} from '../onboarding/extractDiditIdentity';
 import { isContactVerificationComplete } from '../onboarding/contactVerification';
 import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
 
@@ -16,6 +20,7 @@ export type AdminInvestorRecord = {
   incorporatedByAdvisorId: string | null;
   incorporatedByEmail: string | null;
   incorporatedAt: string | null;
+  kycIdentity: KycIdentitySnapshot;
   investor: {
     id: string;
     fullName: string;
@@ -39,6 +44,13 @@ type UserWithInvestor = {
   phone: string | null;
   walletAddress: string | null;
   jurisdiction: string | null;
+  kycFullName: string | null;
+  kycDocumentId: string | null;
+  kycDateOfBirth: string | null;
+  kycNationality: string | null;
+  kycDocumentType: string | null;
+  kycDocumentExpiry: string | null;
+  kycGender: string | null;
   createdAt: Date;
   investor: {
     id: string;
@@ -57,6 +69,7 @@ type UserWithInvestor = {
 function mapAdminInvestorRecord(user: UserWithInvestor): AdminInvestorRecord {
   const emailVerified = Boolean(user.emailVerifiedAt);
   const phoneVerified = Boolean(user.phoneVerifiedAt);
+  const kycIdentity = buildKycIdentitySnapshot(user);
 
   return {
     id: user.id,
@@ -72,6 +85,11 @@ function mapAdminInvestorRecord(user: UserWithInvestor): AdminInvestorRecord {
     incorporatedByAdvisorId: user.investor?.incorporatedByAdvisorId ?? null,
     incorporatedByEmail: user.investor?.incorporatedBy?.user.email ?? null,
     incorporatedAt: user.investor?.incorporatedAt?.toISOString() ?? null,
+    kycIdentity: {
+      ...kycIdentity,
+      fullName: kycIdentity.fullName ?? user.investor?.fullName ?? null,
+      documentId: kycIdentity.documentId ?? user.investor?.cuit ?? null
+    },
     investor: user.investor
       ? {
           id: user.investor.id,

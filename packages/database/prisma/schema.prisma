@@ -84,6 +84,11 @@ model User {
   kycProviderId     String?
   kycFullName       String?
   kycDocumentId     String?
+  kycDateOfBirth    String?
+  kycNationality    String?
+  kycDocumentType   String?
+  kycDocumentExpiry String?
+  kycGender         String?
   diditSessionId    String?
   emailVerifiedAt   DateTime?
   phoneVerifiedAt   DateTime?

@@ -1,12 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Check, RefreshCw, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, RefreshCw, X } from 'lucide-react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { AdminInvestorRecord } from '../../lib/admin/investorsService';
 import type { AdvisorTeamMember } from '../../lib/admin/teamService';
+import { KycIdentityDetails } from '../identity/KycIdentityDetails';
+import { hasKycIdentityData } from '../../lib/onboarding/extractDiditIdentity';
 import { AdminGate } from './AdminGate';
 
 type KycFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -37,9 +39,11 @@ export function AdminInvestorsView() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [advisors, setAdvisors] = useState<AdvisorTeamMember[]>([]);
   const [assigningId, setAssigningId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const statusLabels = t.adminInvestors.status as Record<string, string>;
   const filterLabels = t.adminInvestors.filters as Record<KycFilter, string>;
+  const identityLabels = t.identityProfile;
 
   const loadInvestors = useCallback(async (nextFilter: KycFilter) => {
     setLoading(true);
@@ -179,6 +183,7 @@ export function AdminInvestorsView() {
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colEmail}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colWallet}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colKyc}</th>
+                  <th className="px-6 py-3 font-semibold">{t.adminInvestors.colIdentity}</th>
                   <th className="px-6 py-3 font-semibold">{t.advisorPortal.colAdvisor}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colRegistered}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colActions}</th>
@@ -187,33 +192,40 @@ export function AdminInvestorsView() {
               <tbody className="divide-y divide-terminal-border">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={8} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminInvestors.loading}
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-red-400">
+                    <td colSpan={8} className="px-6 py-10 text-center text-red-400">
                       {t.adminInvestors.error}
                     </td>
                   </tr>
                 ) : investors.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={8} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminInvestors.empty}
                     </td>
                   </tr>
                 ) : (
                   investors.map((row) => {
-                    const displayName = row.investor?.fullName ?? row.name ?? '—';
+                    const displayName = row.kycIdentity.fullName ?? row.investor?.fullName ?? row.name ?? '—';
                     const wallet = row.walletAddress ?? row.investor?.walletAddress ?? '—';
                     const isUpdating = updatingId === row.id;
+                    const isExpanded = expandedId === row.id;
+                    const hasIdentity = hasKycIdentityData(row.kycIdentity);
 
                     return (
-                      <tr key={row.id} className="transition-colors hover:bg-terminal-bg/60">
+                      <Fragment key={row.id}>
+                      <tr className="transition-colors hover:bg-terminal-bg/60">
                         <td className="px-6 py-4">
                           <p className="font-medium text-terminal-text">{displayName}</p>
-                          {row.investor?.cuit ? (
+                          {row.kycIdentity.documentId ? (
+                            <p className="mt-1 text-xs text-terminal-muted">
+                              {identityLabels.documentId}: {row.kycIdentity.documentId}
+                            </p>
+                          ) : row.investor?.cuit ? (
                             <p className="mt-1 text-xs text-terminal-muted">CUIT {row.investor.cuit}</p>
                           ) : null}
                         </td>
@@ -227,6 +239,20 @@ export function AdminInvestorsView() {
                           >
                             {statusLabels[row.kycStatus] ?? row.kycStatus}
                           </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {hasIdentity ? (
+                            <button
+                              type="button"
+                              onClick={() => setExpandedId(isExpanded ? null : row.id)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-terminal-border px-2.5 py-1.5 text-xs font-medium text-terminal-muted transition-colors hover:text-terminal-text"
+                            >
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              {isExpanded ? t.adminInvestors.hideIdentity : t.adminInvestors.viewIdentity}
+                            </button>
+                          ) : (
+                            <span className="text-xs text-terminal-muted">{identityLabels.empty}</span>
+                          )}
                         </td>
                         <td className="px-6 py-4">
                           {row.investor ? (
@@ -284,6 +310,18 @@ export function AdminInvestorsView() {
                           )}
                         </td>
                       </tr>
+                      {isExpanded ? (
+                        <tr key={`${row.id}-identity`} className="bg-terminal-bg/40">
+                          <td colSpan={8} className="px-6 py-4">
+                            <KycIdentityDetails
+                              identity={row.kycIdentity}
+                              labels={identityLabels}
+                              className="border-terminal-border bg-terminal-card text-terminal-text"
+                            />
+                          </td>
+                        </tr>
+                      ) : null}
+                      </Fragment>
                     );
                   })
                 )}

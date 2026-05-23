@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { Building, TrendingUp } from 'lucide-react';
 import { useEffect } from 'react';
+import { KycIdentityDetails } from '../../../../components/identity/KycIdentityDetails';
+import { useAccountStatus } from '../../../../hooks/useAccountStatus';
 import { createIntlFormatters } from '../../../../i18n/formatters';
 import { useLocale, useTranslation } from '../../../../i18n/LocaleProvider';
 import { usePortfolioStore } from '../../../../store/usePortfolioStore';
@@ -10,8 +12,10 @@ import { usePortfolioStore } from '../../../../store/usePortfolioStore';
 export default function PortfolioPage() {
   const t = useTranslation();
   const p = t.portfolio;
+  const identityLabels = t.identityProfile;
   const { intlLocale } = useLocale();
   const { formatUsd, formatDate } = createIntlFormatters(intlLocale);
+  const { profile, loading: profileLoading } = useAccountStatus();
   const fetchPortfolio = usePortfolioStore((state) => state.fetchPortfolio);
   const isLoading = usePortfolioStore((state) => state.isLoading);
   const activePositions = usePortfolioStore((state) => state.activePositions);
@@ -30,6 +34,14 @@ export default function PortfolioPage() {
         <h1 className="mt-2 text-3xl font-bold text-terminal-text">{p.title}</h1>
         <p className="mt-3 text-terminal-muted">{p.subtitle}</p>
       </header>
+
+      {!profileLoading && profile ? (
+        <KycIdentityDetails
+          identity={profile.identity}
+          labels={identityLabels}
+          className="border-terminal-border bg-terminal-card text-terminal-text"
+        />
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-3">
         <article className="rounded-xl border border-terminal-border bg-terminal-card p-5">

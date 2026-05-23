@@ -125,8 +125,11 @@ export const es = {
     colEmail: 'Email',
     colWallet: 'Wallet',
     colKyc: 'KYC',
+    colIdentity: 'Identidad',
     colRegistered: 'Registro',
     colActions: 'Acciones',
+    viewIdentity: 'Ver datos',
+    hideIdentity: 'Ocultar',
     approve: 'Aprobar',
     reject: 'Rechazar',
     refresh: 'Actualizar',
@@ -134,6 +137,17 @@ export const es = {
     error: 'No se pudieron cargar los inversores. Intentá de nuevo.',
     empty: 'No hay inversores con este filtro.',
     contactPendingHint: 'El inversor debe verificar email y teléfono antes de aprobar KYC.'
+  },
+  identityProfile: {
+    title: 'Datos de identidad (Didit)',
+    empty: 'Sin datos de identidad. Se completan automáticamente al verificar con Didit.',
+    fullName: 'Nombre completo',
+    documentId: 'Documento / CUIT',
+    dateOfBirth: 'Fecha de nacimiento',
+    nationality: 'Nacionalidad',
+    documentType: 'Tipo de documento',
+    documentExpiry: 'Vencimiento',
+    gender: 'Género'
   },
   adminAssets: {
     eyebrow: 'Activos del marketplace',

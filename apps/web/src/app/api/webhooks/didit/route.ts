@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
-import { extractDiditIdentity } from '../../../../lib/onboarding/extractDiditIdentity';
+import { extractDiditIdentity, buildDiditIdentityUpdate } from '../../../../lib/onboarding/extractDiditIdentity';
 import { mapDiditStatusToKyc, verifyDiditWebhookSignature } from '../../../../lib/onboarding/diditService';
 import { isContactVerificationComplete } from '../../../../lib/onboarding/contactVerification';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
@@ -65,8 +65,7 @@ export async function POST(request: Request) {
       kycStatus,
       kycProviderId: sessionId ?? undefined,
       diditSessionId: sessionId ?? undefined,
-      ...(identity.fullName ? { kycFullName: identity.fullName, name: identity.fullName } : {}),
-      ...(identity.documentId ? { kycDocumentId: identity.documentId } : {})
+      ...buildDiditIdentityUpdate(identity)
     }
   });
 
