@@ -1,5 +1,6 @@
 import { prisma, type FiscalRegime, type Prisma } from '@sanova/database';
 import { geocodeLocation } from '../geocoding/geocodeLocation';
+import { locationNeedsResolve, resolveLocationInput } from '../geocoding/resolveLocation';
 import { mapAdminAssetToMarketplaceListing } from '../marketplace/mapAdminAssetToListing';
 import { syncProjectAssetsFromStorage } from '../storage/syncLaunchStorage';
 import type { MarketplaceListing } from '../../types/marketplace';
@@ -120,6 +121,27 @@ export type UpdateAdminAssetInput = {
   chainId?: number | null;
   tokenDeployStatus?: TokenDeployStatus;
 };
+
+async function resolveLocationFields(input: {
+  location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+}): Promise<{ location: string; latitude: number | null; longitude: number | null }> {
+  if (input.latitude != null && input.longitude != null) {
+    return {
+      location: input.location.trim(),
+      latitude: input.latitude,
+      longitude: input.longitude
+    };
+  }
+
+  const resolved = await resolveLocationInput(input.location);
+  if (!resolved) {
+    return { location: input.location.trim(), latitude: null, longitude: null };
+  }
+
+  return resolved;
+}
 
 async function applyGeocodingIfNeeded(input: {
   location?: string;
@@ -374,7 +396,7 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
   const id = await generateProjectId(input.title);
   const gallery = input.mediaGallery ?? [];
   const primaryImage = input.image ?? gallery.find((item) => item.type === 'image')?.url ?? null;
-  const geocoded = await applyGeocodingIfNeeded({
+  const geocoded = await resolveLocationFields({
     location: input.location.trim(),
     latitude: input.latitude ?? null,
     longitude: input.longitude ?? null
@@ -410,9 +432,9 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       id,
       title: input.title.trim(),
       description: input.description.trim(),
-      location: input.location.trim(),
-      latitude: geocoded.latitude ?? input.latitude ?? null,
-      longitude: geocoded.longitude ?? input.longitude ?? null,
+      location: geocoded.location,
+      latitude: geocoded.latitude,
+      longitude: geocoded.longitude,
       image: primaryImage,
       mediaGallery: gallery as Prisma.InputJsonValue,
       contractTrustUrl: input.contracts?.trust ?? null,
@@ -464,30 +486,38 @@ export async function updateAdminAsset(
 
   if (typeof input.title === 'string') data.title = input.title.trim();
   if (typeof input.description === 'string') data.description = input.description.trim();
-  if (typeof input.location === 'string') data.location = input.location.trim();
-  if (input.latitude !== undefined) data.latitude = input.latitude;
-  if (input.longitude !== undefined) data.longitude = input.longitude;
 
-  const nextLocation =
-    typeof input.location === 'string' ? input.location.trim() : existing.location;
-  const nextLatitude =
-    input.latitude !== undefined ? input.latitude : existing.latitude != null ? Number(existing.latitude) : null;
-  const nextLongitude =
-    input.longitude !== undefined ? input.longitude : existing.longitude != null ? Number(existing.longitude) : null;
+  if (typeof input.location === 'string') {
+    const trimmed = input.location.trim();
+    const locationChanged = trimmed !== existing.location.trim();
+    const hasManualCoords = input.latitude != null && input.longitude != null;
 
-  if (
-    (typeof input.location === 'string' || input.latitude !== undefined || input.longitude !== undefined) &&
-    (nextLatitude == null || nextLongitude == null)
-  ) {
-    const geocoded = await applyGeocodingIfNeeded({
-      location: nextLocation,
-      latitude: nextLatitude,
-      longitude: nextLongitude
-    });
-
-    if (geocoded.latitude != null) data.latitude = geocoded.latitude;
-    if (geocoded.longitude != null) data.longitude = geocoded.longitude;
+    if (hasManualCoords) {
+      data.location = trimmed;
+      data.latitude = input.latitude;
+      data.longitude = input.longitude;
+    } else if (
+      locationChanged ||
+      existing.latitude == null ||
+      existing.longitude == null ||
+      locationNeedsResolve(trimmed, existing.latitude != null ? Number(existing.latitude) : null, existing.longitude != null ? Number(existing.longitude) : null)
+    ) {
+      const resolved = await resolveLocationInput(trimmed);
+      if (resolved) {
+        data.location = resolved.location;
+        data.latitude = resolved.latitude;
+        data.longitude = resolved.longitude;
+      } else {
+        data.location = trimmed;
+      }
+    } else {
+      data.location = trimmed;
+    }
+  } else {
+    if (input.latitude !== undefined) data.latitude = input.latitude;
+    if (input.longitude !== undefined) data.longitude = input.longitude;
   }
+
   if (input.image !== undefined) data.image = input.image;
   if (input.mediaGallery !== undefined) {
     data.mediaGallery = input.mediaGallery as Prisma.InputJsonValue;
@@ -635,18 +665,20 @@ export async function listMarketplaceListings(): Promise<MarketplaceListing[]> {
       continue;
     }
 
-    if (asset.latitude == null || asset.longitude == null) {
-      const coords = await geocodeLocation(asset.location);
-      if (coords) {
+    if (locationNeedsResolve(asset.location, asset.latitude, asset.longitude)) {
+      const resolved = await resolveLocationInput(asset.location);
+      if (resolved?.latitude != null && resolved.longitude != null) {
         await prisma.project.update({
           where: { id },
           data: {
-            latitude: coords.latitude,
-            longitude: coords.longitude
+            location: resolved.location,
+            latitude: resolved.latitude,
+            longitude: resolved.longitude
           }
         });
-        asset.latitude = coords.latitude;
-        asset.longitude = coords.longitude;
+        asset.location = resolved.location;
+        asset.latitude = resolved.latitude;
+        asset.longitude = resolved.longitude;
       }
     }
 

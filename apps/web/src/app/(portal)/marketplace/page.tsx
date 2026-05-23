@@ -1,7 +1,7 @@
 import { MarketplaceView } from '../../../components/marketplace/MarketplaceView';
 import { fetchMarketplaceFeed } from '../../../lib/marketplaceApi';
 
-export const revalidate = 30;
+export const dynamic = 'force-dynamic';
 
 export default async function MarketplacePage() {
   const initialFeed = await fetchMarketplaceFeed();
