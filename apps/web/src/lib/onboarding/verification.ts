@@ -33,7 +33,7 @@ export async function issueVerificationCode(
   userId: string,
   channel: VerificationChannel,
   target: string
-): Promise<{ devCode?: string; delivered: boolean }> {
+): Promise<{ devCode?: string; delivered: boolean; deliveryError?: string }> {
   await assertRateLimit(userId, channel);
 
   const code = generateCode();
@@ -55,26 +55,31 @@ export async function issueVerificationCode(
   });
 
   let delivered = false;
+  let deliveryError: string | undefined;
 
   if (channel === 'EMAIL') {
-    delivered = await sendTransactionalEmail({
+    const result = await sendTransactionalEmail({
       to: target,
       subject: 'Código de verificación — Sanova Global',
       text: `Tu código de verificación es: ${code}\n\nVálido por 10 minutos. Si no solicitaste este código, ignorá este mensaje.`,
       html: `<p>Tu código de verificación es:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>Válido por 10 minutos.</p>`
     });
+    delivered = result.ok;
+    deliveryError = result.error;
 
     if (!delivered) {
-      console.warn('[verification] email delivery failed for', target);
+      console.warn('[verification] email delivery failed for', target, deliveryError);
     }
   } else {
-    delivered = await sendSms(
+    const result = await sendSms(
       target,
       `Sanova Global: tu código de verificación es ${code}. Válido 10 min.`
     );
+    delivered = result.ok;
+    deliveryError = result.error;
 
     if (!delivered) {
-      console.warn('[verification] sms delivery failed for', target);
+      console.warn('[verification] sms delivery failed for', target, deliveryError);
     }
   }
 
@@ -83,6 +88,7 @@ export async function issueVerificationCode(
 
   return {
     delivered,
+    deliveryError,
     ...(exposeDevCode ? { devCode: code } : {})
   };
 }

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
           ? 400
           : code === 'RATE_LIMIT'
             ? 429
-            : code === 'VERIFICATION_DELIVERY_FAILED'
+            : code === 'VERIFICATION_DELIVERY_FAILED' || code === 'EMAIL_DELIVERY_FAILED'
               ? 502
               : 500;
 

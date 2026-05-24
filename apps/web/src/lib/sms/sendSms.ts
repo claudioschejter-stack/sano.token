@@ -1,12 +1,14 @@
 /** Sends SMS via Twilio when configured; logs in development. */
-export async function sendSms(toE164: string, body: string): Promise<boolean> {
+export async function sendSms(toE164: string, body: string): Promise<{ ok: boolean; error?: string }> {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const from = process.env.TWILIO_PHONE_NUMBER;
 
   if (!accountSid || !authToken || !from) {
     console.warn('[sms] Twilio not configured — message to', toE164, ':', body);
-    return process.env.NODE_ENV !== 'production';
+    return process.env.NODE_ENV !== 'production'
+      ? { ok: true }
+      : { ok: false, error: 'TWILIO_NOT_CONFIGURED' };
   }
 
   const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
@@ -25,7 +27,8 @@ export async function sendSms(toE164: string, body: string): Promise<boolean> {
   if (!response.ok) {
     const text = await response.text().catch(() => '');
     console.error('[sms] Twilio error', response.status, text);
+    return { ok: false, error: `TWILIO_${response.status}` };
   }
 
-  return response.ok;
+  return { ok: true };
 }

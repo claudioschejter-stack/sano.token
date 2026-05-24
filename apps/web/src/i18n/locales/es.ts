@@ -823,6 +823,10 @@ export const es = {
       RATE_LIMIT: 'Demasiados intentos. Esperá unos minutos.',
       VERIFICATION_DELIVERY_FAILED:
         'No pudimos enviar los códigos de email y SMS. Revisá la configuración de correo/SMS o intentá de nuevo.',
+      EMAIL_DELIVERY_FAILED:
+        'No pudimos enviar el código a tu correo. Revisá spam o verificá el remitente en Resend.',
+      SMS_DELIVERY_FAILED:
+        'No pudimos enviar el SMS. Verificá el número o la configuración de Twilio.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
       CONTACT_NOT_VERIFIED: 'Primero verificá tu email y teléfono antes de iniciar el KYC.'
     }

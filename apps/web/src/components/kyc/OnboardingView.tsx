@@ -130,6 +130,7 @@ function OnboardingContent() {
       try {
         const response = await fetch('/api/onboarding/resend-code', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ channel })
         });
@@ -159,22 +160,44 @@ function OnboardingContent() {
   );
 
   useEffect(() => {
-    if (loading || !checklist || step !== 'email' || checklist.emailVerified || emailCodeSent.current) {
+    if (
+      status !== 'authenticated' ||
+      loading ||
+      !checklist ||
+      step !== 'email' ||
+      checklist.emailVerified ||
+      emailCodeSent.current
+    ) {
       return;
     }
 
     emailCodeSent.current = true;
-    void requestVerificationCode('EMAIL');
-  }, [checklist, loading, requestVerificationCode, step]);
+    void requestVerificationCode('EMAIL').then((ok) => {
+      if (!ok) {
+        emailCodeSent.current = false;
+      }
+    });
+  }, [checklist, loading, requestVerificationCode, status, step]);
 
   useEffect(() => {
-    if (loading || !checklist || step !== 'phone' || checklist.phoneVerified || phoneCodeSent.current) {
+    if (
+      status !== 'authenticated' ||
+      loading ||
+      !checklist ||
+      step !== 'phone' ||
+      checklist.phoneVerified ||
+      phoneCodeSent.current
+    ) {
       return;
     }
 
     phoneCodeSent.current = true;
-    void requestVerificationCode('PHONE');
-  }, [checklist, loading, requestVerificationCode, step]);
+    void requestVerificationCode('PHONE').then((ok) => {
+      if (!ok) {
+        phoneCodeSent.current = false;
+      }
+    });
+  }, [checklist, loading, requestVerificationCode, status, step]);
 
   const resendCurrentCode = useCallback(async () => {
     setResending(true);

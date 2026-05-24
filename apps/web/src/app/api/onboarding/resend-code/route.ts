@@ -51,7 +51,15 @@ export async function POST(request: Request) {
     const result = await issueVerificationCode(ctx.userId, channel, target);
 
     if (!result.delivered) {
-      return NextResponse.json({ error: 'VERIFICATION_DELIVERY_FAILED' }, { status: 502 });
+      return NextResponse.json(
+        {
+          error:
+            channel === 'EMAIL'
+              ? result.deliveryError ?? 'EMAIL_DELIVERY_FAILED'
+              : result.deliveryError ?? 'SMS_DELIVERY_FAILED'
+        },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json({

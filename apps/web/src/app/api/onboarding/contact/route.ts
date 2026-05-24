@@ -29,23 +29,19 @@ export async function POST(request: Request) {
 
   try {
     const emailResult = await issueVerificationCode(ctx.userId, 'EMAIL', user.email);
-    const phoneResult = await issueVerificationCode(ctx.userId, 'PHONE', phone);
 
-    if (!emailResult.delivered || !phoneResult.delivered) {
-      return NextResponse.json({ error: 'VERIFICATION_DELIVERY_FAILED' }, { status: 502 });
+    if (!emailResult.delivered) {
+      return NextResponse.json(
+        { error: emailResult.deliveryError ?? 'EMAIL_DELIVERY_FAILED' },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json({
       ok: true,
       email: user.email,
       phone: user.phone,
-      devCodes:
-        emailResult.devCode || phoneResult.devCode
-          ? {
-              email: emailResult.devCode,
-              phone: phoneResult.devCode
-            }
-          : undefined
+      devCodes: emailResult.devCode ? { email: emailResult.devCode } : undefined
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN';

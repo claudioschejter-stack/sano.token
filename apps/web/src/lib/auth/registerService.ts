@@ -67,14 +67,13 @@ export async function registerInvestor(input: RegisterInput) {
   });
 
   const emailOtp = await issueVerificationCode(user.id, 'EMAIL', email);
-  const phoneOtp = await issueVerificationCode(user.id, 'PHONE', phoneE164);
 
-  if (!emailOtp.delivered || !phoneOtp.delivered) {
+  if (!emailOtp.delivered) {
     if (!existing) {
       await prisma.user.delete({ where: { id: user.id } });
     }
 
-    throw new Error('VERIFICATION_DELIVERY_FAILED');
+    throw new Error('EMAIL_DELIVERY_FAILED');
   }
 
   return {
@@ -83,11 +82,11 @@ export async function registerInvestor(input: RegisterInput) {
     phone: phoneE164,
     delivery: {
       email: emailOtp.delivered,
-      phone: phoneOtp.delivered
+      phone: false
     },
     devCodes: {
       email: emailOtp.devCode,
-      phone: phoneOtp.devCode
+      phone: undefined
     }
   };
 }

@@ -816,6 +816,10 @@ export const en = {
       RATE_LIMIT: 'Too many attempts. Wait a few minutes.',
       VERIFICATION_DELIVERY_FAILED:
         'We could not send the email and SMS codes. Check email/SMS configuration or try again.',
+      EMAIL_DELIVERY_FAILED:
+        'We could not send the code to your email. Check spam or verify the Resend sender.',
+      SMS_DELIVERY_FAILED:
+        'We could not send the SMS. Verify the phone number or Twilio configuration.',
       DIDIT_NOT_CONFIGURED: 'Didit is not configured on the server yet. Contact support.',
       CONTACT_NOT_VERIFIED: 'Verify your email and phone before starting KYC.'
     }
@@ -1644,6 +1648,8 @@ export type Messages = {
       INVALID_PHONE: string;
       RATE_LIMIT: string;
       VERIFICATION_DELIVERY_FAILED: string;
+      EMAIL_DELIVERY_FAILED: string;
+      SMS_DELIVERY_FAILED: string;
       DIDIT_NOT_CONFIGURED: string;
       CONTACT_NOT_VERIFIED: string;
     };

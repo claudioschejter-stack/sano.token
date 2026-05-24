@@ -13,11 +13,13 @@ type TransactionalEmailInput = {
   html: string;
 };
 
-export async function sendTransactionalEmail(input: TransactionalEmailInput): Promise<boolean> {
+type SendResult = { ok: boolean; error?: string };
+
+export async function sendTransactionalEmail(input: TransactionalEmailInput): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn('[email] RESEND_API_KEY missing — skipping send to', input.to);
-    return false;
+    return { ok: false, error: 'RESEND_NOT_CONFIGURED' };
   }
 
   const from =
@@ -43,7 +45,8 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
   if (!response.ok) {
     const body = await response.text().catch(() => '');
     console.error('[email] Resend error', response.status, body);
+    return { ok: false, error: `RESEND_${response.status}` };
   }
 
-  return response.ok;
+  return { ok: true };
 }
