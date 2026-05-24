@@ -12,6 +12,7 @@ import {
 } from '../../lib/auth/countryDialCodes';
 import type { OnboardingProfile } from '../../lib/onboarding/profile';
 import { buildKycUrl } from '../../lib/auth/kycPaths';
+import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { PasswordInput } from './PasswordInput';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
 
@@ -40,7 +41,6 @@ export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormPro
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
-  const [devHint, setDevHint] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const readOnly = Boolean(profileProp);
@@ -69,7 +69,7 @@ export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormPro
 
     let cancelled = false;
 
-    void fetch('/api/onboarding/status', { cache: 'no-store' })
+    void fetch('/api/onboarding/status', { cache: 'no-store', credentials: 'same-origin' })
       .then(async (response) => {
         if (!response.ok || cancelled) {
           return;
@@ -117,7 +117,6 @@ export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormPro
     }
 
     setError(null);
-    setDevHint(null);
 
     const contact = validateContactFields();
     if (!contact) {
@@ -139,8 +138,6 @@ export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormPro
 
       const data = (await response.json()) as {
         error?: string;
-        devCodes?: { email?: string; phone?: string };
-        deliveryPending?: boolean;
       };
 
       if (!response.ok) {
@@ -157,16 +154,6 @@ export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormPro
         return;
       }
 
-      if (data.devCodes) {
-        const parts = [];
-        if (data.devCodes.email) parts.push(`Email: ${data.devCodes.email}`);
-        if (data.devCodes.phone) parts.push(`SMS: ${data.devCodes.phone}`);
-        const codes = parts.join(' · ');
-        setDevHint(
-          data.deliveryPending ? `${r.codesOnScreenHint} ${codes}` : codes
-        );
-      }
-
       const signInResult = await signIn('credentials', {
         email: contact.email,
         password,
@@ -179,6 +166,14 @@ export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormPro
         return;
       }
 
+      const sessionReady = await waitForAccessToken();
+      if (!sessionReady) {
+        setError(r.errors.SIGN_IN_FAILED);
+        setLoading(false);
+        return;
+      }
+
+      router.refresh();
       router.push(buildKycUrl(returnTo));
     } catch {
       setError(r.errors.GENERIC);
@@ -307,12 +302,6 @@ export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormPro
           <p className="mt-1.5 text-xs text-red-600">{fieldErrors.phone}</p>
         ) : null}
       </div>
-
-      {devHint ? (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-          {r.devCodes}: {devHint}
-        </p>
-      ) : null}
 
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>

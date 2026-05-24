@@ -828,7 +828,8 @@ export const es = {
       SMS_DELIVERY_FAILED:
         'No pudimos enviar el SMS. Verificá el número o la configuración de Twilio.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
-      CONTACT_NOT_VERIFIED: 'Primero verificá tu email y teléfono antes de iniciar el KYC.'
+      CONTACT_NOT_VERIFIED: 'Primero verificá tu email y teléfono antes de iniciar el KYC.',
+      UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.'
     }
   },
   pwa: {

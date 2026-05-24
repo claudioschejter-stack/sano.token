@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { PasswordInput } from './PasswordInput';
 
 type LoginFormProps = {
@@ -31,13 +32,21 @@ export function LoginForm({ callbackUrl = '/acceso/callback', className = '' }: 
       redirect: false
     });
 
-    setLoading(false);
-
     if (result?.error) {
+      setLoading(false);
       setError(t.access.invalidCredentials);
       return;
     }
 
+    const sessionReady = await waitForAccessToken();
+    setLoading(false);
+
+    if (!sessionReady) {
+      setError(t.access.authError);
+      return;
+    }
+
+    router.refresh();
     router.push(callbackUrl);
   }
 

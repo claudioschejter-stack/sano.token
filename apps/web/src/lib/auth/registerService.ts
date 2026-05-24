@@ -1,7 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from './contactValidation';
-import { issueVerificationCode } from '../onboarding/verification';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -62,31 +61,17 @@ export async function registerInvestor(input: RegisterInput) {
       name: fullName ?? email.split('@')[0],
       kycFullName: fullName,
       kycDocumentId: taxId,
-      systemRole: defaultRole
+      systemRole: defaultRole,
+      emailVerifiedAt: null,
+      phoneVerifiedAt: null,
+      accountStatus: 'ONBOARDING',
+      kycStatus: 'PENDING'
     }
   });
-
-  const emailOtp = await issueVerificationCode(user.id, 'EMAIL', email);
-
-  if (!emailOtp.delivered) {
-    if (!existing) {
-      await prisma.user.delete({ where: { id: user.id } });
-    }
-
-    throw new Error('EMAIL_DELIVERY_FAILED');
-  }
 
   return {
     userId: user.id,
     email,
-    phone: phoneE164,
-    delivery: {
-      email: emailOtp.delivered,
-      phone: false
-    },
-    devCodes: {
-      email: emailOtp.devCode,
-      phone: undefined
-    }
+    phone: phoneE164
   };
 }

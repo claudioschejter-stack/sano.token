@@ -13,17 +13,25 @@ export function useAccountStatus() {
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
+    if (status === 'loading') {
+      setLoading(true);
+      return;
+    }
+
     if (status !== 'authenticated' || !session?.user?.accessToken) {
       setChecklist(null);
       setProfile(null);
-      setLoading(false);
+      setLoading(status === 'authenticated');
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await fetch('/api/onboarding/status', { cache: 'no-store' });
+      const response = await fetch('/api/onboarding/status', {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      });
 
       if (response.ok) {
         const data = (await response.json()) as {

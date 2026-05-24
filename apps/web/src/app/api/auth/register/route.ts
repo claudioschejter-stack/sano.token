@@ -19,16 +19,10 @@ export async function POST(request: Request) {
       taxId: body.taxId ?? ''
     });
 
-    const exposeDev =
-      process.env.ONBOARDING_DEV_EXPOSE_CODE === 'true' ||
-      process.env.NODE_ENV !== 'production';
-
     return NextResponse.json({
       ok: true,
       email: result.email,
-      delivery: result.delivery,
-      devCodes: exposeDev ? result.devCodes : undefined,
-      deliveryPending: false
+      phone: result.phone
     });
   } catch (error) {
     console.error('[auth/register]', error);
@@ -44,9 +38,7 @@ export async function POST(request: Request) {
           ? 400
           : code === 'RATE_LIMIT'
             ? 429
-            : code === 'VERIFICATION_DELIVERY_FAILED' || code === 'EMAIL_DELIVERY_FAILED'
-              ? 502
-              : 500;
+            : 500;
 
     return NextResponse.json({ error: code }, { status });
   }

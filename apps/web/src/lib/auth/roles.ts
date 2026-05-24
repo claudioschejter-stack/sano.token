@@ -17,7 +17,7 @@ export const ROLE_HOME_PATH: Record<SystemRole, string> = {
 
 export function resolvePostLoginPath(role: SystemRole, accountOperational = false): string {
   if (role === 'INVESTOR' && !accountOperational) {
-    return '/acceso';
+    return '/kyc';
   }
 
   return ROLE_HOME_PATH[role] ?? '/marketplace';

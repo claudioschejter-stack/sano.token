@@ -821,7 +821,8 @@ export const en = {
       SMS_DELIVERY_FAILED:
         'We could not send the SMS. Verify the phone number or Twilio configuration.',
       DIDIT_NOT_CONFIGURED: 'Didit is not configured on the server yet. Contact support.',
-      CONTACT_NOT_VERIFIED: 'Verify your email and phone before starting KYC.'
+      CONTACT_NOT_VERIFIED: 'Verify your email and phone before starting KYC.',
+      UNAUTHORIZED: 'Your session is not ready yet. Wait a moment and try again.'
     }
   },
   pwa: {
@@ -1652,6 +1653,7 @@ export type Messages = {
       SMS_DELIVERY_FAILED: string;
       DIDIT_NOT_CONFIGURED: string;
       CONTACT_NOT_VERIFIED: string;
+      UNAUTHORIZED: string;
     };
   };
   pwa: {

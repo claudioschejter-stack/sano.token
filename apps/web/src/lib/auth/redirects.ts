@@ -1,4 +1,5 @@
 import type { SystemRole } from './roles';
+import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from './kycPaths';
 import { normalizeReturnPath } from './returnPath';
 import { resolvePostLoginPath } from './roles';
 
@@ -26,6 +27,10 @@ export function resolveAuthenticatedDestination(
   returnTo: string | null | undefined,
   accountOperational = false
 ): string {
+  if (role === 'INVESTOR' && !accountOperational) {
+    return buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH);
+  }
+
   const home = resolveRoleHomePath(role, accountOperational);
 
   if (!shouldHonorReturnTo(role, returnTo)) {

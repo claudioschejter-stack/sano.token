@@ -71,6 +71,7 @@ function OnboardingContent() {
 
   const { data: session, status } = useSession();
   const { checklist, loading, refresh, isOperational } = useAccountStatus();
+  const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
 
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
@@ -127,41 +128,59 @@ function OnboardingContent() {
       setError(null);
       setDevHint(null);
 
-      try {
-        const response = await fetch('/api/onboarding/resend-code', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ channel })
-        });
-        const data = (await response.json()) as {
-          error?: string;
-          devCode?: string;
-        };
+      const maxAttempts = 5;
 
-        if (!response.ok) {
-          setError(o.errors[data.error ?? 'GENERIC'] ?? o.errors.GENERIC);
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        try {
+          const response = await fetch('/api/onboarding/resend-code', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ channel })
+          });
+          const data = (await response.json()) as {
+            error?: string;
+            devCode?: string;
+          };
+
+          if (response.status === 401 && attempt < maxAttempts - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+            continue;
+          }
+
+          if (!response.ok) {
+            const errorKey = data.error ?? 'GENERIC';
+            setError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.GENERIC);
+            return false;
+          }
+
+          setDeliveryHint(channel === 'EMAIL' ? o.steps.codeSentEmail : o.steps.codeSentPhone);
+
+          if (data.devCode) {
+            setDevHint(channel === 'EMAIL' ? `Email: ${data.devCode}` : `SMS: ${data.devCode}`);
+          }
+
+          return true;
+        } catch {
+          if (attempt < maxAttempts - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+            continue;
+          }
+
+          setError(o.errors.GENERIC);
           return false;
         }
-
-        setDeliveryHint(channel === 'EMAIL' ? o.steps.codeSentEmail : o.steps.codeSentPhone);
-
-        if (data.devCode) {
-          setDevHint(channel === 'EMAIL' ? `Email: ${data.devCode}` : `SMS: ${data.devCode}`);
-        }
-
-        return true;
-      } catch {
-        setError(o.errors.GENERIC);
-        return false;
       }
+
+      setError(o.errors.UNAUTHORIZED);
+      return false;
     },
     [o.errors, o.steps.codeSentEmail, o.steps.codeSentPhone]
   );
 
   useEffect(() => {
     if (
-      status !== 'authenticated' ||
+      !sessionReady ||
       loading ||
       !checklist ||
       step !== 'email' ||
@@ -177,11 +196,11 @@ function OnboardingContent() {
         emailCodeSent.current = false;
       }
     });
-  }, [checklist, loading, requestVerificationCode, status, step]);
+  }, [checklist, loading, requestVerificationCode, sessionReady, step]);
 
   useEffect(() => {
     if (
-      status !== 'authenticated' ||
+      !sessionReady ||
       loading ||
       !checklist ||
       step !== 'phone' ||
@@ -197,7 +216,7 @@ function OnboardingContent() {
         phoneCodeSent.current = false;
       }
     });
-  }, [checklist, loading, requestVerificationCode, status, step]);
+  }, [checklist, loading, requestVerificationCode, sessionReady, step]);
 
   const resendCurrentCode = useCallback(async () => {
     setResending(true);
@@ -219,6 +238,7 @@ function OnboardingContent() {
     try {
       const response = await fetch('/api/onboarding/contact', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone })
       });
@@ -254,12 +274,16 @@ function OnboardingContent() {
     try {
       const response = await fetch('/api/onboarding/verify-email', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: emailCode })
       });
 
+      const data = (await response.json()) as { error?: string };
+
       if (!response.ok) {
-        setError(o.errors.INVALID_CODE);
+        const errorKey = data.error ?? 'INVALID_CODE';
+        setError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.INVALID_CODE);
         return;
       }
 
@@ -278,12 +302,16 @@ function OnboardingContent() {
     try {
       const response = await fetch('/api/onboarding/verify-phone', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: phoneCode })
       });
 
+      const data = (await response.json()) as { error?: string };
+
       if (!response.ok) {
-        setError(o.errors.INVALID_CODE);
+        const errorKey = data.error ?? 'INVALID_CODE';
+        setError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.INVALID_CODE);
         return;
       }
 
@@ -303,6 +331,7 @@ function OnboardingContent() {
     try {
       const response = await fetch('/api/onboarding/didit/session', {
         method: 'POST',
+        credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ returnTo })
       });
@@ -350,7 +379,10 @@ function OnboardingContent() {
     setError(null);
 
     try {
-      const response = await fetch('/api/onboarding/demo-kyc', { method: 'POST' });
+      const response = await fetch('/api/onboarding/demo-kyc', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
       if (!response.ok) {
         setError(o.errors.GENERIC);
         return;
@@ -370,7 +402,7 @@ function OnboardingContent() {
     }
   }, [router, status]);
 
-  if (status === 'unauthenticated' || status === 'loading' || loading) {
+  if (status === 'unauthenticated' || status === 'loading' || !sessionReady || loading || !checklist) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center text-slate-600">
         <p className="text-sm font-medium">{o.loading}</p>
@@ -483,7 +515,10 @@ function OnboardingContent() {
         {step === 'email' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.emailTitle}</h2>
-            <p className="text-sm text-slate-600">{o.steps.emailDesc}</p>
+            <p className="text-sm text-slate-600">
+              {o.steps.emailDesc}{' '}
+              <span className="font-medium text-slate-800">{checklist.email}</span>
+            </p>
             <input
               type="text"
               inputMode="numeric"
@@ -509,7 +544,10 @@ function OnboardingContent() {
         {step === 'phone' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.phoneTitle}</h2>
-            <p className="text-sm text-slate-600">{o.steps.phoneDesc}</p>
+            <p className="text-sm text-slate-600">
+              {o.steps.phoneDesc}{' '}
+              <span className="font-medium text-slate-800">{checklist.phone}</span>
+            </p>
             <input
               type="text"
               inputMode="numeric"
