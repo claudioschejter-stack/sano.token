@@ -794,7 +794,9 @@ export const en = {
       identityLiveness: 'Liveness selfie (anti-spoofing)',
       startDidit: 'Open Didit verification',
       diditRedirecting: 'Connecting to Didit…',
-      diditRedirectingHint: 'ID or passport and liveness check on your phone.',
+      diditRedirectingHint: 'If you completed verification on mobile, return here and refresh the status.',
+      checkDiditStatus: 'I finished, refresh status',
+      checkingDidit: 'Checking Didit…',
       demoKyc: 'Simulate verification (demo only)',
       diditPartner: 'Regulated flow by Didit · 500 free checks/month',
       doneTitle: 'Account operational',
@@ -1615,6 +1617,8 @@ export type Messages = {
       startDidit: string;
       diditRedirecting: string;
       diditRedirectingHint: string;
+      checkDiditStatus: string;
+      checkingDidit: string;
       demoKyc: string;
       diditPartner: string;
       doneTitle: string;

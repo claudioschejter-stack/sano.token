@@ -36,6 +36,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
     body: JSON.stringify({
       from,
       to: [input.to],
+      reply_to: process.env.CONTACT_FROM_EMAIL?.trim() || from,
       subject: input.subject,
       text: input.text,
       html: input.html.includes('<') ? input.html : `<p>${escapeHtml(input.html)}</p>`

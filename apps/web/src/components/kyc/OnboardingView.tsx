@@ -82,6 +82,7 @@ function OnboardingContent() {
   const phoneCodeSent = useRef(false);
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+  const [diditPolling, setDiditPolling] = useState(false);
 
   const step = useMemo(
     () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved),
@@ -118,6 +119,34 @@ function OnboardingContent() {
       void refresh();
     }
   }, [diditReturn, refresh]);
+
+  const syncDiditStatus = useCallback(async () => {
+    setDiditPolling(true);
+
+    try {
+      await fetch('/api/onboarding/didit/status', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      await refresh();
+    } catch {
+      // The webhook may still arrive asynchronously; keep polling lightweight.
+    } finally {
+      setDiditPolling(false);
+    }
+  }, [refresh]);
+
+  useEffect(() => {
+    if (step !== 'identity' || !checklist?.diditEnabled || checklist.kycApproved) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void syncDiditStatus();
+    }, 8000);
+
+    return () => window.clearInterval(interval);
+  }, [checklist?.diditEnabled, checklist?.kycApproved, step, syncDiditStatus]);
 
   const requestVerificationCode = useCallback(
     async (channel: 'EMAIL' | 'PHONE') => {
@@ -583,11 +612,21 @@ function OnboardingContent() {
             </ul>
 
             {checklist?.diditEnabled ? (
-              <div className="flex min-h-14 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-5 text-center">
-                <p className="text-sm font-semibold text-blue-900">
-                  {diditLaunching || busy ? o.steps.diditRedirecting : o.steps.startDidit}
-                </p>
-                <p className="text-xs text-blue-700">{o.steps.diditRedirectingHint}</p>
+              <div className="space-y-3">
+                <div className="flex min-h-14 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-5 text-center">
+                  <p className="text-sm font-semibold text-blue-900">
+                    {diditLaunching || busy ? o.steps.diditRedirecting : o.steps.startDidit}
+                  </p>
+                  <p className="text-xs text-blue-700">{o.steps.diditRedirectingHint}</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={diditPolling || busy}
+                  onClick={() => void syncDiditStatus()}
+                  className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 disabled:opacity-60"
+                >
+                  {diditPolling ? o.steps.checkingDidit : o.steps.checkDiditStatus}
+                </button>
               </div>
             ) : (
               <button

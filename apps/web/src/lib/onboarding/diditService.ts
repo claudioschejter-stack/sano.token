@@ -37,7 +37,8 @@ export async function createDiditSession(input: {
     body: JSON.stringify({
       workflow_id: workflowId,
       vendor_data: input.userId,
-      callback
+      callback,
+      callback_method: 'both'
     })
   });
 
@@ -65,6 +66,28 @@ export async function createDiditSession(input: {
     url,
     sessionToken: payload.session_token
   };
+}
+
+export async function retrieveDiditDecision(sessionId: string): Promise<Record<string, unknown>> {
+  const apiKey = process.env.DIDIT_API_KEY?.trim();
+
+  if (!apiKey) {
+    throw new Error('DIDIT_NOT_CONFIGURED');
+  }
+
+  const response = await fetch(`${DIDIT_SESSION_URL}${encodeURIComponent(sessionId)}/decision/`, {
+    headers: {
+      'x-api-key': apiKey
+    },
+    cache: 'no-store'
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`DIDIT_DECISION_FAILED:${response.status}:${detail}`);
+  }
+
+  return (await response.json()) as Record<string, unknown>;
 }
 
 export function verifyDiditWebhookSignature(

@@ -79,9 +79,24 @@ export async function issueVerificationCode(
   if (channel === 'EMAIL') {
     const result = await sendTransactionalEmail({
       to: target,
-      subject: 'Código de verificación — Sanova Global',
-      text: `Tu código de verificación es: ${code}\n\nVálido por 10 minutos. Si no solicitaste este código, ignorá este mensaje.`,
-      html: `<p>Tu código de verificación es:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>Válido por 10 minutos.</p>`
+      subject: `Tu código de verificación Sanova es ${code}`,
+      text: [
+        `Tu código de verificación Sanova es: ${code}`,
+        '',
+        'Este código vence en 10 minutos.',
+        'Si no solicitaste este acceso, podés ignorar este mensaje.',
+        '',
+        'Sanova Capital'
+      ].join('\n'),
+      html: `
+        <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
+          <p>Tu código de verificación Sanova es:</p>
+          <p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:16px 0">${code}</p>
+          <p>Este código vence en 10 minutos.</p>
+          <p style="color:#475569;font-size:14px">Si no solicitaste este acceso, podés ignorar este mensaje.</p>
+          <p style="color:#475569;font-size:14px">Sanova Capital</p>
+        </div>
+      `
     });
     delivered = result.ok;
     deliveryError = result.error;
