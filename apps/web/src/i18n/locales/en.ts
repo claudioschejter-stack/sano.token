@@ -791,6 +791,11 @@ export const en = {
       emailDesc: 'Enter the 6-digit code we sent to your inbox.',
       phoneTitle: 'Verify your phone',
       phoneDesc: 'Enter the 6-digit SMS code.',
+      codeSentEmail: 'We sent a code to your email. Check your inbox and spam folder.',
+      codeSentPhone: 'We sent an SMS code to your phone.',
+      codeExpiredHint: 'If it did not arrive or expired, you can request a new one.',
+      resendCode: 'Resend code',
+      resendingCode: 'Resending…',
       identityTitle: 'ID document & liveness',
       identityDesc:
         'Take a photo of your national ID or passport and complete liveness. Didit guides the full flow on mobile.',
@@ -1627,6 +1632,11 @@ export type Messages = {
       diditPartner: string;
       doneTitle: string;
       doneDesc: string;
+      codeSentEmail: string;
+      codeSentPhone: string;
+      codeExpiredHint: string;
+      resendCode: string;
+      resendingCode: string;
     };
     errors: {
       GENERIC: string;

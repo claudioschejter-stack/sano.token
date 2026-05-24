@@ -798,6 +798,11 @@ export const es = {
       emailDesc: 'Ingresá el código de 6 dígitos que enviamos a tu correo.',
       phoneTitle: 'Verificá tu teléfono',
       phoneDesc: 'Ingresá el código SMS de 6 dígitos.',
+      codeSentEmail: 'Enviamos un código a tu correo. Revisá la bandeja de entrada y spam.',
+      codeSentPhone: 'Enviamos un código por SMS a tu teléfono.',
+      codeExpiredHint: 'Si no llegó o venció, podés pedir uno nuevo.',
+      resendCode: 'Reenviar código',
+      resendingCode: 'Reenviando…',
       identityTitle: 'Documento y prueba de vida',
       identityDesc:
         'Sacá una foto de tu DNI o pasaporte y completá la prueba de vida. Didit guía todo desde el celular.',

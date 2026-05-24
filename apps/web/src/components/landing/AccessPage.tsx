@@ -64,7 +64,7 @@ function AccessPageContent() {
               {registered ? a.sessionRegisteredDesc : a.sessionPendingDesc}
             </p>
             <div className="mt-6">
-              <RegisterForm profile={profile} />
+              <RegisterForm profile={profile} returnTo={returnTo} />
             </div>
 
             <div className="mt-6 flex flex-col gap-3">
@@ -128,7 +128,7 @@ function AccessPageContent() {
             </div>
             <p className="whitespace-pre-line text-sm text-slate-600">{a.registerDesc}</p>
             <div className="mt-6">
-              <RegisterForm />
+              <RegisterForm returnTo={returnTo} />
             </div>
           </article>
         </div>

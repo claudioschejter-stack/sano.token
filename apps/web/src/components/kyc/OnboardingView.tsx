@@ -81,6 +81,10 @@ function OnboardingContent() {
   const [devHint, setDevHint] = useState<string | null>(null);
   const [diditLaunching, setDiditLaunching] = useState(false);
   const diditAutoStarted = useRef(false);
+  const emailCodeSent = useRef(false);
+  const phoneCodeSent = useRef(false);
+  const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
 
   const step = useMemo(
     () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved),
@@ -117,6 +121,66 @@ function OnboardingContent() {
       void refresh();
     }
   }, [diditReturn, refresh]);
+
+  const requestVerificationCode = useCallback(
+    async (channel: 'EMAIL' | 'PHONE') => {
+      setError(null);
+      setDevHint(null);
+
+      try {
+        const response = await fetch('/api/onboarding/resend-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel })
+        });
+        const data = (await response.json()) as {
+          error?: string;
+          devCode?: string;
+        };
+
+        if (!response.ok) {
+          setError(o.errors[data.error ?? 'GENERIC'] ?? o.errors.GENERIC);
+          return false;
+        }
+
+        setDeliveryHint(channel === 'EMAIL' ? o.steps.codeSentEmail : o.steps.codeSentPhone);
+
+        if (data.devCode) {
+          setDevHint(channel === 'EMAIL' ? `Email: ${data.devCode}` : `SMS: ${data.devCode}`);
+        }
+
+        return true;
+      } catch {
+        setError(o.errors.GENERIC);
+        return false;
+      }
+    },
+    [o.errors, o.steps.codeSentEmail, o.steps.codeSentPhone]
+  );
+
+  useEffect(() => {
+    if (loading || !checklist || step !== 'email' || checklist.emailVerified || emailCodeSent.current) {
+      return;
+    }
+
+    emailCodeSent.current = true;
+    void requestVerificationCode('EMAIL');
+  }, [checklist, loading, requestVerificationCode, step]);
+
+  useEffect(() => {
+    if (loading || !checklist || step !== 'phone' || checklist.phoneVerified || phoneCodeSent.current) {
+      return;
+    }
+
+    phoneCodeSent.current = true;
+    void requestVerificationCode('PHONE');
+  }, [checklist, loading, requestVerificationCode, step]);
+
+  const resendCurrentCode = useCallback(async () => {
+    setResending(true);
+    await requestVerificationCode(step === 'phone' ? 'PHONE' : 'EMAIL');
+    setResending(false);
+  }, [requestVerificationCode, step]);
 
   const submitContact = useCallback(async () => {
     const phone = buildAndValidateE164Phone(dialCode, phoneLocal);
@@ -339,6 +403,12 @@ function OnboardingContent() {
           </p>
         ) : null}
 
+        {deliveryHint ? (
+          <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {deliveryHint}
+          </p>
+        ) : null}
+
         {step === 'contact' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
@@ -401,6 +471,15 @@ function OnboardingContent() {
               onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ''))}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-5 text-center text-2xl font-semibold tracking-[0.4em] outline-none ring-blue-500 focus:ring-2"
             />
+            <p className="text-center text-xs text-slate-500">{o.steps.codeExpiredHint}</p>
+            <button
+              type="button"
+              disabled={resending || busy}
+              onClick={() => void resendCurrentCode()}
+              className="mx-auto block text-sm font-semibold text-blue-600 hover:text-blue-500 disabled:opacity-60"
+            >
+              {resending ? o.steps.resendingCode : o.steps.resendCode}
+            </button>
           </section>
         ) : null}
 
@@ -418,6 +497,15 @@ function OnboardingContent() {
               onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, ''))}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-5 text-center text-2xl font-semibold tracking-[0.4em] outline-none ring-blue-500 focus:ring-2"
             />
+            <p className="text-center text-xs text-slate-500">{o.steps.codeExpiredHint}</p>
+            <button
+              type="button"
+              disabled={resending || busy}
+              onClick={() => void resendCurrentCode()}
+              className="mx-auto block text-sm font-semibold text-blue-600 hover:text-blue-500 disabled:opacity-60"
+            >
+              {resending ? o.steps.resendingCode : o.steps.resendCode}
+            </button>
           </section>
         ) : null}
 

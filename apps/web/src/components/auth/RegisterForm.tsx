@@ -11,12 +11,14 @@ import {
   parseE164Phone
 } from '../../lib/auth/countryDialCodes';
 import type { OnboardingProfile } from '../../lib/onboarding/profile';
+import { buildKycUrl } from '../../lib/auth/kycPaths';
 import { PasswordInput } from './PasswordInput';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
 
 type RegisterFormProps = {
   /** When set, shows contact fields as read-only with onboarding data. */
   profile?: OnboardingProfile | null;
+  returnTo?: string;
 };
 
 type FieldErrors = {
@@ -24,7 +26,7 @@ type FieldErrors = {
   phone?: string;
 };
 
-export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
+export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormProps) {
   const t = useTranslation();
   const r = t.access.register;
   const router = useRouter();
@@ -177,7 +179,7 @@ export function RegisterForm({ profile: profileProp }: RegisterFormProps) {
         return;
       }
 
-      router.push('/acceso?registered=1');
+      router.push(buildKycUrl(returnTo));
     } catch {
       setError(r.errors.GENERIC);
       setLoading(false);
