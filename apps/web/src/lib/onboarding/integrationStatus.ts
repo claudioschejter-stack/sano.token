@@ -6,7 +6,16 @@ export type IntegrationStatus = {
 };
 
 export function getOnboardingIntegrations(): IntegrationStatus[] {
+  const otpProvider = process.env.ONBOARDING_OTP_PROVIDER?.trim().toLowerCase();
+  const supabaseOtpActive = otpProvider === 'supabase';
+
   return [
+    {
+      id: 'otp-provider',
+      label: `Proveedor OTP (${supabaseOtpActive ? 'Supabase Auth' : 'Resend/Twilio directo'})`,
+      configured: true,
+      envKeys: ['ONBOARDING_OTP_PROVIDER']
+    },
     {
       id: 'resend',
       label: 'Email OTP (Resend)',

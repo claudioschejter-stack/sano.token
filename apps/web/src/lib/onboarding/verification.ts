@@ -3,6 +3,11 @@ import { prisma, VerificationChannel } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
 import { sendSms } from '../sms/sendSms';
 import { normalizePhoneE164 } from '../auth/contactValidation';
+import {
+  isSupabaseOtpEnabled,
+  sendSupabaseOtp,
+  verifySupabaseOtp
+} from './supabaseOtp';
 
 export { normalizePhoneE164 };
 
@@ -35,6 +40,21 @@ export async function issueVerificationCode(
   target: string
 ): Promise<{ devCode?: string; delivered: boolean; deliveryError?: string }> {
   await assertRateLimit(userId, channel);
+
+  if (isSupabaseOtpEnabled()) {
+    const result = await sendSupabaseOtp(channel, target);
+
+    if (!result.ok) {
+      console.warn('[verification] supabase delivery failed for', channel, target, result.error);
+      return {
+        delivered: false,
+        deliveryError:
+          result.error ?? (channel === 'EMAIL' ? 'EMAIL_DELIVERY_FAILED' : 'SMS_DELIVERY_FAILED')
+      };
+    }
+
+    return { delivered: true };
+  }
 
   const code = generateCode();
   const expiresAt = new Date(Date.now() + CODE_TTL_MS);
@@ -98,6 +118,22 @@ export async function consumeVerificationCode(
   channel: VerificationChannel,
   code: string
 ): Promise<boolean> {
+  if (isSupabaseOtpEnabled()) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, phone: true }
+    });
+
+    const target = channel === 'EMAIL' ? user?.email : user?.phone;
+
+    if (!target) {
+      return false;
+    }
+
+    const result = await verifySupabaseOtp(channel, target, code);
+    return result.ok;
+  }
+
   const record = await prisma.verificationCode.findFirst({
     where: {
       userId,
