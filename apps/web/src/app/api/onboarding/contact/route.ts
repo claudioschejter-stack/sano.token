@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
-import { issueVerificationCode, normalizePhoneE164 } from '../../../../lib/onboarding/verification';
+import { normalizePhoneE164 } from '../../../../lib/onboarding/verification';
 import { requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
 
 export async function POST(request: Request) {
@@ -27,29 +27,9 @@ export async function POST(request: Request) {
     select: { email: true, phone: true }
   });
 
-  try {
-    const emailResult = await issueVerificationCode(ctx.userId, 'EMAIL', user.email);
-
-    if (!emailResult.delivered) {
-      return NextResponse.json(
-        { error: emailResult.deliveryError ?? 'EMAIL_DELIVERY_FAILED' },
-        { status: 502 }
-      );
-    }
-
-    return NextResponse.json({
-      ok: true,
-      email: user.email,
-      phone: user.phone,
-      devCodes: emailResult.devCode ? { email: emailResult.devCode } : undefined
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'UNKNOWN';
-
-    if (message === 'RATE_LIMIT') {
-      return NextResponse.json({ error: 'RATE_LIMIT' }, { status: 429 });
-    }
-
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
+  return NextResponse.json({
+    ok: true,
+    email: user.email,
+    phone: user.phone
+  });
 }

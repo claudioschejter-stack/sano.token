@@ -3,9 +3,9 @@ import type { AccountStatus, KycStatus } from '@sanova/database';
 export type OnboardingChecklist = {
   emailVerified: boolean;
   phoneVerified: boolean;
-  /** Email and phone verified — required before KYC can start. */
+  /** Email verified and phone captured — required before KYC can start. */
   contactVerified: boolean;
-  /** KYC (Didit / manual review) is allowed only after contact verification. */
+  /** KYC (Didit / manual review) is allowed after email verification and phone capture. */
   kycEnabled: boolean;
   kycApproved: boolean;
   operational: boolean;
@@ -28,7 +28,7 @@ type UserOnboardingFields = {
 export function isAccountOperational(user: UserOnboardingFields): boolean {
   return (
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phoneVerifiedAt) &&
+    Boolean(user.phone) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED'
   );
@@ -48,8 +48,7 @@ export function buildOnboardingChecklist(
 ): OnboardingChecklist {
   const emailVerified = Boolean(user.emailVerifiedAt);
   const phoneVerified = Boolean(user.phoneVerifiedAt);
-  const contactVerified =
-    Boolean(user.phone) && emailVerified && phoneVerified;
+  const contactVerified = Boolean(user.phone) && emailVerified;
   const kycEnabled = contactVerified;
   const kycApproved = user.kycStatus === 'APPROVED';
   const operational = isAccountOperational(user);

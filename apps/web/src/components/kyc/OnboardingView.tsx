@@ -46,12 +46,8 @@ function stepFromChecklist(
     return 'email';
   }
 
-  if (!checklist.phoneVerified) {
-    return 'phone';
-  }
-
   if (!checklist.kycEnabled) {
-    return 'phone';
+    return 'contact';
   }
 
   if (!checklist.kycApproved || diditReturn) {

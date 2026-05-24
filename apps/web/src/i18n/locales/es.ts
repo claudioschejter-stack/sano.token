@@ -159,7 +159,7 @@ export const es = {
     loading: 'Cargando inversores…',
     error: 'No se pudieron cargar los inversores. Intentá de nuevo.',
     empty: 'No hay inversores con este filtro.',
-    contactPendingHint: 'El inversor debe verificar email y teléfono antes de aprobar KYC.'
+    contactPendingHint: 'El inversor debe verificar email y cargar teléfono antes de aprobar KYC.'
   },
   identityProfile: {
     title: 'Datos de identidad (Didit)',
@@ -694,9 +694,9 @@ export const es = {
     continueButton: 'Continuar',
     sessionActiveTitle: 'Ya tenés una sesión activa',
     sessionPendingDesc:
-      'Tu cuenta aún no está operativa. Verificá tu email y teléfono para continuar.',
+      'Tu cuenta aún no está operativa. Verificá tu email y completá tu KYC para continuar.',
     sessionRegisteredDesc:
-      'Cuenta creada correctamente. Verificá tu email y teléfono para activar tu cuenta.',
+      'Cuenta creada correctamente. Verificá tu email y completá tu KYC para activar tu cuenta.',
     continueVerification: 'Continuar onboarding',
     switchAccount: 'Cerrar sesión e ingresar con otra cuenta',
     authError: 'No pudimos completar el ingreso. Verificá la configuración OAuth o intentá de nuevo.',
@@ -721,7 +721,7 @@ export const es = {
     staffPanelHint: 'Panel operativo según permisos de tu rol.',
     registerTitle: 'Crear nueva cuenta',
     registerDesc:
-      'Aquí vamos a validar tu correo y teléfono.\nLuego pasamos a un KYC para asegurarnos que realmente eres tú.',
+      'Aquí vamos a validar tu correo y registrar tu teléfono.\nLuego pasamos a un KYC para asegurarnos que realmente eres tú.',
     registerButton: 'Crear cuenta y continuar',
     register: {
       fullNameLabel: 'Nombre completo',
@@ -744,7 +744,7 @@ export const es = {
       countryLabel: 'Código de país',
       submitButton: 'Crear cuenta y verificar',
       submitting: 'Creando cuenta…',
-      flowHint: 'Paso 1: Registro · Paso 2: Confirmar email · Paso 3: Confirmar SMS',
+      flowHint: 'Paso 1: Registro · Paso 2: Confirmar email · Paso 3: KYC',
       devCodes: 'Códigos de verificación',
       codesOnScreenHint: 'Usá estos códigos en el siguiente paso (email/SMS aún sin proveedor):',
       errors: {
@@ -760,7 +760,7 @@ export const es = {
     },
     kycTitle: 'Verificación de identidad (KYC)',
     kycDesc:
-      'Disponible después de verificar email y teléfono. Didit gestiona la identidad con documento y prueba de vida.',
+      'Disponible después de verificar email y cargar teléfono. Didit gestiona la identidad con documento y prueba de vida.',
     kycButton: 'Ir al onboarding',
     backHome: 'Volver al inicio'
   },
@@ -793,7 +793,7 @@ export const es = {
     },
     steps: {
       contactTitle: 'Datos de contacto',
-      contactDesc: 'Usaremos tu email de sesión y validaremos tu teléfono con un código SMS.',
+      contactDesc: 'Usaremos tu email de sesión y guardaremos tu teléfono para contacto. No pediremos SMS en esta etapa.',
       emailTitle: 'Verificá tu email',
       emailDesc: 'Ingresá el código de 6 dígitos que enviamos a tu correo.',
       phoneTitle: 'Verificá tu teléfono',
@@ -814,7 +814,7 @@ export const es = {
       demoKyc: 'Simular verificación (solo demo)',
       diditPartner: 'Proceso regulado por Didit · 500 verificaciones gratis/mes',
       doneTitle: 'Cuenta operativa',
-      doneDesc: 'Email, teléfono e identidad verificados. Ya podés operar en el marketplace.'
+      doneDesc: 'Email e identidad verificados. Ya podés operar en el marketplace.'
     },
     errors: {
       GENERIC: 'No pudimos completar el paso. Intentá de nuevo.',
@@ -828,7 +828,7 @@ export const es = {
       SMS_DELIVERY_FAILED:
         'No pudimos enviar el SMS. Verificá el número o la configuración de Twilio.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
-      CONTACT_NOT_VERIFIED: 'Primero verificá tu email y teléfono antes de iniciar el KYC.',
+      CONTACT_NOT_VERIFIED: 'Primero verificá tu email y cargá tu teléfono antes de iniciar el KYC.',
       UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.'
     }
   },

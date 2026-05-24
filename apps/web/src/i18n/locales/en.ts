@@ -737,7 +737,7 @@ export const en = {
       countryLabel: 'Country code',
       submitButton: 'Create account and verify',
       submitting: 'Creating account…',
-      flowHint: 'Step 1: sign up · Step 2: email · Step 3: SMS',
+      flowHint: 'Step 1: sign up · Step 2: email · Step 3: KYC',
       devCodes: 'Verification codes',
       codesOnScreenHint: 'Use these codes in the next steps (email/SMS provider not configured yet):',
       errors: {
@@ -786,7 +786,7 @@ export const en = {
     },
     steps: {
       contactTitle: 'Contact details',
-      contactDesc: 'We use your session email and verify your phone via SMS code.',
+      contactDesc: 'We use your session email and save your phone for contact. We do not require SMS at this stage.',
       emailTitle: 'Verify your email',
       emailDesc: 'Enter the 6-digit code we sent to your inbox.',
       phoneTitle: 'Verify your phone',
@@ -807,7 +807,7 @@ export const en = {
       demoKyc: 'Simulate verification (demo only)',
       diditPartner: 'Regulated flow by Didit · 500 free checks/month',
       doneTitle: 'Account operational',
-      doneDesc: 'Email, phone, and identity verified. You can now use the marketplace.'
+      doneDesc: 'Email and identity verified. You can now use the marketplace.'
     },
     errors: {
       GENERIC: 'We could not complete this step. Please try again.',
@@ -821,7 +821,7 @@ export const en = {
       SMS_DELIVERY_FAILED:
         'We could not send the SMS. Verify the phone number or Twilio configuration.',
       DIDIT_NOT_CONFIGURED: 'Didit is not configured on the server yet. Contact support.',
-      CONTACT_NOT_VERIFIED: 'Verify your email and phone before starting KYC.',
+      CONTACT_NOT_VERIFIED: 'Verify your email and add your phone before starting KYC.',
       UNAUTHORIZED: 'Your session is not ready yet. Wait a moment and try again.'
     }
   },

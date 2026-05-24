@@ -109,7 +109,7 @@ export async function listAdminInvestors(filter: InvestorListFilter = 'ALL'): Pr
     where: {
       systemRole: 'INVESTOR',
       emailVerifiedAt: { not: null },
-      phoneVerifiedAt: { not: null },
+      phone: { not: null },
       ...(filter === 'ALL' ? {} : { kycStatus: filter })
     },
     include: {

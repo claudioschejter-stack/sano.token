@@ -41,15 +41,14 @@ export async function issueVerificationCode(
 ): Promise<{ devCode?: string; delivered: boolean; deliveryError?: string }> {
   await assertRateLimit(userId, channel);
 
-  if (isSupabaseOtpEnabled()) {
+  if (channel === 'PHONE' && isSupabaseOtpEnabled()) {
     const result = await sendSupabaseOtp(channel, target);
 
     if (!result.ok) {
       console.warn('[verification] supabase delivery failed for', channel, target, result.error);
       return {
         delivered: false,
-        deliveryError:
-          result.error ?? (channel === 'EMAIL' ? 'EMAIL_DELIVERY_FAILED' : 'SMS_DELIVERY_FAILED')
+        deliveryError: result.error ?? 'SMS_DELIVERY_FAILED'
       };
     }
 
@@ -118,13 +117,13 @@ export async function consumeVerificationCode(
   channel: VerificationChannel,
   code: string
 ): Promise<boolean> {
-  if (isSupabaseOtpEnabled()) {
+  if (channel === 'PHONE' && isSupabaseOtpEnabled()) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { email: true, phone: true }
     });
 
-    const target = channel === 'EMAIL' ? user?.email : user?.phone;
+    const target = user?.phone;
 
     if (!target) {
       return false;

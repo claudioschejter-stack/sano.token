@@ -12,7 +12,7 @@ export function getOnboardingIntegrations(): IntegrationStatus[] {
   return [
     {
       id: 'otp-provider',
-      label: `Proveedor OTP (${supabaseOtpActive ? 'Supabase Auth' : 'Resend/Twilio directo'})`,
+      label: `Proveedor OTP teléfono (${supabaseOtpActive ? 'Supabase Auth' : 'Twilio directo'})`,
       configured: true,
       envKeys: ['ONBOARDING_OTP_PROVIDER']
     },

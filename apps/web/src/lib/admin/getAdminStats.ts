@@ -26,19 +26,19 @@ export async function getAdminStats(): Promise<AdminStats> {
       where: {
         OR: [
           { systemRole: { not: 'INVESTOR' } },
-          { systemRole: 'INVESTOR', emailVerifiedAt: { not: null }, phoneVerifiedAt: { not: null } }
+          { systemRole: 'INVESTOR', emailVerifiedAt: { not: null }, phone: { not: null } }
         ]
       }
     }),
     prisma.user.count({
-      where: { systemRole: 'INVESTOR', emailVerifiedAt: { not: null }, phoneVerifiedAt: { not: null } }
+      where: { systemRole: 'INVESTOR', emailVerifiedAt: { not: null }, phone: { not: null } }
     }),
     prisma.user.count({
       where: {
         kycStatus: 'PENDING',
         systemRole: 'INVESTOR',
         emailVerifiedAt: { not: null },
-        phoneVerifiedAt: { not: null }
+        phone: { not: null }
       }
     }),
     prisma.project.count({ where: { isActive: true } }),
