@@ -491,6 +491,8 @@ export const es = {
   checkout: {
     notFound: 'Proyecto no encontrado.',
     title: 'Checkout',
+    investorRole: 'Inversor',
+    approvedStatus: 'Aprobado',
     kycReady: 'KYC aprobado · listo para firmar on-chain',
     tokenQuantity: 'Cantidad de tokens',
     lessTokens: 'Menos tokens',

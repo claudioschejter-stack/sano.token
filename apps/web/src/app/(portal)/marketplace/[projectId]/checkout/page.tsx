@@ -18,6 +18,8 @@ export default async function MarketplaceCheckoutPage({ params }: CheckoutPagePr
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {
+      name: true,
+      kycFullName: true,
       email: true,
       phone: true,
       emailVerifiedAt: true,
@@ -31,5 +33,11 @@ export default async function MarketplaceCheckoutPage({ params }: CheckoutPagePr
     redirect(`/kyc?returnTo=/marketplace/${params.projectId}/checkout`);
   }
 
-  return <CheckoutView projectId={params.projectId} />;
+  return (
+    <CheckoutView
+      projectId={params.projectId}
+      investorName={user.kycFullName ?? user.name ?? user.email}
+      kycApproved={user.kycStatus === 'APPROVED'}
+    />
+  );
 }

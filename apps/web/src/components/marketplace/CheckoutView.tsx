@@ -15,9 +15,11 @@ import { WalletConnectButton } from './WalletConnectButton';
 
 type CheckoutViewProps = {
   projectId: string;
+  investorName: string;
+  kycApproved: boolean;
 };
 
-export function CheckoutView({ projectId }: CheckoutViewProps) {
+export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutViewProps) {
   const t = useTranslation();
   const { intlLocale } = useLocale();
   const { address, isConnected } = useInjectedWallet();
@@ -136,6 +138,17 @@ export function CheckoutView({ projectId }: CheckoutViewProps) {
         <div className="space-y-6 p-8">
           <div>
             <p className="text-sm font-medium uppercase tracking-wider text-terminal-primary">{t.checkout.title}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-semibold text-terminal-text">{investorName}</span>
+              <span className="rounded-full border border-terminal-border bg-terminal-bg px-2.5 py-1 text-xs font-semibold text-terminal-muted">
+                {t.checkout.investorRole}
+              </span>
+              {kycApproved ? (
+                <span className="rounded-full border border-terminal-success/30 bg-terminal-success/10 px-2.5 py-1 text-xs font-semibold text-terminal-success">
+                  {t.checkout.approvedStatus}
+                </span>
+              ) : null}
+            </div>
             <h1 className="mt-2 text-2xl font-bold text-terminal-text">{listing.title}</h1>
             <p className="mt-1 text-sm text-terminal-muted">{listing.location}</p>
           </div>

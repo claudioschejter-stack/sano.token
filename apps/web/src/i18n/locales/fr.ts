@@ -57,6 +57,8 @@ export const fr = mergeLocale({
   checkout: {
     notFound: 'Projet introuvable.',
     title: 'Paiement',
+    investorRole: 'Investisseur',
+    approvedStatus: 'Approuvé',
     kycReady: 'KYC approuvé · prêt à signer on-chain',
     tokenQuantity: 'Quantité de tokens',
     lessTokens: 'Moins de tokens',

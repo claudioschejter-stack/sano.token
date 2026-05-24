@@ -56,6 +56,8 @@ export const zh = mergeLocale({
   checkout: {
     notFound: '未找到项目。',
     title: '结账',
+    investorRole: '投资者',
+    approvedStatus: '已批准',
     kycReady: 'KYC 已通过 · 可进行链上签名',
     tokenQuantity: '代币数量',
     lessTokens: '减少代币',

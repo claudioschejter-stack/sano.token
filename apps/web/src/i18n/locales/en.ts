@@ -489,6 +489,8 @@ export const en = {
   checkout: {
     notFound: 'Project not found.',
     title: 'Checkout',
+    investorRole: 'Investor',
+    approvedStatus: 'Approved',
     kycReady: 'KYC approved · ready to sign on-chain',
     tokenQuantity: 'Token quantity',
     lessTokens: 'Fewer tokens',
@@ -1348,6 +1350,8 @@ export type Messages = {
   checkout: {
     notFound: string;
     title: string;
+    investorRole: string;
+    approvedStatus: string;
     kycReady: string;
     tokenQuantity: string;
     lessTokens: string;

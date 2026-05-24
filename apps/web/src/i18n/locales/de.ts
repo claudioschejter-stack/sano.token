@@ -56,6 +56,8 @@ export const de = mergeLocale({
   checkout: {
     notFound: 'Projekt nicht gefunden.',
     title: 'Checkout',
+    investorRole: 'Investor',
+    approvedStatus: 'Genehmigt',
     kycReady: 'KYC genehmigt · bereit für On-Chain-Signatur',
     tokenQuantity: 'Token-Anzahl',
     lessTokens: 'Weniger Tokens',

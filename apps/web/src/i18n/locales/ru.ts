@@ -56,6 +56,8 @@ export const ru = mergeLocale({
   checkout: {
     notFound: 'Проект не найден.',
     title: 'Оформление',
+    investorRole: 'Инвестор',
+    approvedStatus: 'Одобрено',
     kycReady: 'KYC одобрен · готов к подписи on-chain',
     tokenQuantity: 'Количество токенов',
     lessTokens: 'Меньше токенов',
