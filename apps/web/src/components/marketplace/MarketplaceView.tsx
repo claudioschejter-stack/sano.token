@@ -5,7 +5,6 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import type { MarketplaceFeed } from '../../types/marketplace';
-import { BorrowRatesTable } from './BorrowRatesTable';
 import { PropertyCard } from './PropertyCard';
 import { TrustStrip } from './TrustStrip';
 
@@ -22,7 +21,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
     : checklist?.kycStatus ?? 'PENDING';
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
 
-  const { listings, borrowRate, usedFallback } = feed;
+  const { listings, usedFallback } = feed;
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -35,8 +34,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       </header>
 
       <TrustStrip />
-
-      {borrowRate ? <BorrowRatesTable borrowRate={borrowRate} /> : null}
 
       {usedFallback ? (
         <p className="mb-6 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">
