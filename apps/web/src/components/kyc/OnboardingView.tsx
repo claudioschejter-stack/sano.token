@@ -77,7 +77,6 @@ function OnboardingContent() {
   const [error, setError] = useState<string | null>(null);
   const [devHint, setDevHint] = useState<string | null>(null);
   const [diditLaunching, setDiditLaunching] = useState(false);
-  const diditAutoStarted = useRef(false);
   const emailCodeSent = useRef(false);
   const phoneCodeSent = useRef(false);
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
@@ -114,12 +113,6 @@ function OnboardingContent() {
     }
   }, [isOperational, returnTo, router]);
 
-  useEffect(() => {
-    if (diditReturn) {
-      void refresh();
-    }
-  }, [diditReturn, refresh]);
-
   const syncDiditStatus = useCallback(async () => {
     setDiditPolling(true);
 
@@ -135,6 +128,12 @@ function OnboardingContent() {
       setDiditPolling(false);
     }
   }, [refresh]);
+
+  useEffect(() => {
+    if (diditReturn) {
+      void syncDiditStatus();
+    }
+  }, [diditReturn, syncDiditStatus]);
 
   useEffect(() => {
     if (step !== 'identity' || !checklist?.diditEnabled || checklist.kycApproved) {
@@ -390,15 +389,6 @@ function OnboardingContent() {
     }
   }, [o.errors, returnTo]);
 
-  useEffect(() => {
-    if (step !== 'identity' || !checklist?.kycEnabled || !checklist?.diditEnabled || diditAutoStarted.current) {
-      return;
-    }
-
-    diditAutoStarted.current = true;
-    void startDidit();
-  }, [checklist?.diditEnabled, checklist?.kycEnabled, startDidit, step]);
-
   const completeDemoKyc = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -613,12 +603,17 @@ function OnboardingContent() {
 
             {checklist?.diditEnabled ? (
               <div className="space-y-3">
-                <div className="flex min-h-14 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-5 text-center">
-                  <p className="text-sm font-semibold text-blue-900">
+                <button
+                  type="button"
+                  disabled={diditLaunching || busy}
+                  onClick={() => void startDidit()}
+                  className="flex min-h-14 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-5 text-center disabled:opacity-60"
+                >
+                  <span className="text-sm font-semibold text-blue-900">
                     {diditLaunching || busy ? o.steps.diditRedirecting : o.steps.startDidit}
-                  </p>
-                  <p className="text-xs text-blue-700">{o.steps.diditRedirectingHint}</p>
-                </div>
+                  </span>
+                  <span className="text-xs text-blue-700">{o.steps.diditRedirectingHint}</span>
+                </button>
                 <button
                   type="button"
                   disabled={diditPolling || busy}

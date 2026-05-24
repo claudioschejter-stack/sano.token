@@ -794,7 +794,7 @@ export const en = {
       identityLiveness: 'Liveness selfie (anti-spoofing)',
       startDidit: 'Open Didit verification',
       diditRedirecting: 'Connecting to Didit…',
-      diditRedirectingHint: 'If you completed verification on mobile, return here and refresh the status.',
+      diditRedirectingHint: 'When you finish, Didit redirects you back to sign in and activate your investor profile.',
       checkDiditStatus: 'I finished, refresh status',
       checkingDidit: 'Checking Didit…',
       demoKyc: 'Simulate verification (demo only)',

@@ -22,10 +22,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'DIDIT_NOT_CONFIGURED' }, { status: 503 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { returnTo?: string };
-  const returnTo = typeof body.returnTo === 'string' ? body.returnTo : '/marketplace';
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
-  const callbackUrl = `${siteUrl}/kyc?returnTo=${encodeURIComponent(returnTo)}&didit=1`;
+  const callbackUrl = `${siteUrl}/acceso/callback`;
 
   try {
     const session = await createDiditSession({

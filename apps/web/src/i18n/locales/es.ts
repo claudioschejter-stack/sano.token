@@ -801,7 +801,7 @@ export const es = {
       identityLiveness: 'Prueba de vida con selfie (anti-suplantación)',
       startDidit: 'Abrir verificación Didit',
       diditRedirecting: 'Conectando con Didit…',
-      diditRedirectingHint: 'Si completaste la verificación en el celular, podés volver acá y actualizar el estado.',
+      diditRedirectingHint: 'Al terminar, Didit te redirige de vuelta para ingresar y activar tu perfil inversor.',
       checkDiditStatus: 'Ya terminé, actualizar estado',
       checkingDidit: 'Consultando Didit…',
       demoKyc: 'Simular verificación (solo demo)',
