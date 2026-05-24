@@ -1,15 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Check, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
-import type {
-  AdvisorNominationRecord,
-  AdvisorTeamMember,
-  PlatformTeamMember
-} from '../../lib/admin/teamService';
+import type { PlatformTeamMember } from '../../lib/admin/teamService';
+import type { SystemRole } from '../../lib/auth/roles';
 import { AdminGate } from './AdminGate';
 
 function VerificationCell({
@@ -43,54 +40,52 @@ export function AdminTeamView() {
   const { formatDateTime } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
   const roleLabels = t.access.roles;
 
-  const [advisors, setAdvisors] = useState<AdvisorTeamMember[]>([]);
   const [members, setMembers] = useState<PlatformTeamMember[]>([]);
-  const [nominations, setNominations] = useState<AdvisorNominationRecord[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [editingMember, setEditingMember] = useState<PlatformTeamMember | null>(null);
+  const [editForm, setEditForm] = useState({
+    email: '',
+    fullName: '',
+    identification: '',
+    phone: '',
+    systemRole: 'INVESTOR' as SystemRole
+  });
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [formMessage, setFormMessage] = useState<string | null>(null);
-  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<'ADVISOR' | 'ADVISOR_MANAGER'>('ADVISOR');
-  const [uplineAdvisorId, setUplineAdvisorId] = useState('');
-
-  const managers = useMemo(
-    () => advisors.filter((row) => row.systemRole === 'ADVISOR_MANAGER'),
-    [advisors]
-  );
+  const selectedCount = selectedUserIds.length;
+  const allMembersSelected = members.length > 0 && selectedCount === members.length;
+  const roleOptions: SystemRole[] = [
+    'ADMIN',
+    'ADVISOR_MANAGER',
+    'ADVISOR',
+    'INVESTOR',
+    'TREASURY',
+    'OPERATOR'
+  ];
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(false);
 
     try {
-      const [advisorsRes, membersRes, nominationsRes] = await Promise.all([
-        fetch('/api/admin/team/advisors'),
-        fetch('/api/admin/team/members'),
-        fetch('/api/admin/team/nominations?status=PENDING')
-      ]);
+      const response = await fetch('/api/admin/team/members');
 
-      if (!advisorsRes.ok || !membersRes.ok || !nominationsRes.ok) {
+      if (!response.ok) {
         throw new Error('load failed');
       }
 
-      const advisorsData = (await advisorsRes.json()) as { advisors: AdvisorTeamMember[] };
-      const membersData = (await membersRes.json()) as { members: PlatformTeamMember[] };
-      const nominationsData = (await nominationsRes.json()) as {
-        nominations: AdvisorNominationRecord[];
-      };
-
-      setAdvisors(advisorsData.advisors);
-      setMembers(membersData.members);
-      setNominations(nominationsData.nominations);
+      const data = (await response.json()) as { members: PlatformTeamMember[] };
+      setMembers(data.members);
+      setSelectedUserIds((current) =>
+        current.filter((userId) => data.members.some((member) => member.userId === userId))
+      );
     } catch {
       setError(true);
-      setAdvisors([]);
       setMembers([]);
-      setNominations([]);
+      setSelectedUserIds([]);
     } finally {
       setLoading(false);
     }
@@ -100,56 +95,115 @@ export function AdminTeamView() {
     void loadData();
   }, [loadData]);
 
-  async function handleDesignate(event: React.FormEvent) {
+  function toggleUserSelection(userId: string) {
+    setSelectedUserIds((current) =>
+      current.includes(userId)
+        ? current.filter((selectedId) => selectedId !== userId)
+        : [...current, userId]
+    );
+  }
+
+  function toggleAllUsers() {
+    setSelectedUserIds(allMembersSelected ? [] : members.map((member) => member.userId));
+  }
+
+  function openEditForm() {
+    const member = members.find((row) => row.userId === selectedUserIds[0]);
+    if (!member) {
+      return;
+    }
+
+    setEditingMember(member);
+    setEditForm({
+      email: member.email,
+      fullName: member.fullName ?? '',
+      identification: member.identification ?? '',
+      phone: member.phone ?? '',
+      systemRole: member.systemRole
+    });
+    setActionMessage(null);
+  }
+
+  async function submitEdit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitting(true);
-    setFormMessage(null);
+
+    if (!editingMember || !window.confirm(t.adminTeam.confirmEdit)) {
+      return;
+    }
+
+    setActionLoading(true);
+    setActionMessage(null);
 
     try {
-      const response = await fetch('/api/admin/team/advisors', {
-        method: 'POST',
+      const response = await fetch('/api/admin/team/members', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email,
-          name: name || undefined,
-          role,
-          uplineAdvisorId: role === 'ADVISOR' ? uplineAdvisorId || undefined : null
+          userId: editingMember.userId,
+          ...editForm
         })
       });
 
       if (!response.ok) {
-        throw new Error('designate failed');
+        throw new Error('edit failed');
       }
 
-      setEmail('');
-      setName('');
-      setUplineAdvisorId('');
-      setFormMessage(t.adminTeam.designateSuccess);
+      setEditingMember(null);
+      setSelectedUserIds([]);
+      setActionMessage(t.adminTeam.editSuccess);
       await loadData();
     } catch {
-      setFormMessage(t.adminTeam.designateError);
+      setActionMessage(t.adminTeam.editError);
     } finally {
-      setSubmitting(false);
+      setActionLoading(false);
     }
   }
 
-  async function handleReview(nominationId: string, decision: 'APPROVED' | 'REJECTED') {
-    setReviewingId(nominationId);
+  async function deleteSelectedUsers() {
+    if (selectedCount === 0) {
+      return;
+    }
+
+    const selectedEmails = members
+      .filter((member) => selectedUserIds.includes(member.userId))
+      .map((member) => member.email)
+      .join('\n');
+
+    const confirmed = window.confirm(
+      `${t.adminTeam.confirmDelete}\n\n${selectedEmails}`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setActionLoading(true);
+    setActionMessage(null);
 
     try {
-      const response = await fetch(`/api/admin/team/nominations/${nominationId}`, {
-        method: 'PATCH',
+      const response = await fetch('/api/admin/team/members', {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision })
+        body: JSON.stringify({ userIds: selectedUserIds })
       });
 
       if (!response.ok) {
-        throw new Error('review failed');
+        const data = (await response.json().catch(() => ({}))) as { error?: string };
+        if (data.error === 'CANNOT_DELETE_SELF') {
+          setActionMessage(t.adminTeam.deleteSelfError);
+          return;
+        }
+
+        throw new Error('delete failed');
       }
 
+      setSelectedUserIds([]);
+      setActionMessage(t.adminTeam.deleteSuccess);
       await loadData();
+    } catch {
+      setActionMessage(t.adminTeam.deleteError);
     } finally {
-      setReviewingId(null);
+      setActionLoading(false);
     }
   }
 
@@ -172,163 +226,160 @@ export function AdminTeamView() {
           <p className="mt-3 max-w-3xl text-terminal-muted">{t.adminDashboard.teamDesc}</p>
         </header>
 
-        <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-          <h2 className="text-lg font-semibold text-terminal-text">{t.adminTeam.designateTitle}</h2>
-          <p className="mt-1 text-sm text-terminal-muted">{t.adminTeam.designateDesc}</p>
-
-          <form onSubmit={(event) => void handleDesignate(event)} className="mt-6 grid gap-4 md:grid-cols-2">
-            <label className="block text-sm">
-              <span className="text-terminal-muted">{t.adminTeam.email}</span>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="text-terminal-muted">{t.adminTeam.name}</span>
-              <input
-                type="text"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
-              />
-            </label>
-            <label className="block text-sm">
-              <span className="text-terminal-muted">{t.adminTeam.role}</span>
-              <select
-                value={role}
-                onChange={(event) => setRole(event.target.value as 'ADVISOR' | 'ADVISOR_MANAGER')}
-                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
-              >
-                <option value="ADVISOR">{t.adminTeam.roleAdvisor}</option>
-                <option value="ADVISOR_MANAGER">{t.adminTeam.roleManager}</option>
-              </select>
-            </label>
-            {role === 'ADVISOR' ? (
-              <label className="block text-sm">
-                <span className="text-terminal-muted">{t.adminTeam.upline}</span>
-                <select
-                  required
-                  value={uplineAdvisorId}
-                  onChange={(event) => setUplineAdvisorId(event.target.value)}
-                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
-                >
-                  <option value="">{t.adminTeam.selectUpline}</option>
-                  {managers.map((manager) => (
-                    <option key={manager.advisorId} value={manager.advisorId}>
-                      {manager.email}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            <div className="md:col-span-2 flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary disabled:opacity-50"
-              >
-                {submitting ? t.adminTeam.designating : t.adminTeam.designate}
-              </button>
-              {formMessage ? <p className="text-sm text-terminal-muted">{formMessage}</p> : null}
-            </div>
-          </form>
-        </section>
-
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-terminal-text">{t.adminTeam.nominationsTitle}</h2>
-            <button
-              type="button"
-              onClick={() => void loadData()}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg border border-terminal-border px-3 py-2 text-sm text-terminal-muted"
-            >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-              {t.adminTeam.refresh}
-            </button>
-          </div>
-          <p className="text-sm text-terminal-muted">{t.adminTeam.nominationsDesc}</p>
-
-          <div className="overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-terminal-bg text-xs uppercase tracking-wide text-terminal-muted">
-                <tr>
-                  <th className="px-6 py-3">{t.adminTeam.colEmail}</th>
-                  <th className="px-6 py-3">{t.adminTeam.colSuggestedBy}</th>
-                  <th className="px-6 py-3">{t.adminTeam.colDate}</th>
-                  <th className="px-6 py-3">{t.adminInvestors.colActions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-terminal-border">
-                {nominations.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-terminal-muted">
-                      {t.adminTeam.noNominations}
-                    </td>
-                  </tr>
-                ) : (
-                  nominations.map((row) => (
-                    <tr key={row.id}>
-                      <td className="px-6 py-4">
-                        <p className="font-medium text-terminal-text">{row.email}</p>
-                        {row.name ? <p className="text-xs text-terminal-muted">{row.name}</p> : null}
-                      </td>
-                      <td className="px-6 py-4 text-terminal-muted">{row.suggestedByEmail}</td>
-                      <td className="px-6 py-4 text-terminal-muted">{formatDateTime(row.createdAt)}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            disabled={reviewingId === row.id}
-                            onClick={() => void handleReview(row.id, 'APPROVED')}
-                            className="inline-flex items-center gap-1 rounded-lg border border-terminal-success/30 px-2.5 py-1.5 text-xs text-terminal-success"
-                          >
-                            <Check size={14} />
-                            {t.adminTeam.approve}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={reviewingId === row.id}
-                            onClick={() => void handleReview(row.id, 'REJECTED')}
-                            className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-2.5 py-1.5 text-xs text-red-400"
-                          >
-                            <X size={14} />
-                            {t.adminTeam.reject}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-terminal-text">{t.adminTeam.membersTitle}</h2>
               <p className="mt-1 text-sm text-terminal-muted">{t.adminTeam.membersDesc}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => void loadData()}
-              disabled={loading}
-              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-terminal-border px-3 py-2 text-sm text-terminal-muted"
-            >
-              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-              {t.adminTeam.refresh}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleAllUsers}
+                disabled={loading || members.length === 0}
+                className="rounded-lg border border-terminal-border px-3 py-2 text-sm font-medium text-terminal-text transition-colors hover:border-terminal-primary/50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {allMembersSelected ? t.adminTeam.clearSelection : t.adminTeam.selectUsers}
+              </button>
+              <button
+                type="button"
+                onClick={openEditForm}
+                disabled={selectedCount !== 1}
+                className="rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-2 text-sm font-semibold text-terminal-primary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t.adminTeam.editSelected}
+              </button>
+              <button
+                type="button"
+                onClick={() => void deleteSelectedUsers()}
+                disabled={selectedCount === 0 || actionLoading}
+                className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {t.adminTeam.deleteSelected}
+              </button>
+              <button
+                type="button"
+                onClick={() => void loadData()}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-lg border border-terminal-border px-3 py-2 text-sm text-terminal-muted disabled:opacity-50"
+              >
+                <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+                {t.adminTeam.refresh}
+              </button>
+            </div>
           </div>
+
+          {actionMessage ? (
+            <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm text-terminal-muted">
+              {actionMessage}
+            </p>
+          ) : null}
+
+          {editingMember ? (
+            <form
+              onSubmit={(event) => void submitEdit(event)}
+              className="grid gap-4 rounded-xl border border-terminal-border bg-terminal-card p-4 md:grid-cols-2"
+            >
+              <div className="md:col-span-2 flex items-start justify-between gap-4">
+                <div>
+                  <h3 className="text-base font-semibold text-terminal-text">{t.adminTeam.editTitle}</h3>
+                  <p className="mt-1 text-sm text-terminal-muted">{editingMember.email}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  className="rounded-lg border border-terminal-border px-3 py-2 text-sm text-terminal-muted"
+                >
+                  {t.adminTeam.cancel}
+                </button>
+              </div>
+
+              <label className="block text-sm">
+                <span className="text-terminal-muted">{t.adminTeam.colEmail}</span>
+                <input
+                  type="email"
+                  required
+                  value={editForm.email}
+                  onChange={(event) => setEditForm((current) => ({ ...current, email: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+                />
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-terminal-muted">{t.adminTeam.colFullName}</span>
+                <input
+                  type="text"
+                  value={editForm.fullName}
+                  onChange={(event) => setEditForm((current) => ({ ...current, fullName: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+                />
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-terminal-muted">{t.adminTeam.colIdentification}</span>
+                <input
+                  type="text"
+                  value={editForm.identification}
+                  onChange={(event) => setEditForm((current) => ({ ...current, identification: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+                />
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-terminal-muted">{t.adminTeam.colPhone}</span>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(event) => setEditForm((current) => ({ ...current, phone: event.target.value }))}
+                  placeholder="+5492617513426"
+                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+                />
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-terminal-muted">{t.adminTeam.colRole}</span>
+                <select
+                  value={editForm.systemRole}
+                  onChange={(event) =>
+                    setEditForm((current) => ({ ...current, systemRole: event.target.value as SystemRole }))
+                  }
+                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+                >
+                  {roleOptions.map((role) => (
+                    <option key={role} value={role}>
+                      {roleLabels[role] ?? role}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="flex items-center gap-3 md:col-span-2">
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary disabled:opacity-50"
+                >
+                  {actionLoading ? t.adminTeam.saving : t.adminTeam.saveChanges}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingMember(null)}
+                  disabled={actionLoading}
+                  className="rounded-lg border border-terminal-border px-4 py-2 text-sm text-terminal-muted disabled:opacity-50"
+                >
+                  {t.adminTeam.cancel}
+                </button>
+              </div>
+            </form>
+          ) : null}
+
           <div className="overflow-x-auto rounded-xl border border-terminal-border bg-terminal-card">
-            <table className="min-w-[960px] w-full text-left text-sm">
+            <table className="min-w-[1040px] w-full text-left text-sm">
               <thead className="bg-terminal-bg text-xs uppercase tracking-wide text-terminal-muted">
                 <tr>
+                  <th className="w-12 px-4 py-3">
+                    <span className="sr-only">{t.adminTeam.selectUsers}</span>
+                  </th>
                   <th className="px-4 py-3">{t.adminTeam.colFullName}</th>
                   <th className="px-4 py-3">{t.adminTeam.colIdentification}</th>
                   <th className="px-4 py-3">{t.adminTeam.colEmail}</th>
@@ -343,58 +394,74 @@ export function AdminTeamView() {
               <tbody className="divide-y divide-terminal-border">
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={10} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminTeam.loading}
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-10 text-center text-red-400">
+                    <td colSpan={10} className="px-6 py-10 text-center text-red-400">
                       {t.adminTeam.error}
                     </td>
                   </tr>
                 ) : members.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={10} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminTeam.emptyMembers}
                     </td>
                   </tr>
                 ) : (
-                  members.map((row) => (
-                    <tr key={row.userId}>
-                      <td className="px-4 py-4 font-medium text-terminal-text">
-                        {row.fullName ?? '—'}
-                      </td>
-                      <td className="px-4 py-4 font-mono text-xs text-terminal-muted">
-                        {row.identification ?? '—'}
-                      </td>
-                      <td className="px-4 py-4 text-terminal-text">{row.email}</td>
-                      <td className="px-4 py-4">
-                        <VerificationCell
-                          verified={row.emailVerified}
-                          verifiedAt={row.emailVerifiedAt}
-                          pendingLabel={t.adminTeam.verificationPending}
-                          formatDateTime={formatDateTime}
-                        />
-                      </td>
-                      <td className="px-4 py-4 text-terminal-muted">{row.phone ?? '—'}</td>
-                      <td className="px-4 py-4">
-                        <VerificationCell
-                          verified={row.phoneVerified}
-                          verifiedAt={row.phoneVerifiedAt}
-                          pendingLabel={t.adminTeam.verificationPending}
-                          formatDateTime={formatDateTime}
-                        />
-                      </td>
-                      <td className="px-4 py-4 text-terminal-muted">
-                        {roleLabels[row.systemRole] ?? row.systemRole}
-                      </td>
-                      <td className="px-4 py-4 text-terminal-muted">{row.uplineEmail ?? '—'}</td>
-                      <td className="px-4 py-4 text-terminal-muted">
-                        {row.incorporatedInvestors ?? '—'}
-                      </td>
-                    </tr>
-                  ))
+                  members.map((row) => {
+                    const selected = selectedUserIds.includes(row.userId);
+
+                    return (
+                      <tr
+                        key={row.userId}
+                        className={selected ? 'bg-terminal-primary/5' : undefined}
+                      >
+                        <td className="px-4 py-4">
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => toggleUserSelection(row.userId)}
+                            aria-label={`${t.adminTeam.selectUsers}: ${row.email}`}
+                            className="h-4 w-4 rounded border-terminal-border bg-terminal-bg text-terminal-primary"
+                          />
+                        </td>
+                        <td className="px-4 py-4 font-medium text-terminal-text">
+                          {row.fullName ?? '—'}
+                        </td>
+                        <td className="px-4 py-4 font-mono text-xs text-terminal-muted">
+                          {row.identification ?? '—'}
+                        </td>
+                        <td className="px-4 py-4 text-terminal-text">{row.email}</td>
+                        <td className="px-4 py-4">
+                          <VerificationCell
+                            verified={row.emailVerified}
+                            verifiedAt={row.emailVerifiedAt}
+                            pendingLabel={t.adminTeam.verificationPending}
+                            formatDateTime={formatDateTime}
+                          />
+                        </td>
+                        <td className="px-4 py-4 text-terminal-muted">{row.phone ?? '—'}</td>
+                        <td className="px-4 py-4">
+                          <VerificationCell
+                            verified={row.phoneVerified}
+                            verifiedAt={row.phoneVerifiedAt}
+                            pendingLabel={t.adminTeam.verificationPending}
+                            formatDateTime={formatDateTime}
+                          />
+                        </td>
+                        <td className="px-4 py-4 text-terminal-muted">
+                          {roleLabels[row.systemRole] ?? row.systemRole}
+                        </td>
+                        <td className="px-4 py-4 text-terminal-muted">{row.uplineEmail ?? '—'}</td>
+                        <td className="px-4 py-4 text-terminal-muted">
+                          {row.incorporatedInvestors ?? '—'}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

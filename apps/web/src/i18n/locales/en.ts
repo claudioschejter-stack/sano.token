@@ -329,23 +329,11 @@ export const en = {
     tokenDeployError: 'Failed to request token issuance.'
   },
   adminTeam: {
-    designateTitle: 'Designate advisor',
-    designateDesc: 'Administrators assign advisor managers and advisors in the network.',
     email: 'Email',
     name: 'Name',
-    role: 'Role',
-    roleAdvisor: 'Advisor',
-    roleManager: 'Advisor manager',
-    upline: 'Reports to (manager)',
-    selectUpline: 'Select manager…',
-    designate: 'Designate',
-    designating: 'Designating…',
-    designateSuccess: 'Advisor designated successfully.',
-    designateError: 'Could not designate advisor.',
-    advisorsTitle: 'Advisor network',
-    membersTitle: 'Team & KYC verification',
+    membersTitle: 'Team and Users',
     membersDesc:
-      'Identity data from Didit, verified email and phone for every platform role.',
+      'User, identity (Didit), email and phone data for every platform role.',
     colFullName: 'Full name',
     colIdentification: 'ID number',
     colEmail: 'Email',
@@ -359,20 +347,23 @@ export const en = {
     verificationPending: 'Pending',
     loading: 'Loading team…',
     error: 'Could not load team.',
-    empty: 'No advisors designated yet.',
     emptyMembers: 'No registered users yet.',
-    nominationsTitle: 'Advisor requests',
-    nominationsDesc: 'Advisors suggest new members; the administrator approves or rejects.',
-    colSuggestedBy: 'Suggested by',
-    colStatus: 'Status',
-    colDate: 'Date',
-    approve: 'Approve',
-    reject: 'Reject',
-    pending: 'Pending',
-    approved: 'Approved',
-    rejected: 'Rejected',
-    noNominations: 'No pending requests.',
-    refresh: 'Refresh'
+    refresh: 'Refresh',
+    selectUsers: 'Select users',
+    clearSelection: 'Clear selection',
+    editSelected: 'Edit',
+    deleteSelected: 'Delete',
+    editTitle: 'Edit user',
+    saveChanges: 'Save changes',
+    saving: 'Saving…',
+    cancel: 'Cancel',
+    confirmEdit: 'Save changes for this user?',
+    confirmDelete: 'Are you sure you want to delete the selected users? This cannot be undone.',
+    editSuccess: 'User updated successfully.',
+    editError: 'Could not update the user. Check email/phone or try again.',
+    deleteSuccess: 'Users deleted successfully.',
+    deleteError: 'Could not delete the selected users.',
+    deleteSelfError: 'You cannot delete your own administrator user.'
   },
   adminSettings: {
     loading: 'Loading settings…',
@@ -1197,20 +1188,8 @@ export type Messages = {
     tokenDeployError: string;
   };
   adminTeam: {
-    designateTitle: string;
-    designateDesc: string;
     email: string;
     name: string;
-    role: string;
-    roleAdvisor: string;
-    roleManager: string;
-    upline: string;
-    selectUpline: string;
-    designate: string;
-    designating: string;
-    designateSuccess: string;
-    designateError: string;
-    advisorsTitle: string;
     membersTitle: string;
     membersDesc: string;
     colFullName: string;
@@ -1226,20 +1205,23 @@ export type Messages = {
     verificationPending: string;
     loading: string;
     error: string;
-    empty: string;
     emptyMembers: string;
-    nominationsTitle: string;
-    nominationsDesc: string;
-    colSuggestedBy: string;
-    colStatus: string;
-    colDate: string;
-    approve: string;
-    reject: string;
-    pending: string;
-    approved: string;
-    rejected: string;
-    noNominations: string;
     refresh: string;
+    selectUsers: string;
+    clearSelection: string;
+    editSelected: string;
+    deleteSelected: string;
+    editTitle: string;
+    saveChanges: string;
+    saving: string;
+    cancel: string;
+    confirmEdit: string;
+    confirmDelete: string;
+    editSuccess: string;
+    editError: string;
+    deleteSuccess: string;
+    deleteError: string;
+    deleteSelfError: string;
   };
   adminSettings: {
     loading: string;

@@ -5,6 +5,7 @@ import {
   type SystemRole as PrismaSystemRole
 } from '@sanova/database';
 import type { AccountStatus, KycStatus } from '@sanova/database';
+import { normalizeEmail, normalizePhoneE164 } from '../auth/contactValidation';
 import type { SystemRole } from '../auth/roles';
 
 export type PlatformTeamMember = {
@@ -54,6 +55,24 @@ export type AdvisorNominationRecord = {
   reviewedAt: string | null;
 };
 
+export type UpdatePlatformTeamMemberInput = {
+  userId: string;
+  email: string;
+  fullName?: string | null;
+  identification?: string | null;
+  phone?: string | null;
+  systemRole: SystemRole;
+};
+
+const EDITABLE_SYSTEM_ROLES = new Set<SystemRole>([
+  'ADMIN',
+  'ADVISOR_MANAGER',
+  'ADVISOR',
+  'INVESTOR',
+  'TREASURY',
+  'OPERATOR'
+]);
+
 async function ensureAdvisorRecord(
   userId: string,
   uplineId: string | null | undefined,
@@ -99,6 +118,70 @@ export async function listPlatformTeamMembers(): Promise<PlatformTeamMember[]> {
     downlineCount: row.advisor?._count.downline ?? null,
     createdAt: row.createdAt.toISOString()
   }));
+}
+
+export async function updatePlatformTeamMember(
+  input: UpdatePlatformTeamMemberInput
+): Promise<PlatformTeamMember> {
+  const email = normalizeEmail(input.email);
+  if (!email) {
+    throw new Error('INVALID_EMAIL');
+  }
+
+  if (!EDITABLE_SYSTEM_ROLES.has(input.systemRole)) {
+    throw new Error('INVALID_ROLE');
+  }
+
+  const phoneInput = input.phone?.trim() ?? '';
+  const phone = phoneInput ? normalizePhoneE164(phoneInput) : null;
+  if (phoneInput && !phone) {
+    throw new Error('INVALID_PHONE');
+  }
+
+  const fullName = input.fullName?.trim() || null;
+  const identification = input.identification?.trim() || null;
+
+  await prisma.user.update({
+    where: { id: input.userId },
+    data: {
+      email,
+      name: fullName,
+      kycFullName: fullName,
+      kycDocumentId: identification,
+      phone,
+      systemRole: input.systemRole as PrismaSystemRole
+    }
+  });
+
+  const members = await listPlatformTeamMembers();
+  const updated = members.find((member) => member.userId === input.userId);
+  if (!updated) {
+    throw new Error('USER_NOT_FOUND');
+  }
+
+  return updated;
+}
+
+export async function deletePlatformTeamMembers(
+  userIds: string[],
+  currentAdminUserId: string
+): Promise<{ deletedCount: number }> {
+  const uniqueIds = Array.from(new Set(userIds.map((id) => id.trim()).filter(Boolean)));
+  if (uniqueIds.length === 0) {
+    throw new Error('NO_USERS_SELECTED');
+  }
+
+  if (uniqueIds.includes(currentAdminUserId)) {
+    throw new Error('CANNOT_DELETE_SELF');
+  }
+
+  const result = await prisma.user.deleteMany({
+    where: {
+      id: { in: uniqueIds }
+    }
+  });
+
+  return { deletedCount: result.count };
 }
 
 export async function listAdvisorTeam(): Promise<AdvisorTeamMember[]> {
