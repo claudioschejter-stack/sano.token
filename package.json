@@ -16,6 +16,7 @@
     "db:generate": "turbo db:generate --filter=@sanova/database",
     "db:push": "turbo db:push --filter=@sanova/database",
     "db:seed": "npm run db:seed -w @sanova/database",
+    "db:reset-users": "npm run db:reset-users -w @sanova/database",
     "contracts:compile": "turbo compile --filter=@sanova/contracts",
     "contracts:export-abis": "npm run export:abis -w @sanova/contracts",
     "contracts:test": "turbo test --filter=@sanova/contracts",

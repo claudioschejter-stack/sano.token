@@ -10,6 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:seed": "node prisma/seed.mjs",
+    "db:reset-users": "node prisma/reset-users.mjs",
     "build": "tsc",
     "typecheck": "tsc --noEmit"
   },
