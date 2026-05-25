@@ -5,12 +5,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
-  Camera,
   CheckCircle2,
-  ChevronRight,
   Mail,
   Phone,
-  ShieldCheck,
   Smartphone
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
@@ -81,14 +78,20 @@ function OnboardingContent() {
   const phoneCodeSent = useRef(false);
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
-  const [diditPolling, setDiditPolling] = useState(false);
+  const [overrideStep, setOverrideStep] = useState<Step | null>(null);
 
   const step = useMemo(
     () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved),
     [checklist, diditReturn]
   );
 
-  const progressIndex = ['contact', 'email', 'phone', 'identity', 'done'].indexOf(step);
+  const displayStep = overrideStep ?? step;
+
+  const progressIndex = ['contact', 'email', 'phone', 'identity', 'done'].indexOf(displayStep);
+
+  useEffect(() => {
+    setOverrideStep(null);
+  }, [step]);
 
   useEffect(() => {
     if (!checklist?.phone || phoneLocal) {
@@ -114,18 +117,14 @@ function OnboardingContent() {
   }, [isOperational, returnTo, router]);
 
   const syncDiditStatus = useCallback(async () => {
-    setDiditPolling(true);
-
     try {
       await fetch('/api/onboarding/didit/status', {
         method: 'POST',
         credentials: 'same-origin'
       });
-      await refresh();
+      await refresh({ silent: true });
     } catch {
-      // The webhook may still arrive asynchronously; keep polling lightweight.
-    } finally {
-      setDiditPolling(false);
+      // The webhook may still arrive asynchronously.
     }
   }, [refresh]);
 
@@ -136,16 +135,10 @@ function OnboardingContent() {
   }, [diditReturn, syncDiditStatus]);
 
   useEffect(() => {
-    if (step !== 'identity' || !checklist?.diditEnabled || checklist.kycApproved) {
-      return;
+    if (checklist?.emailVerified) {
+      setDeliveryHint(null);
     }
-
-    const interval = window.setInterval(() => {
-      void syncDiditStatus();
-    }, 8000);
-
-    return () => window.clearInterval(interval);
-  }, [checklist?.diditEnabled, checklist?.kycApproved, step, syncDiditStatus]);
+  }, [checklist?.emailVerified]);
 
   const requestVerificationCode = useCallback(
     async (channel: 'EMAIL' | 'PHONE') => {
@@ -283,13 +276,13 @@ function OnboardingContent() {
         setDevHint(parts.join(' · '));
       }
 
-      await refresh();
+      await refresh({ silent: Boolean(checklist) });
     } catch {
       setError(o.errors.GENERIC);
     } finally {
       setBusy(false);
     }
-  }, [dialCode, o.errors, phoneLocal, refresh]);
+  }, [checklist, dialCode, o.errors, phoneLocal, refresh]);
 
   const verifyEmail = useCallback(async () => {
     setBusy(true);
@@ -311,7 +304,7 @@ function OnboardingContent() {
         return;
       }
 
-      await refresh();
+      await refresh({ silent: true });
     } catch {
       setError(o.errors.GENERIC);
     } finally {
@@ -339,7 +332,7 @@ function OnboardingContent() {
         return;
       }
 
-      await refresh();
+      await refresh({ silent: true });
     } catch {
       setError(o.errors.GENERIC);
     } finally {
@@ -375,7 +368,7 @@ function OnboardingContent() {
       if (data.error === 'CONTACT_NOT_VERIFIED') {
         setError(o.errors.CONTACT_NOT_VERIFIED);
         setDiditLaunching(false);
-        await refresh();
+        await refresh({ silent: true });
         return;
       }
 
@@ -387,7 +380,7 @@ function OnboardingContent() {
     } finally {
       setBusy(false);
     }
-  }, [o.errors, returnTo]);
+  }, [o.errors, refresh, returnTo]);
 
   const completeDemoKyc = useCallback(async () => {
     setBusy(true);
@@ -403,7 +396,7 @@ function OnboardingContent() {
         return;
       }
 
-      await refresh();
+      await refresh({ silent: true });
     } catch {
       setError(o.errors.GENERIC);
     } finally {
@@ -417,7 +410,7 @@ function OnboardingContent() {
     }
   }, [router, status]);
 
-  if (status === 'unauthenticated' || status === 'loading' || !sessionReady || loading || !checklist) {
+  if (status === 'unauthenticated' || status === 'loading' || !sessionReady || (loading && !checklist)) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center text-slate-600">
         <p className="text-sm font-medium">{o.loading}</p>
@@ -473,13 +466,26 @@ function OnboardingContent() {
           </p>
         ) : null}
 
-        {deliveryHint ? (
+        {deliveryHint && !checklist.emailVerified ? (
           <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {deliveryHint}
           </p>
         ) : null}
 
-        {step === 'contact' ? (
+        {checklist.emailVerified && displayStep === 'identity' ? (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p className="text-sm font-semibold text-emerald-800">{o.steps.emailApproved}</p>
+            <button
+              type="button"
+              onClick={() => setOverrideStep('contact')}
+              className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-500"
+            >
+              {o.steps.change}
+            </button>
+          </div>
+        ) : null}
+
+        {displayStep === 'contact' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
             <p className="text-sm text-slate-600">{o.steps.contactDesc}</p>
@@ -527,7 +533,7 @@ function OnboardingContent() {
           </section>
         ) : null}
 
-        {step === 'email' ? (
+        {displayStep === 'email' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.emailTitle}</h2>
             <p className="text-sm text-slate-600">
@@ -556,7 +562,7 @@ function OnboardingContent() {
           </section>
         ) : null}
 
-        {step === 'phone' ? (
+        {displayStep === 'phone' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.phoneTitle}</h2>
             <p className="text-sm text-slate-600">
@@ -585,44 +591,37 @@ function OnboardingContent() {
           </section>
         ) : null}
 
-        {step === 'identity' ? (
+        {displayStep === 'identity' ? (
           <section className="space-y-5">
-            <h2 className="text-xl font-bold">{o.steps.identityTitle}</h2>
-            <p className="text-sm text-slate-600">{o.steps.identityDesc}</p>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-xl font-bold">{o.steps.identityTitle}</h2>
+              <button
+                type="button"
+                onClick={() => setOverrideStep('contact')}
+                className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-500"
+              >
+                {o.steps.change}
+              </button>
+            </div>
 
-            <ul className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
-              <li className="flex items-start gap-3">
-                <ShieldCheck className="mt-0.5 shrink-0 text-emerald-600" size={18} />
-                {o.steps.identityDoc}
-              </li>
-              <li className="flex items-start gap-3">
-                <Camera className="mt-0.5 shrink-0 text-blue-600" size={18} />
-                {o.steps.identityLiveness}
-              </li>
-            </ul>
+            <div className="space-y-2 text-sm text-slate-700">
+              <p className="font-medium text-slate-900">{o.steps.identityDesc}</p>
+              <p>{o.steps.identityStep1}</p>
+              <p>{o.steps.identityStep2}</p>
+            </div>
 
             {checklist?.diditEnabled ? (
-              <div className="space-y-3">
+              <>
                 <button
                   type="button"
                   disabled={diditLaunching || busy}
                   onClick={() => void startDidit()}
-                  className="flex min-h-14 w-full flex-col items-center justify-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-5 text-center disabled:opacity-60"
+                  className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white disabled:opacity-60"
                 >
-                  <span className="text-sm font-semibold text-blue-900">
-                    {diditLaunching || busy ? o.steps.diditRedirecting : o.steps.startDidit}
-                  </span>
-                  <span className="text-xs text-blue-700">{o.steps.diditRedirectingHint}</span>
+                  {diditLaunching || busy ? o.steps.diditRedirecting : o.steps.startDidit}
                 </button>
-                <button
-                  type="button"
-                  disabled={diditPolling || busy}
-                  onClick={() => void syncDiditStatus()}
-                  className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 disabled:opacity-60"
-                >
-                  {diditPolling ? o.steps.checkingDidit : o.steps.checkDiditStatus}
-                </button>
-              </div>
+                <p className="text-center text-sm text-slate-600">{o.steps.identityOperationalNote}</p>
+              </>
             ) : (
               <button
                 type="button"
@@ -633,12 +632,10 @@ function OnboardingContent() {
                 {o.steps.demoKyc}
               </button>
             )}
-
-            <p className="text-center text-xs text-slate-500">{o.steps.diditPartner}</p>
           </section>
         ) : null}
 
-        {step === 'done' ? (
+        {displayStep === 'done' ? (
           <section className="flex flex-1 flex-col items-center justify-center text-center">
             <CheckCircle2 className="text-emerald-500" size={56} />
             <h2 className="mt-4 text-2xl font-bold">{o.steps.doneTitle}</h2>
@@ -647,16 +644,16 @@ function OnboardingContent() {
         ) : null}
       </main>
 
-      {step !== 'done' && step !== 'identity' ? (
+      {displayStep !== 'done' && displayStep !== 'identity' ? (
         <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-md safe-bottom">
           <div className="mx-auto w-full max-w-md">
             <button
               type="button"
-              disabled={busy || (step === 'contact' && !validatedPhone) || (step === 'email' && emailCode.length !== 6) || (step === 'phone' && phoneCode.length !== 6)}
+              disabled={busy || (displayStep === 'contact' && !validatedPhone) || (displayStep === 'email' && emailCode.length !== 6) || (displayStep === 'phone' && phoneCode.length !== 6)}
               onClick={() => {
-                if (step === 'contact') void submitContact();
-                else if (step === 'email') void verifyEmail();
-                else if (step === 'phone') void verifyPhone();
+                if (displayStep === 'contact') void submitContact();
+                else if (displayStep === 'email') void verifyEmail();
+                else if (displayStep === 'phone') void verifyPhone();
               }}
               className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 text-base font-semibold text-white disabled:opacity-60"
             >

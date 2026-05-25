@@ -12,7 +12,7 @@ export function useAccountStatus() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (options?: { silent?: boolean }) => {
     if (status === 'loading') {
       setLoading(true);
       return;
@@ -25,7 +25,7 @@ export function useAccountStatus() {
       return;
     }
 
-    setLoading(true);
+    setLoading((current) => (options?.silent ? current : true));
 
     try {
       const response = await fetch('/api/onboarding/status', {

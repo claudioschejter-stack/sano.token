@@ -866,21 +866,20 @@ export const en = {
       phoneDesc: 'Enter the 6-digit SMS code.',
       codeSentEmail: 'We sent a code to your email. Check your inbox and spam folder.',
       codeSentPhone: 'We sent an SMS code to your phone.',
+      emailApproved: 'Email approved',
+      change: 'Change',
       codeExpiredHint: 'If it did not arrive or expired, you can request a new one.',
       resendCode: 'Resend code',
       resendingCode: 'Resending…',
-      identityTitle: 'ID document & liveness',
-      identityDesc:
-        'Take a photo of your national ID or passport and complete liveness. Didit guides the full flow on mobile.',
-      identityDoc: 'ID or passport (clear photo, no glare)',
-      identityLiveness: 'Liveness selfie (anti-spoofing)',
-      startDidit: 'Open Didit verification',
-      diditRedirecting: 'Connecting to Didit…',
-      diditRedirectingHint: 'When you finish, Didit redirects you back to sign in and activate your investor profile.',
-      checkDiditStatus: 'I finished, refresh status',
-      checkingDidit: 'Checking Didit…',
+      identityTitle: 'What’s next?',
+      identityDesc: 'With your mobile phone',
+      identityStep1: '1- We will take photos of your official ID document.',
+      identityStep2: '2- We will take a selfie to verify your identity.',
+      startDidit: 'Verify identity with mobile phone',
+      diditRedirecting: 'Connecting…',
+      identityOperationalNote:
+        'Once your identity is verified, your account will be operational and ready to use.',
       demoKyc: 'Simulate verification (demo only)',
-      diditPartner: 'Regulated flow by Didit · 500 free checks/month',
       doneTitle: 'Account operational',
       doneDesc: 'Email and identity verified. You can now use the marketplace.'
     },
@@ -1772,19 +1771,18 @@ export type Messages = {
       phoneDesc: string;
       identityTitle: string;
       identityDesc: string;
-      identityDoc: string;
-      identityLiveness: string;
+      identityStep1: string;
+      identityStep2: string;
       startDidit: string;
       diditRedirecting: string;
-      diditRedirectingHint: string;
-      checkDiditStatus: string;
-      checkingDidit: string;
+      identityOperationalNote: string;
       demoKyc: string;
-      diditPartner: string;
       doneTitle: string;
       doneDesc: string;
       codeSentEmail: string;
       codeSentPhone: string;
+      emailApproved: string;
+      change: string;
       codeExpiredHint: string;
       resendCode: string;
       resendingCode: string;
