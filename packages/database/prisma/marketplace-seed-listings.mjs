@@ -84,6 +84,23 @@ export const MARKETPLACE_SEED_LISTINGS = [
     maturityDate: new Date('2028-12-31T00:00:00.000Z'),
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
+  },
+  {
+    id: 'proj-anelo-services',
+    title: 'Añelo — Hub de Servicios Petroleros',
+    description:
+      'Complejo de oficinas, talleres y alojamiento B2B en el corazón operativo de Vaca Muerta, con contratos indexados a operadoras.',
+    location: 'Ruta Nacional 151, Añelo, Neuquén, Argentina',
+    image:
+      'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=1200&q=80',
+    totalTokens: 14000,
+    availableTokens: 8120,
+    pricePerToken: 165,
+    targetYield: 10.2,
+    tokenInstrumentType: 'EQUITY',
+    equitySharePercent: 100,
+    fiscalRegime: 'LEY_19640',
+    jurisdiction: 'AR'
   }
 ];
 
