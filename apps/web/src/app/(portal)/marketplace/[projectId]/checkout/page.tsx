@@ -15,6 +15,10 @@ export default async function MarketplaceCheckoutPage({ params }: CheckoutPagePr
     redirect('/acceso');
   }
 
+  if (session.user.role && session.user.role !== 'INVESTOR') {
+    redirect('/marketplace');
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: {

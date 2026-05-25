@@ -1,10 +1,16 @@
 'use client';
 
+import Link from 'next/link';
+import { Building2, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
+import type { SystemRole } from '../../lib/auth/roles';
+import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import type { MarketplaceFeed } from '../../types/marketplace';
+import { BorrowRatesTable } from './BorrowRatesTable';
 import { PropertyCard } from './PropertyCard';
 import { TrustStrip } from './TrustStrip';
 
@@ -15,13 +21,22 @@ type MarketplaceViewProps = {
 export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
   const router = useRouter();
   const t = useTranslation();
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+  const capabilities = getMarketplaceCapabilities(role);
   const { checklist } = useAccountStatus();
-  const kycStatus = checklist?.operational
-    ? 'APPROVED'
-    : checklist?.kycStatus ?? 'PENDING';
+  const kycStatus = capabilities.useInvestorKycStatus
+    ? checklist?.operational
+      ? 'APPROVED'
+      : checklist?.kycStatus ?? 'PENDING'
+    : 'APPROVED';
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
 
-  const { listings, usedFallback } = feed;
+  const { listings, borrowRate, usedFallback } = feed;
+  const roleLabels = t.access.roles as Record<SystemRole, string>;
+  const subtitles = t.marketplace.roleSubtitles;
+  const subtitle =
+    subtitles[capabilities.subtitleKey as keyof typeof subtitles] ?? t.marketplace.subtitle;
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -29,26 +44,58 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
         <p className="text-xs font-medium uppercase tracking-wider text-terminal-primary md:text-sm">
           {t.marketplace.brandLabel}
         </p>
-        <h1 className="mt-2 text-2xl font-bold text-terminal-text md:text-3xl">{t.marketplace.title}</h1>
-        <p className="mt-2 max-w-2xl text-base text-terminal-muted md:text-lg">{t.marketplace.subtitle}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-bold text-terminal-text md:text-3xl">{t.marketplace.title}</h1>
+          {role ? (
+            <span className="rounded-full border border-terminal-primary/30 bg-terminal-bg px-2.5 py-1 text-xs font-semibold text-terminal-primary">
+              {roleLabels[role]}
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-2 max-w-2xl text-base text-terminal-muted md:text-lg">{subtitle}</p>
       </header>
+
+      {capabilities.showAdminToolbar ? (
+        <div className="mb-6 flex flex-wrap gap-3">
+          <Link
+            href="/dashboard/assets"
+            className="inline-flex items-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-4 py-2.5 text-sm font-semibold text-terminal-text transition-colors hover:border-terminal-primary/40 hover:text-terminal-primary"
+          >
+            <Building2 size={16} />
+            {t.marketplace.adminManageAssets}
+          </Link>
+          <Link
+            href="/dashboard/treasury"
+            className="inline-flex items-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-4 py-2.5 text-sm font-semibold text-terminal-text transition-colors hover:border-terminal-primary/40 hover:text-terminal-primary"
+          >
+            <Wallet size={16} />
+            {t.marketplace.adminManageTreasury}
+          </Link>
+        </div>
+      ) : null}
 
       <TrustStrip />
 
+      {capabilities.showBorrowRates && borrowRate ? (
+        <div className="mt-6">
+          <BorrowRatesTable borrowRate={borrowRate} />
+        </div>
+      ) : null}
+
       {usedFallback ? (
-        <p className="mb-6 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">
+        <p className="mb-6 mt-6 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">
           {t.marketplace.error}
         </p>
       ) : null}
 
       {isRefreshing ? (
-        <p className="mb-4 text-xs text-terminal-muted">{t.marketplace.syncing}</p>
+        <p className="mb-4 mt-6 text-xs text-terminal-muted">{t.marketplace.syncing}</p>
       ) : null}
 
       {listings.length === 0 ? (
-        <p className="text-terminal-muted">{t.marketplace.empty}</p>
+        <p className="mt-6 text-terminal-muted">{t.marketplace.empty}</p>
       ) : (
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
             <PropertyCard
               key={listing.id}
@@ -70,6 +117,8 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               mediaGallery={listing.mediaGallery}
               contracts={listing.contracts}
               kycStatus={kycStatus}
+              purchaseEnabled={capabilities.showPurchaseActions}
+              staffPreviewHint={capabilities.showPurchaseActions ? undefined : t.marketplace.staffPreviewHint}
               onBuy={() => router.push(`/marketplace/${listing.id}/checkout`)}
               onStartKyc={() => router.push(`/kyc?returnTo=/marketplace/${listing.id}/checkout`)}
             />

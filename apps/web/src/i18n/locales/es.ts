@@ -82,7 +82,19 @@ export const es = {
     syncing: 'Sincronizando datos en vivo…',
     trustKyc: 'Inversores con KYC',
     trustRegulation: 'Régimen fiscal informado',
-    trustOnchain: 'Liquidación on-chain'
+    trustOnchain: 'Liquidación on-chain',
+    staffPreviewHint: 'Vista de consulta. La compra está disponible solo para inversores verificados.',
+    adminManageAssets: 'Gestionar activos',
+    adminManageTreasury: 'Gestionar tesorería',
+    roleSubtitles: {
+      default: 'Explorá activos tokenizados publicados en la plataforma.',
+      admin:
+        'Vista institucional con acceso completo a activos, colateral RWA y prestamistas globales.',
+      investor: 'Activos reales tokenizados con liquidez inmediata. Comprá tokens tras completar tu KYC.',
+      advisor: 'Consultá oportunidades para orientar a tus clientes. La compra la realiza el inversor.',
+      advisorManager:
+        'Supervisá oportunidades del marketplace para la red de asesores. Sin compra directa desde este rol.'
+    }
   },
   nav: {
     language: 'Idioma',

@@ -44,12 +44,13 @@ const adminNavItems = [
 type AdvisorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'panel' | 'clients';
+  labelKey: 'panel' | 'clients' | 'marketplace';
 };
 
 const advisorNavItems: AdvisorNavConfig[] = [
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
-  { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' }
+  { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
+  { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' }
 ];
 
 const investorNavItems: InvestorNavConfig[] = [
@@ -130,7 +131,12 @@ export function AppSidebar() {
   const advisorItems: NavItem[] = advisorNavItems.map((item) => ({
     href: item.href,
     icon: item.icon,
-    label: item.labelKey === 'clients' ? t.advisorPortal.navClients : t.adminNav.panel
+    label:
+      item.labelKey === 'clients'
+        ? t.advisorPortal.navClients
+        : item.labelKey === 'marketplace'
+          ? t.nav.marketplace
+          : t.adminNav.panel
   }));
 
   return (

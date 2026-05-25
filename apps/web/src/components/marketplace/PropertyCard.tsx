@@ -30,6 +30,8 @@ export type PropertyCardProps = {
   mediaGallery?: LaunchMediaItem[];
   contracts?: LaunchContracts;
   kycStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  purchaseEnabled?: boolean;
+  staffPreviewHint?: string;
   onBuy?: (propertyId: string) => void;
   onStartKyc?: (propertyId: string) => void;
 };
@@ -59,6 +61,8 @@ export function PropertyCard({
   mediaGallery = [],
   contracts = {},
   kycStatus,
+  purchaseEnabled = true,
+  staffPreviewHint,
   onBuy,
   onStartKyc
 }: PropertyCardProps) {
@@ -254,31 +258,39 @@ export function PropertyCard({
           </details>
         ) : null}
 
-        <p className="text-xs text-terminal-muted">
-          {isVerified ? t.propertyCard.readyForCheckout : t.propertyCard.kycRequired}
-        </p>
+        {purchaseEnabled ? (
+          <>
+            <p className="text-xs text-terminal-muted">
+              {isVerified ? t.propertyCard.readyForCheckout : t.propertyCard.kycRequired}
+            </p>
 
-        <button
-          type="button"
-          onClick={handlePrimaryAction}
-          className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-base font-semibold transition-all duration-200 sm:text-sm ${
-            isVerified
-              ? 'bg-terminal-primary text-white hover:bg-blue-500 hover:shadow-lg hover:shadow-terminal-primary/25'
-              : 'border border-terminal-warning/50 bg-terminal-bg text-terminal-warning hover:bg-terminal-warning/10'
-          }`}
-        >
-          {isVerified ? (
-            <>
-              <Wallet size={18} />
-              {ctaLabel}
-            </>
-          ) : (
-            <>
-              <ShieldAlert size={18} />
-              {t.common.completeKyc}
-            </>
-          )}
-        </button>
+            <button
+              type="button"
+              onClick={handlePrimaryAction}
+              className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-base font-semibold transition-all duration-200 sm:text-sm ${
+                isVerified
+                  ? 'bg-terminal-primary text-white hover:bg-blue-500 hover:shadow-lg hover:shadow-terminal-primary/25'
+                  : 'border border-terminal-warning/50 bg-terminal-bg text-terminal-warning hover:bg-terminal-warning/10'
+              }`}
+            >
+              {isVerified ? (
+                <>
+                  <Wallet size={18} />
+                  {ctaLabel}
+                </>
+              ) : (
+                <>
+                  <ShieldAlert size={18} />
+                  {t.common.completeKyc}
+                </>
+              )}
+            </button>
+          </>
+        ) : staffPreviewHint ? (
+          <p className="rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs text-terminal-muted">
+            {staffPreviewHint}
+          </p>
+        ) : null}
       </div>
     </article>
   );

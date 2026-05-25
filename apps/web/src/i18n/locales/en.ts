@@ -80,7 +80,19 @@ export const en = {
     syncing: 'Syncing live data…',
     trustKyc: 'KYC verified investors',
     trustRegulation: 'Fiscal regime disclosed',
-    trustOnchain: 'On-chain settlement'
+    trustOnchain: 'On-chain settlement',
+    staffPreviewHint: 'Read-only view. Purchases are available to verified investors only.',
+    adminManageAssets: 'Manage assets',
+    adminManageTreasury: 'Manage treasury',
+    roleSubtitles: {
+      default: 'Browse tokenized assets published on the platform.',
+      admin:
+        'Institutional view with full access to assets, RWA collateral, and global lending partners.',
+      investor: 'Tokenized real assets with instant liquidity. Buy tokens after completing KYC.',
+      advisor: 'Review opportunities to guide your clients. Purchases are completed by the investor.',
+      advisorManager:
+        'Supervise marketplace opportunities for the advisor network. No direct purchases from this role.'
+    }
   },
   nav: {
     language: 'Language',
@@ -958,6 +970,16 @@ export type Messages = {
     trustKyc: string;
     trustRegulation: string;
     trustOnchain: string;
+    staffPreviewHint: string;
+    adminManageAssets: string;
+    adminManageTreasury: string;
+    roleSubtitles: {
+      default: string;
+      admin: string;
+      investor: string;
+      advisor: string;
+      advisorManager: string;
+    };
   };
   nav: {
     language: string;
