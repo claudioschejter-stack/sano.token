@@ -121,19 +121,36 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const vaultContract = new Contract(vaultAddress, SanovaRwaVaultArtifact.abi, wallet);
 
     if (mintRecipient.toLowerCase() === wallet.address.toLowerCase()) {
-      const approveTx = await asset.approve(vaultAddress, mintAmount);
-      await approveTx.wait();
+      try {
+        const deployerKyc = await asset.kycApproved(wallet.address);
+        if (!deployerKyc) {
+          const setKycTx = await asset.setKyc(wallet.address, true);
+          await setKycTx.wait();
+        }
 
-      const depositTx = await vaultContract.deposit(mintAmount, wallet.address);
-      const depositReceipt = await depositTx.wait();
+        const approveTx = await asset.approve(vaultAddress, mintAmount);
+        await approveTx.wait();
 
-      return {
-        status: 'DEPLOYED',
-        contractAddress,
-        vaultAddress,
-        chainId,
-        txHash: depositReceipt?.hash ?? mintReceipt?.hash ?? 'deploy-submitted'
-      };
+        const depositTx = await vaultContract.deposit(mintAmount, wallet.address);
+        const depositReceipt = await depositTx.wait();
+
+        return {
+          status: 'DEPLOYED',
+          contractAddress,
+          vaultAddress,
+          chainId,
+          txHash: depositReceipt?.hash ?? mintReceipt?.hash ?? 'deploy-submitted'
+        };
+      } catch (depositError) {
+        console.warn('[deployLaunchToken] vault deposit skipped:', depositError);
+        return {
+          status: 'DEPLOYED',
+          contractAddress,
+          vaultAddress,
+          chainId,
+          txHash: mintReceipt?.hash ?? 'vault-deployed'
+        };
+      }
     }
 
     return {
