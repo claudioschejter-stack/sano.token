@@ -360,10 +360,14 @@ export const es = {
     tokenDeployDesc: 'Opcional. Podés emitir el token on-chain o cargar la dirección del contrato manualmente.',
     tokenDeployOptionalHint:
       'La emisión automática no está configurada (falta TOKEN_DEPLOY_PRIVATE_KEY). Podés publicar la tarjeta igual y cargar la dirección del contrato a mano.',
+    tokenDeployReadyHint:
+      'Emisión automática activa. Al guardar se despliegan token + vault ERC-4626 on-chain (sin cargar direcciones a mano).',
+    tokenDeployAutoPlaceholder: 'Se completa automáticamente al guardar',
     tokenDeployThirdwebHint:
       'Thirdweb no está configurado. Usá emisión manual del contrato o configurá THIRDWEB_SECRET_KEY solo para demos.',
     deployToken: 'Emitir token',
     autoDeployOnCreate: 'Intentar emisión automática al crear (opcional)',
+    autoDeployOnCreateEnabled: 'Emisión automática al crear (activada)',
     tokenStatus: 'Estado',
     tokenSkipped: 'Emisión automática omitida',
     tokenDeployed: 'Token desplegado. Verificá el explorer.',

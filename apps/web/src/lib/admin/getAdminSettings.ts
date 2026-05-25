@@ -90,7 +90,9 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       },
       {
         id: 'thirdweb',
-        configured: isConfigured(process.env.THIRDWEB_SECRET_KEY, process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)
+        configured:
+          isConfigured(process.env.THIRDWEB_SECRET_KEY) ||
+          isConfigured(process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)
       },
       {
         id: 'supabaseStorage',

@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAdminAsset, updateAdminAsset } from '../../../../../../lib/admin/assetsService';
-import { buildSmartContractDocUrl } from '../../../../../../lib/blockchain/explorerUrls';
 import { requireAdminSession } from '../../../../../../lib/admin/requireAdmin';
+import { executeProjectTokenDeploy } from '../../../../../../lib/blockchain/projectTokenDeploy';
 
 type RouteContext = {
   params: Promise<{ projectId: string }>;
@@ -15,76 +14,42 @@ export async function POST(_request: Request, context: RouteContext) {
   const { projectId } = await context.params;
 
   try {
-    const asset = await getAdminAsset(projectId);
-    if (!asset) {
+    const result = await executeProjectTokenDeploy(projectId);
+
+    if (result.status === 'NOT_FOUND') {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
 
-    if (asset.contractAddress) {
+    if (result.status === 'ALREADY_DEPLOYED') {
       return NextResponse.json({
-        asset,
+        asset: result.asset,
         message: 'Token ya desplegado.',
-        explorerUrl: buildSmartContractDocUrl(asset.chainId, asset.contractAddress),
-        vaultExplorerUrl: asset.vaultAddress
-          ? buildSmartContractDocUrl(asset.chainId, asset.vaultAddress)
-          : null
+        explorerUrl: result.explorerUrl,
+        vaultExplorerUrl: result.vaultExplorerUrl
       });
     }
-
-    await updateAdminAsset(projectId, { tokenDeployStatus: 'PENDING' });
-
-    const { deployLaunchToken } = await import('../../../../../../lib/blockchain/deployLaunchToken');
-    const result = await deployLaunchToken({
-      tokenStandard: asset.tokenStandard,
-      tokenInstrumentType: asset.tokenInstrumentType,
-      tokenName: asset.tokenName ?? asset.title,
-      tokenSymbol: asset.tokenSymbol ?? 'RWA',
-      totalSupplyUnits: asset.totalTokens
-    });
 
     if (result.status === 'DEPLOYED') {
-      const explorerUrl = buildSmartContractDocUrl(result.chainId, result.contractAddress);
-      const vaultExplorerUrl = result.vaultAddress
-        ? buildSmartContractDocUrl(result.chainId, result.vaultAddress)
-        : null;
-
-      const updated = await updateAdminAsset(projectId, {
-        tokenDeployStatus: 'DEPLOYED',
-        contractAddress: result.contractAddress,
-        vaultAddress: result.vaultAddress ?? null,
-        chainId: result.chainId,
-        contracts: {
-          smartContract: vaultExplorerUrl ?? explorerUrl
-        }
-      });
-
-      let collateralSummary = null;
-      if (updated?.collateralTargets.length) {
-        const { registerProjectCollateral } = await import(
-          '../../../../../../lib/collateral/collateralOrchestrator'
-        );
-        collateralSummary = await registerProjectCollateral(projectId);
-      }
-
       return NextResponse.json({
-        asset: collateralSummary?.updatedAsset ?? updated,
+        asset: result.asset,
         txHash: result.txHash,
-        explorerUrl,
-        vaultExplorerUrl,
-        collateral: collateralSummary
+        explorerUrl: result.explorerUrl,
+        vaultExplorerUrl: result.vaultExplorerUrl,
+        collateral: result.collateral
       });
     }
 
-    const updated = await updateAdminAsset(projectId, { tokenDeployStatus: 'SKIPPED' });
+    if (result.status === 'FAILED') {
+      return NextResponse.json({ error: result.reason }, { status: 500 });
+    }
 
     return NextResponse.json({
-      asset: updated,
+      asset: result.asset,
       skipped: true,
       reason: result.reason
     });
   } catch (error) {
     console.error('[admin/assets/deploy-token]', error);
-    await updateAdminAsset(projectId, { tokenDeployStatus: 'FAILED' });
     return NextResponse.json({ error: 'Token deployment failed' }, { status: 500 });
   }
 }

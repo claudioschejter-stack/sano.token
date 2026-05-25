@@ -93,7 +93,7 @@ const EMPTY_FORM: FormState = {
   equitySharePercent: '100',
   tokenName: '',
   tokenSymbol: '',
-  tokenStandard: 'SANOVA_KYC',
+  tokenStandard: 'ERC4626',
   spvEntityName: '',
   navOracleUrl: '',
   centrifugeChecklist: { ...EMPTY_CENTRIFUGE_CHECKLIST },
@@ -101,7 +101,7 @@ const EMPTY_FORM: FormState = {
   jurisdiction: 'AR',
   contractAddress: '',
   isActive: false,
-  deployToken: false,
+  deployToken: true,
   collateralCentrifuge: false,
   collateralSky: false,
   collateralMorpho: false,
@@ -199,6 +199,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenStatus, setTokenStatus] = useState<string | null>(null);
+  const [tokenDeployReady, setTokenDeployReady] = useState<boolean | null>(null);
   const [collateralTargets, setCollateralTargets] = useState<CollateralTarget[]>([]);
   const [registeringCollateral, setRegisteringCollateral] = useState(false);
   const skipAutoSaveRef = useRef(true);
@@ -235,6 +236,17 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       void loadAsset();
     }
   }, [mode, loadAsset]);
+
+  useEffect(() => {
+    void fetch('/api/admin/token-deploy/status')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { configured?: boolean } | null) => {
+        setTokenDeployReady(Boolean(data?.configured));
+      })
+      .catch(() => setTokenDeployReady(false));
+  }, []);
+
+  const shouldAutoDeploy = tokenDeployReady === true && !form.contractAddress;
 
   async function uploadFile(file: File, folder: string) {
     setUploading(true);
@@ -527,7 +539,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       jurisdiction: form.jurisdiction,
       isActive: form.isActive,
       collateralProtocols: selectedCollateral(form),
-      deployToken: form.deployToken
+      deployToken: shouldAutoDeploy || form.deployToken
     };
   }
 
@@ -556,18 +568,46 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
           return;
         }
 
-        if (form.deployToken) {
-          await fetch(`/api/admin/assets/${data.asset.id}/deploy-token`, { method: 'POST' });
-        }
-
         router.push(`/dashboard/assets/${data.asset.id}/edit?created=1`);
         return;
       }
 
       if (!projectId) return;
 
-      await persistDraft();
-      await loadAsset();
+      const response = await fetch(`/api/admin/assets/${projectId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...buildPayload(),
+          availableTokens: Number.parseInt(form.availableTokens, 10),
+          contractAddress: form.contractAddress || null,
+          contracts: {
+            ...form.contracts,
+            smartContract:
+              form.contracts.smartContract ||
+              (form.contractAddress ? buildSmartContractDocUrl(null, form.contractAddress) : null)
+          },
+          deployToken: shouldAutoDeploy
+        })
+      });
+
+      const data = (await response.json()) as { asset?: AdminAssetRecord; deploy?: { status?: string; reason?: string } };
+      if (!response.ok || !data.asset) {
+        setError(l.saveError);
+        return;
+      }
+
+      setForm(assetToForm(data.asset));
+      setTokenStatus(data.asset.tokenDeployStatus);
+      setCollateralTargets(data.asset.collateralTargets);
+
+      if (data.deploy?.status === 'SKIPPED' && data.deploy.reason) {
+        setMessage(data.deploy.reason.includes('TOKEN_DEPLOY_PRIVATE_KEY') ? l.tokenDeployOptionalHint : `${l.tokenSkipped}: ${data.deploy.reason}`);
+      } else if (data.asset.contractAddress) {
+        setMessage(l.tokenDeployReadyHint);
+      } else {
+        setMessage(l.saveSuccess);
+      }
     } catch {
       setError(l.saveError);
     } finally {
@@ -849,11 +889,21 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                 <div className="mt-6 rounded-lg border border-terminal-border bg-terminal-bg p-4">
                   <p className="text-sm font-medium text-terminal-text">{l.tokenDeployTitle}</p>
                   <p className="mt-1 text-xs text-terminal-muted">{l.tokenDeployDesc}</p>
-                  <p className="mt-2 text-xs text-terminal-muted">{l.tokenDeployOptionalHint}</p>
+                  {tokenDeployReady === false ? (
+                    <p className="mt-2 text-xs text-amber-400/90">{l.tokenDeployOptionalHint}</p>
+                  ) : tokenDeployReady ? (
+                    <p className="mt-2 text-xs text-terminal-success">{l.tokenDeployReadyHint}</p>
+                  ) : null}
                   <div className="mt-4 flex flex-wrap gap-3">
                     <label className="block min-w-[16rem] flex-1 text-sm">
                       <span className="text-terminal-muted">{l.fieldContractAddress}</span>
-                      <input value={form.contractAddress} onChange={(e) => setForm({ ...form, contractAddress: e.target.value })} placeholder="0x…" className={inputClass} />
+                      <input
+                        value={form.contractAddress}
+                        readOnly={shouldAutoDeploy}
+                        onChange={(e) => setForm({ ...form, contractAddress: e.target.value })}
+                        placeholder={shouldAutoDeploy ? l.tokenDeployAutoPlaceholder : '0x…'}
+                        className={inputClass}
+                      />
                     </label>
                     {form.tokenStandard === 'ERC4626' ? (
                       <label className="block min-w-[16rem] flex-1 text-sm">
@@ -879,8 +929,13 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                 </div>
               ) : (
                 <label className="mt-4 flex items-center gap-2 text-sm text-terminal-muted">
-                  <input type="checkbox" checked={form.deployToken} onChange={(e) => setForm({ ...form, deployToken: e.target.checked })} />
-                  {l.autoDeployOnCreate}
+                  <input
+                    type="checkbox"
+                    checked={form.deployToken || shouldAutoDeploy}
+                    disabled={tokenDeployReady === true}
+                    onChange={(e) => setForm({ ...form, deployToken: e.target.checked })}
+                  />
+                  {tokenDeployReady ? l.autoDeployOnCreateEnabled : l.autoDeployOnCreate}
                 </label>
               )}
             </section>

@@ -120,6 +120,7 @@ export type UpdateAdminAssetInput = {
   vaultAddress?: string | null;
   chainId?: number | null;
   tokenDeployStatus?: TokenDeployStatus;
+  deployToken?: boolean;
 };
 
 async function resolveLocationFields(input: {

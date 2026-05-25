@@ -43,10 +43,23 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   try {
+    const existing = await getAdminAsset(projectId);
+    if (!existing) {
+      return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+    }
+
     const updated = await updateAdminAsset(projectId, body);
 
     if (!updated) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+    }
+
+    if (body.deployToken && !existing.contractAddress && !updated.contractAddress) {
+      const { executeProjectTokenDeploy } = await import('../../../../../lib/blockchain/projectTokenDeploy');
+      const deploy = await executeProjectTokenDeploy(projectId);
+      const finalAsset =
+        deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED' ? deploy.asset : updated;
+      return NextResponse.json({ asset: finalAsset, deploy });
     }
 
     return NextResponse.json({ asset: updated });

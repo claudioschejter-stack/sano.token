@@ -37,6 +37,15 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as CreateAdminAssetInput;
     const asset = await createAdminAsset(body);
+
+    if (body.deployToken !== false && !asset.contractAddress) {
+      const { executeProjectTokenDeploy } = await import('../../../../lib/blockchain/projectTokenDeploy');
+      const deploy = await executeProjectTokenDeploy(asset.id);
+      const finalAsset =
+        deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED' ? deploy.asset : asset;
+      return NextResponse.json({ asset: finalAsset, deploy }, { status: 201 });
+    }
+
     return NextResponse.json({ asset }, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN';
