@@ -3,14 +3,15 @@ import './globals.css';
 import { PwaRegister } from '../components/PwaRegister';
 import { WhatsAppFloat } from '../components/WhatsAppFloat';
 import { AppProviders } from '../components/providers/AppProviders';
+import { es } from '../i18n/locales/es';
 
 export const metadata: Metadata = {
-  title: 'Sanova Global — Real Estate Tokenizado',
-  description: 'Invertí en activos reales tokenizados con rentas on-chain y cumplimiento KYC.',
+  title: es.meta.title,
+  description: es.meta.description,
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    title: 'Sanova RWA',
+    title: es.meta.pwaTitle,
     statusBarStyle: 'default'
   }
 };

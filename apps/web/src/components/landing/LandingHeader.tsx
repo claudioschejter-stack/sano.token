@@ -49,7 +49,7 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
 
         <nav
           className="hidden items-center gap-8 text-sm font-medium text-slate-600 lg:flex"
-          aria-label="Principal"
+          aria-label={l.nav.mainNavAria}
         >
           {navItems.map((item) =>
             item.href.startsWith('/#') ? (
@@ -77,7 +77,7 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
           className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-800 transition hover:bg-slate-50 lg:hidden"
           aria-expanded={menuOpen}
           aria-controls="landing-mobile-nav"
-          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-label={menuOpen ? l.nav.closeMenu : l.nav.openMenu}
           onClick={() => setMenuOpen((open) => !open)}
         >
           {menuOpen ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
@@ -92,7 +92,7 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
         <button
           type="button"
           className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]"
-          aria-label="Cerrar menú"
+          aria-label={l.nav.closeMenu}
           tabIndex={menuOpen ? 0 : -1}
           onClick={closeMenu}
         />
@@ -101,14 +101,14 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
           className={`absolute right-0 top-0 flex h-full w-full max-w-sm flex-col bg-white shadow-2xl transition-transform duration-300 ease-out ${
             menuOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
-          aria-label="Menú móvil"
+          aria-label={l.nav.mobileNavAria}
         >
           <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
-            <span className="text-sm font-semibold text-slate-900">Menú</span>
+            <span className="text-sm font-semibold text-slate-900">{l.nav.menuLabel}</span>
             <button
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-700 hover:bg-slate-100"
-              aria-label="Cerrar menú"
+              aria-label={l.nav.closeMenu}
               onClick={closeMenu}
             >
               <X size={22} aria-hidden />

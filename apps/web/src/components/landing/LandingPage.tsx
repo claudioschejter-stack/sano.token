@@ -176,7 +176,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
             </div>
             <nav
               className="flex w-full flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:gap-6"
-              aria-label="Footer"
+              aria-label={l.footer.navAria}
             >
               <Link href="/contacto" className="hover:text-white">
                 {l.footer.contact}

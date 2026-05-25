@@ -24,9 +24,12 @@
     "api:dev": "npm run dev -w @sanova/api",
     "infra:up": "docker compose up postgres redis -d",
     "infra:down": "docker compose down",
-    "dev:all": "node scripts/dev-all.mjs"
+    "dev:all": "node scripts/dev-all.mjs",
+    "i18n:translate": "tsx scripts/i18n/translate-from-es.mjs"
   },
   "devDependencies": {
+    "translate-google": "^1.5.0",
+    "tsx": "^4.22.3",
     "turbo": "^2.5.0",
     "typescript": "^5.7.3"
   },

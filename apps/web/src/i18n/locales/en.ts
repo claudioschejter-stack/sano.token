@@ -1,1868 +1,949 @@
 export const en = {
+  meta: {
+    title: "Sanova Global — Tokenized Real Estate",
+    description: "Invest in tokenized real assets with on-chain income and KYC compliance.",
+    pwaTitle: "Sanova RWA"
+  },
   brand: {
-    portalSubtitle: 'RWA Portal'
+    portalSubtitle: "RWA Portal"
   },
   common: {
-    buyNow: 'Buy Now',
-    investNow: 'Access USDC rental yields',
-    reserveTokens: 'Reserve tokens',
-    completeKyc: 'Complete KYC',
-    projectedApy: 'Projected APY',
-    location: 'Location',
-    backToMarketplace: 'Back to marketplace',
-    whatsappLabel: 'Chat with us on WhatsApp',
-    whatsappMessage: 'Hello, I am contacting you from the Sanova Global website.',
-    loadingGeneric: 'Loading…'
+    buyNow: "Buy Now",
+    investNow: "Access income in USDC",
+    reserveTokens: "Reserve tokens",
+    completeKyc: "Complete KYC",
+    projectedApy: "Projected APY",
+    location: "Location",
+    backToMarketplace: "Return to the marketplace",
+    whatsappLabel: "Write to us on WhatsApp",
+    whatsappMessage: "Hello, I am contacting you from the Sanova Global website.",
+    loadingGeneric: "Charging…"
   },
   propertyCard: {
-    kycRequired: 'Identity verification required before purchase.',
-    readyForCheckout: 'You are verified. Proceed to Web3 checkout.',
-    placementProgress: 'Placement progress',
-    tokenPrice: 'Price / token',
-    tokenSymbolLabel: 'Token symbol',
-    estimatedAnnualIncome: 'Est. annual income',
-    fixedAnnualPayment: 'Fixed annual coupon',
-    fixedCoupon: 'Fixed coupon',
-    instrumentDebt: 'Debt',
-    instrumentEquity: 'Equity',
-    maturity: 'Maturity',
-    equityParticipation: 'Asset participation',
-    perToken: 'token',
-    instantLiquidity: 'Instant exit via treasury (−3% SanovaAMM)',
-    legalContractsBadge: 'Legal contracts',
-    contractUnavailable: 'pending upload',
-    limitedAvailability: 'Limited availability',
-    viewMap: 'View on map',
-    viewReel: 'View reel',
+    kycRequired: "Identity verification is required prior to purchase.",
+    readyForCheckout: "You are verified.Continue to checkout Web3.",
+    placementProgress: "Placement progress",
+    tokenPrice: "Price/token",
+    tokenSymbolLabel: "Token symbol",
+    estimatedAnnualIncome: "Estimated annual income",
+    fixedAnnualPayment: "Annual fixed coupon",
+    fixedCoupon: "Fixed coupon",
+    instrumentDebt: "Debt",
+    instrumentEquity: "Capital",
+    maturity: "Maturity",
+    equityParticipation: "Share in the asset",
+    perToken: "token",
+    instantLiquidity: "Instant exit via treasury (−3% SanovaAMM)",
+    legalContractsBadge: "Legal contracts",
+    contractUnavailable: "load slope",
+    limitedAvailability: "High demand",
+    viewMap: "See on map",
+    viewReel: "See reel",
     contracts: {
-      button: 'Contracts',
-      title: 'Legal and on-chain documentation',
-      subtitle: 'Access trust deed and asset contract documents.',
-      trust: 'Trust constitution',
-      purchase: 'Purchase agreement',
-      lease: 'Lease agreement',
-      smartContract: 'Smart contract (explorer)'
+      button: "Contracts",
+      title: "Legal and on-chain documentation",
+      subtitle: "Access the trust documents and asset contracts.",
+      trust: "Constitution of the trust",
+      purchase: "Purchase and sale contract",
+      lease: "Rental contract",
+      smartContract: "Smart contract (explorer)"
     }
   },
   marketplace: {
-    title: 'RWA Marketplace',
-    subtitle: 'Tokenized real assets with instant liquidity and competitive lending rates.',
-    brandLabel: 'Sanova RWA',
-    bestBorrowRate: 'Best borrow rate',
-    allBorrowRatesTitle: 'Worldwide borrow rates',
-    allBorrowRatesDesc:
-      'Compare lending rates against RWA collateral across DeFi and institutional lenders worldwide.',
-    colLender: 'Lender',
-    colRegion: 'Region',
-    colCategory: 'Type',
-    colBorrowRate: 'APY rate',
-    bestBadge: 'Best',
-    lendingRatesFootnote:
-      'Indicative APY rates. Configurable via environment; connect on-chain APIs for live data.',
+    title: "Marketplace RWA",
+    subtitle: "Tokenized real assets with immediate liquidity and competitive lending rates.",
+    brandLabel: "Sanova RWA",
+    bestBorrowRate: "Best debt rate",
+    allBorrowRatesTitle: "World debt rates",
+    allBorrowRatesDesc: "Comparison of lending rates against RWA collateral in DeFi and institutional protocols around the world.",
+    colLender: "Lender",
+    colRegion: "Region",
+    colCategory: "Guy",
+    colBorrowRate: "APY Rate",
+    bestBadge: "Better",
+    lendingRatesFootnote: "Indicative rates in APY.Configurable by environment;Connect on-chain APIs for real-time data.",
     lenderRegions: {
-      global: 'Global',
-      americas: 'Americas',
-      europe: 'Europe',
-      asia_pacific: 'Asia-Pacific',
-      mea: 'Middle East & Africa'
+      global: "Global",
+      americas: "Americas",
+      europe: "Europe",
+      asia_pacific: "Asia-Pacific",
+      mea: "Middle East and Africa"
     },
     lenderCategories: {
-      money_market: 'Money market',
-      credit_pool: 'Credit pool',
-      rwa: 'RWA / real assets',
-      institutional: 'Institutional'
+      money_market: "money market",
+      credit_pool: "Credit pool",
+      rwa: "RWA/real assets",
+      institutional: "Institutional"
     },
-    tokensAvailable: 'tokens available',
-    loading: 'Loading listings…',
-    empty: 'No active listings at the moment.',
-    error: 'Could not load live data. Showing demo listings.',
-    lendingBanner: 'Aggregated from global DeFi and institutional lenders',
-    syncing: 'Syncing live data…',
-    trustKyc: 'KYC verified investors',
-    trustRegulation: 'Fiscal regime disclosed',
-    trustOnchain: 'On-chain settlement',
-    staffPreviewHint: 'Read-only view. Purchases are available to verified investors only.',
-    adminManageAssets: 'Manage assets',
-    adminManageTreasury: 'Manage treasury',
+    tokensAvailable: "available tokens",
+    loading: "Loading opportunities…",
+    empty: "There are no active listings at the moment.",
+    error: "Could not load live data.Showing demo listings.",
+    lendingBanner: "Aggregated from global DeFi and institutional lenders",
+    syncing: "Synchronizing live data…",
+    trustKyc: "Investors with KYC",
+    trustRegulation: "Informed tax regime",
+    trustOnchain: "On-chain settlement",
+    staffPreviewHint: "Query view.The purchase is available only to verified investors.",
+    adminManageAssets: "Manage assets",
+    adminManageTreasury: "Manage treasury",
     roleSubtitles: {
-      default: 'Browse tokenized assets published on the platform.',
-      admin:
-        'Institutional view with full access to assets, RWA collateral, and global lending partners.',
-      investor: 'Tokenized real assets with instant liquidity. Buy tokens after completing KYC.',
-      advisor: 'Review opportunities to guide your clients. Purchases are completed by the investor.',
-      advisorManager:
-        'Supervise marketplace opportunities for the advisor network. No direct purchases from this role.'
+      default: "Explore tokenized assets published on the platform.",
+      admin: "Institutional view with full access to assets, RWA collateral and global lenders.",
+      investor: "Tokenized real assets with immediate liquidity.Buy tokens after completing your KYC.",
+      advisor: "Check out opportunities to guide your clients.The purchase is made by the investor.",
+      advisorManager: "Monitor marketplace opportunities for the advisor network.No direct purchase from this role."
     }
   },
   nav: {
-    language: 'Language',
-    home: 'Home',
-    dashboard: 'Dashboard',
-    marketplace: 'Marketplace',
-    myAssets: 'My Assets',
-    cashFlow: 'Cash Flow',
-    secondaryMarket: 'Secondary Market',
-    signOut: 'Sign Out'
+    language: "Language",
+    home: "Start",
+    dashboard: "Dashboard",
+    marketplace: "Marketplace",
+    myAssets: "My Assets",
+    cashFlow: "Cash Flow",
+    secondaryMarket: "Secondary Market",
+    signOut: "Sign Out"
   },
   adminNav: {
-    panel: 'Overview',
-    investors: 'Investors',
-    assets: 'Assets',
-    treasury: 'Treasury',
-    team: 'Team',
-    settings: 'Settings',
-    viewMarketplace: 'View marketplace'
+    panel: "Operations Panel",
+    investors: "Investors",
+    assets: "Assets",
+    treasury: "Treasury",
+    team: "Equipment",
+    settings: "Configuration",
+    viewMarketplace: "See marketplace"
   },
   adminDashboard: {
-    eyebrow: 'Administration',
-    sidebarSubtitle: 'Operations and compliance panel',
-    title: 'Admin overview',
-    subtitle:
-      'Global view of investors, KYC, tokenized assets, and platform operations for Sanova Global.',
-    backToPanel: 'Back to overview',
-    comingSoon: 'This module will be available in the next iteration.',
-    kycAlert: '{count} investor(s) pending KYC review.',
-    kpiInvestors: 'Registered investors',
-    kpiInvestorsHint: 'Investor profiles in the database',
-    kpiKycPending: 'KYC pending',
-    kpiKycPendingHint: 'Accounts awaiting verification',
-    kpiActiveAssets: 'Active assets',
-    kpiActiveAssetsHint: 'Projects published on the marketplace',
-    kpiCapital: 'Capital committed',
-    kpiCapitalHint: 'Sum of registered investor capital',
-    kpiInvestments: 'Active investments',
-    kpiInvestmentsHint: 'Positions with ACTIVE status',
-    kpiStaff: 'Internal team',
-    kpiStaffHint: 'Admin, treasury, and operator users',
-    quickLinksTitle: 'Quick access',
-    quickLinksSubtitle: 'Operational modules under construction.',
-    investorsDesc: 'KYC queue, investor profiles, and onboarding status.',
-    assetsDesc: 'Tokenized properties, supply, pricing, and marketplace publishing.',
-    treasuryDesc: 'Distributions, cash flow, and treasury reconciliation.',
-    teamDesc: 'Roles, advisors, and internal access management.',
-    settingsDesc: 'Platform parameters and integrations.'
+    eyebrow: "Administration",
+    sidebarSubtitle: "Operations and Compliance Dashboard",
+    title: "Administrative panel",
+    subtitle: "Global view of investors, KYC, tokenized assets and operations of the Sanova Global platform.",
+    backToPanel: "Return to panel",
+    comingSoon: "This module will be available in the next iteration.",
+    kycAlert: "{count} investor(s) with KYC pending review.",
+    kpiInvestors: "Registered investors",
+    kpiInvestorsHint: "Investor profiles in the database",
+    kpiKycPending: "Pending KYC",
+    kpiKycPendingHint: "Accounts awaiting verification",
+    kpiActiveAssets: "Active assets",
+    kpiActiveAssetsHint: "Projects published in the marketplace",
+    kpiCapital: "Committed capital",
+    kpiCapitalHint: "Sum of capital registered by investors",
+    kpiInvestments: "Active investments",
+    kpiInvestmentsHint: "Positions with ACTIVE status",
+    kpiStaff: "Internal team",
+    kpiStaffHint: "Admin users, treasury and operators",
+    quickLinksTitle: "Quick access",
+    quickLinksSubtitle: "Operational modules under construction.",
+    investorsDesc: "KYC queue, investor profiles and onboarding status.",
+    assetsDesc: "Put together launch cards: photos, contracts, map, tokenomics and publication in the marketplace.",
+    treasuryDesc: "Distributions, cash flow and treasury reconciliation.",
+    teamDesc: "Roles, advisors and internal access management.",
+    settingsDesc: "Platform parameters and integrations."
   },
   adminInvestors: {
-    eyebrow: 'KYC & onboarding',
+    eyebrow: "KYC and onboarding",
     filters: {
-      ALL: 'All',
-      PENDING: 'Pending',
-      APPROVED: 'Approved',
-      REJECTED: 'Rejected'
+      ALL: "All",
+      PENDING: "Earrings",
+      APPROVED: "Approved",
+      REJECTED: "Rejected"
     },
     status: {
-      PENDING: 'Pending',
-      APPROVED: 'Approved',
-      REJECTED: 'Rejected'
+      PENDING: "Earring",
+      APPROVED: "Approved",
+      REJECTED: "Refused"
     },
-    colInvestor: 'Investor',
-    colEmail: 'Email',
-    colWallet: 'Wallet',
-    colKyc: 'KYC',
-    colIdentity: 'Identity',
-    colRegistered: 'Registered',
-    colActions: 'Actions',
-    viewIdentity: 'View data',
-    hideIdentity: 'Hide',
-    approve: 'Approve',
-    reject: 'Reject',
-    refresh: 'Refresh',
-    loading: 'Loading investors…',
-    error: 'Could not load investors. Try again.',
-    empty: 'No investors match this filter.',
-    contactPendingHint: 'Investor must verify email and phone before KYC can be approved.'
+    colInvestor: "Investor",
+    colEmail: "E-mail",
+    colWallet: "Wallet",
+    colKyc: "KYC",
+    colIdentity: "Identity",
+    colRegistered: "Record",
+    colActions: "Actions",
+    viewIdentity: "View data",
+    hideIdentity: "Disguise",
+    approve: "Approve",
+    reject: "Decline",
+    refresh: "Update",
+    loading: "Loading investors…",
+    error: "The inverters could not be loaded.Try again.",
+    empty: "There are no inverters with this filter.",
+    contactPendingHint: "The investor must verify email and charge phone before approving KYC."
   },
   identityProfile: {
-    title: 'Identity data (Didit)',
-    empty: 'No identity data yet. It is filled automatically after Didit verification.',
-    fullName: 'Full name',
-    documentId: 'Document / tax ID',
-    dateOfBirth: 'Date of birth',
-    nationality: 'Nationality',
-    documentType: 'Document type',
-    documentExpiry: 'Expiry date',
-    gender: 'Gender'
+    title: "Identity data (Didit)",
+    empty: "No identity data.They are filled automatically when checking with Didit.",
+    fullName: "Full name",
+    documentId: "Document / CUIT",
+    dateOfBirth: "Birthdate",
+    nationality: "Nationality",
+    documentType: "Document type",
+    documentExpiry: "Maturity",
+    gender: "Gender"
   },
   adminAssets: {
-    eyebrow: 'Marketplace assets',
+    eyebrow: "Marketplace assets",
     filters: {
-      ALL: 'All',
-      ACTIVE: 'Published',
-      INACTIVE: 'Unpublished'
+      ALL: "All",
+      ACTIVE: "Published",
+      INACTIVE: "Not published"
     },
     status: {
-      ACTIVE: 'Published',
-      INACTIVE: 'Unpublished'
+      ACTIVE: "Published",
+      INACTIVE: "Not published"
     },
-    colAsset: 'Asset',
-    colLocation: 'Location',
-    colPrice: 'Price / token',
-    colSupply: 'Supply',
-    colYield: 'Target yield',
-    colStatus: 'Status',
-    colActions: 'Actions',
-    publish: 'Publish',
-    unpublish: 'Unpublish',
-    edit: 'Edit',
-    cancel: 'Cancel',
-    save: 'Save',
-    view: 'View',
-    refresh: 'Refresh',
-    sold: 'sold',
-    activeInvestments: '{count} active investment(s)',
-    fieldAvailableTokens: 'Available tokens',
-    fieldPricePerToken: 'Price per token (USD)',
-    loading: 'Loading assets…',
-    error: 'Could not load assets. Try again.',
-    empty: 'No assets match this filter.',
-    saveError: 'Could not save changes. Try again.',
-    validationTokens: 'Enter a valid available token count.',
-    validationPrice: 'Enter a valid price greater than zero.',
-    newLaunch: 'New launch',
-    editLaunch: 'Edit card'
+    colAsset: "Asset",
+    colLocation: "Location",
+    colPrice: "Price/token",
+    colSupply: "Supply",
+    colYield: "Target Yield",
+    colStatus: "State",
+    colActions: "Actions",
+    publish: "Post",
+    unpublish: "Unpublish",
+    edit: "Edit",
+    cancel: "Cancel",
+    save: "Keep",
+    view: "See",
+    refresh: "Update",
+    sold: "sold",
+    activeInvestments: "{count} active investment(s)",
+    fieldAvailableTokens: "Available tokens",
+    fieldPricePerToken: "Price per token (USD)",
+    loading: "Loading assets…",
+    error: "Assets could not be loaded.Try again.",
+    empty: "There are no assets with this filter.",
+    saveError: "Changes could not be saved.Try again.",
+    validationTokens: "Enter a valid number of available tokens.",
+    validationPrice: "Enter a valid price greater than zero.",
+    newLaunch: "New release",
+    editLaunch: "Edit card"
   },
   adminLaunch: {
-    eyebrow: 'RWA issuance',
-    createTitle: 'Build new launch',
-    editTitle: 'Edit launch',
-    subtitle: 'Complete the marketplace card: photos, reels, contracts, map location, tokenomics, and DeFi collateral.',
-    loading: 'Loading launch…',
-    loadError: 'Could not load launch.',
-    save: 'Save launch',
-    saving: 'Saving…',
-    saveSuccess: 'Launch saved.',
-    saveError: 'Could not save. Check required fields.',
-    sectionBasic: 'Project information',
-    sectionToken: 'Token & issuance',
-    sectionMedia: 'Photos & reels',
-    mediaDesc: 'Photos and videos save automatically and appear on the marketplace card when published.',
-    mediaEmpty: 'No photos or videos yet. Upload files or paste a reel URL.',
-    mediaSaved: 'Media saved to the card.',
-    uploadVideo: 'Upload video',
-    addReelUrl: 'Add URL',
-    uploadError: 'Could not upload the file.',
-    uploadStorageNotConfigured:
-      'Storage is not configured on Vercel. Add SUPABASE_KEY (service role) and the launches bucket in Supabase.',
-    uploadUnsupportedType: 'Unsupported file type.',
-    uploadTooLarge: 'File too large (max 20 MB).',
-    optionalBadge: 'Optional',
-    sectionContracts: 'Legal contracts',
-    sectionCollateral: 'DeFi protocol collateral',
-    fieldTitle: 'Asset name',
-    fieldDescription: 'Description',
-    fieldLocation: 'Address / location',
-    fieldLatitude: 'Latitude (Google Maps)',
-    fieldLongitude: 'Longitude (Google Maps)',
-    fieldTotalTokens: 'Tokens issued (total supply)',
-    fieldAvailableTokens: 'Available tokens',
-    fieldPricePerToken: 'Price per token (USD)',
-    fieldInstrumentType: 'Instrument type',
-    instrumentTypeDesc: 'Choose whether the token represents a fixed-yield loan (debt) or property participation (equity).',
-    instrumentDebt: 'Debt instrument',
-    instrumentDebtDesc: 'Loan to the project with fixed coupon and maturity. Best for Maple, Clearpool, and credit pools.',
-    instrumentEquity: 'Equity instrument',
-    instrumentEquityDesc: 'Direct participation in property appreciation and variable returns (rent + capital gains).',
-    fieldFixedCoupon: 'Fixed annual coupon (%)',
-    fieldProjectedYield: 'Projected return (%)',
-    fixedCouponHint: 'Fixed rate agreed with borrower / SPV.',
-    projectedYieldHint: 'Estimated rent + appreciation; not guaranteed.',
-    fieldMaturityDate: 'Maturity date',
-    fieldEquityShare: 'Asset participation (%)',
-    equityShareHint: 'Share of cash flow and appreciation represented by each token.',
-    fieldYield: 'Target yield (%)',
-    fieldTokenName: 'Token name',
-    fieldTokenSymbol: 'Token symbol',
-    fieldTokenStandard: 'Issuance standard',
-    fieldVaultAddress: 'ERC-4626 vault',
-    fieldSpvEntity: 'SPV / trust entity',
-    fieldNavOracle: 'NAV oracle URL',
-    fieldContractAddress: 'Contract address (manual)',
-    tokenStandardSanova: 'Sanova KYC (recommended — production)',
-    tokenStandardErc4626: 'Sanova + ERC-4626 (DeFi vault)',
-    tokenStandardThirdweb: 'Thirdweb demo (testing only)',
-    tokenStandardSanovaDesc: 'KYC-enabled ERC-20. Best for regulated RWA and Centrifuge onboarding.',
-    tokenStandardErc4626Desc: 'Deploys SanovaAssetToken + KYC-gated ERC-4626 vault. DeFi-compatible shares.',
-    tokenStandardThirdwebDesc: 'Generic ERC-20 via Thirdweb. Demos only; not institutional collateral.',
-    sectionCentrifuge: 'Centrifuge checklist',
-    centrifugeDesc: 'Optional. Only needed if you plan to register the asset on Centrifuge / Tinlake.',
-    centrifugeReadiness: 'Centrifuge readiness',
+    eyebrow: "RWA issue",
+    createTitle: "Build new release",
+    editTitle: "Edit release",
+    subtitle: "Complete the marketplace card: photos, reels, contracts, map location, tokenomics and DeFi collateral.",
+    loading: "Loading launch…",
+    loadError: "The release could not be loaded.",
+    save: "Save launch",
+    saving: "Saving…",
+    saveSuccess: "Saved release.",
+    saveError: "Could not save.Review the required fields.",
+    sectionBasic: "Entrepreneurship information",
+    sectionToken: "Token and issuance",
+    sectionMedia: "Photos and reels",
+    mediaDesc: "Photos and videos are automatically saved and appear on the marketplace card when publishing.",
+    mediaEmpty: "There are no photos or videos yet.Upload files or paste a reel URL.",
+    mediaSaved: "Media saved on the card.",
+    uploadVideo: "Upload video",
+    addReelUrl: "Add URL",
+    uploadError: "The file could not be uploaded.",
+    uploadStorageNotConfigured: "Storage not configured in Vercel.Add SUPABASE_KEY (service role) and the launches bucket in Supabase.",
+    uploadUnsupportedType: "File type not allowed.",
+    uploadTooLarge: "File too large (max. 20 MB).",
+    optionalBadge: "Optional",
+    sectionContracts: "Legal contracts",
+    sectionCollateral: "Collateral in DeFi protocols",
+    fieldTitle: "Asset name",
+    fieldDescription: "Description",
+    fieldLocation: "Address/location",
+    fieldLatitude: "Latitude (Google Maps)",
+    fieldLongitude: "Longitude (Google Maps)",
+    fieldTotalTokens: "Tokens issued (total supply)",
+    fieldAvailableTokens: "Available tokens",
+    fieldPricePerToken: "Price per token (USD)",
+    fieldInstrumentType: "Instrument type",
+    instrumentTypeDesc: "I chose whether the token represents a loan with a fixed return (debt) or ownership stake (equity).",
+    instrumentDebt: "Debt instrument",
+    instrumentDebtDesc: "Project loan with fixed coupon and maturity date.Ideal for Maple, Clearpool and credit pools.",
+    instrumentEquity: "Equity instrument",
+    instrumentEquityDesc: "Direct participation in property appreciation and variable returns (rent + capital gains).",
+    fieldFixedCoupon: "Annual fixed coupon (%)",
+    fieldProjectedYield: "Projected performance (%)",
+    fixedCouponHint: "Fixed rate agreed with the borrower / SPV.",
+    projectedYieldHint: "Income estimate + appreciation;not guaranteed.",
+    fieldMaturityDate: "Expiration date",
+    fieldEquityShare: "Share in assets (%)",
+    equityShareHint: "Percentage of cash flow and appreciation that each token represents.",
+    fieldYield: "Target Yield (%)",
+    fieldTokenName: "Token name",
+    fieldTokenSymbol: "Token symbol",
+    fieldTokenStandard: "Emission standard",
+    fieldVaultAddress: "Vault ERC-4626",
+    fieldSpvEntity: "SPV/trust entity",
+    fieldNavOracle: "NAV Oracle URL",
+    fieldContractAddress: "Contract address (manual)",
+    tokenStandardSanova: "Sanova KYC (recommended — production)",
+    tokenStandardErc4626: "Sanova + ERC-4626 (DeFi vault)",
+    tokenStandardThirdweb: "Thirdweb demo (tests only)",
+    tokenStandardSanovaDesc: "ERC-20 token with on-chain KYC.Ideal for regulated RWA and centrifuge onboarding.",
+    tokenStandardErc4626Desc: "Issue SanovaAssetToken + vault ERC-4626 with KYC on deposits/withdrawals.Compatible with DeFi integrations.",
+    tokenStandardThirdwebDesc: "Generic ERC-20 via Thirdweb.For demos only;not suitable as institutional collateral.",
+    sectionCentrifuge: "Checklist Centrifuge",
+    centrifugeDesc: "Optional.Only necessary if you are registering the asset in Centrifuge / Tinlake.",
+    centrifugeReadiness: "Centrifuge Preparation",
     centrifugeChecklist: {
-      spvDocumented: 'SPV / trust documented',
-      legalAuditDone: 'Legal audit completed',
-      navOracleConfigured: 'NAV oracle configured',
-      kycPolicyActive: 'KYC policy active',
-      liquidityPlanDocumented: 'Liquidity plan documented',
-      smartContractVerified: 'Smart contract verified on-chain'
+      spvDocumented: "SPV/documented trust",
+      legalAuditDone: "Legal audit completed",
+      navOracleConfigured: "NAV Oracle Configured",
+      kycPolicyActive: "Active KYC Policy",
+      liquidityPlanDocumented: "Documented liquidity plan",
+      smartContractVerified: "Smart contract verified on-chain"
     },
-    mapHint: 'Get lat/lng from Google Maps → right-click pin → copy coordinates.',
-    uploadPhoto: 'Upload photo',
-    uploading: 'Uploading…',
-    reelPlaceholder: 'Reel URL (YouTube, Instagram, or MP4)',
-    contractsDesc: 'PDFs shown via the Contracts button on the marketplace card.',
+    mapHint: "Get lat/lng from Google Maps → right click on the pin → copy coordinates.",
+    uploadPhoto: "Upload photo",
+    uploading: "Going up…",
+    reelPlaceholder: "Reel URL (YouTube, Instagram or MP4)",
+    contractsDesc: "PDFs visible from the Contracts button on the marketplace card.",
     contractLabels: {
-      trust: 'Trust deed',
-      purchase: 'Purchase agreement',
-      lease: 'Lease agreement',
-      smartContract: 'Smart contract'
+      trust: "Trust",
+      purchase: "Trading",
+      lease: "Rent",
+      smartContract: "Smart contracts"
     },
-    noFile: 'No file',
-    uploadPdf: 'Upload PDF',
-    collateralDesc: 'Optional. Select DeFi protocols only if you want to register the token as collateral later.',
-    collateralNote: 'Centrifuge, Sky, Morpho, Aave Horizon, Maple, Clearpool, and Figure require institutional review. Sanova validates requirements, builds the collateral package, and submits via API/webhook when credentials are set in .env (Settings → DeFi integrations).',
-    registerCollateral: 'Register collateral with protocols',
-    collateralRegisterSuccess: 'Collateral submitted to selected protocols.',
-    collateralRegisterPending: 'Requirements evaluated. Configure API credentials or webhook for automatic submission.',
-    collateralRegisterError: 'Could not register collateral.',
-    collateralMissing: 'Missing requirements',
-    collateralAutoTriggered: 'Collateral registration started automatically',
+    noFile: "No file",
+    uploadPdf: "Upload PDF",
+    collateralDesc: "Optional.Choose DeFi protocols only if you want to register the token as collateral later.",
+    collateralNote: "Centrifuge, Sky, Morpho, Aave Horizon, Maple, Clearpool, and Figure require institutional review.Sanova validates requirements, generates the collateral package and sends it via API/webhook when the credentials are in .env (Settings → DeFi Integrations).",
+    registerCollateral: "Register collateral in protocols",
+    collateralRegisterSuccess: "Collateral sent to selected protocols.",
+    collateralRegisterPending: "Evaluated requirements.Configure API or webhook credentials for automatic sending.",
+    collateralRegisterError: "Collateral could not be registered.",
+    collateralMissing: "Pending requirements",
+    collateralAutoTriggered: "Automatically initiated collateral registration",
     collateralStatuses: {
-      NOT_SELECTED: 'Not selected',
-      BLOCKED: 'Blocked — requirements missing',
-      READY: 'Ready to submit',
-      QUEUED: 'Queued',
-      SUBMITTING: 'Submitting…',
-      SUBMITTED: 'Submitted — institutional review',
-      REGISTERED: 'Registered as collateral',
-      REJECTED: 'Rejected',
-      FAILED: 'Failed'
+      NOT_SELECTED: "Not selected",
+      BLOCKED: "Blocked — missing requirements",
+      READY: "Ready to ship",
+      QUEUED: "in queue",
+      SUBMITTING: "Sending…",
+      SUBMITTED: "Submitted — institutional review",
+      REGISTERED: "Registered as collateral",
+      REJECTED: "Refused",
+      FAILED: "Mistake"
     },
-    publishOnSave: 'Publish on marketplace when saving',
-    tokenDeployTitle: 'On-chain token issuance',
-    tokenDeployDesc: 'Optional. Issue the token on-chain or paste the contract address manually.',
-    tokenDeployOptionalHint:
-      'Automatic issuance is not configured (TOKEN_DEPLOY_PRIVATE_KEY missing). You can still publish the card and enter the contract address manually.',
-    tokenDeployThirdwebHint:
-      'Thirdweb is not configured. Use manual contract entry or set THIRDWEB_SECRET_KEY for demos only.',
-    deployToken: 'Issue token',
-    autoDeployOnCreate: 'Try automatic issuance on create (optional)',
-    tokenStatus: 'Status',
-    tokenSkipped: 'Automatic issuance skipped',
-    tokenDeployed: 'Token deployed. Check the explorer.',
-    tokenRequested: 'Issuance request recorded.',
-    tokenDeployError: 'Failed to request token issuance.'
+    publishOnSave: "Publish to marketplace when saving",
+    tokenDeployTitle: "On-chain token issuance",
+    tokenDeployDesc: "Optional.You can issue the token on-chain or upload the contract address manually.",
+    tokenDeployOptionalHint: "Automatic issuance is not configured (TOKEN_DEPLOY_PRIVATE_KEY is missing).You can still publish the card and upload the contract address by hand.",
+    tokenDeployThirdwebHint: "Thirdweb is not configured.Use manual contract issuance or set THIRDWEB_SECRET_KEY for demos only.",
+    deployToken: "Issue token",
+    autoDeployOnCreate: "Attempt automatic broadcast on creation (optional)",
+    tokenStatus: "State",
+    tokenSkipped: "Automatic broadcast skipped",
+    tokenDeployed: "Token deployed.Check the explorer.",
+    tokenRequested: "Registered issuance request.",
+    tokenDeployError: "Error when requesting token issuance."
   },
   adminTeam: {
-    email: 'Email',
-    name: 'Name',
-    membersTitle: 'Team and Users',
-    membersDesc:
-      'User, identity (Didit), email and phone data for every platform role.',
-    colFullName: 'Full name',
-    colIdentification: 'ID number',
-    colEmail: 'Email',
-    colEmailVerified: 'Email verified',
-    colPhone: 'Phone',
-    colPhoneVerified: 'Phone verified',
-    colRole: 'Role',
-    colUpline: 'Upline',
-    colClients: 'Clients',
-    colDownline: 'Team',
-    verificationPending: 'Pending',
-    loading: 'Loading team…',
-    error: 'Could not load team.',
-    emptyMembers: 'No registered users yet.',
-    refresh: 'Refresh',
-    selectUsers: 'Select users',
-    clearSelection: 'Clear selection',
-    editSelected: 'Edit',
-    deleteSelected: 'Delete',
-    editTitle: 'Edit user',
-    saveChanges: 'Save changes',
-    saving: 'Saving…',
-    cancel: 'Cancel',
-    confirmEdit: 'Save changes for this user?',
-    confirmDelete: 'Are you sure you want to delete the selected users? This cannot be undone.',
-    editSuccess: 'User updated successfully.',
-    editError: 'Could not update the user. Check email/phone or try again.',
-    deleteSuccess: 'Users deleted successfully.',
-    deleteError: 'Could not delete the selected users.',
-    deleteSelfError: 'You cannot delete your own administrator user.',
-    designateTitle: 'Appoint manager or advisor',
-    designateDesc:
-      'Administrators can appoint managers and advisors. Advisors must report to a manager. Everyone must complete KYC.',
-    designateEmail: 'Email',
-    designateName: 'Name',
-    designateRole: 'Role',
-    designateUpline: 'Manager (upline)',
-    designateUplinePlaceholder: 'Select manager…',
-    designateSubmit: 'Appoint',
-    designateSubmitting: 'Appointing…',
-    designateSuccess: 'User appointed successfully.',
-    designateError: 'Could not appoint user. Check email and assigned manager.',
-    roleManager: 'Manager',
-    roleAdvisor: 'Advisor'
+    email: "E-mail",
+    name: "Name",
+    membersTitle: "Team and Users",
+    membersDesc: "User data, identity (Didit), email and telephone for all platform roles.",
+    colFullName: "Full name",
+    colIdentification: "ID",
+    colEmail: "Mail",
+    colEmailVerified: "verified email",
+    colPhone: "Phone",
+    colPhoneVerified: "Verified phone",
+    colRole: "Role",
+    colUpline: "Superior",
+    colClients: "Customers",
+    colDownline: "Equipment",
+    verificationPending: "Earring",
+    loading: "Loading equipment…",
+    error: "The device could not be loaded.",
+    emptyMembers: "There are no registered users.",
+    refresh: "Update",
+    selectUsers: "Select users",
+    clearSelection: "Clear selection",
+    editSelected: "Edit",
+    deleteSelected: "Delete",
+    editTitle: "Edit user",
+    saveChanges: "Save changes",
+    saving: "Saving…",
+    cancel: "Cancel",
+    confirmEdit: "Save this user's changes?",
+    confirmDelete: "Are you sure you want to delete the selected users?This action cannot be undone.",
+    editSuccess: "User updated successfully.",
+    editError: "Could not update user.Check email/phone or try again.",
+    deleteSuccess: "Users deleted successfully.",
+    deleteError: "Could not delete selected users.",
+    deleteSelfError: "You cannot delete your own administrator user.",
+    designateTitle: "Appoint manager or advisor",
+    designateDesc: "The administrator can appoint managers and advisors.Advisors must report to a manager.Everyone must complete KYC.",
+    designateEmail: "E-mail",
+    designateName: "Name",
+    designateRole: "Role",
+    designateUpline: "Manager (senior)",
+    designateUplinePlaceholder: "Select manager…",
+    designateSubmit: "Appoint",
+    designateSubmitting: "Designating…",
+    designateSuccess: "Correctly designated user.",
+    designateError: "Could not be appointed.Verify the email and the assigned manager.",
+    roleManager: "Manager",
+    roleAdvisor: "Adviser"
   },
   userRoleHeader: {
-    fallbackName: 'User',
-    approvedStatus: 'Approved'
+    fallbackName: "User",
+    approvedStatus: "Approved"
   },
   managerPortal: {
-    eyebrow: 'Manager panel',
-    title: 'Commercial network management',
-    desc: 'Supervise advisors and incorporated investors. Commissions are shared among advisor, manager, and administrator.',
-    clientsCard: 'Client portfolio',
-    clientsCardDesc: 'Investors incorporated by your advisor network.',
-    commissionsCard: 'Commissions',
-    commissionsCardDesc: 'You receive 30% of commission when an advisor in your network incorporates an investor.',
-    teamCard: 'Advisor network',
-    teamCardDesc: 'Review your team and clients assigned to your network.'
+    eyebrow: "Manager panel",
+    title: "Commercial network management",
+    desc: "Supervises embedded advisors and investors.The commissions are distributed between advisor, manager and administrator.",
+    clientsCard: "Client portfolio",
+    clientsCardDesc: "Investors incorporated by your network of advisors.",
+    commissionsCard: "Commissions",
+    commissionsCardDesc: "You receive 30% of the commission when an advisor in your network incorporates an investor.",
+    teamCard: "Advisor network",
+    teamCardDesc: "See the equipment and clients assigned to your network."
   },
   adminSettings: {
-    loading: 'Loading settings…',
-    error: 'Could not load settings. Try again.',
-    refresh: 'Refresh',
-    save: 'Save changes',
-    saving: 'Saving…',
-    saveSuccess: 'Settings saved successfully.',
-    saveError: 'Could not save changes. Try again.',
-    validationWhatsapp: 'Enter a valid WhatsApp number (country code + number).',
-    validationEmail: 'Enter a valid contact email.',
-    validationSiteUrl: 'Enter a valid site URL (http or https).',
-    contactTitle: 'Contact & site',
-    contactDesc: 'Public contact details. Changes are stored in the database and override environment variables.',
-    whatsappPhone: 'WhatsApp (digits only, with country code)',
-    contactEmail: 'Contact email',
-    siteUrl: 'Site URL',
+    loading: "Loading configuration…",
+    error: "Configuration could not be loaded.Try again.",
+    refresh: "Update",
+    save: "Save changes",
+    saving: "Saving…",
+    saveSuccess: "Configuration saved successfully.",
+    saveError: "Changes could not be saved.Try again.",
+    validationWhatsapp: "Enter a valid WhatsApp number (country code + number).",
+    validationEmail: "Enter a valid contact email.",
+    validationSiteUrl: "Enter a valid site URL (http or https).",
+    contactTitle: "Contact and site",
+    contactDesc: "Public contact information.Changes are saved to the database and take precedence over environment variables.",
+    whatsappPhone: "WhatsApp (digits only, with country code)",
+    contactEmail: "Contact email",
+    siteUrl: "Site URL",
     sources: {
-      database: 'Saved in platform',
-      environment: 'Environment variable',
-      default: 'Default value'
+      database: "Saved on platform",
+      environment: "Environment variable",
+      default: "Default value"
     },
-    integrationsTitle: 'Integrations',
-    integrationsDesc: 'Status of external services configured on the server.',
+    integrationsTitle: "Integrations",
+    integrationsDesc: "Status of external services configured on the server.",
     integrations: {
-      email: 'Email (Resend)',
-      sms: 'SMS (Twilio)',
-      kyc: 'KYC (Didit)',
-      googleOAuth: 'Google OAuth',
-      appleOAuth: 'Apple OAuth',
-      walletConnect: 'WalletConnect',
-      blockchain: 'Blockchain / RPC',
-      redis: 'Redis / queues',
-      thirdweb: 'Thirdweb (tokens demo)',
-      supabaseStorage: 'Supabase Storage',
-      collateralWebhook: 'DeFi collateral webhook',
-      centrifuge: 'Centrifuge Hub',
-      morpho: 'Morpho',
-      maple: 'Maple Finance',
-      figure: 'Figure Markets'
+      email: "Email (Resend)",
+      sms: "SMS (Twilio)",
+      kyc: "KYC (Didit)",
+      googleOAuth: "Google OAuth",
+      appleOAuth: "Apple OAuth",
+      walletConnect: "WalletConnect",
+      blockchain: "Blockchain/RPC",
+      redis: "Redis/queues",
+      thirdweb: "Thirdweb (demo tokens)",
+      supabaseStorage: "Supabase Storage",
+      collateralWebhook: "DeFi collateral webhook",
+      centrifuge: "Centrifuge Hub",
+      morpho: "Morpho",
+      maple: "Maple Finance",
+      figure: "Figure Markets"
     },
-    configured: 'Configured',
-    notConfigured: 'Not configured',
-    accessTitle: 'Access & security',
-    accessDesc: 'Administrators and authentication providers.',
-    adminEmails: 'Admin emails',
-    noAdminEmails: 'No emails in AUTH_ADMIN_EMAILS.',
-    oauthGoogle: 'Google Sign-In',
-    oauthApple: 'Apple Sign-In',
-    operationsTitle: 'Operations',
-    operationsDesc: 'Operational flags from the deployment environment.',
-    nodeEnv: 'Environment',
-    allowDemoKyc: 'Demo KYC',
-    bullEnabled: 'Bull/Redis queues',
-    onboardingDevExposeCode: 'Show OTP codes on screen',
-    enabled: 'Enabled',
-    disabled: 'Disabled',
-    envNote: 'Integrations and operational flags are set via environment variables on Vercel or the server. A redeploy is required to apply changes.'
+    configured: "Configured",
+    notConfigured: "Unconfigured",
+    accessTitle: "Access and security",
+    accessDesc: "Administrators and authentication providers.",
+    adminEmails: "Administrator emails",
+    noAdminEmails: "No email in AUTH_ADMIN_EMAILS.",
+    oauthGoogle: "Google Sign-In",
+    oauthApple: "Apple Sign-In",
+    operationsTitle: "Operations",
+    operationsDesc: "Operational flags of the deployment environment.",
+    nodeEnv: "Around",
+    allowDemoKyc: "KYC demo",
+    bullEnabled: "Bull/Redis Queues",
+    onboardingDevExposeCode: "Show OTP codes on screen",
+    enabled: "Asset",
+    disabled: "Idle",
+    envNote: "Integrations and operational flags are configured with environment variables in Vercel or the server.Requires redeploy to apply changes."
   },
   adminTreasury: {
-    loading: 'Loading treasury…',
-    error: 'Could not load treasury data. Try again.',
-    refresh: 'Refresh',
-    kpiCapital: 'Capital committed',
-    kpiCapitalHint: '{count} registered investor(s)',
-    kpiMarginDebt: 'Margin debt',
-    kpiMarginDebtHint: 'Active liability across investor portfolios',
-    kpiPayouts: 'Executed payouts',
-    kpiPayoutsHint: '{count} pending payout(s)',
-    kpiLiquidPaid: 'Liquid cash paid',
-    kpiLiquidPaidHint: '{offset} applied to debt cancellation',
-    payoutsTitle: 'Project payout history',
-    payoutsDesc: 'On-chain distributions recorded in PayoutHistory.',
-    distributionsTitle: 'Investor distributions',
-    distributionsDesc: '{count} total record(s) in DividendDistribution.',
+    loading: "Loading treasury…",
+    error: "The treasury data could not be loaded.Try again.",
+    refresh: "Update",
+    kpiCapital: "Committed capital",
+    kpiCapitalHint: "{count} registered investor(s)",
+    kpiMarginDebt: "Margin debt",
+    kpiMarginDebtHint: "Active liabilities in investor portfolios",
+    kpiPayouts: "Payments executed",
+    kpiPayoutsHint: "{count} pending payment(s)",
+    kpiLiquidPaid: "Cash settled",
+    kpiLiquidPaidHint: "{offset} applied to debt cancellation",
+    payoutsTitle: "Payment history by project",
+    payoutsDesc: "On-chain distributions registered in PayoutHistory.",
+    distributionsTitle: "Distributions to investors",
+    distributionsDesc: "{count} records) totals in Dividend Distribution.",
     filters: {
-      ALL: 'All',
-      PENDING: 'Pending',
-      SUCCESS: 'Successful',
-      FAILED: 'Failed'
+      ALL: "All",
+      PENDING: "Earrings",
+      SUCCESS: "Successful",
+      FAILED: "Failed"
     },
     payoutStatus: {
-      PENDING: 'Pending',
-      SUCCESS: 'Successful',
-      FAILED: 'Failed'
+      PENDING: "Earring",
+      SUCCESS: "Successful",
+      FAILED: "Failed"
     },
-    colProject: 'Project',
-    colDate: 'Date',
-    colTotal: 'Total paid',
-    colLiquid: 'Cash',
-    colDebtOffset: 'Debt offset',
-    colStatus: 'Status',
-    colTx: 'Tx hash',
-    colInvestor: 'Investor',
-    colAsset: 'Asset',
-    colAmount: 'Amount',
-    colMarginApplied: 'Applied to margin',
-    receiptCount: '{count} receipt(s)',
-    emptyPayouts: 'No payouts match this filter.',
-    emptyDistributions: 'No distributions recorded.',
-    yes: 'Yes',
-    no: 'No'
+    colProject: "Project",
+    colDate: "Date",
+    colTotal: "Total paid",
+    colLiquid: "Cash",
+    colDebtOffset: "Debt cancellation",
+    colStatus: "State",
+    colTx: "Tx hash",
+    colInvestor: "Investor",
+    colAsset: "Asset",
+    colAmount: "Amount",
+    colMarginApplied: "Applied to margin",
+    receiptCount: "{count} receipt(s)",
+    emptyPayouts: "There are no payments with this filter.",
+    emptyDistributions: "There are no registered distributions.",
+    yes: "Yeah",
+    no: "No"
   },
   advisorPortal: {
-    navClients: 'My clients',
-    navSuggest: 'Suggest advisor',
-    clientsTitle: 'My clients',
-    clientsDescManager:
-      'Read-only view of investors incorporated by you and your advisor network.',
-    clientsDescAdvisor: 'Read-only view of investors you incorporated on the platform.',
-    readOnlyBadge: 'Read only',
-    colAdvisor: 'Incorporated by',
-    suggestTitle: 'Suggest new advisor',
-    suggestDesc: 'The request requires administrator approval.',
-    suggestSubmit: 'Submit request',
-    suggestSuccess: 'Request submitted. An administrator will review it.',
-    suggestError: 'Could not submit request.',
-    loading: 'Loading clients…',
-    error: 'Could not load clients.',
-    empty: 'You have no incorporated clients in your book yet.',
-    emptyHint: 'Investors appear when an administrator assigns them to your network.'
+    navClients: "my clients",
+    navSuggest: "Suggest advisor",
+    clientsTitle: "my clients",
+    clientsDescManager: "Read-only view of investors incorporated by you and your network of advisors.",
+    clientsDescAdvisor: "Read-only view of investors you added to the platform.",
+    readOnlyBadge: "Read only",
+    colAdvisor: "Incorporated by",
+    suggestTitle: "Suggest new advisor",
+    suggestDesc: "The request requires administrator approval.",
+    suggestSubmit: "Send request",
+    suggestSuccess: "Request sent.The administrator will review it.",
+    suggestError: "The request could not be sent.",
+    loading: "Loading clients…",
+    error: "Clients could not be loaded.",
+    empty: "You still do not have clients incorporated into your portfolio.",
+    emptyHint: "Inverters appear when the administrator assigns them to your network."
   },
   checkout: {
-    notFound: 'Project not found.',
-    title: 'Checkout',
-    investorRole: 'Investor',
-    approvedStatus: 'Approved',
-    kycReady: 'KYC approved · ready to sign on-chain',
-    tokenQuantity: 'Token quantity',
-    lessTokens: 'Fewer tokens',
-    moreTokens: 'More tokens',
-    maxAvailable: 'Max. {count} available',
-    pricePerToken: 'Price per token',
-    subtotal: 'Subtotal ({count} tokens)',
-    total: 'Total ({currency})',
-    requestSent: 'Request sent — check your wallet',
-    signing: 'Signing transaction…',
-    confirmPurchase: 'Confirm on-chain purchase',
-    connectToContinue: 'Connect your wallet to continue'
+    notFound: "Project not found.",
+    title: "Checkout",
+    investorRole: "Investor",
+    approvedStatus: "Approved",
+    kycReady: "KYC approved ready to sign on-chain",
+    tokenQuantity: "Number of tokens",
+    lessTokens: "Fewer tokens",
+    moreTokens: "More tokens",
+    maxAvailable: "Max.{count} available",
+    pricePerToken: "Price per token",
+    subtotal: "Subtotal ({count} tokens)",
+    total: "Total ({currency})",
+    requestSent: "Request sent — check your wallet",
+    signing: "Signing transaction…",
+    confirmPurchase: "Confirm on-chain purchase",
+    connectToContinue: "Connect your wallet to continue"
   },
   secondaryMarket: {
-    brandLabel: 'Sanova RWA',
-    title: 'Secondary Market',
-    subtitle:
-      'Buy and sell tokens peer-to-peer between KYC-verified users. Each property card shows active sell orders from other investors.',
-    kycRequired: 'Complete KYC to trade on the secondary market.',
-    kycRequiredShort: 'KYC required',
-    completeKyc: 'Complete KYC',
-    syncing: 'Refreshing listings…',
-    empty: 'No properties available on the secondary market.',
-    ordersTitle: 'Sell orders',
-    ordersSummary: '{count} tokens for sale · best ask from USD {price}',
-    noOrders: 'No active sell orders yet.',
-    sellTokens: 'Sell tokens',
-    cancelSellForm: 'Cancel',
-    sellQuantity: 'Quantity',
-    sellPrice: 'Price per token (USD)',
-    availableToSell: 'Available to sell: {count}',
-    publishListing: 'Publish listing',
-    publishing: 'Publishing…',
-    sellSuccess: 'Listing published successfully.',
-    sellError: 'Could not publish listing. Check quantity and price.',
-    buyTokens: 'Buy',
-    confirmBuy: 'Confirm purchase of these tokens on the secondary market?',
-    buySuccess: 'Purchase completed successfully.',
-    buyError: 'Could not complete the purchase.',
-    cancelListing: 'Cancel listing',
-    cancelSuccess: 'Listing cancelled.',
-    cancelError: 'Could not cancel listing.',
-    noTokensToSell: 'You have no tokens available to sell for this property.',
-    colSeller: 'Seller',
-    colTokens: 'Tokens',
-    colPrice: 'Price/token',
-    colTotal: 'Total',
-    colAction: 'Action',
-    anonymousSeller: 'Verified investor'
+    brandLabel: "Sanova RWA",
+    title: "Secondary Market",
+    subtitle: "Buy and sell tokens between KYC verified users.Each property shows active offers from other investors.",
+    kycRequired: "Complete your KYC to operate in the secondary market.",
+    kycRequiredShort: "KYC required",
+    completeKyc: "Complete KYC",
+    syncing: "Updating offers…",
+    empty: "There are no properties available on the secondary market.",
+    ordersTitle: "Sales offers",
+    ordersSummary: "{count} tokens for sale · best price from USD {price}",
+    noOrders: "No active offers for now.",
+    sellTokens: "Sell ​​tokens",
+    cancelSellForm: "Cancel",
+    sellQuantity: "Amount",
+    sellPrice: "Price per token (USD)",
+    availableToSell: "Available for sale: {count}",
+    publishListing: "Publish offer",
+    publishing: "Publishing…",
+    sellSuccess: "Offer published correctly.",
+    sellError: "The offer could not be published.Check quantity and price.",
+    buyTokens: "Buy",
+    confirmBuy: "Confirm the purchase of these tokens on the secondary market?",
+    buySuccess: "Purchase registered correctly.",
+    buyError: "The purchase could not be completed.",
+    cancelListing: "Cancel offer",
+    cancelSuccess: "Offer cancelled.",
+    cancelError: "The offer could not be cancelled.",
+    noTokensToSell: "You do not have tokens available to sell on this property.",
+    colSeller: "Seller",
+    colTokens: "Tokens",
+    colPrice: "Price/token",
+    colTotal: "Total",
+    colAction: "Action",
+    anonymousSeller: "Verified investor"
   },
   wallet: {
-    disconnect: 'Disconnect',
-    connecting: 'Connecting…',
-    connect: 'Connect wallet (MetaMask / injected)',
-    noWallet: 'Install MetaMask or a compatible browser wallet.'
+    disconnect: "Disconnect",
+    connecting: "Connecting…",
+    connect: "Connect wallet (MetaMask / injected)",
+    noWallet: "Install MetaMask or another wallet compatible with the browser."
   },
   dashboard: {
-    eyebrow: 'Capital & Coverage',
-    title: 'Sanova Global SAS — Portfolio Analytics',
-    subtitle:
-      'Institutional tracking of liquid cash flow, debt coverage and tokenized physical asset performance.',
-    kpiDividends: 'Cash Dividends Received (USDC)',
-    kpiDividendsHint: 'Settled total via on-chain listener',
-    kpiDebtCoverage: 'Active Debt Coverage',
-    kpiDebtCoverageHint: '% amortization covered against outstanding liability',
-    kpiAneloYield: 'Añelo Operations Yield',
-    kpiAneloYieldHint: 'Projected yield on physical asset NAV',
-    chartTitle: 'Monthly flow: dividends vs. debt service',
-    chartSubtitle: 'Liquidated dividend income vs. scheduled debt service.',
-    chartCurrency: 'USDC / USD — consolidated view',
-    chartDividends: 'Dividend income',
-    chartDebt: 'Debt service',
-    distributionsTitle: 'Latest Liquidated Distributions',
-    distributionsSubtitle: 'Events indexed by blockchain listener — cash tranche in USDC.',
-    colDate: 'Date',
-    colAsset: 'Asset',
-    colConcept: 'Concept',
-    colAmount: 'Amount USDC',
-    colStatus: 'Status',
-    colTx: 'Tx',
-    syncing: 'Syncing distributions…',
-    empty: 'No liquidated distributions recorded.',
-    liveDividend: 'Live dividend received'
+    eyebrow: "Capital and Coverage",
+    title: "Sanova Global SAS — Portfolio Analytics",
+    subtitle: "Institutional tracking of liquid cash flow, debt coverage and performance of tokenized physical assets.",
+    kpiDividends: "Cash Dividends Received (USDC)",
+    kpiDividendsHint: "Accumulated settled via on-chain listener",
+    kpiDebtCoverage: "Active Debt Coverage",
+    kpiDebtCoverageHint: "% of amortization covered against current liabilities",
+    kpiAneloYield: "Añelo Operations Performance",
+    kpiAneloYieldHint: "Projected Yield on NAV of the physical asset",
+    chartTitle: "Monthly flow: dividends vs.debt service",
+    chartSubtitle: "Crossover of liquidated dividend income against scheduled debt service.",
+    chartCurrency: "USDC/USD — consolidated view",
+    chartDividends: "Dividend income",
+    chartDebt: "debt service",
+    distributionsTitle: "Latest Liquidated Distributions",
+    distributionsSubtitle: "Events indexed by the blockchain listener — cash tranche in USDC.",
+    colDate: "Date",
+    colAsset: "Asset",
+    colConcept: "Concept",
+    colAmount: "USDC amount",
+    colStatus: "State",
+    colTx: "TX",
+    syncing: "Synchronizing distributions…",
+    empty: "There are no liquidated distributions on record.",
+    liveDividend: "Live dividend received"
   },
   chart: {
-    unavailable: 'Chart unavailable',
-    unavailableHint: 'The rest of the dashboard remains operational. Reload the page to retry.'
+    unavailable: "Chart not available",
+    unavailableHint: "The rest of the dashboard is still operational.Try reloading the page."
   },
   landing: {
     nav: {
-      howItWorks: 'How it works',
-      properties: 'Properties',
-      marketplace: 'Marketplace',
-      secondaryMarket: 'Secondary Market',
-      platformAccess: 'Platform access',
-      enterPlatform: 'Enter the platform'
+      howItWorks: "How it works",
+      properties: "Properties",
+      marketplace: "Marketplace",
+      secondaryMarket: "Secondary Market",
+      platformAccess: "Platform Access",
+      enterPlatform: "Enter the Platform",
+      mainNavAria: "Major",
+      mobileNavAria: "Mobile menu",
+      openMenu: "Open menu",
+      closeMenu: "Close menu",
+      menuLabel: "Menu"
     },
-    languageLabel: 'Language',
+    languageLabel: "Language",
     hero: {
-      eyebrow: 'Tokenized real estate',
-      title: 'Own fractional real assets.\nEarn rental income on-chain.',
-      subtitle:
-        'Sanova Global connects verified investors with productive properties in Vaca Muerta, Neuquén, Argentina — a premier global unconventional shale oil & gas hub with the world\'s second-largest gas reserves, world-class infrastructure, highly competitive operating costs, and vast oil & gas production potential — plus transparent yields, KYC compliance, and instant settlement.',
-      ctaPrimary: 'Discover B2B cash flows',
-      ctaSecondary: 'How it works',
-      trustLine: 'Regulated frameworks · KYC/AML · On-chain distributions in USDC'
+      eyebrow: "Tokenized real estate",
+      title: "Own real assets in Vaca Muerta.\nReceive income on-chain.",
+      subtitle: "Vaca Muerta is not only the second gas reserve on the planet;It is the global epicenter of unconventional shale.Its accelerated growth has generated a critical deficit in strategic infrastructure.Through the tokenization of assets (RWA), Sanova Global connects global capital with prime real estate and commercial developments in the strategic corridor of the basin, supported by B2B rental contracts with the main energy operators.We offer direct exposure to Argentina's most dynamic sector with hard currency yields, strict regulatory compliance (KYC), and automated dividend settlement.",
+      ctaPrimary: "Discover B2B cash flows",
+      ctaSecondary: "How it works",
+      trustLine: "Regulatory frameworks · KYC/AML · On-chain distributions in USDC"
     },
     trustBadges: {
-      ariaLabel: 'Institutional trust signals',
+      ariaLabel: "Institutional guarantees",
       labels: [
-        'Automated on-chain settlement',
-        'Real-estate legal audit',
-        'Strict institutional compliance'
+        "Automated on-chain settlement",
+        "Real Estate Legal Audit",
+        "Strict and institutional compliance"
       ]
     },
     stats: {
-      properties: 'Live offerings',
-      investors: 'Verified investors',
-      distributed: 'USDC distributed',
-      avgApy: 'Avg. projected APY'
+      properties: "Active offers",
+      investors: "Verified investors",
+      distributed: "USDC distributed",
+      avgApy: "Avg Projected APY"
     },
     operators: {
-      title: 'Companies operating in Vaca Muerta',
-      subtitle: 'These are some of the oil and gas companies with operations in the basin'
+      title: "Companies operating in Vaca Muerta",
+      subtitle: "These are some of the oil and gas companies with operations in the basin"
     },
     macroThesis: {
-      eyebrow: 'Macro Context & Investment Thesis',
-      title: 'The Energy Engine of the West: Real-Asset Opportunity',
-      intro:
-        'Vaca Muerta is not an exploratory promise — it holds the world\'s second-largest shale gas reserves and fourth-largest shale oil reserves. At a scale comparable to the U.S. Permian Basin, leading energy multinationals invest over US$ 9 billion annually to expand production.',
-      mapCaption:
-        '📍 Patagonia, Argentina (38°S)\n    Vaca Muerta basin: 30,000 km² — comparable to Belgium',
-      mapFormationLine1: 'Formation',
-      mapFormationLine2: 'VACA',
-      mapFormationLine3: 'MUERTA',
-      thesisTitle: 'The Infrastructure Gap: Our Investment Thesis',
-      thesisDesc:
-        'This massive acceleration requires physical facilities the region does not yet have. Sanova Global tokenizes the prime infrastructure that supports this monumental operation.',
+      eyebrow: "Macro Context and Investment Thesis",
+      title: "The Energy Engine of the West: Opportunity in Real Assets",
+      intro: "Vaca Muerta is not an exploratory promise;It is the world's second largest shale gas reserve and the fourth largest shale oil reserve.On a scale comparable to the Permian Basin in the US, major energy multinationals inject more than US$9 billion annually to expand their production.",
+      mapAlt: "Map of Argentina.The Vaca Muerta formation is located in the west, in Neuquén and neighboring provinces.",
+      mapCaption: "📍 Patagonia, Argentina (38°S)\nVaca Muerta Basin: 30,000 km² — equivalent to Belgium",
+      mapFormationLine1: "Training",
+      mapFormationLine2: "COW",
+      mapFormationLine3: "DEAD",
+      thesisTitle: "The Infrastructure Deficit: Our Investment Thesis",
+      thesisDesc: "This massive acceleration requires physical facilities that the region does not have today.Sanova Global tokenizes the prime infrastructure that supports this monumental operation.",
       benefits: [
-        'Inelastic Corporate Demand (B2B): Complexes leased to operators.',
-        'Resilient Contracts: Cap rates above the global market.',
-        'Structural Efficiency: Optimized tax and fiscal architecture.',
-        'Global Cash Flow (USDC): Cash dividends directly to your wallet.'
+        "Inelastic Corporate Demand (B2B): Complexes rented to operators.",
+        "Resilient Contracts: Cap Rates higher than the global market.",
+        "Structural Efficiency: Optimized fiscal and tax architecture.",
+        "Global Cash Flow (USDC): Cash dividends direct to your wallet."
       ],
-      cta: 'Explore Tokenized Assets'
+      cta: "Explore Tokenized Assets"
     },
     howItWorks: {
-      title: 'Invest in four steps',
-      subtitle: 'From discovery to on-chain ownership — designed for global retail and institutional investors.',
-      step1Title: 'Complete KYC',
-      step1Desc: 'Verify your identity once. Sanova partners with regulated onboarding providers.',
-      step2Title: 'Choose a property',
-      step2Desc: 'Browse tokenized assets with disclosed fiscal regime, APY, and placement progress.',
-      step3Title: 'Receive distributions',
-      step3Desc: 'Rental income flows to your wallet in USDC. Track everything in the investor portal.',
-      step4Title: 'Join our Secondary Market',
-      step4Desc: 'Buy and sell your tokens with other investors on the platform.'
+      title: "Investing in four steps",
+      subtitle: "From discovery to on-chain ownership — for retail and institutional investors.",
+      step1Title: "Complete your Data (KYC).",
+      step1Desc: "Verify your identity once.Sanova integrates regulated onboarding providers.",
+      step2Title: "Choose a property.",
+      step2Desc: "Explore tokenized assets with real contract information, APY and placement progress reported.",
+      step3Title: "Receive distributions.",
+      step3Desc: "Rental income reaches your wallet in USDC.Monitoring on the investor portal.",
+      step4Title: "Participate in the Secondary Market.",
+      step4Desc: "Buy and sell your tokens to other investors on the platform.Obtaining immediate liquidity."
     },
     featured: {
-      title: 'Featured properties',
-      subtitle: 'Curated real-world assets with transparent token economics.',
-      viewAll: 'View all listings',
-      soldPercent: '{percent}% sold',
-      apyBadge: '{apy}% APY'
+      title: "Featured properties",
+      subtitle: "Real-world assets with transparent token economy.",
+      viewAll: "See all listings",
+      soldPercent: "{percent}% placed",
+      apyBadge: "{apy}% APY"
     },
     benefits: {
-      title: 'Why Sanova RWA',
-      incomeTitle: 'Recurring rental income',
-      incomeDesc: 'Monthly distributions from operating cash flow, settled on-chain.',
-      liquidityTitle: 'Programmed liquidity',
-      liquidityDesc: 'Exit via SanovaAMM treasury or secondary mechanisms when available.',
-      complianceTitle: 'Compliance-first',
-      complianceDesc: 'KYC, fiscal disclosure per jurisdiction, and auditable on-chain records.'
+      title: "Why Sanova RWA",
+      incomeTitle: "Recurring income",
+      incomeDesc: "Weekly or monthly distributions of operational flow, settled on-chain.",
+      liquidityTitle: "Scheduled liquidity",
+      liquidityDesc: "Exit via Sanova treasury or secondary market.We buy back your tokens or you can sell them on our platform.With immediate liquidity.",
+      complianceTitle: "Compliance first",
+      complianceDesc: "KYC, legal disclosure of real-world documentation and auditable on-chain records."
     },
     cta: {
-      title: 'Start building your real-asset portfolio',
-      subtitle: 'Join investors accessing institutional-grade tokenized real estate.',
-      button: 'Open marketplace'
+      title: "Start your real asset portfolio",
+      subtitle: "Access tokenized real estate with institutional standard.",
+      button: "Open marketplace"
     },
     footer: {
-      tagline: 'RWA · Tokenized real estate',
-      disclaimer:
-        'This site is for informational purposes only and does not constitute an offer to sell or solicitation to buy securities. Past performance does not guarantee future results. Consult licensed advisors before investing.',
-      rights: '© 2019–2026 Sanova Global. All rights reserved.',
-      contact: 'Contact',
-      privacy: 'Privacy',
-      terms: 'Terms'
+      navAria: "Footer",
+      tagline: "RWA · Tokenized real estate",
+      disclaimer: "Capital management with a focus on integrity and value preservation.Sanova Global SAS provides this digital ecosystem for informational purposes, integrating cutting-edge technology with the strength of physical assets.We understand that every investment involves some market variable and that previous results are, in some cases, referential and not absolute guarantees.We design our operations with the highest standards of integrity, compliance and commitment for your peace of mind.",
+      rights: "© 2026 Sanova Global SAS.All rights reserved.",
+      contact: "Contact",
+      privacy: "Privacy",
+      terms: "Terms"
     }
   },
   contact: {
-    title: 'Contact',
-    subtitle: 'Send us your inquiry and our team will get back to you shortly.',
-    nameLabel: 'Full name',
-    namePlaceholder: 'Your name',
-    emailLabel: 'Email',
-    emailPlaceholder: 'you@email.com',
-    messageLabel: 'Message',
-    messagePlaceholder: 'How can we help you?',
-    submit: 'Send message',
-    submitting: 'Sending…',
-    errorSend: 'We could not send your message. Please try again in a few minutes.',
-    formNote:
-      'You will be redirected briefly and return here. On first use, check your inbox (claudioschejter@gmail.com) and activate the one-time FormSubmit confirmation link.',
-    successTitle: 'Message sent',
-    successDesc: 'Thank you for contacting Sanova Global. We will respond as soon as possible.',
-    backHome: 'Back to home'
+    title: "Contact",
+    subtitle: "Send us your query and our team will respond to you as soon as possible.",
+    nameLabel: "Full name",
+    namePlaceholder: "your name",
+    emailLabel: "E-mail",
+    emailPlaceholder: "you@email.com",
+    messageLabel: "Message",
+    messagePlaceholder: "How can we help you?",
+    submit: "Send message",
+    submitting: "Sending…",
+    errorSend: "The message could not be sent.Try again in a few minutes.",
+    formNote: "When you send you will be redirected for an instant and you will return to this page.If this is your first time, check your inbox (claudioschejter@gmail.com) and activate the FormSubmit link — just once.",
+    successTitle: "Message sent",
+    successDesc: "Thank you for contacting Sanova Global.We will reply to you as soon as possible.",
+    backHome: "Back to top"
   },
   access: {
-    title: 'Platform access',
-    subtitle:
-      'Sign in with your email and password. Your profile determines whether you access as admin, advisor, advisor manager, or investor.',
-    loginTitle: 'Sign in',
-    loginDesc: 'Access the marketplace and your portfolio with your verified account.',
-    loginButton: 'Go to marketplace',
-    emailLabel: 'Email',
-    emailPlaceholder: 'you@email.com',
-    passwordLabel: 'Password',
-    passwordPlaceholder: 'Your password',
-    signInButton: 'Sign in',
-    forgotPassword: 'Forgot password',
-    invalidCredentials: 'Incorrect email or password.',
-    signingIn: 'Signing in…',
-    signedInAs: 'Signed in as',
-    roleLabel: 'Role',
-    continueButton: 'Continue',
-    sessionActiveTitle: 'You already have an active session',
-    sessionPendingDesc:
-      'Your account is not operational yet. Verify your email and phone to continue.',
-    sessionRegisteredDesc:
-      'Account created successfully. Verify your email and phone to activate your account.',
-    continueVerification: 'Continue onboarding',
-    switchAccount: 'Sign out and use another account',
-    authError: 'We could not complete sign-in. Check OAuth configuration or try again.',
-    rolesTitle: 'Platform roles',
-    rolesDesc: 'After sign-in, your account is classified automatically based on your authorized email.',
+    title: "Access to the platform",
+    subtitle: "Log in with your email and password.Depending on your profile, you access as an administrator, advisor, advisor's advisor or investor.",
+    loginTitle: "Login",
+    loginDesc: "Access the platform and your wallet with your verified account.",
+    loginButton: "Go to the marketplace",
+    emailLabel: "E-mail",
+    emailPlaceholder: "you@email.com",
+    passwordLabel: "Password",
+    passwordPlaceholder: "Your password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    redirecting: "Redirecting…",
+    redirectingByRole: "Redirecting according to your role…",
+    signInButton: "Get into",
+    forgotPassword: "I forgot my password",
+    invalidCredentials: "Incorrect email or password.",
+    signingIn: "Entering…",
+    signedInAs: "Active session:",
+    roleLabel: "Role",
+    continueButton: "Continue",
+    sessionActiveTitle: "You already have an active session",
+    sessionPendingDesc: "Your account is not yet operational.Verify your email and complete your KYC to continue.",
+    sessionRegisteredDesc: "Account created successfully.Verify your email and complete your KYC to activate your account.",
+    continueVerification: "Continue onboarding",
+    switchAccount: "Log out and log in with another account",
+    authError: "We could not complete the entry.Please check your OAuth configuration or try again.",
+    rolesTitle: "Platform roles",
+    rolesDesc: "All roles (Administrator, Manager, Advisor and Investor) must verify email, phone and complete KYC before trading.",
     roles: {
-      ADMIN: 'Administrator',
-      ADVISOR_MANAGER: 'Manager',
-      ADVISOR: 'Advisor',
-      INVESTOR: 'Investor',
-      TREASURY: 'Treasury',
-      OPERATOR: 'Operator'
+      ADMIN: "Administrator",
+      ADVISOR_MANAGER: "Manager",
+      ADVISOR: "Adviser",
+      INVESTOR: "Investor",
+      TREASURY: "Treasury",
+      OPERATOR: "Operator"
     },
     roleDescriptions: {
-      ADMIN: 'Institutional management, users, and operations.',
-      ADVISOR_MANAGER: 'Supervises advisor network and commissions.',
-      ADVISOR: 'Supports investors and manages assigned portfolio.',
-      INVESTOR: 'Accesses marketplace and tokenized portfolio.',
-      TREASURY: 'Treasury operations and cash flow.',
-      OPERATOR: 'Internal platform operations.'
+      ADMIN: "Institutional management, users and operations.",
+      ADVISOR_MANAGER: "Oversees the network of advisors and receives commissions for onboarded investors.",
+      ADVISOR: "Accompanies investors and manages assigned portfolio.",
+      INVESTOR: "Access the marketplace and tokenized portfolio.",
+      TREASURY: "Treasury operations and cash flow.",
+      OPERATOR: "Internal operations of the platform."
     },
-    staffPanelHint: 'Operational panel based on your role permissions.',
-    registerTitle: 'Create account',
-    registerDesc:
-      'Email and phone. After sign-up you verify email and SMS to activate your account.',
-    registerButton: 'Create account and continue',
+    staffPanelHint: "Operational panel according to your role permissions.",
+    registerTitle: "Create new account",
+    registerDesc: "Here we are going to validate your email and register your phone.\nThen we go through a KYC to make sure it is really you.",
+    registerButton: "Create account and continue",
     register: {
-      fullNameLabel: 'Full name',
-      fullNamePlaceholder: 'As shown on your ID or passport',
-      taxIdLabel: 'Tax identification number',
-      taxIdPlaceholder: 'CUIT / CUIL / tax ID',
-      emailLabel: 'Email',
-      emailPlaceholder: 'you@email.com',
-      verifiedLabel: 'Verified',
-      pendingLabel: 'Pending',
-      kycPrefillHint:
-        'Full name and tax ID were filled automatically from your Didit verification.',
-      profileHint: 'Your account details. Complete verification to operate on the platform.',
-      passwordLabel: 'Password',
-      passwordPlaceholder: 'At least 8 characters',
-      passwordHint: 'Use at least 8 characters. Toggle visibility with the eye icon.',
-      phoneLabel: 'Mobile phone',
-      phonePlaceholder: '2617513426',
-      phoneHint: 'Enter the number without leading 0 or 15. Country code is selected separately.',
-      countryLabel: 'Country code',
-      submitButton: 'Create account and verify',
-      submitting: 'Creating account…',
-      flowHint: 'Step 1: sign up · Step 2: email · Step 3: KYC',
-      devCodes: 'Verification codes',
-      codesOnScreenHint: 'Use these codes in the next steps (email/SMS provider not configured yet):',
+      fullNameLabel: "Full name",
+      fullNamePlaceholder: "As it appears on your ID or passport",
+      taxIdLabel: "Tax identification number",
+      taxIdPlaceholder: "CUIT / CUIL / tax document",
+      emailLabel: "Email",
+      emailPlaceholder: "you@email.com",
+      verifiedLabel: "Verified",
+      pendingLabel: "Earring",
+      kycPrefillHint: "Name and tax ID automatically filled in from your Didit verification.",
+      profileHint: "Your account details.Complete the verification to operate on the platform.",
+      passwordLabel: "Password",
+      passwordPlaceholder: "Minimum 8 characters",
+      passwordHint: "Use at least 8 characters.You can show or hide the password with the eye icon.",
+      phoneLabel: "mobile phone",
+      phonePlaceholder: "2617513426",
+      phoneHint: "",
+      countryLabel: "country code",
+      submitButton: "Create account and verify",
+      submitting: "Creating account…",
+      flowHint: "Step 1: Registration Step 2: Confirm email Step 3: KYC",
+      devCodes: "Verification codes",
+      codesOnScreenHint: "Use these codes in the next step (email/SMS even without provider):",
       errors: {
-        GENERIC: 'We could not create your account. Please try again.',
-        EMAIL_IN_USE: 'This email is already registered. Sign in instead.',
-        WEAK_PASSWORD: 'Password must be at least 8 characters.',
-        INVALID_EMAIL: 'Enter a valid email address (e.g. you@email.com).',
-        INVALID_PHONE: 'Enter a valid mobile number with country code.',
-        VERIFICATION_DELIVERY_FAILED:
-          'We could not send the email and SMS codes. The account was not activated; please try again in a few minutes.',
-        SIGN_IN_FAILED: 'Account created, but automatic sign-in failed.'
+        GENERIC: "We couldn't create the account.Try again.",
+        EMAIL_IN_USE: "This email is already registered.Sign in.",
+        WEAK_PASSWORD: "The password must be at least 8 characters.",
+        INVALID_EMAIL: "Enter a valid email (en. your@email.com).",
+        INVALID_PHONE: "Enter a valid mobile phone number with country code.",
+        VERIFICATION_DELIVERY_FAILED: "We were unable to send the email and SMS codes.The account was not registered;Try again in a few minutes.",
+        SIGN_IN_FAILED: "Account created, but we couldn't log in automatically."
       }
     },
-    kycTitle: 'Identity verification (KYC)',
-    kycDesc:
-      'Available after email and phone verification. Didit handles identity with document and liveness checks.',
-    kycButton: 'Go to onboarding',
-    backHome: 'Back to home'
+    kycTitle: "Identity verification (KYC)",
+    kycDesc: "Available after verifying email and charging phone.Didit manages identity with document and proof of life.",
+    kycButton: "Go to onboarding",
+    backHome: "Back to top"
   },
   kyc: {
-    title: 'KYC verification',
-    description:
-      'Integration with Sumsub provider. After automatic approval, the webhook will update your status to verified.',
-    simulateButton: 'Simulate KYC approval (demo)',
-    cancel: 'Cancel',
-    loading: 'Loading KYC…'
+    title: "KYC Verification",
+    description: "Integration with Sumsub provider.Upon automatic approval, the webhook will update your status to verified.",
+    simulateButton: "Simulate KYC approval (demo)",
+    cancel: "Cancel",
+    loading: "Loading KYC…"
   },
   onboarding: {
-    eyebrow: 'Mobile onboarding',
-    title: 'Activate your account',
-    backHome: 'Home',
-    backToAccess: 'Back to sign in',
-    loading: 'Loading onboarding…',
-    continue: 'Continue',
-    continuing: 'Processing…',
-    devCodes: 'Test codes',
-    loginRequiredTitle: 'Sign in to continue',
-    loginRequiredDesc: 'Onboarding with ID, email, and phone requires an active session.',
-    loginRequiredCta: 'Go to sign in',
+    eyebrow: "Mobile registration",
+    title: "Activate your account",
+    backHome: "Start",
+    backToAccess: "Return to access",
+    loading: "Loading onboarding…",
+    continue: "Continue",
+    continuing: "Processing…",
+    devCodes: "Test codes",
+    loginRequiredTitle: "Sign in to continue",
+    loginRequiredDesc: "Registration with ID, email and telephone requires an active account.",
+    loginRequiredCta: "Go to access",
     fields: {
-      email: 'Email',
-      phone: 'Mobile phone',
-      phonePlaceholder: '2617513426',
-      countryLabel: 'Country code',
-      phoneHint: 'Without leading 0 or 15. Example with +54: 2617513426.'
+      email: "Email",
+      phone: "mobile phone",
+      phonePlaceholder: "2617513426",
+      countryLabel: "country code",
+      phoneHint: "Without 0 or 15. Example Mendoza: 2617513426 with +54."
     },
     steps: {
-      contactTitle: 'Contact details',
-      contactDesc: 'We use your session email and save your phone for contact. We do not require SMS at this stage.',
-      emailTitle: 'Verify your email',
-      emailDesc: 'Enter the 6-digit code we sent to your inbox.',
-      phoneTitle: 'Verify your phone',
-      phoneDesc: 'Enter the 6-digit SMS code.',
-      codeSentEmail: 'We sent a code to your email. Check your inbox and spam folder.',
-      codeSentPhone: 'We sent an SMS code to your phone.',
-      emailApproved: 'Email approved',
-      change: 'Change',
-      codeExpiredHint: 'If it did not arrive or expired, you can request a new one.',
-      resendCode: 'Resend code',
-      resendingCode: 'Resending…',
-      identityTitle: 'What’s next?',
-      identityDesc: 'With your mobile phone',
-      identityStep1: '1- We will take photos of your official ID document.',
-      identityStep2: '2- We will take a selfie to verify your identity.',
-      startDidit: 'Verify identity with mobile phone',
-      diditRedirecting: 'Connecting…',
-      identityOperationalNote:
-        'Once your identity is verified, your account will be operational and ready to use.',
-      demoKyc: 'Simulate verification (demo only)',
-      doneTitle: 'Account operational',
-      doneDesc: 'Email and identity verified. You can now use the marketplace.'
+      contactTitle: "Contact details",
+      contactDesc: "We will use your session email and save your phone number for contact.We will not ask for SMS at this stage.",
+      emailTitle: "Check your email",
+      emailDesc: "Enter the 6-digit code that we sent to your email.",
+      phoneTitle: "Check your phone",
+      phoneDesc: "Enter the 6-digit SMS code.",
+      codeSentEmail: "We send a code to your email.Check your inbox and spam.",
+      codeSentPhone: "We send a code by SMS to your phone.",
+      emailApproved: "approved mail",
+      change: "Change",
+      codeExpiredHint: "If it hasn't arrived or expired, you can order a new one.",
+      resendCode: "Resend code",
+      resendingCode: "Forwarding…",
+      identityTitle: "What's next?",
+      identityDesc: "With your cell phone",
+      identityStep1: "1- We are going to take photos of your official document.",
+      identityStep2: "2- We are going to take a selfie of you to verify your identity.",
+      startDidit: "Validate identity with cell phone",
+      diditRedirecting: "Connecting…",
+      identityOperationalNote: "After the identity is verified, the account will be operational and ready to operate.",
+      demoKyc: "Simulate verification (demo only)",
+      doneTitle: "Operating account",
+      doneDesc: "Verified email and identity.You can now operate in the marketplace."
     },
     errors: {
-      GENERIC: 'We could not complete this step. Please try again.',
-      INVALID_CODE: 'Invalid or expired code.',
-      INVALID_PHONE: 'Enter a valid phone number with country code.',
-      RATE_LIMIT: 'Too many attempts. Wait a few minutes.',
-      VERIFICATION_DELIVERY_FAILED:
-        'We could not send the email and SMS codes. Check email/SMS configuration or try again.',
-      EMAIL_DELIVERY_FAILED:
-        'We could not send the code to your email. Check spam or verify the Resend sender.',
-      SMS_DELIVERY_FAILED:
-        'We could not send the SMS. Verify the phone number or Twilio configuration.',
-      DIDIT_NOT_CONFIGURED: 'Didit is not configured on the server yet. Contact support.',
-      CONTACT_NOT_VERIFIED: 'Verify your email and add your phone before starting KYC.',
-      UNAUTHORIZED: 'Your session is not ready yet. Wait a moment and try again.'
+      GENERIC: "We couldn't complete the step.Try again.",
+      INVALID_CODE: "Incorrect or expired code.",
+      INVALID_PHONE: "Enter a valid phone number with country code.",
+      RATE_LIMIT: "Too many attempts.Wait a few minutes.",
+      VERIFICATION_DELIVERY_FAILED: "We were unable to send the email and SMS codes.Please check your email/SMS settings or try again.",
+      EMAIL_DELIVERY_FAILED: "We couldn't send the code to your email.Check spam or verify the sender in Resend.",
+      SMS_DELIVERY_FAILED: "We could not send the SMS.Check the Twilio number or settings.",
+      DIDIT_NOT_CONFIGURED: "Didit is not configured on the server yet.Contact support.",
+      CONTACT_NOT_VERIFIED: "First verify your email and charge your phone before starting the KYC.",
+      UNAUTHORIZED: "Your session is not ready yet.Wait a moment and try again."
     }
   },
   pwa: {
-    installTitle: 'Install Sanova on your phone',
-    installDesc: 'Quick app-like access — best for uploading documents and identity checks.',
-    installCta: 'Add to home screen',
-    dismiss: 'Close'
+    installTitle: "Install Sanova on your cell phone",
+    installDesc: "Quick access as an app, ideal for uploading documents and verifying identity.",
+    installCta: "Add to home screen",
+    dismiss: "Close"
   },
   cashFlow: {
-    eyebrow: 'Cash flow',
-    title: 'Cash dividends for margin repayment',
-    subtitle:
-      'Operating yields are settled strictly in cash to support amortization of investment account liabilities.',
-    availableCashLabel: 'Available cash accumulated for repayment',
-    coverageLabel: 'Coverage against active debt',
-    repayButton: 'Apply to margin repayment',
-    repaying: 'Processing repayment…',
-    repayError: 'Could not apply margin repayment.',
-    totalDistributedLabel: 'Total distributed',
-    historyTitle: 'Dividend distribution history',
-    colConcept: 'Concept',
-    colDate: 'Date',
-    colAsset: 'Asset',
-    colAmount: 'Amount USD',
-    colStatus: 'Status'
+    eyebrow: "Cash Flow",
+    title: "Cash dividends for margin repayment",
+    subtitle: "Operating returns are settled strictly in cash to facilitate the amortization of investment account liabilities.",
+    availableCashLabel: "Accumulated cash available for repayment",
+    coverageLabel: "Coverage against active debt",
+    repayButton: "Apply to margin repayment",
+    repaying: "Processing repayment…",
+    repayError: "Margin repayment could not be applied.",
+    totalDistributedLabel: "Total distributed",
+    historyTitle: "Dividend distribution history",
+    colConcept: "Concept",
+    colDate: "Date",
+    colAsset: "Asset",
+    colAmount: "USD amount",
+    colStatus: "State"
   },
   portfolio: {
-    title: 'My assets',
-    subtitle: 'Consolidated view of your tokenized holdings and on-chain positions.',
-    empty: 'You have no active positions yet. Explore the marketplace to invest.',
-    comingSoon: 'Detailed portfolio view coming soon. Meanwhile, explore the marketplace or your cash-flow dashboard.'
+    title: "My assets",
+    subtitle: "Consolidated view of your tokenized holdings and on-chain positions.",
+    empty: "You do not have active positions yet.Explore the marketplace to invest.",
+    comingSoon: "Detailed portfolio view will be available soon.In the meantime, explore the marketplace or the cash flow dashboard."
   },
   status: {
-    liquidatedCash: 'Liquidated in cash'
+    liquidatedCash: "settled in cash"
   },
   demo: {
     assets: {
-      aneloOps: 'Añelo Operations',
-      tolhuin: 'Tolhuin',
-      mendoza: 'Mendoza'
+      aneloOps: "Anelo Operations",
+      tolhuin: "Tolhuin",
+      mendoza: "Mendoza"
     },
     concepts: {
-      aneloYield: 'Distributed yield — cash tranche (USDC)',
-      aneloAmortization: 'Partial amortization indexed via listener',
-      tolhuinDividend: 'Operating RWA dividend liquidated in cash',
-      debtServiceCoverage: 'Debt service — covered with operating cash flow',
-      mendozaQuarterly: 'Quarterly performance distribution in cash',
-      liveDistribution: 'Distribution liquidated in real time (SSE)'
+      aneloYield: "Distributed yield — cash tranche (USDC)",
+      aneloAmortization: "Indexed partial amortization via listener",
+      tolhuinDividend: "RWA operating dividend settled in cash",
+      debtServiceCoverage: "Debt service — coverage with operating cash flow",
+      mendozaQuarterly: "Quarterly cash performance distribution",
+      liveDistribution: "Distribution settled in real time (SSE)"
     },
     cashFlowConcepts: {
-      tolhuinDividend: 'Operating RWA dividend liquidated in cash',
-      mendozaQuarterly: 'Quarterly performance distribution in cash'
+      tolhuinDividend: "RWA operating dividend settled in cash",
+      mendozaQuarterly: "Quarterly cash performance distribution"
     }
   },
-  meta: {
-    title: 'Sanova Global — Tokenized Real Estate',
-    description: 'Invest in tokenized real assets with on-chain rental income and KYC compliance.',
-    pwaTitle: 'Sanova RWA'
-  },
   error: {
-    eyebrow: 'Something went wrong',
-    title: 'We could not load this view',
-    fallback: 'Temporary portal error. You can return to the marketplace or retry.',
-    retry: 'Retry',
-    goMarketplace: 'Go to marketplace',
-    globalTitle: 'Unexpected error',
-    globalHint: 'An application error occurred. Your session and data are protected.'
+    eyebrow: "something went wrong",
+    title: "We could not load this view",
+    fallback: "Temporary portal error.You can return to the marketplace or retry.",
+    retry: "Retry",
+    goMarketplace: "Go to the marketplace",
+    globalTitle: "Unexpected error",
+    globalHint: "A crash occurred in the application.Your session and data are protected."
   }
-} as const;
-
-export type Messages = {
-  brand: {
-    portalSubtitle: string;
-  };
-  common: {
-    buyNow: string;
-    investNow: string;
-    reserveTokens: string;
-    completeKyc: string;
-    projectedApy: string;
-    location: string;
-    backToMarketplace: string;
-    whatsappLabel: string;
-    whatsappMessage: string;
-    loadingGeneric: string;
-  };
-  propertyCard: {
-    kycRequired: string;
-    readyForCheckout: string;
-    placementProgress: string;
-    tokenPrice: string;
-    tokenSymbolLabel: string;
-    estimatedAnnualIncome: string;
-    fixedAnnualPayment: string;
-    fixedCoupon: string;
-    instrumentDebt: string;
-    instrumentEquity: string;
-    maturity: string;
-    equityParticipation: string;
-    perToken: string;
-    instantLiquidity: string;
-    legalContractsBadge: string;
-    contractUnavailable: string;
-    limitedAvailability: string;
-    viewMap: string;
-    viewReel: string;
-    contracts: {
-      button: string;
-      title: string;
-      subtitle: string;
-      trust: string;
-      purchase: string;
-      lease: string;
-      smartContract: string;
-    };
-  };
-  marketplace: {
-    title: string;
-    subtitle: string;
-    brandLabel: string;
-    bestBorrowRate: string;
-    allBorrowRatesTitle: string;
-    allBorrowRatesDesc: string;
-    colLender: string;
-    colRegion: string;
-    colCategory: string;
-    colBorrowRate: string;
-    bestBadge: string;
-    lendingRatesFootnote: string;
-    lenderRegions: Record<'global' | 'americas' | 'europe' | 'asia_pacific' | 'mea', string>;
-    lenderCategories: Record<'money_market' | 'credit_pool' | 'rwa' | 'institutional', string>;
-    tokensAvailable: string;
-    loading: string;
-    empty: string;
-    error: string;
-    lendingBanner: string;
-    syncing: string;
-    trustKyc: string;
-    trustRegulation: string;
-    trustOnchain: string;
-    staffPreviewHint: string;
-    adminManageAssets: string;
-    adminManageTreasury: string;
-    roleSubtitles: {
-      default: string;
-      admin: string;
-      investor: string;
-      advisor: string;
-      advisorManager: string;
-    };
-  };
-  nav: {
-    language: string;
-    home: string;
-    dashboard: string;
-    marketplace: string;
-    myAssets: string;
-    cashFlow: string;
-    secondaryMarket: string;
-    signOut: string;
-  };
-  adminNav: {
-    panel: string;
-    investors: string;
-    assets: string;
-    treasury: string;
-    team: string;
-    settings: string;
-    viewMarketplace: string;
-  };
-  adminDashboard: {
-    eyebrow: string;
-    sidebarSubtitle: string;
-    title: string;
-    subtitle: string;
-    backToPanel: string;
-    comingSoon: string;
-    kycAlert: string;
-    kpiInvestors: string;
-    kpiInvestorsHint: string;
-    kpiKycPending: string;
-    kpiKycPendingHint: string;
-    kpiActiveAssets: string;
-    kpiActiveAssetsHint: string;
-    kpiCapital: string;
-    kpiCapitalHint: string;
-    kpiInvestments: string;
-    kpiInvestmentsHint: string;
-    kpiStaff: string;
-    kpiStaffHint: string;
-    quickLinksTitle: string;
-    quickLinksSubtitle: string;
-    investorsDesc: string;
-    assetsDesc: string;
-    treasuryDesc: string;
-    teamDesc: string;
-    settingsDesc: string;
-  };
-  adminInvestors: {
-    eyebrow: string;
-    filters: {
-      ALL: string;
-      PENDING: string;
-      APPROVED: string;
-      REJECTED: string;
-    };
-    status: {
-      PENDING: string;
-      APPROVED: string;
-      REJECTED: string;
-    };
-    colInvestor: string;
-    colEmail: string;
-    colWallet: string;
-    colKyc: string;
-    colIdentity: string;
-    colRegistered: string;
-    colActions: string;
-    viewIdentity: string;
-    hideIdentity: string;
-    approve: string;
-    reject: string;
-    refresh: string;
-    loading: string;
-    error: string;
-    empty: string;
-    contactPendingHint: string;
-  };
-  identityProfile: {
-    title: string;
-    empty: string;
-    fullName: string;
-    documentId: string;
-    dateOfBirth: string;
-    nationality: string;
-    documentType: string;
-    documentExpiry: string;
-    gender: string;
-  };
-  adminAssets: {
-    eyebrow: string;
-    filters: {
-      ALL: string;
-      ACTIVE: string;
-      INACTIVE: string;
-    };
-    status: {
-      ACTIVE: string;
-      INACTIVE: string;
-    };
-    colAsset: string;
-    colLocation: string;
-    colPrice: string;
-    colSupply: string;
-    colYield: string;
-    colStatus: string;
-    colActions: string;
-    publish: string;
-    unpublish: string;
-    edit: string;
-    cancel: string;
-    save: string;
-    view: string;
-    refresh: string;
-    sold: string;
-    activeInvestments: string;
-    fieldAvailableTokens: string;
-    fieldPricePerToken: string;
-    loading: string;
-    error: string;
-    empty: string;
-    saveError: string;
-    validationTokens: string;
-    validationPrice: string;
-    newLaunch: string;
-    editLaunch: string;
-  };
-  adminLaunch: {
-    eyebrow: string;
-    createTitle: string;
-    editTitle: string;
-    subtitle: string;
-    loading: string;
-    loadError: string;
-    save: string;
-    saving: string;
-    saveSuccess: string;
-    saveError: string;
-    sectionBasic: string;
-    sectionToken: string;
-    sectionMedia: string;
-    mediaDesc: string;
-    mediaEmpty: string;
-    mediaSaved: string;
-    uploadVideo: string;
-    addReelUrl: string;
-    uploadError: string;
-    uploadStorageNotConfigured: string;
-    uploadUnsupportedType: string;
-    uploadTooLarge: string;
-    optionalBadge: string;
-    sectionContracts: string;
-    sectionCollateral: string;
-    fieldTitle: string;
-    fieldDescription: string;
-    fieldLocation: string;
-    fieldLatitude: string;
-    fieldLongitude: string;
-    fieldTotalTokens: string;
-    fieldAvailableTokens: string;
-    fieldPricePerToken: string;
-    fieldInstrumentType: string;
-    instrumentTypeDesc: string;
-    instrumentDebt: string;
-    instrumentDebtDesc: string;
-    instrumentEquity: string;
-    instrumentEquityDesc: string;
-    fieldFixedCoupon: string;
-    fieldProjectedYield: string;
-    fixedCouponHint: string;
-    projectedYieldHint: string;
-    fieldMaturityDate: string;
-    fieldEquityShare: string;
-    equityShareHint: string;
-    fieldYield: string;
-    fieldTokenName: string;
-    fieldTokenSymbol: string;
-    fieldTokenStandard: string;
-    fieldVaultAddress: string;
-    fieldSpvEntity: string;
-    fieldNavOracle: string;
-    fieldContractAddress: string;
-    tokenStandardSanova: string;
-    tokenStandardErc4626: string;
-    tokenStandardThirdweb: string;
-    tokenStandardSanovaDesc: string;
-    tokenStandardErc4626Desc: string;
-    tokenStandardThirdwebDesc: string;
-    sectionCentrifuge: string;
-    centrifugeDesc: string;
-    centrifugeReadiness: string;
-    centrifugeChecklist: {
-      spvDocumented: string;
-      legalAuditDone: string;
-      navOracleConfigured: string;
-      kycPolicyActive: string;
-      liquidityPlanDocumented: string;
-      smartContractVerified: string;
-    };
-    mapHint: string;
-    uploadPhoto: string;
-    uploading: string;
-    reelPlaceholder: string;
-    contractsDesc: string;
-    contractLabels: {
-      trust: string;
-      purchase: string;
-      lease: string;
-      smartContract: string;
-    };
-    noFile: string;
-    uploadPdf: string;
-    collateralDesc: string;
-    collateralNote: string;
-    registerCollateral: string;
-    collateralRegisterSuccess: string;
-    collateralRegisterPending: string;
-    collateralRegisterError: string;
-    collateralMissing: string;
-    collateralAutoTriggered: string;
-    collateralStatuses: Record<string, string>;
-    publishOnSave: string;
-    tokenDeployTitle: string;
-    tokenDeployDesc: string;
-    tokenDeployOptionalHint: string;
-    tokenDeployThirdwebHint: string;
-    deployToken: string;
-    autoDeployOnCreate: string;
-    tokenStatus: string;
-    tokenSkipped: string;
-    tokenDeployed: string;
-    tokenRequested: string;
-    tokenDeployError: string;
-  };
-  adminTeam: {
-    email: string;
-    name: string;
-    membersTitle: string;
-    membersDesc: string;
-    colFullName: string;
-    colIdentification: string;
-    colEmail: string;
-    colEmailVerified: string;
-    colPhone: string;
-    colPhoneVerified: string;
-    colRole: string;
-    colUpline: string;
-    colClients: string;
-    colDownline: string;
-    verificationPending: string;
-    loading: string;
-    error: string;
-    emptyMembers: string;
-    refresh: string;
-    selectUsers: string;
-    clearSelection: string;
-    editSelected: string;
-    deleteSelected: string;
-    editTitle: string;
-    saveChanges: string;
-    saving: string;
-    cancel: string;
-    confirmEdit: string;
-    confirmDelete: string;
-    editSuccess: string;
-    editError: string;
-    deleteSuccess: string;
-    deleteError: string;
-    deleteSelfError: string;
-    designateTitle: string;
-    designateDesc: string;
-    designateEmail: string;
-    designateName: string;
-    designateRole: string;
-    designateUpline: string;
-    designateUplinePlaceholder: string;
-    designateSubmit: string;
-    designateSubmitting: string;
-    designateSuccess: string;
-    designateError: string;
-    roleManager: string;
-    roleAdvisor: string;
-  };
-  userRoleHeader: {
-    fallbackName: string;
-    approvedStatus: string;
-  };
-  managerPortal: {
-    eyebrow: string;
-    title: string;
-    desc: string;
-    clientsCard: string;
-    clientsCardDesc: string;
-    commissionsCard: string;
-    commissionsCardDesc: string;
-    teamCard: string;
-    teamCardDesc: string;
-  };
-  adminSettings: {
-    loading: string;
-    error: string;
-    refresh: string;
-    save: string;
-    saving: string;
-    saveSuccess: string;
-    saveError: string;
-    validationWhatsapp: string;
-    validationEmail: string;
-    validationSiteUrl: string;
-    contactTitle: string;
-    contactDesc: string;
-    whatsappPhone: string;
-    contactEmail: string;
-    siteUrl: string;
-    sources: {
-      database: string;
-      environment: string;
-      default: string;
-    };
-    integrationsTitle: string;
-    integrationsDesc: string;
-    integrations: {
-      email: string;
-      sms: string;
-      kyc: string;
-      googleOAuth: string;
-      appleOAuth: string;
-      walletConnect: string;
-      blockchain: string;
-      redis: string;
-      thirdweb: string;
-      supabaseStorage: string;
-      collateralWebhook: string;
-      centrifuge: string;
-      morpho: string;
-      maple: string;
-      figure: string;
-    };
-    configured: string;
-    notConfigured: string;
-    accessTitle: string;
-    accessDesc: string;
-    adminEmails: string;
-    noAdminEmails: string;
-    oauthGoogle: string;
-    oauthApple: string;
-    operationsTitle: string;
-    operationsDesc: string;
-    nodeEnv: string;
-    allowDemoKyc: string;
-    bullEnabled: string;
-    onboardingDevExposeCode: string;
-    enabled: string;
-    disabled: string;
-    envNote: string;
-  };
-  adminTreasury: {
-    loading: string;
-    error: string;
-    refresh: string;
-    kpiCapital: string;
-    kpiCapitalHint: string;
-    kpiMarginDebt: string;
-    kpiMarginDebtHint: string;
-    kpiPayouts: string;
-    kpiPayoutsHint: string;
-    kpiLiquidPaid: string;
-    kpiLiquidPaidHint: string;
-    payoutsTitle: string;
-    payoutsDesc: string;
-    distributionsTitle: string;
-    distributionsDesc: string;
-    filters: {
-      ALL: string;
-      PENDING: string;
-      SUCCESS: string;
-      FAILED: string;
-    };
-    payoutStatus: {
-      PENDING: string;
-      SUCCESS: string;
-      FAILED: string;
-    };
-    colProject: string;
-    colDate: string;
-    colTotal: string;
-    colLiquid: string;
-    colDebtOffset: string;
-    colStatus: string;
-    colTx: string;
-    colInvestor: string;
-    colAsset: string;
-    colAmount: string;
-    colMarginApplied: string;
-    receiptCount: string;
-    emptyPayouts: string;
-    emptyDistributions: string;
-    yes: string;
-    no: string;
-  };
-  advisorPortal: {
-    navClients: string;
-    navSuggest: string;
-    clientsTitle: string;
-    clientsDescManager: string;
-    clientsDescAdvisor: string;
-    readOnlyBadge: string;
-    colAdvisor: string;
-    suggestTitle: string;
-    suggestDesc: string;
-    suggestSubmit: string;
-    suggestSuccess: string;
-    suggestError: string;
-    loading: string;
-    error: string;
-    empty: string;
-    emptyHint: string;
-  };
-  checkout: {
-    notFound: string;
-    title: string;
-    investorRole: string;
-    approvedStatus: string;
-    kycReady: string;
-    tokenQuantity: string;
-    lessTokens: string;
-    moreTokens: string;
-    maxAvailable: string;
-    pricePerToken: string;
-    subtotal: string;
-    total: string;
-    requestSent: string;
-    signing: string;
-    confirmPurchase: string;
-    connectToContinue: string;
-  };
-  secondaryMarket: {
-    brandLabel: string;
-    title: string;
-    subtitle: string;
-    kycRequired: string;
-    kycRequiredShort: string;
-    completeKyc: string;
-    syncing: string;
-    empty: string;
-    ordersTitle: string;
-    ordersSummary: string;
-    noOrders: string;
-    sellTokens: string;
-    cancelSellForm: string;
-    sellQuantity: string;
-    sellPrice: string;
-    availableToSell: string;
-    publishListing: string;
-    publishing: string;
-    sellSuccess: string;
-    sellError: string;
-    buyTokens: string;
-    confirmBuy: string;
-    buySuccess: string;
-    buyError: string;
-    cancelListing: string;
-    cancelSuccess: string;
-    cancelError: string;
-    noTokensToSell: string;
-    colSeller: string;
-    colTokens: string;
-    colPrice: string;
-    colTotal: string;
-    colAction: string;
-    anonymousSeller: string;
-  };
-  wallet: {
-    disconnect: string;
-    connecting: string;
-    connect: string;
-    noWallet: string;
-  };
-  dashboard: {
-    eyebrow: string;
-    title: string;
-    subtitle: string;
-    kpiDividends: string;
-    kpiDividendsHint: string;
-    kpiDebtCoverage: string;
-    kpiDebtCoverageHint: string;
-    kpiAneloYield: string;
-    kpiAneloYieldHint: string;
-    chartTitle: string;
-    chartSubtitle: string;
-    chartCurrency: string;
-    chartDividends: string;
-    chartDebt: string;
-    distributionsTitle: string;
-    distributionsSubtitle: string;
-    colDate: string;
-    colAsset: string;
-    colConcept: string;
-    colAmount: string;
-    colStatus: string;
-    colTx: string;
-    syncing: string;
-    empty: string;
-    liveDividend: string;
-  };
-  chart: {
-    unavailable: string;
-    unavailableHint: string;
-  };
-  landing: {
-    nav: {
-      howItWorks: string;
-      properties: string;
-      marketplace: string;
-      secondaryMarket: string;
-      platformAccess: string;
-      enterPlatform: string;
-    };
-    languageLabel: string;
-    hero: {
-      eyebrow: string;
-      title: string;
-      subtitle: string;
-      subtitleLead?: string;
-      ctaPrimary: string;
-      ctaSecondary: string;
-      trustLine: string;
-    };
-    trustBadges: {
-      ariaLabel: string;
-      labels: readonly string[];
-    };
-    stats: {
-      properties: string;
-      investors: string;
-      distributed: string;
-      avgApy: string;
-    };
-    operators: {
-      title: string;
-      subtitle?: string;
-    };
-    macroThesis: {
-      eyebrow: string;
-      title: string;
-      intro: string;
-      mapCaption: string;
-      mapFormationLine1: string;
-      mapFormationLine2: string;
-      mapFormationLine3: string;
-      thesisTitle: string;
-      thesisDesc: string;
-      benefits: readonly string[];
-      cta: string;
-    };
-    howItWorks: {
-      title: string;
-      subtitle: string;
-      step1Title: string;
-      step1Desc: string;
-      step2Title: string;
-      step2Desc: string;
-      step3Title: string;
-      step3Desc: string;
-      step4Title: string;
-      step4Desc: string;
-    };
-    featured: {
-      title: string;
-      subtitle: string;
-      viewAll: string;
-      soldPercent: string;
-      apyBadge: string;
-    };
-    benefits: {
-      title: string;
-      incomeTitle: string;
-      incomeDesc: string;
-      liquidityTitle: string;
-      liquidityDesc: string;
-      complianceTitle: string;
-      complianceDesc: string;
-    };
-    cta: {
-      title: string;
-      subtitle: string;
-      button: string;
-    };
-    footer: {
-      tagline: string;
-      disclaimer: string;
-      rights: string;
-      contact: string;
-      privacy: string;
-      terms: string;
-    };
-  };
-  contact: {
-    title: string;
-    subtitle: string;
-    nameLabel: string;
-    namePlaceholder: string;
-    emailLabel: string;
-    emailPlaceholder: string;
-    messageLabel: string;
-    messagePlaceholder: string;
-    submit: string;
-    submitting: string;
-    errorSend: string;
-    formNote: string;
-    successTitle: string;
-    successDesc: string;
-    backHome: string;
-  };
-  access: {
-    title: string;
-    subtitle: string;
-    loginTitle: string;
-    loginDesc: string;
-    loginButton: string;
-    emailLabel: string;
-    emailPlaceholder: string;
-    passwordLabel: string;
-    passwordPlaceholder: string;
-    signInButton: string;
-    forgotPassword: string;
-    invalidCredentials: string;
-    signingIn: string;
-    signedInAs: string;
-    roleLabel: string;
-    continueButton: string;
-    sessionActiveTitle: string;
-    sessionPendingDesc: string;
-    sessionRegisteredDesc: string;
-    continueVerification: string;
-    switchAccount: string;
-    authError: string;
-    rolesTitle: string;
-    rolesDesc: string;
-    roles: Record<
-      'ADMIN' | 'ADVISOR_MANAGER' | 'ADVISOR' | 'INVESTOR' | 'TREASURY' | 'OPERATOR',
-      string
-    >;
-    roleDescriptions: Record<
-      'ADMIN' | 'ADVISOR_MANAGER' | 'ADVISOR' | 'INVESTOR' | 'TREASURY' | 'OPERATOR',
-      string
-    >;
-    staffPanelHint: string;
-    registerTitle: string;
-    registerDesc: string;
-    registerButton: string;
-    register: {
-      fullNameLabel: string;
-      fullNamePlaceholder: string;
-      taxIdLabel: string;
-      taxIdPlaceholder: string;
-      emailLabel: string;
-      emailPlaceholder: string;
-      verifiedLabel: string;
-      pendingLabel: string;
-      kycPrefillHint: string;
-      profileHint: string;
-      passwordLabel: string;
-      passwordPlaceholder: string;
-      passwordHint: string;
-      phoneLabel: string;
-      phonePlaceholder: string;
-      phoneHint: string;
-      countryLabel: string;
-      submitButton: string;
-      submitting: string;
-      flowHint: string;
-      devCodes: string;
-      codesOnScreenHint: string;
-      errors: {
-        GENERIC: string;
-        EMAIL_IN_USE: string;
-        WEAK_PASSWORD: string;
-        INVALID_EMAIL: string;
-        INVALID_PHONE: string;
-        VERIFICATION_DELIVERY_FAILED: string;
-        SIGN_IN_FAILED: string;
-      };
-    };
-    kycTitle: string;
-    kycDesc: string;
-    kycButton: string;
-    backHome: string;
-  };
-  kyc: {
-    title: string;
-    description: string;
-    simulateButton: string;
-    cancel: string;
-    loading: string;
-  };
-  onboarding: {
-    eyebrow: string;
-    title: string;
-    backHome: string;
-    backToAccess: string;
-    loading: string;
-    continue: string;
-    continuing: string;
-    devCodes: string;
-    loginRequiredTitle: string;
-    loginRequiredDesc: string;
-    loginRequiredCta: string;
-    fields: {
-      email: string;
-      phone: string;
-      phonePlaceholder: string;
-      countryLabel: string;
-      phoneHint: string;
-    };
-    steps: {
-      contactTitle: string;
-      contactDesc: string;
-      emailTitle: string;
-      emailDesc: string;
-      phoneTitle: string;
-      phoneDesc: string;
-      identityTitle: string;
-      identityDesc: string;
-      identityStep1: string;
-      identityStep2: string;
-      startDidit: string;
-      diditRedirecting: string;
-      identityOperationalNote: string;
-      demoKyc: string;
-      doneTitle: string;
-      doneDesc: string;
-      codeSentEmail: string;
-      codeSentPhone: string;
-      emailApproved: string;
-      change: string;
-      codeExpiredHint: string;
-      resendCode: string;
-      resendingCode: string;
-    };
-    errors: {
-      GENERIC: string;
-      INVALID_CODE: string;
-      INVALID_PHONE: string;
-      RATE_LIMIT: string;
-      VERIFICATION_DELIVERY_FAILED: string;
-      EMAIL_DELIVERY_FAILED: string;
-      SMS_DELIVERY_FAILED: string;
-      DIDIT_NOT_CONFIGURED: string;
-      CONTACT_NOT_VERIFIED: string;
-      UNAUTHORIZED: string;
-    };
-  };
-  pwa: {
-    installTitle: string;
-    installDesc: string;
-    installCta: string;
-    dismiss: string;
-  };
-  cashFlow: {
-    eyebrow: string;
-    title: string;
-    subtitle: string;
-    availableCashLabel: string;
-    coverageLabel: string;
-    repayButton: string;
-    repaying: string;
-    repayError: string;
-    totalDistributedLabel: string;
-    historyTitle: string;
-    colConcept: string;
-    colDate: string;
-    colAsset: string;
-    colAmount: string;
-    colStatus: string;
-  };
-  portfolio: {
-    title: string;
-    subtitle: string;
-    empty: string;
-    comingSoon: string;
-  };
-  status: {
-    liquidatedCash: string;
-  };
-  demo: {
-    assets: {
-      aneloOps: string;
-      tolhuin: string;
-      mendoza: string;
-    };
-    concepts: {
-      aneloYield: string;
-      aneloAmortization: string;
-      tolhuinDividend: string;
-      debtServiceCoverage: string;
-      mendozaQuarterly: string;
-      liveDistribution: string;
-    };
-    cashFlowConcepts: {
-      tolhuinDividend: string;
-      mendozaQuarterly: string;
-    };
-  };
-  meta: {
-    title: string;
-    description: string;
-    pwaTitle: string;
-  };
-  error: {
-    eyebrow: string;
-    title: string;
-    fallback: string;
-    retry: string;
-    goMarketplace: string;
-    globalTitle: string;
-    globalHint: string;
-  };
 };
+
+export type Messages = typeof en;

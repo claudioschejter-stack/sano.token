@@ -1,6 +1,11 @@
 import type { Messages } from './en';
 
 export const es = {
+  meta: {
+    title: 'Sanova Global — Real Estate Tokenizado',
+    description: 'Invertí en activos reales tokenizados con rentas on-chain y cumplimiento KYC.',
+    pwaTitle: 'Sanova RWA'
+  },
   brand: {
     portalSubtitle: 'Portal RWA'
   },
@@ -630,7 +635,12 @@ export const es = {
       marketplace: 'Marketplace',
       secondaryMarket: 'Mercado Secundario',
       platformAccess: 'Acceso a Plataforma',
-      enterPlatform: 'Ingresar a la Plataforma'
+      enterPlatform: 'Ingresar a la Plataforma',
+      mainNavAria: 'Principal',
+      mobileNavAria: 'Menú móvil',
+      openMenu: 'Abrir menú',
+      closeMenu: 'Cerrar menú',
+      menuLabel: 'Menú'
     },
     languageLabel: 'Idioma',
     hero: {
@@ -666,6 +676,8 @@ export const es = {
       title: 'El Motor Energético de Occidente: Oportunidad en Activos Reales',
       intro:
         'Vaca Muerta no es una promesa exploratoria; es la segunda reserva mundial de shale gas y la cuarta de shale oil. Con una escala comparable a la cuenca Permian en EE. UU., las principales multinacionales energéticas inyectan más de US$ 9.000 millones anuales para expandir su producción.',
+      mapAlt:
+        'Mapa de Argentina. La formación Vaca Muerta se ubica en el oeste, en Neuquén y provincias limítrofes.',
       mapCaption:
         '📍 Patagonia, Argentina (38°S)\n    Cuenca Vaca Muerta: 30.000 km² — equivalente a Bélgica',
       mapFormationLine1: 'Formación',
@@ -720,6 +732,7 @@ export const es = {
       button: 'Abrir marketplace'
     },
     footer: {
+      navAria: 'Pie de página',
       tagline: 'RWA · Real estate tokenizado',
       disclaimer:
         'Gestión de capital con foco en la integridad y la preservación de valor. Sanova Global SAS provee este ecosistema digital con fines informativos, integrando tecnología de vanguardia con la solidez de los activos físicos. Comprendemos que toda inversión involucra alguna variable de mercado y que los resultados previos son, en algunos casos, referenciales y no garantías absolutas. Diseñamos nuestras operaciones con los más altos estándares de integridad, cumplimiento y compromiso para su tranquilidad.',
@@ -758,6 +771,10 @@ export const es = {
     emailPlaceholder: 'tu@email.com',
     passwordLabel: 'Contraseña',
     passwordPlaceholder: 'Tu contraseña',
+    showPassword: 'Mostrar contraseña',
+    hidePassword: 'Ocultar contraseña',
+    redirecting: 'Redirigiendo…',
+    redirectingByRole: 'Redirigiendo según tu rol…',
     signInButton: 'Ingresar',
     forgotPassword: 'Olvidé mi contraseña',
     invalidCredentials: 'Email o contraseña incorrectos.',
@@ -959,11 +976,6 @@ export const es = {
       tolhuinDividend: 'Dividendo operativo RWA liquidado en cash',
       mendozaQuarterly: 'Distribución trimestral de rendimiento en efectivo'
     }
-  },
-  meta: {
-    title: 'Sanova Global — Real Estate Tokenizado',
-    description: 'Invertí en activos reales tokenizados con rentas on-chain y cumplimiento KYC.',
-    pwaTitle: 'Sanova RWA'
   },
   error: {
     eyebrow: 'Algo salió mal',

@@ -2,6 +2,7 @@
 
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from '../../i18n/LocaleProvider';
 
 type PasswordInputProps = {
   id: string;
@@ -27,6 +28,7 @@ export function PasswordInput({
   minLength
 }: PasswordInputProps) {
   const [visible, setVisible] = useState(false);
+  const access = useTranslation().access;
 
   return (
     <div>
@@ -49,7 +51,7 @@ export function PasswordInput({
         <button
           type="button"
           tabIndex={-1}
-          aria-label={visible ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          aria-label={visible ? access.hidePassword : access.showPassword}
           className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
           onClick={() => setVisible((v) => !v)}
         >
