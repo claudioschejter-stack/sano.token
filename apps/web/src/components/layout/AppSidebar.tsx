@@ -149,7 +149,7 @@ export function AppSidebar() {
   const secondaryNavItems = primaryNavItems.filter((item) => item.href !== '/dashboard');
 
   return (
-    <aside className="flex w-64 flex-col border-r border-terminal-border bg-terminal-card text-terminal-text">
+    <aside className="flex h-full min-h-0 w-64 shrink-0 flex-col border-r border-terminal-border bg-terminal-card text-terminal-text">
       <div className="border-b border-terminal-border p-6">
         <Link href="/" className="block transition-opacity hover:opacity-90">
           <h2 className="text-2xl font-bold tracking-tight">Sanova Global</h2>
@@ -164,13 +164,13 @@ export function AppSidebar() {
       </div>
 
       <div className="px-4 pt-4">
-        {panelItem ? renderNavItem(panelItem) : null}
         <SidebarUserStatus />
+        {panelItem ? renderNavItem(panelItem) : null}
       </div>
 
       <div className="mx-4 border-t border-terminal-border" />
 
-      <nav className="flex-1 space-y-2 px-4 py-4">
+      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-4">
         {secondaryNavItems.map(renderNavItem)}
 
         {isAdmin ? (
@@ -193,7 +193,7 @@ export function AppSidebar() {
         ) : null}
       </nav>
 
-      <div className="border-t border-terminal-border p-4">
+      <div className="mt-auto shrink-0 border-t border-terminal-border p-4">
         <button
           type="button"
           onClick={handleSignOut}

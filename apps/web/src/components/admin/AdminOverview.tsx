@@ -27,14 +27,16 @@ type KpiCardProps = {
 
 function KpiCard({ label, value, hint, icon, href }: KpiCardProps) {
   const content = (
-    <article className="rounded-xl border border-terminal-border bg-terminal-card p-6 shadow-[0_0_0_1px_rgba(31,41,55,0.5)] transition-colors hover:border-terminal-primary/30">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+    <article className="flex h-full min-h-[168px] flex-col rounded-xl border border-terminal-border bg-terminal-card p-6 shadow-[0_0_0_1px_rgba(31,41,55,0.5)] transition-colors hover:border-terminal-primary/30">
+      <div className="flex flex-1 items-start justify-between gap-4">
+        <div className="flex min-h-0 flex-1 flex-col">
           <p className="text-sm font-medium text-terminal-muted">{label}</p>
           <p className="mt-3 font-mono text-3xl font-bold tracking-tight text-terminal-text">{value}</p>
-          <p className="mt-2 text-xs text-terminal-muted">{hint}</p>
+          <p className="mt-auto pt-2 text-xs text-terminal-muted">{hint}</p>
         </div>
-        <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3 text-terminal-primary">{icon}</div>
+        <div className="shrink-0 rounded-lg border border-terminal-border bg-terminal-bg p-3 text-terminal-primary">
+          {icon}
+        </div>
       </div>
     </article>
   );
@@ -44,7 +46,7 @@ function KpiCard({ label, value, hint, icon, href }: KpiCardProps) {
   }
 
   return (
-    <Link href={href} className="block">
+    <Link href={href} className="block h-full">
       {content}
     </Link>
   );
@@ -121,7 +123,7 @@ export function AdminOverview() {
           </div>
         ) : null}
 
-        <section className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <section className="grid auto-rows-fr grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 [&>*]:h-full">
           <KpiCard
             label={t.adminDashboard.kpiInvestors}
             value={value(stats?.totalInvestors)}
