@@ -102,15 +102,52 @@ async function registerSky(project: CollateralProjectContext): Promise<Collatera
 }
 
 async function registerMorpho(project: CollateralProjectContext): Promise<CollateralAdapterResult> {
+  const payload = buildCollateralSubmissionPayload(project, 'MORPHO');
+
+  if (project.vaultAddress && process.env.MORPHO_ORACLE_ADDRESS?.trim()) {
+    try {
+      const { createMorphoMarketForVault } = await import('../blockchain/morphoMarketService');
+      const result = await createMorphoMarketForVault(project.vaultAddress);
+
+      if (result.status === 'CREATED') {
+        return {
+          status: 'REGISTERED',
+          externalId: result.marketId,
+          poolUrl: `https://app.morpho.org/base/market/${result.marketId}`,
+          notes: `Mercado Morpho Blue creado on-chain (tx ${result.txHash.slice(0, 10)}…).`
+        };
+      }
+
+      if (result.reason.includes('already') || result.reason.includes('exists')) {
+        return {
+          status: 'REGISTERED',
+          externalId: `MORPHO-${project.id}`,
+          notes: 'Mercado Morpho ya existía o fue registrado previamente.'
+        };
+      }
+
+      return {
+        status: 'SUBMITTED',
+        externalId: `MORPHO-MARKET-${project.id}`,
+        notes: `Morpho: ${result.reason}`
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Morpho registration failed';
+      return postInstitutionalSubmission('MORPHO', payload).then((fallback) => ({
+        ...fallback,
+        notes: `${fallback.notes ?? ''} (${message})`
+      }));
+    }
+  }
+
   const apiKey = process.env.MORPHO_API_KEY?.trim();
   const curator = process.env.MORPHO_CURATOR_ADDRESS?.trim();
-  const payload = buildCollateralSubmissionPayload(project, 'MORPHO');
 
   if (apiKey && curator && project.vaultAddress) {
     return {
       status: 'SUBMITTED',
       externalId: `MORPHO-MARKET-${project.id}`,
-      notes: `Solicitud de mercado Morpho preparada para vault ${project.vaultAddress} con curator ${curator}.`
+      notes: `Solicitud Morpho preparada para vault ${project.vaultAddress} (curator ${curator}).`
     };
   }
 

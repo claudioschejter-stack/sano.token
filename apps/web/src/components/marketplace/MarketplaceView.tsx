@@ -11,6 +11,7 @@ import type { SystemRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import type { MarketplaceFeed } from '../../types/marketplace';
 import { BorrowRatesTable } from './BorrowRatesTable';
+import { BorrowPanel } from './BorrowPanel';
 import { PropertyCard } from './PropertyCard';
 import { TrustStrip } from './TrustStrip';
 
@@ -79,6 +80,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       {capabilities.showBorrowRates && borrowRate ? (
         <div className="mt-6">
           <BorrowRatesTable borrowRate={borrowRate} />
+          {capabilities.showPurchaseActions ? <BorrowPanel borrowRate={borrowRate} /> : null}
         </div>
       ) : null}
 

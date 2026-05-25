@@ -65,7 +65,29 @@ export const es = {
     colBorrowRate: 'Tasa APY',
     bestBadge: 'Mejor',
     lendingRatesFootnote:
-      'Tasas indicativas en APY. Configurables por entorno; conectá APIs on-chain para datos en tiempo real.',
+      'Tasas indicativas en APY cuando no hay fuente en vivo disponible.',
+    lendingRatesLiveFootnote:
+      'Tasas en vivo agregadas desde DefiLlama y lecturas on-chain ({count} prestamistas con datos de mercado).',
+    lendingRatesUpdated: 'Actualizado',
+    borrow: {
+      title: 'Pedir préstamo en DeFi',
+      subtitle:
+        'Conectá tu wallet y ejecutá el préstamo en el protocolo con mejor tasa disponible (Aave v3 o Morpho en Base).',
+      bestRateHint: 'Mejor tasa detectada',
+      amountLabel: 'Monto a pedir prestado (USDC)',
+      collateralLabel: 'Colateral WETH a depositar en Aave (opcional)',
+      connectWallet: 'Conectar wallet',
+      walletConnected: 'Wallet conectada.',
+      connectFirst: 'Conectá tu wallet primero.',
+      borrowButton: 'Ejecutar préstamo',
+      preparing: 'Preparando transacciones…',
+      signingStep: 'Firmá la transacción {step} en tu wallet…',
+      success: 'Préstamo enviado on-chain. Revisá tu wallet.',
+      prepareFailed: 'No se pudo preparar el préstamo.',
+      noWallet: 'Instalá MetaMask u otra wallet compatible con EIP-1193.',
+      disclaimer:
+        'Operación on-chain con riesgo de mercado. Para colateral ERC-4626 (tokens RWA), el mercado Morpho se crea al emitir el vault (Fase C).'
+    },
     lenderRegions: {
       global: 'Global',
       americas: 'Américas',

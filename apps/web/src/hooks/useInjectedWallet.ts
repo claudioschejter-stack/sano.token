@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { useTranslation } from '../i18n/LocaleProvider';
 
 type EthereumProvider = {
-  request: (args: { method: string }) => Promise<string[]>;
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
 
 declare global {
@@ -26,7 +26,7 @@ export function useInjectedWallet() {
 
     setIsPending(true);
     try {
-      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const accounts = (await window.ethereum.request({ method: 'eth_requestAccounts' })) as string[];
       setAddress(accounts[0] ?? null);
     } catch {
       setAddress(null);

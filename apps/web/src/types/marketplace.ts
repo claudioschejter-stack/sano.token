@@ -43,6 +43,11 @@ export type BestBorrowRateResponse = {
     fetchedAt: string;
   };
   quotes: BorrowRateQuote[];
+  meta?: {
+    liveCount: number;
+    totalCount: number;
+    dataSource: 'live' | 'fallback';
+  };
 };
 
 export type MarketplaceFeed = {

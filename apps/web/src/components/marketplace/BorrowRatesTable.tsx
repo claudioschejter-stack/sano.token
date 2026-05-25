@@ -91,7 +91,14 @@ export function BorrowRatesTable({ borrowRate }: BorrowRatesTableProps) {
       </div>
 
       <p className="border-t border-terminal-border px-4 py-3 text-xs text-terminal-muted md:px-6">
-        {m.lendingRatesFootnote}
+        {borrowRate.meta?.dataSource === 'live'
+          ? m.lendingRatesLiveFootnote.replace('{count}', String(borrowRate.meta.liveCount))
+          : m.lendingRatesFootnote}
+        {borrowRate.best.fetchedAt ? (
+          <span className="mt-1 block font-mono text-[10px] opacity-80">
+            {m.lendingRatesUpdated}: {new Date(borrowRate.best.fetchedAt).toLocaleString()}
+          </span>
+        ) : null}
       </p>
     </section>
   );
