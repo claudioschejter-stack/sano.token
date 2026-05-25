@@ -19,6 +19,7 @@ import { signOut, useSession } from 'next-auth/react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { SystemRole } from '../../lib/auth/roles';
+import { SidebarUserStatus } from './SidebarUserStatus';
 
 type NavItem = {
   href: string;
@@ -79,7 +80,6 @@ export function AppSidebar() {
   const t = useTranslation();
   const { data: session } = useSession();
   const role = session?.user?.role;
-  const roleLabels = t.access.roles as Record<SystemRole, string>;
   const isAdmin = role === 'ADMIN';
   const isAdvisorStaff = role === 'ADVISOR' || role === 'ADVISOR_MANAGER';
 
@@ -144,6 +144,10 @@ export function AppSidebar() {
             : t.adminNav.panel
   }));
 
+  const primaryNavItems = isAdmin ? adminItems : isAdvisorStaff ? advisorItems : investorItems;
+  const panelItem = primaryNavItems.find((item) => item.href === '/dashboard');
+  const secondaryNavItems = primaryNavItems.filter((item) => item.href !== '/dashboard');
+
   return (
     <aside className="flex w-64 flex-col border-r border-terminal-border bg-terminal-card text-terminal-text">
       <div className="border-b border-terminal-border p-6">
@@ -156,16 +160,18 @@ export function AppSidebar() {
                 ? t.advisorPortal.clientsTitle
                 : t.brand.portalSubtitle}
           </p>
-          {role ? (
-            <p className="mt-2 inline-flex rounded-full border border-terminal-primary/30 bg-terminal-bg px-2.5 py-0.5 text-xs font-medium text-terminal-primary">
-              {roleLabels[role]}
-            </p>
-          ) : null}
         </Link>
       </div>
 
-      <nav className="flex-1 space-y-2 px-4 py-6">
-        {(isAdmin ? adminItems : isAdvisorStaff ? advisorItems : investorItems).map(renderNavItem)}
+      <div className="px-4 pt-4">
+        {panelItem ? renderNavItem(panelItem) : null}
+        <SidebarUserStatus />
+      </div>
+
+      <div className="mx-4 border-t border-terminal-border" />
+
+      <nav className="flex-1 space-y-2 px-4 py-4">
+        {secondaryNavItems.map(renderNavItem)}
 
         {isAdmin ? (
           <>

@@ -107,7 +107,7 @@ export const es = {
     signOut: 'Cerrar Sesión'
   },
   adminNav: {
-    panel: 'Panel',
+    panel: 'Panel de Operaciones',
     investors: 'Inversores',
     assets: 'Activos',
     treasury: 'Tesorería',

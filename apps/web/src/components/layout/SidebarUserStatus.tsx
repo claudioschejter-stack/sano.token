@@ -5,7 +5,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import type { SystemRole } from '../../lib/auth/roles';
 
-export function UserRoleStatusHeader() {
+export function SidebarUserStatus() {
   const t = useTranslation();
   const { data: session } = useSession();
   const { checklist, profile } = useAccountStatus();
@@ -26,13 +26,11 @@ export function UserRoleStatusHeader() {
   const kycApproved = checklist?.kycApproved ?? false;
 
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-2 border-b border-terminal-border pb-4 text-sm">
-      <span className="font-semibold text-terminal-text">{displayName}</span>
-      <span className="rounded-full border border-terminal-border bg-terminal-bg px-2.5 py-1 text-xs font-semibold text-terminal-muted">
-        {roleLabels[role] ?? role}
-      </span>
+    <div className="space-y-1.5 px-3 py-3">
+      <p className="text-sm font-semibold leading-snug text-terminal-text">{displayName}</p>
+      <p className="text-xs font-medium text-terminal-muted">{roleLabels[role] ?? role}</p>
       {kycApproved ? (
-        <span className="rounded-full border border-terminal-success/30 bg-terminal-success/10 px-2.5 py-1 text-xs font-semibold text-terminal-success">
+        <span className="inline-flex rounded-full border border-terminal-success/30 bg-terminal-success/10 px-2.5 py-0.5 text-xs font-semibold text-terminal-success">
           {t.userRoleHeader.approvedStatus}
         </span>
       ) : null}

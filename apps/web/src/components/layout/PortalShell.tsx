@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
-import { UserRoleStatusHeader } from './UserRoleStatusHeader';
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -25,10 +24,5 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     router.replace(`/kyc?returnTo=${returnTo}`);
   }, [isOperational, loading, pathname, router, status]);
 
-  return (
-    <>
-      <UserRoleStatusHeader />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }
