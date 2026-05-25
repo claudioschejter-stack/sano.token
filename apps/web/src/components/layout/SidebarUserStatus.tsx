@@ -28,16 +28,16 @@ export function SidebarUserStatus() {
   return (
     <div className="space-y-2 px-1 pb-2">
       <p className="text-sm font-semibold leading-snug text-terminal-text">{displayName}</p>
-      <span className="inline-flex rounded-full border border-terminal-primary/40 bg-terminal-bg px-2.5 py-0.5 text-xs font-semibold text-terminal-primary">
-        {roleLabels[role] ?? role}
-      </span>
-      {kycApproved ? (
-        <div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex rounded-full border border-terminal-primary/40 bg-terminal-bg px-2.5 py-0.5 text-xs font-semibold text-terminal-primary">
+          {roleLabels[role] ?? role}
+        </span>
+        {kycApproved ? (
           <span className="inline-flex rounded-full border border-terminal-success/30 bg-terminal-success/10 px-2.5 py-0.5 text-xs font-semibold text-terminal-success">
             {t.userRoleHeader.approvedStatus}
           </span>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
