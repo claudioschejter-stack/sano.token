@@ -1,65 +1,44 @@
-import { PrismaClient, FiscalRegime } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import {
+  LEGACY_MARKETPLACE_PROJECT_IDS,
+  MARKETPLACE_SEED_LISTINGS
+} from './marketplace-seed-listings.mjs';
 
 const prisma = new PrismaClient();
 
-const listings = [
-  {
-    id: 'proj-anelo-tower',
-    title: 'Anelo Tower — Oficinas Premium',
-    description:
-      'Activo corporativo tokenizado en microcentro porteño con renta indexada en USD y régimen Ley 19.640.',
-    location: 'Av. Corrientes 1200, Buenos Aires, Argentina',
-    image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
-    totalTokens: 10000,
-    availableTokens: 3250,
-    pricePerToken: 250,
-    targetYield: 9.2,
-    fiscalRegime: FiscalRegime.LEY_19640,
-    jurisdiction: 'AR'
-  },
-  {
-    id: 'proj-mendoza-logistics',
-    title: 'Mendoza Logistics Hub',
-    description:
-      'Centro logístico climatizado con contratos take-or-pay y flujo de caja mensual en stablecoins.',
-    location: 'Luján de Cuyo, Mendoza, Argentina',
-    image: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=1200&q=80',
-    totalTokens: 25000,
-    availableTokens: 11400,
-    pricePerToken: 120,
-    targetYield: 11.5,
-    fiscalRegime: FiscalRegime.LEY_19640,
-    jurisdiction: 'AR'
-  },
-  {
-    id: 'proj-punta-este-residences',
-    title: 'Punta del Este Residences',
-    description:
-      'Desarrollo residencial de lujo con pool de liquidez secundaria SanovaAMM y salida instantánea al tesoro.',
-    location: 'Parada 5, Punta del Este, Uruguay',
-    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
-    totalTokens: 8000,
-    availableTokens: 1120,
-    pricePerToken: 500,
-    targetYield: 8.4,
-    fiscalRegime: FiscalRegime.GENERAL,
-    jurisdiction: 'UY'
-  }
-];
-
 async function main() {
-  for (const listing of listings) {
+  for (const listing of MARKETPLACE_SEED_LISTINGS) {
+    const { fiscalRegime, equitySharePercent, maturityDate, tokenInstrumentType, ...rest } = listing;
+
     await prisma.project.upsert({
       where: { id: listing.id },
-      create: listing,
+      create: {
+        ...rest,
+        fiscalRegime,
+        tokenInstrumentType,
+        maturityDate: maturityDate ?? null,
+        equitySharePercent: equitySharePercent ?? null,
+        isActive: true
+      },
       update: {
-        ...listing,
+        ...rest,
+        fiscalRegime,
+        tokenInstrumentType,
+        maturityDate: maturityDate ?? null,
+        equitySharePercent: equitySharePercent ?? null,
         isActive: true
       }
     });
   }
 
-  console.log(`[seed] Upserted ${listings.length} marketplace projects.`);
+  if (LEGACY_MARKETPLACE_PROJECT_IDS.length > 0) {
+    await prisma.project.updateMany({
+      where: { id: { in: LEGACY_MARKETPLACE_PROJECT_IDS } },
+      data: { isActive: false }
+    });
+  }
+
+  console.log(`[seed] Upserted ${MARKETPLACE_SEED_LISTINGS.length} marketplace projects.`);
 }
 
 main()
