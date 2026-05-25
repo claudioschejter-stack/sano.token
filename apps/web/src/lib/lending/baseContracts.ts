@@ -1,4 +1,4 @@
-import { resolveChainId } from '../blockchain/deployAssetToken';
+import { resolveChainId } from '../blockchain/explorerUrls';
 
 export type LendingChainConfig = {
   chainId: number;

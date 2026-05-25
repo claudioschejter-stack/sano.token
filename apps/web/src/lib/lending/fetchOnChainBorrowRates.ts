@@ -1,5 +1,5 @@
 import { Contract, JsonRpcProvider } from 'ethers';
-import { resolveChainId } from '../blockchain/deployAssetToken';
+import { resolveChainId } from '../blockchain/explorerUrls';
 import { rayToApyBps } from './fetchDefiLlamaBorrowRates';
 
 /** Base mainnet / Base Sepolia Aave v3 Pool + USDC */

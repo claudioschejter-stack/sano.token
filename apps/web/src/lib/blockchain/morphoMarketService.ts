@@ -1,5 +1,5 @@
 import { JsonRpcProvider, Wallet } from 'ethers';
-import { resolveChainId } from '../blockchain/deployAssetToken';
+import { resolveChainId } from './explorerUrls';
 import {
   buildDefaultMorphoMarketParams,
   morphoMarketId,
