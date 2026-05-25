@@ -4,14 +4,15 @@ import authConfig from './auth.config';
 const { auth } = NextAuth(authConfig);
 
 /** Public landing at `/` for everyone; marketplace requires authentication (via /acceso). */
-const LOGIN_GATE_PATHS = new Set(['/marketplace']);
+const LOGIN_GATE_PATHS = new Set(['/marketplace', '/mercado-secundario']);
 
 export default auth((request) => {
   const { pathname } = request.nextUrl;
   const isAuthenticated = Boolean(request.auth?.user?.accessToken);
 
   if (LOGIN_GATE_PATHS.has(pathname) && !isAuthenticated) {
-    return NextResponse.redirect(new URL('/acceso', request.url));
+    const returnTo = encodeURIComponent(pathname);
+    return NextResponse.redirect(new URL(`/acceso?returnTo=${returnTo}`, request.url));
   }
 
   const isProtected =
@@ -30,5 +31,5 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ['/', '/marketplace', '/acceso', '/dashboard/:path*', '/marketplace/:path*/checkout']
+  matcher: ['/', '/marketplace', '/mercado-secundario', '/acceso', '/dashboard/:path*', '/marketplace/:path*/checkout']
 };

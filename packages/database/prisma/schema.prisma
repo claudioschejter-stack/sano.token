@@ -19,6 +19,12 @@ enum KycStatus {
   REJECTED
 }
 
+enum SecondaryListingStatus {
+  OPEN
+  FILLED
+  CANCELLED
+}
+
 enum InvestmentStatus {
   ACTIVE
   PENDING
@@ -103,6 +109,8 @@ model User {
   advisor               Advisor?
   reviewedNominations   AdvisorNomination[]    @relation("NominationReviewedBy")
   verificationCodes     VerificationCode[]
+  secondaryListingsSold SecondaryMarketListing[] @relation("SecondarySeller")
+  secondaryListingsBought SecondaryMarketListing[] @relation("SecondaryBuyer")
 
   @@index([walletAddress])
   @@index([investorId])
@@ -260,6 +268,7 @@ model Project {
 
   investments Investment[]
   payouts     PayoutHistory[]
+  secondaryListings SecondaryMarketListing[]
 
   @@index([fiscalRegime])
   @@index([isActive])
@@ -363,4 +372,26 @@ model PlatformConfig {
   contactEmail  String?
   siteUrl       String?
   updatedAt     DateTime @updatedAt
+}
+
+model SecondaryMarketListing {
+  id               String                 @id @default(cuid())
+  sellerUserId     String
+  projectId        String
+  tokenCount       Int
+  pricePerTokenUsd Decimal                @db.Decimal(20, 6)
+  status           SecondaryListingStatus @default(OPEN)
+  buyerUserId      String?
+  txHash           String?
+  filledAt         DateTime?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  sellerUser User    @relation("SecondarySeller", fields: [sellerUserId], references: [id], onDelete: Cascade)
+  buyerUser  User?   @relation("SecondaryBuyer", fields: [buyerUserId], references: [id], onDelete: SetNull)
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+  @@index([sellerUserId, status])
+  @@index([status, createdAt])
 }

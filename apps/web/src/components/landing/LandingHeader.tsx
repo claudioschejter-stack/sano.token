@@ -32,7 +32,8 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
   const navItems = [
     { href: '/#how-it-works', label: l.nav.howItWorks },
     { href: '/#properties', label: l.nav.properties },
-    { href: '/acceso', label: l.nav.marketplace }
+    { href: '/acceso?returnTo=/marketplace', label: l.nav.marketplace },
+    { href: '/acceso?returnTo=/mercado-secundario', label: l.nav.secondaryMarket }
   ] as const;
 
   return (

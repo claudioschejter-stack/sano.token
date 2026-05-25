@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeftRight,
   Building2,
   Home,
   LayoutDashboard,
@@ -28,7 +29,7 @@ type NavItem = {
 type InvestorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'home' | 'dashboard' | 'marketplace' | 'myAssets' | 'cashFlow';
+  labelKey: 'home' | 'dashboard' | 'marketplace' | 'secondaryMarket' | 'myAssets' | 'cashFlow';
   roles?: SystemRole[];
 };
 
@@ -44,19 +45,21 @@ const adminNavItems = [
 type AdvisorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'panel' | 'clients' | 'marketplace';
+  labelKey: 'panel' | 'clients' | 'marketplace' | 'secondaryMarket';
 };
 
 const advisorNavItems: AdvisorNavConfig[] = [
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
-  { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' }
+  { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' },
+  { href: '/mercado-secundario', icon: ArrowLeftRight, labelKey: 'secondaryMarket' }
 ];
 
 const investorNavItems: InvestorNavConfig[] = [
   { href: '/', icon: Home, labelKey: 'home' },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' },
+  { href: '/mercado-secundario', icon: ArrowLeftRight, labelKey: 'secondaryMarket' },
   {
     href: '/dashboard/portfolio',
     icon: Building2,
@@ -136,7 +139,9 @@ export function AppSidebar() {
         ? t.advisorPortal.navClients
         : item.labelKey === 'marketplace'
           ? t.nav.marketplace
-          : t.adminNav.panel
+          : item.labelKey === 'secondaryMarket'
+            ? t.nav.secondaryMarket
+            : t.adminNav.panel
   }));
 
   return (
@@ -163,13 +168,22 @@ export function AppSidebar() {
         {(isAdmin ? adminItems : isAdvisorStaff ? advisorItems : investorItems).map(renderNavItem)}
 
         {isAdmin ? (
-          <Link
-            href="/marketplace"
-            className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
-          >
-            <ShoppingBag size={20} />
-            <span>{t.adminNav.viewMarketplace}</span>
-          </Link>
+          <>
+            <Link
+              href="/marketplace"
+              className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
+            >
+              <ShoppingBag size={20} />
+              <span>{t.adminNav.viewMarketplace}</span>
+            </Link>
+            <Link
+              href="/mercado-secundario"
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
+            >
+              <ArrowLeftRight size={20} />
+              <span>{t.nav.secondaryMarket}</span>
+            </Link>
+          </>
         ) : null}
       </nav>
 

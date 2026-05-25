@@ -101,6 +101,7 @@ export const en = {
     marketplace: 'Marketplace',
     myAssets: 'My Assets',
     cashFlow: 'Cash Flow',
+    secondaryMarket: 'Secondary Market',
     signOut: 'Sign Out'
   },
   adminNav: {
@@ -545,6 +546,43 @@ export const en = {
     confirmPurchase: 'Confirm on-chain purchase',
     connectToContinue: 'Connect your wallet to continue'
   },
+  secondaryMarket: {
+    brandLabel: 'Sanova RWA',
+    title: 'Secondary Market',
+    subtitle:
+      'Buy and sell tokens peer-to-peer between KYC-verified users. Each property card shows active sell orders from other investors.',
+    kycRequired: 'Complete KYC to trade on the secondary market.',
+    kycRequiredShort: 'KYC required',
+    completeKyc: 'Complete KYC',
+    syncing: 'Refreshing listings…',
+    empty: 'No properties available on the secondary market.',
+    ordersTitle: 'Sell orders',
+    ordersSummary: '{count} tokens for sale · best ask from USD {price}',
+    noOrders: 'No active sell orders yet.',
+    sellTokens: 'Sell tokens',
+    cancelSellForm: 'Cancel',
+    sellQuantity: 'Quantity',
+    sellPrice: 'Price per token (USD)',
+    availableToSell: 'Available to sell: {count}',
+    publishListing: 'Publish listing',
+    publishing: 'Publishing…',
+    sellSuccess: 'Listing published successfully.',
+    sellError: 'Could not publish listing. Check quantity and price.',
+    buyTokens: 'Buy',
+    confirmBuy: 'Confirm purchase of these tokens on the secondary market?',
+    buySuccess: 'Purchase completed successfully.',
+    buyError: 'Could not complete the purchase.',
+    cancelListing: 'Cancel listing',
+    cancelSuccess: 'Listing cancelled.',
+    cancelError: 'Could not cancel listing.',
+    noTokensToSell: 'You have no tokens available to sell for this property.',
+    colSeller: 'Seller',
+    colTokens: 'Tokens',
+    colPrice: 'Price/token',
+    colTotal: 'Total',
+    colAction: 'Action',
+    anonymousSeller: 'Verified investor'
+  },
   wallet: {
     disconnect: 'Disconnect',
     connecting: 'Connecting…',
@@ -588,6 +626,7 @@ export const en = {
       howItWorks: 'How it works',
       properties: 'Properties',
       marketplace: 'Marketplace',
+      secondaryMarket: 'Secondary Market',
       platformAccess: 'Platform access',
       enterPlatform: 'Enter the platform'
     },
@@ -1017,6 +1056,7 @@ export type Messages = {
     marketplace: string;
     myAssets: string;
     cashFlow: string;
+    secondaryMarket: string;
     signOut: string;
   };
   adminNav: {
@@ -1444,6 +1484,42 @@ export type Messages = {
     confirmPurchase: string;
     connectToContinue: string;
   };
+  secondaryMarket: {
+    brandLabel: string;
+    title: string;
+    subtitle: string;
+    kycRequired: string;
+    kycRequiredShort: string;
+    completeKyc: string;
+    syncing: string;
+    empty: string;
+    ordersTitle: string;
+    ordersSummary: string;
+    noOrders: string;
+    sellTokens: string;
+    cancelSellForm: string;
+    sellQuantity: string;
+    sellPrice: string;
+    availableToSell: string;
+    publishListing: string;
+    publishing: string;
+    sellSuccess: string;
+    sellError: string;
+    buyTokens: string;
+    confirmBuy: string;
+    buySuccess: string;
+    buyError: string;
+    cancelListing: string;
+    cancelSuccess: string;
+    cancelError: string;
+    noTokensToSell: string;
+    colSeller: string;
+    colTokens: string;
+    colPrice: string;
+    colTotal: string;
+    colAction: string;
+    anonymousSeller: string;
+  };
   wallet: {
     disconnect: string;
     connecting: string;
@@ -1486,6 +1562,7 @@ export type Messages = {
       howItWorks: string;
       properties: string;
       marketplace: string;
+      secondaryMarket: string;
       platformAccess: string;
       enterPlatform: string;
     };
