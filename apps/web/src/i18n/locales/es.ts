@@ -377,7 +377,36 @@ export const es = {
     editError: 'No se pudo actualizar el usuario. Revisá email/teléfono o intentá de nuevo.',
     deleteSuccess: 'Usuarios borrados correctamente.',
     deleteError: 'No se pudieron borrar los usuarios seleccionados.',
-    deleteSelfError: 'No podés borrar tu propio usuario administrador.'
+    deleteSelfError: 'No podés borrar tu propio usuario administrador.',
+    designateTitle: 'Designar gerente o asesor',
+    designateDesc:
+      'El administrador puede nombrar gerentes y asesores. Los asesores deben reportar a un gerente. Todos deben completar KYC.',
+    designateEmail: 'Email',
+    designateName: 'Nombre',
+    designateRole: 'Rol',
+    designateUpline: 'Gerente (superior)',
+    designateUplinePlaceholder: 'Seleccionar gerente…',
+    designateSubmit: 'Designar',
+    designateSubmitting: 'Designando…',
+    designateSuccess: 'Usuario designado correctamente.',
+    designateError: 'No se pudo designar. Verificá el email y el gerente asignado.',
+    roleManager: 'Gerente',
+    roleAdvisor: 'Asesor'
+  },
+  userRoleHeader: {
+    fallbackName: 'Usuario',
+    approvedStatus: 'Aprobado'
+  },
+  managerPortal: {
+    eyebrow: 'Panel gerente',
+    title: 'Gestión de red comercial',
+    desc: 'Supervisá asesores e inversores incorporados. Las comisiones se reparten entre asesor, gerente y administrador.',
+    clientsCard: 'Cartera de clientes',
+    clientsCardDesc: 'Inversores incorporados por tu red de asesores.',
+    commissionsCard: 'Comisiones',
+    commissionsCardDesc: 'Recibís el 30% de la comisión cuando un asesor de tu red incorpora un inversor.',
+    teamCard: 'Red de asesores',
+    teamCardDesc: 'Consultá el equipo y los clientes asignados a tu red.'
   },
   adminSettings: {
     loading: 'Cargando configuración…',
@@ -706,10 +735,11 @@ export const es = {
     switchAccount: 'Cerrar sesión e ingresar con otra cuenta',
     authError: 'No pudimos completar el ingreso. Verificá la configuración OAuth o intentá de nuevo.',
     rolesTitle: 'Roles de la plataforma',
-    rolesDesc: 'Tras el ingreso, tu cuenta se clasifica automáticamente según el email autorizado.',
+    rolesDesc:
+      'Todos los roles (Administrador, Gerente, Asesor e Inversor) deben verificar email, teléfono y completar KYC antes de operar.',
     roles: {
       ADMIN: 'Administrador',
-      ADVISOR_MANAGER: 'Asesor de asesor',
+      ADVISOR_MANAGER: 'Gerente',
       ADVISOR: 'Asesor',
       INVESTOR: 'Inversor',
       TREASURY: 'Tesorería',
@@ -717,7 +747,7 @@ export const es = {
     },
     roleDescriptions: {
       ADMIN: 'Gestión institucional, usuarios y operaciones.',
-      ADVISOR_MANAGER: 'Supervisa red de asesores y comisiones.',
+      ADVISOR_MANAGER: 'Supervisa la red de asesores y recibe comisiones por inversores incorporados.',
       ADVISOR: 'Acompaña inversores y gestiona cartera asignada.',
       INVESTOR: 'Accede al marketplace y portfolio tokenizado.',
       TREASURY: 'Operaciones de tesorería y flujo de caja.',

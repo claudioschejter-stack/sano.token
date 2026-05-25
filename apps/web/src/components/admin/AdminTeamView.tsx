@@ -5,8 +5,8 @@ import { ArrowLeft, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
-import type { PlatformTeamMember } from '../../lib/admin/teamService';
-import type { SystemRole } from '../../lib/auth/roles';
+import type { PlatformTeamMember, AdvisorTeamMember } from '../../lib/admin/teamService';
+import { CORE_PLATFORM_ROLES, type SystemRole } from '../../lib/auth/roles';
 import { AdminGate } from './AdminGate';
 
 function VerificationCell({
@@ -54,34 +54,46 @@ export function AdminTeamView() {
   const [actionLoading, setActionLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [managers, setManagers] = useState<AdvisorTeamMember[]>([]);
+  const [designateForm, setDesignateForm] = useState({
+    email: '',
+    name: '',
+    role: 'ADVISOR_MANAGER' as 'ADVISOR' | 'ADVISOR_MANAGER',
+    uplineAdvisorId: ''
+  });
+  const [designateLoading, setDesignateLoading] = useState(false);
 
   const selectedCount = selectedUserIds.length;
   const allMembersSelected = members.length > 0 && selectedCount === members.length;
-  const roleOptions: SystemRole[] = [
-    'ADMIN',
-    'ADVISOR_MANAGER',
-    'ADVISOR',
-    'INVESTOR',
-    'TREASURY',
-    'OPERATOR'
-  ];
+  const roleOptions: SystemRole[] = [...CORE_PLATFORM_ROLES];
+  const managerOptions = managers.filter((row) => row.systemRole === 'ADVISOR_MANAGER');
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setError(false);
 
     try {
-      const response = await fetch('/api/admin/team/members');
+      const [membersResponse, advisorsResponse] = await Promise.all([
+        fetch('/api/admin/team/members'),
+        fetch('/api/admin/team/advisors')
+      ]);
 
-      if (!response.ok) {
+      if (!membersResponse.ok) {
         throw new Error('load failed');
       }
 
-      const data = (await response.json()) as { members: PlatformTeamMember[] };
+      const data = (await membersResponse.json()) as { members: PlatformTeamMember[] };
       setMembers(data.members);
       setSelectedUserIds((current) =>
         current.filter((userId) => data.members.some((member) => member.userId === userId))
       );
+
+      if (advisorsResponse.ok) {
+        const advisorsData = (await advisorsResponse.json()) as { advisors: AdvisorTeamMember[] };
+        setManagers(advisorsData.advisors);
+      } else {
+        setManagers([]);
+      }
     } catch {
       setError(true);
       setMembers([]);
@@ -207,6 +219,43 @@ export function AdminTeamView() {
     }
   }
 
+  async function submitDesignation(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setDesignateLoading(true);
+    setActionMessage(null);
+
+    try {
+      const response = await fetch('/api/admin/team/advisors', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: designateForm.email,
+          name: designateForm.name || undefined,
+          role: designateForm.role,
+          uplineAdvisorId:
+            designateForm.role === 'ADVISOR' ? designateForm.uplineAdvisorId || undefined : null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('designate failed');
+      }
+
+      setDesignateForm({
+        email: '',
+        name: '',
+        role: 'ADVISOR_MANAGER',
+        uplineAdvisorId: ''
+      });
+      setActionMessage(t.adminTeam.designateSuccess);
+      await loadData();
+    } catch {
+      setActionMessage(t.adminTeam.designateError);
+    } finally {
+      setDesignateLoading(false);
+    }
+  }
+
   return (
     <AdminGate>
       <div className="mx-auto max-w-7xl space-y-8">
@@ -225,6 +274,92 @@ export function AdminTeamView() {
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-terminal-text">{t.adminNav.team}</h1>
           <p className="mt-3 max-w-3xl text-terminal-muted">{t.adminDashboard.teamDesc}</p>
         </header>
+
+        <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-6">
+          <div>
+            <h2 className="text-lg font-semibold text-terminal-text">{t.adminTeam.designateTitle}</h2>
+            <p className="mt-1 text-sm text-terminal-muted">{t.adminTeam.designateDesc}</p>
+          </div>
+
+          <form className="grid gap-4 md:grid-cols-2" onSubmit={(event) => void submitDesignation(event)}>
+            <label className="space-y-1 text-sm">
+              <span className="text-terminal-muted">{t.adminTeam.designateEmail}</span>
+              <input
+                type="email"
+                required
+                value={designateForm.email}
+                onChange={(event) =>
+                  setDesignateForm((current) => ({ ...current, email: event.target.value }))
+                }
+                className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              />
+            </label>
+
+            <label className="space-y-1 text-sm">
+              <span className="text-terminal-muted">{t.adminTeam.designateName}</span>
+              <input
+                type="text"
+                value={designateForm.name}
+                onChange={(event) =>
+                  setDesignateForm((current) => ({ ...current, name: event.target.value }))
+                }
+                className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              />
+            </label>
+
+            <label className="space-y-1 text-sm">
+              <span className="text-terminal-muted">{t.adminTeam.designateRole}</span>
+              <select
+                value={designateForm.role}
+                onChange={(event) =>
+                  setDesignateForm((current) => ({
+                    ...current,
+                    role: event.target.value as 'ADVISOR' | 'ADVISOR_MANAGER',
+                    uplineAdvisorId: event.target.value === 'ADVISOR_MANAGER' ? '' : current.uplineAdvisorId
+                  }))
+                }
+                className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              >
+                <option value="ADVISOR_MANAGER">{t.adminTeam.roleManager}</option>
+                <option value="ADVISOR">{t.adminTeam.roleAdvisor}</option>
+              </select>
+            </label>
+
+            {designateForm.role === 'ADVISOR' ? (
+              <label className="space-y-1 text-sm">
+                <span className="text-terminal-muted">{t.adminTeam.designateUpline}</span>
+                <select
+                  required
+                  value={designateForm.uplineAdvisorId}
+                  onChange={(event) =>
+                    setDesignateForm((current) => ({
+                      ...current,
+                      uplineAdvisorId: event.target.value
+                    }))
+                  }
+                  className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+                >
+                  <option value="">{t.adminTeam.designateUplinePlaceholder}</option>
+                  {managerOptions.map((manager) => (
+                    <option key={manager.advisorId} value={manager.advisorId}>
+                      {manager.name ?? manager.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+
+            <div className="flex items-end md:col-span-2">
+              <button
+                type="submit"
+                disabled={designateLoading}
+                className="rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {designateLoading ? t.adminTeam.designateSubmitting : t.adminTeam.designateSubmit}
+              </button>
+            </div>
+          </form>
+        </section>
 
         <section className="space-y-4">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

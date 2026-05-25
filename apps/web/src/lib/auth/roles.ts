@@ -6,6 +6,16 @@ export type SystemRole =
   | 'TREASURY'
   | 'OPERATOR';
 
+/** Roles principales visibles en la plataforma (4 roles operativos). */
+export const CORE_PLATFORM_ROLES = [
+  'ADMIN',
+  'ADVISOR_MANAGER',
+  'ADVISOR',
+  'INVESTOR'
+] as const satisfies readonly SystemRole[];
+
+export type CorePlatformRole = (typeof CORE_PLATFORM_ROLES)[number];
+
 export const ROLE_HOME_PATH: Record<SystemRole, string> = {
   ADMIN: '/dashboard',
   ADVISOR_MANAGER: '/dashboard',
@@ -16,7 +26,7 @@ export const ROLE_HOME_PATH: Record<SystemRole, string> = {
 };
 
 export function resolvePostLoginPath(role: SystemRole, accountOperational = false): string {
-  if (role === 'INVESTOR' && !accountOperational) {
+  if (!accountOperational) {
     return '/kyc';
   }
 
@@ -25,4 +35,8 @@ export function resolvePostLoginPath(role: SystemRole, accountOperational = fals
 
 export function isStaffRole(role: SystemRole): boolean {
   return role === 'ADMIN' || role === 'ADVISOR_MANAGER' || role === 'ADVISOR' || role === 'TREASURY' || role === 'OPERATOR';
+}
+
+export function isCorePlatformRole(role: SystemRole): role is CorePlatformRole {
+  return (CORE_PLATFORM_ROLES as readonly SystemRole[]).includes(role);
 }

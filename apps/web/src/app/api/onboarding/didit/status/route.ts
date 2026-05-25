@@ -2,18 +2,14 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { extractDiditIdentity, buildDiditIdentityUpdate } from '../../../../../lib/onboarding/extractDiditIdentity';
 import { mapDiditStatusToKyc, retrieveDiditDecision } from '../../../../../lib/onboarding/diditService';
-import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { requireAuthenticatedSession } from '../../../../../lib/onboarding/requireAuthenticatedSession';
 import { syncUserAccountStatus } from '../../../../../lib/onboarding/syncUserAccount';
 
 export async function POST() {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireAuthenticatedSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
-  }
-
-  if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
   const user = await prisma.user.findUnique({

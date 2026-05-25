@@ -13,7 +13,6 @@ import { RegisterForm } from '../auth/RegisterForm';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { LandingHeader } from './LandingHeader';
 import { TrustBadges } from './TrustBadges';
-import { isStaffRole } from '../../lib/auth/roles';
 
 function AccessPageContent() {
   const router = useRouter();
@@ -36,7 +35,7 @@ function AccessPageContent() {
       return;
     }
 
-    if (!isStaffRole(role) && !isOperational) {
+    if (!isOperational) {
       return;
     }
 
@@ -52,7 +51,7 @@ function AccessPageContent() {
     );
   }
 
-  if (isAuthenticated && role && !isStaffRole(role) && !isOperational) {
+  if (isAuthenticated && role && !isOperational) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <LandingHeader />

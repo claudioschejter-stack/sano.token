@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { consumeVerificationCode } from '../../../../lib/onboarding/verification';
-import { requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
+import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
 
 export async function POST(request: Request) {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireAuthenticatedSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
-  }
-
-  if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
   const body = (await request.json()) as { code?: string };

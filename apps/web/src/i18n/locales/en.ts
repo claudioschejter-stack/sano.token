@@ -375,7 +375,36 @@ export const en = {
     editError: 'Could not update the user. Check email/phone or try again.',
     deleteSuccess: 'Users deleted successfully.',
     deleteError: 'Could not delete the selected users.',
-    deleteSelfError: 'You cannot delete your own administrator user.'
+    deleteSelfError: 'You cannot delete your own administrator user.',
+    designateTitle: 'Appoint manager or advisor',
+    designateDesc:
+      'Administrators can appoint managers and advisors. Advisors must report to a manager. Everyone must complete KYC.',
+    designateEmail: 'Email',
+    designateName: 'Name',
+    designateRole: 'Role',
+    designateUpline: 'Manager (upline)',
+    designateUplinePlaceholder: 'Select manager…',
+    designateSubmit: 'Appoint',
+    designateSubmitting: 'Appointing…',
+    designateSuccess: 'User appointed successfully.',
+    designateError: 'Could not appoint user. Check email and assigned manager.',
+    roleManager: 'Manager',
+    roleAdvisor: 'Advisor'
+  },
+  userRoleHeader: {
+    fallbackName: 'User',
+    approvedStatus: 'Approved'
+  },
+  managerPortal: {
+    eyebrow: 'Manager panel',
+    title: 'Commercial network management',
+    desc: 'Supervise advisors and incorporated investors. Commissions are shared among advisor, manager, and administrator.',
+    clientsCard: 'Client portfolio',
+    clientsCardDesc: 'Investors incorporated by your advisor network.',
+    commissionsCard: 'Commissions',
+    commissionsCardDesc: 'You receive 30% of commission when an advisor in your network incorporates an investor.',
+    teamCard: 'Advisor network',
+    teamCardDesc: 'Review your team and clients assigned to your network.'
   },
   adminSettings: {
     loading: 'Loading settings…',
@@ -702,7 +731,7 @@ export const en = {
     rolesDesc: 'After sign-in, your account is classified automatically based on your authorized email.',
     roles: {
       ADMIN: 'Administrator',
-      ADVISOR_MANAGER: 'Advisor manager',
+      ADVISOR_MANAGER: 'Manager',
       ADVISOR: 'Advisor',
       INVESTOR: 'Investor',
       TREASURY: 'Treasury',
@@ -1248,6 +1277,34 @@ export type Messages = {
     deleteSuccess: string;
     deleteError: string;
     deleteSelfError: string;
+    designateTitle: string;
+    designateDesc: string;
+    designateEmail: string;
+    designateName: string;
+    designateRole: string;
+    designateUpline: string;
+    designateUplinePlaceholder: string;
+    designateSubmit: string;
+    designateSubmitting: string;
+    designateSuccess: string;
+    designateError: string;
+    roleManager: string;
+    roleAdvisor: string;
+  };
+  userRoleHeader: {
+    fallbackName: string;
+    approvedStatus: string;
+  };
+  managerPortal: {
+    eyebrow: string;
+    title: string;
+    desc: string;
+    clientsCard: string;
+    clientsCardDesc: string;
+    commissionsCard: string;
+    commissionsCardDesc: string;
+    teamCard: string;
+    teamCardDesc: string;
   };
   adminSettings: {
     loading: string;

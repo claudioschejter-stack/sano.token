@@ -1,4 +1,5 @@
 import { prisma, Prisma, type KycStatus, type AccountStatus } from '@sanova/database';
+import { calculatePurchaseCommissionSplit } from '../commission/commissionService';
 import { isAccountOperational } from '../onboarding/accountStatus';
 
 const DEFAULT_MAX_LTV = 0.6;
@@ -120,7 +121,7 @@ export async function purchaseProjectTokens(input: {
 
   const investorId = await ensureInvestorForUser(user, input.walletAddress);
 
-  return prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
     const project = await tx.project.findUnique({
       where: { id: input.projectId }
     });
@@ -190,6 +191,13 @@ export async function purchaseProjectTokens(input: {
       availableTokens: project.availableTokens - input.tokenCount
     };
   });
+
+  const commissionSplit = await calculatePurchaseCommissionSplit({
+    investorId,
+    purchaseAmountUsd: result.purchasePriceUsd
+  });
+
+  return { ...result, commissionSplit };
 }
 
 export async function getPortfolioForUser(userId: string) {

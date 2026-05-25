@@ -27,7 +27,7 @@ export function resolveAuthenticatedDestination(
   returnTo: string | null | undefined,
   accountOperational = false
 ): string {
-  if (role === 'INVESTOR' && !accountOperational) {
+  if (!accountOperational) {
     return buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH);
   }
 

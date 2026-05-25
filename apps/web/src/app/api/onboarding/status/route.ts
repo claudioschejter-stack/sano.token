@@ -4,17 +4,14 @@ import { buildOnboardingChecklist } from '../../../../lib/onboarding/accountStat
 import { buildOnboardingProfile } from '../../../../lib/onboarding/profile';
 import { getOnboardingIntegrations } from '../../../../lib/onboarding/integrationStatus';
 import { isDiditConfigured } from '../../../../lib/onboarding/diditService';
-import { requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
+import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
+import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
 
 export async function GET() {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireAuthenticatedSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
-  }
-
-  if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
   const user = await prisma.user.findUnique({

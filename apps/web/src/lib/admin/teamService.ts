@@ -6,7 +6,7 @@ import {
 } from '@sanova/database';
 import type { AccountStatus, KycStatus } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from '../auth/contactValidation';
-import type { SystemRole } from '../auth/roles';
+import { CORE_PLATFORM_ROLES, type SystemRole } from '../auth/roles';
 
 export type PlatformTeamMember = {
   userId: string;
@@ -64,14 +64,7 @@ export type UpdatePlatformTeamMemberInput = {
   systemRole: SystemRole;
 };
 
-const EDITABLE_SYSTEM_ROLES = new Set<SystemRole>([
-  'ADMIN',
-  'ADVISOR_MANAGER',
-  'ADVISOR',
-  'INVESTOR',
-  'TREASURY',
-  'OPERATOR'
-]);
+const EDITABLE_SYSTEM_ROLES = new Set<SystemRole>(CORE_PLATFORM_ROLES);
 
 async function ensureAdvisorRecord(
   userId: string,
@@ -152,6 +145,21 @@ export async function updatePlatformTeamMember(
       systemRole: input.systemRole as PrismaSystemRole
     }
   });
+
+  if (input.systemRole === 'ADVISOR_MANAGER') {
+    await ensureAdvisorRecord(input.userId, null);
+  } else if (input.systemRole === 'ADVISOR') {
+    const existingAdvisor = await prisma.advisor.findUnique({
+      where: { userId: input.userId },
+      select: { uplineId: true }
+    });
+
+    if (!existingAdvisor?.uplineId) {
+      throw new Error('ADVISOR_REQUIRES_UPLINE');
+    }
+
+    await ensureAdvisorRecord(input.userId, existingAdvisor.uplineId);
+  }
 
   const members = await listPlatformTeamMembers();
   const updated = members.find((member) => member.userId === input.userId);

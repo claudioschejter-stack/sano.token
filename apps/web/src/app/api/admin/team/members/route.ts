@@ -55,7 +55,9 @@ export async function PATCH(request: Request) {
     const status =
       message === 'INVALID_EMAIL' || message === 'INVALID_PHONE' || message === 'INVALID_ROLE'
         ? 400
-        : message === 'P2002'
+        : message === 'ADVISOR_REQUIRES_UPLINE' || message === 'USER_NOT_FOUND'
+          ? 400
+          : message === 'P2002'
           ? 409
           : 500;
 

@@ -1,5 +1,5 @@
 import { prisma } from '@sanova/database';
-import { requireInvestorSession } from './requireInvestorSession';
+import { requireAuthenticatedSession } from './requireAuthenticatedSession';
 
 export type ContactVerificationFields = {
   emailVerifiedAt: Date | null;
@@ -14,15 +14,11 @@ export function isContactVerificationComplete(user: ContactVerificationFields): 
   );
 }
 
-export async function requireContactVerifiedInvestor() {
-  const ctx = await requireInvestorSession();
+export async function requireContactVerifiedUser() {
+  const ctx = await requireAuthenticatedSession();
 
   if (!ctx) {
     return null;
-  }
-
-  if ('forbidden' in ctx) {
-    return ctx;
   }
 
   const user = await prisma.user.findUnique({

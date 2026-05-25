@@ -1,17 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { normalizePhoneE164 } from '../../../../lib/onboarding/verification';
-import { requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
+import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 
 export async function POST(request: Request) {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireAuthenticatedSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
-  }
-
-  if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
   const body = (await request.json()) as { phone?: string };

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
-import { requireContactVerifiedInvestor } from '../../../../lib/onboarding/contactVerification';
+import { requireContactVerifiedUser } from '../../../../lib/onboarding/contactVerification';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
 
 /** Demo only — use Didit in production. */
@@ -9,14 +9,10 @@ export async function POST() {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
-  const ctx = await requireContactVerifiedInvestor();
+  const ctx = await requireContactVerifiedUser();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
-  }
-
-  if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
   if ('contactRequired' in ctx) {
