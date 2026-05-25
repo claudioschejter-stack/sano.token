@@ -78,20 +78,13 @@ function OnboardingContent() {
   const phoneCodeSent = useRef(false);
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
-  const [overrideStep, setOverrideStep] = useState<Step | null>(null);
 
   const step = useMemo(
     () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved),
     [checklist, diditReturn]
   );
 
-  const displayStep = overrideStep ?? step;
-
-  const progressIndex = ['contact', 'email', 'phone', 'identity', 'done'].indexOf(displayStep);
-
-  useEffect(() => {
-    setOverrideStep(null);
-  }, [step]);
+  const progressIndex = ['contact', 'email', 'phone', 'identity', 'done'].indexOf(step);
 
   useEffect(() => {
     if (!checklist?.phone || phoneLocal) {
@@ -472,20 +465,13 @@ function OnboardingContent() {
           </p>
         ) : null}
 
-        {checklist.emailVerified && displayStep === 'identity' ? (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+        {checklist.emailVerified && step === 'identity' ? (
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
             <p className="text-sm font-semibold text-emerald-800">{o.steps.emailApproved}</p>
-            <button
-              type="button"
-              onClick={() => setOverrideStep('contact')}
-              className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-500"
-            >
-              {o.steps.change}
-            </button>
           </div>
         ) : null}
 
-        {displayStep === 'contact' ? (
+        {step === 'contact' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
             <p className="text-sm text-slate-600">{o.steps.contactDesc}</p>
@@ -533,7 +519,7 @@ function OnboardingContent() {
           </section>
         ) : null}
 
-        {displayStep === 'email' ? (
+        {step === 'email' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.emailTitle}</h2>
             <p className="text-sm text-slate-600">
@@ -562,7 +548,7 @@ function OnboardingContent() {
           </section>
         ) : null}
 
-        {displayStep === 'phone' ? (
+        {step === 'phone' ? (
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.phoneTitle}</h2>
             <p className="text-sm text-slate-600">
@@ -591,18 +577,9 @@ function OnboardingContent() {
           </section>
         ) : null}
 
-        {displayStep === 'identity' ? (
+        {step === 'identity' ? (
           <section className="space-y-5">
-            <div className="flex items-start justify-between gap-3">
-              <h2 className="text-xl font-bold">{o.steps.identityTitle}</h2>
-              <button
-                type="button"
-                onClick={() => setOverrideStep('contact')}
-                className="shrink-0 text-sm font-semibold text-blue-600 hover:text-blue-500"
-              >
-                {o.steps.change}
-              </button>
-            </div>
+            <h2 className="text-xl font-bold">{o.steps.identityTitle}</h2>
 
             <div className="space-y-2 text-sm text-slate-700">
               <p className="font-medium text-slate-900">{o.steps.identityDesc}</p>
@@ -635,7 +612,7 @@ function OnboardingContent() {
           </section>
         ) : null}
 
-        {displayStep === 'done' ? (
+        {step === 'done' ? (
           <section className="flex flex-1 flex-col items-center justify-center text-center">
             <CheckCircle2 className="text-emerald-500" size={56} />
             <h2 className="mt-4 text-2xl font-bold">{o.steps.doneTitle}</h2>
@@ -644,16 +621,16 @@ function OnboardingContent() {
         ) : null}
       </main>
 
-      {displayStep !== 'done' && displayStep !== 'identity' ? (
+      {step !== 'done' && step !== 'identity' ? (
         <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-md safe-bottom">
           <div className="mx-auto w-full max-w-md">
             <button
               type="button"
-              disabled={busy || (displayStep === 'contact' && !validatedPhone) || (displayStep === 'email' && emailCode.length !== 6) || (displayStep === 'phone' && phoneCode.length !== 6)}
+              disabled={busy || (step === 'contact' && !validatedPhone) || (step === 'email' && emailCode.length !== 6) || (step === 'phone' && phoneCode.length !== 6)}
               onClick={() => {
-                if (displayStep === 'contact') void submitContact();
-                else if (displayStep === 'email') void verifyEmail();
-                else if (displayStep === 'phone') void verifyPhone();
+                if (step === 'contact') void submitContact();
+                else if (step === 'email') void verifyEmail();
+                else if (step === 'phone') void verifyPhone();
               }}
               className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 text-base font-semibold text-white disabled:opacity-60"
             >
