@@ -662,7 +662,7 @@ export const es = {
         'Estas son algunas de las empresas petroleras y gasíferas con operaciones en la cuenca'
     },
     macroThesis: {
-      eyebrow: 'Contexto Macro & Tesis de Inversión',
+      eyebrow: 'Contexto Macro y Tesis de Inversión',
       title: 'El Motor Energético de Occidente: Oportunidad en Activos Reales',
       intro:
         'Vaca Muerta no es una promesa exploratoria; es la segunda reserva mundial de shale gas y la cuarta de shale oil. Con una escala comparable a la cuenca Permian en EE. UU., las principales multinacionales energéticas inyectan más de US$ 9.000 millones anuales para expandir su producción.',
