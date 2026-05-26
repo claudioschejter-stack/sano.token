@@ -16,6 +16,7 @@ import {
   prepareMorphoBorrowUsdc
 } from './protocols/morphoBorrow';
 import { getAdminAsset } from '../admin/assetsService';
+import { allowedExternalContracts, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
 
 export type BorrowQuoteRequest = {
   amountUsd: number;
@@ -118,9 +119,23 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
       return null;
     }
 
+    if (request.amountUsd > maxBorrowUsdPerProject()) {
+      return null;
+    }
+
     const oracleAddress = await resolveMorphoOracleAddress(request.projectId);
     const marketParams = buildDefaultMorphoMarketParams(vault, oracleAddress);
     if (!marketParams) {
+      return null;
+    }
+    const allowedContracts = new Set(allowedExternalContracts());
+    const requiredContracts = [
+      marketParams.loanToken,
+      marketParams.oracle,
+      marketParams.irm,
+      getLendingChainConfig().morpho
+    ].map((address) => address.toLowerCase());
+    if (requiredContracts.some((address) => !allowedContracts.has(address))) {
       return null;
     }
 

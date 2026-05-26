@@ -6,6 +6,7 @@ import type { VaultFundingStatus } from '../admin/launchTypes';
 import { waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
+import { configureInitialContractSecurity } from './securityPolicy';
 
 export type DeployVaultOnlyInput = {
   contractAddress: string;
@@ -26,6 +27,7 @@ export type DeployVaultOnlyResult =
       vaultFundingTxHash: string | null;
       vaultFundingError: string | null;
       ownershipTransfers?: OwnershipTransferResult[];
+      security?: { allowedContracts: string[] };
     }
   | { status: 'SKIPPED'; reason: string };
 
@@ -146,6 +148,14 @@ export async function deployVaultForExistingToken(
       vaultFundingError = depositError instanceof Error ? depositError.message : 'Vault deposit failed';
     }
 
+    const security = await configureInitialContractSecurity({
+      asset,
+      vaultContract,
+      treasuryAddress,
+      totalAssets: vaultFundingAmount ? BigInt(vaultFundingAmount) : BigInt(input.totalSupplyUnits) * 10n ** 18n,
+      extraAllowedContracts: [vaultAddress]
+    });
+
     const ownershipTransfers = [
       await transferOwnershipToTreasury({
         contractName: 'SanovaAssetToken',
@@ -174,7 +184,8 @@ export async function deployVaultForExistingToken(
       vaultFundingAmount,
       vaultFundingTxHash,
       vaultFundingError,
-      ownershipTransfers
+      ownershipTransfers,
+      security
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Vault deployment failed';

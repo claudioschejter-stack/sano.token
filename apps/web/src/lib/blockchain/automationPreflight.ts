@@ -6,6 +6,7 @@ import { evaluateCollateralReadiness } from '../collateral/collateralRegistry';
 import { validateOraclePricing } from './pricingOracleValidation';
 import { enqueueAutomationJob } from '../admin/automationJobs';
 import { logAutomationEvent } from '../admin/automationLogger';
+import { maxBorrowUsdPerProject } from './securityPolicy';
 
 export type AutomationPreflightCheck = {
   key: string;
@@ -61,6 +62,12 @@ export async function runAutomationPreflight(asset: AdminAssetRecord): Promise<A
       morphoReadiness?.missing.length ? `Faltan: ${morphoReadiness.missing.join(', ')}` : 'Checklist legal completo.'
     ),
     check('pricingOracle', 'Pricing/oracle', pricing.ok, pricing.message),
+    check(
+      'securityLimits',
+      'Límites anti-vaciado',
+      maxBorrowUsdPerProject() > 0,
+      `Borrow diario máximo USD ${maxBorrowUsdPerProject()}`
+    ),
     check('vault', 'Vault requerido', asset.tokenStandard !== 'ERC4626' || !asset.contractAddress || Boolean(asset.vaultAddress), asset.vaultAddress ?? 'Se desplegará automáticamente.'),
     check('morpho', 'Morpho', !hasMorpho || asset.tokenStandard === 'ERC4626', hasMorpho ? 'Morpho requiere ERC-4626.' : 'No seleccionado.')
   ];

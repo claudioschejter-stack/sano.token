@@ -6,6 +6,7 @@ import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deploy
 import { waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
+import { configureInitialContractSecurity } from './securityPolicy';
 
 export type DeployLaunchTokenInput = {
   tokenStandard: TokenStandard;
@@ -34,6 +35,7 @@ export type DeployLaunchTokenResult =
       chainId: number;
       txHash: string;
       ownershipTransfers?: OwnershipTransferResult[];
+      security?: { allowedContracts: string[] };
     }
   | { status: 'SKIPPED'; reason: string };
 
@@ -175,6 +177,11 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const mintReceipt = await waitForAutomationTx(mintTx);
 
     if (input.tokenStandard === 'SANOVA_KYC') {
+      const security = await configureInitialContractSecurity({
+        asset,
+        treasuryAddress,
+        totalAssets: mintAmount
+      });
       const ownershipTransfers = [
         await transferOwnershipToTreasury({
           contractName: 'SanovaAssetToken',
@@ -189,7 +196,8 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
         contractAddress,
         chainId,
         txHash: mintReceipt?.hash ?? 'mint-submitted',
-        ownershipTransfers
+        ownershipTransfers,
+        security
       };
     }
 
@@ -213,6 +221,13 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       receiverAddress: treasuryAddress,
       vaultAddress,
       amount: mintAmount
+    });
+    const security = await configureInitialContractSecurity({
+      asset,
+      vaultContract,
+      treasuryAddress,
+      totalAssets: mintAmount,
+      extraAllowedContracts: [vaultAddress]
     });
     const ownershipTransfers = [
       await transferOwnershipToTreasury({
@@ -241,7 +256,8 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       vaultFundingError: funding.error,
       chainId,
       txHash: funding.txHash ?? mintReceipt?.hash ?? 'deploy-submitted',
-      ownershipTransfers
+      ownershipTransfers,
+      security
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown deployment error';
