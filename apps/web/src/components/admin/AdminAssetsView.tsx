@@ -82,6 +82,38 @@ export function AdminAssetsView() {
     }
   }
 
+  async function postAssetAction(projectId: string, action: 'preflight' | 'repair-automation') {
+    setUpdatingId(projectId);
+    setSaveError(null);
+    try {
+      const response = await fetch(`/api/admin/assets/${projectId}/${action}`, { method: 'POST' });
+      if (!response.ok) throw new Error('Action failed');
+      await loadAssets(filter);
+    } catch {
+      setSaveError(action === 'preflight' ? 'No se pudo simular la emisión.' : 'No se pudo reparar la automatización.');
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  async function processPendingJobs() {
+    setUpdatingId('automation-jobs');
+    setSaveError(null);
+    try {
+      const response = await fetch('/api/admin/automation-jobs/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: 10 })
+      });
+      if (!response.ok) throw new Error('Jobs failed');
+      await loadAssets(filter);
+    } catch {
+      setSaveError('No se pudieron procesar los jobs pendientes.');
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   function startEdit(asset: AdminAssetRecord) {
     setEditingId(asset.id);
     setSaveError(null);
@@ -167,8 +199,35 @@ export function AdminAssetsView() {
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
               {t.adminAssets.refresh}
             </button>
+            <button
+              type="button"
+              onClick={() => void processPendingJobs()}
+              disabled={updatingId === 'automation-jobs'}
+              className="inline-flex items-center gap-2 rounded-lg border border-terminal-primary/40 px-3 py-2 text-sm font-semibold text-terminal-primary transition-colors hover:bg-terminal-primary/10 disabled:opacity-50"
+            >
+              <RefreshCw size={16} className={updatingId === 'automation-jobs' ? 'animate-spin' : ''} />
+              Procesar jobs RWA
+            </button>
           </div>
         </div>
+
+        <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-terminal-primary">Centro RWA</p>
+              <h2 className="mt-1 text-xl font-bold text-terminal-text">Emisión, vault y préstamo por activo</h2>
+              <p className="mt-1 text-sm text-terminal-muted">
+                Controla readiness legal, pricing, treasury, Morpho, liquidez y último error antes de pedir préstamos.
+              </p>
+            </div>
+            <p className="text-sm text-terminal-muted">
+              Listos para préstamo:{' '}
+              <span className="font-mono text-terminal-success">
+                {assets.filter((asset) => asset.readyToBorrow).length}/{assets.length}
+              </span>
+            </p>
+          </div>
+        </section>
 
         {saveError ? (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{saveError}</p>
@@ -184,6 +243,10 @@ export function AdminAssetsView() {
                   <th className="px-6 py-3 font-semibold">{t.adminAssets.colPrice}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminAssets.colSupply}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminAssets.colYield}</th>
+                  <th className="px-6 py-3 font-semibold">Ready borrow</th>
+                  <th className="px-6 py-3 font-semibold">Vault / Morpho</th>
+                  <th className="px-6 py-3 font-semibold">Legal / Pricing</th>
+                  <th className="px-6 py-3 font-semibold">Último error</th>
                   <th className="px-6 py-3 font-semibold">{t.adminAssets.colStatus}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminAssets.colActions}</th>
                 </tr>
@@ -191,19 +254,19 @@ export function AdminAssetsView() {
               <tbody className="divide-y divide-terminal-border">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={11} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminAssets.loading}
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-red-400">
+                    <td colSpan={11} className="px-6 py-10 text-center text-red-400">
                       {t.adminAssets.error}
                     </td>
                   </tr>
                 ) : assets.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={11} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminAssets.empty}
                     </td>
                   </tr>
@@ -212,6 +275,16 @@ export function AdminAssetsView() {
                     const isUpdating = updatingId === asset.id;
                     const isEditing = editingId === asset.id;
                     const statusKey = asset.isActive ? 'ACTIVE' : 'INACTIVE';
+                    const morpho = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
+                    const legalOk =
+                      Boolean(asset.contracts.trust) &&
+                      asset.centrifugeChecklist.legalAuditDone &&
+                      asset.centrifugeChecklist.kycPolicyActive;
+                    const pricingOk = asset.pricePerToken > 0 && (asset.navOracleUrl || morpho?.oracleAddress);
+                    const lastError =
+                      asset.deploymentEvents.find((event) => event.status === 'FAILED')?.message ??
+                      morpho?.lastError ??
+                      asset.vaultFundingError;
 
                     return (
                       <Fragment key={asset.id}>
@@ -239,6 +312,34 @@ export function AdminAssetsView() {
                           </td>
                           <td className="px-6 py-4 font-mono text-terminal-accent">
                             {formatPercent(asset.targetYield)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex rounded border px-2.5 py-1 text-xs font-semibold ${
+                                asset.readyToBorrow
+                                  ? 'border-terminal-success/30 text-terminal-success'
+                                  : 'border-terminal-warning/30 text-terminal-warning'
+                              }`}
+                            >
+                              {asset.readyToBorrow ? 'READY' : asset.automationReadiness.status}
+                            </span>
+                            <p className="mt-1 text-xs text-terminal-muted">{asset.automationReadiness.score}%</p>
+                          </td>
+                          <td className="min-w-52 px-6 py-4 text-xs text-terminal-muted">
+                            <p>Vault: {asset.vaultAddress ? `${asset.vaultAddress.slice(0, 8)}...` : 'pendiente'}</p>
+                            <p>Morpho: {morpho?.status ?? 'no seleccionado'}</p>
+                            <p>Liquidez: {asset.morphoLiquidityStatus}</p>
+                          </td>
+                          <td className="px-6 py-4 text-xs">
+                            <p className={legalOk ? 'text-terminal-success' : 'text-terminal-warning'}>
+                              Legal: {legalOk ? 'OK' : 'bloqueante'}
+                            </p>
+                            <p className={pricingOk ? 'text-terminal-success' : 'text-terminal-warning'}>
+                              Pricing: {pricingOk ? 'OK' : 'pendiente'}
+                            </p>
+                          </td>
+                          <td className="max-w-xs px-6 py-4 text-xs text-terminal-muted">
+                            {lastError ?? 'Sin errores'}
                           </td>
                           <td className="px-6 py-4">
                             <span
@@ -277,6 +378,22 @@ export function AdminAssetsView() {
                                 <Pencil size={14} />
                                 {t.adminAssets.editLaunch}
                               </Link>
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => void postAssetAction(asset.id, 'preflight')}
+                                className="inline-flex items-center gap-1 rounded-lg border border-terminal-border px-2.5 py-1.5 text-xs font-semibold text-terminal-muted transition-colors hover:text-terminal-primary disabled:opacity-50"
+                              >
+                                Simular
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isUpdating}
+                                onClick={() => void postAssetAction(asset.id, 'repair-automation')}
+                                className="inline-flex items-center gap-1 rounded-lg border border-terminal-border px-2.5 py-1.5 text-xs font-semibold text-terminal-muted transition-colors hover:text-terminal-primary disabled:opacity-50"
+                              >
+                                Reparar
+                              </button>
                               <Link
                                 href={`/marketplace/${asset.id}/checkout`}
                                 className="inline-flex items-center gap-1 rounded-lg border border-terminal-border px-2.5 py-1.5 text-xs font-semibold text-terminal-muted transition-colors hover:text-terminal-primary"
@@ -289,7 +406,7 @@ export function AdminAssetsView() {
                         </tr>
                         {isEditing ? (
                           <tr className="bg-terminal-bg/40">
-                            <td colSpan={7} className="px-6 py-4">
+                            <td colSpan={11} className="px-6 py-4">
                               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                                 <label className="block text-sm">
                                   <span className="mb-1.5 block text-terminal-muted">

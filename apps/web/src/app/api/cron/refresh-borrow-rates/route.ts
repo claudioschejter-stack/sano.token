@@ -4,6 +4,7 @@ import { listAutomationRepairCandidates } from '../../../../lib/admin/assetsServ
 import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
 import { executeProjectAutomationRepair } from '../../../../lib/blockchain/projectTokenDeploy';
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
+import { enqueueAutomationJob, processAutomationJobs } from '../../../../lib/admin/automationJobs';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +28,7 @@ export async function GET(request: Request) {
     const borrowRate = await refreshBorrowRatesCache();
     const candidates = await listAutomationRepairCandidates(3);
     const repairs = [];
+    const queued = [];
 
     for (const asset of candidates) {
       const blockReason = shouldBlockAutomation(asset);
@@ -41,14 +43,23 @@ export async function GET(request: Request) {
       }
 
       try {
-        const repair = await executeProjectAutomationRepair(asset.id);
-        repairs.push({ projectId: asset.id, status: repair.deploy.status });
-        if (repair.deploy.status === 'FAILED' || repair.deploy.status === 'SKIPPED') {
-          await notifyAutomationIssue({
-            projectId: asset.id,
-            title: asset.title,
-            message: `La reparación automática terminó con estado ${repair.deploy.status}.`
-          });
+        const job = await enqueueAutomationJob({
+          projectId: asset.id,
+          step: 'TOKEN_DEPLOY',
+          payload: { source: 'daily-cron-repair' }
+        });
+        if (job) {
+          queued.push({ projectId: asset.id, jobId: job.id, step: 'TOKEN_DEPLOY' });
+        } else {
+          const repair = await executeProjectAutomationRepair(asset.id);
+          repairs.push({ projectId: asset.id, status: repair.deploy.status });
+          if (repair.deploy.status === 'FAILED' || repair.deploy.status === 'SKIPPED') {
+            await notifyAutomationIssue({
+              projectId: asset.id,
+              title: asset.title,
+              message: `La reparación automática terminó con estado ${repair.deploy.status}.`
+            });
+          }
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown repair error';
@@ -61,12 +72,24 @@ export async function GET(request: Request) {
       }
     }
 
+    const syntheticJob = await enqueueAutomationJob({
+      step: 'SYNTHETIC_RWA_FLOW',
+      payload: { source: 'daily-cron' },
+      maxAttempts: 1
+    });
+    if (syntheticJob) {
+      queued.push({ jobId: syntheticJob.id, step: 'SYNTHETIC_RWA_FLOW' });
+    }
+    const jobRun = await processAutomationJobs(5);
+
     return NextResponse.json({
       ok: true,
       refreshedAt: borrowRate.best.fetchedAt,
       liveCount: borrowRate.meta?.liveCount ?? 0,
       best: borrowRate.best.name,
       bestApyBps: borrowRate.best.borrowApyBps,
+      queued,
+      jobRun,
       repairs
     });
   } catch (error) {

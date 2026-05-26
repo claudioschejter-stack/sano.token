@@ -1,6 +1,6 @@
 import { Contract, JsonRpcProvider } from 'ethers';
 import type { AdminAssetRecord } from '../admin/assetsService';
-import { appendDeploymentEvent, updateAdminAsset } from '../admin/assetsService';
+import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin/assetsService';
 import { notifyMorphoLiquidity } from '../admin/automationAlerts';
 import { resolveChainId } from '../blockchain/explorerUrls';
 import { getLendingChainConfig } from './baseContracts';
@@ -55,6 +55,16 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
     });
     if (status !== 'LIQUID') {
       await notifyMorphoLiquidity(asset.id, asset.title, status);
+    } else {
+      const refreshed = await getAdminAsset(asset.id);
+      await appendDeploymentEvent(asset.id, {
+        step: 'READY_TO_BORROW',
+        status: refreshed?.readyToBorrow ? 'SUCCESS' : 'PENDING',
+        message: refreshed?.readyToBorrow
+          ? 'Activo listo para solicitar préstamo Morpho por asset.'
+          : 'Liquidez OK; faltan otros requisitos para ready-to-borrow.',
+        externalId: morphoTarget.externalId ?? null
+      });
     }
 
     return { status, availableAssets: availableAssets.toString() };

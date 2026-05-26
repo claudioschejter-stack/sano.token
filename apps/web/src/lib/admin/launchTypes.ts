@@ -116,7 +116,11 @@ export type DeploymentEvent = {
     | 'EXPLORER_VERIFY'
     | 'MORPHO_LIQUIDITY'
     | 'CIRCUIT_BREAKER'
-    | 'KYC_ALLOWLIST';
+    | 'KYC_ALLOWLIST'
+    | 'OWNERSHIP_TRANSFER'
+    | 'PRICING_ORACLE'
+    | 'READY_TO_BORROW'
+    | 'SYNTHETIC_RWA_FLOW';
   status: 'PENDING' | 'SUCCESS' | 'SKIPPED' | 'FAILED';
   message: string;
   txHash?: string | null;

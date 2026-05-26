@@ -24,6 +24,8 @@ export type MarketplaceAssetSource = {
   jurisdiction: string | null;
   tokenSymbol: string | null;
   tokenName?: string | null;
+  vaultAddress?: string | null;
+  readyToBorrow?: boolean;
 };
 
 function fallbackImage(seed: string) {
@@ -62,6 +64,8 @@ export function mapAdminAssetToMarketplaceListing(asset: MarketplaceAssetSource)
     jurisdiction: asset.jurisdiction,
     tokenSymbol: asset.tokenSymbol,
     tokenName: asset.tokenName ?? null,
+    vaultAddress: asset.vaultAddress ?? null,
+    readyToBorrow: Boolean(asset.readyToBorrow),
     mediaGallery: gallery,
     contracts: {
       trust: normalizeUrl(asset.contracts.trust),

@@ -17,6 +17,8 @@ export type MarketplaceListing = {
   jurisdiction: string | null;
   tokenSymbol?: string | null;
   tokenName?: string | null;
+  vaultAddress?: string | null;
+  readyToBorrow?: boolean;
   mediaGallery?: Array<{ type: 'image' | 'reel'; url: string; caption?: string }>;
   contracts?: {
     trust?: string | null;

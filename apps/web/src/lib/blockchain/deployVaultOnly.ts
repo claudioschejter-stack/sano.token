@@ -5,6 +5,7 @@ import { resolveChainId } from './explorerUrls';
 import type { VaultFundingStatus } from '../admin/launchTypes';
 import { waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
+import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 
 export type DeployVaultOnlyInput = {
   contractAddress: string;
@@ -24,6 +25,7 @@ export type DeployVaultOnlyResult =
       vaultFundingAmount: string | null;
       vaultFundingTxHash: string | null;
       vaultFundingError: string | null;
+      ownershipTransfers?: OwnershipTransferResult[];
     }
   | { status: 'SKIPPED'; reason: string };
 
@@ -144,6 +146,23 @@ export async function deployVaultForExistingToken(
       vaultFundingError = depositError instanceof Error ? depositError.message : 'Vault deposit failed';
     }
 
+    const ownershipTransfers = [
+      await transferOwnershipToTreasury({
+        contractName: 'SanovaAssetToken',
+        contract: asset,
+        contractAddress,
+        deployerAddress: wallet.address,
+        treasuryAddress
+      }),
+      await transferOwnershipToTreasury({
+        contractName: 'SanovaRwaVault',
+        contract: vaultContract,
+        contractAddress: vaultAddress,
+        deployerAddress: wallet.address,
+        treasuryAddress
+      })
+    ];
+
     provider.destroy();
 
     return {
@@ -154,7 +173,8 @@ export async function deployVaultForExistingToken(
       vaultFundingStatus,
       vaultFundingAmount,
       vaultFundingTxHash,
-      vaultFundingError
+      vaultFundingError,
+      ownershipTransfers
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Vault deployment failed';

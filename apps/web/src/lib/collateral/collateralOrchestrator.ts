@@ -10,6 +10,7 @@ import {
   type CollateralProjectContext
 } from './collateralRegistry';
 import { mergeCollateralTargets } from './collateralTargetsService';
+import { validateOraclePricing } from '../blockchain/pricingOracleValidation';
 
 export type CollateralRegistrationOutcome = {
   protocol: CollateralProtocol;
@@ -156,6 +157,25 @@ export async function registerProjectCollateral(
     if (!readiness.ready) {
       outcomes.push({ protocol, target });
       continue;
+    }
+
+    if (protocol === 'MORPHO') {
+      const pricing = await validateOraclePricing(asset);
+      if (!pricing.ok) {
+        target = {
+          ...target,
+          status: 'BLOCKED',
+          lastError: pricing.message,
+          missingRequirements: [...(target.missingRequirements ?? []), 'navOracleConfigured']
+        };
+        outcomes.push({ protocol, target });
+        await appendDeploymentEvent(projectId, {
+          step: 'PRICING_ORACLE',
+          status: 'FAILED',
+          message: pricing.message
+        });
+        continue;
+      }
     }
 
     target = { ...target, status: 'SUBMITTING' };

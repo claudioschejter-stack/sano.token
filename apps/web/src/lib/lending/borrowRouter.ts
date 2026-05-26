@@ -109,6 +109,15 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
       return null;
     }
 
+    if (!request.projectId) {
+      return null;
+    }
+
+    const asset = await getAdminAsset(request.projectId);
+    if (!asset?.readyToBorrow || asset.vaultAddress?.toLowerCase() !== vault.toLowerCase()) {
+      return null;
+    }
+
     const oracleAddress = await resolveMorphoOracleAddress(request.projectId);
     const marketParams = buildDefaultMorphoMarketParams(vault, oracleAddress);
     if (!marketParams) {

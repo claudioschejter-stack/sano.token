@@ -8,9 +8,12 @@ import type { BestBorrowRateResponse } from '../../types/marketplace';
 
 type BorrowPanelProps = {
   borrowRate: BestBorrowRateResponse;
+  projectId?: string;
+  vaultAddress?: string | null;
+  readyToBorrow?: boolean;
 };
 
-export function BorrowPanel({ borrowRate }: BorrowPanelProps) {
+export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow = true }: BorrowPanelProps) {
   const m = useTranslation().marketplace.borrow;
   const [amountUsd, setAmountUsd] = useState('1000');
   const [collateralEth, setCollateralEth] = useState('0.1');
@@ -36,6 +39,11 @@ export function BorrowPanel({ borrowRate }: BorrowPanelProps) {
       return;
     }
 
+    if (!readyToBorrow || !projectId || !vaultAddress) {
+      setStatus('Este activo todavía no está listo para préstamo colateralizado.');
+      return;
+    }
+
     setBusy(true);
     setStatus(m.preparing);
 
@@ -46,7 +54,10 @@ export function BorrowPanel({ borrowRate }: BorrowPanelProps) {
         body: JSON.stringify({
           amountUsd: Number(amountUsd),
           collateralEth: Number(collateralEth),
-          walletAddress
+          walletAddress,
+          projectId,
+          vaultAddress,
+          preferProtocol: 'morpho'
         })
       });
 
@@ -146,7 +157,7 @@ export function BorrowPanel({ borrowRate }: BorrowPanelProps) {
           className="inline-flex items-center gap-2 rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
         >
           {busy ? <Loader2 size={16} className="animate-spin" /> : null}
-          {m.borrowButton}
+          {readyToBorrow ? m.borrowButton : 'Préstamo no listo'}
         </button>
       </div>
 

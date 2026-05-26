@@ -34,6 +34,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
 
   const { listings, borrowRate, usedFallback } = feed;
+  const borrowReadyListing = listings.find((listing) => listing.readyToBorrow && listing.vaultAddress);
   const roleLabels = t.access.roles as Record<SystemRole, string>;
   const subtitles = t.marketplace.roleSubtitles;
   const subtitle =
@@ -80,7 +81,14 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       {capabilities.showBorrowRates && borrowRate ? (
         <div className="mt-6">
           <BorrowRatesTable borrowRate={borrowRate} />
-          {capabilities.showPurchaseActions ? <BorrowPanel borrowRate={borrowRate} /> : null}
+          {capabilities.showPurchaseActions ? (
+            <BorrowPanel
+              borrowRate={borrowRate}
+              projectId={borrowReadyListing?.id}
+              vaultAddress={borrowReadyListing?.vaultAddress}
+              readyToBorrow={Boolean(borrowReadyListing)}
+            />
+          ) : null}
         </div>
       ) : null}
 

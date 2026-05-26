@@ -55,6 +55,7 @@ export type AdminAssetRecord = {
   morphoLiquidityStatus: MorphoLiquidityStatus;
   explorerVerificationStatus: ExplorerVerificationStatus;
   launchAuditHash: string | null;
+  readyToBorrow: boolean;
   centrifugeChecklist: CentrifugeChecklist;
   spvEntityName: string | null;
   navOracleUrl: string | null;
@@ -286,6 +287,32 @@ function buildAutomationReadiness(project: {
   };
 }
 
+function deriveReadyToBorrow(input: {
+  readiness: AutomationReadinessSummary;
+  tokenStandard: string;
+  tokenDeployStatus: string;
+  contractAddress: string | null;
+  vaultAddress: string | null;
+  vaultFundingStatus: string;
+  collateralTargets: CollateralTarget[];
+  morphoLiquidityStatus: MorphoLiquidityStatus;
+  automationCircuitBreaker: boolean;
+}): boolean {
+  const morpho = input.collateralTargets.find((target) => target.protocol === 'MORPHO');
+  return Boolean(
+    input.readiness.status === 'READY' &&
+      input.tokenStandard === 'ERC4626' &&
+      input.tokenDeployStatus === 'DEPLOYED' &&
+      input.contractAddress &&
+      input.vaultAddress &&
+      input.vaultFundingStatus === 'FUNDED' &&
+      morpho?.status === 'REGISTERED' &&
+      morpho.oracleAddress &&
+      input.morphoLiquidityStatus === 'LIQUID' &&
+      !input.automationCircuitBreaker
+  );
+}
+
 type AutomationMeta = {
   automationReadiness: AutomationReadinessSummary | null;
   automationFailureCount: number;
@@ -492,6 +519,18 @@ function mapProject(project: {
       explorerVerificationStatus: meta.explorerVerificationStatus,
       launchAuditHash: meta.launchAuditHash
     });
+  const collateralTargets = parseCollateralTargets(project.collateralTargets);
+  const readyToBorrow = deriveReadyToBorrow({
+    readiness,
+    tokenStandard: project.tokenStandard,
+    tokenDeployStatus: project.tokenDeployStatus,
+    contractAddress: project.contractAddress,
+    vaultAddress: project.vaultAddress,
+    vaultFundingStatus: project.vaultFundingStatus,
+    collateralTargets,
+    morphoLiquidityStatus: meta.morphoLiquidityStatus,
+    automationCircuitBreaker: meta.automationCircuitBreaker
+  });
 
   return {
     id: project.id,
@@ -516,7 +555,7 @@ function mapProject(project: {
     equitySharePercent:
       project.equitySharePercent != null ? Number(project.equitySharePercent) : null,
     tokenDeployStatus: project.tokenDeployStatus as TokenDeployStatus,
-    collateralTargets: parseCollateralTargets(project.collateralTargets),
+    collateralTargets,
     deploymentEvents: events,
     automationReadiness: readiness,
     automationFailureCount: meta.automationFailureCount,
@@ -527,6 +566,7 @@ function mapProject(project: {
     explorerVerificationStatus:
       meta.explorerVerificationStatus,
     launchAuditHash: meta.launchAuditHash,
+    readyToBorrow,
     centrifugeChecklist: parseCentrifugeChecklist(project.centrifugeChecklist),
     spvEntityName: project.spvEntityName,
     navOracleUrl: project.navOracleUrl,
@@ -1088,16 +1128,30 @@ export async function recordAdminAuditLog(input: {
   metadata?: Prisma.InputJsonValue;
 }) {
   const auditHash = sha256Json(input);
-  return prisma.adminAuditLog.create({
-    data: {
-      actorUserId: input.actorUserId ?? null,
-      action: input.action,
-      targetUserId: input.targetUserId ?? null,
-      projectId: input.projectId ?? null,
-      metadata: input.metadata ?? {},
-      auditHash
+  try {
+    return await prisma.adminAuditLog.create({
+      data: {
+        actorUserId: input.actorUserId ?? null,
+        action: input.action,
+        targetUserId: input.targetUserId ?? null,
+        projectId: input.projectId ?? null,
+        metadata: input.metadata ?? {},
+        auditHash
+      }
+    });
+  } catch (error) {
+    if (input.projectId) {
+      await appendDeploymentEvent(input.projectId, {
+        step: 'PREFLIGHT',
+        status: 'SUCCESS',
+        message: `Audit fallback: ${input.action}`,
+        auditHash,
+        externalId: 'ADMIN_AUDIT_FALLBACK'
+      }).catch(() => undefined);
     }
-  });
+    console.warn('[recordAdminAuditLog] Falling back to deploymentEvents:', error);
+    return null;
+  }
 }
 
 export async function withProjectAutomationLock<T>(

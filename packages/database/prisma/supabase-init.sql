@@ -155,6 +155,26 @@ CREATE TABLE "InvestorAllowlist" (
 );
 
 -- CreateTable
+CREATE TABLE "AutomationJob" (
+    "id" TEXT NOT NULL,
+    "projectId" TEXT,
+    "step" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'QUEUED',
+    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "maxAttempts" INTEGER NOT NULL DEFAULT 3,
+    "runAfter" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "lockedAt" TIMESTAMP(3),
+    "lockedBy" TEXT,
+    "payload" JSONB NOT NULL DEFAULT '{}',
+    "result" JSONB,
+    "error" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AutomationJob_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "Investment" (
     "id" TEXT NOT NULL,
     "investorId" TEXT NOT NULL,
@@ -317,6 +337,21 @@ CREATE INDEX "InvestorAllowlist_walletAddress_idx" ON "InvestorAllowlist"("walle
 
 -- CreateIndex
 CREATE INDEX "InvestorAllowlist_approved_idx" ON "InvestorAllowlist"("approved");
+
+-- CreateIndex
+CREATE INDEX "AutomationJob_projectId_idx" ON "AutomationJob"("projectId");
+
+-- CreateIndex
+CREATE INDEX "AutomationJob_step_idx" ON "AutomationJob"("step");
+
+-- CreateIndex
+CREATE INDEX "AutomationJob_status_idx" ON "AutomationJob"("status");
+
+-- CreateIndex
+CREATE INDEX "AutomationJob_runAfter_idx" ON "AutomationJob"("runAfter");
+
+-- CreateIndex
+CREATE INDEX "AutomationJob_lockedAt_idx" ON "AutomationJob"("lockedAt");
 
 -- CreateIndex
 CREATE INDEX "Investment_investorId_idx" ON "Investment"("investorId");

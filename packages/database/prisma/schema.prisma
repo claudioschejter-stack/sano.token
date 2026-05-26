@@ -317,6 +317,29 @@ model InvestorAllowlist {
   @@index([approved])
 }
 
+model AutomationJob {
+  id            String   @id @default(cuid())
+  projectId     String?
+  step          String
+  status        String   @default("QUEUED")
+  attempts      Int      @default(0)
+  maxAttempts   Int      @default(3)
+  runAfter      DateTime @default(now())
+  lockedAt      DateTime?
+  lockedBy      String?
+  payload       Json     @default("{}")
+  result        Json?
+  error         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([step])
+  @@index([status])
+  @@index([runAfter])
+  @@index([lockedAt])
+}
+
 model Investment {
   id               String           @id @default(cuid())
   investorId       String

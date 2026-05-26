@@ -9,6 +9,7 @@ import {
 } from '../lending/protocols/morphoBorrow';
 import { waitForAutomationTx } from './automationTx';
 import { getLendingChainConfig } from '../lending/baseContracts';
+import { fixedUsdPriceToMorphoOraclePrice } from './pricingOracleValidation';
 
 export type CreateMorphoMarketResult =
   | {
@@ -20,8 +21,6 @@ export type CreateMorphoMarketResult =
     }
   | { status: 'SKIPPED'; reason: string };
 
-const MORPHO_PRICE_SCALE_DECIMALS = 24n; // 1e36 scale adjusted for 18-dec collateral and 6-dec USDC.
-
 function resolvePrivateKey(): string | null {
   const key = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
   return key || null;
@@ -32,15 +31,6 @@ function resolveRpcUrl(chainId: number): string {
     return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
   }
   return process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
-}
-
-function fixedUsdPriceToMorphoOraclePrice(pricePerTokenUsd: number): bigint | null {
-  if (!Number.isFinite(pricePerTokenUsd) || pricePerTokenUsd <= 0) {
-    return null;
-  }
-
-  const microUsd = BigInt(Math.round(pricePerTokenUsd * 1_000_000));
-  return microUsd * 10n ** (MORPHO_PRICE_SCALE_DECIMALS - 6n);
 }
 
 async function deployFixedPriceOracle(wallet: Wallet, pricePerTokenUsd: number): Promise<string | null> {

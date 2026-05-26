@@ -5,6 +5,7 @@ import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deployAssetToken';
 import { waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
+import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 
 export type DeployLaunchTokenInput = {
   tokenStandard: TokenStandard;
@@ -32,6 +33,7 @@ export type DeployLaunchTokenResult =
       vaultFundingError?: string | null;
       chainId: number;
       txHash: string;
+      ownershipTransfers?: OwnershipTransferResult[];
     }
   | { status: 'SKIPPED'; reason: string };
 
@@ -150,7 +152,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const tokenName = buildOnChainTokenName(input.tokenName, input.tokenInstrumentType);
     const symbol = normalizeSymbol(input.tokenSymbol);
     const treasuryAddress = resolveTreasuryAddress(input.treasuryAddress ?? wallet.address) ?? wallet.address;
-    const mintRecipient = input.tokenStandard === 'ERC4626' ? wallet.address : input.treasuryAddress ?? wallet.address;
+    const mintRecipient = input.tokenStandard === 'ERC4626' ? wallet.address : treasuryAddress;
     const mintAmount = BigInt(input.totalSupplyUnits) * 10n ** 18n;
 
     const assetFactory = new ContractFactory(
@@ -173,11 +175,21 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const mintReceipt = await waitForAutomationTx(mintTx);
 
     if (input.tokenStandard === 'SANOVA_KYC') {
+      const ownershipTransfers = [
+        await transferOwnershipToTreasury({
+          contractName: 'SanovaAssetToken',
+          contract: asset,
+          contractAddress,
+          deployerAddress: wallet.address,
+          treasuryAddress
+        })
+      ];
       return {
         status: 'DEPLOYED',
         contractAddress,
         chainId,
-        txHash: mintReceipt?.hash ?? 'mint-submitted'
+        txHash: mintReceipt?.hash ?? 'mint-submitted',
+        ownershipTransfers
       };
     }
 
@@ -202,6 +214,22 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       vaultAddress,
       amount: mintAmount
     });
+    const ownershipTransfers = [
+      await transferOwnershipToTreasury({
+        contractName: 'SanovaAssetToken',
+        contract: asset,
+        contractAddress,
+        deployerAddress: wallet.address,
+        treasuryAddress
+      }),
+      await transferOwnershipToTreasury({
+        contractName: 'SanovaRwaVault',
+        contract: vaultContract,
+        contractAddress: vaultAddress,
+        deployerAddress: wallet.address,
+        treasuryAddress
+      })
+    ];
 
     return {
       status: 'DEPLOYED',
@@ -212,7 +240,8 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       vaultFundingTxHash: funding.txHash,
       vaultFundingError: funding.error,
       chainId,
-      txHash: funding.txHash ?? mintReceipt?.hash ?? 'deploy-submitted'
+      txHash: funding.txHash ?? mintReceipt?.hash ?? 'deploy-submitted',
+      ownershipTransfers
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown deployment error';

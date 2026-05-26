@@ -13,6 +13,7 @@ import { deployVaultForExistingToken } from './deployVaultOnly';
 import { recordExplorerVerification } from './contractVerification';
 import { recordAutomationPreflight } from './automationPreflight';
 import { shouldBlockAutomation } from '../admin/automationCircuitBreaker';
+import type { OwnershipTransferResult } from './ownershipTransfer';
 
 export type ProjectVaultDeployResult =
   | {
@@ -27,6 +28,27 @@ export type ProjectVaultDeployResult =
   | { status: 'SKIPPED'; asset: AdminAssetRecord | null; reason: string }
   | { status: 'NOT_FOUND' }
   | { status: 'FAILED'; reason: string };
+
+async function recordOwnershipTransfers(projectId: string, transfers?: OwnershipTransferResult[]) {
+  if (!transfers?.length) return;
+
+  for (const transfer of transfers) {
+    await appendDeploymentEvent(projectId, {
+      step: 'OWNERSHIP_TRANSFER',
+      status:
+        transfer.status === 'TRANSFERRED' || transfer.status === 'ALREADY_TREASURY'
+          ? 'SUCCESS'
+          : transfer.status === 'SKIPPED'
+            ? 'SKIPPED'
+            : 'FAILED',
+      message:
+        transfer.message ??
+        `${transfer.contractName}: ${transfer.status} hacia treasury ${transfer.treasuryAddress}.`,
+      txHash: transfer.txHash ?? null,
+      address: transfer.contractAddress
+    });
+  }
+}
 
 async function executeProjectVaultDeployUnlocked(projectId: string): Promise<ProjectVaultDeployResult> {
   const asset = await getAdminAsset(projectId);
@@ -92,6 +114,7 @@ async function executeProjectVaultDeployUnlocked(projectId: string): Promise<Pro
     txHash: result.txHash,
     address: result.vaultAddress
   });
+  await recordOwnershipTransfers(projectId, result.ownershipTransfers);
   await recordExplorerVerification(projectId, {
     contractAddress: result.vaultAddress,
     contractName: 'SanovaRwaVault',
@@ -249,6 +272,7 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
         txHash: result.txHash,
         address: result.contractAddress
       });
+      await recordOwnershipTransfers(projectId, result.ownershipTransfers);
       await recordExplorerVerification(projectId, {
         contractAddress: result.contractAddress,
         contractName: 'SanovaAssetToken',
