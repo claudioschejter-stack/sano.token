@@ -1,5 +1,4 @@
 import { prisma, type FiscalRegime, type Prisma } from '@sanova/database';
-import { createHash, randomUUID } from 'node:crypto';
 import { geocodeLocation } from '../geocoding/geocodeLocation';
 import { locationNeedsResolve, resolveLocationInput } from '../geocoding/resolveLocation';
 import { mapAdminAssetToMarketplaceListing } from '../marketplace/mapAdminAssetToListing';
@@ -209,7 +208,16 @@ function computeSoldPercent(availableTokens: number, totalTokens: number): numbe
 }
 
 function sha256Json(value: unknown): string {
-  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  let hash = 0;
+  const input = JSON.stringify(value);
+  for (let index = 0; index < input.length; index += 1) {
+    hash = (hash * 31 + input.charCodeAt(index)) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0');
+}
+
+function randomId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 function item(
@@ -1099,7 +1107,7 @@ export async function withProjectAutomationLock<T>(
   ttlMs = 10 * 60 * 1000
 ): Promise<T> {
   const now = new Date();
-  const owner = randomUUID();
+  const owner = randomId();
   const existingLock = automationLocks.get(projectId);
 
   if (existingLock && existingLock.expiresAt > now.getTime()) {
