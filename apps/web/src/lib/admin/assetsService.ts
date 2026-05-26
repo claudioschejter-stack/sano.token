@@ -224,7 +224,7 @@ async function auditHashJson(value: unknown): Promise<string> {
 
   try {
     const { serverSha256Json } = await import('./serverAuditHash');
-    return serverSha256Json(value);
+    return await serverSha256Json(value);
   } catch {
     return sha256Json(value);
   }
