@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { listAllowlistableAssets } from '../../../../lib/admin/assetsService';
 import { listAdminInvestors, type InvestorListFilter } from '../../../../lib/admin/investorsService';
 import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
 
@@ -16,8 +17,11 @@ export async function GET(request: Request) {
     : 'ALL';
 
   try {
-    const investors = await listAdminInvestors(filter);
-    return NextResponse.json({ investors, filter });
+    const [investors, allowlistAssets] = await Promise.all([
+      listAdminInvestors(filter),
+      listAllowlistableAssets()
+    ]);
+    return NextResponse.json({ investors, filter, allowlistAssets });
   } catch (error) {
     console.error('[admin/investors]', error);
     return NextResponse.json({ error: 'Failed to load investors' }, { status: 500 });

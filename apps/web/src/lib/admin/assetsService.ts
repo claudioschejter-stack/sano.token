@@ -393,6 +393,32 @@ export async function listAdminAssets(filter: AssetListFilter = 'ALL'): Promise<
   return projects.map(mapProject);
 }
 
+export async function listAutomationRepairCandidates(limit = 3): Promise<AdminAssetRecord[]> {
+  const assets = await listAdminAssets('ALL');
+  return assets
+    .filter((asset) => {
+      const morpho = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
+      return (
+        asset.tokenDeployStatus === 'FAILED' ||
+        asset.tokenDeployStatus === 'PENDING' ||
+        (asset.tokenStandard === 'ERC4626' && (!asset.vaultAddress || asset.vaultFundingStatus !== 'FUNDED')) ||
+        Boolean(morpho && morpho.status !== 'REGISTERED')
+      );
+    })
+    .slice(0, limit);
+}
+
+export async function listAllowlistableAssets(): Promise<Array<{ id: string; title: string; contractAddress: string }>> {
+  const assets = await listAdminAssets('ALL');
+  return assets
+    .filter((asset) => Boolean(asset.contractAddress))
+    .map((asset) => ({
+      id: asset.id,
+      title: asset.title,
+      contractAddress: asset.contractAddress!
+    }));
+}
+
 export async function getAdminAsset(projectId: string): Promise<AdminAssetRecord | null> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },

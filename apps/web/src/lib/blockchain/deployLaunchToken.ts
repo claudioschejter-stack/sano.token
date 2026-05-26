@@ -50,6 +50,10 @@ function resolvePrivateKey(): string | null {
   return key || null;
 }
 
+function resolveTreasuryAddress(fallback: string): string {
+  return process.env.TOKEN_TREASURY_ADDRESS?.trim() || process.env.SANOVA_TREASURY_ADDRESS?.trim() || fallback;
+}
+
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 84532 || chainId === 8453) {
     return process.env.BASE_RPC_URL?.trim() || (chainId === 84532 ? 'https://sepolia.base.org' : 'https://mainnet.base.org');
@@ -70,6 +74,7 @@ async function fundVaultWithDeployerBalance(input: {
   asset: Contract;
   vaultContract: Contract;
   walletAddress: string;
+  receiverAddress: string;
   vaultAddress: string;
   amount: bigint;
 }): Promise<VaultFundingResult> {
@@ -79,14 +84,21 @@ async function fundVaultWithDeployerBalance(input: {
       const setKycTx = await input.asset.setKyc(input.walletAddress, true);
       await setKycTx.wait();
     }
+    if (input.receiverAddress.toLowerCase() !== input.walletAddress.toLowerCase()) {
+      const receiverKyc = await input.asset.kycApproved(input.receiverAddress);
+      if (!receiverKyc) {
+        const setReceiverKycTx = await input.asset.setKyc(input.receiverAddress, true);
+        await setReceiverKycTx.wait();
+      }
+    }
 
     const approveTx = await input.asset.approve(input.vaultAddress, input.amount);
     await approveTx.wait();
 
-    const depositTx = await input.vaultContract.deposit(input.amount, input.walletAddress);
+    const depositTx = await input.vaultContract.deposit(input.amount, input.receiverAddress);
     const depositReceipt = await depositTx.wait();
     const totalAssets = await input.vaultContract.totalAssets();
-    const shares = await input.vaultContract.balanceOf(input.walletAddress);
+    const shares = await input.vaultContract.balanceOf(input.receiverAddress);
 
     if (totalAssets >= input.amount && shares > 0n) {
       return {
@@ -139,6 +151,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
 
     const tokenName = buildOnChainTokenName(input.tokenName, input.tokenInstrumentType);
     const symbol = normalizeSymbol(input.tokenSymbol);
+    const treasuryAddress = resolveTreasuryAddress(input.treasuryAddress ?? wallet.address);
     const mintRecipient = input.tokenStandard === 'ERC4626' ? wallet.address : input.treasuryAddress ?? wallet.address;
     const mintAmount = BigInt(input.totalSupplyUnits) * 10n ** 18n;
 
@@ -187,6 +200,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       asset,
       vaultContract,
       walletAddress: wallet.address,
+      receiverAddress: treasuryAddress,
       vaultAddress,
       amount: mintAmount
     });

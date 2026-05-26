@@ -12,6 +12,7 @@ import { hasKycIdentityData } from '../../lib/onboarding/extractDiditIdentity';
 import { AdminGate } from './AdminGate';
 
 type KycFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
+type AllowlistAssetOption = { id: string; title: string; contractAddress: string };
 
 const FILTER_OPTIONS: KycFilter[] = ['ALL', 'PENDING', 'APPROVED', 'REJECTED'];
 
@@ -38,6 +39,9 @@ export function AdminInvestorsView() {
   const [error, setError] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [advisors, setAdvisors] = useState<AdvisorTeamMember[]>([]);
+  const [allowlistAssets, setAllowlistAssets] = useState<AllowlistAssetOption[]>([]);
+  const [selectedAllowlistAssetId, setSelectedAllowlistAssetId] = useState('');
+  const [allowlistingId, setAllowlistingId] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -55,8 +59,13 @@ export function AdminInvestorsView() {
         throw new Error('Failed to load investors');
       }
 
-      const data = (await response.json()) as { investors: AdminInvestorRecord[] };
+      const data = (await response.json()) as {
+        investors: AdminInvestorRecord[];
+        allowlistAssets?: AllowlistAssetOption[];
+      };
       setInvestors(data.investors);
+      setAllowlistAssets(data.allowlistAssets ?? []);
+      setSelectedAllowlistAssetId((current) => current || data.allowlistAssets?.[0]?.id || '');
     } catch {
       setError(true);
       setInvestors([]);
@@ -126,6 +135,29 @@ export function AdminInvestorsView() {
     }
   }
 
+  async function handleAllowlistUpdate(userId: string, approved: boolean) {
+    if (!selectedAllowlistAssetId) {
+      return;
+    }
+
+    setAllowlistingId(userId);
+    try {
+      const response = await fetch(`/api/admin/investors/${userId}/allowlist`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: selectedAllowlistAssetId, approved })
+      });
+
+      if (!response.ok) {
+        throw new Error('Allowlist update failed');
+      }
+    } catch {
+      setError(true);
+    } finally {
+      setAllowlistingId(null);
+    }
+  }
+
   return (
     <AdminGate>
       <div className="mx-auto max-w-7xl space-y-6">
@@ -173,6 +205,25 @@ export function AdminInvestorsView() {
             {t.adminInvestors.refresh}
           </button>
         </div>
+
+        <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
+          <p className="text-sm font-semibold text-terminal-text">KYC allowlist on-chain</p>
+          <p className="mt-1 text-xs text-terminal-muted">
+            Elegí el token y aprobá o revocá wallets de inversores directamente en el contrato SanovaAssetToken.
+          </p>
+          <select
+            value={selectedAllowlistAssetId}
+            onChange={(event) => setSelectedAllowlistAssetId(event.target.value)}
+            className="mt-3 w-full max-w-xl rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm text-terminal-text"
+          >
+            <option value="">No hay tokens desplegados</option>
+            {allowlistAssets.map((asset) => (
+              <option key={asset.id} value={asset.id}>
+                {asset.title} ({asset.contractAddress.slice(0, 6)}...{asset.contractAddress.slice(-4)})
+              </option>
+            ))}
+          </select>
+        </section>
 
         <section className="overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
           <div className="overflow-x-auto">
@@ -306,7 +357,26 @@ export function AdminInvestorsView() {
                               </button>
                             </div>
                           ) : (
-                            <span className="text-xs text-terminal-muted">—</span>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                disabled={allowlistingId === row.id || !selectedAllowlistAssetId || !row.walletAddress}
+                                onClick={() => void handleAllowlistUpdate(row.id, true)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-terminal-success/30 px-2.5 py-1.5 text-xs font-semibold text-terminal-success transition-colors hover:bg-terminal-success/10 disabled:opacity-50"
+                              >
+                                <Check size={14} />
+                                Allowlist
+                              </button>
+                              <button
+                                type="button"
+                                disabled={allowlistingId === row.id || !selectedAllowlistAssetId || !row.walletAddress}
+                                onClick={() => void handleAllowlistUpdate(row.id, false)}
+                                className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 px-2.5 py-1.5 text-xs font-semibold text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                              >
+                                <X size={14} />
+                                Revocar
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

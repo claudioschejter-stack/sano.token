@@ -3,6 +3,7 @@ import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin
 import { buildSmartContractDocUrl } from './explorerUrls';
 import { deployLaunchToken } from './deployLaunchToken';
 import { deployVaultForExistingToken } from './deployVaultOnly';
+import { recordExplorerVerification } from './contractVerification';
 
 export type ProjectVaultDeployResult =
   | {
@@ -76,6 +77,11 @@ export async function executeProjectVaultDeploy(projectId: string): Promise<Proj
     message: `Vault ERC-4626 desplegado en ${result.vaultAddress}.`,
     txHash: result.txHash,
     address: result.vaultAddress
+  });
+  await recordExplorerVerification(projectId, {
+    contractAddress: result.vaultAddress,
+    contractName: 'SanovaRwaVault',
+    chainId: result.chainId
   });
 
   await appendDeploymentEvent(projectId, {
@@ -203,6 +209,18 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
         txHash: result.txHash,
         address: result.contractAddress
       });
+      await recordExplorerVerification(projectId, {
+        contractAddress: result.contractAddress,
+        contractName: 'SanovaAssetToken',
+        chainId: result.chainId
+      });
+      if (vaultAddress) {
+        await recordExplorerVerification(projectId, {
+          contractAddress: vaultAddress,
+          contractName: 'SanovaRwaVault',
+          chainId: result.chainId
+        });
+      }
 
       if (asset.tokenStandard === 'ERC4626') {
         await appendDeploymentEvent(projectId, {

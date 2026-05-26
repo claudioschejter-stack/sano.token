@@ -30,6 +30,10 @@ function resolvePrivateKey(): string | null {
   return key || null;
 }
 
+function resolveTreasuryAddress(fallback: string, explicit?: string): string {
+  return explicit?.trim() || process.env.TOKEN_TREASURY_ADDRESS?.trim() || process.env.SANOVA_TREASURY_ADDRESS?.trim() || fallback;
+}
+
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 84532 || chainId === 8453) {
     return process.env.BASE_RPC_URL?.trim() || (chainId === 84532 ? 'https://sepolia.base.org' : 'https://mainnet.base.org');
@@ -61,6 +65,7 @@ export async function deployVaultForExistingToken(
   try {
     const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
     const wallet = new Wallet(privateKey, provider);
+    const treasuryAddress = resolveTreasuryAddress(wallet.address, input.treasuryAddress);
     const gasBalance = await provider.getBalance(wallet.address);
     if (gasBalance <= 0n) {
       provider.destroy();
@@ -96,6 +101,13 @@ export async function deployVaultForExistingToken(
         const setKycTx = await asset.setKyc(wallet.address, true);
         await setKycTx.wait();
       }
+      if (treasuryAddress.toLowerCase() !== wallet.address.toLowerCase()) {
+        const treasuryKyc = await asset.kycApproved(treasuryAddress);
+        if (!treasuryKyc) {
+          const setTreasuryKycTx = await asset.setKyc(treasuryAddress, true);
+          await setTreasuryKycTx.wait();
+        }
+      }
 
       let deployerBalance = await asset.balanceOf(wallet.address);
       if (deployerBalance === 0n) {
@@ -112,10 +124,10 @@ export async function deployVaultForExistingToken(
         const depositAmount = deployerBalance;
         const approveTx = await asset.approve(vaultAddress, depositAmount);
         await approveTx.wait();
-        const depositTx = await vaultContract.deposit(depositAmount, wallet.address);
+        const depositTx = await vaultContract.deposit(depositAmount, treasuryAddress);
         const depositReceipt = await depositTx.wait();
         const totalAssets = await vaultContract.totalAssets();
-        const shares = await vaultContract.balanceOf(wallet.address);
+        const shares = await vaultContract.balanceOf(treasuryAddress);
 
         vaultFundingTxHash = depositReceipt?.hash ?? depositTx.hash;
         if (totalAssets >= depositAmount && shares > 0n) {

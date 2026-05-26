@@ -108,7 +108,8 @@ export type DeploymentEvent = {
     | 'MORPHO_MARKET'
     | 'COLLATERAL_REGISTER'
     | 'REPAIR_AUTOMATION'
-    | 'PREFLIGHT';
+    | 'PREFLIGHT'
+    | 'EXPLORER_VERIFY';
   status: 'PENDING' | 'SUCCESS' | 'SKIPPED' | 'FAILED';
   message: string;
   txHash?: string | null;

@@ -191,3 +191,15 @@ export async function updateInvestorKycStatus(
 
   return mapAdminInvestorRecord(updated);
 }
+
+export async function getInvestorWallet(userId: string): Promise<string | null> {
+  const user = await prisma.user.findFirst({
+    where: { id: userId, systemRole: 'INVESTOR' },
+    select: {
+      walletAddress: true,
+      investor: { select: { walletAddress: true } }
+    }
+  });
+
+  return user?.walletAddress ?? user?.investor?.walletAddress ?? null;
+}
