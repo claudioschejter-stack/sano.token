@@ -14,6 +14,15 @@ import { useDividendStore } from '../../store/useDividendStore';
 import { DashboardSkeleton } from './DashboardSkeleton';
 import { LiveDividendStream } from './LiveDividendStream';
 import { MonthlyCashFlowChart } from './MonthlyCashFlowChart';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid
+} from 'recharts';
 
 type KpiCardProps = {
   label: string;
@@ -41,6 +50,7 @@ function KpiCard({ label, value, hint, icon, valueClassName, iconClassName }: Kp
 
 export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
+  const [portfolio, setPortfolio] = useState<AggregatedPortfolio | null>(null);
   const t = useTranslation();
   const { intlLocale } = useLocale();
   const { formatUsd: formatUsdc, formatPercent, formatDateTime, formatMonthLabel } = useMemo(
@@ -64,6 +74,10 @@ export function FinancialOverview() {
   useEffect(() => {
     setMounted(true);
     void fetchDividends();
+    void fetch('/api/portfolio/aggregate?snapshot=true')
+      .then((response) => response.json())
+      .then((data: { portfolio?: AggregatedPortfolio }) => setPortfolio(data.portfolio ?? null))
+      .catch(() => setPortfolio(null));
   }, [fetchDividends]);
 
   const chartData = useMemo(
@@ -90,6 +104,14 @@ export function FinancialOverview() {
       </header>
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <KpiCard
+          label="Valor total cartera"
+          value={portfolio ? formatUsdc(portfolio.totals.totalValueUsd) : '—'}
+          hint="Tokens RWA + stablecoins + fiat, moneda base USD"
+          icon={<CircleDollarSign size={26} />}
+          valueClassName="text-terminal-primary"
+          iconClassName="bg-terminal-bg text-terminal-primary"
+        />
         <KpiCard
           label={t.dashboard.kpiDividends}
           value={isLoading ? '—' : formatUsdc(totalCashDividendsUsdc)}
@@ -121,6 +143,81 @@ export function FinancialOverview() {
           }
         />
       </section>
+
+      {portfolio ? (
+        <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+          <article className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-terminal-text">Evolución de cartera</h2>
+                <p className="text-sm text-terminal-muted">Valor total en moneda base USD</p>
+              </div>
+              <span className="rounded-full border border-terminal-primary/30 px-3 py-1 text-xs text-terminal-primary">
+                Base USD
+              </span>
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={portfolio.history.length ? portfolio.history : [{ date: new Date().toISOString(), totalValueUsd: portfolio.totals.totalValueUsd }]}>
+                  <defs>
+                    <linearGradient id="portfolioValue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#60a5fa" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="rgba(148,163,184,0.16)" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(value) => new Date(value).toLocaleDateString(intlLocale, { month: 'short', day: 'numeric' })}
+                    stroke="rgb(148,163,184)"
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="rgb(148,163,184)"
+                    tickFormatter={(value) => `$${Number(value).toLocaleString(intlLocale)}`}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <Tooltip
+                    formatter={(value) => formatUsdc(Number(value))}
+                    labelFormatter={(value) => new Date(String(value)).toLocaleDateString(intlLocale)}
+                    contentStyle={{ background: '#020617', border: '1px solid #1f2937', borderRadius: 12 }}
+                  />
+                  <Area type="monotone" dataKey="totalValueUsd" stroke="#60a5fa" fill="url(#portfolioValue)" strokeWidth={2} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
+
+          <article className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+            <h2 className="text-lg font-bold text-terminal-text">Composición</h2>
+            <div className="mt-4 space-y-3">
+              <BreakdownRow label="Tokens RWA" value={portfolio.totals.rwaValueUsd} total={portfolio.totals.totalValueUsd} formatUsd={formatUsdc} />
+              <BreakdownRow label="Stablecoins" value={portfolio.totals.stablecoinUsd} total={portfolio.totals.totalValueUsd} formatUsd={formatUsdc} />
+              <BreakdownRow label="Fiat / Saldo Sanova" value={portfolio.totals.fiatUsd} total={portfolio.totals.totalValueUsd} formatUsd={formatUsdc} />
+            </div>
+          </article>
+        </section>
+      ) : null}
+
+      {portfolio?.positions.length ? (
+        <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+          <h2 className="text-lg font-bold text-terminal-text">Posiciones consolidadas</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {portfolio.positions.map((position) => (
+              <article key={position.id} className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
+                <p className="text-xs uppercase tracking-wider text-terminal-muted">{position.type}</p>
+                <h3 className="mt-1 font-semibold text-terminal-text">{position.label}</h3>
+                <p className="mt-3 font-mono text-lg text-terminal-primary">{formatUsdc(position.valueUsd)}</p>
+                <p className="text-xs text-terminal-muted">
+                  {position.amount.toLocaleString(intlLocale)} {position.currency}
+                </p>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
         <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -209,6 +306,52 @@ export function FinancialOverview() {
           </table>
         </div>
       </section>
+    </div>
+  );
+}
+
+type AggregatedPortfolio = {
+  totals: {
+    totalValueUsd: number;
+    rwaValueUsd: number;
+    stablecoinUsd: number;
+    fiatUsd: number;
+  };
+  positions: Array<{
+    id: string;
+    type: string;
+    label: string;
+    amount: number;
+    currency: string;
+    valueUsd: number;
+  }>;
+  history: Array<{
+    date: string;
+    totalValueUsd: number;
+  }>;
+};
+
+function BreakdownRow({
+  label,
+  value,
+  total,
+  formatUsd
+}: {
+  label: string;
+  value: number;
+  total: number;
+  formatUsd: (value: number) => string;
+}) {
+  const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-sm">
+        <span className="text-terminal-muted">{label}</span>
+        <span className="font-mono text-terminal-text">{formatUsd(value)}</span>
+      </div>
+      <div className="mt-2 h-2 overflow-hidden rounded-full bg-terminal-bg">
+        <div className="h-full rounded-full bg-terminal-primary" style={{ width: `${pct}%` }} />
+      </div>
     </div>
   );
 }

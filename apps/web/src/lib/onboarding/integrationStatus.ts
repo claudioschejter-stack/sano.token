@@ -49,6 +49,42 @@ export function getOnboardingIntegrations(): IntegrationStatus[] {
       envKeys: ['NEXT_PUBLIC_WC_PROJECT_ID']
     },
     {
+      id: 'stablecoin-wallet',
+      label: 'Billetera stablecoin multi-red (Base, Polygon, TRON, Solana)',
+      configured: Boolean(
+        (process.env.BASE_USDC_TOKEN_ADDRESS || process.env.USDC_TOKEN_ADDRESS) &&
+          (process.env.BASE_STABLECOIN_TREASURY_ADDRESS ||
+            process.env.STABLECOIN_TREASURY_ADDRESS ||
+            process.env.TOKEN_TREASURY_ADDRESS ||
+            process.env.SANOVA_TREASURY_ADDRESS)
+      ),
+      envKeys: [
+        'STABLECOIN_ENABLED_NETWORKS',
+        'BASE_USDC_TOKEN_ADDRESS',
+        'POLYGON_USDC_TOKEN_ADDRESS',
+        'TRON_USDT_TOKEN_ADDRESS',
+        'SOLANA_USDC_MINT_ADDRESS'
+      ]
+    },
+    {
+      id: 'stripe-payments',
+      label: 'Pasarela Stripe',
+      configured: Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
+      envKeys: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
+    },
+    {
+      id: 'mercadopago-payments',
+      label: 'Pasarela Mercado Pago',
+      configured: Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN && process.env.MERCADOPAGO_WEBHOOK_SECRET),
+      envKeys: ['MERCADOPAGO_ACCESS_TOKEN', 'MERCADOPAGO_WEBHOOK_SECRET']
+    },
+    {
+      id: 'coinbase-payments',
+      label: 'Pasarela Coinbase Commerce',
+      configured: Boolean(process.env.COINBASE_COMMERCE_API_KEY && process.env.COINBASE_COMMERCE_WEBHOOK_SECRET),
+      envKeys: ['COINBASE_COMMERCE_API_KEY', 'COINBASE_COMMERCE_WEBHOOK_SECRET']
+    },
+    {
       id: 'thirdweb',
       label: 'Emisión on-chain (Thirdweb)',
       configured: Boolean(process.env.THIRDWEB_SECRET_KEY || process.env.TOKEN_DEPLOY_PRIVATE_KEY),

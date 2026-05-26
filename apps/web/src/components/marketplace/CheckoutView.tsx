@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Minus, Plus, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Minus, Plus, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -22,13 +22,17 @@ type CheckoutViewProps = {
 export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutViewProps) {
   const t = useTranslation();
   const { intlLocale } = useLocale();
-  const { address, isConnected } = useInjectedWallet();
+  const { address, chainId, isConnected, switchChain, sendErc20Transfer } = useInjectedWallet();
   const { formatFromUsd, currency } = useLocalCurrency();
 
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
   const [tokenQty, setTokenQty] = useState(10);
-  const [status, setStatus] = useState<'idle' | 'submitting' | 'done'>('idle');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('USDC_ONCHAIN');
+  const [stablecoinNetwork, setStablecoinNetwork] = useState<StablecoinNetworkId>('BASE');
+  const [manualTxHash, setManualTxHash] = useState('');
+  const [status, setStatus] = useState<'idle' | 'creating' | 'paying' | 'manual' | 'verifying' | 'done'>('idle');
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [paymentIntent, setPaymentIntent] = useState<PaymentIntentResponse | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -64,21 +68,22 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
   };
 
   const handlePurchase = async () => {
-    if (!isConnected || !address) {
+    if (paymentMethod !== 'INTERNAL_BALANCE' && (!isConnected || !address)) {
       return;
     }
 
-    setStatus('submitting');
+    setStatus('creating');
     setPurchaseError(null);
+    setPaymentIntent(null);
 
     try {
-      const response = await fetch(`/api/marketplace/${projectId}/purchase`, {
+      const response = await fetch(`/api/marketplace/${projectId}/payment-intents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tokenCount: tokenQty, walletAddress: address })
+        body: JSON.stringify({ tokenCount: tokenQty, walletAddress: address, method: paymentMethod, stablecoinNetwork })
       });
 
-      const data = (await response.json()) as { error?: string; purchase?: { availableTokens: number } };
+      const data = (await response.json()) as { error?: string; paymentIntent?: PaymentIntentResponse };
 
       if (!response.ok) {
         if (data.error === 'ACCOUNT_NOT_OPERATIONAL' || data.error === 'KYC_NOT_APPROVED') {
@@ -91,10 +96,20 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
         return;
       }
 
-      if (data.purchase?.availableTokens != null) {
-        setListing((current) =>
-          current ? { ...current, availableTokens: data.purchase!.availableTokens } : current
-        );
+      if (!data.paymentIntent) {
+        throw new Error('PAYMENT_INTENT_FAILED');
+      }
+
+      setPaymentIntent(data.paymentIntent);
+
+      if (paymentMethod === 'USDC_ONCHAIN') {
+        await payWithUsdc(data.paymentIntent);
+        return;
+      }
+
+      if (data.paymentIntent.providerCheckoutUrl) {
+        window.location.href = data.paymentIntent.providerCheckoutUrl;
+        return;
       }
 
       setStatus('done');
@@ -102,6 +117,93 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
       setPurchaseError('PURCHASE_FAILED');
       setStatus('idle');
     }
+  };
+
+  const payWithUsdc = async (intent: PaymentIntentResponse) => {
+    if (!address) {
+      return;
+    }
+
+    const metadata = (intent.metadata ?? {}) as { usdcTokenAddress?: string; usdcDecimals?: number; autoTransferSupported?: boolean };
+    const tokenAddress = metadata.usdcTokenAddress;
+    const decimals = Number(metadata.usdcDecimals ?? 6);
+
+    if (!metadata.autoTransferSupported) {
+      setStatus('manual');
+      return;
+    }
+
+    if (!tokenAddress || !intent.payToAddress || !intent.chainId) {
+      setPurchaseError('USDC_PAYMENT_NOT_CONFIGURED');
+      setStatus('idle');
+      return;
+    }
+
+    setStatus('paying');
+
+    if (chainId !== intent.chainId) {
+      await switchChain(intent.chainId);
+    }
+
+    const amountBaseUnits = decimalToBaseUnits(intent.amountUsd, decimals);
+    const txHash = await sendErc20Transfer({
+      tokenAddress,
+      to: intent.payToAddress,
+      amountBaseUnits
+    });
+
+    setStatus('verifying');
+
+    const response = await fetch('/api/payments/usdc/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paymentIntentId: intent.id, txHash, walletAddress: address })
+    });
+
+    const data = (await response.json()) as { error?: string; paymentIntent?: PaymentIntentResponse };
+    if (!response.ok || !data.paymentIntent) {
+      setPurchaseError(data.error ?? 'USDC_VERIFY_FAILED');
+      setStatus('idle');
+      return;
+    }
+
+    setPaymentIntent(data.paymentIntent);
+    setListing((current) =>
+      current ? { ...current, availableTokens: Math.max(0, current.availableTokens - tokenQty) } : current
+    );
+    setStatus('done');
+  };
+
+  const verifyManualStablecoinTx = async () => {
+    if (!paymentIntent || !address || !manualTxHash.trim()) {
+      return;
+    }
+
+    setStatus('verifying');
+    setPurchaseError(null);
+
+    const response = await fetch('/api/payments/usdc/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentIntentId: paymentIntent.id,
+        txHash: manualTxHash.trim(),
+        walletAddress: stablecoinNetwork === 'BASE' || stablecoinNetwork === 'POLYGON' ? address : undefined
+      })
+    });
+
+    const data = (await response.json()) as { error?: string; paymentIntent?: PaymentIntentResponse };
+    if (!response.ok || !data.paymentIntent) {
+      setPurchaseError(data.error ?? 'STABLECOIN_VERIFY_FAILED');
+      setStatus('manual');
+      return;
+    }
+
+    setPaymentIntent(data.paymentIntent);
+    setListing((current) =>
+      current ? { ...current, availableTokens: Math.max(0, current.availableTokens - tokenQty) } : current
+    );
+    setStatus('done');
   };
 
   if (!listing) {
@@ -206,7 +308,89 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
           </div>
 
           <div className="flex flex-col gap-3">
+            <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">Método de pago</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {PAYMENT_METHODS.map((method) => (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(method.id)}
+                    className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                      paymentMethod === method.id
+                        ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
+                        : 'border-terminal-border text-terminal-muted hover:text-terminal-text'
+                    }`}
+                  >
+                    <span className="block font-semibold">{method.label}</span>
+                    <span className="mt-1 block">{method.description}</span>
+                  </button>
+                ))}
+              </div>
+              {paymentMethod === 'USDC_ONCHAIN' ? (
+                <div className="mt-4">
+                  <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">Red stablecoin</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {STABLECOIN_NETWORKS.map((network) => (
+                      <button
+                        key={network.id}
+                        type="button"
+                        onClick={() => setStablecoinNetwork(network.id)}
+                        className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                          stablecoinNetwork === network.id
+                            ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
+                            : 'border-terminal-border text-terminal-muted hover:text-terminal-text'
+                        }`}
+                      >
+                        <span className="block font-semibold">{network.label}</span>
+                        <span className="mt-1 block">{network.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
             <WalletConnectButton />
+            {paymentIntent ? (
+              <div className="space-y-2 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs text-terminal-muted">
+                <p>
+                  Orden: <span className="font-mono text-terminal-text">{paymentIntent.id}</span>
+                </p>
+                <p>
+                  Estado: <span className="font-semibold text-terminal-primary">{paymentIntent.status}</span>
+                </p>
+                {paymentIntent.providerCheckoutUrl ? (
+                  <a
+                    href={paymentIntent.providerCheckoutUrl}
+                    className="inline-flex items-center gap-1 text-terminal-primary"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Abrir pasarela <ExternalLink size={12} />
+                  </a>
+                ) : null}
+                {status === 'manual' && paymentIntent.payToAddress ? (
+                  <div className="space-y-2 rounded-lg border border-terminal-warning/30 bg-terminal-warning/10 p-3">
+                    <p>Enviá el pago a esta treasury y pegá el tx hash para verificar:</p>
+                    <p className="break-all font-mono text-terminal-text">{paymentIntent.payToAddress}</p>
+                    <input
+                      value={manualTxHash}
+                      onChange={(event) => setManualTxHash(event.target.value)}
+                      placeholder="Tx hash"
+                      className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-terminal-text"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void verifyManualStablecoinTx()}
+                      className="rounded-lg bg-terminal-primary px-3 py-2 text-xs font-semibold text-white"
+                    >
+                      Verificar tx
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
             {purchaseError ? (
               <p className="rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-3 py-2 text-xs text-terminal-warning">
                 {purchaseError}
@@ -214,16 +398,22 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
             ) : null}
             <button
               type="button"
-              disabled={!isConnected || status === 'submitting'}
+              disabled={(paymentMethod !== 'INTERNAL_BALANCE' && !isConnected) || status !== 'idle'}
               onClick={() => void handlePurchase()}
               className="w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {status === 'done'
-                ? t.checkout.requestSent
-                : status === 'submitting'
-                  ? t.checkout.signing
-                  : isConnected
-                    ? t.checkout.confirmPurchase
+                ? 'Pago confirmado'
+                : status === 'creating'
+                  ? 'Creando orden…'
+                  : status === 'paying'
+                    ? 'Enviando USDC…'
+                    : status === 'manual'
+                      ? 'Esperando tx hash…'
+                    : status === 'verifying'
+                      ? 'Verificando pago…'
+                  : isConnected || paymentMethod === 'INTERNAL_BALANCE'
+                    ? 'Crear orden y pagar'
                     : t.checkout.connectToContinue}
             </button>
           </div>
@@ -231,4 +421,77 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
       </article>
     </section>
   );
+}
+
+type PaymentMethod = 'INTERNAL_BALANCE' | 'USDC_ONCHAIN' | 'STRIPE' | 'MERCADO_PAGO' | 'COINBASE' | 'CUSTODIAL_STABLECOIN';
+type StablecoinNetworkId = 'BASE' | 'POLYGON' | 'TRON' | 'SOLANA';
+
+type PaymentIntentResponse = {
+  id: string;
+  method: PaymentMethod;
+  status: string;
+  tokenCount: number;
+  amountUsd: string;
+  currency: string;
+  chainId: number | null;
+  payToAddress: string | null;
+  providerCheckoutUrl: string | null;
+  metadata: unknown;
+};
+
+const PAYMENT_METHODS: Array<{ id: PaymentMethod; label: string; description: string }> = [
+  {
+    id: 'INTERNAL_BALANCE',
+    label: 'Saldo Sanova',
+    description: 'Usa fondos ya depositados en tu cuenta interna.'
+  },
+  {
+    id: 'USDC_ONCHAIN',
+    label: 'USDC on-chain',
+    description: 'Pago directo desde tu wallet a treasury.'
+  },
+  {
+    id: 'STRIPE',
+    label: 'Stripe',
+    description: 'Tarjeta o banco, con confirmación por webhook.'
+  },
+  {
+    id: 'MERCADO_PAGO',
+    label: 'Mercado Pago',
+    description: 'Pago fiat LatAm con conciliación automática.'
+  },
+  {
+    id: 'COINBASE',
+    label: 'Coinbase',
+    description: 'Checkout cripto/onramp internacional.'
+  }
+];
+
+const STABLECOIN_NETWORKS: Array<{ id: StablecoinNetworkId; label: string; description: string }> = [
+  {
+    id: 'BASE',
+    label: 'Base',
+    description: 'Recomendada: normalmente la más barata para USDC.'
+  },
+  {
+    id: 'POLYGON',
+    label: 'Polygon',
+    description: 'Bajo costo y amplia compatibilidad EVM.'
+  },
+  {
+    id: 'SOLANA',
+    label: 'Solana',
+    description: 'Muy barata, verifica tx hash manualmente.'
+  },
+  {
+    id: 'TRON',
+    label: 'TRON',
+    description: 'Útil para USDT global, verifica tx hash manualmente.'
+  }
+];
+
+function decimalToBaseUnits(value: string, decimals: number): string {
+  const [whole, fraction = ''] = value.split('.');
+  const padded = fraction.padEnd(decimals, '0').slice(0, decimals);
+  return `${whole}${padded}`.replace(/^0+(?=\d)/, '') || '0';
 }

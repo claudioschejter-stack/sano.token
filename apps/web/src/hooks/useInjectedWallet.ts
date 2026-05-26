@@ -16,6 +16,7 @@ declare global {
 export function useInjectedWallet() {
   const t = useTranslation();
   const [address, setAddress] = useState<string | null>(null);
+  const [chainId, setChainId] = useState<number | null>(null);
   const [isPending, setIsPending] = useState(false);
 
   const connect = useCallback(async () => {
@@ -27,9 +28,12 @@ export function useInjectedWallet() {
     setIsPending(true);
     try {
       const accounts = (await window.ethereum.request({ method: 'eth_requestAccounts' })) as string[];
+      const rawChainId = (await window.ethereum.request({ method: 'eth_chainId' })) as string;
       setAddress(accounts[0] ?? null);
+      setChainId(Number.parseInt(rawChainId, 16));
     } catch {
       setAddress(null);
+      setChainId(null);
     } finally {
       setIsPending(false);
     }
@@ -37,13 +41,56 @@ export function useInjectedWallet() {
 
   const disconnect = useCallback(() => {
     setAddress(null);
+    setChainId(null);
   }, []);
+
+  const switchChain = useCallback(async (targetChainId: number) => {
+    if (!window.ethereum) {
+      window.alert(t.wallet.noWallet);
+      return false;
+    }
+
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: `0x${targetChainId.toString(16)}` }]
+    });
+    setChainId(targetChainId);
+    return true;
+  }, [t.wallet.noWallet]);
+
+  const sendErc20Transfer = useCallback(async (input: {
+    tokenAddress: string;
+    to: string;
+    amountBaseUnits: string;
+  }) => {
+    if (!window.ethereum || !address) {
+      throw new Error('WALLET_NOT_CONNECTED');
+    }
+
+    const transferSelector = '0xa9059cbb';
+    const encodedTo = input.to.toLowerCase().replace(/^0x/, '').padStart(64, '0');
+    const encodedAmount = BigInt(input.amountBaseUnits).toString(16).padStart(64, '0');
+
+    return window.ethereum.request({
+      method: 'eth_sendTransaction',
+      params: [
+        {
+          from: address,
+          to: input.tokenAddress,
+          data: `${transferSelector}${encodedTo}${encodedAmount}`
+        }
+      ]
+    }) as Promise<string>;
+  }, [address]);
 
   return {
     address,
+    chainId,
     isConnected: Boolean(address),
     isPending,
     connect,
-    disconnect
+    disconnect,
+    switchChain,
+    sendErc20Transfer
   };
 }

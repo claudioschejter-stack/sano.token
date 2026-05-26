@@ -16,6 +16,7 @@
     "db:generate": "turbo db:generate --filter=@sanova/database",
     "db:push": "turbo db:push --filter=@sanova/database",
     "db:rwa-automation": "node scripts/apply-rwa-automation-migration.mjs",
+    "db:stablecoin-payments": "node scripts/apply-stablecoin-payments-migration.mjs",
     "db:seed": "npm run db:seed -w @sanova/database",
     "db:reset-users": "npm run db:reset-users -w @sanova/database",
     "contracts:compile": "turbo compile --filter=@sanova/contracts",

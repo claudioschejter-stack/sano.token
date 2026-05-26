@@ -37,6 +37,62 @@ enum PayoutStatus {
   FAILED
 }
 
+enum PaymentMethod {
+  INTERNAL_BALANCE
+  USDC_ONCHAIN
+  LOCAL_RAIL
+  BRIDGE
+  TRANSAK
+  RAMP
+  STRIPE
+  MERCADO_PAGO
+  COINBASE
+  CUSTODIAL_STABLECOIN
+}
+
+enum PaymentIntentStatus {
+  PENDING
+  REQUIRES_PAYMENT
+  MANUAL_REVIEW
+  CONFIRMED
+  FAILED
+  EXPIRED
+  REFUNDED
+}
+
+enum StablecoinWalletType {
+  EXTERNAL
+  CUSTODIAL
+  TREASURY
+}
+
+enum StablecoinWalletStatus {
+  ACTIVE
+  PENDING
+  DISABLED
+}
+
+enum PlatformLedgerEntryType {
+  DEPOSIT_CREDIT
+  TOKEN_PURCHASE_DEBIT
+  REFUND_CREDIT
+  MANUAL_ADJUSTMENT
+}
+
+enum PlatformLedgerEntryStatus {
+  PENDING
+  POSTED
+  REVERSED
+}
+
+enum PlatformDepositStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  EXPIRED
+  MANUAL_REVIEW
+}
+
 enum FiscalRegime {
   LEY_19640
   GENERAL
@@ -359,6 +415,179 @@ model Investment {
   @@index([projectId])
   @@index([status])
   @@index([purchasedAt])
+}
+
+model PaymentIntent {
+  id                  String              @id @default(cuid())
+  userId              String
+  investorId          String?
+  projectId           String
+  investmentId        String?
+  method              PaymentMethod
+  status              PaymentIntentStatus @default(PENDING)
+  tokenCount          Int
+  amountUsd           Decimal             @db.Decimal(20, 6)
+  currency            String              @default("USD")
+  stablecoinSymbol    String?
+  chainId             Int?
+  payerWalletAddress  String?
+  payToAddress        String?
+  txHash              String?             @unique
+  provider            String?
+  providerPaymentId   String?
+  providerCheckoutUrl String?
+  idempotencyKey      String?             @unique
+  expiresAt           DateTime
+  confirmedAt         DateTime?
+  metadata            Json                @default("{}")
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([investorId])
+  @@index([projectId])
+  @@index([investmentId])
+  @@index([method])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([provider, providerPaymentId])
+}
+
+model PaymentEvent {
+  id              String   @id @default(cuid())
+  paymentIntentId String
+  type            String
+  provider        String?
+  txHash          String?
+  payload         Json     @default("{}")
+  createdAt       DateTime @default(now())
+
+  @@index([paymentIntentId])
+  @@index([type])
+  @@index([provider])
+  @@index([txHash])
+  @@index([createdAt])
+}
+
+model StablecoinWallet {
+  id         String                 @id @default(cuid())
+  userId     String?
+  investorId String?
+  address    String                 @unique
+  chainId    Int
+  type       StablecoinWalletType   @default(EXTERNAL)
+  status     StablecoinWalletStatus @default(ACTIVE)
+  label      String?
+  provider   String?
+  metadata   Json                   @default("{}")
+  createdAt  DateTime               @default(now())
+  updatedAt  DateTime               @updatedAt
+
+  @@index([userId])
+  @@index([investorId])
+  @@index([chainId])
+  @@index([type])
+  @@index([status])
+}
+
+model PlatformWalletAccount {
+  id        String   @id @default(cuid())
+  userId    String
+  investorId String?
+  currency  String   @default("USD")
+  balance   Decimal  @default(0) @db.Decimal(20, 6)
+  reserved  Decimal  @default(0) @db.Decimal(20, 6)
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, currency])
+  @@index([userId])
+  @@index([investorId])
+  @@index([status])
+}
+
+model PlatformWalletLedgerEntry {
+  id             String                    @id @default(cuid())
+  accountId      String
+  userId         String
+  investorId     String?
+  type           PlatformLedgerEntryType
+  status         PlatformLedgerEntryStatus @default(POSTED)
+  amount         Decimal                   @db.Decimal(20, 6)
+  currency       String                    @default("USD")
+  balanceAfter   Decimal                   @db.Decimal(20, 6)
+  idempotencyKey String                    @unique
+  paymentIntentId String?
+  depositId      String?
+  investmentId   String?
+  txHash         String?
+  metadata       Json                      @default("{}")
+  createdAt      DateTime                  @default(now())
+
+  @@index([accountId])
+  @@index([userId])
+  @@index([investorId])
+  @@index([type])
+  @@index([status])
+  @@index([paymentIntentId])
+  @@index([depositId])
+  @@index([investmentId])
+  @@index([txHash])
+  @@index([createdAt])
+}
+
+model PlatformDeposit {
+  id                  String                @id @default(cuid())
+  userId              String
+  investorId          String?
+  status              PlatformDepositStatus @default(PENDING)
+  amountUsd           Decimal               @db.Decimal(20, 6)
+  currency            String                @default("USD")
+  method              PaymentMethod
+  stablecoinNetwork   String?
+  stablecoinSymbol    String?
+  payerWalletAddress  String?
+  payToAddress        String?
+  txHash              String?               @unique
+  provider            String?
+  providerPaymentId   String?
+  providerCheckoutUrl String?
+  idempotencyKey      String?               @unique
+  expiresAt           DateTime
+  confirmedAt         DateTime?
+  metadata            Json                  @default("{}")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([userId])
+  @@index([investorId])
+  @@index([status])
+  @@index([method])
+  @@index([expiresAt])
+  @@index([provider, providerPaymentId])
+}
+
+model PortfolioSnapshot {
+  id              String   @id @default(cuid())
+  userId          String
+  investorId      String?
+  baseCurrency    String   @default("USD")
+  totalValueUsd   Decimal  @db.Decimal(20, 6)
+  rwaValueUsd     Decimal  @default(0) @db.Decimal(20, 6)
+  stablecoinUsd   Decimal  @default(0) @db.Decimal(20, 6)
+  fiatUsd         Decimal  @default(0) @db.Decimal(20, 6)
+  availableUsd    Decimal  @default(0) @db.Decimal(20, 6)
+  debtUsd         Decimal  @default(0) @db.Decimal(20, 6)
+  ltv             Decimal  @default(0) @db.Decimal(8, 4)
+  positions       Json     @default("[]")
+  capturedAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([investorId])
+  @@index([capturedAt])
+  @@unique([userId, capturedAt])
 }
 
 model PayoutHistory {

@@ -6,6 +6,8 @@ import { executeProjectAutomationRepair } from '../../../../lib/blockchain/proje
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
 import { enqueueAutomationJob, processAutomationJobs } from '../../../../lib/admin/automationJobs';
 import { recordRwaSecurityReport } from '../../../../lib/blockchain/rwaSecurityReport';
+import { reconcilePayments } from '../../../../lib/payments/paymentReconciliation';
+import { recordPortfolioSnapshotsForActiveInvestors } from '../../../../lib/portfolio/portfolioAggregator';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +29,8 @@ export async function GET(request: Request) {
 
   try {
     const borrowRate = await refreshBorrowRatesCache();
+    const paymentReconciliation = await reconcilePayments();
+    const portfolioSnapshots = await recordPortfolioSnapshotsForActiveInvestors(100);
     const candidates = await listAutomationRepairCandidates(3);
     const activeAssets = await listAdminAssets('ACTIVE');
     const repairs = [];
@@ -113,7 +117,9 @@ export async function GET(request: Request) {
       queued,
       jobRun,
       repairs,
-      securityReports
+      securityReports,
+      paymentReconciliation,
+      portfolioSnapshots: portfolioSnapshots.length
     });
   } catch (error) {
     console.error('[cron/refresh-borrow-rates]', error);
