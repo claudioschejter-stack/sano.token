@@ -5,6 +5,7 @@ import { validateTreasuryPolicy } from './treasuryPolicy';
 import { evaluateCollateralReadiness } from '../collateral/collateralRegistry';
 import { validateOraclePricing } from './pricingOracleValidation';
 import { enqueueAutomationJob } from '../admin/automationJobs';
+import { logAutomationEvent } from '../admin/automationLogger';
 
 export type AutomationPreflightCheck = {
   key: string;
@@ -16,6 +17,18 @@ export type AutomationPreflightCheck = {
 export type AutomationPreflightResult = {
   ok: boolean;
   checks: AutomationPreflightCheck[];
+  summary?: {
+    plannedJobs: string[];
+    contracts: {
+      token: string | null;
+      vault: string | null;
+    };
+    treasury: string | null;
+    morpho: unknown;
+    liquidity: string;
+    legal: AutomationPreflightCheck | null;
+    readyToBorrow: boolean;
+  };
 };
 
 function check(key: string, label: string, ok: boolean, detail: string): AutomationPreflightCheck {
@@ -71,6 +84,19 @@ export async function recordAutomationPreflight(
     asset.collateralTargets.some((target) => target.protocol === 'MORPHO') ? 'MORPHO_LIQUIDITY' : null,
     'EXPLORER_VERIFY'
   ].filter(Boolean);
+  const summary = {
+    plannedJobs: plannedJobs as string[],
+    contracts: {
+      token: asset.contractAddress,
+      vault: asset.vaultAddress
+    },
+    treasury: process.env.TOKEN_TREASURY_ADDRESS ?? process.env.SANOVA_TREASURY_ADDRESS ?? null,
+    morpho: asset.collateralTargets.find((target) => target.protocol === 'MORPHO') ?? null,
+    liquidity: asset.morphoLiquidityStatus,
+    legal: result.checks.find((entry) => entry.key === 'legal') ?? null,
+    readyToBorrow: asset.readyToBorrow
+  };
+  const enrichedResult = { ...result, summary };
   await appendDeploymentEvent(projectId, {
     step: 'PREFLIGHT',
     status: result.ok ? 'SUCCESS' : 'FAILED',
@@ -79,6 +105,18 @@ export async function recordAutomationPreflight(
       `Jobs: ${plannedJobs.join(', ') || 'ninguno'}`,
       `Ready-to-borrow actual: ${asset.readyToBorrow ? 'sí' : 'no'}`
     ].join(' | ')
+  });
+  logAutomationEvent({
+    level: result.ok ? 'info' : 'warn',
+    event: 'preflight.completed',
+    projectId,
+    step: 'PREFLIGHT',
+    status: result.ok ? 'SUCCESS' : 'FAILED',
+    metadata: {
+      checks: result.checks,
+      plannedJobs: summary.plannedJobs,
+      readyToBorrow: summary.readyToBorrow
+    }
   });
   await appendDeploymentEvent(projectId, {
     step: 'PRICING_ORACLE',
@@ -91,18 +129,9 @@ export async function recordAutomationPreflight(
       step: 'PREFLIGHT',
       payload: {
         checks: result.checks,
-        plannedJobs,
-        contracts: {
-          token: asset.contractAddress,
-          vault: asset.vaultAddress
-        },
-        treasury: process.env.TOKEN_TREASURY_ADDRESS ?? process.env.SANOVA_TREASURY_ADDRESS ?? null,
-        morpho: asset.collateralTargets.find((target) => target.protocol === 'MORPHO') ?? null,
-        liquidity: asset.morphoLiquidityStatus,
-        legal: result.checks.find((entry) => entry.key === 'legal') ?? null,
-        readyToBorrow: asset.readyToBorrow
+        ...summary
       }
     }).catch(() => undefined);
   }
-  return result;
+  return enrichedResult;
 }

@@ -14,6 +14,7 @@ import { recordExplorerVerification } from './contractVerification';
 import { recordAutomationPreflight } from './automationPreflight';
 import { shouldBlockAutomation } from '../admin/automationCircuitBreaker';
 import type { OwnershipTransferResult } from './ownershipTransfer';
+import { logAutomationEvent } from '../admin/automationLogger';
 
 export type ProjectVaultDeployResult =
   | {
@@ -183,6 +184,7 @@ export type ProjectTokenDeployResult =
   | { status: 'FAILED'; reason: string };
 
 async function executeProjectTokenDeployUnlocked(projectId: string): Promise<ProjectTokenDeployResult> {
+  logAutomationEvent({ event: 'token_deploy.start', projectId, step: 'TOKEN_DEPLOY', status: 'RUNNING' });
   const asset = await getAdminAsset(projectId);
   if (!asset) {
     return { status: 'NOT_FOUND' };
@@ -357,6 +359,14 @@ export async function executeProjectTokenDeploy(
 ): Promise<ProjectTokenDeployResult> {
   const run = async () => {
     const result = await executeProjectTokenDeployUnlocked(projectId);
+    logAutomationEvent({
+      level: result.status === 'FAILED' ? 'error' : result.status === 'SKIPPED' ? 'warn' : 'info',
+      event: 'token_deploy.completed',
+      projectId,
+      step: 'TOKEN_DEPLOY',
+      status: result.status,
+      message: result.status === 'FAILED' || result.status === 'SKIPPED' ? result.reason : null
+    });
     if (result.status === 'FAILED' || result.status === 'SKIPPED') {
       await noteAutomationFailure(projectId, result.reason);
     } else {

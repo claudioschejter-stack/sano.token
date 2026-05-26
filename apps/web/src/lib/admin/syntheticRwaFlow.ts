@@ -1,8 +1,42 @@
 import { createAdminAsset, getAdminAsset } from './assetsService';
 import { notifyAutomationIssue } from './automationAlerts';
 import { executeProjectAutomationRepair } from '../blockchain/projectTokenDeploy';
+import { getTokenDeployStatus } from '../blockchain/tokenDeployConfig';
+import { logAutomationEvent } from './automationLogger';
+
+function syntheticEnabled(): boolean {
+  return process.env.RWA_SYNTHETIC_ENABLED === 'true';
+}
+
+function allowedChainIds(): number[] {
+  return (process.env.RWA_SYNTHETIC_ALLOWED_CHAIN_IDS ?? '84532,80002,11155111')
+    .split(',')
+    .map((value) => Number.parseInt(value.trim(), 10))
+    .filter(Number.isFinite);
+}
 
 export async function runSyntheticRwaFlow(input: { projectId?: string; createDemo?: boolean } = {}) {
+  if (!syntheticEnabled()) {
+    logAutomationEvent({
+      event: 'synthetic.skipped',
+      step: 'SYNTHETIC_RWA_FLOW',
+      status: 'SKIPPED',
+      message: 'RWA_SYNTHETIC_ENABLED no está activo.'
+    });
+    return { skipped: true, reason: 'RWA_SYNTHETIC_ENABLED no está activo.' };
+  }
+
+  const health = await getTokenDeployStatus();
+  const allowed = allowedChainIds();
+  if (!allowed.includes(health.chainId)) {
+    throw new Error(`Synthetic bloqueado en chain ${health.chainId}. Permitidas: ${allowed.join(', ')}`);
+  }
+
+  const maxGasWei = process.env.RWA_SYNTHETIC_MAX_GAS_WEI?.trim();
+  if (maxGasWei && health.gasBalanceWei && BigInt(health.gasBalanceWei) > BigInt(maxGasWei)) {
+    throw new Error('Synthetic bloqueado: balance de gas supera el límite operativo configurado.');
+  }
+
   let projectId = input.projectId;
 
   if (!projectId && input.createDemo) {

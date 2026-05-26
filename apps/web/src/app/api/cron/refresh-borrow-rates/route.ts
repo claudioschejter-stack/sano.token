@@ -72,13 +72,18 @@ export async function GET(request: Request) {
       }
     }
 
-    const syntheticJob = await enqueueAutomationJob({
-      step: 'SYNTHETIC_RWA_FLOW',
-      payload: { source: 'daily-cron' },
-      maxAttempts: 1
-    });
-    if (syntheticJob) {
-      queued.push({ jobId: syntheticJob.id, step: 'SYNTHETIC_RWA_FLOW' });
+    if (process.env.RWA_SYNTHETIC_ENABLED === 'true') {
+      const syntheticJob = await enqueueAutomationJob({
+        step: 'SYNTHETIC_RWA_FLOW',
+        payload: {
+          source: 'daily-cron',
+          allowedChainIds: process.env.RWA_SYNTHETIC_ALLOWED_CHAIN_IDS ?? '84532,80002,11155111'
+        },
+        maxAttempts: 1
+      });
+      if (syntheticJob) {
+        queued.push({ jobId: syntheticJob.id, step: 'SYNTHETIC_RWA_FLOW' });
+      }
     }
     const jobRun = await processAutomationJobs(5);
 

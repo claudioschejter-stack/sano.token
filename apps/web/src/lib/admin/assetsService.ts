@@ -217,6 +217,19 @@ function sha256Json(value: unknown): string {
   return hash.toString(16).padStart(8, '0');
 }
 
+async function auditHashJson(value: unknown): Promise<string> {
+  if (typeof window !== 'undefined') {
+    return sha256Json(value);
+  }
+
+  try {
+    const { serverSha256Json } = await import('./serverAuditHash');
+    return serverSha256Json(value);
+  } catch {
+    return sha256Json(value);
+  }
+}
+
 function randomId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -714,7 +727,7 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       createdAt: new Date().toISOString()
     }
   ] satisfies DeploymentEvent[];
-  const launchAuditHash = sha256Json({
+  const launchAuditHash = await auditHashJson({
     id,
     title: input.title.trim(),
     totalTokens: input.totalTokens,
@@ -979,7 +992,7 @@ export async function updateAdminAsset(
     include: projectInclude
   });
 
-  const launchAuditHash = sha256Json({
+  const launchAuditHash = await auditHashJson({
     id: updated.id,
     title: updated.title,
     tokenStandard: updated.tokenStandard,
@@ -1097,22 +1110,23 @@ export async function appendDeploymentEvent(
     return null;
   }
 
+  const auditHash =
+    event.auditHash ??
+    (await auditHashJson({
+      projectId,
+      step: event.step,
+      status: event.status,
+      message: event.message,
+      txHash: event.txHash,
+      address: event.address,
+      externalId: event.externalId
+    }));
   const deploymentEvents: DeploymentEvent[] = [
     {
       id: `${event.step.toLowerCase()}-${Date.now().toString(36)}`,
       createdAt: new Date().toISOString(),
       ...event,
-      auditHash:
-        event.auditHash ??
-        sha256Json({
-          projectId,
-          step: event.step,
-          status: event.status,
-          message: event.message,
-          txHash: event.txHash,
-          address: event.address,
-          externalId: event.externalId
-        })
+      auditHash
     },
     ...existing.deploymentEvents
   ].slice(0, 50);
@@ -1127,7 +1141,7 @@ export async function recordAdminAuditLog(input: {
   projectId?: string | null;
   metadata?: Prisma.InputJsonValue;
 }) {
-  const auditHash = sha256Json(input);
+  const auditHash = await auditHashJson(input);
   try {
     return await prisma.adminAuditLog.create({
       data: {
