@@ -8,15 +8,15 @@ export async function requireInvestorSession() {
   }
 
   const userId = session.user.id;
-  const role = session.user.role;
 
   if (!userId) {
     return null;
   }
 
-  if (role !== 'INVESTOR') {
-    return { forbidden: true as const, session };
-  }
-
-  return { userId, email: session.user.email ?? '', session };
+  return {
+    userId,
+    email: session.user.email ?? '',
+    role: session.user.role,
+    session
+  };
 }

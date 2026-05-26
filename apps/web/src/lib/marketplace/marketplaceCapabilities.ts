@@ -15,47 +15,37 @@ export type MarketplaceCapabilities = {
   subtitleKey: MarketplaceSubtitleKey;
 };
 
+function tradingCapabilities(
+  subtitleKey: MarketplaceSubtitleKey,
+  overrides: Partial<MarketplaceCapabilities> = {}
+): MarketplaceCapabilities {
+  return {
+    showBorrowRates: false,
+    showPurchaseActions: true,
+    useInvestorKycStatus: true,
+    showAdminToolbar: false,
+    subtitleKey,
+    ...overrides
+  };
+}
+
 export function getMarketplaceCapabilities(role: SystemRole | undefined): MarketplaceCapabilities {
   switch (role) {
     case 'ADMIN':
-      return {
+      return tradingCapabilities('admin', {
         showBorrowRates: true,
-        showPurchaseActions: false,
-        useInvestorKycStatus: false,
-        showAdminToolbar: true,
-        subtitleKey: 'admin'
-      };
+        showAdminToolbar: true
+      });
     case 'ADVISOR':
-      return {
-        showBorrowRates: false,
-        showPurchaseActions: false,
-        useInvestorKycStatus: false,
-        showAdminToolbar: false,
-        subtitleKey: 'advisor'
-      };
+      return tradingCapabilities('advisor');
     case 'ADVISOR_MANAGER':
-      return {
-        showBorrowRates: false,
-        showPurchaseActions: false,
-        useInvestorKycStatus: false,
-        showAdminToolbar: false,
-        subtitleKey: 'advisorManager'
-      };
+      return tradingCapabilities('advisorManager');
     case 'INVESTOR':
-      return {
-        showBorrowRates: false,
-        showPurchaseActions: true,
-        useInvestorKycStatus: true,
-        showAdminToolbar: false,
-        subtitleKey: 'investor'
-      };
+      return tradingCapabilities('investor');
+    case 'TREASURY':
+    case 'OPERATOR':
+      return tradingCapabilities('default');
     default:
-      return {
-        showBorrowRates: false,
-        showPurchaseActions: false,
-        useInvestorKycStatus: false,
-        showAdminToolbar: false,
-        subtitleKey: 'default'
-      };
+      return tradingCapabilities('default');
   }
 }
