@@ -98,6 +98,25 @@ export type CollateralTarget = {
   registeredAt?: string | null;
 };
 
+export type DeploymentEvent = {
+  id: string;
+  step:
+    | 'TOKEN_DEPLOY'
+    | 'VAULT_DEPLOY'
+    | 'VAULT_FUNDING'
+    | 'ORACLE_DEPLOY'
+    | 'MORPHO_MARKET'
+    | 'COLLATERAL_REGISTER'
+    | 'REPAIR_AUTOMATION'
+    | 'PREFLIGHT';
+  status: 'PENDING' | 'SUCCESS' | 'SKIPPED' | 'FAILED';
+  message: string;
+  txHash?: string | null;
+  address?: string | null;
+  externalId?: string | null;
+  createdAt: string;
+};
+
 export function instrumentTypeDefaults(type: TokenInstrumentType): {
   tokenStandard: TokenStandard;
   collateralProtocols: CollateralProtocol[];
@@ -172,5 +191,26 @@ export function parseCollateralTargets(raw: unknown): CollateralTarget[] {
       status: item.status ?? 'QUEUED',
       readinessScore: item.readinessScore ?? 0,
       missingRequirements: item.missingRequirements ?? []
+    }));
+}
+
+export function parseDeploymentEvents(raw: unknown): DeploymentEvent[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .filter(
+      (item): item is DeploymentEvent =>
+        typeof item === 'object' &&
+        item !== null &&
+        typeof (item as DeploymentEvent).step === 'string' &&
+        typeof (item as DeploymentEvent).status === 'string'
+    )
+    .map((item) => ({
+      ...item,
+      id: item.id ?? `${item.step}-${Date.now().toString(36)}`,
+      message: item.message ?? item.step,
+      createdAt: item.createdAt ?? new Date().toISOString()
     }));
 }

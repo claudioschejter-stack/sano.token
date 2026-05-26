@@ -26,7 +26,8 @@
     "infra:down": "docker compose down",
     "dev:all": "node scripts/dev-all.mjs",
     "i18n:translate": "tsx scripts/i18n/translate-from-es.mjs",
-    "i18n:translate:fix": "tsx scripts/i18n/translate-from-es.mjs"
+    "i18n:translate:fix": "tsx scripts/i18n/translate-from-es.mjs",
+    "test:rwa-launch-flow": "tsx scripts/test-rwa-launch-flow.ts"
   },
   "devDependencies": {
     "translate-google": "^1.5.0",

@@ -246,6 +246,7 @@ model Project {
   equitySharePercent   Decimal?     @db.Decimal(8, 4)
   tokenDeployStatus    String       @default("NOT_REQUESTED")
   collateralTargets    Json         @default("[]")
+  deploymentEvents     Json         @default("[]")
   centrifugeChecklist  Json         @default("{}")
   spvEntityName        String?
   navOracleUrl         String?

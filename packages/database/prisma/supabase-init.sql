@@ -114,6 +114,7 @@ CREATE TABLE "Project" (
     "vaultFundingAmount" TEXT,
     "vaultFundingTxHash" TEXT,
     "vaultFundingError" TEXT,
+    "deploymentEvents" JSONB NOT NULL DEFAULT '[]',
     "chainId" INTEGER,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

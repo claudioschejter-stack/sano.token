@@ -1,5 +1,5 @@
 import type { AdminAssetRecord } from '../admin/assetsService';
-import { getAdminAsset, updateAdminAsset } from '../admin/assetsService';
+import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin/assetsService';
 import { buildSmartContractDocUrl } from './explorerUrls';
 import { deployLaunchToken } from './deployLaunchToken';
 import { deployVaultForExistingToken } from './deployVaultOnly';
@@ -46,6 +46,11 @@ export async function executeProjectVaultDeploy(projectId: string): Promise<Proj
   });
 
   if (result.status !== 'DEPLOYED') {
+    await appendDeploymentEvent(projectId, {
+      step: 'VAULT_DEPLOY',
+      status: 'SKIPPED',
+      message: result.reason
+    });
     return { status: 'SKIPPED', asset, reason: result.reason };
   }
 
@@ -63,6 +68,24 @@ export async function executeProjectVaultDeploy(projectId: string): Promise<Proj
     contracts: {
       smartContract: vaultExplorerUrl
     }
+  });
+
+  await appendDeploymentEvent(projectId, {
+    step: 'VAULT_DEPLOY',
+    status: 'SUCCESS',
+    message: `Vault ERC-4626 desplegado en ${result.vaultAddress}.`,
+    txHash: result.txHash,
+    address: result.vaultAddress
+  });
+
+  await appendDeploymentEvent(projectId, {
+    step: 'VAULT_FUNDING',
+    status: result.vaultFundingStatus === 'FUNDED' ? 'SUCCESS' : 'FAILED',
+    message:
+      result.vaultFundingStatus === 'FUNDED'
+        ? `Vault fondeado con ${result.vaultFundingAmount} unidades base.`
+        : result.vaultFundingError ?? 'No se pudo verificar el fondeo del vault.',
+    txHash: result.vaultFundingTxHash
   });
 
   let collateral = null;
@@ -133,6 +156,11 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
   }
 
   await updateAdminAsset(projectId, { tokenDeployStatus: 'PENDING' });
+  await appendDeploymentEvent(projectId, {
+    step: 'TOKEN_DEPLOY',
+    status: 'PENDING',
+    message: 'Iniciando emisión automática token/vault.'
+  });
 
   try {
     const result = await deployLaunchToken({
@@ -168,6 +196,26 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
         }
       });
 
+      await appendDeploymentEvent(projectId, {
+        step: 'TOKEN_DEPLOY',
+        status: 'SUCCESS',
+        message: `Token desplegado en ${result.contractAddress}.`,
+        txHash: result.txHash,
+        address: result.contractAddress
+      });
+
+      if (asset.tokenStandard === 'ERC4626') {
+        await appendDeploymentEvent(projectId, {
+          step: 'VAULT_FUNDING',
+          status: result.vaultFundingStatus === 'FUNDED' ? 'SUCCESS' : 'FAILED',
+          message:
+            result.vaultFundingStatus === 'FUNDED'
+              ? `Vault fondeado con ${result.vaultFundingAmount} unidades base.`
+              : result.vaultFundingError ?? 'No se pudo verificar el fondeo del vault.',
+          txHash: result.vaultFundingTxHash
+        });
+      }
+
       let finalAsset = updated;
       let collateral = null;
 
@@ -202,10 +250,55 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
     }
 
     const updated = await updateAdminAsset(projectId, { tokenDeployStatus: 'SKIPPED' });
+    await appendDeploymentEvent(projectId, {
+      step: 'TOKEN_DEPLOY',
+      status: 'SKIPPED',
+      message: result.reason
+    });
     return { status: 'SKIPPED', asset: updated, reason: result.reason };
   } catch (error) {
     await updateAdminAsset(projectId, { tokenDeployStatus: 'FAILED' });
     const reason = error instanceof Error ? error.message : 'Token deployment failed';
+    await appendDeploymentEvent(projectId, {
+      step: 'TOKEN_DEPLOY',
+      status: 'FAILED',
+      message: reason
+    });
     return { status: 'FAILED', reason };
   }
+}
+
+export async function executeProjectAutomationRepair(projectId: string) {
+  await appendDeploymentEvent(projectId, {
+    step: 'REPAIR_AUTOMATION',
+    status: 'PENDING',
+    message: 'Reparación automática solicitada.'
+  });
+
+  const deploy = await executeProjectTokenDeploy(projectId);
+  const asset =
+    deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED'
+      ? deploy.asset
+      : await getAdminAsset(projectId);
+
+  let collateral = null;
+  if (asset?.collateralTargets.length && asset.contractAddress && (asset.tokenStandard !== 'ERC4626' || asset.vaultAddress)) {
+    const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
+    collateral = await registerProjectCollateral(projectId);
+  }
+
+  const finalAsset = collateral?.updatedAsset ?? (await getAdminAsset(projectId));
+  await appendDeploymentEvent(projectId, {
+    step: 'REPAIR_AUTOMATION',
+    status:
+      deploy.status === 'FAILED' || deploy.status === 'SKIPPED'
+        ? 'FAILED'
+        : 'SUCCESS',
+    message:
+      deploy.status === 'FAILED' || deploy.status === 'SKIPPED'
+        ? 'La reparación terminó con tareas pendientes. Revisá el detalle de eventos.'
+        : 'Reparación automática finalizada.'
+  });
+
+  return { deploy, collateral, asset: finalAsset };
 }

@@ -8,10 +8,12 @@ import {
   autoFillCentrifugeChecklist,
   parseCentrifugeChecklist,
   parseCollateralTargets,
+  parseDeploymentEvents,
   parseMediaGallery,
   type CentrifugeChecklist,
   type CollateralProtocol,
   type CollateralTarget,
+  type DeploymentEvent,
   type LaunchContracts,
   type LaunchMediaItem,
   type TokenDeployStatus,
@@ -40,6 +42,7 @@ export type AdminAssetRecord = {
   equitySharePercent: number | null;
   tokenDeployStatus: TokenDeployStatus;
   collateralTargets: CollateralTarget[];
+  deploymentEvents: DeploymentEvent[];
   centrifugeChecklist: CentrifugeChecklist;
   spvEntityName: string | null;
   navOracleUrl: string | null;
@@ -129,6 +132,7 @@ export type UpdateAdminAssetInput = {
   vaultFundingError?: string | null;
   chainId?: number | null;
   tokenDeployStatus?: TokenDeployStatus;
+  deploymentEvents?: DeploymentEvent[];
   deployToken?: boolean;
 };
 
@@ -293,6 +297,7 @@ function mapProject(project: {
   equitySharePercent: { toString(): string } | null;
   tokenDeployStatus: string;
   collateralTargets: unknown;
+  deploymentEvents: unknown;
   centrifugeChecklist: unknown;
   spvEntityName: string | null;
   navOracleUrl: string | null;
@@ -338,6 +343,7 @@ function mapProject(project: {
       project.equitySharePercent != null ? Number(project.equitySharePercent) : null,
     tokenDeployStatus: project.tokenDeployStatus as TokenDeployStatus,
     collateralTargets: parseCollateralTargets(project.collateralTargets),
+    deploymentEvents: parseDeploymentEvents(project.deploymentEvents),
     centrifugeChecklist: parseCentrifugeChecklist(project.centrifugeChecklist),
     spvEntityName: project.spvEntityName,
     navOracleUrl: project.navOracleUrl,
@@ -470,6 +476,17 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       equitySharePercent: input.equitySharePercent ?? null,
       tokenDeployStatus: input.deployToken ? 'PENDING' : 'NOT_REQUESTED',
       collateralTargets: buildCollateralTargets(collateralContext, input.collateralProtocols) as Prisma.InputJsonValue,
+      deploymentEvents: ([
+        {
+          id: `asset-created-${Date.now().toString(36)}`,
+          step: 'PREFLIGHT',
+          status: input.deployToken ? 'PENDING' : 'SKIPPED',
+          message: input.deployToken
+            ? 'Activo creado: automatización token/vault solicitada.'
+            : 'Activo creado sin emisión automática.',
+          createdAt: new Date().toISOString()
+        }
+      ] satisfies DeploymentEvent[]) as Prisma.InputJsonValue,
       centrifugeChecklist: (input.centrifugeChecklist ?? parseCentrifugeChecklist(null)) as Prisma.InputJsonValue,
       spvEntityName: input.spvEntityName?.trim() || null,
       navOracleUrl: input.navOracleUrl?.trim() || null,
@@ -600,6 +617,7 @@ export async function updateAdminAsset(
   if (input.vaultFundingError !== undefined) data.vaultFundingError = input.vaultFundingError;
   if (input.chainId !== undefined) data.chainId = input.chainId;
   if (input.tokenDeployStatus !== undefined) data.tokenDeployStatus = input.tokenDeployStatus;
+  if (input.deploymentEvents !== undefined) data.deploymentEvents = input.deploymentEvents as Prisma.InputJsonValue;
 
   if (input.collateralTargets !== undefined) {
     data.collateralTargets = input.collateralTargets as Prisma.InputJsonValue;
@@ -731,4 +749,25 @@ export async function markTokenDeployResult(
     vaultAddress: result.vaultAddress ?? undefined,
     chainId: result.chainId ?? undefined
   });
+}
+
+export async function appendDeploymentEvent(
+  projectId: string,
+  event: Omit<DeploymentEvent, 'id' | 'createdAt'>
+): Promise<AdminAssetRecord | null> {
+  const existing = await getAdminAsset(projectId);
+  if (!existing) {
+    return null;
+  }
+
+  const deploymentEvents: DeploymentEvent[] = [
+    {
+      id: `${event.step.toLowerCase()}-${Date.now().toString(36)}`,
+      createdAt: new Date().toISOString(),
+      ...event
+    },
+    ...existing.deploymentEvents
+  ].slice(0, 50);
+
+  return updateAdminAsset(projectId, { deploymentEvents });
 }

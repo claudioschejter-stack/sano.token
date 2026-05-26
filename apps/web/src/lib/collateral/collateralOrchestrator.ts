@@ -1,4 +1,4 @@
-import { getAdminAsset, updateAdminAsset } from '../admin/assetsService';
+import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin/assetsService';
 import type { CollateralProtocol, CollateralTarget } from '../admin/launchTypes';
 import { runCollateralAdapter } from './collateralAdapters';
 import {
@@ -161,6 +161,19 @@ export async function registerProjectCollateral(
     };
 
     outcomes.push({ protocol, target });
+
+    await appendDeploymentEvent(projectId, {
+      step: protocol === 'MORPHO' ? 'MORPHO_MARKET' : 'COLLATERAL_REGISTER',
+      status:
+        result.status === 'REGISTERED' || result.status === 'SUBMITTED'
+          ? 'SUCCESS'
+          : result.status === 'READY'
+            ? 'SKIPPED'
+            : 'FAILED',
+      message: result.notes ?? `${protocol}: ${result.status}`,
+      address: result.oracleAddress ?? target.poolUrl ?? null,
+      externalId: result.externalId ?? null
+    });
   }
 
   const updatedAsset = await updateAdminAsset(projectId, {

@@ -37,6 +37,15 @@ type AdminLaunchEditorProps = {
   projectId?: string;
 };
 
+type TokenDeployHealth = {
+  configured?: boolean;
+  chainId?: number;
+  deployerAddress?: string | null;
+  hasGas?: boolean;
+  gasBalanceWei?: string | null;
+  gasCheckError?: string | null;
+};
+
 type FormState = {
   title: string;
   description: string;
@@ -200,8 +209,11 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
   const [error, setError] = useState<string | null>(null);
   const [tokenStatus, setTokenStatus] = useState<string | null>(null);
   const [tokenDeployReady, setTokenDeployReady] = useState<boolean | null>(null);
+  const [tokenDeployHealth, setTokenDeployHealth] = useState<TokenDeployHealth | null>(null);
   const [collateralTargets, setCollateralTargets] = useState<CollateralTarget[]>([]);
+  const [deploymentEvents, setDeploymentEvents] = useState<AdminAssetRecord['deploymentEvents']>([]);
   const [registeringCollateral, setRegisteringCollateral] = useState(false);
+  const [repairingAutomation, setRepairingAutomation] = useState(false);
   const skipAutoSaveRef = useRef(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -223,6 +235,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       setForm(assetToForm(data.asset));
       setTokenStatus(data.asset.tokenDeployStatus);
       setCollateralTargets(data.asset.collateralTargets);
+      setDeploymentEvents(data.asset.deploymentEvents);
       skipAutoSaveRef.current = true;
     } catch {
       setError(l.loadError);
@@ -240,7 +253,8 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
   useEffect(() => {
     void fetch('/api/admin/token-deploy/status')
       .then((response) => (response.ok ? response.json() : null))
-      .then((data: { configured?: boolean } | null) => {
+      .then((data: TokenDeployHealth | null) => {
+        setTokenDeployHealth(data);
         setTokenDeployReady(Boolean(data?.configured));
       })
       .catch(() => setTokenDeployReady(false));
@@ -641,6 +655,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
 
       if (data.updatedAsset) {
         setCollateralTargets(data.updatedAsset.collateralTargets);
+        setDeploymentEvents(data.updatedAsset.deploymentEvents);
       }
 
       const submitted = data.outcomes?.filter((o) => o.target.status === 'SUBMITTED' || o.target.status === 'REGISTERED').length ?? 0;
@@ -649,6 +664,33 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       setError(l.collateralRegisterError);
     } finally {
       setRegisteringCollateral(false);
+    }
+  }
+
+  async function handleRepairAutomation() {
+    if (!projectId) return;
+    setRepairingAutomation(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/assets/${projectId}/repair-automation`, { method: 'POST' });
+      const data = (await response.json()) as { asset?: AdminAssetRecord; error?: string };
+
+      if (!response.ok || !data.asset) {
+        setError(data.error ?? 'No se pudo reparar la automatización.');
+        return;
+      }
+
+      setForm(assetToForm(data.asset));
+      setTokenStatus(data.asset.tokenDeployStatus);
+      setCollateralTargets(data.asset.collateralTargets);
+      setDeploymentEvents(data.asset.deploymentEvents);
+      setMessage('Reparación automática ejecutada. Revisá el estado detallado debajo.');
+    } catch {
+      setError('No se pudo reparar la automatización.');
+    } finally {
+      setRepairingAutomation(false);
     }
   }
 
@@ -661,6 +703,40 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
     const labels = l.collateralStatuses as Record<string, string>;
     return labels[status] ?? status;
   }
+
+  const morphoTarget = collateralTargetFor('MORPHO');
+  const automationSteps = [
+    {
+      label: 'Token RWA',
+      status: form.contractAddress ? tokenStatus ?? 'DEPLOYED' : 'PENDIENTE',
+      detail: form.contractAddress || 'Se completa automáticamente al emitir.'
+    },
+    {
+      label: 'Vault ERC-4626',
+      status:
+        form.vaultAddress ? 'DEPLOYED' : form.tokenStandard === 'ERC4626' ? 'PENDIENTE' : 'NO APLICA',
+      detail: form.vaultAddress || 'Requerido para colateral DeFi.'
+    },
+    {
+      label: 'Fondeo del vault',
+      status:
+        deploymentEvents.find((event) => event.step === 'VAULT_FUNDING')?.status ??
+        (form.vaultAddress ? 'PENDIENTE' : 'NO APLICA'),
+      detail:
+        deploymentEvents.find((event) => event.step === 'VAULT_FUNDING')?.message ??
+        'La plataforma verifica totalAssets() y shares luego del depósito.'
+    },
+    {
+      label: 'Oracle Morpho',
+      status: morphoTarget?.oracleAddress ? 'DEPLOYED' : form.collateralMorpho ? 'PENDIENTE' : 'NO SELECCIONADO',
+      detail: morphoTarget?.oracleAddress || 'Se despliega automáticamente por vault.'
+    },
+    {
+      label: 'Mercado Morpho',
+      status: morphoTarget?.status ?? (form.collateralMorpho ? 'PENDIENTE' : 'NO SELECCIONADO'),
+      detail: morphoTarget?.externalId || morphoTarget?.poolUrl || 'Se registra al reparar/guardar con Morpho seleccionado.'
+    }
+  ];
 
   async function handleDeployToken() {
     if (!projectId) return;
@@ -681,6 +757,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       if (data.asset) {
         setTokenStatus(data.asset.tokenDeployStatus);
         setCollateralTargets(data.asset.collateralTargets);
+        setDeploymentEvents(data.asset.deploymentEvents);
         if (data.asset.contractAddress) {
           setForm((current) => ({
             ...current,
@@ -920,11 +997,63 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                       {deploying ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />}
                       {l.deployToken}
                     </button>
+                    <button
+                      type="button"
+                      disabled={repairingAutomation}
+                      onClick={() => void handleRepairAutomation()}
+                      className="inline-flex items-center gap-2 self-end rounded-lg border border-terminal-border bg-terminal-bg px-4 py-2 text-sm font-semibold text-terminal-text hover:border-terminal-primary/40 disabled:opacity-50"
+                    >
+                      {repairingAutomation ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />}
+                      Reparar automatización
+                    </button>
                   </div>
                   {tokenStatus ? (
                     <p className="mt-2 text-xs text-terminal-muted">
                       {l.tokenStatus}: {tokenStatus}
                     </p>
+                  ) : null}
+                  <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-card/60 p-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-terminal-muted">
+                      Preflight on-chain
+                    </p>
+                    <div className="mt-2 grid gap-2 text-xs text-terminal-muted sm:grid-cols-2">
+                      <span>Chain: {tokenDeployHealth?.chainId ?? '—'}</span>
+                      <span>Gas: {tokenDeployHealth?.hasGas ? 'OK' : 'Pendiente'}</span>
+                      <span className="sm:col-span-2 break-all">
+                        Wallet: {tokenDeployHealth?.deployerAddress ?? 'No configurada'}
+                      </span>
+                      {tokenDeployHealth?.gasCheckError ? (
+                        <span className="sm:col-span-2 text-red-400">{tokenDeployHealth.gasCheckError}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-2">
+                    {automationSteps.map((step) => (
+                      <div key={step.label} className="rounded-lg border border-terminal-border bg-terminal-card/60 p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-sm font-medium text-terminal-text">{step.label}</p>
+                          <span className="rounded-full border border-terminal-border px-2 py-1 text-[11px] uppercase tracking-wide text-terminal-muted">
+                            {step.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 break-all text-xs text-terminal-muted">{step.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {deploymentEvents.length ? (
+                    <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-card/60 p-3">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-terminal-muted">
+                        Historial automático
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {deploymentEvents.slice(0, 8).map((event) => (
+                          <li key={event.id} className="text-xs text-terminal-muted">
+                            <span className="font-semibold text-terminal-text">{event.step}</span> · {event.status} · {event.message}
+                            {event.txHash ? <span className="block break-all">tx: {event.txHash}</span> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
                 </div>
               ) : (
