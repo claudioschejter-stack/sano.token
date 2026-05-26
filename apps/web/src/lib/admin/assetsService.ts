@@ -16,7 +16,8 @@ import {
   type LaunchMediaItem,
   type TokenDeployStatus,
   type TokenStandard,
-  type TokenInstrumentType
+  type TokenInstrumentType,
+  type VaultFundingStatus
 } from './launchTypes';
 import { buildInitialCollateralTargets, mergeCollateralTargets } from '../collateral/collateralTargetsService';
 import type { CollateralProjectContext } from '../collateral/collateralRegistry';
@@ -44,6 +45,10 @@ export type AdminAssetRecord = {
   navOracleUrl: string | null;
   contractAddress: string | null;
   vaultAddress: string | null;
+  vaultFundingStatus: VaultFundingStatus;
+  vaultFundingAmount: string | null;
+  vaultFundingTxHash: string | null;
+  vaultFundingError: string | null;
   chainId: number | null;
   totalTokens: number;
   availableTokens: number;
@@ -118,6 +123,10 @@ export type UpdateAdminAssetInput = {
   collateralTargets?: CollateralTarget[];
   contractAddress?: string | null;
   vaultAddress?: string | null;
+  vaultFundingStatus?: VaultFundingStatus;
+  vaultFundingAmount?: string | null;
+  vaultFundingTxHash?: string | null;
+  vaultFundingError?: string | null;
   chainId?: number | null;
   tokenDeployStatus?: TokenDeployStatus;
   deployToken?: boolean;
@@ -287,6 +296,10 @@ function mapProject(project: {
   navOracleUrl: string | null;
   contractAddress: string | null;
   vaultAddress: string | null;
+  vaultFundingStatus: string;
+  vaultFundingAmount: string | null;
+  vaultFundingTxHash: string | null;
+  vaultFundingError: string | null;
   chainId: number | null;
   totalTokens: number;
   availableTokens: number;
@@ -328,6 +341,10 @@ function mapProject(project: {
     navOracleUrl: project.navOracleUrl,
     contractAddress: project.contractAddress,
     vaultAddress: project.vaultAddress,
+    vaultFundingStatus: (project.vaultFundingStatus as VaultFundingStatus) ?? 'NOT_REQUIRED',
+    vaultFundingAmount: project.vaultFundingAmount,
+    vaultFundingTxHash: project.vaultFundingTxHash,
+    vaultFundingError: project.vaultFundingError,
     chainId: project.chainId,
     totalTokens: project.totalTokens,
     availableTokens: project.availableTokens,
@@ -574,6 +591,10 @@ export async function updateAdminAsset(
   if (input.jurisdiction !== undefined) data.jurisdiction = input.jurisdiction;
   if (input.contractAddress !== undefined) data.contractAddress = input.contractAddress;
   if (input.vaultAddress !== undefined) data.vaultAddress = input.vaultAddress;
+  if (input.vaultFundingStatus !== undefined) data.vaultFundingStatus = input.vaultFundingStatus;
+  if (input.vaultFundingAmount !== undefined) data.vaultFundingAmount = input.vaultFundingAmount;
+  if (input.vaultFundingTxHash !== undefined) data.vaultFundingTxHash = input.vaultFundingTxHash;
+  if (input.vaultFundingError !== undefined) data.vaultFundingError = input.vaultFundingError;
   if (input.chainId !== undefined) data.chainId = input.chainId;
   if (input.tokenDeployStatus !== undefined) data.tokenDeployStatus = input.tokenDeployStatus;
 

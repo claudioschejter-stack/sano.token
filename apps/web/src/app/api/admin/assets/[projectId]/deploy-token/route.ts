@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession } from '../../../../../../lib/admin/requireAdmin';
 import { executeProjectTokenDeploy } from '../../../../../../lib/blockchain/projectTokenDeploy';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 type RouteContext = {
   params: Promise<{ projectId: string }>;
 };

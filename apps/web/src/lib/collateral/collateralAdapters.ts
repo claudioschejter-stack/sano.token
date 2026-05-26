@@ -154,6 +154,11 @@ async function registerMorpho(project: CollateralProjectContext): Promise<Collat
   return postInstitutionalSubmission('MORPHO', payload);
 }
 
+function canCreateMorphoMarketDirectly(project: CollateralProjectContext): boolean {
+  const privateKey = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
+  return Boolean(project.vaultAddress && process.env.MORPHO_ORACLE_ADDRESS?.trim() && privateKey);
+}
+
 async function registerAaveHorizon(
   project: CollateralProjectContext
 ): Promise<CollateralAdapterResult> {
@@ -221,6 +226,10 @@ export async function runCollateralAdapter(
 
   const def = getProtocolDefinition(protocol);
   const hasCredentials = protocolCredentialsConfigured(def);
+
+  if (protocol === 'MORPHO' && canCreateMorphoMarketDirectly(project)) {
+    return ADAPTERS[protocol](project);
+  }
 
   if (!hasCredentials && !process.env.COLLATERAL_SUBMISSION_WEBHOOK_URL?.trim()) {
     return {

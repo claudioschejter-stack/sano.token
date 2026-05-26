@@ -3,6 +3,9 @@ import { getAdminAsset, updateAdminAsset, type UpdateAdminAssetInput } from '../
 import { requireAdminSession } from '../../../../../lib/admin/requireAdmin';
 import { syncProjectAssetsFromStorage } from '../../../../../lib/storage/syncLaunchStorage';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 type RouteContext = {
   params: Promise<{ projectId: string }>;
 };
@@ -54,7 +57,11 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
 
-    if (body.deployToken && !existing.contractAddress && !updated.contractAddress) {
+    const shouldDeployOrRepair =
+      body.deployToken &&
+      (!updated.contractAddress || (updated.tokenStandard === 'ERC4626' && !updated.vaultAddress));
+
+    if (shouldDeployOrRepair) {
       const { executeProjectTokenDeploy } = await import('../../../../../lib/blockchain/projectTokenDeploy');
       const deploy = await executeProjectTokenDeploy(projectId);
       const finalAsset =

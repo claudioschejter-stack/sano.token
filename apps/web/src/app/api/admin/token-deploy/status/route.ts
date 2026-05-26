@@ -9,5 +9,5 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  return NextResponse.json(getTokenDeployStatus());
+  return NextResponse.json(await getTokenDeployStatus());
 }

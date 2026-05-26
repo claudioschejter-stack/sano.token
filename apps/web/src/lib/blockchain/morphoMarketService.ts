@@ -52,6 +52,11 @@ export async function createMorphoMarketForVault(vaultAddress: string): Promise<
   const wallet = new Wallet(privateKey, provider);
 
   try {
+    const gasBalance = await provider.getBalance(wallet.address);
+    if (gasBalance <= 0n) {
+      return { status: 'SKIPPED', reason: `La wallet de deploy ${wallet.address} no tiene gas en chain ${chainId}.` };
+    }
+
     const prepared = prepareMorphoCreateMarket(params);
     const tx = await wallet.sendTransaction({
       to: prepared.to,

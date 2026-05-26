@@ -7,6 +7,9 @@ import {
 import type { CollateralProtocol } from '../../../../../../lib/admin/launchTypes';
 import { requireAdminSession } from '../../../../../../lib/admin/requireAdmin';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 type RouteContext = {
   params: Promise<{ projectId: string }>;
 };

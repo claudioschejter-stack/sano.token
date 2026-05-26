@@ -116,6 +116,14 @@ export function instrumentTypeDefaults(type: TokenInstrumentType): {
 
 export type TokenDeployStatus = 'NOT_REQUESTED' | 'PENDING' | 'DEPLOYED' | 'FAILED' | 'SKIPPED';
 
+export type VaultFundingStatus =
+  | 'NOT_REQUIRED'
+  | 'PENDING'
+  | 'FUNDED'
+  | 'NO_TOKENS'
+  | 'FAILED'
+  | 'SKIPPED';
+
 export type LaunchContracts = {
   trust?: string | null;
   purchase?: string | null;

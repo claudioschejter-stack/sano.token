@@ -1,5 +1,5 @@
 import { Contract, ContractFactory, JsonRpcProvider, Wallet } from 'ethers';
-import type { TokenStandard, TokenInstrumentType } from '../admin/launchTypes';
+import type { TokenStandard, TokenInstrumentType, VaultFundingStatus } from '../admin/launchTypes';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deployAssetToken';
@@ -24,10 +24,21 @@ export type DeployLaunchTokenResult =
       status: 'DEPLOYED';
       contractAddress: string;
       vaultAddress?: string;
+      vaultFundingStatus?: VaultFundingStatus;
+      vaultFundingAmount?: string | null;
+      vaultFundingTxHash?: string | null;
+      vaultFundingError?: string | null;
       chainId: number;
       txHash: string;
     }
   | { status: 'SKIPPED'; reason: string };
+
+type VaultFundingResult = {
+  status: VaultFundingStatus;
+  amount: string | null;
+  txHash: string | null;
+  error: string | null;
+};
 
 function normalizeSymbol(symbol: string): string {
   const cleaned = symbol.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -55,6 +66,53 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
 }
 
+async function fundVaultWithDeployerBalance(input: {
+  asset: Contract;
+  vaultContract: Contract;
+  walletAddress: string;
+  vaultAddress: string;
+  amount: bigint;
+}): Promise<VaultFundingResult> {
+  try {
+    const deployerKyc = await input.asset.kycApproved(input.walletAddress);
+    if (!deployerKyc) {
+      const setKycTx = await input.asset.setKyc(input.walletAddress, true);
+      await setKycTx.wait();
+    }
+
+    const approveTx = await input.asset.approve(input.vaultAddress, input.amount);
+    await approveTx.wait();
+
+    const depositTx = await input.vaultContract.deposit(input.amount, input.walletAddress);
+    const depositReceipt = await depositTx.wait();
+    const totalAssets = await input.vaultContract.totalAssets();
+    const shares = await input.vaultContract.balanceOf(input.walletAddress);
+
+    if (totalAssets >= input.amount && shares > 0n) {
+      return {
+        status: 'FUNDED',
+        amount: input.amount.toString(),
+        txHash: depositReceipt?.hash ?? depositTx.hash,
+        error: null
+      };
+    }
+
+    return {
+      status: 'FAILED',
+      amount: null,
+      txHash: depositReceipt?.hash ?? depositTx.hash,
+      error: 'Vault deposit completed but totalAssets/share balance did not verify.'
+    };
+  } catch (error) {
+    return {
+      status: 'FAILED',
+      amount: null,
+      txHash: null,
+      error: error instanceof Error ? error.message : 'Vault deposit failed'
+    };
+  }
+}
+
 async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<DeployLaunchTokenResult> {
   const privateKey = resolvePrivateKey();
   const chainId = resolveChainId();
@@ -73,9 +131,15 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
   try {
     const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
     const wallet = new Wallet(privateKey, provider);
+    const gasBalance = await provider.getBalance(wallet.address);
+    if (gasBalance <= 0n) {
+      provider.destroy();
+      return { status: 'SKIPPED', reason: `La wallet de deploy ${wallet.address} no tiene gas en chain ${chainId}.` };
+    }
+
     const tokenName = buildOnChainTokenName(input.tokenName, input.tokenInstrumentType);
     const symbol = normalizeSymbol(input.tokenSymbol);
-    const mintRecipient = input.treasuryAddress ?? wallet.address;
+    const mintRecipient = input.tokenStandard === 'ERC4626' ? wallet.address : input.treasuryAddress ?? wallet.address;
     const mintAmount = BigInt(input.totalSupplyUnits) * 10n ** 18n;
 
     const assetFactory = new ContractFactory(
@@ -119,46 +183,24 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     await vault.waitForDeployment();
     const vaultAddress = await vault.getAddress();
     const vaultContract = new Contract(vaultAddress, SanovaRwaVaultArtifact.abi, wallet);
-
-    if (mintRecipient.toLowerCase() === wallet.address.toLowerCase()) {
-      try {
-        const deployerKyc = await asset.kycApproved(wallet.address);
-        if (!deployerKyc) {
-          const setKycTx = await asset.setKyc(wallet.address, true);
-          await setKycTx.wait();
-        }
-
-        const approveTx = await asset.approve(vaultAddress, mintAmount);
-        await approveTx.wait();
-
-        const depositTx = await vaultContract.deposit(mintAmount, wallet.address);
-        const depositReceipt = await depositTx.wait();
-
-        return {
-          status: 'DEPLOYED',
-          contractAddress,
-          vaultAddress,
-          chainId,
-          txHash: depositReceipt?.hash ?? mintReceipt?.hash ?? 'deploy-submitted'
-        };
-      } catch (depositError) {
-        console.warn('[deployLaunchToken] vault deposit skipped:', depositError);
-        return {
-          status: 'DEPLOYED',
-          contractAddress,
-          vaultAddress,
-          chainId,
-          txHash: mintReceipt?.hash ?? 'vault-deployed'
-        };
-      }
-    }
+    const funding = await fundVaultWithDeployerBalance({
+      asset,
+      vaultContract,
+      walletAddress: wallet.address,
+      vaultAddress,
+      amount: mintAmount
+    });
 
     return {
       status: 'DEPLOYED',
       contractAddress,
       vaultAddress,
+      vaultFundingStatus: funding.status,
+      vaultFundingAmount: funding.amount,
+      vaultFundingTxHash: funding.txHash,
+      vaultFundingError: funding.error,
       chainId,
-      txHash: mintReceipt?.hash ?? 'deploy-submitted'
+      txHash: funding.txHash ?? mintReceipt?.hash ?? 'deploy-submitted'
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown deployment error';

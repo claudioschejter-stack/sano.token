@@ -261,6 +261,10 @@ model Project {
   contractAddress      String?
   usdcVaultAddress     String?
   vaultAddress         String?
+  vaultFundingStatus   String       @default("NOT_REQUIRED")
+  vaultFundingAmount   String?
+  vaultFundingTxHash   String?
+  vaultFundingError    String?
   chainId              Int?
   isActive             Boolean      @default(true)
   createdAt            DateTime     @default(now())

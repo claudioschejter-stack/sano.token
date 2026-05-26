@@ -55,7 +55,11 @@ export async function executeProjectVaultDeploy(projectId: string): Promise<Proj
   const updated = await updateAdminAsset(projectId, {
     vaultAddress: result.vaultAddress,
     chainId: result.chainId,
-    tokenDeployStatus: 'DEPLOYED',
+    tokenDeployStatus: result.vaultFundingStatus === 'FUNDED' ? 'DEPLOYED' : 'FAILED',
+    vaultFundingStatus: result.vaultFundingStatus,
+    vaultFundingAmount: result.vaultFundingAmount,
+    vaultFundingTxHash: result.vaultFundingTxHash,
+    vaultFundingError: result.vaultFundingError,
     contracts: {
       smartContract: vaultExplorerUrl
     }
@@ -147,9 +151,17 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
         : null;
 
       const updated = await updateAdminAsset(projectId, {
-        tokenDeployStatus: 'DEPLOYED',
+        tokenDeployStatus:
+          asset.tokenStandard === 'ERC4626' && result.vaultFundingStatus !== 'FUNDED' ? 'FAILED' : 'DEPLOYED',
         contractAddress: result.contractAddress,
         vaultAddress,
+        vaultFundingStatus:
+          asset.tokenStandard === 'ERC4626'
+            ? result.vaultFundingStatus ?? 'FAILED'
+            : 'NOT_REQUIRED',
+        vaultFundingAmount: result.vaultFundingAmount ?? null,
+        vaultFundingTxHash: result.vaultFundingTxHash ?? null,
+        vaultFundingError: result.vaultFundingError ?? null,
         chainId: result.chainId,
         contracts: {
           smartContract: vaultExplorerUrl ?? explorerUrl
