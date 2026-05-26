@@ -1,9 +1,18 @@
 import type { AdminAssetRecord } from '../admin/assetsService';
-import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin/assetsService';
+import {
+  appendDeploymentEvent,
+  clearAutomationFailures,
+  getAdminAsset,
+  noteAutomationFailure,
+  updateAdminAsset,
+  withProjectAutomationLock
+} from '../admin/assetsService';
 import { buildSmartContractDocUrl } from './explorerUrls';
 import { deployLaunchToken } from './deployLaunchToken';
 import { deployVaultForExistingToken } from './deployVaultOnly';
 import { recordExplorerVerification } from './contractVerification';
+import { recordAutomationPreflight } from './automationPreflight';
+import { shouldBlockAutomation } from '../admin/automationCircuitBreaker';
 
 export type ProjectVaultDeployResult =
   | {
@@ -19,10 +28,15 @@ export type ProjectVaultDeployResult =
   | { status: 'NOT_FOUND' }
   | { status: 'FAILED'; reason: string };
 
-export async function executeProjectVaultDeploy(projectId: string): Promise<ProjectVaultDeployResult> {
+async function executeProjectVaultDeployUnlocked(projectId: string): Promise<ProjectVaultDeployResult> {
   const asset = await getAdminAsset(projectId);
   if (!asset) {
     return { status: 'NOT_FOUND' };
+  }
+
+  const blockReason = shouldBlockAutomation(asset);
+  if (blockReason) {
+    return { status: 'SKIPPED', asset, reason: blockReason };
   }
 
   if (!asset.contractAddress) {
@@ -97,7 +111,7 @@ export async function executeProjectVaultDeploy(projectId: string): Promise<Proj
   let collateral = null;
   if (updated?.collateralTargets.length) {
     const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
-    collateral = await registerProjectCollateral(projectId);
+    collateral = await registerProjectCollateral(projectId, undefined, { skipLock: true });
   }
 
   return {
@@ -108,6 +122,22 @@ export async function executeProjectVaultDeploy(projectId: string): Promise<Proj
     txHash: result.txHash,
     collateral
   };
+}
+
+export async function executeProjectVaultDeploy(
+  projectId: string,
+  options: { skipLock?: boolean } = {}
+): Promise<ProjectVaultDeployResult> {
+  const run = () => executeProjectVaultDeployUnlocked(projectId);
+  if (options.skipLock) return run();
+
+  try {
+    return await withProjectAutomationLock(projectId, 'VAULT_DEPLOY', run);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'Vault deploy locked';
+    await noteAutomationFailure(projectId, reason);
+    return { status: 'FAILED', reason };
+  }
 }
 
 export type ProjectTokenDeployResult =
@@ -129,15 +159,25 @@ export type ProjectTokenDeployResult =
   | { status: 'NOT_FOUND' }
   | { status: 'FAILED'; reason: string };
 
-export async function executeProjectTokenDeploy(projectId: string): Promise<ProjectTokenDeployResult> {
+async function executeProjectTokenDeployUnlocked(projectId: string): Promise<ProjectTokenDeployResult> {
   const asset = await getAdminAsset(projectId);
   if (!asset) {
     return { status: 'NOT_FOUND' };
   }
 
+  const blockReason = shouldBlockAutomation(asset);
+  if (blockReason) {
+    return { status: 'SKIPPED', asset, reason: blockReason };
+  }
+
+  const preflight = await recordAutomationPreflight(projectId, asset);
+  if (!preflight.ok) {
+    return { status: 'SKIPPED', asset, reason: 'Preflight automático falló. Revisá el historial de eventos.' };
+  }
+
   if (asset.contractAddress) {
     if (asset.tokenStandard === 'ERC4626' && !asset.vaultAddress) {
-      const vaultResult = await executeProjectVaultDeploy(projectId);
+      const vaultResult = await executeProjectVaultDeploy(projectId, { skipLock: true });
       if (vaultResult.status === 'DEPLOYED') {
         return {
           status: 'DEPLOYED',
@@ -214,6 +254,7 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
         contractName: 'SanovaAssetToken',
         chainId: result.chainId
       });
+      await updateAdminAsset(projectId, { explorerVerificationStatus: 'PENDING' });
       if (vaultAddress) {
         await recordExplorerVerification(projectId, {
           contractAddress: vaultAddress,
@@ -238,7 +279,7 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
       let collateral = null;
 
       if (asset.tokenStandard === 'ERC4626' && !vaultAddress) {
-        const vaultResult = await executeProjectVaultDeploy(projectId);
+        const vaultResult = await executeProjectVaultDeploy(projectId, { skipLock: true });
         if (vaultResult.status === 'DEPLOYED') {
           finalAsset = vaultResult.asset;
           vaultAddress = vaultResult.vaultAddress;
@@ -247,13 +288,13 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
         }
       } else if (updated?.collateralTargets.length) {
         const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
-        collateral = await registerProjectCollateral(projectId);
+        collateral = await registerProjectCollateral(projectId, undefined, { skipLock: true });
         finalAsset = collateral?.updatedAsset ?? updated;
       }
 
       if (!collateral && updated?.collateralTargets.length && vaultAddress) {
         const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
-        collateral = await registerProjectCollateral(projectId);
+        collateral = await registerProjectCollateral(projectId, undefined, { skipLock: true });
         finalAsset = collateral?.updatedAsset ?? finalAsset;
       }
 
@@ -286,14 +327,40 @@ export async function executeProjectTokenDeploy(projectId: string): Promise<Proj
   }
 }
 
+export async function executeProjectTokenDeploy(
+  projectId: string,
+  options: { skipLock?: boolean } = {}
+): Promise<ProjectTokenDeployResult> {
+  const run = async () => {
+    const result = await executeProjectTokenDeployUnlocked(projectId);
+    if (result.status === 'FAILED' || result.status === 'SKIPPED') {
+      await noteAutomationFailure(projectId, result.reason);
+    } else {
+      await clearAutomationFailures(projectId);
+    }
+    return result;
+  };
+
+  if (options.skipLock) return run();
+
+  try {
+    return await withProjectAutomationLock(projectId, 'TOKEN_DEPLOY', run);
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : 'Token deploy locked';
+    await noteAutomationFailure(projectId, reason);
+    return { status: 'FAILED', reason };
+  }
+}
+
 export async function executeProjectAutomationRepair(projectId: string) {
+  return withProjectAutomationLock(projectId, 'REPAIR_AUTOMATION', async () => {
   await appendDeploymentEvent(projectId, {
     step: 'REPAIR_AUTOMATION',
     status: 'PENDING',
     message: 'Reparación automática solicitada.'
   });
 
-  const deploy = await executeProjectTokenDeploy(projectId);
+  const deploy = await executeProjectTokenDeploy(projectId, { skipLock: true });
   const asset =
     deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED'
       ? deploy.asset
@@ -302,10 +369,14 @@ export async function executeProjectAutomationRepair(projectId: string) {
   let collateral = null;
   if (asset?.collateralTargets.length && asset.contractAddress && (asset.tokenStandard !== 'ERC4626' || asset.vaultAddress)) {
     const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
-    collateral = await registerProjectCollateral(projectId);
+    collateral = await registerProjectCollateral(projectId, undefined, { skipLock: true });
   }
 
   const finalAsset = collateral?.updatedAsset ?? (await getAdminAsset(projectId));
+  if (finalAsset?.collateralTargets.some((target) => target.protocol === 'MORPHO' && target.status === 'REGISTERED')) {
+    const { checkMorphoLiquidity } = await import('../lending/morphoLiquidityCheck');
+    await checkMorphoLiquidity(finalAsset);
+  }
   await appendDeploymentEvent(projectId, {
     step: 'REPAIR_AUTOMATION',
     status:
@@ -318,5 +389,12 @@ export async function executeProjectAutomationRepair(projectId: string) {
         : 'Reparación automática finalizada.'
   });
 
+  if (deploy.status === 'FAILED' || deploy.status === 'SKIPPED') {
+    await noteAutomationFailure(projectId, deploy.reason);
+  } else {
+    await clearAutomationFailures(projectId);
+  }
+
   return { deploy, collateral, asset: finalAsset };
+  });
 }

@@ -1,10 +1,11 @@
-import { prisma, type KycStatus } from '@sanova/database';
+import { prisma, type KycStatus, type Prisma } from '@sanova/database';
 import {
   buildKycIdentitySnapshot,
   type KycIdentitySnapshot
 } from '../onboarding/extractDiditIdentity';
 import { isContactVerificationComplete } from '../onboarding/contactVerification';
 import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
+import { recordAdminAuditLog } from './assetsService';
 
 export type AdminInvestorRecord = {
   id: string;
@@ -188,6 +189,11 @@ export async function updateInvestorKycStatus(
   }
 
   await syncUserAccountStatus(userId);
+  await recordAdminAuditLog({
+    action: `KYC_${status}`,
+    targetUserId: userId,
+    metadata: { status } as Prisma.InputJsonValue
+  });
 
   return mapAdminInvestorRecord(updated);
 }
@@ -202,4 +208,50 @@ export async function getInvestorWallet(userId: string): Promise<string | null> 
   });
 
   return user?.walletAddress ?? user?.investor?.walletAddress ?? null;
+}
+
+export async function upsertInvestorAllowlist(input: {
+  userId: string;
+  projectId: string;
+  walletAddress: string;
+  approved: boolean;
+  txHash?: string | null;
+  chainId?: number | null;
+}) {
+  const audit = await recordAdminAuditLog({
+    action: input.approved ? 'ALLOWLIST_APPROVE' : 'ALLOWLIST_REVOKE',
+    targetUserId: input.userId,
+    projectId: input.projectId,
+    metadata: {
+      walletAddress: input.walletAddress,
+      txHash: input.txHash,
+      chainId: input.chainId,
+      approved: input.approved
+    } as Prisma.InputJsonValue
+  });
+
+  return prisma.investorAllowlist.upsert({
+    where: {
+      projectId_walletAddress: {
+        projectId: input.projectId,
+        walletAddress: input.walletAddress.toLowerCase()
+      }
+    },
+    update: {
+      userId: input.userId,
+      approved: input.approved,
+      txHash: input.txHash ?? null,
+      chainId: input.chainId ?? null,
+      auditHash: audit.auditHash
+    },
+    create: {
+      userId: input.userId,
+      projectId: input.projectId,
+      walletAddress: input.walletAddress.toLowerCase(),
+      approved: input.approved,
+      txHash: input.txHash ?? null,
+      chainId: input.chainId ?? null,
+      auditHash: audit.auditHash
+    }
+  });
 }

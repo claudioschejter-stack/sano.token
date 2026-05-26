@@ -1,4 +1,5 @@
-import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin/assetsService';
+import { appendDeploymentEvent, getAdminAsset, updateAdminAsset, withProjectAutomationLock } from '../admin/assetsService';
+import { shouldBlockAutomation } from '../admin/automationCircuitBreaker';
 import type { CollateralProtocol, CollateralTarget } from '../admin/launchTypes';
 import { runCollateralAdapter } from './collateralAdapters';
 import {
@@ -83,6 +84,16 @@ export async function refreshCollateralReadiness(projectId: string): Promise<Col
     return null;
   }
 
+  const blockReason = shouldBlockAutomation(asset);
+  if (blockReason) {
+    await appendDeploymentEvent(projectId, {
+      step: 'CIRCUIT_BREAKER',
+      status: 'SKIPPED',
+      message: `Registro de colateral omitido: ${blockReason}`
+    });
+    return { projectId, outcomes: [], updatedAsset: asset };
+  }
+
   const project = toProjectContext(asset);
   const protocols = asset.collateralTargets.map((t) => t.protocol);
 
@@ -104,8 +115,15 @@ export async function refreshCollateralReadiness(projectId: string): Promise<Col
 
 export async function registerProjectCollateral(
   projectId: string,
-  protocolFilter?: CollateralProtocol[]
+  protocolFilter?: CollateralProtocol[],
+  options: { skipLock?: boolean } = {}
 ): Promise<CollateralRegistrationSummary | null> {
+  if (!options.skipLock) {
+    return withProjectAutomationLock(projectId, 'COLLATERAL_REGISTER', () =>
+      registerProjectCollateral(projectId, protocolFilter, { skipLock: true })
+    );
+  }
+
   const asset = await getAdminAsset(projectId);
   if (!asset) {
     return null;
@@ -179,6 +197,11 @@ export async function registerProjectCollateral(
   const updatedAsset = await updateAdminAsset(projectId, {
     collateralTargets: outcomes.map((o) => o.target)
   });
+
+  if (updatedAsset?.collateralTargets.some((target) => target.protocol === 'MORPHO' && target.status === 'REGISTERED')) {
+    const { checkMorphoLiquidity } = await import('../lending/morphoLiquidityCheck');
+    await checkMorphoLiquidity(updatedAsset);
+  }
 
   return { projectId, outcomes, updatedAsset };
 }

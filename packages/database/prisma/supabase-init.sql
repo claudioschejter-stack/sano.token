@@ -115,12 +115,52 @@ CREATE TABLE "Project" (
     "vaultFundingTxHash" TEXT,
     "vaultFundingError" TEXT,
     "deploymentEvents" JSONB NOT NULL DEFAULT '[]',
+    "automationReadiness" JSONB NOT NULL DEFAULT '{}',
+    "automationLockOwner" TEXT,
+    "automationLockStep" TEXT,
+    "automationLockExpiresAt" TIMESTAMP(3),
+    "automationFailureCount" INTEGER NOT NULL DEFAULT 0,
+    "automationCircuitBreaker" BOOLEAN NOT NULL DEFAULT false,
+    "morphoLiquidityStatus" TEXT NOT NULL DEFAULT 'NOT_CHECKED',
+    "explorerVerificationStatus" TEXT NOT NULL DEFAULT 'NOT_REQUESTED',
+    "launchAuditHash" TEXT,
     "chainId" INTEGER,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "Project_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AdminAuditLog" (
+    "id" TEXT NOT NULL,
+    "actorUserId" TEXT,
+    "action" TEXT NOT NULL,
+    "targetUserId" TEXT,
+    "projectId" TEXT,
+    "metadata" JSONB NOT NULL DEFAULT '{}',
+    "auditHash" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "AdminAuditLog_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "InvestorAllowlist" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "projectId" TEXT NOT NULL,
+    "walletAddress" TEXT NOT NULL,
+    "approved" BOOLEAN NOT NULL DEFAULT false,
+    "txHash" TEXT,
+    "chainId" INTEGER,
+    "updatedByUserId" TEXT,
+    "auditHash" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "InvestorAllowlist_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -256,6 +296,42 @@ CREATE INDEX "Project_isActive_idx" ON "Project"("isActive");
 
 -- CreateIndex
 CREATE INDEX "Project_isActive_createdAt_idx" ON "Project"("isActive", "createdAt");
+
+-- CreateIndex
+CREATE INDEX "Project_automationLockExpiresAt_idx" ON "Project"("automationLockExpiresAt");
+
+-- CreateIndex
+CREATE INDEX "Project_automationCircuitBreaker_idx" ON "Project"("automationCircuitBreaker");
+
+-- CreateIndex
+CREATE INDEX "AdminAuditLog_actorUserId_idx" ON "AdminAuditLog"("actorUserId");
+
+-- CreateIndex
+CREATE INDEX "AdminAuditLog_targetUserId_idx" ON "AdminAuditLog"("targetUserId");
+
+-- CreateIndex
+CREATE INDEX "AdminAuditLog_projectId_idx" ON "AdminAuditLog"("projectId");
+
+-- CreateIndex
+CREATE INDEX "AdminAuditLog_action_idx" ON "AdminAuditLog"("action");
+
+-- CreateIndex
+CREATE INDEX "AdminAuditLog_createdAt_idx" ON "AdminAuditLog"("createdAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "InvestorAllowlist_projectId_walletAddress_key" ON "InvestorAllowlist"("projectId", "walletAddress");
+
+-- CreateIndex
+CREATE INDEX "InvestorAllowlist_userId_idx" ON "InvestorAllowlist"("userId");
+
+-- CreateIndex
+CREATE INDEX "InvestorAllowlist_projectId_idx" ON "InvestorAllowlist"("projectId");
+
+-- CreateIndex
+CREATE INDEX "InvestorAllowlist_walletAddress_idx" ON "InvestorAllowlist"("walletAddress");
+
+-- CreateIndex
+CREATE INDEX "InvestorAllowlist_approved_idx" ON "InvestorAllowlist"("approved");
 
 -- CreateIndex
 CREATE INDEX "Investment_investorId_idx" ON "Investment"("investorId");

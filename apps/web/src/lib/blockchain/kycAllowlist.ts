@@ -1,6 +1,7 @@
 import { Contract, JsonRpcProvider, Wallet } from 'ethers';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import { resolveChainId } from './explorerUrls';
+import { waitForAutomationTx } from './automationTx';
 
 function resolvePrivateKey(): string | null {
   return (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim() || null;
@@ -29,7 +30,11 @@ export async function setInvestorKycAllowlist(input: {
     const wallet = new Wallet(privateKey, provider);
     const token = new Contract(input.tokenAddress, SanovaAssetTokenArtifact.abi, wallet);
     const tx = await token.setKyc(input.walletAddress, input.approved);
-    const receipt = await tx.wait();
+    const receipt = await waitForAutomationTx(tx);
+    const verified = await token.kycApproved(input.walletAddress);
+    if (Boolean(verified) !== input.approved) {
+      throw new Error('Allowlist transaction confirmed but kycApproved did not match requested state.');
+    }
     return {
       chainId,
       txHash: receipt?.hash ?? tx.hash,

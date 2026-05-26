@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getAdminAsset } from '../../../../../../lib/admin/assetsService';
-import { getInvestorWallet } from '../../../../../../lib/admin/investorsService';
+import { getInvestorWallet, upsertInvestorAllowlist } from '../../../../../../lib/admin/investorsService';
 import { requireAdminSession } from '../../../../../../lib/admin/requireAdmin';
+import { notifyKycAllowlist } from '../../../../../../lib/admin/automationAlerts';
 import { setInvestorKycAllowlist } from '../../../../../../lib/blockchain/kycAllowlist';
 
 export const dynamic = 'force-dynamic';
@@ -41,6 +42,15 @@ export async function POST(request: Request, context: RouteContext) {
       walletAddress: investorWallet,
       approved: body.approved
     });
+    await upsertInvestorAllowlist({
+      userId,
+      projectId: body.projectId,
+      walletAddress: investorWallet,
+      approved: body.approved,
+      txHash: result.txHash,
+      chainId: result.chainId
+    });
+    await notifyKycAllowlist(body.projectId, asset.title, investorWallet, body.approved);
     return NextResponse.json({ result });
   } catch (error) {
     console.error('[admin/investors/allowlist]', error);

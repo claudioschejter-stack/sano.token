@@ -12,7 +12,8 @@ export type MorphoMarketParams = {
 const MORPHO_ABI = [
   'function borrow((address loanToken,address collateralToken,address oracle,address irm,uint256 lltv) marketParams, uint256 assets, uint256 shares, address onBehalf, address receiver)',
   'function createMarket((address loanToken,address collateralToken,address oracle,address irm,uint256 lltv) marketParams)',
-  'function idToMarketParams(bytes32 id) view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)'
+  'function idToMarketParams(bytes32 id) view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)',
+  'function expectedMarketBalances((address loanToken,address collateralToken,address oracle,address irm,uint256 lltv) marketParams) view returns (uint256 totalSupplyAssets,uint256 totalSupplyShares,uint256 totalBorrowAssets,uint256 totalBorrowShares)'
 ];
 
 const morphoInterface = new Interface(MORPHO_ABI);

@@ -247,6 +247,15 @@ model Project {
   tokenDeployStatus    String       @default("NOT_REQUESTED")
   collateralTargets    Json         @default("[]")
   deploymentEvents     Json         @default("[]")
+  automationReadiness  Json         @default("{}")
+  automationLockOwner  String?
+  automationLockStep   String?
+  automationLockExpiresAt DateTime?
+  automationFailureCount Int        @default(0)
+  automationCircuitBreaker Boolean  @default(false)
+  morphoLiquidityStatus String      @default("NOT_CHECKED")
+  explorerVerificationStatus String @default("NOT_REQUESTED")
+  launchAuditHash      String?
   centrifugeChecklist  Json         @default("{}")
   spvEntityName        String?
   navOracleUrl         String?
@@ -278,6 +287,45 @@ model Project {
   @@index([fiscalRegime])
   @@index([isActive])
   @@index([isActive, createdAt])
+  @@index([automationLockExpiresAt])
+  @@index([automationCircuitBreaker])
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String?
+  action       String
+  targetUserId String?
+  projectId    String?
+  metadata     Json     @default("{}")
+  auditHash    String?
+  createdAt    DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([projectId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model InvestorAllowlist {
+  id              String   @id @default(cuid())
+  userId          String
+  projectId       String
+  walletAddress   String
+  approved        Boolean  @default(false)
+  txHash          String?
+  chainId         Int?
+  updatedByUserId String?
+  auditHash       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([projectId, walletAddress])
+  @@index([userId])
+  @@index([projectId])
+  @@index([walletAddress])
+  @@index([approved])
 }
 
 model Investment {

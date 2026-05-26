@@ -3,6 +3,8 @@ import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import { resolveChainId } from './explorerUrls';
 import type { VaultFundingStatus } from '../admin/launchTypes';
+import { waitForAutomationTx } from './automationTx';
+import { resolveTreasuryAddress } from './treasuryPolicy';
 
 export type DeployVaultOnlyInput = {
   contractAddress: string;
@@ -28,10 +30,6 @@ export type DeployVaultOnlyResult =
 function resolvePrivateKey(): string | null {
   const key = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
   return key || null;
-}
-
-function resolveTreasuryAddress(fallback: string, explicit?: string): string {
-  return explicit?.trim() || process.env.TOKEN_TREASURY_ADDRESS?.trim() || process.env.SANOVA_TREASURY_ADDRESS?.trim() || fallback;
 }
 
 function resolveRpcUrl(chainId: number): string {
@@ -65,7 +63,7 @@ export async function deployVaultForExistingToken(
   try {
     const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
     const wallet = new Wallet(privateKey, provider);
-    const treasuryAddress = resolveTreasuryAddress(wallet.address, input.treasuryAddress);
+    const treasuryAddress = resolveTreasuryAddress(input.treasuryAddress ?? wallet.address) ?? wallet.address;
     const gasBalance = await provider.getBalance(wallet.address);
     if (gasBalance <= 0n) {
       provider.destroy();
@@ -99,13 +97,13 @@ export async function deployVaultForExistingToken(
       const deployerKyc = await asset.kycApproved(wallet.address);
       if (!deployerKyc) {
         const setKycTx = await asset.setKyc(wallet.address, true);
-        await setKycTx.wait();
+        await waitForAutomationTx(setKycTx);
       }
       if (treasuryAddress.toLowerCase() !== wallet.address.toLowerCase()) {
         const treasuryKyc = await asset.kycApproved(treasuryAddress);
         if (!treasuryKyc) {
           const setTreasuryKycTx = await asset.setKyc(treasuryAddress, true);
-          await setTreasuryKycTx.wait();
+          await waitForAutomationTx(setTreasuryKycTx);
         }
       }
 
@@ -115,7 +113,7 @@ export async function deployVaultForExistingToken(
         if (currentSupply === 0n) {
           const mintAmount = BigInt(input.totalSupplyUnits) * 10n ** 18n;
           const mintTx = await asset.mint(wallet.address, mintAmount);
-          await mintTx.wait();
+          await waitForAutomationTx(mintTx);
           deployerBalance = await asset.balanceOf(wallet.address);
         }
       }
@@ -123,9 +121,9 @@ export async function deployVaultForExistingToken(
       if (deployerBalance > 0n) {
         const depositAmount = deployerBalance;
         const approveTx = await asset.approve(vaultAddress, depositAmount);
-        await approveTx.wait();
+        await waitForAutomationTx(approveTx);
         const depositTx = await vaultContract.deposit(depositAmount, treasuryAddress);
-        const depositReceipt = await depositTx.wait();
+        const depositReceipt = await waitForAutomationTx(depositTx);
         const totalAssets = await vaultContract.totalAssets();
         const shares = await vaultContract.balanceOf(treasuryAddress);
 

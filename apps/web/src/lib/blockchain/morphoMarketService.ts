@@ -1,4 +1,4 @@
-import { ContractFactory, JsonRpcProvider, Wallet } from 'ethers';
+import { Contract, ContractFactory, JsonRpcProvider, Wallet } from 'ethers';
 import { resolveChainId } from './explorerUrls';
 import SanovaFixedPriceOracleArtifact from './artifacts/SanovaFixedPriceOracle.json';
 import {
@@ -7,6 +7,8 @@ import {
   prepareMorphoCreateMarket,
   type MorphoMarketParams
 } from '../lending/protocols/morphoBorrow';
+import { waitForAutomationTx } from './automationTx';
+import { getLendingChainConfig } from '../lending/baseContracts';
 
 export type CreateMorphoMarketResult =
   | {
@@ -102,11 +104,21 @@ export async function createMorphoMarketForVault(
       data: prepared.data,
       value: 0n
     });
-    const receipt = await tx.wait();
+    const receipt = await waitForAutomationTx(tx);
+    const morpho = new Contract(
+      getLendingChainConfig().morpho,
+      ['function idToMarketParams(bytes32 id) view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)'],
+      provider
+    );
+    const marketId = morphoMarketId(params);
+    const stored = await morpho.idToMarketParams(marketId);
+    if (stored?.collateralToken && stored.collateralToken.toLowerCase() !== params.collateralToken.toLowerCase()) {
+      return { status: 'SKIPPED', reason: 'Morpho market verification failed after createMarket.' };
+    }
 
     return {
       status: 'CREATED',
-      marketId: morphoMarketId(params),
+      marketId,
       txHash: receipt?.hash ?? tx.hash,
       chainId,
       params

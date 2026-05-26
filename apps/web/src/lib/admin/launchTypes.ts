@@ -84,6 +84,10 @@ export type CollateralRegistrationStatus =
   | 'REJECTED'
   | 'FAILED';
 
+export type MorphoLiquidityStatus = 'NOT_CHECKED' | 'NO_MARKET' | 'NO_LIQUIDITY' | 'LIQUID' | 'FAILED';
+export type ExplorerVerificationStatus = 'NOT_REQUESTED' | 'PENDING' | 'VERIFIED' | 'FAILED' | 'SKIPPED';
+export type ReadinessStatus = 'READY' | 'PENDING' | 'BLOCKED' | 'NOT_REQUIRED';
+
 export type CollateralTarget = {
   protocol: CollateralProtocol;
   status: CollateralRegistrationStatus;
@@ -109,13 +113,31 @@ export type DeploymentEvent = {
     | 'COLLATERAL_REGISTER'
     | 'REPAIR_AUTOMATION'
     | 'PREFLIGHT'
-    | 'EXPLORER_VERIFY';
+    | 'EXPLORER_VERIFY'
+    | 'MORPHO_LIQUIDITY'
+    | 'CIRCUIT_BREAKER'
+    | 'KYC_ALLOWLIST';
   status: 'PENDING' | 'SUCCESS' | 'SKIPPED' | 'FAILED';
   message: string;
   txHash?: string | null;
   address?: string | null;
   externalId?: string | null;
+  auditHash?: string | null;
   createdAt: string;
+};
+
+export type AutomationReadinessItem = {
+  key: string;
+  label: string;
+  status: ReadinessStatus;
+  detail: string;
+};
+
+export type AutomationReadinessSummary = {
+  status: ReadinessStatus;
+  score: number;
+  items: AutomationReadinessItem[];
+  updatedAt: string;
 };
 
 export function instrumentTypeDefaults(type: TokenInstrumentType): {
@@ -214,4 +236,22 @@ export function parseDeploymentEvents(raw: unknown): DeploymentEvent[] {
       message: item.message ?? item.step,
       createdAt: item.createdAt ?? new Date().toISOString()
     }));
+}
+
+export function parseAutomationReadiness(raw: unknown): AutomationReadinessSummary | null {
+  if (typeof raw !== 'object' || raw === null) {
+    return null;
+  }
+
+  const row = raw as Partial<AutomationReadinessSummary>;
+  if (!Array.isArray(row.items)) {
+    return null;
+  }
+
+  return {
+    status: row.status ?? 'PENDING',
+    score: typeof row.score === 'number' ? row.score : 0,
+    items: row.items.filter((item): item is AutomationReadinessItem => typeof item === 'object' && item !== null),
+    updatedAt: row.updatedAt ?? new Date().toISOString()
+  };
 }

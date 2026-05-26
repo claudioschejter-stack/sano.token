@@ -212,8 +212,10 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
   const [tokenDeployHealth, setTokenDeployHealth] = useState<TokenDeployHealth | null>(null);
   const [collateralTargets, setCollateralTargets] = useState<CollateralTarget[]>([]);
   const [deploymentEvents, setDeploymentEvents] = useState<AdminAssetRecord['deploymentEvents']>([]);
+  const [automationReadiness, setAutomationReadiness] = useState<AdminAssetRecord['automationReadiness'] | null>(null);
   const [registeringCollateral, setRegisteringCollateral] = useState(false);
   const [repairingAutomation, setRepairingAutomation] = useState(false);
+  const [runningPreflight, setRunningPreflight] = useState(false);
   const skipAutoSaveRef = useRef(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -236,6 +238,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       setTokenStatus(data.asset.tokenDeployStatus);
       setCollateralTargets(data.asset.collateralTargets);
       setDeploymentEvents(data.asset.deploymentEvents);
+      setAutomationReadiness(data.asset.automationReadiness);
       skipAutoSaveRef.current = true;
     } catch {
       setError(l.loadError);
@@ -656,6 +659,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       if (data.updatedAsset) {
         setCollateralTargets(data.updatedAsset.collateralTargets);
         setDeploymentEvents(data.updatedAsset.deploymentEvents);
+        setAutomationReadiness(data.updatedAsset.automationReadiness);
       }
 
       const submitted = data.outcomes?.filter((o) => o.target.status === 'SUBMITTED' || o.target.status === 'REGISTERED').length ?? 0;
@@ -686,11 +690,42 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       setTokenStatus(data.asset.tokenDeployStatus);
       setCollateralTargets(data.asset.collateralTargets);
       setDeploymentEvents(data.asset.deploymentEvents);
+      setAutomationReadiness(data.asset.automationReadiness);
       setMessage('Reparación automática ejecutada. Revisá el estado detallado debajo.');
     } catch {
       setError('No se pudo reparar la automatización.');
     } finally {
       setRepairingAutomation(false);
+    }
+  }
+
+  async function handlePreflight() {
+    if (!projectId) return;
+    setRunningPreflight(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/assets/${projectId}/preflight`, { method: 'POST' });
+      const data = (await response.json()) as {
+        asset?: AdminAssetRecord;
+        preflight?: { ok: boolean };
+        error?: string;
+      };
+
+      if (!response.ok || !data.asset) {
+        setError(data.error ?? 'No se pudo simular la emisión.');
+        return;
+      }
+
+      setCollateralTargets(data.asset.collateralTargets);
+      setDeploymentEvents(data.asset.deploymentEvents);
+      setAutomationReadiness(data.asset.automationReadiness);
+      setMessage(data.preflight?.ok ? 'Preflight OK: listo para automatizar.' : 'Preflight con alertas: revisá el historial.');
+    } catch {
+      setError('No se pudo simular la emisión.');
+    } finally {
+      setRunningPreflight(false);
     }
   }
 
@@ -702,6 +737,13 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
     if (!status) return '—';
     const labels = l.collateralStatuses as Record<string, string>;
     return labels[status] ?? status;
+  }
+
+  function readinessClass(status?: string): string {
+    if (status === 'READY') return 'border-terminal-success/30 text-terminal-success';
+    if (status === 'BLOCKED') return 'border-red-500/30 text-red-400';
+    if (status === 'NOT_REQUIRED') return 'border-terminal-border text-terminal-muted';
+    return 'border-terminal-warning/30 text-terminal-warning';
   }
 
   const morphoTarget = collateralTargetFor('MORPHO');
@@ -758,6 +800,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
         setTokenStatus(data.asset.tokenDeployStatus);
         setCollateralTargets(data.asset.collateralTargets);
         setDeploymentEvents(data.asset.deploymentEvents);
+        setAutomationReadiness(data.asset.automationReadiness);
         if (data.asset.contractAddress) {
           setForm((current) => ({
             ...current,
@@ -999,6 +1042,15 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                     </button>
                     <button
                       type="button"
+                      disabled={runningPreflight}
+                      onClick={() => void handlePreflight()}
+                      className="inline-flex items-center gap-2 self-end rounded-lg border border-terminal-border bg-terminal-bg px-4 py-2 text-sm font-semibold text-terminal-text hover:border-terminal-primary/40 disabled:opacity-50"
+                    >
+                      {runningPreflight ? <Loader2 size={16} className="animate-spin" /> : <Rocket size={16} />}
+                      Simular emisión
+                    </button>
+                    <button
+                      type="button"
                       disabled={repairingAutomation}
                       onClick={() => void handleRepairAutomation()}
                       className="inline-flex items-center gap-2 self-end rounded-lg border border-terminal-border bg-terminal-bg px-4 py-2 text-sm font-semibold text-terminal-text hover:border-terminal-primary/40 disabled:opacity-50"
@@ -1027,6 +1079,36 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                       ) : null}
                     </div>
                   </div>
+                  {automationReadiness ? (
+                    <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-card/60 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-terminal-muted">
+                            100% listo para colateral
+                          </p>
+                          <p className="mt-1 text-sm text-terminal-text">
+                            Score operativo: {automationReadiness.score}% · {automationReadiness.status}
+                          </p>
+                        </div>
+                        <span className={`rounded-full border px-3 py-1 text-[11px] uppercase tracking-wide ${readinessClass(automationReadiness.status)}`}>
+                          {automationReadiness.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {automationReadiness.items.map((entry) => (
+                          <div key={entry.key} className="rounded-lg border border-terminal-border bg-terminal-bg/70 p-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-xs font-medium text-terminal-text">{entry.label}</p>
+                              <span className={`rounded-full border px-2 py-0.5 text-[10px] uppercase ${readinessClass(entry.status)}`}>
+                                {entry.status}
+                              </span>
+                            </div>
+                            <p className="mt-1 break-all text-[11px] text-terminal-muted">{entry.detail}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="mt-4 grid gap-2">
                     {automationSteps.map((step) => (
                       <div key={step.label} className="rounded-lg border border-terminal-border bg-terminal-card/60 p-3">

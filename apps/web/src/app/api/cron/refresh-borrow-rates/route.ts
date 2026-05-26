@@ -3,6 +3,7 @@ import { refreshBorrowRatesCache } from '../../../../lib/lending/fetchLiveBorrow
 import { listAutomationRepairCandidates } from '../../../../lib/admin/assetsService';
 import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
 import { executeProjectAutomationRepair } from '../../../../lib/blockchain/projectTokenDeploy';
+import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,17 @@ export async function GET(request: Request) {
     const repairs = [];
 
     for (const asset of candidates) {
+      const blockReason = shouldBlockAutomation(asset);
+      if (blockReason) {
+        repairs.push({ projectId: asset.id, status: 'SKIPPED', message: blockReason });
+        await notifyAutomationIssue({
+          projectId: asset.id,
+          title: asset.title,
+          message: blockReason
+        });
+        continue;
+      }
+
       try {
         const repair = await executeProjectAutomationRepair(asset.id);
         repairs.push({ projectId: asset.id, status: repair.deploy.status });

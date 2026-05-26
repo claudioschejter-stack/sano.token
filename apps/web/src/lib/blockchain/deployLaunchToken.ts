@@ -3,6 +3,8 @@ import type { TokenStandard, TokenInstrumentType, VaultFundingStatus } from '../
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deployAssetToken';
+import { waitForAutomationTx } from './automationTx';
+import { resolveTreasuryAddress } from './treasuryPolicy';
 
 export type DeployLaunchTokenInput = {
   tokenStandard: TokenStandard;
@@ -50,10 +52,6 @@ function resolvePrivateKey(): string | null {
   return key || null;
 }
 
-function resolveTreasuryAddress(fallback: string): string {
-  return process.env.TOKEN_TREASURY_ADDRESS?.trim() || process.env.SANOVA_TREASURY_ADDRESS?.trim() || fallback;
-}
-
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 84532 || chainId === 8453) {
     return process.env.BASE_RPC_URL?.trim() || (chainId === 84532 ? 'https://sepolia.base.org' : 'https://mainnet.base.org');
@@ -82,21 +80,21 @@ async function fundVaultWithDeployerBalance(input: {
     const deployerKyc = await input.asset.kycApproved(input.walletAddress);
     if (!deployerKyc) {
       const setKycTx = await input.asset.setKyc(input.walletAddress, true);
-      await setKycTx.wait();
+      await waitForAutomationTx(setKycTx);
     }
     if (input.receiverAddress.toLowerCase() !== input.walletAddress.toLowerCase()) {
       const receiverKyc = await input.asset.kycApproved(input.receiverAddress);
       if (!receiverKyc) {
         const setReceiverKycTx = await input.asset.setKyc(input.receiverAddress, true);
-        await setReceiverKycTx.wait();
+        await waitForAutomationTx(setReceiverKycTx);
       }
     }
 
     const approveTx = await input.asset.approve(input.vaultAddress, input.amount);
-    await approveTx.wait();
+    await waitForAutomationTx(approveTx);
 
     const depositTx = await input.vaultContract.deposit(input.amount, input.receiverAddress);
-    const depositReceipt = await depositTx.wait();
+    const depositReceipt = await waitForAutomationTx(depositTx);
     const totalAssets = await input.vaultContract.totalAssets();
     const shares = await input.vaultContract.balanceOf(input.receiverAddress);
 
@@ -151,7 +149,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
 
     const tokenName = buildOnChainTokenName(input.tokenName, input.tokenInstrumentType);
     const symbol = normalizeSymbol(input.tokenSymbol);
-    const treasuryAddress = resolveTreasuryAddress(input.treasuryAddress ?? wallet.address);
+    const treasuryAddress = resolveTreasuryAddress(input.treasuryAddress ?? wallet.address) ?? wallet.address;
     const mintRecipient = input.tokenStandard === 'ERC4626' ? wallet.address : input.treasuryAddress ?? wallet.address;
     const mintAmount = BigInt(input.totalSupplyUnits) * 10n ** 18n;
 
@@ -168,11 +166,11 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
 
     if (mintRecipient.toLowerCase() !== wallet.address.toLowerCase()) {
       const setKycTx = await asset.setKyc(mintRecipient, true);
-      await setKycTx.wait();
+      await waitForAutomationTx(setKycTx);
     }
 
     const mintTx = await asset.mint(mintRecipient, mintAmount);
-    const mintReceipt = await mintTx.wait();
+    const mintReceipt = await waitForAutomationTx(mintTx);
 
     if (input.tokenStandard === 'SANOVA_KYC') {
       return {

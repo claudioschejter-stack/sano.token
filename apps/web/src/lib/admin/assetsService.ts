@@ -1,4 +1,5 @@
 import { prisma, type FiscalRegime, type Prisma } from '@sanova/database';
+import { createHash, randomUUID } from 'node:crypto';
 import { geocodeLocation } from '../geocoding/geocodeLocation';
 import { locationNeedsResolve, resolveLocationInput } from '../geocoding/resolveLocation';
 import { mapAdminAssetToMarketplaceListing } from '../marketplace/mapAdminAssetToListing';
@@ -6,16 +7,20 @@ import { syncProjectAssetsFromStorage } from '../storage/syncLaunchStorage';
 import type { MarketplaceListing } from '../../types/marketplace';
 import {
   autoFillCentrifugeChecklist,
+  parseAutomationReadiness,
   parseCentrifugeChecklist,
   parseCollateralTargets,
   parseDeploymentEvents,
   parseMediaGallery,
+  type AutomationReadinessSummary,
   type CentrifugeChecklist,
   type CollateralProtocol,
   type CollateralTarget,
   type DeploymentEvent,
+  type ExplorerVerificationStatus,
   type LaunchContracts,
   type LaunchMediaItem,
+  type MorphoLiquidityStatus,
   type TokenDeployStatus,
   type TokenStandard,
   type TokenInstrumentType,
@@ -43,6 +48,14 @@ export type AdminAssetRecord = {
   tokenDeployStatus: TokenDeployStatus;
   collateralTargets: CollateralTarget[];
   deploymentEvents: DeploymentEvent[];
+  automationReadiness: AutomationReadinessSummary;
+  automationFailureCount: number;
+  automationCircuitBreaker: boolean;
+  automationLockStep: string | null;
+  automationLockExpiresAt: string | null;
+  morphoLiquidityStatus: MorphoLiquidityStatus;
+  explorerVerificationStatus: ExplorerVerificationStatus;
+  launchAuditHash: string | null;
   centrifugeChecklist: CentrifugeChecklist;
   spvEntityName: string | null;
   navOracleUrl: string | null;
@@ -133,6 +146,14 @@ export type UpdateAdminAssetInput = {
   chainId?: number | null;
   tokenDeployStatus?: TokenDeployStatus;
   deploymentEvents?: DeploymentEvent[];
+  automationReadiness?: AutomationReadinessSummary;
+  automationFailureCount?: number;
+  automationCircuitBreaker?: boolean;
+  automationLockStep?: string | null;
+  automationLockExpiresAt?: Date | null;
+  morphoLiquidityStatus?: MorphoLiquidityStatus;
+  explorerVerificationStatus?: ExplorerVerificationStatus;
+  launchAuditHash?: string | null;
   deployToken?: boolean;
 };
 
@@ -185,6 +206,76 @@ function computeSoldPercent(availableTokens: number, totalTokens: number): numbe
 
   const sold = totalTokens - availableTokens;
   return Math.min(100, Math.max(0, Math.round((sold / totalTokens) * 100)));
+}
+
+function sha256Json(value: unknown): string {
+  return createHash('sha256').update(JSON.stringify(value)).digest('hex');
+}
+
+function item(
+  key: string,
+  label: string,
+  ready: boolean,
+  detail: string,
+  required = true
+): AutomationReadinessSummary['items'][number] {
+  return {
+    key,
+    label,
+    status: required ? (ready ? 'READY' : 'PENDING') : 'NOT_REQUIRED',
+    detail
+  };
+}
+
+function buildAutomationReadiness(project: {
+  tokenStandard: string;
+  tokenDeployStatus: string;
+  contractAddress: string | null;
+  vaultAddress: string | null;
+  vaultFundingStatus: string;
+  collateralTargets: unknown;
+  deploymentEvents: unknown;
+  automationCircuitBreaker?: boolean | null;
+  morphoLiquidityStatus?: string | null;
+  explorerVerificationStatus?: string | null;
+  launchAuditHash?: string | null;
+}): AutomationReadinessSummary {
+  const targets = parseCollateralTargets(project.collateralTargets);
+  const events = parseDeploymentEvents(project.deploymentEvents);
+  const morpho = targets.find((target) => target.protocol === 'MORPHO');
+  const hasMorpho = Boolean(morpho);
+  const requiresVault = project.tokenStandard === 'ERC4626';
+  const explorerVerified =
+    project.explorerVerificationStatus === 'VERIFIED' ||
+    events.some((event) => event.step === 'EXPLORER_VERIFY' && event.status === 'SUCCESS');
+  const oracleReady = Boolean(morpho?.oracleAddress);
+  const morphoReady = morpho?.status === 'REGISTERED';
+  const liquidityReady = !hasMorpho || project.morphoLiquidityStatus === 'LIQUID';
+  const circuitOk = !project.automationCircuitBreaker;
+  const items: AutomationReadinessSummary['items'] = [
+    item('token', 'Token RWA', Boolean(project.contractAddress) && project.tokenDeployStatus === 'DEPLOYED', project.contractAddress ?? 'Token pendiente.'),
+    item('vault', 'Vault ERC-4626', Boolean(project.vaultAddress), project.vaultAddress ?? 'Vault pendiente.', requiresVault),
+    item('vaultFunding', 'Fondeo vault', project.vaultFundingStatus === 'FUNDED', project.vaultFundingStatus, requiresVault),
+    item('oracle', 'Oracle Morpho', oracleReady, morpho?.oracleAddress ?? 'Oracle pendiente.', hasMorpho),
+    item('morphoMarket', 'Mercado Morpho', morphoReady, morpho?.externalId ?? morpho?.lastError ?? 'Mercado pendiente.', hasMorpho),
+    item('morphoLiquidity', 'Liquidez Morpho', liquidityReady, project.morphoLiquidityStatus ?? 'NOT_CHECKED', hasMorpho),
+    item('explorer', 'Verificación explorer', explorerVerified, project.explorerVerificationStatus ?? 'NOT_REQUESTED'),
+    item('audit', 'Audit hash', Boolean(project.launchAuditHash), project.launchAuditHash ?? 'Hash pendiente.'),
+    item('circuitBreaker', 'Circuit breaker', circuitOk, circuitOk ? 'Automatización activa.' : 'Automatización pausada.')
+  ];
+  const required = items.filter((entry) => entry.status !== 'NOT_REQUIRED');
+  const readyCount = required.filter((entry) => entry.status === 'READY').length;
+  const score = required.length ? Math.round((readyCount / required.length) * 100) : 100;
+
+  return {
+    status:
+      project.automationCircuitBreaker ? 'BLOCKED'
+      : score === 100 ? 'READY'
+      : 'PENDING',
+    score,
+    items,
+    updatedAt: new Date().toISOString()
+  };
 }
 
 function slugifyTitle(title: string): string {
@@ -298,6 +389,14 @@ function mapProject(project: {
   tokenDeployStatus: string;
   collateralTargets: unknown;
   deploymentEvents: unknown;
+  automationReadiness: unknown;
+  automationFailureCount: number;
+  automationCircuitBreaker: boolean;
+  automationLockStep: string | null;
+  automationLockExpiresAt: Date | null;
+  morphoLiquidityStatus: string;
+  explorerVerificationStatus: string;
+  launchAuditHash: string | null;
   centrifugeChecklist: unknown;
   spvEntityName: string | null;
   navOracleUrl: string | null;
@@ -319,6 +418,10 @@ function mapProject(project: {
   updatedAt: Date;
   _count: { investments: number };
 }): AdminAssetRecord {
+  const readiness =
+    parseAutomationReadiness(project.automationReadiness) ??
+    buildAutomationReadiness(project);
+
   return {
     id: project.id,
     title: project.title,
@@ -344,6 +447,15 @@ function mapProject(project: {
     tokenDeployStatus: project.tokenDeployStatus as TokenDeployStatus,
     collateralTargets: parseCollateralTargets(project.collateralTargets),
     deploymentEvents: parseDeploymentEvents(project.deploymentEvents),
+    automationReadiness: readiness,
+    automationFailureCount: project.automationFailureCount,
+    automationCircuitBreaker: project.automationCircuitBreaker,
+    automationLockStep: project.automationLockStep,
+    automationLockExpiresAt: project.automationLockExpiresAt?.toISOString() ?? null,
+    morphoLiquidityStatus: (project.morphoLiquidityStatus as MorphoLiquidityStatus) ?? 'NOT_CHECKED',
+    explorerVerificationStatus:
+      (project.explorerVerificationStatus as ExplorerVerificationStatus) ?? 'NOT_REQUESTED',
+    launchAuditHash: project.launchAuditHash,
     centrifugeChecklist: parseCentrifugeChecklist(project.centrifugeChecklist),
     spvEntityName: project.spvEntityName,
     navOracleUrl: project.navOracleUrl,
@@ -479,6 +591,39 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       collateralTargets: []
     }
   );
+  const collateralTargets = buildCollateralTargets(collateralContext, input.collateralProtocols);
+  const deploymentEvents = [
+    {
+      id: `asset-created-${Date.now().toString(36)}`,
+      step: 'PREFLIGHT',
+      status: input.deployToken ? 'PENDING' : 'SKIPPED',
+      message: input.deployToken
+        ? 'Activo creado: automatización token/vault solicitada.'
+        : 'Activo creado sin emisión automática.',
+      createdAt: new Date().toISOString()
+    }
+  ] satisfies DeploymentEvent[];
+  const launchAuditHash = sha256Json({
+    id,
+    title: input.title.trim(),
+    totalTokens: input.totalTokens,
+    pricePerToken: input.pricePerToken,
+    tokenStandard: input.tokenStandard ?? 'SANOVA_KYC',
+    collateralTargets
+  });
+  const automationReadiness = buildAutomationReadiness({
+    tokenStandard: input.tokenStandard ?? 'SANOVA_KYC',
+    tokenDeployStatus: input.deployToken ? 'PENDING' : 'NOT_REQUESTED',
+    contractAddress: null,
+    vaultAddress: null,
+    vaultFundingStatus: 'NOT_REQUIRED',
+    collateralTargets,
+    deploymentEvents,
+    automationCircuitBreaker: false,
+    morphoLiquidityStatus: 'NOT_CHECKED',
+    explorerVerificationStatus: 'NOT_REQUESTED',
+    launchAuditHash
+  });
 
   const project = await prisma.project.create({
     data: {
@@ -501,18 +646,10 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       maturityDate: input.maturityDate ? new Date(input.maturityDate) : null,
       equitySharePercent: input.equitySharePercent ?? null,
       tokenDeployStatus: input.deployToken ? 'PENDING' : 'NOT_REQUESTED',
-      collateralTargets: buildCollateralTargets(collateralContext, input.collateralProtocols) as Prisma.InputJsonValue,
-      deploymentEvents: ([
-        {
-          id: `asset-created-${Date.now().toString(36)}`,
-          step: 'PREFLIGHT',
-          status: input.deployToken ? 'PENDING' : 'SKIPPED',
-          message: input.deployToken
-            ? 'Activo creado: automatización token/vault solicitada.'
-            : 'Activo creado sin emisión automática.',
-          createdAt: new Date().toISOString()
-        }
-      ] satisfies DeploymentEvent[]) as Prisma.InputJsonValue,
+      collateralTargets: collateralTargets as Prisma.InputJsonValue,
+      deploymentEvents: deploymentEvents as Prisma.InputJsonValue,
+      automationReadiness: automationReadiness as Prisma.InputJsonValue,
+      launchAuditHash,
       centrifugeChecklist: (input.centrifugeChecklist ?? parseCentrifugeChecklist(null)) as Prisma.InputJsonValue,
       spvEntityName: input.spvEntityName?.trim() || null,
       navOracleUrl: input.navOracleUrl?.trim() || null,
@@ -644,6 +781,14 @@ export async function updateAdminAsset(
   if (input.chainId !== undefined) data.chainId = input.chainId;
   if (input.tokenDeployStatus !== undefined) data.tokenDeployStatus = input.tokenDeployStatus;
   if (input.deploymentEvents !== undefined) data.deploymentEvents = input.deploymentEvents as Prisma.InputJsonValue;
+  if (input.automationReadiness !== undefined) data.automationReadiness = input.automationReadiness as Prisma.InputJsonValue;
+  if (input.automationFailureCount !== undefined) data.automationFailureCount = input.automationFailureCount;
+  if (input.automationCircuitBreaker !== undefined) data.automationCircuitBreaker = input.automationCircuitBreaker;
+  if (input.automationLockStep !== undefined) data.automationLockStep = input.automationLockStep;
+  if (input.automationLockExpiresAt !== undefined) data.automationLockExpiresAt = input.automationLockExpiresAt;
+  if (input.morphoLiquidityStatus !== undefined) data.morphoLiquidityStatus = input.morphoLiquidityStatus;
+  if (input.explorerVerificationStatus !== undefined) data.explorerVerificationStatus = input.explorerVerificationStatus;
+  if (input.launchAuditHash !== undefined) data.launchAuditHash = input.launchAuditHash;
 
   if (input.collateralTargets !== undefined) {
     data.collateralTargets = input.collateralTargets as Prisma.InputJsonValue;
@@ -714,7 +859,31 @@ export async function updateAdminAsset(
     include: projectInclude
   });
 
-  return mapProject(updated);
+  const launchAuditHash = sha256Json({
+    id: updated.id,
+    title: updated.title,
+    tokenStandard: updated.tokenStandard,
+    contractAddress: updated.contractAddress,
+    vaultAddress: updated.vaultAddress,
+    vaultFundingStatus: updated.vaultFundingStatus,
+    collateralTargets: updated.collateralTargets,
+    deploymentEvents: updated.deploymentEvents
+  });
+  const automationReadiness = buildAutomationReadiness({
+    ...updated,
+    launchAuditHash
+  });
+
+  const finalProject = await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      automationReadiness: automationReadiness as Prisma.InputJsonValue,
+      launchAuditHash
+    },
+    include: projectInclude
+  });
+
+  return mapProject(finalProject);
 }
 
 /** Published assets from the admin editor, synced for marketplace cards. */
@@ -790,10 +959,113 @@ export async function appendDeploymentEvent(
     {
       id: `${event.step.toLowerCase()}-${Date.now().toString(36)}`,
       createdAt: new Date().toISOString(),
-      ...event
+      ...event,
+      auditHash:
+        event.auditHash ??
+        sha256Json({
+          projectId,
+          step: event.step,
+          status: event.status,
+          message: event.message,
+          txHash: event.txHash,
+          address: event.address,
+          externalId: event.externalId
+        })
     },
     ...existing.deploymentEvents
   ].slice(0, 50);
 
   return updateAdminAsset(projectId, { deploymentEvents });
+}
+
+export async function recordAdminAuditLog(input: {
+  actorUserId?: string | null;
+  action: string;
+  targetUserId?: string | null;
+  projectId?: string | null;
+  metadata?: Prisma.InputJsonValue;
+}) {
+  const auditHash = sha256Json(input);
+  return prisma.adminAuditLog.create({
+    data: {
+      actorUserId: input.actorUserId ?? null,
+      action: input.action,
+      targetUserId: input.targetUserId ?? null,
+      projectId: input.projectId ?? null,
+      metadata: input.metadata ?? {},
+      auditHash
+    }
+  });
+}
+
+export async function withProjectAutomationLock<T>(
+  projectId: string,
+  step: string,
+  callback: () => Promise<T>,
+  ttlMs = 10 * 60 * 1000
+): Promise<T> {
+  const now = new Date();
+  const owner = randomUUID();
+  const acquired = await prisma.project.updateMany({
+    where: {
+      id: projectId,
+      OR: [
+        { automationLockExpiresAt: null },
+        { automationLockExpiresAt: { lt: now } }
+      ]
+    },
+    data: {
+      automationLockOwner: owner,
+      automationLockStep: step,
+      automationLockExpiresAt: new Date(now.getTime() + ttlMs)
+    }
+  });
+
+  if (acquired.count === 0) {
+    throw new Error('AUTOMATION_LOCKED');
+  }
+
+  try {
+    return await callback();
+  } finally {
+    await prisma.project.updateMany({
+      where: { id: projectId, automationLockOwner: owner },
+      data: {
+        automationLockOwner: null,
+        automationLockStep: null,
+        automationLockExpiresAt: null
+      }
+    });
+  }
+}
+
+export async function noteAutomationFailure(projectId: string, reason: string) {
+  const existing = await getAdminAsset(projectId);
+  if (!existing) return null;
+  const nextCount = existing.automationFailureCount + 1;
+  const event: DeploymentEvent = {
+    id: `automation-failure-${Date.now().toString(36)}`,
+    step: 'CIRCUIT_BREAKER',
+    status: nextCount >= 5 ? 'FAILED' : 'PENDING',
+    message:
+      nextCount >= 5
+        ? `Circuit breaker activado después de ${nextCount} fallos. Último error: ${reason}`
+        : `Fallo automático ${nextCount}/5: ${reason}`,
+    createdAt: new Date().toISOString()
+  };
+  return updateAdminAsset(projectId, {
+    automationFailureCount: nextCount,
+    automationCircuitBreaker: nextCount >= 5 || existing.automationCircuitBreaker,
+    deploymentEvents: [
+      event,
+      ...existing.deploymentEvents
+    ].slice(0, 50)
+  });
+}
+
+export async function clearAutomationFailures(projectId: string) {
+  return updateAdminAsset(projectId, {
+    automationFailureCount: 0,
+    automationCircuitBreaker: false
+  });
 }
