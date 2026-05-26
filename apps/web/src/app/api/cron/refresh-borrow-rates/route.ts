@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { refreshBorrowRatesCache } from '../../../../lib/lending/fetchLiveBorrowRates';
-import { listAutomationRepairCandidates } from '../../../../lib/admin/assetsService';
+import { listAdminAssets, listAutomationRepairCandidates } from '../../../../lib/admin/assetsService';
 import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
 import { executeProjectAutomationRepair } from '../../../../lib/blockchain/projectTokenDeploy';
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
 import { enqueueAutomationJob, processAutomationJobs } from '../../../../lib/admin/automationJobs';
+import { recordRwaSecurityReport } from '../../../../lib/blockchain/rwaSecurityReport';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,8 +28,10 @@ export async function GET(request: Request) {
   try {
     const borrowRate = await refreshBorrowRatesCache();
     const candidates = await listAutomationRepairCandidates(3);
+    const activeAssets = await listAdminAssets('ACTIVE');
     const repairs = [];
     const queued = [];
+    const securityReports = [];
 
     for (const asset of candidates) {
       const blockReason = shouldBlockAutomation(asset);
@@ -72,6 +75,20 @@ export async function GET(request: Request) {
       }
     }
 
+    for (const asset of activeAssets.slice(0, 5)) {
+      if (!asset.contractAddress) continue;
+      try {
+        const report = await recordRwaSecurityReport(asset, { activateBreaker: true });
+        securityReports.push({ projectId: asset.id, ok: report.ok });
+      } catch (error) {
+        securityReports.push({
+          projectId: asset.id,
+          ok: false,
+          error: error instanceof Error ? error.message : 'Security report failed'
+        });
+      }
+    }
+
     if (process.env.RWA_SYNTHETIC_ENABLED === 'true') {
       const syntheticJob = await enqueueAutomationJob({
         step: 'SYNTHETIC_RWA_FLOW',
@@ -95,7 +112,8 @@ export async function GET(request: Request) {
       bestApyBps: borrowRate.best.borrowApyBps,
       queued,
       jobRun,
-      repairs
+      repairs,
+      securityReports
     });
   } catch (error) {
     console.error('[cron/refresh-borrow-rates]', error);

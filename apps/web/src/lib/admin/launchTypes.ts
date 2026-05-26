@@ -120,7 +120,9 @@ export type DeploymentEvent = {
     | 'OWNERSHIP_TRANSFER'
     | 'PRICING_ORACLE'
     | 'READY_TO_BORROW'
-    | 'SYNTHETIC_RWA_FLOW';
+    | 'SYNTHETIC_RWA_FLOW'
+    | 'SECURITY_REPORT'
+    | 'BALANCE_MONITOR';
   status: 'PENDING' | 'SUCCESS' | 'SKIPPED' | 'FAILED';
   message: string;
   txHash?: string | null;

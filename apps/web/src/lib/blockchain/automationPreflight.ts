@@ -6,7 +6,7 @@ import { evaluateCollateralReadiness } from '../collateral/collateralRegistry';
 import { validateOraclePricing } from './pricingOracleValidation';
 import { enqueueAutomationJob } from '../admin/automationJobs';
 import { logAutomationEvent } from '../admin/automationLogger';
-import { maxBorrowUsdPerProject } from './securityPolicy';
+import { maxBorrowUsdPerProject, operatorCustodianPolicy } from './securityPolicy';
 
 export type AutomationPreflightCheck = {
   key: string;
@@ -39,6 +39,10 @@ function check(key: string, label: string, ok: boolean, detail: string): Automat
 export async function runAutomationPreflight(asset: AdminAssetRecord): Promise<AutomationPreflightResult> {
   const health = await getTokenDeployStatus();
   const treasuryPolicy = await validateTreasuryPolicy({ deployerAddress: health.deployerAddress });
+  const custodyPolicy = operatorCustodianPolicy({
+    operatorAddress: health.deployerAddress,
+    treasuryAddress: treasuryPolicy.treasuryAddress
+  });
   const hasMorpho = asset.collateralTargets.some((target) => target.protocol === 'MORPHO');
   const morphoReadiness = hasMorpho ? evaluateCollateralReadiness(asset, 'MORPHO') : null;
   const legalReady =
@@ -55,6 +59,7 @@ export async function runAutomationPreflight(asset: AdminAssetRecord): Promise<A
     check('supply', 'Supply', asset.totalTokens > 0, `${asset.totalTokens} tokens`),
     check('price', 'Precio', asset.pricePerToken > 0, `USD ${asset.pricePerToken}`),
     check('treasury', 'Treasury', treasuryPolicy.ok, treasuryPolicy.message),
+    check('operatorCustodian', 'Operador/custodio', custodyPolicy.ok, custodyPolicy.message),
     check(
       'legal',
       'Legal bloqueante',

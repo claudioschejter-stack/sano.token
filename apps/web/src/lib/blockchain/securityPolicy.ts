@@ -34,6 +34,47 @@ export function maxBorrowUsdPerProject(): number {
   return Number.isFinite(value) && value > 0 ? value : 250000;
 }
 
+export function borrowSafetyBps(): number {
+  const value = Number(process.env.RWA_BORROW_SAFETY_BPS ?? '7000');
+  return Number.isFinite(value) && value > 0 && value <= 10_000 ? value : 7000;
+}
+
+export function operatorCustodianPolicy(input: {
+  operatorAddress?: string | null;
+  treasuryAddress?: string | null;
+}) {
+  const operator = process.env.RWA_OPERATOR_ADDRESS?.trim() || input.operatorAddress || null;
+  const custodian = input.treasuryAddress || process.env.TOKEN_TREASURY_ADDRESS?.trim() || process.env.SANOVA_TREASURY_ADDRESS?.trim() || null;
+  const production = process.env.NODE_ENV === 'production';
+
+  if (!operator || !custodian) {
+    return {
+      ok: !production,
+      operator,
+      custodian,
+      message: production
+        ? 'Operador y custodio son obligatorios en producción.'
+        : 'Operador/custodio incompletos permitidos solo fuera de producción.'
+    };
+  }
+
+  if (operator.toLowerCase() === custodian.toLowerCase()) {
+    return {
+      ok: false,
+      operator,
+      custodian,
+      message: 'Operador y custodio no pueden ser la misma address.'
+    };
+  }
+
+  return {
+    ok: true,
+    operator,
+    custodian,
+    message: 'Operador separado del custodio/Safe.'
+  };
+}
+
 export async function configureInitialContractSecurity(input: {
   asset: Contract;
   vaultContract?: Contract | null;

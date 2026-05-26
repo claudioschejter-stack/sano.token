@@ -16,7 +16,7 @@ import {
   prepareMorphoBorrowUsdc
 } from './protocols/morphoBorrow';
 import { getAdminAsset } from '../admin/assetsService';
-import { allowedExternalContracts, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
+import { allowedExternalContracts, borrowSafetyBps, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
 
 export type BorrowQuoteRequest = {
   amountUsd: number;
@@ -42,6 +42,13 @@ export type PrepareBorrowResponse = {
   transactions: PreparedTransaction[];
   marketId?: string;
 };
+
+function maxSafeBorrowUsd(asset: NonNullable<Awaited<ReturnType<typeof getAdminAsset>>>): number {
+  const navUsd = asset.totalTokens * asset.pricePerToken;
+  const lltvBpsRaw = Number(process.env.MORPHO_DEFAULT_LLTV_BPS ?? '6000');
+  const lltvBps = Number.isFinite(lltvBpsRaw) && lltvBpsRaw > 0 ? lltvBpsRaw : 6000;
+  return (navUsd * lltvBps * borrowSafetyBps()) / 100_000_000;
+}
 
 async function resolveMorphoOracleAddress(projectId?: string): Promise<string | null> {
   if (!projectId) {
@@ -119,7 +126,9 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
       return null;
     }
 
-    if (request.amountUsd > maxBorrowUsdPerProject()) {
+    const maxDaily = maxBorrowUsdPerProject();
+    const maxByLtv = maxSafeBorrowUsd(asset);
+    if (request.amountUsd > Math.min(maxDaily, maxByLtv)) {
       return null;
     }
 
