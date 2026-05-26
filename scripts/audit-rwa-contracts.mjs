@@ -51,6 +51,10 @@ const slither = run('slither', ['.'], { cwd: contractsDir });
 if (slither.status === 0) {
   console.log(slither.stdout);
 } else {
+  if (process.env.REQUIRE_SLITHER === 'true') {
+    console.error(slither.stdout || slither.stderr);
+    process.exit(slither.status ?? 1);
+  }
   console.warn('[rwa-audit] Slither unavailable or reported findings. Review output before mainnet.');
   console.warn((slither.stdout || slither.stderr || '').slice(0, 4000));
 }

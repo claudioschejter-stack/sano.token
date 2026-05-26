@@ -22,6 +22,7 @@
     "contracts:export-abis": "npm run export:abis -w @sanova/contracts",
     "contracts:test": "turbo test --filter=@sanova/contracts",
     "contracts:security-audit": "node scripts/audit-rwa-contracts.mjs",
+    "contracts:audit-report": "node scripts/generate-rwa-audit-report.mjs",
     "web:dev": "npm run dev -w @sanova/web",
     "api:dev": "npm run dev -w @sanova/api",
     "infra:up": "docker compose up postgres redis -d",
