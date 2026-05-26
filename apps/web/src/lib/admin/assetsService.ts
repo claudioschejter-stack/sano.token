@@ -278,6 +278,65 @@ function buildAutomationReadiness(project: {
   };
 }
 
+type AutomationMeta = {
+  automationReadiness: AutomationReadinessSummary | null;
+  automationFailureCount: number;
+  automationCircuitBreaker: boolean;
+  automationLockStep: string | null;
+  automationLockExpiresAt: string | null;
+  morphoLiquidityStatus: MorphoLiquidityStatus;
+  explorerVerificationStatus: ExplorerVerificationStatus;
+  launchAuditHash: string | null;
+};
+
+const EMPTY_AUTOMATION_META: AutomationMeta = {
+  automationReadiness: null,
+  automationFailureCount: 0,
+  automationCircuitBreaker: false,
+  automationLockStep: null,
+  automationLockExpiresAt: null,
+  morphoLiquidityStatus: 'NOT_CHECKED',
+  explorerVerificationStatus: 'NOT_REQUESTED',
+  launchAuditHash: null
+};
+
+const automationLocks = new Map<string, { owner: string; step: string; expiresAt: number }>();
+
+function parseAutomationMeta(raw: string): AutomationMeta {
+  try {
+    const parsed = JSON.parse(raw) as Partial<AutomationMeta>;
+    return {
+      ...EMPTY_AUTOMATION_META,
+      ...parsed,
+      automationReadiness: parseAutomationReadiness(parsed.automationReadiness) ?? null,
+      morphoLiquidityStatus: (parsed.morphoLiquidityStatus as MorphoLiquidityStatus) ?? 'NOT_CHECKED',
+      explorerVerificationStatus:
+        (parsed.explorerVerificationStatus as ExplorerVerificationStatus) ?? 'NOT_REQUESTED'
+    };
+  } catch {
+    return EMPTY_AUTOMATION_META;
+  }
+}
+
+function buildAutomationMetaEvent(meta: AutomationMeta): DeploymentEvent {
+  return {
+    id: `automation-meta-${Date.now().toString(36)}`,
+    step: 'PREFLIGHT',
+    status: meta.automationCircuitBreaker ? 'FAILED' : 'SUCCESS',
+    message: 'Estado operativo automatizado actualizado.',
+    address: JSON.stringify(meta),
+    externalId: 'AUTOMATION_META',
+    createdAt: new Date().toISOString()
+  };
+}
+
+function replaceAutomationMetaEvent(events: DeploymentEvent[], meta: AutomationMeta): DeploymentEvent[] {
+  return [
+    buildAutomationMetaEvent(meta),
+    ...events.filter((event) => !(event.step === 'PREFLIGHT' && event.externalId === 'AUTOMATION_META'))
+  ].slice(0, 50);
+}
+
 function slugifyTitle(title: string): string {
   return title
     .toLowerCase()
@@ -389,14 +448,6 @@ function mapProject(project: {
   tokenDeployStatus: string;
   collateralTargets: unknown;
   deploymentEvents: unknown;
-  automationReadiness: unknown;
-  automationFailureCount: number;
-  automationCircuitBreaker: boolean;
-  automationLockStep: string | null;
-  automationLockExpiresAt: Date | null;
-  morphoLiquidityStatus: string;
-  explorerVerificationStatus: string;
-  launchAuditHash: string | null;
   centrifugeChecklist: unknown;
   spvEntityName: string | null;
   navOracleUrl: string | null;
@@ -418,9 +469,21 @@ function mapProject(project: {
   updatedAt: Date;
   _count: { investments: number };
 }): AdminAssetRecord {
+  const events = parseDeploymentEvents(project.deploymentEvents);
+  const latestMeta = events.find((event) => event.step === 'PREFLIGHT' && event.externalId === 'AUTOMATION_META');
+  const meta =
+    typeof latestMeta?.address === 'string'
+      ? parseAutomationMeta(latestMeta.address)
+      : EMPTY_AUTOMATION_META;
   const readiness =
-    parseAutomationReadiness(project.automationReadiness) ??
-    buildAutomationReadiness(project);
+    parseAutomationReadiness(meta.automationReadiness) ??
+    buildAutomationReadiness({
+      ...project,
+      automationCircuitBreaker: meta.automationCircuitBreaker,
+      morphoLiquidityStatus: meta.morphoLiquidityStatus,
+      explorerVerificationStatus: meta.explorerVerificationStatus,
+      launchAuditHash: meta.launchAuditHash
+    });
 
   return {
     id: project.id,
@@ -446,16 +509,16 @@ function mapProject(project: {
       project.equitySharePercent != null ? Number(project.equitySharePercent) : null,
     tokenDeployStatus: project.tokenDeployStatus as TokenDeployStatus,
     collateralTargets: parseCollateralTargets(project.collateralTargets),
-    deploymentEvents: parseDeploymentEvents(project.deploymentEvents),
+    deploymentEvents: events,
     automationReadiness: readiness,
-    automationFailureCount: project.automationFailureCount,
-    automationCircuitBreaker: project.automationCircuitBreaker,
-    automationLockStep: project.automationLockStep,
-    automationLockExpiresAt: project.automationLockExpiresAt?.toISOString() ?? null,
-    morphoLiquidityStatus: (project.morphoLiquidityStatus as MorphoLiquidityStatus) ?? 'NOT_CHECKED',
+    automationFailureCount: meta.automationFailureCount,
+    automationCircuitBreaker: meta.automationCircuitBreaker,
+    automationLockStep: meta.automationLockStep,
+    automationLockExpiresAt: meta.automationLockExpiresAt,
+    morphoLiquidityStatus: meta.morphoLiquidityStatus,
     explorerVerificationStatus:
-      (project.explorerVerificationStatus as ExplorerVerificationStatus) ?? 'NOT_REQUESTED',
-    launchAuditHash: project.launchAuditHash,
+      meta.explorerVerificationStatus,
+    launchAuditHash: meta.launchAuditHash,
     centrifugeChecklist: parseCentrifugeChecklist(project.centrifugeChecklist),
     spvEntityName: project.spvEntityName,
     navOracleUrl: project.navOracleUrl,
@@ -624,6 +687,11 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
     explorerVerificationStatus: 'NOT_REQUESTED',
     launchAuditHash
   });
+  const initialMeta: AutomationMeta = {
+    ...EMPTY_AUTOMATION_META,
+    automationReadiness,
+    launchAuditHash
+  };
 
   const project = await prisma.project.create({
     data: {
@@ -647,9 +715,7 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       equitySharePercent: input.equitySharePercent ?? null,
       tokenDeployStatus: input.deployToken ? 'PENDING' : 'NOT_REQUESTED',
       collateralTargets: collateralTargets as Prisma.InputJsonValue,
-      deploymentEvents: deploymentEvents as Prisma.InputJsonValue,
-      automationReadiness: automationReadiness as Prisma.InputJsonValue,
-      launchAuditHash,
+      deploymentEvents: replaceAutomationMetaEvent(deploymentEvents, initialMeta) as Prisma.InputJsonValue,
       centrifugeChecklist: (input.centrifugeChecklist ?? parseCentrifugeChecklist(null)) as Prisma.InputJsonValue,
       spvEntityName: input.spvEntityName?.trim() || null,
       navOracleUrl: input.navOracleUrl?.trim() || null,
@@ -781,14 +847,6 @@ export async function updateAdminAsset(
   if (input.chainId !== undefined) data.chainId = input.chainId;
   if (input.tokenDeployStatus !== undefined) data.tokenDeployStatus = input.tokenDeployStatus;
   if (input.deploymentEvents !== undefined) data.deploymentEvents = input.deploymentEvents as Prisma.InputJsonValue;
-  if (input.automationReadiness !== undefined) data.automationReadiness = input.automationReadiness as Prisma.InputJsonValue;
-  if (input.automationFailureCount !== undefined) data.automationFailureCount = input.automationFailureCount;
-  if (input.automationCircuitBreaker !== undefined) data.automationCircuitBreaker = input.automationCircuitBreaker;
-  if (input.automationLockStep !== undefined) data.automationLockStep = input.automationLockStep;
-  if (input.automationLockExpiresAt !== undefined) data.automationLockExpiresAt = input.automationLockExpiresAt;
-  if (input.morphoLiquidityStatus !== undefined) data.morphoLiquidityStatus = input.morphoLiquidityStatus;
-  if (input.explorerVerificationStatus !== undefined) data.explorerVerificationStatus = input.explorerVerificationStatus;
-  if (input.launchAuditHash !== undefined) data.launchAuditHash = input.launchAuditHash;
 
   if (input.collateralTargets !== undefined) {
     data.collateralTargets = input.collateralTargets as Prisma.InputJsonValue;
@@ -849,8 +907,22 @@ export async function updateAdminAsset(
     data.pricePerToken = input.pricePerToken;
   }
 
-  if (Object.keys(data).length === 0) {
+  const hasAutomationMetaInput =
+    input.automationReadiness !== undefined ||
+    input.automationFailureCount !== undefined ||
+    input.automationCircuitBreaker !== undefined ||
+    input.automationLockStep !== undefined ||
+    input.automationLockExpiresAt !== undefined ||
+    input.morphoLiquidityStatus !== undefined ||
+    input.explorerVerificationStatus !== undefined ||
+    input.launchAuditHash !== undefined;
+
+  if (Object.keys(data).length === 0 && !hasAutomationMetaInput) {
     return mapProject(existing);
+  }
+
+  if (Object.keys(data).length === 0) {
+    data.deploymentEvents = parseDeploymentEvents(existing.deploymentEvents) as Prisma.InputJsonValue;
   }
 
   const updated = await prisma.project.update({
@@ -869,16 +941,38 @@ export async function updateAdminAsset(
     collateralTargets: updated.collateralTargets,
     deploymentEvents: updated.deploymentEvents
   });
+  const existingEvents = parseDeploymentEvents(updated.deploymentEvents);
+  const latestMeta = existingEvents.find((event) => event.step === 'PREFLIGHT' && event.externalId === 'AUTOMATION_META');
+  const currentMeta =
+    typeof latestMeta?.address === 'string'
+      ? parseAutomationMeta(latestMeta.address)
+      : EMPTY_AUTOMATION_META;
   const automationReadiness = buildAutomationReadiness({
     ...updated,
-    launchAuditHash
+    launchAuditHash,
+    automationCircuitBreaker: input.automationCircuitBreaker ?? currentMeta.automationCircuitBreaker,
+    morphoLiquidityStatus: input.morphoLiquidityStatus ?? currentMeta.morphoLiquidityStatus,
+    explorerVerificationStatus: input.explorerVerificationStatus ?? currentMeta.explorerVerificationStatus
   });
+  const nextMeta: AutomationMeta = {
+    ...currentMeta,
+    automationReadiness: input.automationReadiness ?? automationReadiness,
+    automationFailureCount: input.automationFailureCount ?? currentMeta.automationFailureCount,
+    automationCircuitBreaker: input.automationCircuitBreaker ?? currentMeta.automationCircuitBreaker,
+    automationLockStep: input.automationLockStep ?? currentMeta.automationLockStep,
+    automationLockExpiresAt:
+      input.automationLockExpiresAt !== undefined
+        ? input.automationLockExpiresAt?.toISOString() ?? null
+        : currentMeta.automationLockExpiresAt,
+    morphoLiquidityStatus: input.morphoLiquidityStatus ?? currentMeta.morphoLiquidityStatus,
+    explorerVerificationStatus: input.explorerVerificationStatus ?? currentMeta.explorerVerificationStatus,
+    launchAuditHash: input.launchAuditHash ?? launchAuditHash
+  };
 
   const finalProject = await prisma.project.update({
     where: { id: projectId },
     data: {
-      automationReadiness: automationReadiness as Prisma.InputJsonValue,
-      launchAuditHash
+      deploymentEvents: replaceAutomationMetaEvent(existingEvents, nextMeta) as Prisma.InputJsonValue
     },
     include: projectInclude
   });
@@ -1006,36 +1100,33 @@ export async function withProjectAutomationLock<T>(
 ): Promise<T> {
   const now = new Date();
   const owner = randomUUID();
-  const acquired = await prisma.project.updateMany({
-    where: {
-      id: projectId,
-      OR: [
-        { automationLockExpiresAt: null },
-        { automationLockExpiresAt: { lt: now } }
-      ]
-    },
-    data: {
-      automationLockOwner: owner,
-      automationLockStep: step,
-      automationLockExpiresAt: new Date(now.getTime() + ttlMs)
-    }
-  });
+  const existingLock = automationLocks.get(projectId);
 
-  if (acquired.count === 0) {
+  if (existingLock && existingLock.expiresAt > now.getTime()) {
     throw new Error('AUTOMATION_LOCKED');
   }
+
+  automationLocks.set(projectId, {
+    owner,
+    step,
+    expiresAt: now.getTime() + ttlMs
+  });
+  await updateAdminAsset(projectId, {
+    automationLockStep: step,
+    automationLockExpiresAt: new Date(now.getTime() + ttlMs)
+  }).catch(() => undefined);
 
   try {
     return await callback();
   } finally {
-    await prisma.project.updateMany({
-      where: { id: projectId, automationLockOwner: owner },
-      data: {
-        automationLockOwner: null,
-        automationLockStep: null,
-        automationLockExpiresAt: null
-      }
-    });
+    const current = automationLocks.get(projectId);
+    if (current?.owner === owner) {
+      automationLocks.delete(projectId);
+    }
+    await updateAdminAsset(projectId, {
+      automationLockStep: null,
+      automationLockExpiresAt: null
+    }).catch(() => undefined);
   }
 }
 

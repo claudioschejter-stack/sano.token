@@ -115,15 +115,6 @@ CREATE TABLE "Project" (
     "vaultFundingTxHash" TEXT,
     "vaultFundingError" TEXT,
     "deploymentEvents" JSONB NOT NULL DEFAULT '[]',
-    "automationReadiness" JSONB NOT NULL DEFAULT '{}',
-    "automationLockOwner" TEXT,
-    "automationLockStep" TEXT,
-    "automationLockExpiresAt" TIMESTAMP(3),
-    "automationFailureCount" INTEGER NOT NULL DEFAULT 0,
-    "automationCircuitBreaker" BOOLEAN NOT NULL DEFAULT false,
-    "morphoLiquidityStatus" TEXT NOT NULL DEFAULT 'NOT_CHECKED',
-    "explorerVerificationStatus" TEXT NOT NULL DEFAULT 'NOT_REQUESTED',
-    "launchAuditHash" TEXT,
     "chainId" INTEGER,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -296,12 +287,6 @@ CREATE INDEX "Project_isActive_idx" ON "Project"("isActive");
 
 -- CreateIndex
 CREATE INDEX "Project_isActive_createdAt_idx" ON "Project"("isActive", "createdAt");
-
--- CreateIndex
-CREATE INDEX "Project_automationLockExpiresAt_idx" ON "Project"("automationLockExpiresAt");
-
--- CreateIndex
-CREATE INDEX "Project_automationCircuitBreaker_idx" ON "Project"("automationCircuitBreaker");
 
 -- CreateIndex
 CREATE INDEX "AdminAuditLog_actorUserId_idx" ON "AdminAuditLog"("actorUserId");

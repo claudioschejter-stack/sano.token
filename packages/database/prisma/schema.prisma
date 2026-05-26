@@ -247,15 +247,6 @@ model Project {
   tokenDeployStatus    String       @default("NOT_REQUESTED")
   collateralTargets    Json         @default("[]")
   deploymentEvents     Json         @default("[]")
-  automationReadiness  Json         @default("{}")
-  automationLockOwner  String?
-  automationLockStep   String?
-  automationLockExpiresAt DateTime?
-  automationFailureCount Int        @default(0)
-  automationCircuitBreaker Boolean  @default(false)
-  morphoLiquidityStatus String      @default("NOT_CHECKED")
-  explorerVerificationStatus String @default("NOT_REQUESTED")
-  launchAuditHash      String?
   centrifugeChecklist  Json         @default("{}")
   spvEntityName        String?
   navOracleUrl         String?
@@ -287,8 +278,6 @@ model Project {
   @@index([fiscalRegime])
   @@index([isActive])
   @@index([isActive, createdAt])
-  @@index([automationLockExpiresAt])
-  @@index([automationCircuitBreaker])
 }
 
 model AdminAuditLog {
