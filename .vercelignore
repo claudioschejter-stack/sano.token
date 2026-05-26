@@ -1,0 +1,16 @@
+# Local build/cache output should never be uploaded by `vercel deploy`.
+.git/
+.turbo/
+**/.turbo/
+.next/
+**/.next/
+node_modules/
+**/node_modules/
+
+# Hardhat outputs are regenerated in CI/build and can exceed Vercel upload limits.
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
+
+# Local duplicate map asset kept out of production uploads unless tracked intentionally.
+apps/web/public/maps/Formacion VACA MUERTA.png
