@@ -65,8 +65,11 @@ export function prepareMorphoCreateMarket(params: MorphoMarketParams) {
   };
 }
 
-export function buildDefaultMorphoMarketParams(vaultAddress: string): MorphoMarketParams | null {
-  const oracle = process.env.MORPHO_ORACLE_ADDRESS?.trim();
+export function buildDefaultMorphoMarketParams(
+  vaultAddress: string,
+  oracleAddress?: string | null
+): MorphoMarketParams | null {
+  const oracle = oracleAddress?.trim() || process.env.MORPHO_ORACLE_ADDRESS?.trim();
   if (!oracle) {
     return null;
   }

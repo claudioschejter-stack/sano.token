@@ -91,6 +91,7 @@ export type CollateralTarget = {
   missingRequirements?: string[];
   externalId?: string | null;
   poolUrl?: string | null;
+  oracleAddress?: string | null;
   notes?: string;
   lastError?: string | null;
   submittedAt?: string | null;

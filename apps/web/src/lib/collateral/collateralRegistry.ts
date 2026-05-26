@@ -63,6 +63,7 @@ export type CollateralProjectContext = Pick<
   | 'vaultAddress'
   | 'chainId'
   | 'totalTokens'
+  | 'pricePerToken'
   | 'spvEntityName'
   | 'navOracleUrl'
   | 'jurisdiction'

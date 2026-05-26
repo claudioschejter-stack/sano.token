@@ -11,6 +11,7 @@ export type CollateralAdapterResult = {
   status: CollateralTarget['status'];
   externalId?: string | null;
   poolUrl?: string | null;
+  oracleAddress?: string | null;
   notes?: string;
   lastError?: string | null;
 };
@@ -104,16 +105,17 @@ async function registerSky(project: CollateralProjectContext): Promise<Collatera
 async function registerMorpho(project: CollateralProjectContext): Promise<CollateralAdapterResult> {
   const payload = buildCollateralSubmissionPayload(project, 'MORPHO');
 
-  if (project.vaultAddress && process.env.MORPHO_ORACLE_ADDRESS?.trim()) {
+  if (project.vaultAddress) {
     try {
       const { createMorphoMarketForVault } = await import('../blockchain/morphoMarketService');
-      const result = await createMorphoMarketForVault(project.vaultAddress);
+      const result = await createMorphoMarketForVault(project.vaultAddress, project.pricePerToken);
 
       if (result.status === 'CREATED') {
         return {
           status: 'REGISTERED',
           externalId: result.marketId,
           poolUrl: `https://app.morpho.org/base/market/${result.marketId}`,
+          oracleAddress: result.params.oracle,
           notes: `Mercado Morpho Blue creado on-chain (tx ${result.txHash.slice(0, 10)}…).`
         };
       }
@@ -156,7 +158,7 @@ async function registerMorpho(project: CollateralProjectContext): Promise<Collat
 
 function canCreateMorphoMarketDirectly(project: CollateralProjectContext): boolean {
   const privateKey = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
-  return Boolean(project.vaultAddress && process.env.MORPHO_ORACLE_ADDRESS?.trim() && privateKey);
+  return Boolean(project.vaultAddress && privateKey && project.pricePerToken > 0);
 }
 
 async function registerAaveHorizon(

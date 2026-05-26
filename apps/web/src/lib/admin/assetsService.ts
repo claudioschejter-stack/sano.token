@@ -219,6 +219,7 @@ function toCollateralContext(
     vaultAddress: string | null;
     chainId: number | null;
     totalTokens: number;
+    pricePerToken: { toString(): string } | number;
     spvEntityName: string | null;
     navOracleUrl: string | null;
     jurisdiction: string | null;
@@ -244,6 +245,7 @@ function toCollateralContext(
     vaultAddress: project.vaultAddress,
     chainId: project.chainId,
     totalTokens: project.totalTokens,
+    pricePerToken: Number(project.pricePerToken),
     spvEntityName: project.spvEntityName,
     navOracleUrl: project.navOracleUrl,
     jurisdiction: project.jurisdiction,
@@ -434,6 +436,7 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       vaultAddress: null,
       chainId: null,
       totalTokens: input.totalTokens,
+      pricePerToken: input.pricePerToken,
       spvEntityName: input.spvEntityName?.trim() || null,
       navOracleUrl: input.navOracleUrl?.trim() || null,
       jurisdiction: input.jurisdiction ?? null,
@@ -616,7 +619,10 @@ export async function updateAdminAsset(
       spvEntityName: input.spvEntityName ?? existing.spvEntityName,
       navOracleUrl: input.navOracleUrl ?? existing.navOracleUrl,
       jurisdiction: input.jurisdiction ?? existing.jurisdiction,
-      totalTokens: input.totalTokens ?? existing.totalTokens
+      totalTokens: input.totalTokens ?? existing.totalTokens,
+      pricePerToken:
+        input.pricePerToken ??
+        Number(existing.pricePerToken)
     });
     data.collateralTargets = mergeCollateralTargets(context, input.collateralProtocols) as Prisma.InputJsonValue;
   }

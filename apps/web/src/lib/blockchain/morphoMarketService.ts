@@ -1,5 +1,6 @@
-import { JsonRpcProvider, Wallet } from 'ethers';
+import { ContractFactory, JsonRpcProvider, Wallet } from 'ethers';
 import { resolveChainId } from './explorerUrls';
+import SanovaFixedPriceOracleArtifact from './artifacts/SanovaFixedPriceOracle.json';
 import {
   buildDefaultMorphoMarketParams,
   morphoMarketId,
@@ -17,6 +18,8 @@ export type CreateMorphoMarketResult =
     }
   | { status: 'SKIPPED'; reason: string };
 
+const MORPHO_PRICE_SCALE_DECIMALS = 24n; // 1e36 scale adjusted for 18-dec collateral and 6-dec USDC.
+
 function resolvePrivateKey(): string | null {
   const key = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
   return key || null;
@@ -29,16 +32,35 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 }
 
-export async function createMorphoMarketForVault(vaultAddress: string): Promise<CreateMorphoMarketResult> {
-  const params = buildDefaultMorphoMarketParams(vaultAddress);
-  if (!params) {
-    return {
-      status: 'SKIPPED',
-      reason:
-        'Configurá MORPHO_ORACLE_ADDRESS (oracle de precio del vault) y opcionalmente MORPHO_DEFAULT_LLTV_BPS.'
-    };
+function fixedUsdPriceToMorphoOraclePrice(pricePerTokenUsd: number): bigint | null {
+  if (!Number.isFinite(pricePerTokenUsd) || pricePerTokenUsd <= 0) {
+    return null;
   }
 
+  const microUsd = BigInt(Math.round(pricePerTokenUsd * 1_000_000));
+  return microUsd * 10n ** (MORPHO_PRICE_SCALE_DECIMALS - 6n);
+}
+
+async function deployFixedPriceOracle(wallet: Wallet, pricePerTokenUsd: number): Promise<string | null> {
+  const oraclePrice = fixedUsdPriceToMorphoOraclePrice(pricePerTokenUsd);
+  if (!oraclePrice) {
+    return null;
+  }
+
+  const oracleFactory = new ContractFactory(
+    SanovaFixedPriceOracleArtifact.abi,
+    SanovaFixedPriceOracleArtifact.bytecode,
+    wallet
+  );
+  const oracle = await oracleFactory.deploy(oraclePrice);
+  await oracle.waitForDeployment();
+  return oracle.getAddress();
+}
+
+export async function createMorphoMarketForVault(
+  vaultAddress: string,
+  pricePerTokenUsd: number
+): Promise<CreateMorphoMarketResult> {
   const privateKey = resolvePrivateKey();
   if (!privateKey) {
     return {
@@ -55,6 +77,23 @@ export async function createMorphoMarketForVault(vaultAddress: string): Promise<
     const gasBalance = await provider.getBalance(wallet.address);
     if (gasBalance <= 0n) {
       return { status: 'SKIPPED', reason: `La wallet de deploy ${wallet.address} no tiene gas en chain ${chainId}.` };
+    }
+
+    const oracleAddress =
+      process.env.MORPHO_ORACLE_ADDRESS?.trim() || (await deployFixedPriceOracle(wallet, pricePerTokenUsd));
+    if (!oracleAddress) {
+      return {
+        status: 'SKIPPED',
+        reason: 'No se pudo crear oracle Morpho: pricePerToken inválido.'
+      };
+    }
+
+    const params = buildDefaultMorphoMarketParams(vaultAddress, oracleAddress);
+    if (!params) {
+      return {
+        status: 'SKIPPED',
+        reason: 'No se pudieron construir parámetros Morpho para el vault.'
+      };
     }
 
     const prepared = prepareMorphoCreateMarket(params);

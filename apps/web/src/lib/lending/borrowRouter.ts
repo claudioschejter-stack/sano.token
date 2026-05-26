@@ -15,6 +15,7 @@ import {
   buildDefaultMorphoMarketParams,
   prepareMorphoBorrowUsdc
 } from './protocols/morphoBorrow';
+import { getAdminAsset } from '../admin/assetsService';
 
 export type BorrowQuoteRequest = {
   amountUsd: number;
@@ -40,6 +41,19 @@ export type PrepareBorrowResponse = {
   transactions: PreparedTransaction[];
   marketId?: string;
 };
+
+async function resolveMorphoOracleAddress(projectId?: string): Promise<string | null> {
+  if (!projectId) {
+    return null;
+  }
+
+  const asset = await getAdminAsset(projectId);
+  const morphoTarget = asset?.collateralTargets.find(
+    (target) => target.protocol === 'MORPHO' && target.status === 'REGISTERED'
+  );
+
+  return morphoTarget?.oracleAddress ?? null;
+}
 
 export async function quoteBorrow(request: BorrowQuoteRequest): Promise<BorrowQuoteResponse | null> {
   if (!Number.isFinite(request.amountUsd) || request.amountUsd <= 0) {
@@ -95,7 +109,8 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
       return null;
     }
 
-    const marketParams = buildDefaultMorphoMarketParams(vault);
+    const oracleAddress = await resolveMorphoOracleAddress(request.projectId);
+    const marketParams = buildDefaultMorphoMarketParams(vault, oracleAddress);
     if (!marketParams) {
       return null;
     }
