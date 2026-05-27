@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const input = path.join(__dirname, '../public/maps/vaca-muerta-cuenca.png');
+const input = path.join(__dirname, '../public/maps/vaca-muerta-cuenca.jpg');
 const output = input;
 
 /** 5× source (250×200 → 1250×1000) — sharp enough for retina in macro section. */
