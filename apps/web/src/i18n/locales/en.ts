@@ -120,6 +120,7 @@ export const en = {
     dashboard: "Dashboard",
     marketplace: "Marketplace",
     myAssets: "My Assets",
+    myWallet: "My Wallet",
     cashFlow: "Cash Flow",
     secondaryMarket: "Secondary Market",
     signOut: "Sign Out"

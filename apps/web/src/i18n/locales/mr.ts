@@ -122,6 +122,7 @@ export const mr = {
     dashboard: "डॅशबोर्ड",
     marketplace: "बाजारपेठ",
     myAssets: "माझी मालमत्ता",
+    myWallet: 'My Wallet',
     cashFlow: "रोख प्रवाह",
     secondaryMarket: "दुय्यम बाजार",
     signOut: "साइन आउट करा"

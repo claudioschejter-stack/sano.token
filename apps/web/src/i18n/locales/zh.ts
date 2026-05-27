@@ -122,6 +122,7 @@ export const zh = {
     dashboard: "仪表板",
     marketplace: "市场",
     myAssets: "我的资产",
+    myWallet: 'My Wallet',
     cashFlow: "现金周转",
     secondaryMarket: "二级市场",
     signOut: "登出"

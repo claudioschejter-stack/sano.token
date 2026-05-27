@@ -122,6 +122,7 @@ export const sw = {
     dashboard: "Dashibodi",
     marketplace: "Sokoni",
     myAssets: "Mali Zangu",
+    myWallet: 'My Wallet',
     cashFlow: "Mtiririko wa Fedha",
     secondaryMarket: "Soko la Sekondari",
     signOut: "Ondoka"

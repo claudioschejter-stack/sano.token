@@ -1,7 +1,8 @@
 import { prisma, Prisma, type PaymentMethod, type PlatformDepositStatus } from '@sanova/database';
 import { ethers } from 'ethers';
 import { assertOperationalInvestor, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
-import { checkoutBaseUrl, paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
+import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
+import { createDepositProviderCheckout } from './paymentOnRampAdapters';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 import type { PaymentRouteQuote } from './cheapestPaymentRouter';
 
@@ -32,6 +33,11 @@ export async function getPlatformWalletSummary(userId: string) {
     take: 25
   });
   const deposits = await prisma.platformDeposit.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: 10
+  });
+  const withdrawals = await prisma.platformWithdrawal.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take: 10
@@ -67,6 +73,17 @@ export async function getPlatformWalletSummary(userId: string) {
       txHash: deposit.txHash,
       expiresAt: deposit.expiresAt.toISOString(),
       createdAt: deposit.createdAt.toISOString()
+    })),
+    withdrawals: withdrawals.map((withdrawal) => ({
+      id: withdrawal.id,
+      status: withdrawal.status,
+      amountUsd: withdrawal.amountUsd.toString(),
+      method: withdrawal.method,
+      stablecoinNetwork: withdrawal.stablecoinNetwork,
+      destinationAddress: withdrawal.destinationAddress,
+      providerCheckoutUrl: withdrawal.providerCheckoutUrl,
+      txHash: withdrawal.txHash,
+      createdAt: withdrawal.createdAt.toISOString()
     }))
   };
 }
@@ -232,7 +249,10 @@ export async function createPlatformDeposit(input: {
   const checkout = await createDepositProviderCheckout({
     depositId: deposit.id,
     method: input.method,
-    amountUsd: input.amountUsd
+    amountUsd: input.amountUsd,
+    stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork,
+    userEmail: user.email,
+    walletAddress: input.walletAddress
   });
 
   if (checkout.providerCheckoutUrl || checkout.providerPaymentId) {
@@ -412,35 +432,4 @@ export async function verifyPlatformStablecoinDeposit(input: {
     provider: `${network.id.toLowerCase()}_stablecoin`,
     metadata: { network: network.id }
   });
-}
-
-async function createDepositProviderCheckout(input: {
-  depositId: string;
-  method: PaymentMethod;
-  amountUsd: number;
-}) {
-  if (input.method === 'STRIPE' && process.env.STRIPE_SECRET_KEY) {
-    const params = new URLSearchParams({
-      mode: 'payment',
-      'line_items[0][price_data][currency]': 'usd',
-      'line_items[0][price_data][product_data][name]': 'Saldo Sanova',
-      'line_items[0][price_data][unit_amount]': Math.round(input.amountUsd * 100).toString(),
-      'line_items[0][quantity]': '1',
-      success_url: `${checkoutBaseUrl()}/dashboard/wallet?deposit=${input.depositId}&status=success`,
-      cancel_url: `${checkoutBaseUrl()}/dashboard/wallet?deposit=${input.depositId}&status=cancelled`,
-      client_reference_id: input.depositId,
-      'metadata[depositId]': input.depositId
-    });
-    const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${process.env.STRIPE_SECRET_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params
-    });
-    if (response.ok) {
-      const data = (await response.json()) as { id?: string; url?: string };
-      return { provider: 'stripe', providerPaymentId: data.id, providerCheckoutUrl: data.url, metadata: { configured: true } };
-    }
-  }
-
-  return { provider: String(input.method).toLowerCase(), metadata: { configured: input.method === 'USDC_ONCHAIN' } };
 }

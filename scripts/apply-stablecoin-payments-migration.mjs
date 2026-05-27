@@ -28,8 +28,9 @@ async function main() {
         'StablecoinWallet',
         'PlatformWalletAccount',
         'PlatformWalletLedgerEntry',
-        'PlatformDeposit'
-      )
+        'PlatformDeposit',
+        'PlatformWithdrawal',
+        'PortfolioSnapshot'
     ORDER BY table_name
   `);
 

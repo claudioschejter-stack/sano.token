@@ -122,6 +122,7 @@ export const bn = {
     dashboard: "Dashboard",
     marketplace: "মার্কেটপ্লেস",
     myAssets: "আমার সম্পদ",
+    myWallet: 'My Wallet',
     cashFlow: "নগদ প্রবাহ",
     secondaryMarket: "সেকেন্ডারি মার্কেট",
     signOut: "Cerrar Sesión"

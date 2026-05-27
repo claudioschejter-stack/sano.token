@@ -122,6 +122,7 @@ export const ja = {
     dashboard: "ダッシュボード",
     marketplace: "市場",
     myAssets: "私の資産",
+    myWallet: 'My Wallet',
     cashFlow: "キャッシュフロー",
     secondaryMarket: "流通市場",
     signOut: "サインアウト"

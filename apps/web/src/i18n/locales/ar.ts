@@ -122,6 +122,7 @@ export const ar = {
     dashboard: "Dashboard",
     marketplace: "Marketplace",
     myAssets: "Mis Activos",
+    myWallet: 'My Wallet',
     cashFlow: "Flujo de Caja",
     secondaryMarket: "السوق الثانوية",
     signOut: "Cerrar Sesión"

@@ -122,6 +122,7 @@ export const de = {
     dashboard: "Armaturenbrett",
     marketplace: "Marktplatz",
     myAssets: "Mein Vermögen",
+    myWallet: 'My Wallet',
     cashFlow: "Cashflow",
     secondaryMarket: "Sekundärmarkt",
     signOut: "Abmelden"

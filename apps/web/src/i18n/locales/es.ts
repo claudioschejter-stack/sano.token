@@ -129,6 +129,7 @@ export const es = {
     dashboard: 'Dashboard',
     marketplace: 'Marketplace',
     myAssets: 'Mis Activos',
+    myWallet: 'Mi Cartera',
     cashFlow: 'Flujo de Caja',
     secondaryMarket: 'Mercado Secundario',
     signOut: 'Cerrar Sesión'

@@ -122,6 +122,7 @@ export const ru = {
     dashboard: "Панель управления",
     marketplace: "Торговая площадка",
     myAssets: "Мои активы",
+    myWallet: 'My Wallet',
     cashFlow: "Денежный поток",
     secondaryMarket: "Вторичный рынок",
     signOut: "Выход"

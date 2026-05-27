@@ -239,6 +239,52 @@ CREATE INDEX IF NOT EXISTS "PlatformDeposit_method_idx" ON "PlatformDeposit"("me
 CREATE INDEX IF NOT EXISTS "PlatformDeposit_expiresAt_idx" ON "PlatformDeposit"("expiresAt");
 CREATE INDEX IF NOT EXISTS "PlatformDeposit_provider_providerPaymentId_idx" ON "PlatformDeposit"("provider", "providerPaymentId");
 
+ALTER TYPE "PlatformLedgerEntryType" ADD VALUE IF NOT EXISTS 'WITHDRAWAL_DEBIT';
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformWithdrawalStatus') THEN
+    CREATE TYPE "PlatformWithdrawalStatus" AS ENUM ('PENDING', 'PROCESSING', 'CONFIRMED', 'FAILED', 'CANCELLED', 'MANUAL_REVIEW');
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformWithdrawalMethod') THEN
+    CREATE TYPE "PlatformWithdrawalMethod" AS ENUM ('STABLECOIN', 'FIAT');
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS "PlatformWithdrawal" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "investorId" TEXT,
+    "status" "PlatformWithdrawalStatus" NOT NULL DEFAULT 'PENDING',
+    "method" "PlatformWithdrawalMethod" NOT NULL,
+    "amountUsd" DECIMAL(20,6) NOT NULL,
+    "currency" TEXT NOT NULL DEFAULT 'USD',
+    "stablecoinNetwork" TEXT,
+    "destinationAddress" TEXT,
+    "txHash" TEXT,
+    "provider" TEXT,
+    "providerPaymentId" TEXT,
+    "providerCheckoutUrl" TEXT,
+    "idempotencyKey" TEXT,
+    "metadata" JSONB NOT NULL DEFAULT '{}',
+    "confirmedAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "PlatformWithdrawal_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "PlatformWithdrawal_txHash_key" ON "PlatformWithdrawal"("txHash") WHERE "txHash" IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS "PlatformWithdrawal_idempotencyKey_key" ON "PlatformWithdrawal"("idempotencyKey") WHERE "idempotencyKey" IS NOT NULL;
+CREATE INDEX IF NOT EXISTS "PlatformWithdrawal_userId_idx" ON "PlatformWithdrawal"("userId");
+CREATE INDEX IF NOT EXISTS "PlatformWithdrawal_investorId_idx" ON "PlatformWithdrawal"("investorId");
+CREATE INDEX IF NOT EXISTS "PlatformWithdrawal_status_idx" ON "PlatformWithdrawal"("status");
+CREATE INDEX IF NOT EXISTS "PlatformWithdrawal_method_idx" ON "PlatformWithdrawal"("method");
+CREATE INDEX IF NOT EXISTS "PlatformWithdrawal_provider_providerPaymentId_idx" ON "PlatformWithdrawal"("provider", "providerPaymentId");
+
 CREATE INDEX IF NOT EXISTS "PortfolioSnapshot_userId_idx" ON "PortfolioSnapshot"("userId");
 CREATE INDEX IF NOT EXISTS "PortfolioSnapshot_investorId_idx" ON "PortfolioSnapshot"("investorId");
 CREATE INDEX IF NOT EXISTS "PortfolioSnapshot_capturedAt_idx" ON "PortfolioSnapshot"("capturedAt");

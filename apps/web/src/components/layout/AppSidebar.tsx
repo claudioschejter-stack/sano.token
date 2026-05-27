@@ -3,6 +3,7 @@
 import {
   ArrowLeftRight,
   Building2,
+  CircleDollarSign,
   Home,
   LayoutDashboard,
   LogOut,
@@ -30,7 +31,7 @@ type NavItem = {
 type InvestorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'home' | 'dashboard' | 'marketplace' | 'secondaryMarket' | 'myAssets' | 'cashFlow';
+  labelKey: 'home' | 'dashboard' | 'marketplace' | 'secondaryMarket' | 'myAssets' | 'myWallet' | 'cashFlow';
   roles?: SystemRole[];
 };
 
@@ -46,12 +47,13 @@ const adminNavItems = [
 type AdvisorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'panel' | 'clients' | 'marketplace' | 'secondaryMarket';
+  labelKey: 'panel' | 'clients' | 'marketplace' | 'secondaryMarket' | 'myWallet';
 };
 
 const advisorNavItems: AdvisorNavConfig[] = [
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
+  { href: '/dashboard/wallet', icon: CircleDollarSign, labelKey: 'myWallet' },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' },
   { href: '/mercado-secundario', icon: ArrowLeftRight, labelKey: 'secondaryMarket' }
 ];
@@ -59,6 +61,7 @@ const advisorNavItems: AdvisorNavConfig[] = [
 const investorNavItems: InvestorNavConfig[] = [
   { href: '/', icon: Home, labelKey: 'home' },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
+  { href: '/dashboard/wallet', icon: CircleDollarSign, labelKey: 'myWallet' },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' },
   { href: '/mercado-secundario', icon: ArrowLeftRight, labelKey: 'secondaryMarket' },
   {
@@ -141,6 +144,8 @@ export function AppSidebar() {
           ? t.nav.marketplace
           : item.labelKey === 'secondaryMarket'
             ? t.nav.secondaryMarket
+            : item.labelKey === 'myWallet'
+              ? t.nav.myWallet
             : t.adminNav.panel
   }));
 
@@ -175,6 +180,13 @@ export function AppSidebar() {
 
         {isAdmin ? (
           <>
+            <Link
+              href="/dashboard/wallet"
+              className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
+            >
+              <CircleDollarSign size={20} />
+              <span>{t.nav.myWallet}</span>
+            </Link>
             <Link
               href="/marketplace"
               className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"

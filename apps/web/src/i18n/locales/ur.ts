@@ -122,6 +122,7 @@ export const ur = {
     dashboard: "ڈیش بورڈ",
     marketplace: "بازار",
     myAssets: "میرے اثاثے",
+    myWallet: 'My Wallet',
     cashFlow: "کیش فلو",
     secondaryMarket: "سیکنڈری مارکیٹ",
     signOut: "سائن آؤٹ کریں۔"

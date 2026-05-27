@@ -16,6 +16,7 @@ import {
   createMercadoPagoCheckout,
   createStripeCheckout
 } from './paymentGatewayAdapters';
+import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
 import { getStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
@@ -130,6 +131,20 @@ async function attachProviderCheckout(input: {
       projectId: input.projectId,
       amountUsd: input.amountUsd,
       tokenCount: input.tokenCount
+    });
+  }
+
+  if (input.method === 'TRANSAK') {
+    return createTransakOnRampCheckout({
+      depositId: input.intentId,
+      amountUsd: input.amountUsd
+    });
+  }
+
+  if (input.method === 'BRIDGE') {
+    return createBridgeOnRampCheckout({
+      depositId: input.intentId,
+      amountUsd: input.amountUsd
     });
   }
 

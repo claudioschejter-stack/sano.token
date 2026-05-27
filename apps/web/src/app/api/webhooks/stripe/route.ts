@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { confirmPaymentIntent, markPaymentIntentFailed } from '../../../../lib/payments/paymentService';
+import { confirmPlatformDeposit } from '../../../../lib/payments/platformWalletService';
 import { verifyStripeSignature } from '../../../../lib/payments/webhookSecurity';
 
 export const dynamic = 'force-dynamic';
@@ -14,14 +15,31 @@ export async function POST(request: Request) {
 
   const event = JSON.parse(payload) as {
     type?: string;
-    data?: { object?: { id?: string; client_reference_id?: string; metadata?: Record<string, string> } };
+    data?: {
+      object?: {
+        id?: string;
+        client_reference_id?: string;
+        metadata?: Record<string, string>;
+      };
+    };
   };
 
   const object = event.data?.object;
+  const depositId = object?.metadata?.depositId;
   const paymentIntentId = object?.metadata?.paymentIntentId || object?.client_reference_id;
 
+  if (depositId && (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded')) {
+    const deposit = await confirmPlatformDeposit({
+      depositId,
+      provider: 'stripe',
+      providerPaymentId: object?.id,
+      metadata: event
+    });
+    return NextResponse.json({ ok: true, deposit });
+  }
+
   if (!paymentIntentId) {
-    return NextResponse.json({ ok: true, ignored: 'missing_payment_intent' });
+    return NextResponse.json({ ok: true, ignored: 'missing_reference' });
   }
 
   if (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded') {

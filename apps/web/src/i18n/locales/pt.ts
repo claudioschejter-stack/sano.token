@@ -122,6 +122,7 @@ export const pt = {
     dashboard: "Painel",
     marketplace: "Mercado",
     myAssets: "Meus ativos",
+    myWallet: 'My Wallet',
     cashFlow: "Fluxo de caixa",
     secondaryMarket: "Mercado Secundário",
     signOut: "Sair"

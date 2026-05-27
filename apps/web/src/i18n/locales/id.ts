@@ -122,6 +122,7 @@ export const id = {
     dashboard: "Dasbor",
     marketplace: "Pasar",
     myAssets: "Aset Saya",
+    myWallet: 'My Wallet',
     cashFlow: "Arus Kas",
     secondaryMarket: "Pasar Sekunder",
     signOut: "Keluar"

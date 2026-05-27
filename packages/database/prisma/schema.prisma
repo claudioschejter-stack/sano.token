@@ -75,6 +75,7 @@ enum StablecoinWalletStatus {
 enum PlatformLedgerEntryType {
   DEPOSIT_CREDIT
   TOKEN_PURCHASE_DEBIT
+  WITHDRAWAL_DEBIT
   REFUND_CREDIT
   MANUAL_ADJUSTMENT
 }
@@ -91,6 +92,20 @@ enum PlatformDepositStatus {
   FAILED
   EXPIRED
   MANUAL_REVIEW
+}
+
+enum PlatformWithdrawalStatus {
+  PENDING
+  PROCESSING
+  CONFIRMED
+  FAILED
+  CANCELLED
+  MANUAL_REVIEW
+}
+
+enum PlatformWithdrawalMethod {
+  STABLECOIN
+  FIAT
 }
 
 enum FiscalRegime {
@@ -565,6 +580,33 @@ model PlatformDeposit {
   @@index([status])
   @@index([method])
   @@index([expiresAt])
+  @@index([provider, providerPaymentId])
+}
+
+model PlatformWithdrawal {
+  id                  String                   @id @default(cuid())
+  userId              String
+  investorId          String?
+  status              PlatformWithdrawalStatus @default(PENDING)
+  method              PlatformWithdrawalMethod
+  amountUsd           Decimal                  @db.Decimal(20, 6)
+  currency            String                   @default("USD")
+  stablecoinNetwork   String?
+  destinationAddress  String?
+  txHash              String?                  @unique
+  provider            String?
+  providerPaymentId   String?
+  providerCheckoutUrl String?
+  idempotencyKey      String?                  @unique
+  metadata            Json                     @default("{}")
+  confirmedAt         DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  @@index([userId])
+  @@index([investorId])
+  @@index([status])
+  @@index([method])
   @@index([provider, providerPaymentId])
 }
 

@@ -122,6 +122,7 @@ export const fr = {
     dashboard: "Tableau de bord",
     marketplace: "Marché",
     myAssets: "Mes atouts",
+    myWallet: 'My Wallet',
     cashFlow: "Des flux de trésorerie",
     secondaryMarket: "Marché secondaire",
     signOut: "Se déconnecter"

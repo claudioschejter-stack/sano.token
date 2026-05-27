@@ -17,6 +17,8 @@
     "db:push": "turbo db:push --filter=@sanova/database",
     "db:rwa-automation": "node scripts/apply-rwa-automation-migration.mjs",
     "db:stablecoin-payments": "node scripts/apply-stablecoin-payments-migration.mjs",
+    "vercel:check-payments": "node scripts/vercel/check-payments-env.mjs",
+    "vercel:sync-payments": "node scripts/vercel/sync-payments-env.mjs",
     "db:seed": "npm run db:seed -w @sanova/database",
     "db:reset-users": "npm run db:reset-users -w @sanova/database",
     "contracts:compile": "turbo compile --filter=@sanova/contracts",
