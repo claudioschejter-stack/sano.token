@@ -67,8 +67,10 @@ export const ja = {
     lendingRatesLiveFootnote: "Live rates aggregated from DefiLlama and on-chain reads ({count} lenders with market data).",
     lendingRatesUpdated: "Updated",
     borrow: {
-      title: "Borrow on DeFi",
+      title: "Borrow with Morpho",
       subtitle: "Connect your wallet and execute a loan on the best available protocol (Aave v3 or Morpho on Base).",
+      subtitleMorpho:
+        "Use your RWA tokens as collateral. The platform prepares vault deposit, collateral, and borrow in one flow.",
       bestRateHint: "Best rate detected",
       amountLabel: "Amount to borrow (USDC)",
       collateralLabel: "WETH collateral to supply on Aave (optional)",
@@ -76,12 +78,22 @@ export const ja = {
       walletConnected: "Wallet connected.",
       connectFirst: "Connect your wallet first.",
       borrowButton: "Execute loan",
-      preparing: "Preparing transactions…",
-      signingStep: "Sign transaction {step} in your wallet…",
-      success: "Loan submitted on-chain. Check your wallet.",
+      oneClickBorrow: "Borrow (one click)",
+      notReadyButton: "Borrow unavailable",
+      notReady: "This asset is not ready for collateralized borrowing yet.",
+      useMax: "Max",
+      previewReady: "You can borrow up to {max} USDC based on your RWA collateral.",
+      previewEmpty: "Buy RWA tokens for this project to use automatic borrowing.",
+      preparing: "Preparing automatic transactions…",
+      signingSingle: "Confirm the operation in your wallet…",
+      signingBatch: "Step {current}/{total}: confirm in your wallet…",
+      success: "Loan completed. USDC credited to your wallet.",
       prepareFailed: "Could not prepare the loan.",
       noWallet: "Install MetaMask or another EIP-1193 compatible wallet.",
-      disclaimer: "On-chain operation with market risk. For ERC-4626 collateral (RWA tokens), the Morpho market is created when the vault is issued (Phase C)."
+      disclaimer:
+        "On-chain operation with market risk. For ERC-4626 collateral (RWA tokens), the Morpho market is created when the vault is issued (Phase C).",
+      disclaimerMorpho:
+        "Sanova automatically prepares vault deposit, Morpho collateral, and USDC borrow. You only sign (1 or more txs depending on your wallet)."
     },
     lenderRegions: {
       global: "グローバル",
