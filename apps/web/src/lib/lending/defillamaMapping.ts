@@ -7,6 +7,7 @@ export const DEFILLAMA_PROJECTS_BY_LENDER: Record<string, string[]> = {
   compound: ['compound-v3'],
   sky: ['makerdao', 'sky-lending'],
   morpho: ['morpho-v1', 'morpho-blue'],
+  moonwell: ['moonwell'],
   spark: ['spark'],
   euler: ['euler-v2', 'euler'],
   radiant: ['radiant-v2', 'radiant'],

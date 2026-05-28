@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
     if (!prepared) {
       return NextResponse.json(
-        { error: 'Unable to prepare borrow transaction. Check collateral and Morpho oracle config.' },
+        { error: 'Unable to prepare borrow transaction. Check protocol, collateral, and Morpho oracle config.' },
         { status: 404 }
       );
     }

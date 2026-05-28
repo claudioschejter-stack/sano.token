@@ -70,14 +70,16 @@ export const es = {
       'Tasas en vivo agregadas desde DefiLlama y lecturas on-chain ({count} prestamistas con datos de mercado).',
     lendingRatesUpdated: 'Actualizado',
     borrow: {
-      title: 'Pedir préstamo con Morpho',
+      title: 'Pedir préstamo en DeFi (Base)',
       subtitle:
-        'Conectá tu wallet y ejecutá el préstamo en el protocolo con mejor tasa disponible (Aave v3 o Morpho en Base).',
+        'Conectá tu wallet y pedí USDC en la mejor tasa entre Aave, Moonwell, Compound y Morpho (Base). Spark está disponible en Ethereum.',
       subtitleMorpho:
         'Usá tus tokens RWA como colateral. La plataforma prepara depósito, colateral y borrow en un solo flujo.',
-      bestRateHint: 'Mejor tasa detectada',
+      protocolLabel: 'Prestamista',
+      morphoRequiresRwa: 'requiere vault RWA',
+      bestRateHint: 'Tasa seleccionada',
       amountLabel: 'Monto a pedir prestado (USDC)',
-      collateralLabel: 'Colateral WETH a depositar en Aave (opcional)',
+      collateralLabel: 'Colateral WETH a depositar (opcional, default 0.1 ETH)',
       connectWallet: 'Conectar wallet',
       walletConnected: 'Wallet conectada.',
       connectFirst: 'Conectá tu wallet primero.',
@@ -97,7 +99,9 @@ export const es = {
       disclaimer:
         'Operación on-chain con riesgo de mercado. Para colateral ERC-4626 (tokens RWA), el mercado Morpho se crea al emitir el vault (Fase C).',
       disclaimerMorpho:
-        'Sanova arma automáticamente depósito en vault, colateral Morpho y borrow USDC. Solo tenés que firmar (1 o más txs según tu wallet).'
+        'Sanova arma automáticamente depósito en vault, colateral Morpho y borrow USDC. Solo tenés que firmar (1 o más txs según tu wallet).',
+      disclaimerWeth:
+        'Sanova prepara el depósito de WETH como colateral y el borrow USDC en el protocolo elegido. Firmás cada transacción en tu wallet. Aplica riesgo de mercado y liquidación.'
     },
     lenderRegions: {
       global: 'Global',

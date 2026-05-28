@@ -19,6 +19,7 @@ export const WORLD_LENDERS: LenderDefinition[] = [
   { id: 'compound', name: 'Compound v3', region: 'global', category: 'money_market', envKey: 'COMPOUND_BORROW_APY_BPS', defaultBorrowApyBps: 512 },
   { id: 'sky', name: 'Sky (MakerDAO)', region: 'global', category: 'money_market', envKey: 'MAKER_BORROW_APY_BPS', defaultBorrowApyBps: 438 },
   { id: 'morpho', name: 'Morpho', region: 'global', category: 'money_market', envKey: 'MORPHO_BORROW_APY_BPS', defaultBorrowApyBps: 451 },
+  { id: 'moonwell', name: 'Moonwell', region: 'global', category: 'money_market', envKey: 'MOONWELL_BORROW_APY_BPS', defaultBorrowApyBps: 498 },
   { id: 'spark', name: 'Spark Protocol', region: 'global', category: 'money_market', envKey: 'SPARK_BORROW_APY_BPS', defaultBorrowApyBps: 469 },
   { id: 'euler', name: 'Euler Finance', region: 'global', category: 'money_market', envKey: 'EULER_BORROW_APY_BPS', defaultBorrowApyBps: 528 },
   { id: 'radiant', name: 'Radiant Capital', region: 'global', category: 'money_market', envKey: 'RADIANT_BORROW_APY_BPS', defaultBorrowApyBps: 541 },

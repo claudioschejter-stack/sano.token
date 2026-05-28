@@ -71,6 +71,8 @@ export const ru = {
       subtitle: "Connect your wallet and execute a loan on the best available protocol (Aave v3 or Morpho on Base).",
       subtitleMorpho:
         "Use your RWA tokens as collateral. The platform prepares vault deposit, collateral, and borrow in one flow.",
+      protocolLabel: "Lender",
+      morphoRequiresRwa: "requires RWA vault",
       bestRateHint: "Best rate detected",
       amountLabel: "Amount to borrow (USDC)",
       collateralLabel: "WETH collateral to supply on Aave (optional)",
@@ -93,7 +95,9 @@ export const ru = {
       disclaimer:
         "On-chain operation with market risk. For ERC-4626 collateral (RWA tokens), the Morpho market is created when the vault is issued (Phase C).",
       disclaimerMorpho:
-        "Sanova automatically prepares vault deposit, Morpho collateral, and USDC borrow. You only sign (1 or more txs depending on your wallet)."
+        "Sanova automatically prepares vault deposit, Morpho collateral, and USDC borrow. You only sign (1 or more txs depending on your wallet).",
+      disclaimerWeth:
+        "Sanova prepares WETH collateral supply and USDC borrow on the selected protocol. You sign each transaction in your wallet. Market and liquidation risk applies."
     },
     lenderRegions: {
       global: "Глобальный",

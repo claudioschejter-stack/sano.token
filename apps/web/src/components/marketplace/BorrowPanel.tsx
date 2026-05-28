@@ -1,10 +1,12 @@
 'use client';
 
 import { Loader2, Zap } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserProvider } from 'ethers';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { BestBorrowRateResponse } from '../../types/marketplace';
+
+const EXECUTABLE_PROTOCOL_IDS = new Set(['aave', 'morpho', 'moonwell', 'compound', 'spark']);
 
 type BorrowPanelProps = {
   borrowRate: BestBorrowRateResponse;
@@ -22,12 +24,34 @@ type BorrowPreview = {
 
 export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow = true }: BorrowPanelProps) {
   const m = useTranslation().marketplace.borrow;
-  const isMorpho = Boolean(projectId && vaultAddress && readyToBorrow);
+  const isMorphoRwa = Boolean(projectId && vaultAddress && readyToBorrow);
+
+  const executableQuotes = useMemo(
+    () => borrowRate.quotes.filter((quote) => EXECUTABLE_PROTOCOL_IDS.has(quote.id)),
+    [borrowRate.quotes]
+  );
+
+  const morphoQuote = executableQuotes.find((quote) => quote.id === 'morpho');
+  const defaultProtocol =
+    isMorphoRwa && morphoQuote ? 'morpho' : (executableQuotes[0]?.id ?? 'aave');
+
+  const [selectedProtocol, setSelectedProtocol] = useState(defaultProtocol);
   const [amountUsd, setAmountUsd] = useState('1000');
+  const [collateralEth, setCollateralEth] = useState('0.1');
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [preview, setPreview] = useState<BorrowPreview | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const isMorphoSelected = selectedProtocol === 'morpho' && isMorphoRwa;
+  const selectedQuote =
+    executableQuotes.find((quote) => quote.id === selectedProtocol) ?? executableQuotes[0];
+
+  useEffect(() => {
+    if (!executableQuotes.some((quote) => quote.id === selectedProtocol)) {
+      setSelectedProtocol(defaultProtocol);
+    }
+  }, [defaultProtocol, executableQuotes, selectedProtocol]);
 
   const connectWallet = useCallback(async (): Promise<string | null> => {
     if (!window.ethereum) {
@@ -44,7 +68,8 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
 
   const loadPreview = useCallback(
     async (address: string) => {
-      if (!isMorpho || !projectId) {
+      if (!isMorphoRwa || !projectId || selectedProtocol !== 'morpho') {
+        setPreview(null);
         return;
       }
 
@@ -69,11 +94,11 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         setAmountUsd(String(Math.floor(payload.preview.suggestedBorrowUsd)));
       }
     },
-    [amountUsd, isMorpho, projectId]
+    [amountUsd, isMorphoRwa, projectId, selectedProtocol]
   );
 
   useEffect(() => {
-    if (!window.ethereum || !isMorpho) {
+    if (!window.ethereum || !isMorphoRwa || selectedProtocol !== 'morpho') {
       return;
     }
 
@@ -86,7 +111,7 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         await loadPreview(address);
       }
     })();
-  }, [isMorpho, loadPreview]);
+  }, [isMorphoRwa, loadPreview, selectedProtocol]);
 
   async function executeBorrow() {
     setBusy(true);
@@ -102,9 +127,11 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         return;
       }
 
-      if (!readyToBorrow || !projectId || !vaultAddress) {
-        setStatus(m.notReady);
-        return;
+      if (isMorphoSelected) {
+        if (!readyToBorrow || !projectId || !vaultAddress) {
+          setStatus(m.notReady);
+          return;
+        }
       }
 
       const response = await fetch('/api/lending/prepare', {
@@ -112,10 +139,11 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amountUsd: Number(amountUsd),
+          collateralEth: isMorphoSelected ? undefined : Number(collateralEth),
           walletAddress: address,
-          projectId,
-          vaultAddress,
-          preferProtocol: 'morpho'
+          projectId: isMorphoSelected ? projectId : undefined,
+          vaultAddress: isMorphoSelected ? vaultAddress : undefined,
+          preferProtocol: selectedProtocol
         })
       });
 
@@ -159,7 +187,9 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
       }
 
       setStatus(m.success);
-      await loadPreview(address);
+      if (isMorphoSelected) {
+        await loadPreview(address);
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : m.prepareFailed);
     } finally {
@@ -167,19 +197,47 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
     }
   }
 
-  const bestApy = (borrowRate.best.borrowApyBps / 100).toFixed(2);
+  const bestApy = selectedQuote ? (selectedQuote.borrowApyBps / 100).toFixed(2) : '—';
+  const canExecute =
+    Number(amountUsd) > 0 &&
+    (isMorphoSelected ? readyToBorrow : selectedProtocol !== 'morpho' || !isMorphoRwa);
 
   return (
     <section className="mt-6 overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
       <div className="border-b border-terminal-border px-4 py-4 md:px-6">
         <h2 className="text-lg font-bold text-terminal-text">{m.title}</h2>
-        <p className="mt-1 text-sm text-terminal-muted">{isMorpho ? m.subtitleMorpho : m.subtitle}</p>
-        <p className="mt-2 text-xs text-terminal-muted">
-          {m.bestRateHint}: <span className="font-mono text-terminal-primary">{bestApy}% APY</span> · Morpho
+        <p className="mt-1 text-sm text-terminal-muted">
+          {isMorphoSelected ? m.subtitleMorpho : m.subtitle}
         </p>
+        {selectedQuote ? (
+          <p className="mt-2 text-xs text-terminal-muted">
+            {m.bestRateHint}:{' '}
+            <span className="font-mono text-terminal-primary">
+              {bestApy}% APY · {selectedQuote.name}
+            </span>
+          </p>
+        ) : null}
       </div>
 
       <div className="grid gap-4 px-4 py-5 md:grid-cols-2 md:px-6">
+        {executableQuotes.length > 1 ? (
+          <label className="block text-sm md:col-span-2">
+            <span className="text-terminal-muted">{m.protocolLabel}</span>
+            <select
+              value={selectedProtocol}
+              onChange={(event) => setSelectedProtocol(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm text-terminal-text"
+            >
+              {executableQuotes.map((quote) => (
+                <option key={quote.id} value={quote.id} disabled={quote.id === 'morpho' && !isMorphoRwa}>
+                  {quote.name} ({(quote.borrowApyBps / 100).toFixed(2)}% APY)
+                  {quote.id === 'morpho' && !isMorphoRwa ? ` — ${m.morphoRequiresRwa}` : ''}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+
         <label className="block text-sm md:col-span-2">
           <span className="text-terminal-muted">{m.amountLabel}</span>
           <div className="mt-1 flex gap-2">
@@ -202,6 +260,21 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
             ) : null}
           </div>
         </label>
+
+        {!isMorphoSelected ? (
+          <label className="block text-sm md:col-span-2">
+            <span className="text-terminal-muted">{m.collateralLabel}</span>
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={collateralEth}
+              onChange={(event) => setCollateralEth(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-terminal-text"
+            />
+          </label>
+        ) : null}
+
         {preview ? (
           <p className="text-xs text-terminal-muted md:col-span-2">
             {preview.ready
@@ -214,12 +287,12 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
       <div className="flex flex-wrap items-center gap-3 border-t border-terminal-border px-4 py-4 md:px-6">
         <button
           type="button"
-          disabled={busy || !readyToBorrow}
+          disabled={busy || !canExecute}
           onClick={() => void executeBorrow()}
           className="inline-flex items-center gap-2 rounded-lg bg-terminal-primary px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
         >
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
-          {readyToBorrow ? m.oneClickBorrow : m.notReadyButton}
+          {canExecute ? m.oneClickBorrow : m.notReadyButton}
         </button>
         {walletAddress ? (
           <span className="text-xs font-mono text-terminal-muted">
@@ -228,8 +301,12 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         ) : null}
       </div>
 
-      {status ? <p className="border-t border-terminal-border px-4 py-3 text-xs text-terminal-muted md:px-6">{status}</p> : null}
-      <p className="border-t border-terminal-border px-4 py-3 text-xs text-terminal-muted md:px-6">{m.disclaimerMorpho}</p>
+      {status ? (
+        <p className="border-t border-terminal-border px-4 py-3 text-xs text-terminal-muted md:px-6">{status}</p>
+      ) : null}
+      <p className="border-t border-terminal-border px-4 py-3 text-xs text-terminal-muted md:px-6">
+        {isMorphoSelected ? m.disclaimerMorpho : m.disclaimerWeth}
+      </p>
     </section>
   );
 }

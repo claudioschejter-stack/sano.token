@@ -1,8 +1,10 @@
 import { fetchLiveBorrowRates } from './fetchLiveBorrowRates';
 import {
-  EXECUTABLE_BORROW_PROTOCOLS,
   getLendingChainConfig,
-  isExecutableBorrowProtocol
+  isExecutableBorrowProtocol,
+  isWethCollateralProtocol,
+  listExecutableProtocolsForChain,
+  type WethCollateralProtocol
 } from './baseContracts';
 import {
   ethToWei,
@@ -15,6 +17,9 @@ import {
   buildDefaultMorphoMarketParams,
   prepareMorphoBorrowUsdc
 } from './protocols/morphoBorrow';
+import { prepareCompoundWethCollateralBorrow } from './protocols/compoundBorrow';
+import { prepareMoonwellWethCollateralBorrow } from './protocols/moonwellBorrow';
+import { prepareSparkBorrowUsdc, prepareSparkSupplyWeth } from './protocols/sparkBorrow';
 import { planMorphoBorrowTransactions, previewMorphoBorrow } from './morphoBorrowPlanner';
 import { getAdminAsset } from '../admin/assetsService';
 import { allowedExternalContracts, borrowSafetyBps, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
@@ -44,6 +49,8 @@ export type PrepareBorrowResponse = {
   marketId?: string;
 };
 
+const DEFAULT_COLLATERAL_ETH = 0.1;
+
 function maxSafeBorrowUsd(asset: NonNullable<Awaited<ReturnType<typeof getAdminAsset>>>): number {
   const navUsd = asset.totalTokens * asset.pricePerToken;
   const lltvBpsRaw = Number(process.env.MORPHO_DEFAULT_LLTV_BPS ?? '6000');
@@ -64,41 +71,79 @@ async function resolveMorphoOracleAddress(projectId?: string): Promise<string | 
   return morphoTarget?.oracleAddress ?? null;
 }
 
+function resolveCollateralEth(collateralEth?: number): number {
+  if (collateralEth != null && Number.isFinite(collateralEth) && collateralEth > 0) {
+    return collateralEth;
+  }
+  return DEFAULT_COLLATERAL_ETH;
+}
+
+function prepareWethCollateralBorrow(
+  protocol: WethCollateralProtocol,
+  amountUsd: number,
+  collateralEth: number,
+  walletAddress: string
+): PreparedTransaction[] | null {
+  const amountBaseUnits = usdcToBaseUnits(amountUsd);
+  const collateralWei = ethToWei(collateralEth);
+
+  switch (protocol) {
+    case 'aave': {
+      const transactions: PreparedTransaction[] = [];
+      transactions.push(prepareAaveSupplyWeth(collateralWei, walletAddress));
+      transactions.push(prepareAaveBorrowUsdc(amountBaseUnits, walletAddress));
+      return transactions;
+    }
+    case 'spark': {
+      const supply = prepareSparkSupplyWeth(collateralWei, walletAddress);
+      const borrow = prepareSparkBorrowUsdc(amountBaseUnits, walletAddress);
+      if (!supply || !borrow) {
+        return null;
+      }
+      return [supply, borrow];
+    }
+    case 'moonwell':
+      return prepareMoonwellWethCollateralBorrow(collateralWei, amountBaseUnits);
+    case 'compound':
+      return prepareCompoundWethCollateralBorrow(collateralWei, amountBaseUnits);
+    default:
+      return null;
+  }
+}
+
 export async function quoteBorrow(request: BorrowQuoteRequest): Promise<BorrowQuoteResponse | null> {
   if (!Number.isFinite(request.amountUsd) || request.amountUsd <= 0) {
     return null;
   }
 
+  const chainConfig = getLendingChainConfig();
   const rates = await fetchLiveBorrowRates();
-  const executable = rates.quotes.filter((quote) => isExecutableBorrowProtocol(quote.id));
+  const executable = rates.quotes.filter((quote) => isExecutableBorrowProtocol(quote.id, chainConfig));
 
   if (executable.length === 0) {
     return null;
   }
 
   let selected = executable[0];
-  if (request.preferProtocol && isExecutableBorrowProtocol(request.preferProtocol)) {
+
+  if (request.preferProtocol && isExecutableBorrowProtocol(request.preferProtocol, chainConfig)) {
     const preferred = executable.find((quote) => quote.id === request.preferProtocol);
     if (preferred) {
       selected = preferred;
     }
-  }
-
-  if (request.vaultAddress && rates.quotes.some((q) => q.id === 'morpho')) {
-    const morpho = rates.quotes.find((q) => q.id === 'morpho');
+  } else if (request.vaultAddress && executable.some((q) => q.id === 'morpho')) {
+    const morpho = executable.find((q) => q.id === 'morpho');
     if (morpho) {
       selected = morpho;
     }
   }
-
-  const { chainId } = getLendingChainConfig();
 
   return {
     protocol: selected.id,
     protocolName: selected.name,
     borrowApyBps: selected.borrowApyBps,
     amountUsd: request.amountUsd,
-    chainId,
+    chainId: chainConfig.chainId,
     source: selected.source ?? 'borrow-router'
   };
 }
@@ -110,7 +155,8 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
   }
 
   const amountBaseUnits = usdcToBaseUnits(request.amountUsd);
-  const { chainId } = getLendingChainConfig();
+  const chainConfig = getLendingChainConfig();
+  const { chainId } = chainConfig;
 
   if (quote.protocol === 'morpho') {
     const vault = request.vaultAddress?.trim();
@@ -159,7 +205,7 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
       marketParams.loanToken,
       marketParams.oracle,
       marketParams.irm,
-      getLendingChainConfig().morpho
+      chainConfig.morpho
     ].map((address) => address.toLowerCase());
     if (requiredContracts.some((address) => !allowedContracts.has(address))) {
       return null;
@@ -180,25 +226,31 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
     };
   }
 
-  const transactions: PreparedTransaction[] = [];
-
-  if (request.collateralEth && request.collateralEth > 0) {
-    transactions.push(
-      prepareAaveSupplyWeth(ethToWei(request.collateralEth), request.walletAddress)
+  if (isWethCollateralProtocol(quote.protocol)) {
+    const collateralEth = resolveCollateralEth(request.collateralEth);
+    const transactions = prepareWethCollateralBorrow(
+      quote.protocol,
+      request.amountUsd,
+      collateralEth,
+      request.walletAddress
     );
+
+    if (!transactions || transactions.length === 0) {
+      return null;
+    }
+
+    return {
+      protocol: quote.protocol,
+      chainId,
+      transactions
+    };
   }
 
-  transactions.push(prepareAaveBorrowUsdc(amountBaseUnits, request.walletAddress));
-
-  return {
-    protocol: 'aave',
-    chainId,
-    transactions
-  };
+  return null;
 }
 
 export function listExecutableProtocols(): string[] {
-  return [...EXECUTABLE_BORROW_PROTOCOLS];
+  return [...listExecutableProtocolsForChain()];
 }
 
 export async function previewMorphoBorrowForProject(input: {

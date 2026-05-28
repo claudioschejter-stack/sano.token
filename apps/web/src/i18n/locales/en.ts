@@ -65,13 +65,16 @@ export const en = {
     lendingRatesLiveFootnote: "Live rates aggregated from DefiLlama and on-chain reads ({count} lenders with market data).",
     lendingRatesUpdated: "Updated",
     borrow: {
-      title: "Borrow with Morpho",
-      subtitle: "Connect your wallet and execute a loan on the best available protocol (Aave v3 or Morpho on Base).",
+      title: "Borrow on Base DeFi",
+      subtitle:
+        "Connect your wallet and borrow USDC on the best rate among Aave, Moonwell, Compound and Morpho (Base). Spark is available when lending on Ethereum.",
       subtitleMorpho:
         "Use your RWA tokens as collateral. The platform prepares vault deposit, collateral, and borrow in one flow.",
-      bestRateHint: "Best rate detected",
+      protocolLabel: "Lender",
+      morphoRequiresRwa: "requires RWA vault",
+      bestRateHint: "Selected rate",
       amountLabel: "Amount to borrow (USDC)",
-      collateralLabel: "WETH collateral to supply on Aave (optional)",
+      collateralLabel: "WETH collateral to supply (optional, default 0.1 ETH)",
       connectWallet: "Connect wallet",
       walletConnected: "Wallet connected.",
       connectFirst: "Connect your wallet first.",
@@ -91,7 +94,9 @@ export const en = {
       disclaimer:
         "On-chain operation with market risk. For ERC-4626 collateral (RWA tokens), the Morpho market is created when the vault is issued (Phase C).",
       disclaimerMorpho:
-        "Sanova automatically prepares vault deposit, Morpho collateral, and USDC borrow. You only sign (1 or more txs depending on your wallet)."
+        "Sanova automatically prepares vault deposit, Morpho collateral, and USDC borrow. You only sign (1 or more txs depending on your wallet).",
+      disclaimerWeth:
+        "Sanova prepares WETH collateral supply and USDC borrow on the selected protocol. You sign each transaction in your wallet. Market and liquidation risk applies."
     },
     lenderRegions: {
       global: "Global",

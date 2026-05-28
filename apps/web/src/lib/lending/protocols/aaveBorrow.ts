@@ -1,42 +1,25 @@
-import { Interface } from 'ethers';
 import { getLendingChainConfig } from '../baseContracts';
-
-const AAVE_POOL_ABI = [
-  'function borrow(address asset, uint256 amount, uint256 interestRateMode, uint16 referralCode, address onBehalfOf)',
-  'function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode)'
-];
-
-const poolInterface = new Interface(AAVE_POOL_ABI);
+import {
+  prepareAaveV3BorrowUsdc,
+  prepareAaveV3SupplyWeth
+} from './aaveV3PoolBorrow';
 
 export type PreparedTransaction = {
   to: string;
   data: string;
   value: string;
   description: string;
+  marketId?: string;
 };
 
 export function prepareAaveSupplyWeth(amountWei: bigint, onBehalfOf: string): PreparedTransaction {
   const { aavePool, weth } = getLendingChainConfig();
-  const data = poolInterface.encodeFunctionData('supply', [weth, amountWei, onBehalfOf, 0]);
-
-  return {
-    to: aavePool,
-    data,
-    value: '0',
-    description: 'Supply WETH collateral on Aave v3'
-  };
+  return prepareAaveV3SupplyWeth(aavePool, weth, amountWei, onBehalfOf);
 }
 
 export function prepareAaveBorrowUsdc(amountBaseUnits: bigint, onBehalfOf: string): PreparedTransaction {
   const { aavePool, usdc } = getLendingChainConfig();
-  const data = poolInterface.encodeFunctionData('borrow', [usdc, amountBaseUnits, 2, 0, onBehalfOf]);
-
-  return {
-    to: aavePool,
-    data,
-    value: '0',
-    description: 'Borrow USDC on Aave v3 (variable rate)'
-  };
+  return prepareAaveV3BorrowUsdc(aavePool, usdc, amountBaseUnits, onBehalfOf, 'Aave v3');
 }
 
 export function usdcToBaseUnits(amountUsd: number): bigint {
