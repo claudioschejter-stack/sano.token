@@ -2,15 +2,22 @@ import { Contract, JsonRpcProvider } from 'ethers';
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin/assetsService';
 import { notifyMorphoLiquidity } from '../admin/automationAlerts';
-import { resolveChainId } from '../blockchain/explorerUrls';
+import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 import { getLendingChainConfig } from './baseContracts';
 import { buildDefaultMorphoMarketParams } from './protocols/morphoBorrow';
 
 function resolveRpcUrl(chainId: number): string {
-  if (chainId === 84532 || chainId === 8453) {
-    return process.env.BASE_RPC_URL?.trim() || (chainId === 84532 ? 'https://sepolia.base.org' : 'https://mainnet.base.org');
+  if (chainId === 8453) {
+    return (
+      process.env.LENDING_BASE_RPC_URL?.trim() ||
+      process.env.BASE_RPC_URL?.trim() ||
+      'https://mainnet.base.org'
+    );
   }
-  return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
+  if (chainId === 84532) {
+    return process.env.BASE_SEPOLIA_RPC_URL?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
+  }
+  return process.env.LENDING_BASE_RPC_URL?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 }
 
 export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
@@ -26,7 +33,7 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
     return { status: 'NO_MARKET' as const, availableAssets: '0' };
   }
 
-  const chainId = resolveChainId();
+  const chainId = resolveMorphoChainId();
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
   try {
     const morpho = new Contract(

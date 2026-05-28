@@ -30,8 +30,8 @@ function parseEnvFile(path) {
 }
 
 const env = {
-  ...parseEnvFile(join(root, '.env')),
-  ...parseEnvFile(join(root, 'apps/web/.env.local'))
+  ...parseEnvFile(join(root, 'apps/web/.env.local')),
+  ...parseEnvFile(join(root, '.env'))
 };
 
 function addEnv(name, value, environments = ['production', 'preview']) {
@@ -62,6 +62,8 @@ const cronSecret =
 const vars = [
   ['CRON_SECRET', cronSecret],
   ['BASE_RPC_URL', env.BASE_RPC_URL || 'https://mainnet.base.org'],
+  ['LENDING_CHAIN_ID', env.LENDING_CHAIN_ID || '8453'],
+  ['LENDING_BASE_RPC_URL', env.LENDING_BASE_RPC_URL || env.BASE_RPC_URL || 'https://mainnet.base.org'],
   ['LENDING_RATES_CACHE_TTL_MINUTES', env.LENDING_RATES_CACHE_TTL_MINUTES || '15'],
   ['LENDING_ONCHAIN_RATES', env.LENDING_ONCHAIN_RATES || 'true'],
   ['TOKEN_DEPLOY_CHAIN_ID', env.TOKEN_DEPLOY_CHAIN_ID || '8453'],
@@ -121,9 +123,12 @@ const vars = [
   ['MERCADOPAGO_WEBHOOK_SECRET', env.MERCADOPAGO_WEBHOOK_SECRET],
   ['COINBASE_COMMERCE_API_KEY', env.COINBASE_COMMERCE_API_KEY],
   ['COINBASE_COMMERCE_WEBHOOK_SECRET', env.COINBASE_COMMERCE_WEBHOOK_SECRET],
+  ['MORPHO_CHAIN_ID', env.MORPHO_CHAIN_ID || env.LENDING_CHAIN_ID || '8453'],
   ['MORPHO_DEFAULT_LLTV_BPS', env.MORPHO_DEFAULT_LLTV_BPS || '6000'],
   ['MORPHO_ORACLE_ADDRESS', env.MORPHO_ORACLE_ADDRESS],
   ['MORPHO_CURATOR_ADDRESS', env.MORPHO_CURATOR_ADDRESS],
+  ['RWA_OPERATOR_ADDRESS', env.RWA_OPERATOR_ADDRESS],
+  ['RWA_ALLOWED_EXTERNAL_CONTRACTS', env.RWA_ALLOWED_EXTERNAL_CONTRACTS],
   ['BASESCAN_API_KEY', env.BASESCAN_API_KEY]
 ];
 

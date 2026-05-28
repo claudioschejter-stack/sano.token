@@ -113,7 +113,7 @@ const EMPTY_FORM: FormState = {
   deployToken: true,
   collateralCentrifuge: false,
   collateralSky: false,
-  collateralMorpho: false,
+  collateralMorpho: true,
   collateralAaveHorizon: false,
   collateralMaple: false,
   collateralClearpool: false,
@@ -990,7 +990,14 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                   <span className="text-terminal-muted">{l.fieldTokenStandard}</span>
                   <select
                     value={form.tokenStandard}
-                    onChange={(e) => setForm({ ...form, tokenStandard: e.target.value as TokenStandard })}
+                    onChange={(e) => {
+                      const tokenStandard = e.target.value as TokenStandard;
+                      setForm({
+                        ...form,
+                        tokenStandard,
+                        collateralMorpho: tokenStandard === 'ERC4626' ? true : form.collateralMorpho
+                      });
+                    }}
                     className={inputClass}
                   >
                     <option value="SANOVA_KYC">{l.tokenStandardSanova}</option>

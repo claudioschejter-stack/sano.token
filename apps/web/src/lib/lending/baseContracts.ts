@@ -1,4 +1,4 @@
-import { resolveChainId } from '../blockchain/explorerUrls';
+import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 
 export type LendingChainConfig = {
   chainId: number;
@@ -28,7 +28,7 @@ const BASE_SEPOLIA: LendingChainConfig = {
 };
 
 export function getLendingChainConfig(): LendingChainConfig {
-  const chainId = resolveChainId();
+  const chainId = resolveMorphoChainId();
   if (chainId === 84532) {
     return BASE_SEPOLIA;
   }

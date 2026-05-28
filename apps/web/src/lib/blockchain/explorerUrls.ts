@@ -3,6 +3,16 @@ export function resolveChainId(): number {
   return Number.parseInt(raw, 10);
 }
 
+/** Chain for Morpho borrow markets (defaults to Base mainnet in production). */
+export function resolveMorphoChainId(): number {
+  const raw =
+    process.env.MORPHO_CHAIN_ID?.trim() ||
+    process.env.LENDING_CHAIN_ID?.trim() ||
+    process.env.TOKEN_DEPLOY_CHAIN_ID?.trim() ||
+    '8453';
+  return Number.parseInt(raw, 10);
+}
+
 export function explorerUrl(chainId: number, address: string): string {
   if (chainId === 84532) {
     return `https://sepolia.basescan.org/address/${address}`;

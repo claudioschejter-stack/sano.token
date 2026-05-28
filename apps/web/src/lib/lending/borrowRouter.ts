@@ -15,6 +15,7 @@ import {
   buildDefaultMorphoMarketParams,
   prepareMorphoBorrowUsdc
 } from './protocols/morphoBorrow';
+import { planMorphoBorrowTransactions, previewMorphoBorrow } from './morphoBorrowPlanner';
 import { getAdminAsset } from '../admin/assetsService';
 import { allowedExternalContracts, borrowSafetyBps, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
 
@@ -133,6 +134,22 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
     }
 
     const oracleAddress = await resolveMorphoOracleAddress(request.projectId);
+    const planned = await planMorphoBorrowTransactions({
+      asset,
+      walletAddress: request.walletAddress,
+      amountUsd: request.amountUsd,
+      oracleAddress
+    });
+
+    if (planned) {
+      return {
+        protocol: 'morpho',
+        chainId,
+        transactions: planned.transactions,
+        marketId: planned.marketId
+      };
+    }
+
     const marketParams = buildDefaultMorphoMarketParams(vault, oracleAddress);
     if (!marketParams) {
       return null;
@@ -182,4 +199,26 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
 
 export function listExecutableProtocols(): string[] {
   return [...EXECUTABLE_BORROW_PROTOCOLS];
+}
+
+export async function previewMorphoBorrowForProject(input: {
+  projectId: string;
+  walletAddress: string;
+  amountUsd?: number;
+}) {
+  const asset = await getAdminAsset(input.projectId);
+  if (!asset) {
+    return null;
+  }
+
+  const morphoTarget = asset.collateralTargets.find(
+    (target) => target.protocol === 'MORPHO' && target.status === 'REGISTERED'
+  );
+
+  return previewMorphoBorrow({
+    asset,
+    walletAddress: input.walletAddress,
+    amountUsd: input.amountUsd,
+    oracleAddress: morphoTarget?.oracleAddress ?? null
+  });
 }

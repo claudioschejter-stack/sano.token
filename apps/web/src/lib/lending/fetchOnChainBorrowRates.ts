@@ -19,12 +19,16 @@ const POOL_ABI = [
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 8453) {
-    return process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
+    return (
+      process.env.LENDING_BASE_RPC_URL?.trim() ||
+      process.env.BASE_RPC_URL?.trim() ||
+      'https://mainnet.base.org'
+    );
   }
   if (chainId === 84532) {
-    return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
+    return process.env.BASE_SEPOLIA_RPC_URL?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
   }
-  return process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
+  return process.env.LENDING_BASE_RPC_URL?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 }
 
 export type OnChainBorrowQuote = {
@@ -40,7 +44,11 @@ export async function fetchOnChainBorrowQuotes(): Promise<Map<string, OnChainBor
     return new Map();
   }
 
-  const chainId = resolveChainId();
+  const lendingChainRaw = process.env.LENDING_CHAIN_ID?.trim();
+  const chainId =
+    lendingChainRaw && Number.isFinite(Number(lendingChainRaw))
+      ? Number.parseInt(lendingChainRaw, 10)
+      : resolveChainId();
   const poolAddress = AAVE_POOL_BY_CHAIN[chainId];
   const usdcAddress = USDC_BY_CHAIN[chainId];
 

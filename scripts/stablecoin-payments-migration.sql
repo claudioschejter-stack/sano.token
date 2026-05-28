@@ -1,61 +1,68 @@
 -- Idempotent production migration for stablecoin wallets and payment intents.
 -- Safe to run multiple times against Supabase/Postgres.
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PaymentMethod') THEN
-    CREATE TYPE "PaymentMethod" AS ENUM ('INTERNAL_BALANCE', 'USDC_ONCHAIN', 'LOCAL_RAIL', 'BRIDGE', 'TRANSAK', 'RAMP', 'STRIPE', 'MERCADO_PAGO', 'COINBASE', 'CUSTODIAL_STABLECOIN');
-  END IF;
+CREATE TYPE "PaymentMethod" AS ENUM ('INTERNAL_BALANCE', 'USDC_ONCHAIN', 'LOCAL_RAIL', 'BRIDGE', 'TRANSAK', 'RAMP', 'STRIPE', 'MERCADO_PAGO', 'COINBASE', 'CUSTODIAL_STABLECOIN');
+
+DO $$ BEGIN
+  ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'INTERNAL_BALANCE';
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'LOCAL_RAIL';
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'BRIDGE';
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'TRANSAK';
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+DO $$ BEGIN
+  ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'RAMP';
+EXCEPTION WHEN undefined_object THEN NULL;
 END $$;
 
-ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'INTERNAL_BALANCE';
-ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'LOCAL_RAIL';
-ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'BRIDGE';
-ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'TRANSAK';
-ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'RAMP';
-
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PaymentIntentStatus') THEN
-    CREATE TYPE "PaymentIntentStatus" AS ENUM ('PENDING', 'REQUIRES_PAYMENT', 'MANUAL_REVIEW', 'CONFIRMED', 'FAILED', 'EXPIRED', 'REFUNDED');
-  END IF;
+DO $$ BEGIN
+  CREATE TYPE "PaymentIntentStatus" AS ENUM ('PENDING', 'REQUIRES_PAYMENT', 'MANUAL_REVIEW', 'CONFIRMED', 'FAILED', 'EXPIRED', 'REFUNDED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformLedgerEntryType') THEN
-    CREATE TYPE "PlatformLedgerEntryType" AS ENUM ('DEPOSIT_CREDIT', 'TOKEN_PURCHASE_DEBIT', 'REFUND_CREDIT', 'MANUAL_ADJUSTMENT');
-  END IF;
+DO $$ BEGIN
+  CREATE TYPE "PlatformLedgerEntryType" AS ENUM ('DEPOSIT_CREDIT', 'TOKEN_PURCHASE_DEBIT', 'REFUND_CREDIT', 'MANUAL_ADJUSTMENT');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformLedgerEntryStatus') THEN
-    CREATE TYPE "PlatformLedgerEntryStatus" AS ENUM ('PENDING', 'POSTED', 'REVERSED');
-  END IF;
+DO $$ BEGIN
+  CREATE TYPE "PlatformLedgerEntryStatus" AS ENUM ('PENDING', 'POSTED', 'REVERSED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
 END $$;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformDepositStatus') THEN
-    CREATE TYPE "PlatformDepositStatus" AS ENUM ('PENDING', 'CONFIRMED', 'FAILED', 'EXPIRED', 'MANUAL_REVIEW');
-  END IF;
+DO $$ BEGIN
+  CREATE TYPE "PlatformDepositStatus" AS ENUM ('PENDING', 'CONFIRMED', 'FAILED', 'EXPIRED', 'MANUAL_REVIEW');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
 END $$;
 
-ALTER TYPE "PaymentIntentStatus" ADD VALUE IF NOT EXISTS 'MANUAL_REVIEW';
-
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'StablecoinWalletType') THEN
-    CREATE TYPE "StablecoinWalletType" AS ENUM ('EXTERNAL', 'CUSTODIAL', 'TREASURY');
-  END IF;
+DO $$ BEGIN
+  ALTER TYPE "PaymentIntentStatus" ADD VALUE IF NOT EXISTS 'MANUAL_REVIEW';
+EXCEPTION WHEN undefined_object THEN NULL;
 END $$;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'StablecoinWalletStatus') THEN
-    CREATE TYPE "StablecoinWalletStatus" AS ENUM ('ACTIVE', 'PENDING', 'DISABLED');
-  END IF;
+DO $$ BEGIN
+  CREATE TYPE "StablecoinWalletType" AS ENUM ('EXTERNAL', 'CUSTODIAL', 'TREASURY');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "StablecoinWalletStatus" AS ENUM ('ACTIVE', 'PENDING', 'DISABLED');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
 END $$;
 
 CREATE TABLE IF NOT EXISTS "PaymentIntent" (
@@ -239,20 +246,21 @@ CREATE INDEX IF NOT EXISTS "PlatformDeposit_method_idx" ON "PlatformDeposit"("me
 CREATE INDEX IF NOT EXISTS "PlatformDeposit_expiresAt_idx" ON "PlatformDeposit"("expiresAt");
 CREATE INDEX IF NOT EXISTS "PlatformDeposit_provider_providerPaymentId_idx" ON "PlatformDeposit"("provider", "providerPaymentId");
 
-ALTER TYPE "PlatformLedgerEntryType" ADD VALUE IF NOT EXISTS 'WITHDRAWAL_DEBIT';
-
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformWithdrawalStatus') THEN
-    CREATE TYPE "PlatformWithdrawalStatus" AS ENUM ('PENDING', 'PROCESSING', 'CONFIRMED', 'FAILED', 'CANCELLED', 'MANUAL_REVIEW');
-  END IF;
+DO $$ BEGIN
+  ALTER TYPE "PlatformLedgerEntryType" ADD VALUE IF NOT EXISTS 'WITHDRAWAL_DEBIT';
+EXCEPTION WHEN undefined_object THEN NULL;
 END $$;
 
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'PlatformWithdrawalMethod') THEN
-    CREATE TYPE "PlatformWithdrawalMethod" AS ENUM ('STABLECOIN', 'FIAT');
-  END IF;
+DO $$ BEGIN
+  CREATE TYPE "PlatformWithdrawalStatus" AS ENUM ('PENDING', 'PROCESSING', 'CONFIRMED', 'FAILED', 'CANCELLED', 'MANUAL_REVIEW');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "PlatformWithdrawalMethod" AS ENUM ('STABLECOIN', 'FIAT');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
 END $$;
 
 CREATE TABLE IF NOT EXISTS "PlatformWithdrawal" (

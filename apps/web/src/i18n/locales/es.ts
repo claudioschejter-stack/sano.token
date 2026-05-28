@@ -70,9 +70,11 @@ export const es = {
       'Tasas en vivo agregadas desde DefiLlama y lecturas on-chain ({count} prestamistas con datos de mercado).',
     lendingRatesUpdated: 'Actualizado',
     borrow: {
-      title: 'Pedir préstamo en DeFi',
+      title: 'Pedir préstamo con Morpho',
       subtitle:
         'Conectá tu wallet y ejecutá el préstamo en el protocolo con mejor tasa disponible (Aave v3 o Morpho en Base).',
+      subtitleMorpho:
+        'Usá tus tokens RWA como colateral. La plataforma prepara depósito, colateral y borrow en un solo flujo.',
       bestRateHint: 'Mejor tasa detectada',
       amountLabel: 'Monto a pedir prestado (USDC)',
       collateralLabel: 'Colateral WETH a depositar en Aave (opcional)',
@@ -80,13 +82,22 @@ export const es = {
       walletConnected: 'Wallet conectada.',
       connectFirst: 'Conectá tu wallet primero.',
       borrowButton: 'Ejecutar préstamo',
-      preparing: 'Preparando transacciones…',
-      signingStep: 'Firmá la transacción {step} en tu wallet…',
-      success: 'Préstamo enviado on-chain. Revisá tu wallet.',
+      oneClickBorrow: 'Pedir préstamo (1 clic)',
+      notReadyButton: 'Préstamo no disponible',
+      notReady: 'Este activo todavía no está listo para préstamo colateralizado.',
+      useMax: 'Máximo',
+      previewReady: 'Podés pedir hasta {max} USDC según tu colateral RWA.',
+      previewEmpty: 'Comprá tokens RWA del proyecto para usar este préstamo automático.',
+      preparing: 'Preparando transacciones automáticas…',
+      signingSingle: 'Confirmá la operación en tu wallet…',
+      signingBatch: 'Paso {current}/{total}: confirmá en tu wallet…',
+      success: 'Préstamo completado. USDC acreditado en tu wallet.',
       prepareFailed: 'No se pudo preparar el préstamo.',
       noWallet: 'Instalá MetaMask u otra wallet compatible con EIP-1193.',
       disclaimer:
-        'Operación on-chain con riesgo de mercado. Para colateral ERC-4626 (tokens RWA), el mercado Morpho se crea al emitir el vault (Fase C).'
+        'Operación on-chain con riesgo de mercado. Para colateral ERC-4626 (tokens RWA), el mercado Morpho se crea al emitir el vault (Fase C).',
+      disclaimerMorpho:
+        'Sanova arma automáticamente depósito en vault, colateral Morpho y borrow USDC. Solo tenés que firmar (1 o más txs según tu wallet).'
     },
     lenderRegions: {
       global: 'Global',

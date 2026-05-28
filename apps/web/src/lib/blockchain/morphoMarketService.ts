@@ -1,5 +1,5 @@
 import { Contract, ContractFactory, JsonRpcProvider, Wallet } from 'ethers';
-import { resolveChainId } from './explorerUrls';
+import { resolveMorphoChainId } from './explorerUrls';
 import SanovaFixedPriceOracleArtifact from './artifacts/SanovaFixedPriceOracle.json';
 import {
   buildDefaultMorphoMarketParams,
@@ -27,10 +27,17 @@ function resolvePrivateKey(): string | null {
 }
 
 function resolveRpcUrl(chainId: number): string {
-  if (chainId === 84532) {
-    return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
+  if (chainId === 8453) {
+    return (
+      process.env.LENDING_BASE_RPC_URL?.trim() ||
+      process.env.BASE_RPC_URL?.trim() ||
+      'https://mainnet.base.org'
+    );
   }
-  return process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
+  if (chainId === 84532) {
+    return process.env.BASE_SEPOLIA_RPC_URL?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
+  }
+  return process.env.LENDING_BASE_RPC_URL?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 }
 
 async function deployFixedPriceOracle(wallet: Wallet, pricePerTokenUsd: number): Promise<string | null> {
@@ -61,7 +68,7 @@ export async function createMorphoMarketForVault(
     };
   }
 
-  const chainId = resolveChainId();
+  const chainId = resolveMorphoChainId();
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
   const wallet = new Wallet(privateKey, provider);
 
