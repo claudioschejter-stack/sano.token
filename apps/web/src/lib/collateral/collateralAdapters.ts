@@ -120,7 +120,7 @@ async function registerMorpho(project: CollateralProjectContext): Promise<Collat
         };
       }
 
-      if (result.reason.includes('already') || result.reason.includes('exists')) {
+      if (/already (created|exists)/i.test(result.reason)) {
         return {
           status: 'REGISTERED',
           externalId: `MORPHO-${project.id}`,

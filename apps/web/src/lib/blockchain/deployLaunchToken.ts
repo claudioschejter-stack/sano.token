@@ -94,8 +94,31 @@ async function fundVaultWithDeployerBalance(input: {
       }
     }
 
+    const vaultKyc = await input.asset.kycApproved(input.vaultAddress);
+    if (!vaultKyc) {
+      const setVaultKycTx = await input.asset.setKyc(input.vaultAddress, true);
+      await waitForAutomationTx(setVaultKycTx);
+    }
+
     const approveTx = await input.asset.approve(input.vaultAddress, input.amount);
     await waitForAutomationTx(approveTx);
+
+    const vaultAllowed = await input.asset.externalContractAllowed(input.vaultAddress);
+    if (!vaultAllowed) {
+      const allowVaultTx = await input.asset.setExternalContractAllowed(input.vaultAddress, true);
+      await waitForAutomationTx(allowVaultTx);
+    }
+
+    if (input.receiverAddress.toLowerCase() !== input.walletAddress.toLowerCase()) {
+      const receiverAllowed = await input.vaultContract.externalContractAllowed(input.receiverAddress);
+      if (!receiverAllowed) {
+        const allowReceiverTx = await input.vaultContract.setExternalContractAllowed(
+          input.receiverAddress,
+          true
+        );
+        await waitForAutomationTx(allowReceiverTx);
+      }
+    }
 
     const depositTx = await input.vaultContract.deposit(input.amount, input.receiverAddress);
     const depositReceipt = await waitForAutomationTx(depositTx);

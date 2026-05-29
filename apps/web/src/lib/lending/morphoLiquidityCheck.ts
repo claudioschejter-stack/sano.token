@@ -4,7 +4,7 @@ import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin
 import { notifyMorphoLiquidity } from '../admin/automationAlerts';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 import { getLendingChainConfig } from './baseContracts';
-import { buildDefaultMorphoMarketParams } from './protocols/morphoBorrow';
+import { buildDefaultMorphoMarketParams, morphoMarketId } from './protocols/morphoBorrow';
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 8453) {
@@ -36,20 +36,20 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
   const chainId = resolveMorphoChainId();
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
   try {
+    const { seedMorphoLiquidityIfConfigured } = await import('./morphoLiquiditySeed');
+    await seedMorphoLiquidityIfConfigured(params).catch(() => null);
+
     const morpho = new Contract(
       getLendingChainConfig().morpho,
-      ['function expectedMarketBalances((address loanToken,address collateralToken,address oracle,address irm,uint256 lltv) marketParams) view returns (uint256 totalSupplyAssets,uint256 totalSupplyShares,uint256 totalBorrowAssets,uint256 totalBorrowShares)'],
+      [
+        'function market(bytes32 id) view returns (uint128 totalSupplyAssets, uint128 totalSupplyShares, uint128 totalBorrowAssets, uint128 totalBorrowShares, uint128 lastUpdate, uint128 fee)'
+      ],
       provider
     );
-    const balances = await morpho.expectedMarketBalances([
-      params.loanToken,
-      params.collateralToken,
-      params.oracle,
-      params.irm,
-      params.lltv
-    ]);
-    const totalSupplyAssets = BigInt(balances.totalSupplyAssets ?? balances[0] ?? 0);
-    const totalBorrowAssets = BigInt(balances.totalBorrowAssets ?? balances[2] ?? 0);
+    const marketId = morphoMarketId(params);
+    const market = await morpho.market(marketId);
+    const totalSupplyAssets = BigInt(market.totalSupplyAssets ?? market[0] ?? 0);
+    const totalBorrowAssets = BigInt(market.totalBorrowAssets ?? market[2] ?? 0);
     const availableAssets = totalSupplyAssets > totalBorrowAssets ? totalSupplyAssets - totalBorrowAssets : 0n;
     const status = availableAssets > 0n ? 'LIQUID' : 'NO_LIQUIDITY';
 

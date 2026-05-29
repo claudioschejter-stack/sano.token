@@ -111,6 +111,12 @@ export async function deployVaultForExistingToken(
         }
       }
 
+      const vaultKyc = await asset.kycApproved(vaultAddress);
+      if (!vaultKyc) {
+        const setVaultKycTx = await asset.setKyc(vaultAddress, true);
+        await waitForAutomationTx(setVaultKycTx);
+      }
+
       let deployerBalance = await asset.balanceOf(wallet.address);
       if (deployerBalance === 0n) {
         const currentSupply = await asset.totalSupply();
@@ -124,6 +130,18 @@ export async function deployVaultForExistingToken(
 
       if (deployerBalance > 0n) {
         const depositAmount = deployerBalance;
+        const vaultAllowed = await asset.externalContractAllowed(vaultAddress);
+        if (!vaultAllowed) {
+          const allowVaultTx = await asset.setExternalContractAllowed(vaultAddress, true);
+          await waitForAutomationTx(allowVaultTx);
+        }
+        if (treasuryAddress.toLowerCase() !== wallet.address.toLowerCase()) {
+          const receiverAllowed = await vaultContract.externalContractAllowed(treasuryAddress);
+          if (!receiverAllowed) {
+            const allowReceiverTx = await vaultContract.setExternalContractAllowed(treasuryAddress, true);
+            await waitForAutomationTx(allowReceiverTx);
+          }
+        }
         const approveTx = await asset.approve(vaultAddress, depositAmount);
         await waitForAutomationTx(approveTx);
         const depositTx = await vaultContract.deposit(depositAmount, treasuryAddress);

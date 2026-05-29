@@ -1,3 +1,4 @@
+import { getAddress } from 'ethers';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 
 export type MoonwellChainConfig = {
@@ -26,6 +27,8 @@ export type LendingChainConfig = {
   weth: string;
   morpho: string;
   morphoIrm: string;
+  /** Default LLTV in basis points (e.g. 6250 = 62.5%). Must be enabled on Morpho for the chain. */
+  morphoDefaultLltvBps?: number;
   moonwell?: MoonwellChainConfig;
   compound?: CompoundChainConfig;
   spark?: SparkChainConfig;
@@ -37,7 +40,8 @@ const BASE_MAINNET: LendingChainConfig = {
   usdc: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
   weth: '0x4200000000000000000000000000000000000006',
   morpho: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
-  morphoIrm: '0x870aC11D48B15DB9f1382786706e8e7A239D8928',
+  morphoIrm: getAddress('0x46415998764c29ab2a25cbea6254146d50d22687'),
+  morphoDefaultLltvBps: 6250,
   moonwell: {
     comptroller: '0xfBb21d0380beE3312B33c4353c8936a0F13EF26C',
     mUsdc: '0xEdc817A28E8B93B03976FBd4a3dDBc9f7D176c22',
@@ -57,7 +61,7 @@ const BASE_SEPOLIA: LendingChainConfig = {
   usdc: '0x036CbD53842c797964cc9E7920680AA85945E435',
   weth: '0x4200000000000000000000000000000000000006',
   morpho: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
-  morphoIrm: '0x870aC11D48B15DB9f1382786706e8e7A239D8928'
+  morphoIrm: getAddress('0x870ac11d48b15db9f1382786706e8e7a239d8928')
 };
 
 const ETHEREUM_MAINNET: LendingChainConfig = {
@@ -66,7 +70,8 @@ const ETHEREUM_MAINNET: LendingChainConfig = {
   usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
   weth: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
   morpho: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
-  morphoIrm: '0x870aC11D48B15DB9f1382786706e8e7A239D8928',
+  morphoIrm: getAddress('0x870ac11d48b15db9a138cf899d20f13f79ba00bc'),
+  morphoDefaultLltvBps: 8600,
   spark: {
     pool: '0xC13e21B648A5Ee794902342038FF3aDAB66BE987',
     usdc: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',

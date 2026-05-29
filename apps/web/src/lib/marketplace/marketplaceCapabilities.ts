@@ -41,7 +41,7 @@ export function getMarketplaceCapabilities(role: SystemRole | undefined): Market
     case 'ADVISOR_MANAGER':
       return tradingCapabilities('advisorManager');
     case 'INVESTOR':
-      return tradingCapabilities('investor');
+      return tradingCapabilities('investor', { showBorrowRates: true });
     case 'TREASURY':
     case 'OPERATOR':
       return tradingCapabilities('default');

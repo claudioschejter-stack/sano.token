@@ -96,20 +96,63 @@ export async function createMorphoMarketForVault(
     }
 
     const prepared = prepareMorphoCreateMarket(params);
-    const tx = await wallet.sendTransaction({
-      to: prepared.to,
-      data: prepared.data,
-      value: 0n
-    });
-    const receipt = await waitForAutomationTx(tx);
     const morpho = new Contract(
       getLendingChainConfig().morpho,
-      ['function idToMarketParams(bytes32 id) view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)'],
-      provider
+      [
+        'function createMarket((address loanToken,address collateralToken,address oracle,address irm,uint256 lltv) marketParams)',
+        'function idToMarketParams(bytes32 id) view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)'
+      ],
+      wallet
     );
     const marketId = morphoMarketId(params);
+    const existing = await morpho.idToMarketParams(marketId);
+    const existingCollateral = (existing?.collateralToken ?? existing?.[1] ?? '') as string;
+    if (
+      existingCollateral &&
+      existingCollateral.toLowerCase() !== '0x0000000000000000000000000000000000000000' &&
+      existingCollateral.toLowerCase() === params.collateralToken.toLowerCase()
+    ) {
+      return {
+        status: 'CREATED',
+        marketId,
+        txHash: 'existing-market',
+        chainId,
+        params
+      };
+    }
+
+    try {
+      await morpho.createMarket.staticCall([
+        params.loanToken,
+        params.collateralToken,
+        params.oracle,
+        params.irm,
+        params.lltv
+      ]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'createMarket simulation failed';
+      return { status: 'SKIPPED', reason: message };
+    }
+
+    const tx = await morpho.createMarket([
+      params.loanToken,
+      params.collateralToken,
+      params.oracle,
+      params.irm,
+      params.lltv
+    ]);
+    const receipt = await waitForAutomationTx(tx);
     const stored = await morpho.idToMarketParams(marketId);
-    if (stored?.collateralToken && stored.collateralToken.toLowerCase() !== params.collateralToken.toLowerCase()) {
+    const storedCollateral = (stored?.collateralToken ?? stored?.[1] ?? '') as string;
+    const empty =
+      !storedCollateral || storedCollateral.toLowerCase() === '0x0000000000000000000000000000000000000000';
+    if (empty) {
+      return {
+        status: 'SKIPPED',
+        reason: `Morpho market not created (tx ${receipt?.hash ?? tx.hash}).`
+      };
+    }
+    if (storedCollateral.toLowerCase() !== params.collateralToken.toLowerCase()) {
       return { status: 'SKIPPED', reason: 'Morpho market verification failed after createMarket.' };
     }
 

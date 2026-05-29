@@ -1,4 +1,4 @@
-import { Interface, keccak256, solidityPacked } from 'ethers';
+import { AbiCoder, Interface, keccak256, getAddress } from 'ethers';
 import { getLendingChainConfig } from '../baseContracts';
 
 export type MorphoMarketParams = {
@@ -19,10 +19,17 @@ const MORPHO_ABI = [
 const morphoInterface = new Interface(MORPHO_ABI);
 
 export function morphoMarketId(params: MorphoMarketParams): string {
+  const coder = AbiCoder.defaultAbiCoder();
   return keccak256(
-    solidityPacked(
+    coder.encode(
       ['address', 'address', 'address', 'address', 'uint256'],
-      [params.loanToken, params.collateralToken, params.oracle, params.irm, params.lltv]
+      [
+        getAddress(params.loanToken),
+        getAddress(params.collateralToken),
+        getAddress(params.oracle),
+        getAddress(params.irm),
+        params.lltv
+      ]
     )
   );
 }
@@ -75,8 +82,11 @@ export function buildDefaultMorphoMarketParams(
     return null;
   }
 
-  const { usdc, morphoIrm } = getLendingChainConfig();
-  const lltvRaw = Number(process.env.MORPHO_DEFAULT_LLTV_BPS ?? '6000');
+  const chainConfig = getLendingChainConfig();
+  const { usdc, morphoIrm } = chainConfig;
+  const lltvRaw = Number(
+    process.env.MORPHO_DEFAULT_LLTV_BPS ?? chainConfig.morphoDefaultLltvBps ?? '6250'
+  );
   const lltvBps = Number.isFinite(lltvRaw) ? lltvRaw : 6000;
 
   return {
