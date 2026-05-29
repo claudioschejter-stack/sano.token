@@ -47,13 +47,15 @@ export async function seedMorphoLiquidityIfConfigured(params: MorphoMarketParams
   const approveTx = await usdcContract.approve(morpho, MaxUint256);
   await approveTx.wait();
   const morphoContract = new Contract(morpho, MORPHO_SUPPLY_ABI, wallet);
-  const supplyTx = await morphoContract.supply(
-    [params.loanToken, params.collateralToken, params.oracle, params.irm, params.lltv],
-    amount,
-    0,
-    wallet.address,
-    '0x'
-  );
+  const marketParams = {
+    loanToken: params.loanToken,
+    collateralToken: params.collateralToken,
+    oracle: params.oracle,
+    irm: params.irm,
+    lltv: params.lltv
+  };
+  await morphoContract.supply.staticCall(marketParams, amount, 0, wallet.address, '0x');
+  const supplyTx = await morphoContract.supply(marketParams, amount, 0, wallet.address, '0x');
   const receipt = await supplyTx.wait();
   provider.destroy();
   return receipt?.hash ?? supplyTx.hash;
