@@ -36,7 +36,7 @@ const rawEnv = {
 
 const { env } = evaluatePaymentEnv(rawEnv);
 
-function addEnv(name, value, environments = ['production', 'preview']) {
+function addEnv(name, value, environments = ['production']) {
   if (!value?.trim()) {
     console.log(`skip ${name} (empty)`);
     return false;
