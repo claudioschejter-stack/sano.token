@@ -621,7 +621,20 @@ export const zh = {
     disconnect: "断开",
     connecting: "正在连接…",
     connect: "连接钱包（MetaMask /注入）",
-    noWallet: "安装 MetaMask 或其他与浏览器兼容的钱包。"
+    noWallet: "安装 MetaMask 或其他与浏览器兼容的钱包。",
+    connectCoinbase: "Connect with Coinbase Wallet",
+    wrongNetwork: "Switch to Base network",
+    buyOneClick: "Buy shares (USDC → Vault)",
+    buyChecking: "Checking allowance…",
+    buyApproving: "Approving USDC…",
+    buyDepositing: "Depositing into ERC-4626 vault…",
+    buySuccess: "Purchase complete",
+    buySuccessDetail: "On-chain deposit confirmed.",
+    buyError: "Purchase failed",
+    viewTx: "View transaction",
+    userRejected: "Transaction cancelled in wallet.",
+    retry: "Retry",
+    vaultNotConfigured: "ERC-4626 vault not configured for this asset."
   },
   dashboard: {
     eyebrow: "资本和覆盖范围",

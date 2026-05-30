@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { ArrowUpRight, ShoppingBag } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { WalletConnectButton } from '../marketplace/WalletConnectButton';
-import { useInjectedWallet } from '../../hooks/useInjectedWallet';
 
 type WalletSummary = {
   account: { balance: string; reserved: string; available: string; currency: string; status: string };
@@ -41,7 +41,7 @@ const LEDGER_LABELS: Record<string, string> = {
 };
 
 export function PlatformWalletView() {
-  const { address } = useInjectedWallet();
+  const { address } = useAccount();
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [amountUsd, setAmountUsd] = useState('100');
   const [method, setMethod] = useState('AUTO_CHEAPEST');

@@ -621,7 +621,20 @@ export const ur = {
     disconnect: "منقطع کرنا",
     connecting: "منسلک ہو رہا ہے…",
     connect: "بٹوے کو جوڑیں (میٹا ماسک / انجیکشن)",
-    noWallet: "میٹا ماسک یا براؤزر کے ساتھ مطابقت رکھنے والا کوئی دوسرا والیٹ انسٹال کریں۔"
+    noWallet: "میٹا ماسک یا براؤزر کے ساتھ مطابقت رکھنے والا کوئی دوسرا والیٹ انسٹال کریں۔",
+    connectCoinbase: "Connect with Coinbase Wallet",
+    wrongNetwork: "Switch to Base network",
+    buyOneClick: "Buy shares (USDC → Vault)",
+    buyChecking: "Checking allowance…",
+    buyApproving: "Approving USDC…",
+    buyDepositing: "Depositing into ERC-4626 vault…",
+    buySuccess: "Purchase complete",
+    buySuccessDetail: "On-chain deposit confirmed.",
+    buyError: "Purchase failed",
+    viewTx: "View transaction",
+    userRejected: "Transaction cancelled in wallet.",
+    retry: "Retry",
+    vaultNotConfigured: "ERC-4626 vault not configured for this asset."
   },
   dashboard: {
     eyebrow: "سرمایہ اور کوریج",

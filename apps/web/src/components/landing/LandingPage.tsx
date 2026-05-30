@@ -18,7 +18,6 @@ import { HeroSubtitle } from './HeroSubtitle';
 import { FeaturedPropertiesSection } from './FeaturedPropertiesSection';
 import { MacroInvestmentThesis } from './MacroInvestmentThesis';
 import { MarketplaceCtaLink } from './MarketplaceCtaLink';
-import { TrustBadges } from './TrustBadges';
 import { VacaMuertaOperators } from './VacaMuertaOperators';
 import type { MarketplaceFeed } from '../../types/marketplace';
 
@@ -158,12 +157,6 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
           <h2 className="text-3xl font-bold md:text-4xl">{l.cta.title}</h2>
           <p className="mt-4 text-base text-blue-100 md:text-lg">{l.cta.subtitle}</p>
           <MarketplaceCtaLink className="mt-8">{l.cta.button}</MarketplaceCtaLink>
-          <div className="mx-auto mt-6 max-w-2xl">
-            <TrustBadges
-              variant="dark"
-              className="justify-center [&_li]:border-white/20 [&_li]:bg-white/10 [&_li]:text-blue-50"
-            />
-          </div>
         </div>
       </section>
 
@@ -175,20 +168,24 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
               <p className="mt-2 text-sm leading-relaxed">{l.footer.tagline}</p>
             </div>
             <nav
-              className="flex w-full flex-col gap-3 text-sm sm:flex-row sm:flex-wrap sm:gap-6"
+              className="flex w-full flex-col gap-3 text-sm sm:ml-auto sm:flex-row sm:flex-wrap sm:justify-end sm:gap-6 md:w-auto md:items-end"
               aria-label={l.footer.navAria}
             >
-              <Link href="/contacto" className="hover:text-white">
-                {l.footer.contact}
-              </Link>
               <Link href="/acceso" className="hover:text-white">
                 {l.nav.marketplace}
               </Link>
               <Link href="/acceso" className="hover:text-white">
                 {l.nav.platformAccess}
               </Link>
-              <span className="cursor-default hover:text-white">{l.footer.privacy}</span>
-              <span className="cursor-default hover:text-white">{l.footer.terms}</span>
+              <Link href="/privacidad" className="hover:text-white">
+                {l.footer.privacy}
+              </Link>
+              <Link href="/terminos" className="hover:text-white">
+                {l.footer.terms}
+              </Link>
+              <Link href="/contacto" className="hover:text-white">
+                {l.footer.contact}
+              </Link>
             </nav>
           </div>
           <p className="mt-8 text-xs leading-relaxed md:mt-10">{l.footer.disclaimer}</p>

@@ -621,7 +621,20 @@ export const hi = {
     disconnect: "डिस्कनेक्ट",
     connecting: "कनेक्ट हो रहा है...",
     connect: "वॉलेट कनेक्ट करें (मेटामास्क/इंजेक्शन)",
-    noWallet: "मेटामास्क या ब्राउज़र के साथ संगत कोई अन्य वॉलेट स्थापित करें।"
+    noWallet: "मेटामास्क या ब्राउज़र के साथ संगत कोई अन्य वॉलेट स्थापित करें।",
+    connectCoinbase: "Connect with Coinbase Wallet",
+    wrongNetwork: "Switch to Base network",
+    buyOneClick: "Buy shares (USDC → Vault)",
+    buyChecking: "Checking allowance…",
+    buyApproving: "Approving USDC…",
+    buyDepositing: "Depositing into ERC-4626 vault…",
+    buySuccess: "Purchase complete",
+    buySuccessDetail: "On-chain deposit confirmed.",
+    buyError: "Purchase failed",
+    viewTx: "View transaction",
+    userRejected: "Transaction cancelled in wallet.",
+    retry: "Retry",
+    vaultNotConfigured: "ERC-4626 vault not configured for this asset."
   },
   dashboard: {
     eyebrow: "पूंजी और कवरेज",

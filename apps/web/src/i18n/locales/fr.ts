@@ -621,7 +621,20 @@ export const fr = {
     disconnect: "Déconnecter",
     connecting: "De liaison…",
     connect: "Connecter le portefeuille (MetaMask / injecté)",
-    noWallet: "Installez MetaMask ou un autre portefeuille compatible avec le navigateur."
+    noWallet: "Installez MetaMask ou un autre portefeuille compatible avec le navigateur.",
+    connectCoinbase: "Connect with Coinbase Wallet",
+    wrongNetwork: "Switch to Base network",
+    buyOneClick: "Buy shares (USDC → Vault)",
+    buyChecking: "Checking allowance…",
+    buyApproving: "Approving USDC…",
+    buyDepositing: "Depositing into ERC-4626 vault…",
+    buySuccess: "Purchase complete",
+    buySuccessDetail: "On-chain deposit confirmed.",
+    buyError: "Purchase failed",
+    viewTx: "View transaction",
+    userRejected: "Transaction cancelled in wallet.",
+    retry: "Retry",
+    vaultNotConfigured: "ERC-4626 vault not configured for this asset."
   },
   dashboard: {
     eyebrow: "Capital et couverture",

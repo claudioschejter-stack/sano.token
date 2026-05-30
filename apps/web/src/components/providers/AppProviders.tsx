@@ -5,14 +5,17 @@ import { LocaleHtmlSync } from '../i18n/LocaleHtmlSync';
 import { LocaleProvider } from '../../i18n/LocaleProvider';
 import { AuthTokenSync } from '../auth/AuthTokenSync';
 import { AuthSessionProvider } from './AuthSessionProvider';
+import { Web3Providers } from './providers';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <AuthSessionProvider>
       <LocaleProvider>
-        <LocaleHtmlSync />
-        <AuthTokenSync />
-        {children}
+        <Web3Providers>
+          <LocaleHtmlSync />
+          <AuthTokenSync />
+          {children}
+        </Web3Providers>
       </LocaleProvider>
     </AuthSessionProvider>
   );

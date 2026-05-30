@@ -108,6 +108,28 @@ enum PlatformWithdrawalMethod {
   FIAT
 }
 
+enum ProjectOperatingEntryType {
+  RENT_CREDIT
+  CONVERSION_DEBIT
+  MANUAL_ADJUSTMENT
+}
+
+enum ProjectYieldBatchStatus {
+  QUEUED
+  CONVERTING
+  USDC_READY
+  DISTRIBUTING
+  COMPLETED
+  FAILED
+}
+
+enum YieldConversionRail {
+  BRIDGE
+  COINBASE
+  EXCHANGE
+  MANUAL_USDC
+}
+
 enum FiscalRegime {
   LEY_19640
   GENERAL
@@ -345,6 +367,8 @@ model Project {
   investments Investment[]
   payouts     PayoutHistory[]
   secondaryListings SecondaryMarketListing[]
+  operatingAccounts ProjectOperatingAccount[]
+  yieldBatches      ProjectYieldBatch[]
 
   @@index([fiscalRegime])
   @@index([isActive])
@@ -608,6 +632,74 @@ model PlatformWithdrawal {
   @@index([status])
   @@index([method])
   @@index([provider, providerPaymentId])
+}
+
+model ProjectOperatingAccount {
+  id        String   @id @default(cuid())
+  projectId String
+  currency  String
+  balance   Decimal  @default(0) @db.Decimal(20, 6)
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project                       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ledger  ProjectOperatingLedgerEntry[]
+
+  @@unique([projectId, currency])
+  @@index([projectId])
+  @@index([currency])
+}
+
+model ProjectOperatingLedgerEntry {
+  id             String                    @id @default(cuid())
+  accountId      String
+  projectId      String
+  type           ProjectOperatingEntryType
+  amount         Decimal                   @db.Decimal(20, 6)
+  currency       String
+  balanceAfter   Decimal                   @db.Decimal(20, 6)
+  idempotencyKey String                    @unique
+  batchId        String?
+  metadata       Json                      @default("{}")
+  createdAt      DateTime                  @default(now())
+
+  account ProjectOperatingAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  batch   ProjectYieldBatch?      @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@index([accountId])
+  @@index([projectId])
+  @@index([type])
+  @@index([batchId])
+  @@index([createdAt])
+}
+
+model ProjectYieldBatch {
+  id                String                   @id @default(cuid())
+  projectId         String
+  status            ProjectYieldBatchStatus  @default(QUEUED)
+  sourceCurrency    String
+  sourceAmount      Decimal                  @db.Decimal(20, 6)
+  usdcAmount        Decimal?                 @db.Decimal(20, 6)
+  conversionRail    YieldConversionRail?
+  conversionRef     String?
+  conversionTxHash  String?
+  distributionTxHash String?                 @unique
+  vaultAddress      String?
+  chainId           Int?
+  error             String?
+  metadata          Json                     @default("{}")
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+  completedAt       DateTime?
+
+  project Project                       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  ledger  ProjectOperatingLedgerEntry[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([conversionRail])
+  @@index([createdAt])
 }
 
 model PortfolioSnapshot {

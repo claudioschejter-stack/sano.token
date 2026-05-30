@@ -259,6 +259,9 @@ export async function createPaymentIntent(input: {
           usdcTokenAddress: input.method === 'USDC_ONCHAIN' ? network.tokenAddress : null,
           usdcDecimals: input.method === 'USDC_ONCHAIN' ? network.decimals : null,
           treasuryAddress: input.method === 'USDC_ONCHAIN' ? network.treasuryAddress : null,
+          vaultAddress: project.vaultAddress ?? null,
+          purchaseMode:
+            input.method === 'USDC_ONCHAIN' && project.vaultAddress ? 'ERC4626_DEPOSIT' : 'TREASURY_TRANSFER',
           autoTransferSupported: network.kind === 'EVM'
         } as Prisma.InputJsonObject
       }
@@ -569,9 +572,16 @@ export async function verifyUsdcPayment(input: {
   const rpcUrl = network.rpcUrl;
   const usdcAddress = network.tokenAddress ?? usdcTokenAddress();
   const treasuryAddress = network.treasuryAddress ?? stablecoinTreasuryAddress();
+  const vaultAddress = typeof metadata.vaultAddress === 'string' ? metadata.vaultAddress : null;
+  const purchaseMode =
+    metadata.purchaseMode === 'ERC4626_DEPOSIT' && vaultAddress ? 'ERC4626_DEPOSIT' : 'TREASURY_TRANSFER';
 
   if (!rpcUrl || !usdcAddress || !treasuryAddress) {
     throw new Error('USDC_PAYMENT_NOT_CONFIGURED');
+  }
+
+  if (purchaseMode === 'ERC4626_DEPOSIT' && !vaultAddress) {
+    throw new Error('VAULT_NOT_CONFIGURED');
   }
 
   if (network.kind === 'TRON') {
@@ -599,7 +609,9 @@ export async function verifyUsdcPayment(input: {
   }
 
   const iface = new ethers.Interface(ERC20_TRANSFER_ABI);
-  const expectedTo = ethers.getAddress(treasuryAddress);
+  const expectedTo = ethers.getAddress(
+    purchaseMode === 'ERC4626_DEPOSIT' && vaultAddress ? vaultAddress : treasuryAddress
+  );
   const expectedFrom = normalizeAddress(input.expectedPayer ?? intent.payerWalletAddress);
   const expectedAmount = ethers.parseUnits(intent.amountUsd.toString(), network.decimals ?? usdcDecimals());
 
@@ -634,7 +646,9 @@ export async function verifyUsdcPayment(input: {
       txHash: input.txHash,
       chainId: intent.chainId,
       expectedAmount: expectedAmount.toString(),
-      treasuryAddress: expectedTo
+      treasuryAddress: expectedTo,
+      purchaseMode,
+      vaultAddress: vaultAddress ?? null
     }
   });
 }

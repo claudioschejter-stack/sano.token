@@ -7,7 +7,6 @@ import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import { pickFeaturedListings } from '../../lib/marketplace/pickFeaturedListings';
 import type { MarketplaceFeed } from '../../types/marketplace';
 import { MarketplaceCtaLink } from './MarketplaceCtaLink';
-import { TrustBadges } from './TrustBadges';
 
 type FeaturedPropertiesSectionProps = {
   initialFeed: MarketplaceFeed;
@@ -64,7 +63,6 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
             </article>
           ))}
         </div>
-        <TrustBadges className="mt-8 md:mt-10" />
       </div>
     </section>
   );

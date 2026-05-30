@@ -1,34 +1,52 @@
 'use client';
 
-import { Wallet } from 'lucide-react';
-import { useInjectedWallet } from '../../hooks/useInjectedWallet';
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useTranslation } from '../../i18n/LocaleProvider';
 
 export function WalletConnectButton() {
   const t = useTranslation();
-  const { address, isConnected, isPending, connect, disconnect } = useInjectedWallet();
-
-  if (isConnected && address) {
-    return (
-      <button
-        type="button"
-        onClick={disconnect}
-        className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text hover:border-terminal-primary/50"
-      >
-        {address.slice(0, 6)}…{address.slice(-4)} · {t.wallet.disconnect}
-      </button>
-    );
-  }
 
   return (
-    <button
-      type="button"
-      disabled={isPending}
-      onClick={() => void connect()}
-      className="flex w-full items-center justify-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-3 text-sm font-semibold text-terminal-primary hover:bg-terminal-primary/20 disabled:opacity-50"
-    >
-      <Wallet size={18} />
-      {isPending ? t.wallet.connecting : t.wallet.connect}
-    </button>
+    <ConnectButton.Custom>
+      {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
+        const ready = mounted;
+        const connected = ready && account && chain;
+
+        if (!connected) {
+          return (
+            <button
+              type="button"
+              onClick={openConnectModal}
+              disabled={!ready}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-3 text-sm font-semibold text-terminal-primary hover:bg-terminal-primary/20 disabled:opacity-50"
+            >
+              {t.wallet.connectCoinbase}
+            </button>
+          );
+        }
+
+        if (chain.unsupported) {
+          return (
+            <button
+              type="button"
+              onClick={openChainModal}
+              className="w-full rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm font-semibold text-terminal-warning"
+            >
+              Red incorrecta
+            </button>
+          );
+        }
+
+        return (
+          <button
+            type="button"
+            onClick={openAccountModal}
+            className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text hover:border-terminal-primary/50"
+          >
+            {account.displayName} · {t.wallet.disconnect}
+          </button>
+        );
+      }}
+    </ConnectButton.Custom>
   );
 }

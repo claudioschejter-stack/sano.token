@@ -10,7 +10,9 @@ export type AutomationJobStep =
   | 'COLLATERAL_REGISTER'
   | 'MORPHO_LIQUIDITY'
   | 'EXPLORER_VERIFY'
-  | 'SYNTHETIC_RWA_FLOW';
+  | 'SYNTHETIC_RWA_FLOW'
+  | 'YIELD_CONVERT_BATCH'
+  | 'YIELD_DISTRIBUTE_VAULT';
 
 export type AutomationJobStatus = 'QUEUED' | 'RUNNING' | 'DONE' | 'RETRY' | 'FAILED';
 
@@ -43,7 +45,10 @@ function jobDelegate(): AutomationJobDelegate | null {
 }
 
 function jobStepToEventStep(step: AutomationJobStep): DeploymentEvent['step'] {
-  return step === 'SYNTHETIC_RWA_FLOW' ? 'SYNTHETIC_RWA_FLOW' : step;
+  if (step === 'SYNTHETIC_RWA_FLOW') return 'SYNTHETIC_RWA_FLOW';
+  if (step === 'YIELD_CONVERT_BATCH') return 'YIELD_CONVERT';
+  if (step === 'YIELD_DISTRIBUTE_VAULT') return 'YIELD_DISTRIBUTE';
+  return step;
 }
 
 function retryAt(attempts: number): Date {
@@ -267,6 +272,14 @@ async function executeAutomationJob(job: AutomationJobRow) {
       }));
     }
     return results;
+  }
+
+  if (job.step === 'YIELD_CONVERT_BATCH' || job.step === 'YIELD_DISTRIBUTE_VAULT') {
+    const { executeYieldAutomationJob } = await import('../yield/yieldJobProcessor');
+    return executeYieldAutomationJob({
+      step: job.step,
+      payload: (job.payload ?? null) as Record<string, unknown> | null
+    });
   }
 
   throw new Error(`Unsupported automation job: ${job.step}`);

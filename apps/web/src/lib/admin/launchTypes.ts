@@ -122,7 +122,9 @@ export type DeploymentEvent = {
     | 'READY_TO_BORROW'
     | 'SYNTHETIC_RWA_FLOW'
     | 'SECURITY_REPORT'
-    | 'BALANCE_MONITOR';
+    | 'BALANCE_MONITOR'
+    | 'YIELD_CONVERT'
+    | 'YIELD_DISTRIBUTE';
   status: 'PENDING' | 'SUCCESS' | 'SKIPPED' | 'FAILED';
   message: string;
   txHash?: string | null;

@@ -138,8 +138,6 @@ export function ContactPage() {
               />
             </div>
 
-            <p className="text-xs leading-relaxed text-slate-500">{c.formNote}</p>
-
             <button
               type="submit"
               disabled={sending}
