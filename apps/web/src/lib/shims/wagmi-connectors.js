@@ -3,8 +3,8 @@
 const path = require('path');
 
 const connectorsRoot = path.join(
-  path.dirname(require.resolve('@wagmi/connectors/package.json')),
-  'dist/esm'
+  __dirname,
+  '../../../../../node_modules/@wagmi/connectors/dist/esm'
 );
 
 const coinbase = require(path.join(connectorsRoot, 'coinbaseWallet.js'));
