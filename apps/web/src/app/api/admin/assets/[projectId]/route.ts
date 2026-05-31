@@ -100,10 +100,11 @@ export async function DELETE(_request: Request, context: RouteContext) {
   try {
     const result = await deleteAdminAsset(projectId);
     if (!result.ok) {
-      if (result.code === 'NOT_FOUND') {
-        return NextResponse.json({ error: 'Asset not found', code: result.code }, { status: 404 });
+      const { code } = result;
+      if (code === 'NOT_FOUND') {
+        return NextResponse.json({ error: 'Asset not found', code }, { status: 404 });
       }
-      return NextResponse.json({ error: 'Cannot delete asset', code: result.code }, { status: 409 });
+      return NextResponse.json({ error: 'Cannot delete asset', code }, { status: 409 });
     }
 
     return NextResponse.json({ ok: true });
