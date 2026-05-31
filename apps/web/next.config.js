@@ -10,6 +10,11 @@ const nextConfig = {
     serverComponentsExternalPackages: ['thirdweb', 'ethers']
   },
   webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@noble/hashes/_assert': path.join(__dirname, 'src/lib/shims/noble-hashes-assert.js')
+    };
+
     config.resolve.modules = [
       path.join(__dirname, 'node_modules'),
       path.join(monorepoRoot, 'node_modules'),
