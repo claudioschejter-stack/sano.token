@@ -146,6 +146,7 @@ export const en = {
     panel: "Operations Panel",
     investors: "Investors",
     assets: "Assets",
+    loans: "Loans",
     treasury: "Treasury",
     commissions: "Commissions",
     team: "Equipment",
@@ -270,6 +271,7 @@ export const en = {
   },
   adminAssets: {
     eyebrow: "Marketplace assets",
+    subtitle: "Build and publish launch cards: media, tokenomics, pricing, and marketplace visibility.",
     filters: {
       ALL: "All",
       ACTIVE: "Published",
@@ -304,13 +306,35 @@ export const en = {
     validationTokens: "Enter a valid number of available tokens.",
     validationPrice: "Enter a valid price greater than zero.",
     newLaunch: "New release",
-    editLaunch: "Edit card"
+    editLaunch: "Edit card",
+    configureLoan: "Configure loan",
+    delete: "Delete",
+    confirmDelete: "Confirm",
+    deleteError: "Could not delete asset.",
+    deleteBlockedInvestments: "Cannot delete an asset with active investments.",
+    deleteBlockedPublished: "Unpublish the asset before deleting it."
+  },
+  adminLoans: {
+    eyebrow: "RWA lending",
+    subtitle: "ERC-4626 issuance, vault, Morpho collateral, automation jobs, and borrow readiness.",
+    filters: {
+      ALL: "All",
+      ACTIVE: "Published",
+      INACTIVE: "Not published"
+    },
+    refresh: "Refresh",
+    configureLoan: "Configure loan",
+    viewAssetCard: "View card",
+    backToList: "Back to loans",
+    configureTitle: "Loan configuration",
+    configureSubtitle: "Deploy the ERC-4626 vault, register collateral, and enable automatic borrowing."
   },
   adminLaunch: {
     eyebrow: "RWA issue",
     createTitle: "Build new release",
     editTitle: "Edit release",
     subtitle: "Complete the marketplace card: photos, reels, contracts, map location, tokenomics and DeFi collateral.",
+    subtitleMarketplace: "Complete the marketplace card: photos, reels, contracts, map, and tokenomics. On-chain issuance and collateral are configured under Loans.",
     loading: "Loading launch…",
     loadError: "The release could not be loaded.",
     save: "Save launch",

@@ -1236,3 +1236,28 @@ export async function clearAutomationFailures(projectId: string) {
     automationCircuitBreaker: false
   });
 }
+
+export async function deleteAdminAsset(projectId: string): Promise<{ ok: true } | { ok: false; code: string }> {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      isActive: true,
+      _count: { select: { investments: { where: { status: 'ACTIVE' } } } }
+    }
+  });
+
+  if (!project) {
+    return { ok: false, code: 'NOT_FOUND' };
+  }
+
+  if (project.isActive) {
+    return { ok: false, code: 'ASSET_PUBLISHED' };
+  }
+
+  if (project._count.investments > 0) {
+    return { ok: false, code: 'ACTIVE_INVESTMENTS' };
+  }
+
+  await prisma.project.delete({ where: { id: projectId } });
+  return { ok: true };
+}

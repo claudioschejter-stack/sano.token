@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getAdminAsset, updateAdminAsset, type UpdateAdminAssetInput } from '../../../../../lib/admin/assetsService';
+import { getAdminAsset, updateAdminAsset, deleteAdminAsset, type UpdateAdminAssetInput } from '../../../../../lib/admin/assetsService';
 import { requireAdminSession } from '../../../../../lib/admin/requireAdmin';
 import { syncProjectAssetsFromStorage } from '../../../../../lib/storage/syncLaunchStorage';
 
@@ -87,5 +87,28 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     console.error('[admin/assets/patch]', error);
     return NextResponse.json({ error: 'Failed to update asset' }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, context: RouteContext) {
+  if (!(await requireAdminSession())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const { projectId } = await context.params;
+
+  try {
+    const result = await deleteAdminAsset(projectId);
+    if (!result.ok) {
+      if (result.code === 'NOT_FOUND') {
+        return NextResponse.json({ error: 'Asset not found', code: result.code }, { status: 404 });
+      }
+      return NextResponse.json({ error: 'Cannot delete asset', code: result.code }, { status: 409 });
+    }
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('[admin/assets/delete]', error);
+    return NextResponse.json({ error: 'Failed to delete asset' }, { status: 500 });
   }
 }

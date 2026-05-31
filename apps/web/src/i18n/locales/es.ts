@@ -153,6 +153,7 @@ export const es = {
     panel: 'Panel de Operaciones',
     investors: 'Inversores',
     assets: 'Activos',
+    loans: 'Préstamos',
     treasury: 'Tesorería',
     commissions: 'Comisiones',
     team: 'Equipo',
@@ -278,6 +279,7 @@ export const es = {
   },
   adminAssets: {
     eyebrow: 'Activos del marketplace',
+    subtitle: 'Armá y publicá las tarjetas de lanzamiento: fotos, tokenomics, precio y visibilidad en el marketplace.',
     filters: {
       ALL: 'Todos',
       ACTIVE: 'Publicados',
@@ -312,13 +314,35 @@ export const es = {
     validationTokens: 'Ingresá una cantidad válida de tokens disponibles.',
     validationPrice: 'Ingresá un precio válido mayor a cero.',
     newLaunch: 'Nuevo lanzamiento',
-    editLaunch: 'Editar tarjeta'
+    editLaunch: 'Editar tarjeta',
+    configureLoan: 'Configurar préstamo',
+    delete: 'Eliminar',
+    confirmDelete: 'Confirmar',
+    deleteError: 'No se pudo eliminar el activo.',
+    deleteBlockedInvestments: 'No podés eliminar un activo con inversiones activas.',
+    deleteBlockedPublished: 'Despublicá el activo antes de eliminarlo.'
+  },
+  adminLoans: {
+    eyebrow: 'Préstamos RWA',
+    subtitle: 'Emisión ERC-4626, vault, colateral Morpho, jobs de automatización y readiness para préstamo.',
+    filters: {
+      ALL: 'Todos',
+      ACTIVE: 'Publicados',
+      INACTIVE: 'No publicados'
+    },
+    refresh: 'Actualizar',
+    configureLoan: 'Configurar préstamo',
+    viewAssetCard: 'Ver tarjeta',
+    backToList: 'Volver a préstamos',
+    configureTitle: 'Configuración de préstamo',
+    configureSubtitle: 'Emití el vault ERC-4626, registrá colateral y habilitá el activo como colateral automático.'
   },
   adminLaunch: {
     eyebrow: 'Emisión RWA',
     createTitle: 'Armar nuevo lanzamiento',
     editTitle: 'Editar lanzamiento',
     subtitle: 'Completá la tarjeta del marketplace: fotos, reels, contratos, ubicación en mapa, tokenomics y colateral DeFi.',
+    subtitleMarketplace: 'Completá la tarjeta del marketplace: fotos, reels, contratos, mapa y tokenomics. La emisión on-chain y colateral se configuran en Préstamos.',
     loading: 'Cargando lanzamiento…',
     loadError: 'No se pudo cargar el lanzamiento.',
     save: 'Guardar lanzamiento',

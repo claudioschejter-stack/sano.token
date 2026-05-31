@@ -35,6 +35,8 @@ import { AdminGate } from './AdminGate';
 type AdminLaunchEditorProps = {
   mode: 'create' | 'edit';
   projectId?: string;
+  /** marketplace = tarjeta/token; lending = vault, colateral y automatización */
+  scope?: 'marketplace' | 'lending';
 };
 
 type TokenDeployHealth = {
@@ -195,10 +197,12 @@ const COLLATERAL_FORM_KEYS: Array<{ key: keyof FormState; protocol: CollateralPr
   { key: 'collateralFigure', protocol: 'FIGURE', label: 'Figure Markets' }
 ];
 
-export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
+export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: AdminLaunchEditorProps) {
   const t = useTranslation();
   const l = t.adminLaunch;
   const router = useRouter();
+  const isMarketplace = scope === 'marketplace';
+  const isLending = scope === 'lending';
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [loading, setLoading] = useState(mode === 'edit');
@@ -556,7 +560,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
       jurisdiction: form.jurisdiction,
       isActive: form.isActive,
       collateralProtocols: selectedCollateral(form),
-      deployToken: shouldAutoDeploy || form.deployToken
+      deployToken: isLending && (shouldAutoDeploy || form.deployToken)
     };
   }
 
@@ -848,25 +852,47 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
     <AdminGate>
       <div className="mx-auto max-w-4xl space-y-8 pb-12">
         <Link
-          href="/dashboard/assets"
+          href={isLending ? '/dashboard/loans' : '/dashboard/assets'}
           className="inline-flex items-center gap-2 text-sm text-terminal-muted transition-colors hover:text-terminal-primary"
         >
           <ArrowLeft size={16} />
-          {t.adminDashboard.backToPanel}
+          {isLending ? t.adminLoans.backToList : t.adminDashboard.backToPanel}
         </Link>
 
         <header className="border-b border-terminal-border pb-6">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-terminal-primary">{l.eyebrow}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-terminal-primary">
+            {isLending ? t.adminLoans.eyebrow : l.eyebrow}
+          </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-terminal-text">
-            {mode === 'create' ? l.createTitle : l.editTitle}
+            {isLending ? t.adminLoans.configureTitle : mode === 'create' ? l.createTitle : l.editTitle}
           </h1>
-          <p className="mt-3 max-w-3xl text-terminal-muted">{l.subtitle}</p>
+          <p className="mt-3 max-w-3xl text-terminal-muted">
+            {isLending ? t.adminLoans.configureSubtitle : l.subtitleMarketplace ?? l.subtitle}
+          </p>
+          {isMarketplace && mode === 'edit' && projectId && form.tokenStandard === 'ERC4626' ? (
+            <Link
+              href={`/dashboard/loans/${projectId}`}
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-terminal-primary hover:text-blue-400"
+            >
+              {t.adminAssets.configureLoan} →
+            </Link>
+          ) : null}
+          {isLending && projectId ? (
+            <Link
+              href={`/dashboard/assets/${projectId}/edit`}
+              className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-terminal-muted hover:text-terminal-primary"
+            >
+              ← {t.adminLoans.viewAssetCard}
+            </Link>
+          ) : null}
         </header>
 
         {loading ? (
           <p className="text-sm text-terminal-muted">{l.loading}</p>
         ) : (
           <form onSubmit={(event) => void handleSave(event)} className="space-y-8">
+            {isMarketplace ? (
+            <>
             <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
               <h2 className="text-lg font-semibold text-terminal-text">{l.sectionBasic}</h2>
               <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -1011,9 +1037,89 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                   </p>
                 </label>
               </div>
+            </section>
 
-              {mode === 'edit' ? (
-                <div className="mt-6 rounded-lg border border-terminal-border bg-terminal-bg p-4">
+            <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+              <h2 className="text-lg font-semibold text-terminal-text">{l.sectionMedia}</h2>
+              <p className="mt-1 text-sm text-terminal-muted">{l.mediaDesc}</p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-terminal-border px-4 py-2 text-sm text-terminal-text hover:border-terminal-primary/40">
+                  <ImagePlus size={16} />
+                  {uploading ? l.uploading : l.uploadPhoto}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => void handleImageUpload(e)} />
+                </label>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-terminal-border px-4 py-2 text-sm text-terminal-text hover:border-terminal-primary/40">
+                  <Video size={16} />
+                  {uploading ? l.uploading : l.uploadVideo}
+                  <input type="file" accept="video/mp4,video/webm" className="hidden" onChange={(e) => void handleVideoUpload(e)} />
+                </label>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <input value={form.reelUrl} onChange={(e) => setForm({ ...form, reelUrl: e.target.value })} placeholder={l.reelPlaceholder} className={inputClass} />
+                <button type="button" onClick={addReelUrl} className="shrink-0 rounded-lg border border-terminal-border px-3 py-2 text-sm text-terminal-text">
+                  {l.addReelUrl}
+                </button>
+              </div>
+              {form.mediaGallery.length > 0 ? (
+                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {form.mediaGallery.map((item, index) => (
+                    <li key={`${item.url}-${index}`} className="overflow-hidden rounded-lg border border-terminal-border bg-terminal-bg">
+                      {item.type === 'image' ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.url} alt={item.caption ?? item.url} className="h-32 w-full object-cover" />
+                      ) : (
+                        <video src={item.url} controls className="h-32 w-full object-cover" />
+                      )}
+                      <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-terminal-muted">
+                        <span className="truncate">{item.type}: {item.caption ?? item.url}</span>
+                        <button type="button" onClick={() => removeMedia(index)} className="shrink-0 text-red-400">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-sm text-terminal-muted">{l.mediaEmpty}</p>
+              )}
+            </section>
+
+            <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-terminal-text">
+                <FileText size={18} />
+                {l.sectionContracts}
+              </h2>
+              <p className="mt-1 text-sm text-terminal-muted">{l.contractsDesc}</p>
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
+                {(['trust', 'purchase', 'lease', 'smartContract'] as const).map((key) => (
+                  <div key={key} className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
+                    <p className="text-sm font-medium text-terminal-text">{l.contractLabels[key]}</p>
+                    {form.contracts[key] ? (
+                      <a href={form.contracts[key]} target="_blank" rel="noopener noreferrer" className="mt-2 block truncate text-xs text-terminal-primary">
+                        {form.contracts[key]}
+                      </a>
+                    ) : (
+                      <p className="mt-2 text-xs text-terminal-muted">{l.noFile}</p>
+                    )}
+                    <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-xs text-terminal-primary">
+                      {l.uploadPdf}
+                      <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => void handleContractUpload(key, e)} />
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </section>
+            </>
+            ) : null}
+
+            {isLending && mode === 'edit' ? (
+              <>
+                <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+                  <h2 className="text-lg font-semibold text-terminal-text">{form.title}</h2>
+                  <p className="mt-1 text-sm text-terminal-muted">{form.tokenSymbol} · {form.tokenStandard}</p>
+                </section>
+
+                <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
                   <p className="text-sm font-medium text-terminal-text">{l.tokenDeployTitle}</p>
                   <p className="mt-1 text-xs text-terminal-muted">{l.tokenDeployDesc}</p>
                   {tokenDeployReady === false ? (
@@ -1144,90 +1250,7 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                       </ul>
                     </div>
                   ) : null}
-                </div>
-              ) : (
-                <label className="mt-4 flex items-center gap-2 text-sm text-terminal-muted">
-                  <input
-                    type="checkbox"
-                    checked={form.deployToken || shouldAutoDeploy}
-                    disabled={tokenDeployReady === true}
-                    onChange={(e) => setForm({ ...form, deployToken: e.target.checked })}
-                  />
-                  {tokenDeployReady ? l.autoDeployOnCreateEnabled : l.autoDeployOnCreate}
-                </label>
-              )}
-            </section>
-
-            <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-              <h2 className="text-lg font-semibold text-terminal-text">{l.sectionMedia}</h2>
-              <p className="mt-1 text-sm text-terminal-muted">{l.mediaDesc}</p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-terminal-border px-4 py-2 text-sm text-terminal-text hover:border-terminal-primary/40">
-                  <ImagePlus size={16} />
-                  {uploading ? l.uploading : l.uploadPhoto}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => void handleImageUpload(e)} />
-                </label>
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-terminal-border px-4 py-2 text-sm text-terminal-text hover:border-terminal-primary/40">
-                  <Video size={16} />
-                  {uploading ? l.uploading : l.uploadVideo}
-                  <input type="file" accept="video/mp4,video/webm" className="hidden" onChange={(e) => void handleVideoUpload(e)} />
-                </label>
-              </div>
-              <div className="mt-4 flex gap-2">
-                <input value={form.reelUrl} onChange={(e) => setForm({ ...form, reelUrl: e.target.value })} placeholder={l.reelPlaceholder} className={inputClass} />
-                <button type="button" onClick={addReelUrl} className="shrink-0 rounded-lg border border-terminal-border px-3 py-2 text-sm text-terminal-text">
-                  {l.addReelUrl}
-                </button>
-              </div>
-              {form.mediaGallery.length > 0 ? (
-                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {form.mediaGallery.map((item, index) => (
-                    <li key={`${item.url}-${index}`} className="overflow-hidden rounded-lg border border-terminal-border bg-terminal-bg">
-                      {item.type === 'image' ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.url} alt={item.caption ?? item.url} className="h-32 w-full object-cover" />
-                      ) : (
-                        <video src={item.url} controls className="h-32 w-full object-cover" />
-                      )}
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 text-xs text-terminal-muted">
-                        <span className="truncate">{item.type}: {item.caption ?? item.url}</span>
-                        <button type="button" onClick={() => removeMedia(index)} className="shrink-0 text-red-400">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-4 text-sm text-terminal-muted">{l.mediaEmpty}</p>
-              )}
-            </section>
-
-            <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-terminal-text">
-                <FileText size={18} />
-                {l.sectionContracts}
-              </h2>
-              <p className="mt-1 text-sm text-terminal-muted">{l.contractsDesc}</p>
-              <div className="mt-6 grid gap-4 md:grid-cols-2">
-                {(['trust', 'purchase', 'lease', 'smartContract'] as const).map((key) => (
-                  <div key={key} className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
-                    <p className="text-sm font-medium text-terminal-text">{l.contractLabels[key]}</p>
-                    {form.contracts[key] ? (
-                      <a href={form.contracts[key]} target="_blank" rel="noopener noreferrer" className="mt-2 block truncate text-xs text-terminal-primary">
-                        {form.contracts[key]}
-                      </a>
-                    ) : (
-                      <p className="mt-2 text-xs text-terminal-muted">{l.noFile}</p>
-                    )}
-                    <label className="mt-3 inline-flex cursor-pointer items-center gap-2 text-xs text-terminal-primary">
-                      {l.uploadPdf}
-                      <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={(e) => void handleContractUpload(key, e)} />
-                    </label>
-                  </div>
-                ))}
-              </div>
-            </section>
+                </section>
 
             <details className="rounded-xl border border-terminal-border bg-terminal-card p-6">
               <summary className="cursor-pointer list-none text-lg font-semibold text-terminal-text [&::-webkit-details-marker]:hidden">
@@ -1330,12 +1353,16 @@ export function AdminLaunchEditor({ mode, projectId }: AdminLaunchEditorProps) {
                 {l.collateralNote}
               </p>
             </details>
+              </>
+            ) : null}
 
             <div className="flex flex-wrap items-center gap-4">
+              {isMarketplace ? (
               <label className="flex items-center gap-2 text-sm text-terminal-text">
                 <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />
                 {l.publishOnSave}
               </label>
+              ) : null}
               <button
                 type="submit"
                 disabled={saving || uploading}

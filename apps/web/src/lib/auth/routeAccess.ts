@@ -4,6 +4,7 @@ import { ROLE_HOME_PATH } from './roles';
 const ADMIN_ROUTE_PREFIXES = [
   '/dashboard/investors',
   '/dashboard/assets',
+  '/dashboard/loans',
   '/dashboard/treasury',
   '/dashboard/team',
   '/dashboard/commissions',
