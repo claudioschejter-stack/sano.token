@@ -1,8 +1,17 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { coinbaseWallet, walletConnect } from '@wagmi/connectors';
+import {
+  isWalletConnectConfigured,
+  walletConnectMetadata,
+  walletConnectProjectId
+} from './walletConnect';
 
-const wcProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID?.trim() ?? '';
+export {
+  isWalletConnectConfigured,
+  walletConnectAllowedOrigins,
+  walletConnectProjectId
+} from './walletConnect';
 
 const baseRpcUrl =
   process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() ||
@@ -14,14 +23,15 @@ export const supportedChains = [base] as const;
 
 const connectors = [
   coinbaseWallet({
-    appName: 'Sanova Global',
+    appName: walletConnectMetadata.name,
     /** Prioriza Smart Wallet de Coinbase. */
     preference: 'smartWalletOnly'
   }),
-  ...(wcProjectId
+  ...(isWalletConnectConfigured
     ? [
         walletConnect({
-          projectId: wcProjectId,
+          projectId: walletConnectProjectId,
+          metadata: walletConnectMetadata,
           showQrModal: false
         })
       ]

@@ -7,6 +7,7 @@ import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { useState, type ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { wagmiConfig } from '../../lib/web3/config';
+import { walletConnectMetadata } from '../../lib/web3/walletConnect';
 
 type Web3ProvidersProps = {
   children: ReactNode;
@@ -37,8 +38,8 @@ export function Web3Providers({ children }: Web3ProvidersProps) {
           modalSize="compact"
           initialChain={wagmiConfig.chains[0]}
           appInfo={{
-            appName: 'Sanova Global',
-            learnMoreUrl: 'https://sano-token-web.vercel.app/terminos'
+            appName: walletConnectMetadata.name,
+            learnMoreUrl: `${walletConnectMetadata.url}/terminos`
           }}
         >
           {children}

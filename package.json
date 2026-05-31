@@ -20,6 +20,8 @@
     "db:project-yield": "node scripts/apply-project-yield-migration.mjs",
     "vercel:check-payments": "node scripts/vercel/check-payments-env.mjs",
     "vercel:sync-payments": "node scripts/vercel/sync-payments-env.mjs",
+    "vercel:sync-walletconnect": "node scripts/vercel/sync-walletconnect-env.mjs",
+    "vercel:check-walletconnect": "node scripts/verify-walletconnect-setup.mjs",
     "verify:usdc-checkout": "node scripts/verify-usdc-checkout-ready.mjs",
     "verify:stripe-setup": "node scripts/verify-stripe-setup.mjs",
     "verify:morpho-borrow": "npx tsx scripts/verify-morpho-borrow-ready.ts",
