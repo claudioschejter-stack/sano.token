@@ -98,7 +98,7 @@ export function useBuyToken() {
           functionName: 'allowance',
           args: [address, input.vaultAddress],
           chainId: targetChainId
-        } as Parameters<typeof readContract>[1])) as bigint;
+        } as unknown as Parameters<typeof readContract>[1])) as bigint;
 
         let approvalHash: `0x${string}` | undefined;
 
@@ -110,7 +110,7 @@ export function useBuyToken() {
             functionName: 'approve',
             args: [input.vaultAddress, maxUint256],
             chainId: targetChainId
-          } as Parameters<typeof writeContract>[1])) as `0x${string}`;
+          } as unknown as Parameters<typeof writeContract>[1])) as `0x${string}`;
 
           setApproveTxHash(approvalHash);
           await waitForTransactionReceipt(config, {
@@ -126,7 +126,7 @@ export function useBuyToken() {
           functionName: 'deposit',
           args: [amount, receiver],
           chainId: targetChainId
-        } as Parameters<typeof writeContract>[1])) as `0x${string}`;
+        } as unknown as Parameters<typeof writeContract>[1])) as `0x${string}`;
 
         setDepositTxHash(depositHash);
         const receipt = await waitForTransactionReceipt(config, {
