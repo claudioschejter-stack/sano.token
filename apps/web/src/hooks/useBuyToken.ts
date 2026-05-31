@@ -92,25 +92,25 @@ export function useBuyToken() {
       setApproveTxHash(undefined);
 
       try {
-        const allowance = await readContract(config, {
+        const allowance = (await readContract(config, {
           address: input.usdcAddress,
           abi: erc20Abi,
           functionName: 'allowance',
           args: [address, input.vaultAddress],
           chainId: targetChainId
-        });
+        } as Parameters<typeof readContract>[1])) as bigint;
 
         let approvalHash: `0x${string}` | undefined;
 
         if (allowance < amount) {
           setStatus('approving');
-          approvalHash = await writeContract(config, {
+          approvalHash = (await writeContract(config, {
             address: input.usdcAddress,
             abi: erc20Abi,
             functionName: 'approve',
             args: [input.vaultAddress, maxUint256],
             chainId: targetChainId
-          });
+          } as Parameters<typeof writeContract>[1])) as `0x${string}`;
 
           setApproveTxHash(approvalHash);
           await waitForTransactionReceipt(config, {
@@ -120,13 +120,13 @@ export function useBuyToken() {
         }
 
         setStatus('depositing');
-        const depositHash = await writeContract(config, {
+        const depositHash = (await writeContract(config, {
           address: input.vaultAddress,
           abi: ERC4626_DEPOSIT_ABI,
           functionName: 'deposit',
           args: [amount, receiver],
           chainId: targetChainId
-        });
+        } as Parameters<typeof writeContract>[1])) as `0x${string}`;
 
         setDepositTxHash(depositHash);
         const receipt = await waitForTransactionReceipt(config, {
