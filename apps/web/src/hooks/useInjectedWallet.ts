@@ -7,10 +7,8 @@ type EthereumProvider = {
   request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
 };
 
-declare global {
-  interface Window {
-    ethereum?: EthereumProvider;
-  }
+function getEthereum(): EthereumProvider | undefined {
+  return (window as Window & { ethereum?: EthereumProvider }).ethereum;
 }
 
 export function useInjectedWallet() {
@@ -20,15 +18,16 @@ export function useInjectedWallet() {
   const [isPending, setIsPending] = useState(false);
 
   const connect = useCallback(async () => {
-    if (!window.ethereum) {
+    if (!getEthereum()) {
       window.alert(t.wallet.noWallet);
       return;
     }
 
     setIsPending(true);
     try {
-      const accounts = (await window.ethereum.request({ method: 'eth_requestAccounts' })) as string[];
-      const rawChainId = (await window.ethereum.request({ method: 'eth_chainId' })) as string;
+      const ethereum = getEthereum()!;
+      const accounts = (await ethereum.request({ method: 'eth_requestAccounts' })) as string[];
+      const rawChainId = (await ethereum.request({ method: 'eth_chainId' })) as string;
       setAddress(accounts[0] ?? null);
       setChainId(Number.parseInt(rawChainId, 16));
     } catch {
@@ -45,12 +44,12 @@ export function useInjectedWallet() {
   }, []);
 
   const switchChain = useCallback(async (targetChainId: number) => {
-    if (!window.ethereum) {
+    if (!getEthereum()) {
       window.alert(t.wallet.noWallet);
       return false;
     }
 
-    await window.ethereum.request({
+    await getEthereum()!.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: `0x${targetChainId.toString(16)}` }]
     });
@@ -63,7 +62,8 @@ export function useInjectedWallet() {
     to: string;
     amountBaseUnits: string;
   }) => {
-    if (!window.ethereum || !address) {
+    const ethereum = getEthereum();
+    if (!ethereum || !address) {
       throw new Error('WALLET_NOT_CONNECTED');
     }
 
@@ -71,7 +71,7 @@ export function useInjectedWallet() {
     const encodedTo = input.to.toLowerCase().replace(/^0x/, '').padStart(64, '0');
     const encodedAmount = BigInt(input.amountBaseUnits).toString(16).padStart(64, '0');
 
-    return window.ethereum.request({
+    return ethereum.request({
       method: 'eth_sendTransaction',
       params: [
         {
