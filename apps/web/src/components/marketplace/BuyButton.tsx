@@ -16,7 +16,7 @@ export type BuyButtonProps = {
   disabled?: boolean;
   className?: string;
   /** Create payment intent / pre-checks before on-chain deposit. */
-  onPrepare?: () => Promise<{ paymentIntentId: string } | void>;
+  onPrepare?: () => Promise<{ paymentIntentId: string } | undefined>;
   /** Called after successful ERC-4626 deposit (e.g. verify with backend). */
   onSuccess?: (result: { depositTxHash: string; paymentIntentId?: string }) => void | Promise<void>;
 };
