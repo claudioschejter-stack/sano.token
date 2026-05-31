@@ -1237,7 +1237,9 @@ export async function clearAutomationFailures(projectId: string) {
   });
 }
 
-export async function deleteAdminAsset(projectId: string): Promise<{ ok: true } | { ok: false; code: string }> {
+export async function deleteAdminAsset(
+  projectId: string
+): Promise<{ ok: true } | { ok: false; code: 'NOT_FOUND' | 'ASSET_PUBLISHED' | 'ACTIVE_INVESTMENTS' }> {
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: {
