@@ -18,6 +18,7 @@ module.exports = {
             accent: '#F97316',
             success: '#22C55E',
             warning: '#FBBF24',
+            danger: '#EF4444',
             muted: '#6B7280'
           }
         }

@@ -20,6 +20,7 @@ import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './payme
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
 import { getStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
+import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = [
@@ -546,6 +547,12 @@ export async function confirmPaymentIntent(input: {
     txHash: input.txHash ?? result.txHash,
     payload: input.payload ?? {}
   });
+
+  try {
+    await recordPortfolioSnapshot(result.userId);
+  } catch (error) {
+    console.error('[confirmPaymentIntent] snapshot failed', error);
+  }
 
   return serializePaymentIntent(result);
 }

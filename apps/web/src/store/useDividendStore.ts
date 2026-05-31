@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { apiClient } from '../lib/apiClient';
 
 export type LiquidatedDistribution = {
   id: string;
@@ -182,10 +181,24 @@ export const useDividendStore = create<DividendState>((set) => ({
     set({ isLoading: true });
 
     try {
-      const records = await apiClient<CashFlowApiRecord[]>('/portfolio/cash-flow');
-      const distributions = records.map(mapApiRecord);
+      const [cashFlowResponse, portfolioResponse] = await Promise.all([
+        fetch('/api/portfolio/cash-flow', { cache: 'no-store' }),
+        fetch('/api/portfolio', { cache: 'no-store' })
+      ]);
+
+      const cashFlowData = cashFlowResponse.ok
+        ? ((await cashFlowResponse.json()) as { records?: CashFlowApiRecord[] })
+        : { records: [] };
+      const portfolioData = portfolioResponse.ok
+        ? ((await portfolioResponse.json()) as { summary?: { marginDebt?: number; availableCash?: number } })
+        : null;
+
+      const distributions = (cashFlowData.records ?? []).map(mapApiRecord);
+      const marginDebtUsd = portfolioData?.summary?.marginDebt ?? DEMO_MARGIN_DEBT_USD;
+      const availableCashUsd = portfolioData?.summary?.availableCash ?? DEMO_AVAILABLE_CASH_USD;
+
       set({
-        ...deriveStateFromDistributions(distributions, DEMO_MARGIN_DEBT_USD, DEMO_AVAILABLE_CASH_USD),
+        ...deriveStateFromDistributions(distributions, marginDebtUsd, availableCashUsd),
         isLoading: false
       });
     } catch {

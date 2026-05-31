@@ -7,16 +7,19 @@ import {
   Home,
   LayoutDashboard,
   LogOut,
+  Menu,
   Settings,
   ShoppingBag,
   UserCheck,
   Users,
   UserCog,
-  Wallet
+  Wallet,
+  X
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { SystemRole } from '../../lib/auth/roles';
@@ -78,13 +81,102 @@ const investorNavItems: InvestorNavConfig[] = [
   }
 ];
 
+type SidebarContentProps = {
+  panelItem: NavItem | undefined;
+  secondaryNavItems: NavItem[];
+  isAdmin: boolean;
+  isAdvisorStaff: boolean;
+  onNavigate?: () => void;
+  renderNavItem: (item: NavItem, onNavigate?: () => void) => ReactNode;
+};
+
+function SidebarContent({
+  panelItem,
+  secondaryNavItems,
+  isAdmin,
+  isAdvisorStaff,
+  onNavigate,
+  renderNavItem
+}: SidebarContentProps) {
+  const t = useTranslation();
+
+  return (
+    <>
+      <div className="border-b border-terminal-border p-6">
+        <Link href="/" className="block transition-opacity hover:opacity-90" onClick={onNavigate}>
+          <h2 className="text-2xl font-bold tracking-tight">Sanova Global</h2>
+          <p className="mt-1 text-sm text-terminal-muted">
+            {isAdmin
+              ? t.adminDashboard.sidebarSubtitle
+              : isAdvisorStaff
+                ? t.advisorPortal.clientsTitle
+                : t.brand.portalSubtitle}
+          </p>
+        </Link>
+      </div>
+
+      <div className="px-4 pt-4">
+        <SidebarUserStatus />
+        {panelItem ? renderNavItem(panelItem, onNavigate) : null}
+      </div>
+
+      <div className="mx-4 border-t border-terminal-border" />
+
+      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-4">
+        {secondaryNavItems.map((item) => renderNavItem(item, onNavigate))}
+
+        {isAdmin ? (
+          <>
+            <Link
+              href="/dashboard/wallet"
+              onClick={onNavigate}
+              className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
+            >
+              <CircleDollarSign size={20} />
+              <span>{t.nav.myWallet}</span>
+            </Link>
+            <Link
+              href="/marketplace"
+              onClick={onNavigate}
+              className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
+            >
+              <ShoppingBag size={20} />
+              <span>{t.adminNav.viewMarketplace}</span>
+            </Link>
+            <Link
+              href="/mercado-secundario"
+              onClick={onNavigate}
+              className="flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
+            >
+              <ArrowLeftRight size={20} />
+              <span>{t.nav.secondaryMarket}</span>
+            </Link>
+          </>
+        ) : null}
+      </nav>
+    </>
+  );
+}
+
 export function AppSidebar() {
   const pathname = usePathname();
   const t = useTranslation();
   const { data: session } = useSession();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const role = session?.user?.role;
   const isAdmin = role === 'ADMIN';
   const isAdvisorStaff = role === 'ADVISOR' || role === 'ADVISOR_MANAGER';
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileOpen]);
 
   const visibleInvestorItems = investorNavItems.filter((item) => {
     if (!item.roles || !role) {
@@ -99,7 +191,7 @@ export function AppSidebar() {
     await signOut({ callbackUrl: '/acceso' });
   }
 
-  function renderNavItem(item: NavItem) {
+  function renderNavItem(item: NavItem, onNavigate?: () => void) {
     const isActive =
       item.href === '/'
         ? pathname === '/'
@@ -110,6 +202,7 @@ export function AppSidebar() {
       <Link
         key={item.href}
         href={item.href}
+        onClick={onNavigate}
         className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
           isActive
             ? 'border border-terminal-primary/40 bg-terminal-bg text-terminal-primary'
@@ -146,75 +239,66 @@ export function AppSidebar() {
             ? t.nav.secondaryMarket
             : item.labelKey === 'myWallet'
               ? t.nav.myWallet
-            : t.adminNav.panel
+              : t.adminNav.panel
   }));
 
   const primaryNavItems = isAdmin ? adminItems : isAdvisorStaff ? advisorItems : investorItems;
   const panelItem = primaryNavItems.find((item) => item.href === '/dashboard');
   const secondaryNavItems = primaryNavItems.filter((item) => item.href !== '/dashboard');
+  const closeMobile = () => setMobileOpen(false);
+
+  const signOutButton = (
+    <button
+      type="button"
+      onClick={handleSignOut}
+      className="flex w-full items-center gap-3 px-3 py-2 text-terminal-muted transition-colors hover:text-terminal-text"
+    >
+      <LogOut size={20} />
+      <span>{t.nav.signOut}</span>
+    </button>
+  );
 
   return (
-    <aside className="flex h-full min-h-0 w-64 shrink-0 flex-col border-r border-terminal-border bg-terminal-card text-terminal-text">
-      <div className="border-b border-terminal-border p-6">
-        <Link href="/" className="block transition-opacity hover:opacity-90">
-          <h2 className="text-2xl font-bold tracking-tight">Sanova Global</h2>
-          <p className="mt-1 text-sm text-terminal-muted">
-            {isAdmin
-              ? t.adminDashboard.sidebarSubtitle
-              : isAdvisorStaff
-                ? t.advisorPortal.clientsTitle
-                : t.brand.portalSubtitle}
-          </p>
+    <>
+      <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-terminal-border bg-terminal-card px-4 md:hidden">
+        <Link href="/" className="text-lg font-bold tracking-tight">
+          Sanova Global
         </Link>
-      </div>
-
-      <div className="px-4 pt-4">
-        <SidebarUserStatus />
-        {panelItem ? renderNavItem(panelItem) : null}
-      </div>
-
-      <div className="mx-4 border-t border-terminal-border" />
-
-      <nav className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-4">
-        {secondaryNavItems.map(renderNavItem)}
-
-        {isAdmin ? (
-          <>
-            <Link
-              href="/dashboard/wallet"
-              className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
-            >
-              <CircleDollarSign size={20} />
-              <span>{t.nav.myWallet}</span>
-            </Link>
-            <Link
-              href="/marketplace"
-              className="mt-4 flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
-            >
-              <ShoppingBag size={20} />
-              <span>{t.adminNav.viewMarketplace}</span>
-            </Link>
-            <Link
-              href="/mercado-secundario"
-              className="flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
-            >
-              <ArrowLeftRight size={20} />
-              <span>{t.nav.secondaryMarket}</span>
-            </Link>
-          </>
-        ) : null}
-      </nav>
-
-      <div className="mt-auto shrink-0 border-t border-terminal-border p-4">
         <button
           type="button"
-          onClick={handleSignOut}
-          className="flex w-full items-center gap-3 px-3 py-2 text-terminal-muted transition-colors hover:text-terminal-text"
+          aria-expanded={mobileOpen}
+          aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+          onClick={() => setMobileOpen((open) => !open)}
+          className="rounded-lg border border-terminal-border p-2 text-terminal-text"
         >
-          <LogOut size={20} />
-          <span>{t.nav.signOut}</span>
+          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>
-      </div>
-    </aside>
+      </header>
+
+      {mobileOpen ? (
+        <button
+          type="button"
+          aria-label="Cerrar menú"
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={closeMobile}
+        />
+      ) : null}
+
+      <aside
+        className={`fixed inset-x-auto bottom-0 left-0 top-14 z-50 flex w-72 max-w-[85vw] flex-col border-r border-terminal-border bg-terminal-card text-terminal-text transition-transform duration-200 md:static md:inset-auto md:top-auto md:z-auto md:h-full md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        }`}
+      >
+        <SidebarContent
+          panelItem={panelItem}
+          secondaryNavItems={secondaryNavItems}
+          isAdmin={isAdmin}
+          isAdvisorStaff={isAdvisorStaff}
+          onNavigate={closeMobile}
+          renderNavItem={renderNavItem}
+        />
+        <div className="mt-auto shrink-0 border-t border-terminal-border p-4">{signOutButton}</div>
+      </aside>
+    </>
   );
 }

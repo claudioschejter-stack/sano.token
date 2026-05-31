@@ -381,8 +381,20 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                     current ? { ...current, availableTokens: Math.max(0, current.availableTokens - tokenQty) } : current
                   );
                   setStatus('done');
+                  void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
                 }}
               />
+            ) : null}
+            {status === 'done' ? (
+              <div className="space-y-3 rounded-lg border border-terminal-success/30 bg-terminal-success/10 px-4 py-3 text-sm text-terminal-success">
+                <p className="font-semibold">{t.checkout.purchaseComplete}</p>
+                <Link
+                  href="/dashboard/portfolio"
+                  className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+                >
+                  {t.checkout.viewPortfolio}
+                </Link>
+              </div>
             ) : null}
             {paymentIntent ? (
               <div className="space-y-2 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs text-terminal-muted">

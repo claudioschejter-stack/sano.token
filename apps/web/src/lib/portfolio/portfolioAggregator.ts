@@ -1,4 +1,5 @@
 import { prisma, Prisma } from '@sanova/database';
+import { readVaultPositionsForProjects } from './onChainVaultReader';
 
 export type AggregatedPortfolio = {
   baseCurrency: 'USD';
@@ -40,9 +41,21 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
             id: true,
             marginDebt: true,
             ltv: true,
+            walletAddress: true,
             investments: {
               where: { status: 'ACTIVE' },
-              include: { project: true },
+              include: {
+                project: {
+                  select: {
+                    id: true,
+                    title: true,
+                    tokenSymbol: true,
+                    pricePerToken: true,
+                    vaultAddress: true,
+                    chainId: true
+                  }
+                }
+              },
               orderBy: { purchasedAt: 'desc' }
             }
           }
@@ -69,8 +82,23 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
   ]);
 
   const investments = user?.investor?.investments ?? [];
+  const onChainByProject =
+    user?.investor?.walletAddress && investments.length > 0
+      ? await readVaultPositionsForProjects({
+          walletAddress: user.investor.walletAddress,
+          projects: investments.map((investment) => ({
+            projectId: investment.projectId,
+            vaultAddress: investment.project.vaultAddress,
+            chainId: investment.project.chainId
+          }))
+        })
+      : new Map();
+
   const rwaPositions = investments.map((investment) => {
-    const valueUsd = investment.purchasePriceUsd.toNumber();
+    const onChain = onChainByProject.get(investment.projectId);
+    const bookedValueUsd = investment.purchasePriceUsd.toNumber();
+    const valueUsd = onChain && onChain.assetsUsd > 0 ? onChain.assetsUsd : bookedValueUsd;
+
     return {
       id: investment.id,
       type: 'RWA_TOKEN' as const,
@@ -81,7 +109,14 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
       metadata: {
         projectId: investment.projectId,
         pricePerTokenUsd: investment.project.pricePerToken.toString(),
-        purchasedAt: investment.purchasedAt.toISOString()
+        purchasedAt: investment.purchasedAt.toISOString(),
+        vaultAddress: investment.project.vaultAddress,
+        chainId: investment.project.chainId,
+        txHash: investment.txHash,
+        onChainVerified: Boolean(onChain?.verified && onChain.assetsUsd > 0),
+        vaultShares: onChain?.shares ?? null,
+        onChainAssetsUsd: onChain?.assetsUsd ?? null,
+        bookedValueUsd
       }
     };
   });

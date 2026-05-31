@@ -1,14 +1,30 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { ShieldCheck } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import type { SystemRole } from '../../lib/auth/roles';
+import type { KycStatus } from '@sanova/database';
+
+function kycBadgeClass(status: KycStatus): string {
+  switch (status) {
+    case 'APPROVED':
+      return 'border-terminal-success/30 bg-terminal-success/10 text-terminal-success';
+    case 'REJECTED':
+      return 'border-terminal-danger/30 bg-terminal-danger/10 text-terminal-danger';
+    default:
+      return 'border-terminal-warning/30 bg-terminal-warning/10 text-terminal-warning';
+  }
+}
 
 export function SidebarUserStatus() {
   const t = useTranslation();
+  const u = t.userRoleHeader;
+  const a = t.accountStatus;
   const { data: session } = useSession();
-  const { checklist, profile } = useAccountStatus();
+  const { checklist, profile, loading } = useAccountStatus();
 
   const role = session?.user?.role as SystemRole | undefined;
   const roleLabels = t.access.roles as Record<SystemRole, string>;
@@ -21,9 +37,18 @@ export function SidebarUserStatus() {
     profile?.fullName?.trim() ||
     session.user.name?.trim() ||
     session.user.email?.split('@')[0] ||
-    t.userRoleHeader.fallbackName;
+    u.fallbackName;
 
-  const kycApproved = checklist?.kycApproved ?? false;
+  const kycStatus = checklist?.kycStatus ?? 'PENDING';
+  const kycLabels = a.kycLabels as Record<KycStatus, string>;
+  const kycLabel = kycLabels[kycStatus] ?? kycStatus;
+  const accountLabels = a.accountLabels as Record<string, string>;
+  const accountLabel =
+    checklist?.accountStatus === 'SUSPENDED'
+      ? accountLabels.SUSPENDED
+      : checklist?.operational
+        ? accountLabels.OPERATIONAL
+        : accountLabels.ONBOARDING;
 
   return (
     <div className="space-y-2 px-1 pb-2">
@@ -32,12 +57,28 @@ export function SidebarUserStatus() {
         <span className="inline-flex rounded-full border border-terminal-primary/40 bg-terminal-bg px-2.5 py-0.5 text-xs font-semibold text-terminal-primary">
           {roleLabels[role] ?? role}
         </span>
-        {kycApproved ? (
-          <span className="inline-flex rounded-full border border-terminal-success/30 bg-terminal-success/10 px-2.5 py-0.5 text-xs font-semibold text-terminal-success">
-            {t.userRoleHeader.approvedStatus}
-          </span>
+        {!loading && checklist ? (
+          <>
+            <span
+              className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${kycBadgeClass(kycStatus)}`}
+            >
+              {u.kycPrefix}: {kycLabel}
+            </span>
+            <span className="inline-flex rounded-full border border-terminal-border bg-terminal-bg px-2.5 py-0.5 text-xs font-medium text-terminal-muted">
+              {accountLabel}
+            </span>
+          </>
         ) : null}
       </div>
+      {!loading && checklist && !checklist.operational && checklist.accountStatus !== 'SUSPENDED' ? (
+        <Link
+          href="/kyc"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-terminal-primary hover:underline"
+        >
+          <ShieldCheck size={14} />
+          {a.continueCta}
+        </Link>
+      ) : null}
     </div>
   );
 }

@@ -9,6 +9,29 @@ export type CashFlowRecord = {
   status: string;
 };
 
+export type PortfolioPosition = {
+  id: string;
+  projectId: string;
+  projectTitle: string;
+  tokenCount: number;
+  purchasePriceUsd: string;
+  purchasedAt: string;
+  status: string;
+  txHash?: string | null;
+  vaultAddress?: string | null;
+  chainId?: number | null;
+  tokenSymbol?: string | null;
+  currentValueUsd?: string;
+  onChain?: {
+    verified: boolean;
+    shares: string;
+    assetsUsd: string;
+    walletAddress: string;
+    explorerUrl: string | null;
+    txExplorerUrl: string | null;
+  } | null;
+};
+
 type PortfolioState = {
   userId: string;
   capital: number;
@@ -16,15 +39,7 @@ type PortfolioState = {
   ltv: number;
   availableCash: number;
   cashFlowHistory: CashFlowRecord[];
-  activePositions: Array<{
-    id: string;
-    projectId: string;
-    projectTitle: string;
-    tokenCount: number;
-    purchasePriceUsd: string;
-    purchasedAt: string;
-    status: string;
-  }>;
+  activePositions: PortfolioPosition[];
   isLoading: boolean;
   fetchPortfolio: () => Promise<void>;
   applyCashToMarginRepayment: () => Promise<void>;
@@ -59,7 +74,7 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
 
       const portfolioData = (await portfolioResponse.json()) as {
         portfolio?: {
-          activePositions?: PortfolioState['activePositions'];
+          activePositions?: PortfolioPosition[];
         };
         summary?: {
           userId?: string;

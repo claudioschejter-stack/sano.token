@@ -1,6 +1,8 @@
 import { prisma, Prisma, type KycStatus, type AccountStatus } from '@sanova/database';
 import { calculatePurchaseCommissionSplit } from '../commission/commissionService';
 import { isAccountOperational } from '../onboarding/accountStatus';
+import { buildTxExplorerUrl, buildVaultExplorerUrl, readVaultPositionsForProjects } from '../portfolio/onChainVaultReader';
+import { getInvestorIdForPlatformUser } from './projectYieldService';
 
 const DEFAULT_MAX_LTV = 0.6;
 const CASH_FLOW_STATUS = 'Liquidado en Efectivo';
@@ -220,7 +222,18 @@ export async function getPortfolioForUser(userId: string) {
           investments: {
             where: { status: 'ACTIVE' },
             orderBy: { purchasedAt: 'desc' },
-            include: { project: true }
+            include: {
+              project: {
+                select: {
+                  id: true,
+                  title: true,
+                  tokenSymbol: true,
+                  vaultAddress: true,
+                  chainId: true,
+                  pricePerToken: true
+                }
+              }
+            }
           }
         }
       }
@@ -236,10 +249,24 @@ export async function getPortfolioForUser(userId: string) {
   }
 
   const investor = user.investor;
-  const totalCollateralUsd = investor.investments.reduce(
-    (sum, investment) => sum + investment.purchasePriceUsd.toNumber(),
-    0
-  );
+  const onChainByProject =
+    investor.walletAddress && investor.investments.length > 0
+      ? await readVaultPositionsForProjects({
+          walletAddress: investor.walletAddress,
+          projects: investor.investments.map((investment) => ({
+            projectId: investment.projectId,
+            vaultAddress: investment.project.vaultAddress,
+            chainId: investment.project.chainId
+          }))
+        })
+      : new Map();
+
+  const totalCollateralUsd = investor.investments.reduce((sum, investment) => {
+    const onChain = onChainByProject.get(investment.projectId);
+    const valueUsd =
+      onChain && onChain.assetsUsd > 0 ? onChain.assetsUsd : investment.purchasePriceUsd.toNumber();
+    return sum + valueUsd;
+  }, 0);
 
   return {
     investor: {
@@ -260,23 +287,51 @@ export async function getPortfolioForUser(userId: string) {
       totalCollateralUsd: totalCollateralUsd.toFixed(2),
       availableCreditUsd: (totalCollateralUsd * DEFAULT_MAX_LTV).toFixed(2)
     },
-    activePositions: investor.investments.map((investment) => ({
-      id: investment.id,
-      projectId: investment.projectId,
-      projectTitle: investment.project.title,
-      tokenCount: investment.tokenCount,
-      purchasePriceUsd: investment.purchasePriceUsd.toString(),
-      purchasedAt: investment.purchasedAt.toISOString(),
-      status: investment.status
-    }))
+    activePositions: investor.investments.map((investment) => {
+      const onChain = onChainByProject.get(investment.projectId);
+      const purchasePriceUsd = investment.purchasePriceUsd.toString();
+      const onChainValueUsd = onChain?.assetsUsd ?? 0;
+      const chainId = onChain?.chainId ?? investment.project.chainId ?? null;
+
+      return {
+        id: investment.id,
+        projectId: investment.projectId,
+        projectTitle: investment.project.title,
+        tokenCount: investment.tokenCount,
+        purchasePriceUsd,
+        purchasedAt: investment.purchasedAt.toISOString(),
+        status: investment.status,
+        txHash: investment.txHash,
+        vaultAddress: investment.project.vaultAddress,
+        chainId,
+        tokenSymbol: investment.project.tokenSymbol,
+        onChain: onChain
+          ? {
+              verified: onChain.verified,
+              shares: onChain.shares,
+              assetsUsd: onChain.assetsUsd.toFixed(6),
+              walletAddress: onChain.walletAddress,
+              explorerUrl: onChain.explorerUrl,
+              txExplorerUrl:
+                investment.txHash && chainId ? buildTxExplorerUrl(chainId, investment.txHash) : null
+            }
+          : null,
+        currentValueUsd: (onChainValueUsd > 0 ? onChainValueUsd : Number(purchasePriceUsd)).toFixed(2)
+      };
+    })
   };
 }
 
-export async function getCashFlowForUser(userId: string) {
+export async function getCashFlowForUser(platformUserId: string) {
+  const investorId = await getInvestorIdForPlatformUser(platformUserId);
+  if (!investorId) {
+    return [];
+  }
+
   const distributions = await prisma.dividendDistribution.findMany({
     where: {
-      userId,
-      status: LIQUIDATED_CASH_STATUS
+      userId: investorId,
+      status: { in: [LIQUIDATED_CASH_STATUS, APPLIED_TO_MARGIN_STATUS] }
     },
     select: {
       id: true,
@@ -284,7 +339,8 @@ export async function getCashFlowForUser(userId: string) {
       amount: true,
       currency: true,
       distributedAt: true,
-      status: true
+      status: true,
+      txHash: true
     },
     orderBy: { distributedAt: 'desc' }
   });
@@ -295,8 +351,13 @@ export async function getCashFlowForUser(userId: string) {
     assetId: distribution.assetId,
     liquidatedAmountUsd: distribution.amount.toString(),
     currency: distribution.currency,
-    status: CASH_FLOW_STATUS,
-    concept: 'Dividendo operativo liquidado estrictamente en cash para repago de pasivos'
+    status:
+      distribution.status === APPLIED_TO_MARGIN_STATUS ? 'Aplicado a margen' : CASH_FLOW_STATUS,
+    concept:
+      distribution.status === APPLIED_TO_MARGIN_STATUS
+        ? 'Dividendo aplicado a repago de margen'
+        : 'Dividendo operativo liquidado estrictamente en cash para repago de pasivos',
+    txHash: distribution.txHash
   }));
 }
 
@@ -318,7 +379,7 @@ export async function getPortfolioSummaryForUser(userId: string) {
   const distributions = user?.investorId
     ? await prisma.dividendDistribution.findMany({
         where: {
-          userId,
+          userId: user.investorId,
           status: LIQUIDATED_CASH_STATUS,
           appliedToMargin: false
         },
@@ -353,7 +414,7 @@ export async function repayMarginWithAvailableCash(userId: string) {
   return prisma.$transaction(async (tx) => {
     const availableDistributions = await tx.dividendDistribution.findMany({
       where: {
-        userId,
+        userId: investor.id,
         status: LIQUIDATED_CASH_STATUS,
         appliedToMargin: false
       },

@@ -1,16 +1,51 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowUpRight, ShoppingBag } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import {
+  ArrowDownToLine,
+  ArrowUpRight,
+  CircleDollarSign,
+  History,
+  Loader2,
+  ShoppingBag,
+  Wallet
+} from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
+import { DashboardSkeleton } from '../dashboard/DashboardSkeleton';
+import { InvestorKpiCard } from '../dashboard/investor/InvestorKpiCard';
+import { InvestorPageHeader } from '../dashboard/investor/InvestorPageHeader';
+import { InvestorSection } from '../dashboard/investor/InvestorSection';
+import { formatMessage } from '../../i18n';
+import { createIntlFormatters } from '../../i18n/formatters';
+import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
+import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { WalletConnectButton } from '../marketplace/WalletConnectButton';
 
 type WalletSummary = {
   account: { balance: string; reserved: string; available: string; currency: string; status: string };
   ledger: Array<{ id: string; type: string; amount: string; balanceAfter: string; createdAt: string }>;
-  deposits: Array<{ id: string; status: string; amountUsd: string; method: string; stablecoinNetwork: string | null; payToAddress: string | null; txHash: string | null }>;
-  withdrawals: Array<{ id: string; status: string; amountUsd: string; method: string; stablecoinNetwork: string | null; destinationAddress: string | null; providerCheckoutUrl: string | null; txHash: string | null }>;
+  deposits: Array<{
+    id: string;
+    status: string;
+    amountUsd: string;
+    method: string;
+    stablecoinNetwork: string | null;
+    payToAddress: string | null;
+    txHash: string | null;
+    createdAt?: string;
+  }>;
+  withdrawals: Array<{
+    id: string;
+    status: string;
+    amountUsd: string;
+    method: string;
+    stablecoinNetwork: string | null;
+    destinationAddress: string | null;
+    providerCheckoutUrl: string | null;
+    txHash: string | null;
+    createdAt?: string;
+  }>;
 };
 
 type DepositResponse = {
@@ -32,17 +67,54 @@ type WithdrawalResponse = {
   providerCheckoutUrl: string | null;
 };
 
-const LEDGER_LABELS: Record<string, string> = {
-  DEPOSIT_CREDIT: 'Depósito acreditado',
-  TOKEN_PURCHASE_DEBIT: 'Compra de tokens',
-  WITHDRAWAL_DEBIT: 'Retiro',
-  REFUND_CREDIT: 'Reembolso',
-  MANUAL_ADJUSTMENT: 'Ajuste manual'
+type RouteQuote = {
+  method: string;
+  provider: string;
+  label: string;
+  estimatedFeeUsd: number;
+  estimatedFeeBps: number;
+  stablecoinNetwork?: string;
+  reason: string;
 };
 
+type WalletTab = 'deposit' | 'withdraw' | 'history';
+
+type ActivityItem = {
+  id: string;
+  kind: 'ledger' | 'deposit' | 'withdrawal';
+  label: string;
+  amount: number;
+  status: string;
+  date: string;
+};
+
+const inputClassName =
+  'w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2.5 text-sm text-terminal-text outline-none focus:border-terminal-primary/50';
+const selectClassName = inputClassName;
+
 export function PlatformWalletView() {
+  const t = useTranslation();
+  const w = t.platformWallet;
+  const { intlLocale } = useLocale();
+  const { formatUsd, formatDateTime } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
   const { address } = useAccount();
+  const { checklist } = useAccountStatus();
+  const a = t.accountStatus;
+  const kycLabels = a.kycLabels as Record<string, string>;
+  const accountLabels = a.accountLabels as Record<string, string>;
+  const kycStatusLabel = checklist ? kycLabels[checklist.kycStatus] ?? checklist.kycStatus : '—';
+  const accountStatusLabel = checklist
+    ? checklist.accountStatus === 'SUSPENDED'
+      ? accountLabels.SUSPENDED
+      : checklist.operational
+        ? accountLabels.OPERATIONAL
+        : accountLabels.ONBOARDING
+    : '—';
+
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
+  const [isLoadingWallet, setIsLoadingWallet] = useState(true);
+  const [activeTab, setActiveTab] = useState<WalletTab>('deposit');
+
   const [amountUsd, setAmountUsd] = useState('100');
   const [method, setMethod] = useState('AUTO_CHEAPEST');
   const [network, setNetwork] = useState('BASE');
@@ -53,16 +125,25 @@ export function PlatformWalletView() {
   const [txHash, setTxHash] = useState('');
   const [status, setStatus] = useState('idle');
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
   const [withdrawAmount, setWithdrawAmount] = useState('50');
   const [withdrawMethod, setWithdrawMethod] = useState<'STABLECOIN' | 'FIAT'>('STABLECOIN');
   const [withdrawAddress, setWithdrawAddress] = useState('');
   const [withdrawNetwork, setWithdrawNetwork] = useState('BASE');
   const [withdrawal, setWithdrawal] = useState<WithdrawalResponse | null>(null);
 
+  const isBusy = ['creating', 'verifying', 'withdrawing', 'waiting_tx'].includes(status);
+
   const loadWallet = async () => {
-    const response = await fetch('/api/wallet');
-    const data = (await response.json()) as { wallet?: WalletSummary };
-    setWallet(data.wallet ?? null);
+    setIsLoadingWallet(true);
+    try {
+      const response = await fetch('/api/wallet', { cache: 'no-store' });
+      const data = (await response.json()) as { wallet?: WalletSummary };
+      setWallet(data.wallet ?? null);
+    } finally {
+      setIsLoadingWallet(false);
+    }
   };
 
   useEffect(() => {
@@ -75,9 +156,72 @@ export function PlatformWalletView() {
     }
   }, [address, withdrawAddress]);
 
+  const activities = useMemo<ActivityItem[]>(() => {
+    if (!wallet) {
+      return [];
+    }
+
+    const ledgerLabel = (type: string) => {
+      switch (type) {
+        case 'DEPOSIT_CREDIT':
+          return w.ledgerDeposit;
+        case 'TOKEN_PURCHASE_DEBIT':
+          return w.ledgerPurchase;
+        case 'WITHDRAWAL_DEBIT':
+          return w.ledgerWithdrawal;
+        case 'REFUND_CREDIT':
+          return w.ledgerRefund;
+        case 'MANUAL_ADJUSTMENT':
+          return w.ledgerAdjustment;
+        default:
+          return type;
+      }
+    };
+
+    const items: ActivityItem[] = [
+      ...wallet.ledger.map((entry) => ({
+        id: entry.id,
+        kind: 'ledger' as const,
+        label: ledgerLabel(entry.type),
+        amount: Number(entry.amount),
+        status: 'POSTED',
+        date: entry.createdAt
+      })),
+      ...wallet.deposits.map((entry) => ({
+        id: entry.id,
+        kind: 'deposit' as const,
+        label: `${w.depositLabel} · ${entry.method}`,
+        amount: Number(entry.amountUsd),
+        status: entry.status,
+        date: entry.createdAt ?? new Date(0).toISOString()
+      })),
+      ...wallet.withdrawals.map((entry) => ({
+        id: entry.id,
+        kind: 'withdrawal' as const,
+        label: `${w.withdrawalLabel} · ${entry.method}`,
+        amount: -Number(entry.amountUsd),
+        status: entry.status,
+        date: entry.createdAt ?? new Date(0).toISOString()
+      }))
+    ];
+
+    return items.sort((a, b) => b.date.localeCompare(a.date));
+  }, [
+    wallet,
+    w.depositLabel,
+    w.withdrawalLabel,
+    w.ledgerDeposit,
+    w.ledgerPurchase,
+    w.ledgerWithdrawal,
+    w.ledgerRefund,
+    w.ledgerAdjustment
+  ]);
+
   const createDeposit = async () => {
     setStatus('creating');
     setError(null);
+    setSuccess(null);
+
     const response = await fetch('/api/wallet/deposit-intents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -91,44 +235,60 @@ export function PlatformWalletView() {
         walletAddress: address
       })
     });
+
     const data = (await response.json()) as { error?: string; deposit?: DepositResponse; selectedRoute?: RouteQuote };
     if (!response.ok || !data.deposit) {
-      setError(data.error ?? 'DEPOSIT_CREATE_FAILED');
+      setError(data.error ?? w.errorDepositCreate);
       setStatus('idle');
       return;
     }
+
     setDeposit(data.deposit);
     setSelectedRoute(data.selectedRoute ?? null);
+
     if (data.deposit.providerCheckoutUrl) {
       window.location.href = data.deposit.providerCheckoutUrl;
       return;
     }
+
     setStatus('waiting_tx');
+    setActiveTab('deposit');
   };
 
   const verifyDeposit = async () => {
-    if (!deposit || !txHash.trim()) return;
+    if (!deposit || !txHash.trim()) {
+      return;
+    }
+
     setStatus('verifying');
     setError(null);
+    setSuccess(null);
+
     const response = await fetch('/api/wallet/deposit-intents/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ depositId: deposit.id, txHash: txHash.trim(), walletAddress: address })
     });
+
     const data = (await response.json()) as { error?: string; deposit?: DepositResponse };
     if (!response.ok || !data.deposit) {
-      setError(data.error ?? 'DEPOSIT_VERIFY_FAILED');
+      setError(data.error ?? w.errorDepositVerify);
       setStatus('waiting_tx');
       return;
     }
+
     setDeposit(data.deposit);
     setStatus('confirmed');
+    setSuccess(w.depositConfirmed);
+    setTxHash('');
     await loadWallet();
   };
 
   const createWithdrawal = async () => {
     setStatus('withdrawing');
     setError(null);
+    setSuccess(null);
+
     const response = await fetch('/api/wallet/withdraw-intents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -139,127 +299,254 @@ export function PlatformWalletView() {
         stablecoinNetwork: withdrawNetwork
       })
     });
+
     const data = (await response.json()) as { error?: string; withdrawal?: WithdrawalResponse };
     if (!response.ok || !data.withdrawal) {
-      setError(data.error ?? 'WITHDRAWAL_FAILED');
+      setError(data.error ?? w.errorWithdrawal);
       setStatus('idle');
       return;
     }
+
     setWithdrawal(data.withdrawal);
+
     if (data.withdrawal.providerCheckoutUrl) {
       window.location.href = data.withdrawal.providerCheckoutUrl;
       return;
     }
+
     setStatus('withdrawal_pending');
+    setSuccess(
+      formatMessage(w.withdrawalCreated, {
+        id: data.withdrawal.id.slice(0, 8),
+        status: data.withdrawal.status
+      })
+    );
     await loadWallet();
+    setActiveTab('history');
   };
 
-  return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-terminal-primary">Wallet Sanova</p>
-          <h1 className="mt-2 text-3xl font-bold text-terminal-text">Mi cartera</h1>
-          <p className="mt-2 max-w-2xl text-terminal-muted">
-            Depositá fiat o stablecoins, retirá a tu wallet o banco, y usá el saldo para comprar tokens RWA en el marketplace.
-          </p>
-        </div>
-        <Link
-          href="/marketplace"
-          className="inline-flex items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
-        >
-          <ShoppingBag size={16} />
-          Comprar tokens
-          <ArrowUpRight size={14} />
-        </Link>
-      </header>
+  if (isLoadingWallet && !wallet) {
+    return <DashboardSkeleton />;
+  }
 
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-terminal-border bg-terminal-card p-6 md:col-span-2">
-          <p className="text-sm text-terminal-muted">Saldo disponible</p>
-          <p className="mt-2 font-mono text-4xl font-bold text-terminal-primary">
-            {wallet ? `${wallet.account.available} ${wallet.account.currency}` : '...'}
-          </p>
-          <p className="mt-1 text-xs text-terminal-muted">
-            Total: {wallet?.account.balance ?? '0'} · Reservado: {wallet?.account.reserved ?? '0'} USD
-          </p>
-        </div>
-        <div className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-          <p className="text-sm text-terminal-muted">Estado</p>
-          <p className="mt-2 text-lg font-semibold text-terminal-text">{wallet?.account.status ?? 'ACTIVE'}</p>
-          <p className="mt-2 text-xs text-terminal-muted">KYC requerido para depositar, retirar y operar.</p>
-        </div>
+  const available = wallet ? Number(wallet.account.available) : 0;
+  const total = wallet ? Number(wallet.account.balance) : 0;
+  const reserved = wallet ? Number(wallet.account.reserved) : 0;
+
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 bg-terminal-bg text-terminal-text md:space-y-8">
+      <InvestorPageHeader
+        eyebrow={w.eyebrow}
+        title={w.title}
+        subtitle={w.subtitle}
+        action={
+          <Link
+            href="/marketplace"
+            className="inline-flex items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
+          >
+            <ShoppingBag size={16} />
+            {w.buyTokens}
+            <ArrowUpRight size={14} />
+          </Link>
+        }
+      />
+
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <InvestorKpiCard
+          label={w.kpiAvailable}
+          value={formatUsd(available)}
+          hint={w.kpiAvailableHint}
+          icon={<CircleDollarSign size={22} />}
+          valueClassName="text-terminal-primary"
+        />
+        <InvestorKpiCard
+          label={w.kpiTotal}
+          value={formatUsd(total)}
+          hint={wallet?.account.currency ?? 'USD'}
+          icon={<Wallet size={22} />}
+        />
+        <InvestorKpiCard
+          label={w.kpiReserved}
+          value={formatUsd(reserved)}
+          hint={w.kpiTotal}
+          icon={<ArrowDownToLine size={22} />}
+          valueClassName="text-terminal-warning"
+          iconClassName="bg-terminal-bg text-terminal-warning"
+        />
+        <InvestorKpiCard
+          label={w.kpiStatus}
+          value={kycStatusLabel}
+          hint={`${accountStatusLabel} · ${w.kycHint}`}
+          icon={<Wallet size={22} />}
+          valueClassName={
+            checklist?.kycStatus === 'APPROVED'
+              ? 'text-terminal-success'
+              : checklist?.kycStatus === 'REJECTED'
+                ? 'text-terminal-danger'
+                : 'text-terminal-warning'
+          }
+        />
       </section>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-          <h2 className="text-lg font-semibold text-terminal-text">Depositar fondos</h2>
-          <p className="mt-1 text-sm text-terminal-muted">El sistema elige automáticamente la ruta más barata.</p>
-          <div className="mt-4 space-y-3">
-            <WalletConnectButton />
-            <input
-              value={amountUsd}
-              onChange={(event) => setAmountUsd(event.target.value)}
-              className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-terminal-text"
-              placeholder="Monto USD"
-            />
-            <select value={method} onChange={(event) => setMethod(event.target.value)} className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text">
-              <option value="AUTO_CHEAPEST">Automático: opción más barata</option>
-              <option value="USDC_ONCHAIN">Stablecoin on-chain</option>
-              <option value="TRANSAK">Transak (fiat → crypto)</option>
-              <option value="BRIDGE">Bridge</option>
-              <option value="STRIPE">Stripe</option>
-              <option value="MERCADO_PAGO">Mercado Pago</option>
-              <option value="COINBASE">Coinbase</option>
-            </select>
-            <select value={country} onChange={(event) => setCountry(event.target.value)} className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text">
-              <option value="AR">Argentina</option>
-              <option value="MX">México (SPEI/Nu)</option>
-              <option value="BR">Brasil (Pix)</option>
-              <option value="US">USA (ACH)</option>
-              <option value="EU">Europa (SEPA)</option>
-              <option value="IN">India (UPI)</option>
-            </select>
-            <label className="flex items-center gap-2 text-sm text-terminal-muted">
-              <input type="checkbox" checked={userHasStablecoin} onChange={(event) => setUserHasStablecoin(event.target.checked)} />
-              Ya tengo stablecoins
-            </label>
-            {method === 'USDC_ONCHAIN' || method === 'AUTO_CHEAPEST' ? (
-              <select value={network} onChange={(event) => setNetwork(event.target.value)} className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text">
-                <option value="BASE">Base (USDC)</option>
-                <option value="POLYGON">Polygon (USDC)</option>
-                <option value="SOLANA">Solana (USDC)</option>
-                <option value="TRON">TRON (USDT)</option>
-              </select>
-            ) : null}
-            <button onClick={() => void createDeposit()} className="w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white">
-              Crear depósito
+      <div className="flex flex-wrap gap-2 rounded-xl border border-terminal-border bg-terminal-card p-2">
+        {(
+          [
+            { id: 'deposit', label: w.tabDeposit, icon: ArrowDownToLine },
+            { id: 'withdraw', label: w.tabWithdraw, icon: ArrowUpRight },
+            { id: 'history', label: w.tabHistory, icon: History }
+          ] as const
+        ).map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors sm:flex-none sm:px-5 ${
+                isActive
+                  ? 'bg-terminal-primary text-white'
+                  : 'text-terminal-muted hover:bg-terminal-bg hover:text-terminal-text'
+              }`}
+            >
+              <Icon size={16} />
+              {tab.label}
             </button>
-            {selectedRoute ? (
-              <div className="rounded-lg border border-terminal-success/30 bg-terminal-success/10 p-3 text-xs text-terminal-success">
-                Ruta: {selectedRoute.label} · fee ~USD {selectedRoute.estimatedFeeUsd.toFixed(2)}
-              </div>
-            ) : null}
-          </div>
-        </div>
+          );
+        })}
+      </div>
 
-        <div className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-          <h2 className="text-lg font-semibold text-terminal-text">Retirar fondos</h2>
-          <p className="mt-1 text-sm text-terminal-muted">Stablecoin a tu wallet o retiro fiat (revisión manual).</p>
-          <div className="mt-4 space-y-3">
+      {error ? (
+        <p className="rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">
+          {error}
+        </p>
+      ) : null}
+      {success ? (
+        <p className="rounded-lg border border-terminal-success/30 bg-terminal-success/10 px-4 py-3 text-sm text-terminal-success">
+          {success}
+        </p>
+      ) : null}
+
+      {activeTab === 'deposit' ? (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <InvestorSection title={w.depositTitle} subtitle={w.depositSubtitle}>
+            <div className="space-y-3">
+              <WalletConnectButton />
+              <input
+                value={amountUsd}
+                onChange={(event) => setAmountUsd(event.target.value)}
+                className={`${inputClassName} font-mono`}
+                placeholder={w.amountPlaceholder}
+                inputMode="decimal"
+              />
+              <select value={method} onChange={(event) => setMethod(event.target.value)} className={selectClassName}>
+                <option value="AUTO_CHEAPEST">{w.methodAuto}</option>
+                <option value="USDC_ONCHAIN">{w.methodUsdc}</option>
+                <option value="TRANSAK">{w.methodTransak}</option>
+                <option value="BRIDGE">{w.methodBridge}</option>
+                <option value="STRIPE">{w.methodStripe}</option>
+                <option value="MERCADO_PAGO">{w.methodMercadoPago}</option>
+                <option value="COINBASE">{w.methodCoinbase}</option>
+              </select>
+              <select value={country} onChange={(event) => setCountry(event.target.value)} className={selectClassName}>
+                <option value="AR">Argentina</option>
+                <option value="MX">México</option>
+                <option value="BR">Brasil</option>
+                <option value="US">USA</option>
+                <option value="EU">Europa</option>
+                <option value="IN">India</option>
+              </select>
+              <label className="flex items-center gap-2 text-sm text-terminal-muted">
+                <input
+                  type="checkbox"
+                  checked={userHasStablecoin}
+                  onChange={(event) => setUserHasStablecoin(event.target.checked)}
+                />
+                {w.hasStablecoin}
+              </label>
+              {method === 'USDC_ONCHAIN' || method === 'AUTO_CHEAPEST' ? (
+                <select value={network} onChange={(event) => setNetwork(event.target.value)} className={selectClassName}>
+                  <option value="BASE">Base (USDC)</option>
+                  <option value="POLYGON">Polygon (USDC)</option>
+                  <option value="SOLANA">Solana (USDC)</option>
+                  <option value="TRON">TRON (USDT)</option>
+                </select>
+              ) : null}
+              <button
+                type="button"
+                disabled={isBusy}
+                onClick={() => void createDeposit()}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {status === 'creating' ? <Loader2 size={16} className="animate-spin" /> : null}
+                {w.createDeposit}
+              </button>
+              {selectedRoute ? (
+                <p className="rounded-lg border border-terminal-success/30 bg-terminal-success/10 p-3 text-xs text-terminal-success">
+                  {formatMessage(w.routeSelected, {
+                    label: selectedRoute.label,
+                    fee: selectedRoute.estimatedFeeUsd.toFixed(2)
+                  })}
+                </p>
+              ) : null}
+            </div>
+          </InvestorSection>
+
+          <InvestorSection title={w.verifyTitle} subtitle={w.verifySubtitle}>
+            {deposit?.payToAddress ? (
+              <div className="space-y-3 text-sm">
+                <p className="text-terminal-muted">{w.sendToTreasury}</p>
+                <p className="break-all rounded-lg border border-terminal-border bg-terminal-bg p-3 font-mono text-xs text-terminal-text sm:text-sm">
+                  {deposit.payToAddress}
+                </p>
+                <input
+                  value={txHash}
+                  onChange={(event) => setTxHash(event.target.value)}
+                  className={`${inputClassName} font-mono text-xs sm:text-sm`}
+                  placeholder={w.txHashPlaceholder}
+                />
+                <button
+                  type="button"
+                  disabled={isBusy || !txHash.trim()}
+                  onClick={() => void verifyDeposit()}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {status === 'verifying' ? <Loader2 size={16} className="animate-spin" /> : null}
+                  {w.verifyButton}
+                </button>
+              </div>
+            ) : (
+              <p className="text-sm text-terminal-muted">{w.noDepositYet}</p>
+            )}
+          </InvestorSection>
+        </div>
+      ) : null}
+
+      {activeTab === 'withdraw' ? (
+        <InvestorSection title={w.withdrawTitle} subtitle={w.withdrawSubtitle}>
+          <div className="mx-auto max-w-lg space-y-3">
             <input
               value={withdrawAmount}
               onChange={(event) => setWithdrawAmount(event.target.value)}
-              className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-terminal-text"
-              placeholder="Monto USD"
+              className={`${inputClassName} font-mono`}
+              placeholder={w.amountPlaceholder}
+              inputMode="decimal"
             />
-            <select value={withdrawMethod} onChange={(event) => setWithdrawMethod(event.target.value as 'STABLECOIN' | 'FIAT')} className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text">
-              <option value="STABLECOIN">Stablecoin a mi wallet</option>
-              <option value="FIAT">Fiat (revisión manual / Transak)</option>
+            <select
+              value={withdrawMethod}
+              onChange={(event) => setWithdrawMethod(event.target.value as 'STABLECOIN' | 'FIAT')}
+              className={selectClassName}
+            >
+              <option value="STABLECOIN">{w.withdrawStablecoin}</option>
+              <option value="FIAT">{w.withdrawFiat}</option>
             </select>
             {withdrawMethod === 'STABLECOIN' ? (
               <>
-                <select value={withdrawNetwork} onChange={(event) => setWithdrawNetwork(event.target.value)} className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text">
+                <select
+                  value={withdrawNetwork}
+                  onChange={(event) => setWithdrawNetwork(event.target.value)}
+                  className={selectClassName}
+                >
                   <option value="BASE">Base</option>
                   <option value="POLYGON">Polygon</option>
                   <option value="SOLANA">Solana</option>
@@ -268,85 +555,87 @@ export function PlatformWalletView() {
                 <input
                   value={withdrawAddress}
                   onChange={(event) => setWithdrawAddress(event.target.value)}
-                  className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-sm text-terminal-text"
-                  placeholder="Dirección destino"
+                  className={`${inputClassName} font-mono text-xs sm:text-sm`}
+                  placeholder={w.destinationPlaceholder}
                 />
               </>
             ) : (
               <p className="rounded-lg border border-terminal-border bg-terminal-bg p-3 text-xs text-terminal-muted">
-                El equipo de tesorería procesará tu retiro bancario en 1–3 días hábiles.
+                {w.fiatHint}
               </p>
             )}
-            <button onClick={() => void createWithdrawal()} className="w-full rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-3 text-sm font-semibold text-terminal-primary">
-              Solicitar retiro
-            </button>
-            {withdrawal ? (
-              <p className="text-xs text-terminal-success">Retiro {withdrawal.id.slice(0, 8)} · {withdrawal.status}</p>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-        <h2 className="text-lg font-semibold text-terminal-text">Verificar depósito on-chain</h2>
-        {deposit?.payToAddress ? (
-          <div className="mt-4 space-y-3 text-sm">
-            <p className="text-terminal-muted">Enviar a treasury:</p>
-            <p className="break-all rounded-lg border border-terminal-border bg-terminal-bg p-3 font-mono text-terminal-text">{deposit.payToAddress}</p>
-            <input value={txHash} onChange={(event) => setTxHash(event.target.value)} className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-terminal-text" placeholder="Tx hash" />
-            <button onClick={() => void verifyDeposit()} className="rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white">
-              Verificar y acreditar
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => void createWithdrawal()}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-3 text-sm font-semibold text-terminal-primary hover:bg-terminal-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {status === 'withdrawing' ? <Loader2 size={16} className="animate-spin" /> : null}
+              {w.requestWithdrawal}
             </button>
           </div>
-        ) : (
-          <p className="mt-4 text-sm text-terminal-muted">Creá un depósito on-chain para ver instrucciones.</p>
-        )}
-        {error ? <p className="mt-3 text-sm text-terminal-warning">{error}</p> : null}
-        <p className="mt-3 text-xs text-terminal-muted">Estado: {status}</p>
-      </section>
+        </InvestorSection>
+      ) : null}
 
-      <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-        <h2 className="text-lg font-semibold text-terminal-text">Movimientos recientes</h2>
-        <div className="mt-4 space-y-2">
-          {wallet?.ledger.length ? wallet.ledger.map((entry) => (
-            <div key={entry.id} className="flex items-center justify-between rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm">
-              <div>
-                <p className="text-terminal-text">{LEDGER_LABELS[entry.type] ?? entry.type}</p>
-                <p className="text-xs text-terminal-muted">{new Date(entry.createdAt).toLocaleString()}</p>
+      {activeTab === 'history' ? (
+        <InvestorSection title={w.historyTitle} subtitle={w.historySubtitle} bodyClassName="p-0">
+          {activities.length === 0 ? (
+            <p className="p-4 text-sm text-terminal-muted sm:p-6">{w.historyEmpty}</p>
+          ) : (
+            <>
+              <div className="space-y-3 p-4 md:hidden">
+                {activities.map((item) => (
+                  <article key={`${item.kind}-${item.id}`} className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-terminal-text">{item.label}</p>
+                        <p className="mt-1 text-xs text-terminal-muted">{formatDateTime(item.date)}</p>
+                      </div>
+                      <p
+                        className={`font-mono text-sm font-bold ${item.amount >= 0 ? 'text-terminal-success' : 'text-terminal-warning'}`}
+                      >
+                        {item.amount >= 0 ? '+' : ''}
+                        {formatUsd(item.amount)}
+                      </p>
+                    </div>
+                    <p className="mt-2 text-xs text-terminal-muted">
+                      {w.colStatus}: {item.status}
+                    </p>
+                  </article>
+                ))}
               </div>
-              <span className={`font-mono ${Number(entry.amount) >= 0 ? 'text-terminal-success' : 'text-terminal-warning'}`}>
-                {entry.amount} USD
-              </span>
-            </div>
-          )) : (
-            <p className="text-sm text-terminal-muted">Sin movimientos todavía.</p>
+
+              <div className="hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[640px] text-left text-sm">
+                  <thead className="bg-terminal-bg text-xs uppercase tracking-wide text-terminal-muted">
+                    <tr>
+                      <th className="px-4 py-3 lg:px-6">{w.colType}</th>
+                      <th className="px-4 py-3 lg:px-6">{w.colDate}</th>
+                      <th className="px-4 py-3 text-right lg:px-6">{w.colAmount}</th>
+                      <th className="px-4 py-3 lg:px-6">{w.colStatus}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-terminal-border">
+                    {activities.map((item) => (
+                      <tr key={`${item.kind}-${item.id}`} className="hover:bg-terminal-bg/60">
+                        <td className="px-4 py-4 font-medium text-terminal-text lg:px-6">{item.label}</td>
+                        <td className="px-4 py-4 text-terminal-muted lg:px-6">{formatDateTime(item.date)}</td>
+                        <td
+                          className={`px-4 py-4 text-right font-mono font-bold lg:px-6 ${item.amount >= 0 ? 'text-terminal-success' : 'text-terminal-warning'}`}
+                        >
+                          {item.amount >= 0 ? '+' : ''}
+                          {formatUsd(item.amount)}
+                        </td>
+                        <td className="px-4 py-4 text-terminal-muted lg:px-6">{item.status}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
-        </div>
-      </section>
-
-      {wallet?.withdrawals.length ? (
-        <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
-          <h2 className="text-lg font-semibold text-terminal-text">Retiros recientes</h2>
-          <div className="mt-4 space-y-2">
-            {wallet.withdrawals.map((item) => (
-              <div key={item.id} className="flex justify-between rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm">
-                <span className="text-terminal-muted">{item.method} · {item.status}</span>
-                <span className="font-mono text-terminal-text">{item.amountUsd} USD</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        </InvestorSection>
       ) : null}
     </div>
   );
 }
-
-type RouteQuote = {
-  method: string;
-  provider: string;
-  label: string;
-  estimatedFeeUsd: number;
-  estimatedFeeBps: number;
-  stablecoinNetwork?: string;
-  reason: string;
-};
