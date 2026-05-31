@@ -1,7 +1,6 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base } from 'wagmi/chains';
-import { connectorsForWallets } from '@rainbow-me/rainbowkit';
-import { coinbaseWallet, walletConnectWallet } from '@rainbow-me/rainbowkit/wallets';
+import { coinbaseWallet, walletConnect } from 'wagmi/connectors';
 
 const wcProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID?.trim() ?? '';
 
@@ -13,31 +12,25 @@ const baseRpcUrl =
 /** Base mainnet — production RWA vault + USDC checkout. */
 export const supportedChains = [base] as const;
 
-const walletConnectors = connectorsForWallets(
-  [
-    {
-      groupName: 'Conectar billetera',
-      wallets: [
-        (options) =>
-          coinbaseWallet({
-            ...options,
-            appName: 'Sanova Global',
-            /** Prioriza Smart Wallet de Coinbase. */
-            preference: 'smartWalletOnly'
-          }),
-        ...(wcProjectId ? [walletConnectWallet] : [])
-      ]
-    }
-  ],
-  {
+const connectors = [
+  coinbaseWallet({
     appName: 'Sanova Global',
-    projectId: wcProjectId || '00000000000000000000000000000000'
-  }
-);
+    /** Prioriza Smart Wallet de Coinbase. */
+    preference: 'smartWalletOnly'
+  }),
+  ...(wcProjectId
+    ? [
+        walletConnect({
+          projectId: wcProjectId,
+          showQrModal: false
+        })
+      ]
+    : [])
+];
 
 export const wagmiConfig = createConfig({
   chains: supportedChains,
-  connectors: walletConnectors,
+  connectors,
   transports: {
     [base.id]: http(baseRpcUrl)
   },
