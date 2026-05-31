@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@sanova/database';
 import { requireAdminSession } from '../../../../../../../lib/admin/requireAdmin';
 import { creditProjectOperatingRent } from '../../../../../../../lib/yield/projectOperatingService';
 
@@ -37,7 +38,7 @@ export async function POST(request: Request, context: RouteContext) {
       amount: body.amount!,
       currency: body.currency ?? 'USD',
       idempotencyKey,
-      metadata: body.metadata
+      metadata: body.metadata as Prisma.InputJsonValue | undefined
     });
 
     return NextResponse.json({

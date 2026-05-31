@@ -1,14 +1,7 @@
 'use strict';
 
-const path = require('path');
-
-const connectorsRoot = path.join(
-  __dirname,
-  '../../../../../node_modules/@wagmi/connectors/dist/esm'
-);
-
-const coinbase = require(path.join(connectorsRoot, 'coinbaseWallet.js'));
-const wc = require(path.join(connectorsRoot, 'walletConnect.js'));
+const coinbase = require('../../../../../node_modules/@wagmi/connectors/dist/esm/coinbaseWallet.js');
+const wc = require('../../../../../node_modules/@wagmi/connectors/dist/esm/walletConnect.js');
 
 module.exports = {
   coinbaseWallet: coinbase.coinbaseWallet,
