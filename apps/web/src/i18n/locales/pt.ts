@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const pt = {
+export const pt = mergeLocale({
   meta: {
     title: "Sanova Global – Imóveis Tokenizados",
     description: "Invista em ativos reais tokenizados com renda on-chain e conformidade com KYC.",
@@ -1127,4 +1127,4 @@ export const pt = {
     globalTitle: "Erro inesperado",
     globalHint: "Ocorreu uma falha no aplicativo. Sua sessão e dados estão protegidos."
   }
-} satisfies Messages;
+});

@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const mr = {
+export const mr = mergeLocale({
   meta: {
     title: "सॅनोव्हा ग्लोबल — टोकनाइज्ड रिअल इस्टेट",
     description: "ऑन-चेन उत्पन्न आणि केवायसी अनुपालनासह टोकनाइज्ड वास्तविक मालमत्तेत गुंतवणूक करा.",
@@ -1127,4 +1127,4 @@ export const mr = {
     globalTitle: "अनपेक्षित त्रुटी",
     globalHint: "अनुप्रयोगामध्ये क्रॅश झाला. तुमचे सत्र आणि डेटा संरक्षित आहे."
   }
-} satisfies Messages;
+});

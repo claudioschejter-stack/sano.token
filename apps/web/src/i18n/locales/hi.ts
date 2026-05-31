@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const hi = {
+export const hi = mergeLocale({
   meta: {
     title: "सनोवा ग्लोबल - टोकनयुक्त रियल एस्टेट",
     description: "ऑन-चेन आय और केवाईसी अनुपालन के साथ टोकनयुक्त वास्तविक संपत्तियों में निवेश करें।",
@@ -1127,4 +1127,4 @@ export const hi = {
     globalTitle: "अप्रत्याशित त्रुटि",
     globalHint: "एप्लिकेशन में कोई क्रैश हो गया.आपका सत्र और डेटा सुरक्षित है."
   }
-} satisfies Messages;
+});

@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const bn = {
+export const bn = mergeLocale({
   meta: {
     title: "Sanova Global — Real Estate Tokenizado",
     description: "অন-চেইন আয় এবং কেওয়াইসি সম্মতি সহ টোকেনাইজড রিয়েল অ্যাসেটে বিনিয়োগ করুন।",
@@ -1127,4 +1127,4 @@ export const bn = {
     globalTitle: "Error inesperado",
     globalHint: "Ocurrió un fallo en la aplicación. Tu sesión y datos están protegidos."
   }
-} satisfies Messages;
+});

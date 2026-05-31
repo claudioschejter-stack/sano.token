@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const ar = {
+export const ar = mergeLocale({
   meta: {
     title: "سانوفا جلوبال – العقارات المرمزة",
     description: "استثمر في الأصول الحقيقية المرمزة مع الدخل عبر السلسلة والامتثال لسياسة اعرف عميلك (KYC).",
@@ -1127,4 +1127,4 @@ export const ar = {
     globalTitle: "خطأ غير متوقع",
     globalHint: "Ocurrió un fallo en la aplicación. Tu sesión y datos están protegidos."
   }
-} satisfies Messages;
+});

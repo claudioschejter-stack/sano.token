@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const ur = {
+export const ur = mergeLocale({
   meta: {
     title: "سانووا گلوبل - ٹوکنائزڈ ریئل اسٹیٹ",
     description: "آن چین آمدنی اور KYC کی تعمیل کے ساتھ ٹوکنائزڈ حقیقی اثاثوں میں سرمایہ کاری کریں۔",
@@ -1127,4 +1127,4 @@ export const ur = {
     globalTitle: "غیر متوقع غلطی",
     globalHint: "ایپلیکیشن میں کریش ہو گیا۔ آپ کا سیشن اور ڈیٹا محفوظ ہے۔"
   }
-} satisfies Messages;
+});

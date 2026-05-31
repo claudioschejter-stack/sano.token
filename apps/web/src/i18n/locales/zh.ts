@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const zh = {
+export const zh = mergeLocale({
   meta: {
     title: "Sanova Global — 代币化房地产",
     description: "投资具有链上收入和 KYC 合规性的代币化实物资产。",
@@ -1127,4 +1127,4 @@ export const zh = {
     globalTitle: "意外错误",
     globalHint: "应用程序发生崩溃。您的会话和数据受到保护。"
   }
-} satisfies Messages;
+});

@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const ja = {
+export const ja = mergeLocale({
   meta: {
     title: "Sanova Global — トークン化された不動産",
     description: "オンチェーン収入とKYCコンプライアンスを備えたトークン化された実物資産に投資します。",
@@ -1127,4 +1127,4 @@ export const ja = {
     globalTitle: "予期しないエラー",
     globalHint: "アプリケーションでクラッシュが発生しました。 セッションとデータは保護されています。"
   }
-} satisfies Messages;
+});

@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const sw = {
+export const sw = mergeLocale({
   meta: {
     title: "Sanova Global - Mali isiyohamishika ya Tokeni",
     description: "Wekeza katika mali halisi zilizowekwa alama na mapato ya mtandaoni na kufuata KYC.",
@@ -1127,4 +1127,4 @@ export const sw = {
     globalTitle: "Hitilafu isiyotarajiwa",
     globalHint: "Kulikuwa na hitilafu katika programu. Kipindi chako na data zinalindwa."
   }
-} satisfies Messages;
+});

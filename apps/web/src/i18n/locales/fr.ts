@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const fr = {
+export const fr = mergeLocale({
   meta: {
     title: "Sanova Global — Immobilier tokenisé",
     description: "Investissez dans des actifs réels tokenisés avec des revenus en chaîne et une conformité KYC.",
@@ -1127,4 +1127,4 @@ export const fr = {
     globalTitle: "Erreur inattendue",
     globalHint: "Un crash s'est produit dans l'application.Votre session et vos données sont protégées."
   }
-} satisfies Messages;
+});

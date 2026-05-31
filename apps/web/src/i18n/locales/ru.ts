@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const ru = {
+export const ru = mergeLocale({
   meta: {
     title: "Sanova Global — Токенизированная недвижимость",
     description: "Инвестируйте в токенизированные реальные активы, получая доход в сети и соблюдая требования KYC.",
@@ -1127,4 +1127,4 @@ export const ru = {
     globalTitle: "Неожиданная ошибка",
     globalHint: "В приложении произошел сбой. Ваша сессия и данные защищены."
   }
-} satisfies Messages;
+});

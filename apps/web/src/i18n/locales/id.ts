@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const id = {
+export const id = mergeLocale({
   meta: {
     title: "Sanova Global — Real Estat yang diberi Token",
     description: "Berinvestasi dalam aset nyata yang diberi token dengan pendapatan on-chain dan kepatuhan KYC.",
@@ -1127,4 +1127,4 @@ export const id = {
     globalTitle: "Kesalahan yang tidak terduga",
     globalHint: "Terjadi kerusakan pada aplikasi. Sesi dan data Anda dilindungi."
   }
-} satisfies Messages;
+});

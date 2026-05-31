@@ -1,6 +1,6 @@
-import type { Messages } from './en';
+import { mergeLocale } from './mergeLocale';
 
-export const de = {
+export const de = mergeLocale({
   meta: {
     title: "Sanova Global – Tokenisierte Immobilien",
     description: "Investieren Sie in tokenisierte Sachwerte mit On-Chain-Einkommen und KYC-Konformität.",
@@ -1127,4 +1127,4 @@ export const de = {
     globalTitle: "Unerwarteter Fehler",
     globalHint: "In der Anwendung ist ein Absturz aufgetreten. Ihre Sitzung und Daten sind geschützt."
   }
-} satisfies Messages;
+});
