@@ -31,6 +31,8 @@ import {
 } from 'recharts';
 
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
+
+export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
   const [portfolio, setPortfolio] = useState<AggregatedPortfolio | null>(null);
   const [weightedTargetYield, setWeightedTargetYield] = useState<number | null>(null);

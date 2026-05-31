@@ -15,8 +15,8 @@ import type { AggregatedPortfolio } from '../../../lib/portfolio/portfolioAggreg
 import { createIntlFormatters } from '../../../i18n/formatters';
 import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
 import { DashboardSkeleton } from '../DashboardSkeleton';
-import { InvestorKpiCard } from './investor/InvestorKpiCard';
-import { InvestorSection } from './investor/InvestorSection';
+import { InvestorKpiCard } from './InvestorKpiCard';
+import { InvestorSection } from './InvestorSection';
 
 type PositionRow = AggregatedPortfolio['positions'][number];
 
