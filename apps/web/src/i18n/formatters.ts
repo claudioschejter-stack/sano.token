@@ -13,12 +13,14 @@ export function createIntlFormatters(intlLocale: string) {
       maximumFractionDigits: 1
     }).format(value / 100);
 
-  const formatDate = (date: string) =>
-    new Intl.DateTimeFormat(intlLocale, {
+  const formatDate = (date: string) => {
+    const normalized = date.includes('T') ? date.slice(0, 10) : date;
+    return new Intl.DateTimeFormat(intlLocale, {
       day: '2-digit',
       month: 'short',
       year: 'numeric'
-    }).format(new Date(`${date}T00:00:00`));
+    }).format(new Date(`${normalized}T00:00:00`));
+  };
 
   const formatDateTime = (isoDate: string) =>
     new Intl.DateTimeFormat(intlLocale, {
