@@ -134,7 +134,7 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
   const availableUsd = wallet ? wallet.balance.minus(wallet.reserved).toNumber() : 0;
   const fiatUsd = availableUsd;
 
-  const stablecoinPositions = buildStablecoinPositions(deposits);
+  const stablecoinPositions: AggregatedPortfolio['positions'] = buildStablecoinPositions(deposits);
   const walletUsdcBalances =
     user?.investor?.walletAddress?.trim()
       ? await readWalletUsdcBalances(user.investor.walletAddress)
@@ -274,7 +274,7 @@ function buildStablecoinPositions(deposits: Array<{
   stablecoinNetwork: string | null;
   stablecoinSymbol: string | null;
   txHash: string | null;
-}>) {
+}>): AggregatedPortfolio['positions'] {
   const grouped = new Map<string, { amount: number; symbol: string; network: string; txHashes: string[] }>();
   for (const deposit of deposits) {
     const network = deposit.stablecoinNetwork ?? 'UNKNOWN';
