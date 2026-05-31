@@ -1,7 +1,6 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base } from 'wagmi/chains';
-import { coinbaseWallet } from '@wagmi/connectors/dist/esm/coinbaseWallet.js';
-import { walletConnect } from '@wagmi/connectors/dist/esm/walletConnect.js';
+import { coinbaseWallet, walletConnect } from '@wagmi/connectors';
 
 const wcProjectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID?.trim() ?? '';
 

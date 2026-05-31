@@ -12,7 +12,10 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@noble/hashes/_assert': path.join(__dirname, 'src/lib/shims/noble-hashes-assert.js')
+      '@noble/hashes/_assert': path.join(__dirname, 'src/lib/shims/noble-hashes-assert.js'),
+      '@wagmi/connectors': path.join(__dirname, 'src/lib/shims/wagmi-connectors.js'),
+      porto: path.join(__dirname, 'src/lib/shims/empty-module.js'),
+      'porto/internal': path.join(__dirname, 'src/lib/shims/empty-module.js')
     };
 
     config.resolve.modules = [
