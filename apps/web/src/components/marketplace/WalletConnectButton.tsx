@@ -6,7 +6,7 @@ import { isWalletConnectConfigured } from '../../lib/web3/config';
 
 export function WalletConnectButton() {
   const t = useTranslation();
-  const connectLabel = isWalletConnectConfigured ? t.wallet.connectWallet : t.wallet.connectCoinbase;
+  const connectLabel = isWalletConnectConfigured ? t.wallet.connect : t.wallet.connectCoinbase;
 
   return (
     <ConnectButton.Custom>

@@ -12,7 +12,7 @@ export const walletConnectMetadata = {
   description: 'Inversión inmobiliaria tokenizada en Base',
   url: siteUrl.replace(/\/$/, ''),
   icons: [`${siteUrl.replace(/\/$/, '')}/favicon.ico`]
-} as const;
+};
 
 /** Domains to allowlist in https://cloud.reown.com */
 export const walletConnectAllowedOrigins = [

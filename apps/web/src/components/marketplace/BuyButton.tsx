@@ -92,7 +92,7 @@ export function BuyButton({
 
   const label = statusLabel(status, t);
 
-  const connectLabel = isWalletConnectConfigured ? t.wallet.connectWallet : t.wallet.connectCoinbase;
+  const connectLabel = isWalletConnectConfigured ? t.wallet.connect : t.wallet.connectCoinbase;
 
   if (!isConnected) {
     return (
