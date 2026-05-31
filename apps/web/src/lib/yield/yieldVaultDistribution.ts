@@ -54,7 +54,8 @@ export async function distributeUsdcToProjectVault(batchId: string) {
         totalAmountPaid: usdcAmount,
         liquidPaidUsd: usdcAmount,
         status: 'SUCCESS',
-        debtOffsetUsd: 0
+        debtOffsetUsd: 0,
+        txHash: `yield-batch:${batch.id}`
       }
     });
 
