@@ -17,6 +17,7 @@ import { InvestorKpiCard } from './investor/InvestorKpiCard';
 import { InvestorPageHeader } from './investor/InvestorPageHeader';
 import { InvestorSection } from './investor/InvestorSection';
 import { LiveDividendStream } from './LiveDividendStream';
+import { RentPayoutPreferencePanel } from './investor/RentPayoutPreferencePanel';
 import { ProjectYieldPanel } from './ProjectYieldPanel';
 import { MonthlyCashFlowChart } from './MonthlyCashFlowChart';
 import {
@@ -29,28 +30,7 @@ import {
   CartesianGrid
 } from 'recharts';
 
-type AggregatedPortfolio = {
-  totals: {
-    totalValueUsd: number;
-    rwaValueUsd: number;
-    stablecoinUsd: number;
-    fiatUsd: number;
-  };
-  positions: Array<{
-    id: string;
-    type: string;
-    label: string;
-    amount: number;
-    currency: string;
-    valueUsd: number;
-  }>;
-  history: Array<{
-    date: string;
-    totalValueUsd: number;
-  }>;
-};
-
-export function FinancialOverview() {
+import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
   const [mounted, setMounted] = useState(false);
   const [portfolio, setPortfolio] = useState<AggregatedPortfolio | null>(null);
   const [weightedTargetYield, setWeightedTargetYield] = useState<number | null>(null);
@@ -111,10 +91,12 @@ export function FinancialOverview() {
       <InvestorPageHeader eyebrow={d.eyebrow} title={d.title} subtitle={d.subtitle} />
       <AccountStatusBanner showWhenOperational />
 
+      <RentPayoutPreferencePanel />
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <InvestorKpiCard
           label={d.kpiTotalPortfolio}
-          value={portfolio ? formatUsdc(portfolio.totals.totalValueUsd) : '—'}
+          value={portfolio ? formatUsdc(portfolio.totals.netLiquidValueUsd) : '—'}
           hint={d.kpiTotalPortfolioHint}
           icon={<CircleDollarSign size={24} />}
           valueClassName="text-terminal-primary"
@@ -169,8 +151,16 @@ export function FinancialOverview() {
                 <AreaChart
                   data={
                     portfolio.history.length
-                      ? portfolio.history
-                      : [{ date: new Date().toISOString(), totalValueUsd: portfolio.totals.totalValueUsd }]
+                      ? portfolio.history.map((point) => ({
+                          date: point.date,
+                          netLiquidValueUsd: point.netLiquidValueUsd
+                        }))
+                      : [
+                          {
+                            date: new Date().toISOString(),
+                            netLiquidValueUsd: portfolio.totals.netLiquidValueUsd
+                          }
+                        ]
                   }
                 >
                   <defs>
@@ -205,7 +195,7 @@ export function FinancialOverview() {
                   />
                   <Area
                     type="monotone"
-                    dataKey="totalValueUsd"
+                    dataKey="netLiquidValueUsd"
                     stroke="#60a5fa"
                     fill="url(#portfolioValue)"
                     strokeWidth={2}
@@ -221,19 +211,19 @@ export function FinancialOverview() {
               <BreakdownRow
                 label={d.breakdownRwa}
                 value={portfolio.totals.rwaValueUsd}
-                total={portfolio.totals.totalValueUsd}
+                total={portfolio.totals.grossAssetsUsd}
                 formatUsd={formatUsdc}
               />
               <BreakdownRow
                 label={d.breakdownStablecoins}
                 value={portfolio.totals.stablecoinUsd}
-                total={portfolio.totals.totalValueUsd}
+                total={portfolio.totals.grossAssetsUsd}
                 formatUsd={formatUsdc}
               />
               <BreakdownRow
                 label={d.breakdownFiat}
                 value={portfolio.totals.fiatUsd}
-                total={portfolio.totals.totalValueUsd}
+                total={portfolio.totals.grossAssetsUsd}
                 formatUsd={formatUsdc}
               />
             </div>

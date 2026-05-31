@@ -43,6 +43,7 @@ const adminNavItems = [
   { href: '/dashboard/investors', icon: Users, labelKey: 'investors' as const },
   { href: '/dashboard/assets', icon: Building2, labelKey: 'assets' as const },
   { href: '/dashboard/treasury', icon: Wallet, labelKey: 'treasury' as const },
+  { href: '/dashboard/commissions', icon: CircleDollarSign, labelKey: 'commissions' as const },
   { href: '/dashboard/team', icon: UserCog, labelKey: 'team' as const },
   { href: '/dashboard/settings', icon: Settings, labelKey: 'settings' as const }
 ];

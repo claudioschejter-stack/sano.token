@@ -6,6 +6,7 @@ const ADMIN_ROUTE_PREFIXES = [
   '/dashboard/assets',
   '/dashboard/treasury',
   '/dashboard/team',
+  '/dashboard/commissions',
   '/dashboard/settings'
 ] as const;
 

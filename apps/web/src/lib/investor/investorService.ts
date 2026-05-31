@@ -7,6 +7,7 @@ import { getInvestorIdForPlatformUser } from './projectYieldService';
 const DEFAULT_MAX_LTV = 0.6;
 const CASH_FLOW_STATUS = 'Liquidado en Efectivo';
 const LIQUIDATED_CASH_STATUS = 'LIQUIDATED_CASH';
+const LIQUIDATED_FIAT_STATUS = 'LIQUIDATED_FIAT';
 const APPLIED_TO_MARGIN_STATUS = 'APPLIED_TO_MARGIN';
 
 type UserPurchaseContext = {
@@ -196,7 +197,10 @@ export async function purchaseProjectTokens(input: {
 
   const commissionSplit = await calculatePurchaseCommissionSplit({
     investorId,
-    purchaseAmountUsd: result.purchasePriceUsd
+    purchaseAmountUsd: result.purchasePriceUsd,
+    investmentId: result.investmentId,
+    projectId: result.projectId,
+    idempotencyPrefix: `purchase:${result.investmentId}`
   });
 
   return { ...result, commissionSplit };
@@ -331,7 +335,7 @@ export async function getCashFlowForUser(platformUserId: string) {
   const distributions = await prisma.dividendDistribution.findMany({
     where: {
       userId: investorId,
-      status: { in: [LIQUIDATED_CASH_STATUS, APPLIED_TO_MARGIN_STATUS] }
+      status: { in: [LIQUIDATED_CASH_STATUS, LIQUIDATED_FIAT_STATUS, APPLIED_TO_MARGIN_STATUS] }
     },
     select: {
       id: true,
@@ -352,11 +356,17 @@ export async function getCashFlowForUser(platformUserId: string) {
     liquidatedAmountUsd: distribution.amount.toString(),
     currency: distribution.currency,
     status:
-      distribution.status === APPLIED_TO_MARGIN_STATUS ? 'Aplicado a margen' : CASH_FLOW_STATUS,
+      distribution.status === APPLIED_TO_MARGIN_STATUS
+        ? 'Aplicado a margen'
+        : distribution.status === LIQUIDATED_FIAT_STATUS
+          ? 'Acreditado en billetera Sanova'
+          : CASH_FLOW_STATUS,
     concept:
       distribution.status === APPLIED_TO_MARGIN_STATUS
         ? 'Dividendo aplicado a repago de margen'
-        : 'Dividendo operativo liquidado estrictamente en cash para repago de pasivos',
+        : distribution.status === LIQUIDATED_FIAT_STATUS
+          ? 'Renta operativa acreditada en billetera Sanova (fiat)'
+          : 'Dividendo operativo liquidado en USDC para repago de pasivos',
     txHash: distribution.txHash
   }));
 }

@@ -14,6 +14,7 @@ import { DashboardSkeleton } from '../../../../components/dashboard/DashboardSke
 import { InvestorKpiCard } from '../../../../components/dashboard/investor/InvestorKpiCard';
 import { InvestorPageHeader } from '../../../../components/dashboard/investor/InvestorPageHeader';
 import { InvestorSection } from '../../../../components/dashboard/investor/InvestorSection';
+import { RentPayoutPreferencePanel } from '../../../../components/dashboard/investor/RentPayoutPreferencePanel';
 import { ProjectYieldPanel } from '../../../../components/dashboard/ProjectYieldPanel';
 
 export default function CashFlowPage() {
@@ -146,6 +147,8 @@ export default function CashFlowPage() {
           </div>
         </article>
       </section>
+
+      <RentPayoutPreferencePanel />
 
       <ProjectYieldPanel />
 

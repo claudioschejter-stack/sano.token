@@ -20,8 +20,16 @@ const CASH_FLOW_CONCEPT_BY_ID: Record<string, keyof Messages['demo']['cashFlowCo
 };
 
 export function translateLiquidatedStatus(status: string, t: Messages): string {
-  if (status === 'Liquidado en Efectivo' || status === 'Liquidated in cash') {
+  if (
+    status === 'Liquidado en Efectivo' ||
+    status === 'Liquidated in cash' ||
+    status === 'LIQUIDATED_CASH'
+  ) {
     return t.status.liquidatedCash;
+  }
+
+  if (status === 'LIQUIDATED_FIAT') {
+    return t.status.liquidatedFiat;
   }
 
   return status;

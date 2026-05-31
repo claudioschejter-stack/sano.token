@@ -77,7 +77,13 @@ enum PlatformLedgerEntryType {
   TOKEN_PURCHASE_DEBIT
   WITHDRAWAL_DEBIT
   REFUND_CREDIT
+  RENT_CREDIT
   MANUAL_ADJUSTMENT
+}
+
+enum RentPayoutPreference {
+  FIAT
+  USDC
 }
 
 enum PlatformLedgerEntryStatus {
@@ -145,6 +151,32 @@ enum AdvisorNominationStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum AdvisorCategory {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum CommissionEventType {
+  TOKEN_PURCHASE
+  RENT_DISTRIBUTION
+}
+
+enum CommissionAccrualStatus {
+  ACCRUED
+  PAID
+  CANCELLED
+}
+
+enum CommissionRecipientRole {
+  ADVISOR
+  ADVISOR_MANAGER
+  PLATFORM_OPEX
+  ADMIN_OPS
+  PLATFORM_RESIDUAL
 }
 
 enum SystemRole {
@@ -230,14 +262,17 @@ model VerificationCode {
 }
 
 model Advisor {
-  id                String      @id @default(cuid())
-  userId            String      @unique
-  uplineId          String?
-  tier              AdvisorTier @default(JUNIOR)
-  accumulatedVolume Decimal     @default(0) @db.Decimal(20, 6)
-  commissionRateBps Int         @default(100)
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  id                  String          @id @default(cuid())
+  userId              String          @unique
+  uplineId            String?
+  tier                AdvisorTier     @default(JUNIOR)
+  category            AdvisorCategory @default(BRONZE)
+  categoryQualifiedAt DateTime?
+  categoryEvaluatedAt DateTime?
+  accumulatedVolume   Decimal         @default(0) @db.Decimal(20, 6)
+  commissionRateBps   Int             @default(100)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   upline   Advisor?  @relation("AdvisorHierarchy", fields: [uplineId], references: [id], onDelete: SetNull)
@@ -246,9 +281,11 @@ model Advisor {
   incorporatedInvestors Investor[]            @relation("InvestorIncorporatedBy")
   nominationsSuggested  AdvisorNomination[]   @relation("NominationSuggestedBy")
   nominationsAsUpline     AdvisorNomination[]   @relation("NominationProposedUpline")
+  commissionAccruals    CommissionAccrual[]
 
   @@index([uplineId])
   @@index([tier])
+  @@index([category])
 }
 
 model AdvisorNomination {
@@ -283,9 +320,10 @@ model Investor {
   kycStatus          KycStatus    @default(PENDING)
   kycVerifiedAt      DateTime?
   originOfFunds      String?
-  brokerAccountRef   String?
-  dividendPreference String       @default("CASH")
-  totalCapital       Decimal      @default(0) @db.Decimal(20, 6)
+  brokerAccountRef     String?
+  dividendPreference   String               @default("CASH")
+  rentPayoutPreference RentPayoutPreference @default(FIAT)
+  totalCapital         Decimal              @default(0) @db.Decimal(20, 6)
   marginDebt               Decimal      @default(0) @db.Decimal(20, 6)
   ltv                      Decimal      @default(0) @db.Decimal(8, 4)
   incorporatedByAdvisorId  String?
@@ -800,6 +838,80 @@ model PlatformConfig {
   contactEmail  String?
   siteUrl       String?
   updatedAt     DateTime @updatedAt
+}
+
+model PlatformCommissionPolicy {
+  id                    String   @id @default(cuid())
+  version               Int      @default(1)
+  name                  String   @default("Política principal")
+  isActive              Boolean  @default(false)
+  effectiveFrom         DateTime @default(now())
+  purchaseFeeBps        Int      @default(200)
+  rentFeeBps            Int      @default(100)
+  platformOpexShareBps  Int      @default(2500)
+  adminOpsShareBps      Int      @default(3500)
+  advisorPoolShareBps   Int      @default(4000)
+  advisorDirectShareBps Int      @default(5000)
+  managerShareBps       Int      @default(3000)
+  platformResidualBps   Int      @default(2000)
+  createdByUserId       String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  categoryRules      AdvisorCategoryRule[]
+  commissionAccruals CommissionAccrual[]
+
+  @@index([isActive])
+  @@index([effectiveFrom])
+}
+
+model AdvisorCategoryRule {
+  id                     String          @id @default(cuid())
+  policyId               String
+  category               AdvisorCategory
+  sortOrder              Int             @default(0)
+  minBookAumUsd          Decimal         @default(0) @db.Decimal(20, 6)
+  minActiveInvestors     Int             @default(1)
+  minQualifyingDays      Int             @default(0)
+  advisorMultiplierBps   Int             @default(10000)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  policy PlatformCommissionPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@unique([policyId, category])
+  @@index([policyId, sortOrder])
+}
+
+model CommissionAccrual {
+  id              String                  @id @default(cuid())
+  policyId        String
+  eventType       CommissionEventType
+  status          CommissionAccrualStatus @default(ACCRUED)
+  grossAmountUsd  Decimal                 @db.Decimal(20, 6)
+  feeAmountUsd    Decimal                 @db.Decimal(20, 6)
+  investorId      String?
+  advisorId       String?
+  projectId       String?
+  investmentId    String?
+  recipientRole   CommissionRecipientRole
+  recipientUserId String?
+  amountUsd       Decimal                 @db.Decimal(20, 6)
+  idempotencyKey  String                  @unique
+  metadata        Json                    @default("{}")
+  createdAt       DateTime                @default(now())
+  paidAt          DateTime?
+
+  policy  PlatformCommissionPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  advisor Advisor?                 @relation(fields: [advisorId], references: [id], onDelete: SetNull)
+
+  @@index([policyId])
+  @@index([eventType])
+  @@index([status])
+  @@index([advisorId])
+  @@index([investorId])
+  @@index([projectId])
+  @@index([createdAt])
 }
 
 model SecondaryMarketListing {

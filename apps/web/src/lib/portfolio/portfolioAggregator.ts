@@ -1,10 +1,15 @@
 import { prisma, Prisma } from '@sanova/database';
 import { readVaultPositionsForProjects } from './onChainVaultReader';
+import { readWalletUsdcBalances } from './onChainUsdcReader';
 
 export type AggregatedPortfolio = {
   baseCurrency: 'USD';
   totals: {
+    /** Suma bruta de activos (tokens + stablecoins + fiat) */
     totalValueUsd: number;
+    grossAssetsUsd: number;
+    /** Activos − préstamos */
+    netLiquidValueUsd: number;
     rwaValueUsd: number;
     stablecoinUsd: number;
     fiatUsd: number;
@@ -18,15 +23,18 @@ export type AggregatedPortfolio = {
     label: string;
     amount: number;
     currency: string;
+    valueUsdc: number;
     valueUsd: number;
     metadata?: Record<string, unknown>;
   }>;
   history: Array<{
     date: string;
     totalValueUsd: number;
+    netLiquidValueUsd: number;
     rwaValueUsd: number;
     stablecoinUsd: number;
     fiatUsd: number;
+    debtUsd: number;
   }>;
 };
 
@@ -105,6 +113,7 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
       label: investment.project.title,
       amount: investment.tokenCount,
       currency: investment.project.tokenSymbol ?? 'RWA',
+      valueUsdc: valueUsd,
       valueUsd,
       metadata: {
         projectId: investment.projectId,
@@ -126,10 +135,35 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
   const fiatUsd = availableUsd;
 
   const stablecoinPositions = buildStablecoinPositions(deposits);
+  const walletUsdcBalances =
+    user?.investor?.walletAddress?.trim()
+      ? await readWalletUsdcBalances(user.investor.walletAddress)
+      : [];
+
+  for (const balance of walletUsdcBalances) {
+    stablecoinPositions.push({
+      id: `wallet-usdc-${balance.network}-${balance.chainId}`,
+      type: 'STABLECOIN' as const,
+      label: `${balance.symbol} en wallet (${balance.network})`,
+      amount: balance.amountUsdc,
+      currency: balance.symbol,
+      valueUsdc: balance.amountUsdc,
+      valueUsd: balance.amountUsdc,
+      metadata: {
+        source: 'ON_CHAIN_WALLET',
+        walletAddress: balance.walletAddress,
+        chainId: balance.chainId,
+        network: balance.network
+      }
+    });
+  }
+
   const stablecoinUsd = stablecoinPositions.reduce((sum, item) => sum + item.valueUsd, 0);
   const debtUsd = user?.investor?.marginDebt.toNumber() ?? 0;
-  const totalValueUsd = rwaValueUsd + stablecoinUsd + fiatUsd;
-  const ltv = totalValueUsd > 0 ? (debtUsd / totalValueUsd) * 100 : 0;
+  const grossAssetsUsd = rwaValueUsd + stablecoinUsd + fiatUsd;
+  const totalValueUsd = grossAssetsUsd;
+  const netLiquidValueUsd = grossAssetsUsd - debtUsd;
+  const ltv = grossAssetsUsd > 0 ? (debtUsd / grossAssetsUsd) * 100 : 0;
 
   const positions = [
     ...rwaPositions,
@@ -140,15 +174,18 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
       label: 'Saldo Sanova disponible',
       amount: availableUsd,
       currency: 'USD',
+      valueUsdc: availableUsd,
       valueUsd: availableUsd,
       metadata: { reservedUsd: wallet?.reserved.toString() ?? '0' }
     }
-  ].filter((position) => position.valueUsd > 0);
+  ].filter((position) => position.valueUsd > 0 || position.type === 'FIAT_BALANCE');
 
   return {
     baseCurrency: 'USD',
     totals: {
       totalValueUsd,
+      grossAssetsUsd,
+      netLiquidValueUsd,
       rwaValueUsd,
       stablecoinUsd,
       fiatUsd,
@@ -157,13 +194,19 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
       ltv
     },
     positions,
-    history: snapshots.map((snapshot) => ({
-      date: snapshot.capturedAt.toISOString(),
-      totalValueUsd: snapshot.totalValueUsd.toNumber(),
-      rwaValueUsd: snapshot.rwaValueUsd.toNumber(),
-      stablecoinUsd: snapshot.stablecoinUsd.toNumber(),
-      fiatUsd: snapshot.fiatUsd.toNumber()
-    }))
+    history: snapshots.map((snapshot) => {
+      const snapshotGross = snapshot.totalValueUsd.toNumber();
+      const snapshotDebt = snapshot.debtUsd.toNumber();
+      return {
+        date: snapshot.capturedAt.toISOString(),
+        totalValueUsd: snapshotGross,
+        netLiquidValueUsd: snapshotGross - snapshotDebt,
+        rwaValueUsd: snapshot.rwaValueUsd.toNumber(),
+        stablecoinUsd: snapshot.stablecoinUsd.toNumber(),
+        fiatUsd: snapshot.fiatUsd.toNumber(),
+        debtUsd: snapshotDebt
+      };
+    })
   };
 }
 
@@ -249,6 +292,7 @@ function buildStablecoinPositions(deposits: Array<{
     label: `${item.symbol} en ${item.network}`,
     amount: item.amount,
     currency: item.symbol,
+    valueUsdc: item.amount,
     valueUsd: item.amount,
     metadata: { network: item.network, recentTxHashes: item.txHashes.slice(0, 5) }
   }));
