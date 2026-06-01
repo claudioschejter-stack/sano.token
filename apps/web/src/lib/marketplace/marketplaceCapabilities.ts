@@ -33,7 +33,6 @@ export function getMarketplaceCapabilities(role: SystemRole | undefined): Market
   switch (role) {
     case 'ADMIN':
       return tradingCapabilities('admin', {
-        showBorrowRates: true,
         showAdminToolbar: true
       });
     case 'ADVISOR':
@@ -41,7 +40,7 @@ export function getMarketplaceCapabilities(role: SystemRole | undefined): Market
     case 'ADVISOR_MANAGER':
       return tradingCapabilities('advisorManager');
     case 'INVESTOR':
-      return tradingCapabilities('investor', { showBorrowRates: true });
+      return tradingCapabilities('investor');
     case 'TREASURY':
     case 'OPERATOR':
       return tradingCapabilities('default');

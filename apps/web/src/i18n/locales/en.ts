@@ -327,7 +327,8 @@ export const en = {
     viewAssetCard: "View card",
     backToList: "Back to loans",
     configureTitle: "Loan configuration",
-    configureSubtitle: "Deploy the ERC-4626 vault, register collateral, and enable automatic borrowing."
+    configureSubtitle: "Deploy the ERC-4626 vault, register collateral, and enable automatic borrowing.",
+    loadingRates: "Loading borrowing rates…"
   },
   adminLaunch: {
     eyebrow: "RWA issue",

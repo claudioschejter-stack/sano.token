@@ -335,7 +335,8 @@ export const es = {
     viewAssetCard: 'Ver tarjeta',
     backToList: 'Volver a préstamos',
     configureTitle: 'Configuración de préstamo',
-    configureSubtitle: 'Emití el vault ERC-4626, registrá colateral y habilitá el activo como colateral automático.'
+    configureSubtitle: 'Emití el vault ERC-4626, registrá colateral y habilitá el activo como colateral automático.',
+    loadingRates: 'Cargando tasas de endeudamiento…'
   },
   adminLaunch: {
     eyebrow: 'Emisión RWA',

@@ -10,8 +10,6 @@ import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import type { SystemRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import type { MarketplaceFeed } from '../../types/marketplace';
-import { BorrowRatesTable } from './BorrowRatesTable';
-import { BorrowPanel } from './BorrowPanel';
 import { PropertyCard } from './PropertyCard';
 import { TrustStrip } from './TrustStrip';
 
@@ -33,8 +31,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
     : 'APPROVED';
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
 
-  const { listings, borrowRate, usedFallback } = feed;
-  const borrowReadyListing = listings.find((listing) => listing.readyToBorrow && listing.vaultAddress);
+  const { listings, usedFallback } = feed;
   const roleLabels = t.access.roles as Record<SystemRole, string>;
   const subtitles = t.marketplace.roleSubtitles;
   const subtitle =
@@ -77,20 +74,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       ) : null}
 
       <TrustStrip />
-
-      {capabilities.showBorrowRates && borrowRate ? (
-        <div className="mt-6">
-          <BorrowRatesTable borrowRate={borrowRate} />
-          {capabilities.showPurchaseActions ? (
-            <BorrowPanel
-              borrowRate={borrowRate}
-              projectId={borrowReadyListing?.id}
-              vaultAddress={borrowReadyListing?.vaultAddress}
-              readyToBorrow={Boolean(borrowReadyListing)}
-            />
-          ) : null}
-        </div>
-      ) : null}
 
       {usedFallback ? (
         <p className="mb-6 mt-6 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">

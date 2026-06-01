@@ -7,6 +7,7 @@ import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { AdminAssetRecord } from '../../lib/admin/assetsService';
 import { AdminGate } from './AdminGate';
+import { AdminLoansBorrowSection } from './AdminLoansBorrowSection';
 
 type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
 
@@ -62,6 +63,12 @@ export function AdminLoansView() {
 
   const filterLabels = t.adminLoans.filters as Record<AssetFilter, string>;
   const statusLabels = t.adminAssets.status as Record<'ACTIVE' | 'INACTIVE', string>;
+
+  const borrowReadyProject = useMemo(() => {
+    const asset = assets.find((row) => row.readyToBorrow && row.vaultAddress);
+    if (!asset?.vaultAddress) return null;
+    return { id: asset.id, vaultAddress: asset.vaultAddress };
+  }, [assets]);
 
   const loadAssets = useCallback(async (nextFilter: AssetFilter) => {
     setLoading(true);
@@ -276,6 +283,8 @@ export function AdminLoansView() {
             </button>
           </div>
         </div>
+
+        <AdminLoansBorrowSection borrowReadyProject={borrowReadyProject} />
 
         <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
