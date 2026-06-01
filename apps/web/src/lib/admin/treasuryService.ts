@@ -50,7 +50,6 @@ export async function getTreasuryOverview(payoutFilter: PayoutListFilter = 'ALL'
 
   const [
     capitalAgg,
-    debtAgg,
     payoutAgg,
     liquidAgg,
     debtOffsetAgg,
@@ -61,7 +60,6 @@ export async function getTreasuryOverview(payoutFilter: PayoutListFilter = 'ALL'
     distributions
   ] = await Promise.all([
     prisma.investor.aggregate({ _sum: { totalCapital: true } }),
-    prisma.investor.aggregate({ _sum: { marginDebt: true } }),
     prisma.payoutHistory.aggregate({ _sum: { totalAmountPaid: true } }),
     prisma.payoutHistory.aggregate({ _sum: { liquidPaidUsd: true } }),
     prisma.payoutHistory.aggregate({ _sum: { debtOffsetUsd: true } }),
@@ -89,7 +87,7 @@ export async function getTreasuryOverview(payoutFilter: PayoutListFilter = 'ALL'
   return {
     summary: {
       totalCapitalUsd: Number(capitalAgg._sum.totalCapital ?? 0),
-      totalMarginDebtUsd: Number(debtAgg._sum.marginDebt ?? 0),
+      totalMarginDebtUsd: 0,
       totalPayoutsUsd: Number(payoutAgg._sum.totalAmountPaid ?? 0),
       totalLiquidPaidUsd: Number(liquidAgg._sum.liquidPaidUsd ?? 0),
       totalDebtOffsetUsd: Number(debtOffsetAgg._sum.debtOffsetUsd ?? 0),

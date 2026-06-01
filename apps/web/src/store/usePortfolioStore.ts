@@ -42,7 +42,6 @@ type PortfolioState = {
   activePositions: PortfolioPosition[];
   isLoading: boolean;
   fetchPortfolio: () => Promise<void>;
-  applyCashToMarginRepayment: () => Promise<void>;
 };
 
 export const usePortfolioStore = create<PortfolioState>((set, get) => ({
@@ -122,14 +121,5 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
     } catch {
       set({ isLoading: false });
     }
-  },
-  applyCashToMarginRepayment: async () => {
-    const response = await fetch('/api/portfolio/repay-margin', { method: 'POST' });
-
-    if (!response.ok) {
-      return;
-    }
-
-    await get().fetchPortfolio();
   }
 }));

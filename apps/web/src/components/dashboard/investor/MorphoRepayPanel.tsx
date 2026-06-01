@@ -1,0 +1,292 @@
+'use client';
+
+import { ArrowDownToLine, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BrowserProvider } from 'ethers';
+import { useTranslation } from '../../i18n/LocaleProvider';
+import { createIntlFormatters } from '../../i18n/formatters';
+import { useLocale } from '../../i18n/LocaleProvider';
+
+type RepayPosition = {
+  projectId: string | null;
+  projectTitle: string | null;
+  vaultAddress: string;
+  marketId: string;
+  debtUsd: number;
+};
+
+type RepayPreview = {
+  chainId: number;
+  totalDebtUsd: number;
+  positions: RepayPosition[];
+  walletAddress: string | null;
+};
+
+type MorphoRepayPanelProps = {
+  onRepaid?: () => void;
+};
+
+export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
+  const t = useTranslation();
+  const mr = t.cashFlow.morphoRepay;
+  const { intlLocale } = useLocale();
+  const { formatUsd } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
+
+  const [preview, setPreview] = useState<RepayPreview | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [amountUsd, setAmountUsd] = useState('');
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const selectedPosition = preview?.positions.find((row) => row.projectId === selectedProjectId) ?? null;
+
+  const loadPreview = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/lending/repay-preview', { cache: 'no-store' });
+      if (!response.ok) {
+        setPreview(null);
+        return;
+      }
+
+      const payload = (await response.json()) as { preview: RepayPreview };
+      setPreview(payload.preview);
+      const first = payload.preview.positions[0];
+      if (first?.projectId) {
+        setSelectedProjectId(first.projectId);
+        setAmountUsd(String(first.debtUsd));
+      } else {
+        setSelectedProjectId('');
+        setAmountUsd('');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadPreview();
+  }, [loadPreview]);
+
+  useEffect(() => {
+    if (selectedPosition) {
+      setAmountUsd(String(selectedPosition.debtUsd));
+    }
+  }, [selectedPosition?.projectId, selectedPosition?.debtUsd]);
+
+  const connectWallet = useCallback(async (): Promise<string | null> => {
+    if (!window.ethereum) {
+      setStatus(mr.noWallet);
+      return null;
+    }
+
+    const provider = new BrowserProvider(window.ethereum);
+    const accounts = (await provider.send('eth_requestAccounts', [])) as string[];
+    const address = accounts[0] ?? null;
+    setWalletAddress(address);
+    return address;
+  }, [mr.noWallet]);
+
+  useEffect(() => {
+    if (!window.ethereum) {
+      return;
+    }
+
+    void (async () => {
+      const provider = new BrowserProvider(window.ethereum);
+      const accounts = (await provider.send('eth_accounts', [])) as string[];
+      if (accounts[0]) {
+        setWalletAddress(accounts[0]);
+      }
+    })();
+  }, []);
+
+  async function executeRepay() {
+    if (!selectedProjectId || !selectedPosition) {
+      setStatus(mr.selectPosition);
+      return;
+    }
+
+    setBusy(true);
+    setStatus(mr.preparing);
+
+    try {
+      let address = walletAddress;
+      if (!address) {
+        address = await connectWallet();
+      }
+      if (!address) {
+        setStatus(mr.connectFirst);
+        return;
+      }
+
+      const amount = Number(amountUsd);
+      if (!Number.isFinite(amount) || amount <= 0) {
+        setStatus(mr.invalidAmount);
+        return;
+      }
+
+      const response = await fetch('/api/lending/repay-prepare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: selectedProjectId,
+          walletAddress: address,
+          amountUsd: amount
+        })
+      });
+
+      const payload = (await response.json()) as {
+        error?: string;
+        prepared?: {
+          chainId: number;
+          transactions: Array<{ to: string; data: string; value: string; description: string }>;
+        };
+      };
+
+      if (!response.ok || !payload.prepared) {
+        setStatus(payload.error ?? mr.prepareFailed);
+        return;
+      }
+
+      const provider = new BrowserProvider(window.ethereum!);
+      const signer = await provider.getSigner();
+      const network = await provider.getNetwork();
+
+      if (Number(network.chainId) !== payload.prepared.chainId) {
+        await window.ethereum!.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: `0x${payload.prepared.chainId.toString(16)}` }]
+        });
+      }
+
+      const total = payload.prepared.transactions.length;
+      for (const [index, tx] of payload.prepared.transactions.entries()) {
+        setStatus(
+          total === 1
+            ? mr.signingSingle
+            : mr.signingBatch.replace('{current}', String(index + 1)).replace('{total}', String(total))
+        );
+        const sent = await signer.sendTransaction({
+          to: tx.to,
+          data: tx.data,
+          value: BigInt(tx.value)
+        });
+        await sent.wait();
+      }
+
+      setStatus(mr.success);
+      await loadPreview();
+      onRepaid?.();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : mr.prepareFailed);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <article className="rounded-xl border border-terminal-border bg-terminal-card p-4 sm:p-6">
+        <p className="text-sm text-terminal-muted">{mr.loading}</p>
+      </article>
+    );
+  }
+
+  if (!preview || preview.totalDebtUsd <= 0 || preview.positions.length === 0) {
+    return (
+      <article className="rounded-xl border border-terminal-border bg-terminal-card p-4 sm:p-6">
+        <h3 className="text-sm font-medium text-terminal-muted">{mr.title}</h3>
+        <p className="mt-2 text-sm text-terminal-text">{mr.noDebt}</p>
+      </article>
+    );
+  }
+
+  return (
+    <article className="rounded-xl border border-terminal-border bg-terminal-card p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-terminal-muted">{mr.title}</p>
+          <h2 className="mt-2 font-mono text-3xl font-bold text-terminal-warning sm:text-4xl">
+            {formatUsd(preview.totalDebtUsd)}
+          </h2>
+          <p className="mt-2 text-xs text-terminal-muted">{mr.subtitle}</p>
+        </div>
+      </div>
+
+      {preview.positions.length > 1 ? (
+        <label className="mt-6 block text-sm">
+          <span className="text-terminal-muted">{mr.positionLabel}</span>
+          <select
+            value={selectedProjectId}
+            onChange={(event) => setSelectedProjectId(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm text-terminal-text"
+          >
+            {preview.positions.map((row) =>
+              row.projectId ? (
+                <option key={row.projectId} value={row.projectId}>
+                  {row.projectTitle ?? row.projectId} · {formatUsd(row.debtUsd)}
+                </option>
+              ) : null
+            )}
+          </select>
+        </label>
+      ) : selectedPosition ? (
+        <p className="mt-6 text-sm text-terminal-muted">
+          {mr.positionSingle.replace('{title}', selectedPosition.projectTitle ?? selectedPosition.vaultAddress)}
+        </p>
+      ) : null}
+
+      <label className="mt-4 block text-sm">
+        <span className="text-terminal-muted">{mr.amountLabel}</span>
+        <div className="mt-1 flex gap-2">
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={amountUsd}
+            onChange={(event) => setAmountUsd(event.target.value)}
+            className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-terminal-text"
+          />
+          {selectedPosition ? (
+            <button
+              type="button"
+              className="shrink-0 rounded-lg border border-terminal-border px-3 py-2 text-xs font-semibold text-terminal-text hover:border-terminal-primary/40"
+              onClick={() => setAmountUsd(String(selectedPosition.debtUsd))}
+            >
+              {mr.useMax}
+            </button>
+          ) : null}
+        </div>
+      </label>
+
+      <button
+        type="button"
+        onClick={() => void executeRepay()}
+        disabled={busy || !selectedProjectId}
+        className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {busy ? <Loader2 size={18} className="animate-spin" /> : <ArrowDownToLine size={18} />}
+        {busy ? mr.repaying : mr.repayButton}
+      </button>
+
+      {walletAddress ? (
+        <p className="mt-3 text-xs font-mono text-terminal-muted">
+          {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
+        </p>
+      ) : null}
+
+      {status ? <p className="mt-3 text-sm font-medium text-terminal-muted">{status}</p> : null}
+    </article>
+  );
+}
+
+declare global {
+  interface Window {
+    ethereum?: {
+      request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+    };
+  }
+}

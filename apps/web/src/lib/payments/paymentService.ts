@@ -473,18 +473,16 @@ export async function confirmPaymentIntent(input: {
 
     const investor = await tx.investor.findUniqueOrThrow({
       where: { id: intent.investorId },
-      select: { totalCapital: true, marginDebt: true }
+      select: { totalCapital: true }
     });
 
     const totalCapital = investor.totalCapital.toNumber() + intent.amountUsd.toNumber();
-    const marginDebt = investor.marginDebt.toNumber();
-    const ltv = totalCapital > 0 ? (marginDebt / totalCapital) * 100 : 0;
 
     await tx.investor.update({
       where: { id: intent.investorId },
       data: {
         totalCapital,
-        ltv
+        ltv: 0
       }
     });
 
@@ -492,8 +490,8 @@ export async function confirmPaymentIntent(input: {
       where: { userId: intent.userId },
       data: {
         totalCapital,
-        activeMarginDebt: marginDebt,
-        ltv
+        activeMarginDebt: 0,
+        ltv: 0
       }
     });
 

@@ -100,7 +100,6 @@ const DEMO_DISTRIBUTIONS: LiquidatedDistribution[] = [
   }
 ];
 
-const DEMO_MARGIN_DEBT_USD = 450_000;
 const DEMO_AVAILABLE_CASH_USD = 53_200;
 
 function parseUsdcAmount(value: string): number {
@@ -194,7 +193,7 @@ export const useDividendStore = create<DividendState>((set) => ({
         : null;
 
       const distributions = (cashFlowData.records ?? []).map(mapApiRecord);
-      const marginDebtUsd = portfolioData?.summary?.marginDebt ?? DEMO_MARGIN_DEBT_USD;
+      const marginDebtUsd = portfolioData?.summary?.marginDebt ?? 0;
       const availableCashUsd = portfolioData?.summary?.availableCash ?? DEMO_AVAILABLE_CASH_USD;
 
       set({
@@ -203,7 +202,7 @@ export const useDividendStore = create<DividendState>((set) => ({
       });
     } catch {
       set({
-        ...deriveStateFromDistributions(DEMO_DISTRIBUTIONS, DEMO_MARGIN_DEBT_USD, DEMO_AVAILABLE_CASH_USD),
+        ...deriveStateFromDistributions(DEMO_DISTRIBUTIONS, 0, DEMO_AVAILABLE_CASH_USD),
         isLoading: false
       });
     }
@@ -227,7 +226,7 @@ export const useDividendStore = create<DividendState>((set) => ({
       const distributions = [liveRow, ...state.distributions];
 
       return {
-        ...deriveStateFromDistributions(distributions, DEMO_MARGIN_DEBT_USD, DEMO_AVAILABLE_CASH_USD),
+        ...deriveStateFromDistributions(distributions, 0, DEMO_AVAILABLE_CASH_USD),
         lastLiveAt: event.receivedAt
       };
     })

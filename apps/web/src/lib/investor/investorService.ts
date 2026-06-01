@@ -2,6 +2,7 @@ import { prisma, Prisma, type KycStatus, type AccountStatus } from '@sanova/data
 import { calculatePurchaseCommissionSplit } from '../commission/commissionService';
 import { isAccountOperational } from '../onboarding/accountStatus';
 import { buildTxExplorerUrl, buildVaultExplorerUrl, readVaultPositionsForProjects } from '../portfolio/onChainVaultReader';
+import { resolveMorphoDebtForUser } from '../portfolio/morphoDebtForUser';
 import { getInvestorIdForPlatformUser } from './projectYieldService';
 
 const DEFAULT_MAX_LTV = 0.6;
@@ -161,18 +162,16 @@ export async function purchaseProjectTokens(input: {
 
     const investor = await tx.investor.findUniqueOrThrow({
       where: { id: investorId },
-      select: { totalCapital: true, marginDebt: true }
+      select: { totalCapital: true }
     });
 
     const totalCapital = investor.totalCapital.toNumber() + purchasePriceUsd;
-    const marginDebt = investor.marginDebt.toNumber();
-    const ltv = totalCapital > 0 ? (marginDebt / totalCapital) * 100 : 0;
 
     await tx.investor.update({
       where: { id: investorId },
       data: {
         totalCapital,
-        ltv
+        ltv: 0
       }
     });
 
@@ -180,8 +179,8 @@ export async function purchaseProjectTokens(input: {
       where: { userId: input.userId },
       data: {
         totalCapital,
-        activeMarginDebt: marginDebt,
-        ltv
+        activeMarginDebt: 0,
+        ltv: 0
       }
     });
 
@@ -207,42 +206,43 @@ export async function purchaseProjectTokens(input: {
 }
 
 export async function getPortfolioForUser(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      investorId: true,
-      investor: {
-        select: {
-          id: true,
-          fullName: true,
-          walletAddress: true,
-          investorType: true,
-          kycStatus: true,
-          brokerAccountRef: true,
-          dividendPreference: true,
-          totalCapital: true,
-          marginDebt: true,
-          ltv: true,
-          investments: {
-            where: { status: 'ACTIVE' },
-            orderBy: { purchasedAt: 'desc' },
-            include: {
-              project: {
-                select: {
-                  id: true,
-                  title: true,
-                  tokenSymbol: true,
-                  vaultAddress: true,
-                  chainId: true,
-                  pricePerToken: true
+  const [user, morphoDebtUsd] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        investorId: true,
+        investor: {
+          select: {
+            id: true,
+            fullName: true,
+            walletAddress: true,
+            investorType: true,
+            kycStatus: true,
+            brokerAccountRef: true,
+            dividendPreference: true,
+            totalCapital: true,
+            investments: {
+              where: { status: 'ACTIVE' },
+              orderBy: { purchasedAt: 'desc' },
+              include: {
+                project: {
+                  select: {
+                    id: true,
+                    title: true,
+                    tokenSymbol: true,
+                    vaultAddress: true,
+                    chainId: true,
+                    pricePerToken: true
+                  }
                 }
               }
             }
           }
         }
       }
-    }
-  });
+    }),
+    resolveMorphoDebtForUser(userId)
+  ]);
 
   if (!user?.investor) {
     return {
@@ -253,6 +253,8 @@ export async function getPortfolioForUser(userId: string) {
   }
 
   const investor = user.investor;
+  const totalCapital = investor.totalCapital.toNumber();
+  const ltv = totalCapital > 0 ? (morphoDebtUsd / totalCapital) * 100 : 0;
   const onChainByProject =
     investor.walletAddress && investor.investments.length > 0
       ? await readVaultPositionsForProjects({
@@ -282,8 +284,8 @@ export async function getPortfolioForUser(userId: string) {
       brokerAccountRef: investor.brokerAccountRef,
       dividendPreference: investor.dividendPreference,
       totalCapital: investor.totalCapital.toString(),
-      marginDebt: investor.marginDebt.toString(),
-      ltv: investor.ltv.toString()
+      marginDebt: morphoDebtUsd.toFixed(6),
+      ltv: ltv.toFixed(4)
     },
     credit: {
       currency: 'USD',
@@ -372,8 +374,6 @@ export async function getCashFlowForUser(platformUserId: string) {
 }
 
 export async function getPortfolioSummaryForUser(userId: string) {
-  const { resolveMorphoDebtForUser } = await import('../portfolio/morphoDebtForUser');
-
   const [user, morphoDebtUsd] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -417,94 +417,6 @@ export async function getPortfolioSummaryForUser(userId: string) {
   };
 }
 
-export async function repayMarginWithAvailableCash(userId: string) {
-  const investor = await prisma.investor.findFirst({
-    where: { user: { id: userId } },
-    select: { id: true, marginDebt: true, totalCapital: true }
-  });
-
-  if (!investor) {
-    throw new Error('INVESTOR_NOT_FOUND');
-  }
-
-  return prisma.$transaction(async (tx) => {
-    const availableDistributions = await tx.dividendDistribution.findMany({
-      where: {
-        userId: investor.id,
-        status: LIQUIDATED_CASH_STATUS,
-        appliedToMargin: false
-      },
-      select: {
-        id: true,
-        amount: true,
-        appliedAmount: true
-      },
-      orderBy: { distributedAt: 'asc' }
-    });
-
-    const cashForRepayment = availableDistributions.reduce((sum, distribution) => {
-      const remainingOnDistribution = distribution.amount.minus(distribution.appliedAmount);
-      return remainingOnDistribution.gt(0) ? sum.plus(remainingOnDistribution) : sum;
-    }, new Prisma.Decimal(0));
-
-    if (cashForRepayment.lte(0)) {
-      throw new Error('NO_CASH_AVAILABLE');
-    }
-
-    const activeMarginDebt = investor.marginDebt;
-    const repaymentAmount = Prisma.Decimal.min(cashForRepayment, activeMarginDebt);
-    const newMarginDebt = activeMarginDebt.minus(repaymentAmount);
-    const newLtv = investor.totalCapital.gt(0)
-      ? newMarginDebt.div(investor.totalCapital).mul(100).toDecimalPlaces(4)
-      : new Prisma.Decimal(0);
-
-    let repaymentRemaining = repaymentAmount;
-    const appliedAt = new Date();
-
-    for (const distribution of availableDistributions) {
-      if (repaymentRemaining.lte(0)) break;
-
-      const distributionRemaining = distribution.amount.minus(distribution.appliedAmount);
-      if (distributionRemaining.lte(0)) continue;
-
-      const appliedOnDistribution = Prisma.Decimal.min(distributionRemaining, repaymentRemaining);
-      const nextAppliedAmount = distribution.appliedAmount.plus(appliedOnDistribution);
-      const fullyApplied = nextAppliedAmount.gte(distribution.amount);
-
-      await tx.dividendDistribution.update({
-        where: { id: distribution.id },
-        data: {
-          appliedAmount: nextAppliedAmount,
-          appliedToMargin: fullyApplied,
-          status: fullyApplied ? APPLIED_TO_MARGIN_STATUS : LIQUIDATED_CASH_STATUS,
-          appliedAt: fullyApplied ? appliedAt : null
-        }
-      });
-
-      repaymentRemaining = repaymentRemaining.minus(appliedOnDistribution);
-    }
-
-    await tx.investor.update({
-      where: { id: investor.id },
-      data: {
-        marginDebt: newMarginDebt,
-        ltv: newLtv
-      }
-    });
-
-    await tx.portfolio.updateMany({
-      where: { userId },
-      data: {
-        activeMarginDebt: newMarginDebt,
-        ltv: newLtv
-      }
-    });
-
-    return {
-      status: 'APPLIED_TO_MARGIN',
-      repaymentAmount: repaymentAmount.toNumber(),
-      activeMarginDebt: newMarginDebt.toNumber(),
-      ltv: newLtv.toNumber()
-    };
-  });
+export async function repayMarginWithAvailableCash(_userId: string) {
+  throw new Error('MORPHO_REPAY_ON_CHAIN');
 }
