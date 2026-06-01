@@ -72,7 +72,10 @@ export async function POST(
         'PAYMENT_PROJECT_DAILY_LIMIT',
         'PAYMENT_WALLET_DAILY_LIMIT',
         'INVESTOR_WALLET_REQUIRED',
-        'INSUFFICIENT_PLATFORM_BALANCE'
+        'INSUFFICIENT_PLATFORM_BALANCE',
+        'WALLET_MISMATCH',
+        'CHAIN_MISMATCH',
+        'INVALID_WALLET'
       ].includes(message)
     ) {
       return NextResponse.json({ error: message }, { status: 400 });

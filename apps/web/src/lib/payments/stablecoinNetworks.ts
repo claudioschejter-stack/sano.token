@@ -79,6 +79,15 @@ export function getStablecoinNetwork(id?: string | null): StablecoinNetwork {
   return stablecoinNetworks().find((network) => network.id === normalized) ?? stablecoinNetworks()[0];
 }
 
+/** On-chain investor flows only support Base USDC. */
+export function requireBaseStablecoinNetwork(id?: string | null): StablecoinNetwork {
+  const network = getStablecoinNetwork(id);
+  if (network.id !== 'BASE') {
+    throw new Error('CHAIN_MISMATCH');
+  }
+  return network;
+}
+
 export function enabledStablecoinNetworks(): StablecoinNetwork[] {
   const allow = process.env.STABLECOIN_ENABLED_NETWORKS?.trim();
   const networks = stablecoinNetworks().filter((network) => Boolean(network.tokenAddress && network.treasuryAddress));

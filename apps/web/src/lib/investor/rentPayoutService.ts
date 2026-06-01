@@ -28,12 +28,11 @@ export async function getRentPayoutPreferenceForUser(userId: string): Promise<Re
 
 export async function updateRentPayoutPreferenceForUser(
   userId: string,
-  preference: RentPayoutPreferenceValue,
-  walletAddress?: string | null
+  preference: RentPayoutPreferenceValue
 ): Promise<RentPayoutPreferenceValue> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { investorId: true, walletAddress: true }
+    select: { investorId: true, walletAddress: true, investor: { select: { walletAddress: true } } }
   });
 
   if (!user?.investorId) {
@@ -41,21 +40,9 @@ export async function updateRentPayoutPreferenceForUser(
   }
 
   if (preference === 'USDC') {
-    const payoutWallet = walletAddress?.trim() || user.walletAddress?.trim();
+    const payoutWallet = user.walletAddress?.trim() || user.investor?.walletAddress?.trim();
     if (!payoutWallet) {
-      throw new Error('WALLET_REQUIRED_FOR_USDC_RENT');
-    }
-
-    await prisma.investor.update({
-      where: { id: user.investorId },
-      data: { walletAddress: payoutWallet }
-    });
-
-    if (!user.walletAddress) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { walletAddress: payoutWallet }
-      });
+      throw new Error('INVESTOR_WALLET_REQUIRED');
     }
   }
 

@@ -642,6 +642,10 @@ export const en = {
       deployer: "Deployer (derived from private key)",
       envVar: "Env var",
       notSet: "Not configured in this environment.",
+      envOk: "OK",
+      envMissing: "Missing",
+      envSummaryOk: "All operational platform wallets are configured in this environment.",
+      envSummaryMissing: "Missing Vercel environment variables. Complete configuration and redeploy.",
       copy: "Copy",
       copied: "Copied",
       connectTitle: "Connect a Coinbase Smart Wallet",
@@ -776,6 +780,8 @@ export const en = {
     connectCoinbase: "Connect with Coinbase Wallet",
     noWallet: "Connect your wallet with Coinbase Wallet or WalletConnect.",
     wrongNetwork: "Switch to Base network",
+    walletMismatch: "The connected wallet does not match the one linked to your account.",
+    walletNotLinked: "Link your wallet during onboarding before operating.",
     buyOneClick: "Buy shares (USDC → Vault)",
     buyChecking: "Checking allowance…",
     buyApproving: "Approving USDC…",
@@ -1177,7 +1183,9 @@ export const en = {
       UNAUTHORIZED: "Your session is not ready yet.Wait a moment and try again.",
       INVALID_WALLET: "The wallet address is not valid.",
       WALLET_REQUIRED: "Connect a wallet before continuing.",
-      WALLET_LINK_FAILED: "We could not save your wallet. Try again."
+      WALLET_LINK_FAILED: "We could not save your wallet. Try again.",
+      WALLET_ALREADY_LINKED: "This wallet is already linked to another account.",
+      WALLET_MISMATCH: "The connected wallet does not match the one linked to your account."
     }
   },
   pwa: {

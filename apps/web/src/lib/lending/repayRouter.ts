@@ -1,5 +1,5 @@
-import { prisma } from '@sanova/database';
 import { getAdminAsset } from '../admin/assetsService';
+import { getLinkedWalletForUser, resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
 import { resolveMorphoDebtPositionsForUser } from '../portfolio/morphoDebtForUser';
 import { getLendingChainConfig } from './baseContracts';
 import { planMorphoRepayTransactions, previewMorphoRepay } from './morphoRepayPlanner';
@@ -36,12 +36,9 @@ async function resolveMorphoOracleAddress(projectId: string): Promise<string | n
 }
 
 export async function previewMorphoRepayForUser(userId: string): Promise<RepayPreviewResponse> {
-  const [positions, user] = await Promise.all([
+  const [positions, linkedWallet] = await Promise.all([
     resolveMorphoDebtPositionsForUser(userId),
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { investor: { select: { walletAddress: true } } }
-    })
+    getLinkedWalletForUser(userId)
   ]);
 
   const summaries: MorphoRepayPositionSummary[] = positions.map((row) => ({
@@ -56,7 +53,7 @@ export async function previewMorphoRepayForUser(userId: string): Promise<RepayPr
     chainId: getLendingChainConfig().chainId,
     totalDebtUsd: Math.round(summaries.reduce((sum, row) => sum + row.debtUsd, 0) * 100) / 100,
     positions: summaries,
-    walletAddress: user?.investor?.walletAddress ?? null
+    walletAddress: linkedWallet
   };
 }
 
@@ -66,15 +63,7 @@ export async function prepareMorphoRepay(input: {
   walletAddress: string;
   amountUsd: number;
 }): Promise<PrepareRepayResponse | null> {
-  const user = await prisma.user.findUnique({
-    where: { id: input.userId },
-    select: { investor: { select: { walletAddress: true } } }
-  });
-
-  const registeredWallet = user?.investor?.walletAddress?.trim().toLowerCase();
-  if (registeredWallet && registeredWallet !== input.walletAddress.trim().toLowerCase()) {
-    return null;
-  }
+  const linkedWallet = await resolveInvestorLinkedWallet(input.userId, input.walletAddress);
 
   const asset = await getAdminAsset(input.projectId);
   if (!asset?.vaultAddress) {
@@ -84,7 +73,7 @@ export async function prepareMorphoRepay(input: {
   const oracleAddress = await resolveMorphoOracleAddress(input.projectId);
   const planned = await planMorphoRepayTransactions({
     asset,
-    walletAddress: input.walletAddress,
+    walletAddress: linkedWallet,
     amountUsd: input.amountUsd,
     oracleAddress
   });

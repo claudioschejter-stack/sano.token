@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserProvider } from 'ethers';
 import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
 import { createIntlFormatters } from '../../../i18n/formatters';
+import { useLinkedWalletGuard } from '../../../hooks/useLinkedWalletGuard';
 
 type RepayPosition = {
   projectId: string | null;
@@ -30,6 +31,8 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
   const mr = t.cashFlow.morphoRepay;
   const { intlLocale } = useLocale();
   const { formatUsd } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
+  const w = t.wallet;
+  const walletGuard = useLinkedWalletGuard();
 
   const [preview, setPreview] = useState<RepayPreview | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -118,6 +121,21 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
       }
       if (!address) {
         setStatus(mr.connectFirst);
+        return;
+      }
+
+      if (!walletGuard.isWalletLinked) {
+        setStatus(w.walletNotLinked);
+        return;
+      }
+
+      if (walletGuard.isWalletMismatch) {
+        setStatus(w.walletMismatch);
+        return;
+      }
+
+      if (walletGuard.isWrongNetwork) {
+        setStatus(w.wrongNetwork);
         return;
       }
 

@@ -1,5 +1,6 @@
 import { prisma } from '@sanova/database';
 import { getAddress, isAddress } from 'ethers';
+import { assertWalletAvailableForUser } from './linkedWalletPolicy';
 import { ensureInvestorForUser } from './investorService';
 
 function normalizeWalletAddress(walletAddress: string): string {
@@ -42,6 +43,8 @@ export async function linkInvestorWallet(userId: string, walletAddress: string) 
   if (user.systemRole !== 'INVESTOR') {
     throw new Error('INVESTOR_ROLE_REQUIRED');
   }
+
+  await assertWalletAvailableForUser(userId, normalized);
 
   await ensureInvestorForUser(
     {

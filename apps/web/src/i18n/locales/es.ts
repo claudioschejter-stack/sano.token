@@ -655,6 +655,10 @@ export const es = {
       deployer: 'Deployer (derivada de private key)',
       envVar: 'Variable',
       notSet: 'Sin configurar en este entorno.',
+      envOk: 'OK',
+      envMissing: 'Faltante',
+      envSummaryOk: 'Todas las wallets operativas están configuradas en el entorno.',
+      envSummaryMissing: 'Faltan variables en Vercel. Completá la configuración y redeployá.',
       copy: 'Copiar',
       copied: 'Copiado',
       connectTitle: 'Conectar Coinbase Smart Wallet',
@@ -791,6 +795,8 @@ export const es = {
     connectCoinbase: 'Conectar con Coinbase Wallet',
     noWallet: 'Conectá tu billetera con Coinbase Wallet o WalletConnect.',
     wrongNetwork: 'Cambiar a red Base',
+    walletMismatch: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
+    walletNotLinked: 'Vinculá tu wallet en el onboarding antes de operar.',
     buyOneClick: 'Comprar cuotapartes (USDC → Vault)',
     buyChecking: 'Verificando allowance…',
     buyApproving: 'Aprobando USDC…',
@@ -1221,7 +1227,9 @@ export const es = {
       UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.',
       INVALID_WALLET: 'La dirección de billetera no es válida.',
       WALLET_REQUIRED: 'Conectá una billetera antes de continuar.',
-      WALLET_LINK_FAILED: 'No pudimos guardar tu billetera. Intentá de nuevo.'
+      WALLET_LINK_FAILED: 'No pudimos guardar tu billetera. Intentá de nuevo.',
+      WALLET_ALREADY_LINKED: 'Esta billetera ya está vinculada a otra cuenta.',
+      WALLET_MISMATCH: 'La wallet conectada no coincide con la vinculada a tu cuenta.'
     }
   },
   pwa: {

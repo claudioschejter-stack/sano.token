@@ -28,7 +28,12 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: message }, { status: 404 });
     }
 
-    if (message === 'KYC_NOT_APPROVED' || message === 'INVESTOR_ROLE_REQUIRED' || message === 'INVALID_WALLET') {
+    if (
+      message === 'KYC_NOT_APPROVED' ||
+      message === 'INVESTOR_ROLE_REQUIRED' ||
+      message === 'INVALID_WALLET' ||
+      message === 'WALLET_ALREADY_LINKED'
+    ) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
 

@@ -15,22 +15,30 @@ function CopyableRow({
   label,
   value,
   envKey,
+  configured,
   copiedKey,
   onCopy
 }: {
   label: string;
   value: string | null;
   envKey?: string;
+  configured?: boolean;
   copiedKey: string | null;
   onCopy: (text: string, key: string) => void;
 }) {
   const t = useTranslation();
   const pw = t.adminSettings.platformWallet;
+  const envReady = configured ?? Boolean(value);
 
   if (!value) {
     return (
       <div className="rounded-lg border border-dashed border-terminal-border bg-terminal-bg px-4 py-3">
-        <p className="text-sm font-medium text-terminal-text">{label}</p>
+        <div className="flex items-start justify-between gap-3">
+          <p className="text-sm font-medium text-terminal-text">{label}</p>
+          <span className="rounded-full border border-red-400/40 bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-red-300">
+            {pw.envMissing}
+          </span>
+        </div>
         {envKey ? (
           <p className="mt-1 font-mono text-xs text-terminal-muted">
             {pw.envVar}: {envKey}
@@ -47,7 +55,12 @@ function CopyableRow({
     <div className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-terminal-text">{label}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-medium text-terminal-text">{label}</p>
+            <span className="rounded-full border border-emerald-400/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-300">
+              {pw.envOk}
+            </span>
+          </div>
           {envKey ? (
             <p className="mt-1 font-mono text-xs text-terminal-muted">
               {pw.envVar}: {envKey}
@@ -140,6 +153,21 @@ export function AdminPlatformWalletSection() {
         <p className="mt-6 text-sm text-red-400">{pw.error}</p>
       ) : config ? (
         <div className="mt-6 space-y-6">
+          <div
+            className={`rounded-lg border px-4 py-3 text-sm ${
+              config.allOperationalConfigured
+                ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-200'
+                : 'border-amber-400/30 bg-amber-500/10 text-amber-100'
+            }`}
+          >
+            <p className="font-medium">
+              {config.allOperationalConfigured ? pw.envSummaryOk : pw.envSummaryMissing}
+            </p>
+            {!config.allOperationalConfigured && config.missingEnvKeys.length > 0 ? (
+              <p className="mt-2 font-mono text-xs opacity-90">{config.missingEnvKeys.join(', ')}</p>
+            ) : null}
+          </div>
+
           <div className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm">
             <p className="text-terminal-muted">{pw.chainLabel}</p>
             <p className="mt-1 font-medium text-terminal-text">
@@ -152,6 +180,7 @@ export function AdminPlatformWalletSection() {
               label={pw.tokenTreasury}
               value={config.tokenTreasuryAddress}
               envKey="TOKEN_TREASURY_ADDRESS"
+              configured={config.envEntries.find((entry) => entry.key === 'TOKEN_TREASURY_ADDRESS')?.configured}
               copiedKey={copiedKey}
               onCopy={handleCopy}
             />
@@ -159,6 +188,7 @@ export function AdminPlatformWalletSection() {
               label={pw.rwaOperator}
               value={config.rwaOperatorAddress}
               envKey="RWA_OPERATOR_ADDRESS"
+              configured={config.envEntries.find((entry) => entry.key === 'RWA_OPERATOR_ADDRESS')?.configured}
               copiedKey={copiedKey}
               onCopy={handleCopy}
             />
@@ -166,6 +196,7 @@ export function AdminPlatformWalletSection() {
               label={pw.stablecoinTreasury}
               value={config.stablecoinTreasuryAddress}
               envKey="BASE_STABLECOIN_TREASURY_ADDRESS"
+              configured={config.envEntries.find((entry) => entry.key === 'BASE_STABLECOIN_TREASURY_ADDRESS')?.configured}
               copiedKey={copiedKey}
               onCopy={handleCopy}
             />
@@ -173,6 +204,7 @@ export function AdminPlatformWalletSection() {
               label={pw.deployer}
               value={config.deployerAddress}
               envKey="TOKEN_DEPLOY_PRIVATE_KEY (derivada)"
+              configured={config.envEntries.find((entry) => entry.key === 'TOKEN_DEPLOY_PRIVATE_KEY')?.configured}
               copiedKey={copiedKey}
               onCopy={handleCopy}
             />

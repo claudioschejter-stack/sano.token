@@ -37,15 +37,16 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const preference = await updateRentPayoutPreferenceForUser(
-      ctx.userId,
-      body.preference,
-      body.walletAddress
-    );
+    const preference = await updateRentPayoutPreferenceForUser(ctx.userId, body.preference);
     return NextResponse.json({ preference });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UPDATE_FAILED';
-    const status = message === 'INVESTOR_NOT_FOUND' ? 404 : message === 'WALLET_REQUIRED_FOR_USDC_RENT' ? 400 : 400;
+    const status =
+      message === 'INVESTOR_NOT_FOUND'
+        ? 404
+        : message === 'INVESTOR_WALLET_REQUIRED' || message === 'INVALID_PREFERENCE'
+          ? 400
+          : 400;
     return NextResponse.json({ error: message }, { status });
   }
 }

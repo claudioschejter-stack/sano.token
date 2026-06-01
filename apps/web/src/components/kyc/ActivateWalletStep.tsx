@@ -9,11 +9,10 @@ import { isWalletConnectConfigured } from '../../lib/web3/config';
 
 type ActivateWalletStepProps = {
   onLinked: () => void | Promise<void>;
-  onSkip: () => void;
   onError: (message: string) => void;
 };
 
-export function ActivateWalletStep({ onLinked, onSkip, onError }: ActivateWalletStepProps) {
+export function ActivateWalletStep({ onLinked, onError }: ActivateWalletStepProps) {
   const t = useTranslation();
   const o = t.onboarding.steps;
   const w = t.wallet;
@@ -143,15 +142,6 @@ export function ActivateWalletStep({ onLinked, onSkip, onError }: ActivateWallet
       </ConnectButton.Custom>
 
       <p className="text-center text-xs text-slate-500">{o.walletHint}</p>
-
-      <button
-        type="button"
-        disabled={busy}
-        onClick={onSkip}
-        className="mx-auto block text-sm font-semibold text-slate-500 hover:text-slate-700 disabled:opacity-60"
-      >
-        {o.walletSkip}
-      </button>
     </section>
   );
 }

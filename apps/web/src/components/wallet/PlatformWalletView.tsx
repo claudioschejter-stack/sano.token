@@ -20,6 +20,7 @@ import { formatMessage } from '../../i18n';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
+import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import { WalletConnectButton } from '../marketplace/WalletConnectButton';
 
 type WalletSummary = {
@@ -95,9 +96,11 @@ const selectClassName = inputClassName;
 export function PlatformWalletView() {
   const t = useTranslation();
   const w = t.platformWallet;
+  const tw = t.wallet;
   const { intlLocale } = useLocale();
   const { formatUsd, formatDateTime } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
   const { address } = useAccount();
+  const walletGuard = useLinkedWalletGuard();
   const { checklist } = useAccountStatus();
   const a = t.accountStatus;
   const kycLabels = a.kycLabels as Record<string, string>;
@@ -218,6 +221,19 @@ export function PlatformWalletView() {
   ]);
 
   const createDeposit = async () => {
+    if (!walletGuard.canSignOnChain || !address) {
+      setError(
+        !walletGuard.isWalletLinked
+          ? tw.walletNotLinked
+          : walletGuard.isWrongNetwork
+            ? tw.wrongNetwork
+            : walletGuard.isWalletMismatch
+              ? tw.walletMismatch
+              : tw.noWallet
+      );
+      return;
+    }
+
     setStatus('creating');
     setError(null);
     setSuccess(null);

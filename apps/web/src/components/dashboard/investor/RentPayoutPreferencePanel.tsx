@@ -2,8 +2,8 @@
 
 import { Banknote, CircleDollarSign, Loader2, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { useAccount } from 'wagmi';
 import { useTranslation } from '../../../i18n/LocaleProvider';
+import { useLinkedWalletGuard } from '../../../hooks/useLinkedWalletGuard';
 import { InvestorSection } from './InvestorSection';
 import { WalletConnectButton } from '../../marketplace/WalletConnectButton';
 
@@ -11,8 +11,9 @@ type RentPayoutPreference = 'FIAT' | 'USDC';
 
 export function RentPayoutPreferencePanel({ compact = false }: { compact?: boolean }) {
   const t = useTranslation();
+  const w = t.wallet;
   const r = t.rentPayout;
-  const { address, isConnected } = useAccount();
+  const walletGuard = useLinkedWalletGuard();
 
   const [preference, setPreference] = useState<RentPayoutPreference | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,8 +50,13 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
       return;
     }
 
-    if (next === 'USDC' && !isConnected) {
-      setError(r.walletRequired);
+    if (next === 'USDC' && !walletGuard.isWalletLinked) {
+      setError(w.walletNotLinked);
+      return;
+    }
+
+    if (next === 'USDC' && !walletGuard.canSignOnChain) {
+      setError(walletGuard.isWrongNetwork ? w.wrongNetwork : walletGuard.isWalletMismatch ? w.walletMismatch : w.noWallet);
       return;
     }
 
@@ -62,10 +68,7 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
       const response = await fetch('/api/investor/rent-payout-preference', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          preference: next,
-          ...(next === 'USDC' && address ? { walletAddress: address } : {})
-        })
+        body: JSON.stringify({ preference: next })
       });
       const data = (await response.json()) as { preference?: RentPayoutPreference; error?: string };
 
@@ -148,13 +151,19 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
               <div>
                 <p className="text-sm font-medium text-terminal-text">{r.walletTitle}</p>
                 <p className="mt-1 text-xs text-terminal-muted">
-                  {isConnected && address
-                    ? r.walletConnected.replace('{address}', `${address.slice(0, 6)}…${address.slice(-4)}`)
+                  {walletGuard.linkedWallet
+                    ? r.walletConnected.replace(
+                        '{address}',
+                        `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
+                      )
                     : r.walletHint}
                 </p>
               </div>
             </div>
-            {!isConnected ? <WalletConnectButton /> : null}
+            {!walletGuard.isWalletLinked ? <WalletConnectButton /> : null}
+            {walletGuard.isWalletMismatch ? (
+              <p className="text-xs font-medium text-terminal-warning">{w.walletMismatch}</p>
+            ) : null}
           </div>
         </div>
       ) : null}

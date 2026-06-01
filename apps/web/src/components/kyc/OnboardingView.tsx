@@ -29,7 +29,7 @@ const ONBOARDING_STEPS: Step[] = ['contact', 'email', 'phone', 'identity', 'wall
 function stepFromChecklist(
   checklist: ReturnType<typeof useAccountStatus>['checklist'],
   diditReturn: boolean,
-  options: { requireWallet: boolean; walletSkipped: boolean }
+  requireWallet: boolean
 ): Step {
   if (!checklist) {
     return 'contact';
@@ -52,7 +52,7 @@ function stepFromChecklist(
   }
 
   if (checklist.operational) {
-    if (options.requireWallet && !checklist.walletLinked && !options.walletSkipped) {
+    if (requireWallet && !checklist.walletLinked) {
       return 'wallet';
     }
 
@@ -74,7 +74,6 @@ function OnboardingContent() {
   const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = systemRole === 'INVESTOR';
-  const [walletSkipped, setWalletSkipped] = useState(false);
 
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
@@ -90,12 +89,8 @@ function OnboardingContent() {
   const [resending, setResending] = useState(false);
 
   const step = useMemo(
-    () =>
-      stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, {
-        requireWallet,
-        walletSkipped
-      }),
-    [checklist, diditReturn, requireWallet, walletSkipped]
+    () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, requireWallet),
+    [checklist, diditReturn, requireWallet]
   );
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);
@@ -122,14 +117,14 @@ function OnboardingContent() {
       return;
     }
 
-    if (requireWallet && !checklist?.walletLinked && !walletSkipped && step !== 'done') {
+    if (requireWallet && !checklist?.walletLinked && step !== 'done') {
       return;
     }
 
-    if (step === 'done' || (isOperational && (!requireWallet || checklist?.walletLinked || walletSkipped))) {
+    if (step === 'done' || (isOperational && (!requireWallet || checklist?.walletLinked))) {
       router.replace(returnTo);
     }
-  }, [checklist?.walletLinked, isOperational, requireWallet, returnTo, router, step, walletSkipped]);
+  }, [checklist?.walletLinked, isOperational, requireWallet, returnTo, router, step]);
 
   const syncDiditStatus = useCallback(async () => {
     try {
@@ -641,10 +636,6 @@ function OnboardingContent() {
           <ActivateWalletStep
             onLinked={async () => {
               await refresh({ silent: true });
-              router.replace(returnTo);
-            }}
-            onSkip={() => {
-              setWalletSkipped(true);
               router.replace(returnTo);
             }}
             onError={setError}

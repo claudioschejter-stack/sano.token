@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
 import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { verifyPlatformStablecoinDeposit } from '../../../../../lib/payments/platformWalletService';
 
@@ -24,10 +25,13 @@ export async function POST(request: Request) {
     if (!body.depositId || !body.txHash) {
       return NextResponse.json({ error: 'DEPOSIT_AND_TX_REQUIRED' }, { status: 400 });
     }
+
+    const linkedWallet = await resolveInvestorLinkedWallet(ctx.userId, body.walletAddress);
+
     const deposit = await verifyPlatformStablecoinDeposit({
       depositId: body.depositId,
       txHash: body.txHash,
-      expectedPayer: body.walletAddress
+      expectedPayer: linkedWallet
     });
     return NextResponse.json({ ok: true, deposit });
   } catch (error) {
@@ -39,7 +43,11 @@ export async function POST(request: Request) {
         'STABLECOIN_DEPOSIT_NOT_CONFIGURED',
         'TX_NOT_CONFIRMED',
         'TX_CONFIRMATIONS_PENDING',
-        'STABLECOIN_TRANSFER_NOT_FOUND'
+        'STABLECOIN_TRANSFER_NOT_FOUND',
+        'WALLET_MISMATCH',
+        'WALLET_REQUIRED',
+        'INVESTOR_WALLET_REQUIRED',
+        'INVALID_WALLET'
       ].includes(message)
     ) {
       return NextResponse.json({ error: message }, { status: 400 });

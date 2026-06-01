@@ -3,7 +3,8 @@ import { ethers } from 'ethers';
 import { assertOperationalInvestor, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
 import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
 import { createDepositProviderCheckout } from './paymentOnRampAdapters';
-import { getStablecoinNetwork } from './stablecoinNetworks';
+import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
+import { getStablecoinNetwork, requireBaseStablecoinNetwork } from './stablecoinNetworks';
 import type { PaymentRouteQuote } from './cheapestPaymentRouter';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
@@ -209,10 +210,20 @@ export async function createPlatformDeposit(input: {
     throw new Error('INVALID_DEPOSIT_AMOUNT');
   }
 
-  const network = getStablecoinNetwork(input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork);
-  const investorId = user.investorId ?? (input.walletAddress ? await ensureInvestorForUser(user, input.walletAddress) : null);
+  const network =
+    input.method === 'USDC_ONCHAIN'
+      ? requireBaseStablecoinNetwork(input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork)
+      : getStablecoinNetwork(input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork);
+
+  let payerWallet: string | null = input.walletAddress ?? null;
+  if (input.method === 'USDC_ONCHAIN') {
+    payerWallet = await resolveInvestorLinkedWallet(input.userId, input.walletAddress);
+  }
+
+  const investorId =
+    user.investorId ?? (payerWallet ? await ensureInvestorForUser(user, payerWallet) : null);
   const expiresAt = new Date(Date.now() + paymentOrderTtlMinutes() * 60_000);
-  const idempotencyKey = `${input.userId}:deposit:${input.method}:${input.amountUsd}:${input.walletAddress ?? 'gateway'}:${network.id}`;
+  const idempotencyKey = `${input.userId}:deposit:${input.method}:${input.amountUsd}:${payerWallet ?? 'gateway'}:${network.id}`;
 
   const existing = await prisma.platformDeposit.findUnique({
     where: { idempotencyKey }
@@ -230,7 +241,7 @@ export async function createPlatformDeposit(input: {
       status: 'PENDING',
       stablecoinNetwork: input.method === 'USDC_ONCHAIN' ? network.id : null,
       stablecoinSymbol: input.method === 'USDC_ONCHAIN' ? network.symbol : null,
-      payerWalletAddress: input.walletAddress,
+      payerWalletAddress: payerWallet,
       payToAddress: input.method === 'USDC_ONCHAIN' ? network.treasuryAddress : null,
       provider: input.routeQuote?.provider ?? (input.method === 'USDC_ONCHAIN' ? 'stablecoin_onchain' : String(input.method).toLowerCase()),
       idempotencyKey,
@@ -252,7 +263,7 @@ export async function createPlatformDeposit(input: {
     amountUsd: input.amountUsd,
     stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork,
     userEmail: user.email,
-    walletAddress: input.walletAddress
+    walletAddress: payerWallet
   });
 
   if (checkout.providerCheckoutUrl || checkout.providerPaymentId) {

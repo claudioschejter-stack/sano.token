@@ -4,6 +4,7 @@ import { Loader2, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserProvider } from 'ethers';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import type { BestBorrowRateResponse } from '../../types/marketplace';
 
 const EXECUTABLE_PROTOCOL_IDS = new Set(['aave', 'morpho', 'moonwell', 'compound', 'spark']);
@@ -23,7 +24,10 @@ type BorrowPreview = {
 };
 
 export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow = true }: BorrowPanelProps) {
-  const m = useTranslation().marketplace.borrow;
+  const t = useTranslation();
+  const m = t.marketplace.borrow;
+  const w = t.wallet;
+  const walletGuard = useLinkedWalletGuard();
   const isMorphoRwa = Boolean(projectId && vaultAddress && readyToBorrow);
 
   const executableQuotes = useMemo(
@@ -124,6 +128,21 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
       }
       if (!address) {
         setStatus(m.connectFirst);
+        return;
+      }
+
+      if (!walletGuard.isWalletLinked) {
+        setStatus(w.walletNotLinked);
+        return;
+      }
+
+      if (walletGuard.isWalletMismatch) {
+        setStatus(w.walletMismatch);
+        return;
+      }
+
+      if (walletGuard.isWrongNetwork) {
+        setStatus(w.wrongNetwork);
         return;
       }
 

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { formatMessage } from '../../i18n';
+import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { findListingById } from '../../lib/findListing';
@@ -23,8 +24,10 @@ type CheckoutViewProps = {
 
 export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutViewProps) {
   const t = useTranslation();
+  const w = t.wallet;
   const { intlLocale } = useLocale();
   const { address, isConnected } = useAccount();
+  const walletGuard = useLinkedWalletGuard();
   const { formatFromUsd, currency } = useLocalCurrency();
 
   const [listing, setListing] = useState<MarketplaceListing | null>(null);
@@ -99,8 +102,15 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
   };
 
   const handlePurchase = async () => {
-    if (paymentMethod !== 'INTERNAL_BALANCE' && (!isConnected || !address)) {
-      return;
+    if (paymentMethod !== 'INTERNAL_BALANCE') {
+      if (!walletGuard.isWalletLinked) {
+        setPurchaseError(w.walletNotLinked);
+        return;
+      }
+      if (!walletGuard.canSignOnChain || !address) {
+        setPurchaseError(walletGuard.isWrongNetwork ? w.wrongNetwork : walletGuard.isWalletMismatch ? w.walletMismatch : w.noWallet);
+        return;
+      }
     }
 
     setStatus('creating');
@@ -310,30 +320,22 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                 ))}
               </div>
               {paymentMethod === 'USDC_ONCHAIN' ? (
-                <div className="mt-4">
-                  <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">Red stablecoin</p>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {STABLECOIN_NETWORKS.map((network) => (
-                      <button
-                        key={network.id}
-                        type="button"
-                        onClick={() => setStablecoinNetwork(network.id)}
-                        className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
-                          stablecoinNetwork === network.id
-                            ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
-                            : 'border-terminal-border text-terminal-muted hover:text-terminal-text'
-                        }`}
-                      >
-                        <span className="block font-semibold">{network.label}</span>
-                        <span className="mt-1 block">{network.description}</span>
-                      </button>
-                    ))}
-                  </div>
+                <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs text-terminal-muted">
+                  USDC en Base (chainId 8453)
                 </div>
               ) : null}
             </div>
 
             <WalletConnectButton />
+            {!walletGuard.isWalletLinked ? (
+              <p className="text-xs font-medium text-terminal-warning">{w.walletNotLinked}</p>
+            ) : null}
+            {walletGuard.isWalletMismatch ? (
+              <p className="text-xs font-medium text-terminal-warning">{w.walletMismatch}</p>
+            ) : null}
+            {walletGuard.isWrongNetwork ? (
+              <p className="text-xs font-medium text-terminal-warning">{w.wrongNetwork}</p>
+            ) : null}
             {vaultCheckout ? (
               <BuyButton
                 vaultAddress={listing.vaultAddress}

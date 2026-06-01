@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
 import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { verifyUsdcPayment } from '../../../../../lib/payments/paymentService';
 
@@ -28,10 +29,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'PAYMENT_INTENT_AND_TX_REQUIRED' }, { status: 400 });
     }
 
+    const linkedWallet = await resolveInvestorLinkedWallet(ctx.userId, body.walletAddress);
+
     const paymentIntent = await verifyUsdcPayment({
       paymentIntentId: body.paymentIntentId,
       txHash: body.txHash,
-      expectedPayer: body.walletAddress
+      expectedPayer: linkedWallet
     });
 
     return NextResponse.json({ ok: true, paymentIntent });
@@ -51,7 +54,10 @@ export async function POST(request: Request) {
         'PAYMENT_INTENT_NOT_PAYABLE',
         'PROJECT_NOT_AVAILABLE',
         'INSUFFICIENT_SUPPLY',
-        'INVESTOR_WALLET_REQUIRED'
+        'INVESTOR_WALLET_REQUIRED',
+        'WALLET_MISMATCH',
+        'WALLET_REQUIRED',
+        'INVALID_WALLET'
       ].includes(message)
     ) {
       return NextResponse.json({ error: message }, { status: 400 });

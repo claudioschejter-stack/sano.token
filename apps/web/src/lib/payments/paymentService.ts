@@ -19,7 +19,8 @@ import {
 import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
-import { getStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
+import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
+import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
@@ -175,8 +176,18 @@ export async function createPaymentIntent(input: {
     throw new Error('PAYMENT_METHOD_NOT_CONFIGURED');
   }
 
-  const network = getStablecoinNetwork(input.stablecoinNetwork);
-  const payerWallet = normalizeAddress(input.walletAddress, network);
+  const network =
+    input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN'
+      ? requireBaseStablecoinNetwork(input.stablecoinNetwork)
+      : getStablecoinNetwork(input.stablecoinNetwork);
+
+  let payerWallet: string | null = null;
+  if (input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN') {
+    payerWallet = await resolveInvestorLinkedWallet(input.userId, input.walletAddress);
+  } else {
+    payerWallet = normalizeAddress(input.walletAddress, network);
+  }
+
   if ((input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN') && !payerWallet) {
     throw new Error('WALLET_REQUIRED');
   }

@@ -4,6 +4,13 @@ import { prepareMorphoRepay } from '../../../../lib/lending/repayRouter';
 
 export const dynamic = 'force-dynamic';
 
+const WALLET_ERRORS = new Set([
+  'WALLET_MISMATCH',
+  'WALLET_REQUIRED',
+  'INVESTOR_WALLET_REQUIRED',
+  'INVALID_WALLET'
+]);
+
 export async function POST(request: Request) {
   const ctx = await requireInvestorSession();
 
@@ -23,7 +30,7 @@ export async function POST(request: Request) {
     };
 
     if (!body.projectId?.trim() || !body.walletAddress?.trim()) {
-      return NextResponse.json({ error: 'projectId and walletAddress required' }, { status: 400 });
+      return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
     }
 
     const amountUsd = Number(body.amountUsd);
@@ -47,6 +54,12 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ prepared });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'UNKNOWN';
+
+    if (WALLET_ERRORS.has(message)) {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
     console.error('[lending/repay-prepare POST]', error);
     return NextResponse.json({ error: 'Prepare repay failed' }, { status: 500 });
   }

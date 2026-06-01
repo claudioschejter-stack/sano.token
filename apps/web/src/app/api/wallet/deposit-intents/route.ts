@@ -68,7 +68,19 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN';
-    if (['USER_NOT_FOUND', 'ACCOUNT_NOT_OPERATIONAL', 'KYC_NOT_APPROVED', 'INVALID_DEPOSIT_AMOUNT'].includes(message)) {
+    if (
+      [
+        'USER_NOT_FOUND',
+        'ACCOUNT_NOT_OPERATIONAL',
+        'KYC_NOT_APPROVED',
+        'INVALID_DEPOSIT_AMOUNT',
+        'WALLET_MISMATCH',
+        'WALLET_REQUIRED',
+        'INVESTOR_WALLET_REQUIRED',
+        'CHAIN_MISMATCH',
+        'INVALID_WALLET'
+      ].includes(message)
+    ) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
     console.error('[wallet/deposit-intents]', error);
