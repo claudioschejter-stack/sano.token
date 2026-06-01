@@ -3,9 +3,8 @@
 import { ArrowDownToLine, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserProvider } from 'ethers';
-import { useTranslation } from '../../i18n/LocaleProvider';
-import { createIntlFormatters } from '../../i18n/formatters';
-import { useLocale } from '../../i18n/LocaleProvider';
+import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
+import { createIntlFormatters } from '../../../i18n/formatters';
 
 type RepayPosition = {
   projectId: string | null;
