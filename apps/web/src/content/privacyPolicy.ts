@@ -1,5 +1,5 @@
 import {
-  LEGAL_CONTACT_EMAIL,
+  LEGAL_CONTACT_PATH,
   LEGAL_SITE_URL,
   PRIVACY_POLICY_LAST_UPDATED_EN,
   PRIVACY_POLICY_LAST_UPDATED_ES
@@ -20,7 +20,7 @@ export type PrivacyDocument = {
   sections: PrivacySection[];
   arcoNote: string;
   backHome: string;
-  contactEmail: string;
+  contactFormPath: string;
 };
 
 const privacyEs: PrivacyDocument = {
@@ -48,7 +48,7 @@ El tratamiento de los datos personales se realiza en estricto cumplimiento con l
         'Al utilizar nuestros servicios, usted comprende y acepta que la tecnología blockchain (como la red Base) es un libro mayor público, inmutable y transparente.'
       ],
       bullets: [
-        '**Datos On-Chain:** Su dirección de billetera pública, los montos de USDC transferidos, la cantidad de tokens ERC-1155 adquiridos y los contratos de préstamos interactuados son de dominio público.',
+        '**Datos On-Chain:** Su dirección de billetera pública, los montos de USDC transferidos, la cantidad de **cuotapartes ERC-4626** adquiridas o rescatadas y los contratos de préstamos interactuados son de dominio público.',
         '**Datos Off-Chain:** Nosotros **nunca** publicamos su nombre, DNI ni datos personales tradicionales en la blockchain. La vinculación entre su identidad legal (KYC) y su billetera pública se almacena en nuestros servidores seguros de forma encriptada y fuera de la cadena (*off-chain*).'
       ]
     },
@@ -71,13 +71,13 @@ El tratamiento de los datos personales se realiza en estricto cumplimiento con l
         '**Proveedores de KYC/AML:** Empresas tecnológicas especializadas en verificación de identidad y biometría.',
         '**Pasarelas de Pago (On-Ramps):** Procesadores de pagos internacionales (ej. Stripe, Transak) estrictamente para ejecutar la conversión de moneda fiat a USDC cuando usted lo solicite.',
         '**Autoridades Gubernamentales y Judiciales:** Cuando exista una obligación legal, requerimiento de la Unidad de Información Financiera (UIF), de la AFIP o una orden judicial válida que nos obligue a revelar la titularidad de los tokens o el flujo de fondos.',
-        '**Asesores Financieros (ALyCs):** Si usted ingresó a la plataforma referido por un Agente de Bolsa, compartiremos información sobre su volumen de inversión exclusivamente a los fines de la liquidación de comisiones acordadas con dicho agente.'
+        '**Asesores Legales, Contables y de Auditoría:** Profesionales externos contratados por Sanova para cumplimiento normativo, auditoría documental y defensa de derechos, bajo acuerdos de confidencialidad.'
       ]
     },
     {
       title: '5. Seguridad y Retención de Datos',
       paragraphs: [
-        'Implementamos medidas técnicas, administrativas y criptográficas de nivel institucional para proteger su información off-chain contra accesos no autorizados. Sus datos personales se conservarán durante todo el tiempo que mantenga tokens de la plataforma en su billetera, y por el plazo mínimo legal exigido por la normativa contable y de prevención de lavado de activos tras la finalización de su vínculo comercial.'
+        'Implementamos medidas técnicas, administrativas y criptográficas de nivel institucional para proteger su información off-chain contra accesos no autorizados. Sus datos personales se conservarán durante todo el tiempo que mantenga **cuotapartes ERC-4626** de la Plataforma en su billetera habilitada, y por el plazo mínimo legal exigido por la normativa contable y de prevención de lavado de activos tras la finalización de su vínculo comercial.'
       ]
     },
     {
@@ -90,11 +90,11 @@ El tratamiento de los datos personales se realiza en estricto cumplimiento con l
       ]
     }
   ],
-  arcoNote: `Para ejercer estos derechos, o si tiene consultas sobre el manejo de su privacidad, póngase en contacto con nuestro Oficial de Cumplimiento enviando un correo electrónico a: **${LEGAL_CONTACT_EMAIL}**.
+  arcoNote: `Para ejercer estos derechos, o si tiene consultas sobre el manejo de su privacidad, complete el formulario de [Contacto](${LEGAL_CONTACT_PATH}). Sanova responderá por los canales indicados en dicho formulario.
 
 *La Agencia de Acceso a la Información Pública, Órgano de Control de la Ley Nº 25.326, tiene la atribución de atender las denuncias y reclamos que se interpongan con relación al incumplimiento de las normas sobre protección de datos personales.*`,
   backHome: 'Volver al inicio',
-  contactEmail: LEGAL_CONTACT_EMAIL
+  contactFormPath: LEGAL_CONTACT_PATH
 };
 
 const privacyEn: PrivacyDocument = {
@@ -122,7 +122,7 @@ Personal data is processed in strict compliance with **Law No. 25,326 on Persona
         'By using our services, you understand and accept that blockchain technology (such as the Base network) is a public, immutable and transparent ledger.'
       ],
       bullets: [
-        '**On-Chain Data:** Your public wallet address, USDC transfer amounts, ERC-1155 tokens acquired and loan contracts interacted with are public domain.',
+        '**On-Chain Data:** Your public wallet address, USDC transfer amounts, **ERC-4626 shares** acquired or redeemed and loan contracts interacted with are public domain.',
         '**Off-Chain Data:** We **never** publish your name, ID number or traditional personal data on the blockchain. The link between your legal identity (KYC) and your public wallet is stored encrypted on our secure servers off-chain.'
       ]
     },
@@ -145,13 +145,13 @@ Personal data is processed in strict compliance with **Law No. 25,326 on Persona
         '**KYC/AML Providers:** Technology companies specialized in identity verification and biometrics.',
         '**Payment Gateways (On-Ramps):** International payment processors (e.g. Stripe, Transak) strictly to execute fiat-to-USDC conversion when you request it.',
         '**Government and Judicial Authorities:** When there is a legal obligation, a requirement from the Financial Information Unit (UIF), AFIP or a valid court order requiring us to disclose token ownership or fund flows.',
-        '**Financial Advisors (ALyCs):** If you joined the platform referred by a Stock Broker, we will share information about your investment volume exclusively for settlement of commissions agreed with that agent.'
+        '**Legal, Accounting and Audit Advisors:** External professionals engaged by Sanova for regulatory compliance, document audits and rights protection, under confidentiality agreements.'
       ]
     },
     {
       title: '5. Security and Data Retention',
       paragraphs: [
-        'We implement institutional-grade technical, administrative and cryptographic measures to protect your off-chain information against unauthorized access. Your personal data will be retained for as long as you hold platform tokens in your wallet, and for the minimum legal period required by accounting and anti-money laundering regulations after the end of your commercial relationship.'
+        'We implement institutional-grade technical, administrative and cryptographic measures to protect your off-chain information against unauthorized access. Your personal data will be retained for as long as you hold **ERC-4626 shares** of the Platform in your enabled wallet, and for the minimum legal period required by accounting and anti-money laundering regulations after the end of your commercial relationship.'
       ]
     },
     {
@@ -164,11 +164,11 @@ Personal data is processed in strict compliance with **Law No. 25,326 on Persona
       ]
     }
   ],
-  arcoNote: `To exercise these rights, or if you have questions about how we handle your privacy, contact our Compliance Officer by email at: **${LEGAL_CONTACT_EMAIL}**.
+  arcoNote: `To exercise these rights, or if you have questions about how we handle your privacy, complete the [Contact](${LEGAL_CONTACT_PATH}) form. Sanova will respond through the channels indicated therein.
 
 *The Public Information Access Agency, Control Body of Law No. 25,326, is responsible for handling complaints and claims regarding non-compliance with personal data protection regulations.*`,
   backHome: 'Back to home',
-  contactEmail: LEGAL_CONTACT_EMAIL
+  contactFormPath: LEGAL_CONTACT_PATH
 };
 
 export function getPrivacyPolicy(locale: string): PrivacyDocument {

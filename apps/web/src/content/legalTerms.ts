@@ -1,5 +1,5 @@
 import {
-  LEGAL_CONTACT_EMAIL,
+  LEGAL_CONTACT_PATH,
   LEGAL_SITE_URL,
   LEGAL_TERMS_LAST_UPDATED_EN,
   LEGAL_TERMS_LAST_UPDATED_ES
@@ -25,7 +25,7 @@ export type LegalTermsDocument = {
   closingNote: string;
   backHome: string;
   privacyLinkLabel: string;
-  contactEmail: string;
+  contactFormPath: string;
 };
 
 const legalTermsEs: LegalTermsDocument = {
@@ -68,11 +68,12 @@ Al registrarse, conectar una billetera digital, completar el proceso KYC/AML o u
     {
       id: 'colocacion-privada',
       title: '3. Exención de Oferta Pública · Colocación Privada',
-      summary: 'No constituye oferta pública CNV (Art. 2, Ley 26.831). Destinado a inversores calificados vía ALyCs.',
+      summary: 'Colocación privada de cuotapartes ERC-4626; no constituye oferta pública registrable ante la CNV (Art. 2, Ley 26.831).',
       paragraphs: [
-        'La emisión, colocación y transferencia primaria de las cuotapartes tokenizadas descritas en estos Términos constituye una **Colocación Privada** de instrumentos vinculados a activos reales, **orientada exclusivamente a inversores sofisticados, calificados o institucionales**, canalizada a través de **Asesores de Inversión**, Agentes de Liquidación y Compensación (**ALyCs**) y/o intermediarios debidamente registrados o autorizados conforme a la normativa aplicable.',
-        'El Usuario reconoce y acepta que la operatoria de la Plataforma **NO constituye una oferta pública de valores negociables** en los términos del **Artículo 2 de la Ley N° 26.831** de la **Comisión Nacional de Valores (CNV)** de la República Argentina, ni se encuentra autorizada ni registrada como emisión pública ante dicho organismo.',
-        'Sanova Global SAS no realiza promoción masiva, publicidad dirigida al público general ni solicitud abierta de suscripción de cuotapartes. El acceso a la Plataforma, al marketplace primario y al mercado secundario restringido está sujeto a invitación, verificación de elegibilidad, perfil de inversor y, cuando corresponda, intermediación por ALyC de referencia.',
+        'La emisión, colocación primaria y transferencias restringidas de **cuotapartes tokenizadas ERC-4626** descritas en estos Términos constituyen una **Colocación Privada** de participaciones vinculadas a activos reales, **destinada exclusivamente a un universo acotado de inversores** que acceden mediante registro habilitado, invitación y cumplimiento KYC/AML, sin convocatoria abierta ni solicitud pública de suscripción.',
+        'El Usuario reconoce y acepta que la operatoria de la Plataforma **NO constituye una oferta pública de valores negociables** en los términos del **Artículo 2 de la Ley N° 26.831** ni una emisión sujeta a autorización, registro, prospecto u oferta pública ante la **Comisión Nacional de Valores (CNV)** de la República Argentina. **Sanova Global SAS no actúa como agente de mercado de capitales, agente de bolsa, ALyC, asesor de inversión registrado ni intermediario autorizado por la CNV** en relación con estas cuotapartes.',
+        'Sanova Global SAS no realiza promoción masiva, publicidad de colocación dirigida al público en general, ni campañas de captación indiscriminada. El acceso a la Plataforma, al marketplace primario y al mercado secundario interno está condicionado a verificación de identidad, evaluación de elegibilidad y aceptación expresa de estos Términos.',
+        'Las cuotapartes ERC-4626 **no son acciones, obligaciones negociables, cuotas de FCI de oferta pública ni criptoactivos de libre comercialización**. Su circulación se limita al ecosistema habilitado por Sanova conforme a políticas de compliance y restricciones on-chain.',
         'El Usuario declara contar con conocimiento, experiencia y patrimonio suficientes para evaluar los riesgos inherentes a inversiones en activos reales tokenizados, incluyendo — sin limitarse a — riesgo de mercado inmobiliario, riesgo de contraparte, riesgo tecnológico de smart contracts, riesgo regulatorio y riesgo de liquidez.'
       ]
     },
@@ -119,12 +120,12 @@ Al registrarse, conectar una billetera digital, completar el proceso KYC/AML o u
       ]
     }
   ],
-  closingNote: `Para consultas legales, reclamos o ejercicio de derechos relacionados con estos Términos, contacte a **${LEGAL_CONTACT_EMAIL}**.
+  closingNote: `Para consultas legales, reclamos o ejercicio de derechos relacionados con estos Términos, utilice el formulario de [Contacto](${LEGAL_CONTACT_PATH}).
 
-*Documento informativo de carácter contractual. No constituye oferta de inversión pública ni recomendación personalizada.*`,
+*Documento informativo de carácter contractual. No constituye oferta pública de valores negociables, emisión registrada ante la CNV ni recomendación personalizada de inversión.*`,
   backHome: 'Volver al inicio',
   privacyLinkLabel: 'Política de Privacidad',
-  contactEmail: LEGAL_CONTACT_EMAIL
+  contactFormPath: LEGAL_CONTACT_PATH
 };
 
 const legalTermsEn: LegalTermsDocument = {
@@ -167,11 +168,12 @@ By registering, connecting a digital wallet, completing the KYC/AML process or u
     {
       id: 'colocacion-privada',
       title: '3. Public Offering Exemption · Private Placement',
-      summary: 'Does not constitute CNV public offering (Art. 2, Law 26,831). For qualified investors via ALyCs.',
+      summary: 'Private placement of ERC-4626 shares; not a CNV-registrable public offering (Art. 2, Law 26,831).',
       paragraphs: [
-        'The issuance, placement and primary transfer of tokenized shares described in these Terms constitutes a **Private Placement** of instruments linked to real assets, **aimed exclusively at sophisticated, qualified or institutional investors**, channeled through **Investment Advisors**, Clearing and Settlement Agents (**ALyCs**) and/or intermediaries duly registered or authorized under applicable regulations.',
-        'The User acknowledges and accepts that Platform operations **do NOT constitute a public offering of negotiable securities** under **Article 2 of Law No. 26,831** of the **National Securities Commission (CNV)** of the Argentine Republic, nor is it authorized or registered as a public issuance before said authority.',
-        'Sanova Global SAS does not conduct mass promotion, advertising aimed at the general public or open subscription solicitations. Access to the Platform, primary marketplace and restricted secondary market is subject to invitation, eligibility verification, investor profile and, where applicable, referral ALyC intermediation.',
+        'The issuance, primary placement and restricted transfers of **ERC-4626 tokenized shares** described in these Terms constitute a **Private Placement** of participations linked to real assets, **aimed exclusively at a limited universe of investors** accessing through enabled registration, invitation and KYC/AML compliance, without open solicitation or public subscription.',
+        'The User acknowledges and accepts that Platform operations **do NOT constitute a public offering of negotiable securities** under **Article 2 of Law No. 26,831** nor an issuance subject to authorization, registration, prospectus or public offering before the **National Securities Commission (CNV)** of the Argentine Republic. **Sanova Global SAS does not act as a capital markets agent, stock broker, ALyC, registered investment advisor or CNV-authorized intermediary** in relation to these shares.',
+        'Sanova Global SAS does not conduct mass promotion, public placement advertising or indiscriminate fundraising campaigns. Access to the Platform, primary marketplace and internal secondary market is conditioned on identity verification, eligibility assessment and express acceptance of these Terms.',
+        'ERC-4626 shares **are not shares, negotiable bonds, public mutual fund units or freely tradable cryptoassets**. Their circulation is limited to the ecosystem enabled by Sanova under compliance policies and on-chain restrictions.',
         'The User declares sufficient knowledge, experience and assets to evaluate risks inherent in tokenized real asset investments, including — without limitation — real estate market risk, counterparty risk, smart contract technology risk, regulatory risk and liquidity risk.'
       ]
     },
@@ -218,12 +220,12 @@ By registering, connecting a digital wallet, completing the KYC/AML process or u
       ]
     }
   ],
-  closingNote: `For legal inquiries, claims or rights related to these Terms, contact **${LEGAL_CONTACT_EMAIL}**.
+  closingNote: `For legal inquiries, claims or rights related to these Terms, use the [Contact](${LEGAL_CONTACT_PATH}) form.
 
-*Contractual information document. Does not constitute a public investment offer or personalized recommendation.*`,
+*Contractual information document. Does not constitute a public offering of negotiable securities, a CNV-registered issuance or personalized investment advice.*`,
   backHome: 'Back to home',
   privacyLinkLabel: 'Privacy Policy',
-  contactEmail: LEGAL_CONTACT_EMAIL
+  contactFormPath: LEGAL_CONTACT_PATH
 };
 
 export function getLegalTerms(locale: string): LegalTermsDocument {

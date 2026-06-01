@@ -7,28 +7,66 @@ import { useLocale } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
 
 function renderInlineMarkdown(text: string) {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g);
-  return parts.map((part, index) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      const inner = part.slice(2, -2);
-      if (inner.includes('@')) {
+  const linkPattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const segments: Array<{ type: 'text' | 'link'; value: string; href?: string }> = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = linkPattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: 'text', value: text.slice(lastIndex, match.index) });
+    }
+    segments.push({ type: 'link', value: match[1], href: match[2] });
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push({ type: 'text', value: text.slice(lastIndex) });
+  }
+
+  if (segments.length === 0) {
+    segments.push({ type: 'text', value: text });
+  }
+
+  return segments.flatMap((segment, segmentIndex) => {
+    if (segment.type === 'link' && segment.href) {
+      const isInternal = segment.href.startsWith('/');
+      if (isInternal) {
         return (
-          <a
-            key={index}
-            href={`mailto:${inner}`}
+          <Link
+            key={`link-${segmentIndex}`}
+            href={segment.href}
             className="font-semibold text-blue-600 underline-offset-2 hover:underline"
           >
-            {inner}
-          </a>
+            {segment.value}
+          </Link>
         );
       }
       return (
-        <strong key={index} className="font-semibold text-slate-900">
-          {inner}
-        </strong>
+        <a
+          key={`link-${segmentIndex}`}
+          href={segment.href}
+          className="font-semibold text-blue-600 underline-offset-2 hover:underline"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {segment.value}
+        </a>
       );
     }
-    return part;
+
+    const parts = segment.value.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, index) => {
+      const key = `${segmentIndex}-${index}`;
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return (
+          <strong key={key} className="font-semibold text-slate-900">
+            {part.slice(2, -2)}
+          </strong>
+        );
+      }
+      return part;
+    });
   });
 }
 
