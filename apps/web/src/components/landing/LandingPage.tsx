@@ -160,34 +160,34 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
         </div>
       </section>
 
-      <footer className="border-t border-slate-200 bg-slate-900 px-4 py-10 text-slate-400 md:px-6 md:py-12">
+      <footer className="border-t border-slate-200 bg-slate-900 px-4 pb-10 text-slate-400 md:px-6 md:pb-12">
         <div className="mx-auto w-full max-w-7xl">
-          <div className="flex w-full flex-col gap-8 md:flex-row md:justify-between">
-            <div className="w-full">
-              <p className="text-lg font-bold text-white md:text-xl">Sanova Global</p>
-              <p className="mt-2 text-sm leading-relaxed">{l.footer.tagline}</p>
-            </div>
-            <nav
-              className="flex w-full flex-row flex-nowrap items-center gap-4 overflow-x-auto text-sm sm:ml-auto sm:justify-end sm:gap-6 md:w-auto md:items-end"
-              aria-label={l.footer.navAria}
-            >
-              <Link href="/acceso?returnTo=/marketplace" className="shrink-0 hover:text-white">
-                {l.nav.marketplace}
-              </Link>
-              <Link href="/acceso" className="shrink-0 hover:text-white">
-                {l.nav.platformAccess}
-              </Link>
-              <Link href="/privacidad" className="shrink-0 hover:text-white">
-                {l.footer.privacy}
-              </Link>
-              <Link href="/terminos" className="shrink-0 hover:text-white">
-                {l.footer.terms}
-              </Link>
-              <Link href="/contacto" className="shrink-0 hover:text-white">
-                {l.footer.contact}
-              </Link>
-            </nav>
+          <nav
+            className="mt-[1cm] flex flex-row flex-nowrap items-center justify-end gap-x-5 text-sm text-slate-300 sm:gap-x-6"
+            aria-label={l.footer.navAria}
+          >
+            <Link href="/acceso?returnTo=/marketplace" className="shrink-0 whitespace-nowrap hover:text-white">
+              {l.nav.marketplace}
+            </Link>
+            <Link href="/acceso" className="shrink-0 whitespace-nowrap hover:text-white">
+              {l.nav.platformAccess}
+            </Link>
+            <Link href="/privacidad" className="shrink-0 whitespace-nowrap hover:text-white">
+              {l.footer.privacy}
+            </Link>
+            <Link href="/terminos" className="shrink-0 whitespace-nowrap hover:text-white">
+              {l.footer.terms}
+            </Link>
+            <Link href="/contacto" className="shrink-0 whitespace-nowrap hover:text-white">
+              {l.footer.contact}
+            </Link>
+          </nav>
+
+          <div className="mt-8 w-full md:mt-10">
+            <p className="text-lg font-bold text-white md:text-xl">Sanova Global</p>
+            <p className="mt-2 text-sm leading-relaxed">{l.footer.tagline}</p>
           </div>
+
           <p className="mt-8 text-xs leading-relaxed md:mt-10">{l.footer.disclaimer}</p>
           <p className="mt-4 text-xs">{l.footer.rights}</p>
         </div>
