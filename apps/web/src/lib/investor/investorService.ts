@@ -372,19 +372,22 @@ export async function getCashFlowForUser(platformUserId: string) {
 }
 
 export async function getPortfolioSummaryForUser(userId: string) {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      investorId: true,
-      investor: {
-        select: {
-          totalCapital: true,
-          marginDebt: true,
-          ltv: true
+  const { resolveMorphoDebtForUser } = await import('../portfolio/morphoDebtForUser');
+
+  const [user, morphoDebtUsd] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        investorId: true,
+        investor: {
+          select: {
+            totalCapital: true
+          }
         }
       }
-    }
-  });
+    }),
+    resolveMorphoDebtForUser(userId)
+  ]);
 
   const distributions = user?.investorId
     ? await prisma.dividendDistribution.findMany({
@@ -402,11 +405,14 @@ export async function getPortfolioSummaryForUser(userId: string) {
     return remaining.gt(0) ? sum + remaining.toNumber() : sum;
   }, 0);
 
+  const capital = user?.investor?.totalCapital.toNumber() ?? 0;
+  const ltv = capital > 0 ? (morphoDebtUsd / capital) * 100 : 0;
+
   return {
     userId: user?.investorId ?? userId,
-    capital: user?.investor?.totalCapital.toNumber() ?? 0,
-    marginDebt: user?.investor?.marginDebt.toNumber() ?? 0,
-    ltv: user?.investor?.ltv.toNumber() ?? 0,
+    capital,
+    marginDebt: morphoDebtUsd,
+    ltv,
     availableCash
   };
 }

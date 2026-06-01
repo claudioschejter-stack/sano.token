@@ -38,7 +38,7 @@ const TOKEN_COUNTS = {
 
 const FIAT_BALANCE_USD = 15_000;
 const USDC_DEPOSIT_USD = 8_500;
-const MARGIN_DEBT_USD = 35_000;
+const MARGIN_DEBT_USD = 0;
 
 function startOfUtcDay(date) {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));

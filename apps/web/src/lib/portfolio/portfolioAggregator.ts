@@ -1,4 +1,5 @@
 import { prisma, Prisma } from '@sanova/database';
+import { readMorphoOnChainDebtUsd } from './onChainMorphoDebtReader';
 import { readVaultPositionsForProjects } from './onChainVaultReader';
 import { readWalletUsdcBalances } from './onChainUsdcReader';
 
@@ -47,8 +48,6 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
         investor: {
           select: {
             id: true,
-            marginDebt: true,
-            ltv: true,
             walletAddress: true,
             investments: {
               where: { status: 'ACTIVE' },
@@ -60,7 +59,8 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
                     tokenSymbol: true,
                     pricePerToken: true,
                     vaultAddress: true,
-                    chainId: true
+                    chainId: true,
+                    collateralTargets: true
                   }
                 }
               },
@@ -159,7 +159,15 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
   }
 
   const stablecoinUsd = stablecoinPositions.reduce((sum, item) => sum + item.valueUsd, 0);
-  const debtUsd = user?.investor?.marginDebt.toNumber() ?? 0;
+  const debtUsd = user?.investor
+    ? await readMorphoOnChainDebtUsd({
+        walletAddress: user.investor.walletAddress,
+        projects: investments.map((investment) => ({
+          vaultAddress: investment.project.vaultAddress,
+          collateralTargets: investment.project.collateralTargets
+        }))
+      })
+    : 0;
   const grossAssetsUsd = rwaValueUsd + stablecoinUsd + fiatUsd;
   const totalValueUsd = grossAssetsUsd;
   const netLiquidValueUsd = grossAssetsUsd - debtUsd;

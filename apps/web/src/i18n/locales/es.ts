@@ -1220,7 +1220,7 @@ export const es = {
     grossAssets: 'Activos brutos',
     grossAssetsHint: 'Tokens + stablecoins + fiat',
     loansTaken: 'Préstamos tomados',
-    loansTakenHint: 'Deuda de margen pendiente',
+    loansTakenHint: 'Deuda Morpho on-chain (USDC prestado)',
     evolutionTitle: 'Evolución del valor líquido neto',
     evolutionSubtitle: 'Snapshot diario: activos − préstamos en USD',
     baseUsdBadge: 'Base USD',

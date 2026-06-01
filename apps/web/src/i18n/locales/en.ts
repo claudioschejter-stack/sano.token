@@ -1176,7 +1176,7 @@ export const en = {
     grossAssets: "Gross assets",
     grossAssetsHint: "Tokens + stablecoins + fiat",
     loansTaken: "Loans taken",
-    loansTakenHint: "Outstanding margin debt",
+    loansTakenHint: "On-chain Morpho debt (borrowed USDC)",
     evolutionTitle: "Net liquid value evolution",
     evolutionSubtitle: "Daily snapshot: assets − loans in USD",
     baseUsdBadge: "USD base",
