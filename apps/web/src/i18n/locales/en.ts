@@ -325,7 +325,11 @@ export const en = {
     confirmDelete: "Confirm",
     deleteError: "Could not delete asset.",
     deleteBlockedInvestments: "Cannot delete an asset with active investments.",
-    deleteBlockedPublished: "Unpublish the asset before deleting it."
+    deleteBlockedPublished: "Unpublish the asset before deleting it.",
+    sectionDebt: "Debt properties",
+    sectionEquity: "Equity properties",
+    emptyDebt: "No debt properties match this filter.",
+    emptyEquity: "No equity properties match this filter."
   },
   adminLoans: {
     eyebrow: "RWA lending",

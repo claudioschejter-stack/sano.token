@@ -332,7 +332,11 @@ export const es = {
     confirmDelete: 'Confirmar',
     deleteError: 'No se pudo eliminar el activo.',
     deleteBlockedInvestments: 'No podés eliminar un activo con inversiones activas.',
-    deleteBlockedPublished: 'Despublicá el activo antes de eliminarlo.'
+    deleteBlockedPublished: 'Despublicá el activo antes de eliminarlo.',
+    sectionDebt: 'Propiedades de deuda',
+    sectionEquity: 'Propiedades de capital',
+    emptyDebt: 'No hay propiedades de deuda con este filtro.',
+    emptyEquity: 'No hay propiedades de capital con este filtro.'
   },
   adminLoans: {
     eyebrow: 'Préstamos RWA',
