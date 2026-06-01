@@ -624,7 +624,28 @@ export const en = {
     onboardingDevExposeCode: "Show OTP codes on screen",
     enabled: "Asset",
     disabled: "Idle",
-    envNote: "Integrations and operational flags are configured with environment variables in Vercel or the server.Requires redeploy to apply changes."
+    envNote: "Integrations and operational flags are configured with environment variables in Vercel or the server.Requires redeploy to apply changes.",
+    platformWallet: {
+      title: "Platform wallets (Coinbase / Base)",
+      desc: "Operational addresses for treasury, RWA operator and stablecoin flows. Configure them in Vercel env vars and redeploy.",
+      loading: "Loading platform wallet config…",
+      error: "Could not load platform wallet configuration.",
+      refresh: "Refresh",
+      chainLabel: "Network",
+      tokenTreasury: "Token treasury",
+      rwaOperator: "RWA operator",
+      stablecoinTreasury: "Stablecoin treasury",
+      deployer: "Deployer (derived from private key)",
+      envVar: "Env var",
+      notSet: "Not configured in this environment.",
+      copy: "Copy",
+      copied: "Copied",
+      connectTitle: "Connect a Coinbase Smart Wallet",
+      connectDesc: "Connect with the admin wallet you want to use as treasury or operator, then copy the address into Vercel.",
+      connectedAddress: "Connected wallet address",
+      viewExplorer: "View on explorer",
+      vercelNote: "After updating TOKEN_TREASURY_ADDRESS, RWA_OPERATOR_ADDRESS or BASE_STABLECOIN_TREASURY_ADDRESS in Vercel, redeploy production for changes to apply."
+    }
   },
   adminTreasury: {
     loading: "Loading treasury…",
@@ -1124,7 +1145,18 @@ export const en = {
       startDidit: "Validate identity with cell phone",
       diditRedirecting: "Connecting…",
       identityOperationalNote: "After the identity is verified, the account will be operational and ready to operate.",
+      identityWalletNote: "After identity verification you will activate your Coinbase Smart Wallet to operate on Base.",
       demoKyc: "Simulate verification (demo only)",
+      walletTitle: "Activate your wallet",
+      walletDesc: "Connect Coinbase Smart Wallet on Base to buy RWA tokens, repay Morpho loans and receive dividends.",
+      walletBullet1: "Uses Coinbase Smart Wallet — no seed phrase to manage.",
+      walletBullet2: "Network: Base mainnet (USDC and vault operations).",
+      walletBullet3: "You can connect later from the marketplace if you skip this step.",
+      walletConnect: "Connect Coinbase Wallet",
+      walletSaving: "Saving wallet…",
+      walletLinked: "Wallet linked",
+      walletHint: "We save your address to match on-chain purchases and repayments with your account.",
+      walletSkip: "Skip for now",
       doneTitle: "Operating account",
       doneDesc: "Verified email and identity.You can now operate in the marketplace."
     },
@@ -1138,7 +1170,10 @@ export const en = {
       SMS_DELIVERY_FAILED: "We could not send the SMS.Check the Twilio number or settings.",
       DIDIT_NOT_CONFIGURED: "Didit is not configured on the server yet.Contact support.",
       CONTACT_NOT_VERIFIED: "First verify your email and charge your phone before starting the KYC.",
-      UNAUTHORIZED: "Your session is not ready yet.Wait a moment and try again."
+      UNAUTHORIZED: "Your session is not ready yet.Wait a moment and try again.",
+      INVALID_WALLET: "The wallet address is not valid.",
+      WALLET_REQUIRED: "Connect a wallet before continuing.",
+      WALLET_LINK_FAILED: "We could not save your wallet. Try again."
     }
   },
   pwa: {

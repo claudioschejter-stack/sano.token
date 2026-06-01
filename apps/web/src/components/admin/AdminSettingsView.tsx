@@ -7,6 +7,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import type { AdminSettings } from '../../lib/admin/getAdminSettings';
 import type { PlatformConfigFieldSource } from '../../lib/platform/platformConfigService';
 import { AdminGate } from './AdminGate';
+import { AdminPlatformWalletSection } from './AdminPlatformWalletSection';
 
 type IntegrationId =
   | 'email'
@@ -273,6 +274,8 @@ export function AdminSettingsView() {
                 ) : null}
               </form>
             </section>
+
+            <AdminPlatformWalletSection />
 
             <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
               <h2 className="text-lg font-semibold text-terminal-text">{t.adminSettings.integrationsTitle}</h2>

@@ -32,8 +32,10 @@ export async function GET() {
       phoneVerifiedAt: true,
       kycStatus: true,
       accountStatus: true,
+      walletAddress: true,
+      systemRole: true,
       diditSessionId: true,
-      investor: { select: { fullName: true, cuit: true } }
+      investor: { select: { fullName: true, cuit: true, walletAddress: true } }
     }
   });
 
@@ -41,10 +43,24 @@ export async function GET() {
     return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
   }
 
+  const walletAddress = user.walletAddress ?? user.investor?.walletAddress ?? null;
+
   return NextResponse.json({
-    checklist: buildOnboardingChecklist(user, isDiditConfigured()),
+    checklist: buildOnboardingChecklist(
+      {
+        email: user.email,
+        phone: user.phone,
+        emailVerifiedAt: user.emailVerifiedAt,
+        phoneVerifiedAt: user.phoneVerifiedAt,
+        kycStatus: user.kycStatus,
+        accountStatus: user.accountStatus,
+        walletAddress
+      },
+      isDiditConfigured()
+    ),
     profile: buildOnboardingProfile(user),
     diditSessionId: user.diditSessionId,
-    integrations: getOnboardingIntegrations()
+    integrations: getOnboardingIntegrations(),
+    systemRole: user.systemRole
   });
 }

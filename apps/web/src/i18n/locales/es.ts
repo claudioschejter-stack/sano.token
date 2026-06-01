@@ -638,7 +638,28 @@ export const es = {
     onboardingDevExposeCode: 'Mostrar códigos OTP en pantalla',
     enabled: 'Activo',
     disabled: 'Inactivo',
-    envNote: 'Integraciones y flags operativos se configuran con variables de entorno en Vercel o el servidor. Requiere redeploy para aplicar cambios.'
+    envNote: 'Integraciones y flags operativos se configuran con variables de entorno en Vercel o el servidor. Requiere redeploy para aplicar cambios.',
+    platformWallet: {
+      title: 'Wallets de plataforma (Coinbase / Base)',
+      desc: 'Direcciones operativas de tesorería, operador RWA y flujos en stablecoin. Configuralas en Vercel y redeployá.',
+      loading: 'Cargando configuración de wallets…',
+      error: 'No se pudo cargar la configuración de wallets de plataforma.',
+      refresh: 'Actualizar',
+      chainLabel: 'Red',
+      tokenTreasury: 'Tesorería de tokens',
+      rwaOperator: 'Operador RWA',
+      stablecoinTreasury: 'Tesorería stablecoin',
+      deployer: 'Deployer (derivada de private key)',
+      envVar: 'Variable',
+      notSet: 'Sin configurar en este entorno.',
+      copy: 'Copiar',
+      copied: 'Copiado',
+      connectTitle: 'Conectar Coinbase Smart Wallet',
+      connectDesc: 'Conectá la wallet admin que quieras usar como tesorería u operador, y copiá la dirección en Vercel.',
+      connectedAddress: 'Dirección conectada',
+      viewExplorer: 'Ver en explorer',
+      vercelNote: 'Después de actualizar TOKEN_TREASURY_ADDRESS, RWA_OPERATOR_ADDRESS o BASE_STABLECOIN_TREASURY_ADDRESS en Vercel, redeployá producción para aplicar los cambios.'
+    }
   },
   adminTreasury: {
     loading: 'Cargando tesorería…',
@@ -1164,7 +1185,20 @@ export const es = {
       diditRedirecting: 'Conectando…',
       identityOperationalNote:
         'Luego de verificada la identidad, la cuenta estará operativa y lista para operar.',
+      identityWalletNote:
+        'Después de verificar tu identidad activarás tu Coinbase Smart Wallet para operar en Base.',
       demoKyc: 'Simular verificación (solo demo)',
+      walletTitle: 'Activá tu billetera',
+      walletDesc:
+        'Conectá Coinbase Smart Wallet en Base para comprar tokens RWA, repagar préstamos Morpho y recibir dividendos.',
+      walletBullet1: 'Usa Coinbase Smart Wallet — sin frase semilla que administrar.',
+      walletBullet2: 'Red: Base mainnet (USDC y operaciones en bóvedas).',
+      walletBullet3: 'Podés conectar más tarde desde el marketplace si omitís este paso.',
+      walletConnect: 'Conectar Coinbase Wallet',
+      walletSaving: 'Guardando billetera…',
+      walletLinked: 'Billetera vinculada',
+      walletHint: 'Guardamos tu dirección para asociar compras y repagos on-chain con tu cuenta.',
+      walletSkip: 'Omitir por ahora',
       doneTitle: 'Cuenta operativa',
       doneDesc: 'Email e identidad verificados. Ya podés operar en el marketplace.'
     },
@@ -1181,7 +1215,10 @@ export const es = {
         'No pudimos enviar el SMS. Verificá el número o la configuración de Twilio.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
       CONTACT_NOT_VERIFIED: 'Primero verificá tu email y cargá tu teléfono antes de iniciar el KYC.',
-      UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.'
+      UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.',
+      INVALID_WALLET: 'La dirección de billetera no es válida.',
+      WALLET_REQUIRED: 'Conectá una billetera antes de continuar.',
+      WALLET_LINK_FAILED: 'No pudimos guardar tu billetera. Intentá de nuevo.'
     }
   },
   pwa: {

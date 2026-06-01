@@ -20,19 +20,19 @@ import {
 import { safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { InstallAppBanner } from '../pwa/InstallAppBanner';
+import { ActivateWalletStep } from './ActivateWalletStep';
 
-type Step = 'contact' | 'email' | 'phone' | 'identity' | 'done';
+type Step = 'contact' | 'email' | 'phone' | 'identity' | 'wallet' | 'done';
+
+const ONBOARDING_STEPS: Step[] = ['contact', 'email', 'phone', 'identity', 'wallet', 'done'];
 
 function stepFromChecklist(
   checklist: ReturnType<typeof useAccountStatus>['checklist'],
-  diditReturn: boolean
+  diditReturn: boolean,
+  options: { requireWallet: boolean; walletSkipped: boolean }
 ): Step {
   if (!checklist) {
     return 'contact';
-  }
-
-  if (checklist.operational) {
-    return 'done';
   }
 
   if (!checklist.phone) {
@@ -51,7 +51,15 @@ function stepFromChecklist(
     return 'identity';
   }
 
-  return 'done';
+  if (checklist.operational) {
+    if (options.requireWallet && !checklist.walletLinked && !options.walletSkipped) {
+      return 'wallet';
+    }
+
+    return 'done';
+  }
+
+  return 'identity';
 }
 
 function OnboardingContent() {
@@ -63,8 +71,10 @@ function OnboardingContent() {
   const diditReturn = searchParams.get('didit') === '1';
 
   const { data: session, status } = useSession();
-  const { checklist, loading, refresh, isOperational } = useAccountStatus();
+  const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
+  const requireWallet = systemRole === 'INVESTOR';
+  const [walletSkipped, setWalletSkipped] = useState(false);
 
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
@@ -80,11 +90,15 @@ function OnboardingContent() {
   const [resending, setResending] = useState(false);
 
   const step = useMemo(
-    () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved),
-    [checklist, diditReturn]
+    () =>
+      stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, {
+        requireWallet,
+        walletSkipped
+      }),
+    [checklist, diditReturn, requireWallet, walletSkipped]
   );
 
-  const progressIndex = ['contact', 'email', 'phone', 'identity', 'done'].indexOf(step);
+  const progressIndex = ONBOARDING_STEPS.indexOf(step);
 
   useEffect(() => {
     if (!checklist?.phone || phoneLocal) {
@@ -104,10 +118,18 @@ function OnboardingContent() {
   );
 
   useEffect(() => {
-    if (isOperational) {
+    if (!isOperational) {
+      return;
+    }
+
+    if (requireWallet && !checklist?.walletLinked && !walletSkipped && step !== 'done') {
+      return;
+    }
+
+    if (step === 'done' || (isOperational && (!requireWallet || checklist?.walletLinked || walletSkipped))) {
       router.replace(returnTo);
     }
-  }, [isOperational, returnTo, router]);
+  }, [checklist?.walletLinked, isOperational, requireWallet, returnTo, router, step, walletSkipped]);
 
   const syncDiditStatus = useCallback(async () => {
     try {
@@ -436,7 +458,7 @@ function OnboardingContent() {
         </div>
 
         <div className="mx-auto mt-4 flex w-full max-w-md gap-1.5">
-          {[0, 1, 2, 3].map((index) => (
+          {[0, 1, 2, 3, 4].map((index) => (
             <div
               key={index}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
@@ -598,7 +620,9 @@ function OnboardingContent() {
                 >
                   {diditLaunching || busy ? o.steps.diditRedirecting : o.steps.startDidit}
                 </button>
-                <p className="text-center text-sm text-slate-600">{o.steps.identityOperationalNote}</p>
+                <p className="text-center text-sm text-slate-600">
+                  {requireWallet ? o.steps.identityWalletNote : o.steps.identityOperationalNote}
+                </p>
               </>
             ) : (
               <button
@@ -613,6 +637,20 @@ function OnboardingContent() {
           </section>
         ) : null}
 
+        {step === 'wallet' ? (
+          <ActivateWalletStep
+            onLinked={async () => {
+              await refresh({ silent: true });
+              router.replace(returnTo);
+            }}
+            onSkip={() => {
+              setWalletSkipped(true);
+              router.replace(returnTo);
+            }}
+            onError={setError}
+          />
+        ) : null}
+
         {step === 'done' ? (
           <section className="flex flex-1 flex-col items-center justify-center text-center">
             <CheckCircle2 className="text-emerald-500" size={56} />
@@ -622,7 +660,7 @@ function OnboardingContent() {
         ) : null}
       </main>
 
-      {step !== 'done' && step !== 'identity' ? (
+      {step !== 'done' && step !== 'identity' && step !== 'wallet' ? (
         <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-md safe-bottom">
           <div className="mx-auto w-full max-w-md">
             <button

@@ -14,6 +14,7 @@ export type OnboardingChecklist = {
   phone: string | null;
   email: string;
   diditEnabled: boolean;
+  walletLinked: boolean;
 };
 
 type UserOnboardingFields = {
@@ -23,6 +24,7 @@ type UserOnboardingFields = {
   phoneVerifiedAt: Date | null;
   kycStatus: KycStatus;
   accountStatus: AccountStatus;
+  walletAddress?: string | null;
 };
 
 export function isAccountOperational(user: UserOnboardingFields): boolean {
@@ -53,6 +55,7 @@ export function buildOnboardingChecklist(
   const kycApproved = user.kycStatus === 'APPROVED';
   const operational = isAccountOperational(user);
   const accountStatus = deriveAccountStatus(user);
+  const walletLinked = Boolean(user.walletAddress?.trim());
 
   return {
     emailVerified,
@@ -65,6 +68,7 @@ export function buildOnboardingChecklist(
     kycStatus: user.kycStatus,
     phone: user.phone,
     email: user.email,
-    diditEnabled: diditEnabled && kycEnabled
+    diditEnabled: diditEnabled && kycEnabled,
+    walletLinked
   };
 }

@@ -6,10 +6,13 @@ import type { OnboardingChecklist } from '../lib/onboarding/accountStatus';
 import type { OnboardingProfile } from '../lib/onboarding/profile';
 import { setDemoKycStatus } from './useKycStatus';
 
+type SystemRole = 'ADMIN' | 'ADVISOR_MANAGER' | 'ADVISOR' | 'INVESTOR' | 'TREASURY' | 'OPERATOR' | null;
+
 export function useAccountStatus() {
   const { data: session, status } = useSession();
   const [checklist, setChecklist] = useState<OnboardingChecklist | null>(null);
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
+  const [systemRole, setSystemRole] = useState<SystemRole>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async (options?: { silent?: boolean }) => {
@@ -21,6 +24,7 @@ export function useAccountStatus() {
     if (status !== 'authenticated' || !session?.user?.accessToken) {
       setChecklist(null);
       setProfile(null);
+      setSystemRole(null);
       setLoading(status === 'authenticated');
       return;
     }
@@ -37,9 +41,11 @@ export function useAccountStatus() {
         const data = (await response.json()) as {
           checklist: OnboardingChecklist;
           profile?: OnboardingProfile;
+          systemRole?: SystemRole;
         };
         setChecklist(data.checklist);
         setProfile(data.profile ?? null);
+        setSystemRole(data.systemRole ?? null);
 
         if (data.checklist.kycApproved) {
           setDemoKycStatus('APPROVED');
@@ -51,10 +57,12 @@ export function useAccountStatus() {
       } else {
         setChecklist(null);
         setProfile(null);
+        setSystemRole(null);
       }
     } catch {
       setChecklist(null);
       setProfile(null);
+      setSystemRole(null);
     } finally {
       setLoading(false);
     }
@@ -67,6 +75,7 @@ export function useAccountStatus() {
   return {
     checklist,
     profile,
+    systemRole,
     loading,
     refresh,
     isOperational: checklist?.operational ?? false
