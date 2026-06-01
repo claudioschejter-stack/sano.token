@@ -6,15 +6,26 @@
  *
  * Usage: node scripts/seed-claudio-portfolio.mjs
  */
+import { config } from 'dotenv';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
-import { MARKETPLACE_SEED_LISTINGS } from '../packages/database/prisma/marketplace-seed-listings.mjs';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+config({ path: resolve(__dirname, '../packages/database/.env') });
+config({ path: resolve(__dirname, '../.env') });
+if (process.env.DIRECT_URL?.trim()) {
+  process.env.DATABASE_URL = process.env.DIRECT_URL;
+}
 
 const prisma = new PrismaClient();
 
 const INVESTOR_EMAIL = process.env.SEED_INVESTOR_EMAIL?.trim() || 'claudioschejter@hotmail.com';
 const DEMO_WALLET = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+const USE_ALL_MARKETPLACE_TOKENS =
+  process.argv.includes('--all-tokens') || process.env.SEED_ALL_MARKETPLACE_TOKENS === '1';
 
-/** Token count per project for a realistic diversified book */
+/** Token count per project for a realistic diversified book (ignored with --all-tokens) */
 const TOKEN_COUNTS = {
   'proj-neuquen-corporate': 40,
   'proj-rincon-logistics': 100,
@@ -101,7 +112,9 @@ async function main() {
   const investmentRows = [];
 
   for (const project of activeProjects) {
-    const tokenCount = TOKEN_COUNTS[project.id] ?? 25;
+    const tokenCount = USE_ALL_MARKETPLACE_TOKENS
+      ? project.totalTokens
+      : (TOKEN_COUNTS[project.id] ?? 25);
     const purchasePriceUsd = Number(project.pricePerToken) * tokenCount;
     const txHash = `seed-claudio-${project.id}`;
 
@@ -132,7 +145,12 @@ async function main() {
     totalCapital += purchasePriceUsd;
     investmentRows.push({ project: project.title, tokenCount, purchasePriceUsd });
 
-    if (project.availableTokens >= tokenCount) {
+    if (USE_ALL_MARKETPLACE_TOKENS) {
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { availableTokens: 0 }
+      });
+    } else if (project.availableTokens >= tokenCount) {
       await prisma.project.update({
         where: { id: project.id },
         data: { availableTokens: Math.max(0, project.availableTokens - tokenCount) }
@@ -264,6 +282,7 @@ async function main() {
   const netLiquid = grossAssetsUsd - MARGIN_DEBT_USD;
 
   console.log('[seed-claudio-portfolio] Done');
+  console.log(`  Mode: ${USE_ALL_MARKETPLACE_TOKENS ? 'all marketplace tokens' : 'demo allocation'}`);
   console.log(`  User: ${user.email} (${user.id})`);
   console.log(`  Investor: ${investor.id}`);
   console.log(`  Projects: ${investmentRows.length}`);
