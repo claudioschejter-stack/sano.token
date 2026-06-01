@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
-import { auth } from '../../../../../../auth';
-import { ProjectBorrowView } from '../../../../../../components/marketplace/ProjectBorrowView';
+import { auth } from '../../../../../auth';
+import { ProjectBorrowView } from '../../../../../components/marketplace/ProjectBorrowView';
 
 type ProjectBorrowPageProps = {
   params: { projectId: string };
