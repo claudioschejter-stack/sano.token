@@ -120,7 +120,8 @@ export function PropertyCard({
   const isExternalMedia = heroUrl.startsWith('http');
 
   const estimatedAnnualYieldUsd = pricePerTokenUsd * (apyPercent / 100);
-  const isScarce = totalTokens > 0 && availableTokens / totalTokens <= 0.2;
+  const isSoldOut = availableTokens <= 0;
+  const isScarce = !isSoldOut && totalTokens > 0 && availableTokens / totalTokens <= 0.2;
 
   const isDebt = tokenInstrumentType === 'DEBT';
   const yieldLabel = isDebt ? t.propertyCard.fixedCoupon : t.common.projectedApy;
@@ -266,11 +267,13 @@ export function PropertyCard({
                 {tokenSymbol}
               </span>
             ) : null}
-            <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />
+            {!isSoldOut ? (
+              <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />
+            ) : null}
           </div>
 
-          <div className="min-h-9">
-            {mapEmbedUrl ? (
+          {!isSoldOut && mapEmbedUrl ? (
+            <div className="min-h-9">
               <details className={`overflow-hidden rounded-lg border ${isLight ? 'border-slate-200' : 'border-terminal-border'}`}>
                 <summary className={`cursor-pointer px-3 py-2 text-xs ${mutedText} hover:opacity-80`}>
                   {t.propertyCard.viewMap}
@@ -283,8 +286,8 @@ export function PropertyCard({
                   referrerPolicy="no-referrer-when-downgrade"
                 />
               </details>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
 
         {purchaseEnabled || staffPreviewHint ? (

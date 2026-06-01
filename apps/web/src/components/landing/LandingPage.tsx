@@ -168,22 +168,22 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
               <p className="mt-2 text-sm leading-relaxed">{l.footer.tagline}</p>
             </div>
             <nav
-              className="flex w-full flex-col gap-3 text-sm sm:ml-auto sm:flex-row sm:flex-wrap sm:justify-end sm:gap-6 md:w-auto md:items-end"
+              className="flex w-full flex-row flex-nowrap items-center gap-4 overflow-x-auto text-sm sm:ml-auto sm:justify-end sm:gap-6 md:w-auto md:items-end"
               aria-label={l.footer.navAria}
             >
-              <Link href="/acceso" className="hover:text-white">
+              <Link href="/acceso?returnTo=/marketplace" className="shrink-0 hover:text-white">
                 {l.nav.marketplace}
               </Link>
-              <Link href="/acceso" className="hover:text-white">
+              <Link href="/acceso" className="shrink-0 hover:text-white">
                 {l.nav.platformAccess}
               </Link>
-              <Link href="/privacidad" className="hover:text-white">
+              <Link href="/privacidad" className="shrink-0 hover:text-white">
                 {l.footer.privacy}
               </Link>
-              <Link href="/terminos" className="hover:text-white">
+              <Link href="/terminos" className="shrink-0 hover:text-white">
                 {l.footer.terms}
               </Link>
-              <Link href="/contacto" className="hover:text-white">
+              <Link href="/contacto" className="shrink-0 hover:text-white">
                 {l.footer.contact}
               </Link>
             </nav>
