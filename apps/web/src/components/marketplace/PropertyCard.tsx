@@ -36,6 +36,8 @@ export type PropertyCardProps = {
   readyToBorrow?: boolean;
   purchaseEnabled?: boolean;
   staffPreviewHint?: string;
+  variant?: 'terminal' | 'light';
+  className?: string;
   onBuy?: (propertyId: string) => void;
   onStartKyc?: (propertyId: string) => void;
 };
@@ -52,6 +54,7 @@ export function PropertyCard({
   id,
   title,
   description,
+  location,
   imageUrl,
   mapEmbedUrl,
   apyPercent,
@@ -70,12 +73,15 @@ export function PropertyCard({
   readyToBorrow = false,
   purchaseEnabled = true,
   staffPreviewHint,
+  variant = 'terminal',
+  className = '',
   onBuy,
   onStartKyc
 }: PropertyCardProps) {
   const t = useTranslation();
   const { formatUsdPlain, formatPercent } = useLocalCurrency();
   const [heroIndex, setHeroIndex] = useState(0);
+  const isLight = variant === 'light';
 
   const slides = useMemo<MediaSlide[]>(() => {
     const reels = mediaGallery.filter((item) => item.type === 'reel');
@@ -120,9 +126,18 @@ export function PropertyCard({
   const yieldLabel = isDebt ? t.propertyCard.fixedCoupon : t.common.projectedApy;
   const incomeLabel = isDebt ? t.propertyCard.fixedAnnualPayment : t.propertyCard.estimatedAnnualIncome;
 
+  const mutedText = isLight ? 'text-slate-500' : 'text-terminal-muted';
+  const bodyText = isLight ? 'text-slate-900' : 'text-terminal-text';
+  const panelBg = isLight ? 'border-slate-200 bg-slate-50' : 'border-terminal-border bg-terminal-bg';
+  const cardShell = isLight
+    ? 'border-slate-200 bg-white shadow-sm hover:border-blue-200 hover:shadow-lg'
+    : 'border-terminal-border bg-terminal-card shadow-[0_0_0_1px_rgba(31,41,55,0.5)] hover:border-terminal-primary/50 hover:shadow-[0_0_24px_rgba(59,130,246,0.12)]';
+
   return (
-    <article className="group overflow-hidden rounded-xl border border-terminal-border bg-terminal-card shadow-[0_0_0_1px_rgba(31,41,55,0.5)] transition-all duration-300 hover:border-terminal-primary/50 hover:shadow-[0_0_24px_rgba(59,130,246,0.12)]">
-      <div className="relative h-48 w-full overflow-hidden sm:h-56">
+    <article
+      className={`group flex h-full flex-col overflow-hidden rounded-xl ${cardShell} transition-all duration-300 ${className}`.trim()}
+    >
+      <div className="relative h-48 w-full shrink-0 overflow-hidden sm:h-56">
         {currentSlide?.type === 'reel' ? (
           <video
             key={heroUrl}
@@ -159,7 +174,11 @@ export function PropertyCard({
             ))}
           </div>
         ) : null}
-        <div className="absolute inset-0 bg-gradient-to-t from-terminal-bg via-terminal-bg/20 to-transparent" />
+        <div
+          className={`absolute inset-0 bg-gradient-to-t ${
+            isLight ? 'from-slate-900/80 via-slate-900/20' : 'from-terminal-bg via-terminal-bg/20'
+          } to-transparent`}
+        />
         {isScarce ? (
           <span className="absolute right-3 top-3 rounded-full border border-terminal-accent/40 bg-terminal-bg/90 px-3 py-1 text-xs font-semibold text-terminal-accent">
             {t.propertyCard.limitedAvailability}
@@ -180,93 +199,110 @@ export function PropertyCard({
             {formatPercent(apyPercent, { minimum: 2, maximum: 2 })}
           </p>
         </div>
-        <p className="absolute bottom-20 left-3 right-3 text-base font-semibold leading-snug text-terminal-text sm:bottom-24 sm:left-4 sm:right-4 sm:text-lg">
+        <p className="absolute bottom-20 left-3 right-3 line-clamp-2 min-h-[2.75rem] text-base font-semibold leading-snug text-white sm:bottom-24 sm:left-4 sm:right-4 sm:text-lg">
           {title}
         </p>
       </div>
 
-      <div className="space-y-4 p-4 sm:p-5">
-        <div>
-          <div className="mb-1 flex items-center justify-between text-xs text-terminal-muted">
-            <span>{t.propertyCard.placementProgress}</span>
-            <span className="font-mono text-terminal-text">{soldPercent}%</span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-terminal-bg">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-terminal-primary to-terminal-success transition-all duration-500"
-              style={{ width: `${soldPercent}%` }}
-            />
-          </div>
-          <p className="mt-1 text-xs text-terminal-muted">
-            {availableTokens.toLocaleString()} / {totalTokens.toLocaleString()} {t.marketplace.tokensAvailable}
-          </p>
-        </div>
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <div className="shrink-0 space-y-4">
+          <p className={`min-h-5 truncate text-xs ${mutedText}`}>{location || '\u00A0'}</p>
 
-        {description ? (
-          <p className="line-clamp-3 text-sm leading-relaxed text-terminal-muted">{description}</p>
-        ) : null}
-
-        <div className="flex items-center justify-between gap-3 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2">
-          <p className="text-xs text-terminal-muted">{t.propertyCard.tokenPrice}</p>
-          <p className="font-mono text-xl font-bold leading-none text-terminal-text">
-            USD {formatUsdPlain(pricePerTokenUsd)}
-          </p>
-        </div>
-
-        <div className="rounded-lg border border-terminal-success/20 bg-terminal-success/5 px-3 py-2">
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-terminal-muted">{incomeLabel}</p>
-            <p className="font-mono text-sm font-semibold leading-none text-terminal-success">
-              USD {formatUsdPlain(estimatedAnnualYieldUsd, { min: 2, max: 2 })} / {t.propertyCard.perToken}
+          <div>
+            <div className={`mb-1 flex items-center justify-between text-xs ${mutedText}`}>
+              <span>{t.propertyCard.placementProgress}</span>
+              <span className={`font-mono ${bodyText}`}>{soldPercent}%</span>
+            </div>
+            <div className={`h-1.5 overflow-hidden rounded-full ${isLight ? 'bg-slate-100' : 'bg-terminal-bg'}`}>
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-terminal-primary to-terminal-success transition-all duration-500"
+                style={{ width: `${soldPercent}%` }}
+              />
+            </div>
+            <p className={`mt-1 min-h-4 text-xs ${mutedText}`}>
+              {availableTokens.toLocaleString()} / {totalTokens.toLocaleString()} {t.marketplace.tokensAvailable}
             </p>
           </div>
-          {isDebt && maturityDate ? (
-            <p className="mt-1 text-[10px] text-terminal-muted">
-              {t.propertyCard.maturity}: {new Date(maturityDate).toLocaleDateString()}
-            </p>
-          ) : null}
-        </div>
 
-        <div className="flex flex-wrap gap-2">
-          <span className="rounded-md border border-terminal-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-terminal-muted">
-            {t.propertyCard.tokenSymbolLabel}
-          </span>
-          {tokenSymbol ? (
-            <span className="rounded-md border border-terminal-border px-2 py-0.5 font-mono text-[10px] font-semibold text-terminal-text">
-              {tokenSymbol}
+          <p className={`line-clamp-3 min-h-[4.5rem] text-sm leading-relaxed ${mutedText}`}>
+            {description || '\u00A0'}
+          </p>
+
+          <div className={`flex min-h-[3.25rem] items-center justify-between gap-3 rounded-lg border px-3 py-2 ${panelBg}`}>
+            <p className={`text-xs ${mutedText}`}>{t.propertyCard.tokenPrice}</p>
+            <p className={`font-mono text-xl font-bold leading-none ${bodyText}`}>
+              USD {formatUsdPlain(pricePerTokenUsd)}
+            </p>
+          </div>
+
+          <div
+            className={`min-h-[3.75rem] rounded-lg border px-3 py-2 ${
+              isLight ? 'border-emerald-200 bg-emerald-50' : 'border-terminal-success/20 bg-terminal-success/5'
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p className={`text-xs ${mutedText}`}>{incomeLabel}</p>
+              <p className="font-mono text-sm font-semibold leading-none text-terminal-success">
+                USD {formatUsdPlain(estimatedAnnualYieldUsd, { min: 2, max: 2 })} / {t.propertyCard.perToken}
+              </p>
+            </div>
+            <p className={`mt-1 min-h-[14px] text-[10px] ${mutedText}`}>
+              {isDebt && maturityDate
+                ? `${t.propertyCard.maturity}: ${new Date(maturityDate).toLocaleDateString()}`
+                : '\u00A0'}
+            </p>
+          </div>
+
+          <div className="flex min-h-7 flex-wrap items-center gap-2">
+            <span
+              className={`rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-wide ${panelBg} ${mutedText}`}
+            >
+              {t.propertyCard.tokenSymbolLabel}
             </span>
-          ) : null}
-          <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />
-        </div>
+            {tokenSymbol ? (
+              <span
+                className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold ${panelBg} ${bodyText}`}
+              >
+                {tokenSymbol}
+              </span>
+            ) : null}
+            <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />
+          </div>
 
-        {mapEmbedUrl ? (
-          <details className="overflow-hidden rounded-lg border border-terminal-border">
-            <summary className="cursor-pointer px-3 py-2 text-xs text-terminal-muted hover:text-terminal-text">
-              {t.propertyCard.viewMap}
-            </summary>
-            <iframe
-              title={`${title} map`}
-              src={mapEmbedUrl}
-              className="h-32 w-full border-t border-terminal-border"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-            />
-          </details>
-        ) : null}
+          <div className="min-h-9">
+            {mapEmbedUrl ? (
+              <details className={`overflow-hidden rounded-lg border ${isLight ? 'border-slate-200' : 'border-terminal-border'}`}>
+                <summary className={`cursor-pointer px-3 py-2 text-xs ${mutedText} hover:opacity-80`}>
+                  {t.propertyCard.viewMap}
+                </summary>
+                <iframe
+                  title={`${title} map`}
+                  src={mapEmbedUrl}
+                  className={`h-32 w-full border-t ${isLight ? 'border-slate-200' : 'border-terminal-border'}`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
+              </details>
+            ) : null}
+          </div>
+        </div>
 
         {purchaseEnabled || staffPreviewHint ? (
-          <PropertyCardActions
-            projectId={id}
-            availableTokens={availableTokens}
-            kycStatus={kycStatus}
-            role={role}
-            investorHolding={investorHolding}
-            readyToBorrow={readyToBorrow}
-            purchaseEnabled={purchaseEnabled}
-            staffPreviewHint={staffPreviewHint}
-            onBuy={onBuy}
-            onStartKyc={onStartKyc}
-          />
+          <div className="mt-auto shrink-0 pt-4">
+            <PropertyCardActions
+              projectId={id}
+              availableTokens={availableTokens}
+              kycStatus={kycStatus}
+              role={role}
+              investorHolding={investorHolding}
+              readyToBorrow={readyToBorrow}
+              purchaseEnabled={purchaseEnabled}
+              staffPreviewHint={staffPreviewHint}
+              mutedTextClass={mutedText}
+              onBuy={onBuy}
+              onStartKyc={onStartKyc}
+            />
+          </div>
         ) : null}
       </div>
     </article>

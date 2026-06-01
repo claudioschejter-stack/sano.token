@@ -242,6 +242,7 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
               className="overflow-hidden rounded-xl border border-terminal-border bg-terminal-card"
             >
               <PropertyCard
+                className="h-full rounded-none border-0 shadow-none hover:shadow-none"
                 id={property.listing.id}
                 title={property.listing.title}
                 description={property.listing.description}

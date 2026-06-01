@@ -110,10 +110,11 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       {listings.length === 0 ? (
         <p className="mt-6 text-terminal-muted">{t.marketplace.empty}</p>
       ) : (
-        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3">
           {listings.map((listing) => (
             <PropertyCard
               key={listing.id}
+              className="h-full"
               id={listing.id}
               title={listing.title}
               description={listing.description}

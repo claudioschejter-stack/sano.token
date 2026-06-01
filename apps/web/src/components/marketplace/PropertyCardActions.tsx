@@ -15,6 +15,7 @@ export type PropertyCardActionsProps = {
   readyToBorrow?: boolean;
   purchaseEnabled?: boolean;
   staffPreviewHint?: string;
+  mutedTextClass?: string;
   onBuy?: (propertyId: string) => void;
   onStartKyc?: (propertyId: string) => void;
 };
@@ -28,6 +29,7 @@ export function PropertyCardActions({
   readyToBorrow = false,
   purchaseEnabled = true,
   staffPreviewHint,
+  mutedTextClass = 'text-terminal-muted',
   onBuy,
   onStartKyc
 }: PropertyCardActionsProps) {
@@ -69,7 +71,7 @@ export function PropertyCardActions({
 
   return (
     <>
-      <p className="text-xs text-terminal-muted">
+      <p className={`min-h-10 line-clamp-2 text-xs ${mutedTextClass}`}>
         {isSoldOut && !hasHolding
           ? pc.soldOutHint
           : isVerified
