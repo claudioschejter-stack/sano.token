@@ -137,7 +137,15 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               readyToBorrow={listing.readyToBorrow}
               purchaseEnabled={capabilities.showPurchaseActions}
               staffPreviewHint={capabilities.showPurchaseActions ? undefined : t.marketplace.staffPreviewHint}
-              onBuy={() => router.push(`/marketplace/${listing.id}/checkout`)}
+              onBuy={() => {
+                if (!session?.user) {
+                  router.push(
+                    `/acceso?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/checkout`)}`
+                  );
+                  return;
+                }
+                router.push(`/marketplace/${listing.id}/checkout`);
+              }}
               onStartKyc={() => router.push(`/kyc?returnTo=/marketplace/${listing.id}/checkout`)}
             />
           ))}

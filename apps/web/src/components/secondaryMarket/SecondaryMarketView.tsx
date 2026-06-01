@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeftRight, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
+import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import { PropertyCard } from '../marketplace/PropertyCard';
 import type {
   SecondaryMarketFeed,
@@ -18,12 +20,21 @@ type SecondaryMarketViewProps = {
 };
 
 export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
+  const router = useRouter();
   const t = useTranslation();
   const sm = t.secondaryMarket;
   const searchParams = useSearchParams();
   const sellProjectFromQuery = searchParams.get('sell');
+  const { data: session } = useSession();
+  const role = session?.user?.role;
+  const capabilities = getMarketplaceCapabilities(role);
   const { checklist } = useAccountStatus();
   const kycApproved = checklist?.kycApproved ?? false;
+  const kycStatus = capabilities.useInvestorKycStatus
+    ? checklist?.operational
+      ? 'APPROVED'
+      : checklist?.kycStatus ?? 'PENDING'
+    : 'APPROVED';
 
   const [feed, setFeed] = useState(initialFeed);
   const [holdings, setHoldings] = useState<SecondaryMarketHolding[]>([]);
@@ -248,8 +259,28 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
                 tokenSymbol={property.listing.tokenSymbol}
                 mediaGallery={property.listing.mediaGallery}
                 contracts={property.listing.contracts}
-                kycStatus={kycApproved ? 'APPROVED' : 'PENDING'}
-                purchaseEnabled={false}
+                kycStatus={kycStatus}
+                role={role}
+                investorHolding={holding ?? null}
+                readyToBorrow={property.listing.readyToBorrow}
+                purchaseEnabled={capabilities.showPurchaseActions}
+                staffPreviewHint={
+                  capabilities.showPurchaseActions ? undefined : t.marketplace.staffPreviewHint
+                }
+                onBuy={() => {
+                  if (!session?.user) {
+                    router.push(
+                      `/acceso?returnTo=${encodeURIComponent(`/marketplace/${property.listing.id}/checkout`)}`
+                    );
+                    return;
+                  }
+                  router.push(`/marketplace/${property.listing.id}/checkout`);
+                }}
+                onStartKyc={() =>
+                  router.push(
+                    `/kyc?returnTo=${encodeURIComponent(`/marketplace/${property.listing.id}/checkout`)}`
+                  )
+                }
               />
 
               <div className="space-y-4 border-t border-terminal-border p-4 sm:p-5">
@@ -267,18 +298,6 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
                         : sm.noOrders}
                     </p>
                   </div>
-
-                  {canSell ? (
-                    <button
-                      type="button"
-                      onClick={() => (isSelling ? setSellProjectId(null) : openSellForm(property))}
-                      className="rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary"
-                    >
-                      {isSelling ? sm.cancelSellForm : sm.sellTokens}
-                    </button>
-                  ) : kycApproved ? (
-                    <p className="text-xs text-terminal-muted">{sm.noTokensToSell}</p>
-                  ) : null}
                 </div>
 
                 {isSelling ? (
