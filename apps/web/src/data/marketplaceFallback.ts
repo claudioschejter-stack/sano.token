@@ -48,7 +48,7 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
       'Galpones industriales y oficinas técnicas con contratos largos a proveedores del ecosistema hidrocarburífero.',
     location: 'Parque Industrial, San Patricio del Chañar, Neuquén, Argentina',
     imageUrl:
-      'https://images.unsplash.com/photo-1565793298595-6a879b980d1b?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1200&q=80',
     mapEmbedUrl:
       'https://maps.google.com/maps?q=San%20Patricio%20del%20Chanar%20Neuquen&hl=es&z=14&output=embed',
     apyPercent: 10.8,

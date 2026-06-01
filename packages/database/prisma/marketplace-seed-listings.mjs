@@ -41,7 +41,7 @@ export const MARKETPLACE_SEED_LISTINGS = [
       'Galpones industriales y oficinas técnicas con contratos largos a proveedores del ecosistema hidrocarburífero.',
     location: 'Parque Industrial, San Patricio del Chañar, Neuquén, Argentina',
     image:
-      'https://images.unsplash.com/photo-1565793298595-6a879b980d1b?auto=format&fit=crop&w=1200&q=80',
+      'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1200&q=80',
     totalTokens: 18000,
     availableTokens: 8200,
     pricePerToken: 180,

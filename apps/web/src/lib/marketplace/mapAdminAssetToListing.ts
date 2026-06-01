@@ -32,6 +32,12 @@ function fallbackImage(seed: string) {
   return `https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=1200&q=80&sig=${encodeURIComponent(seed)}`;
 }
 
+/** Known hero images for seeded marketplace projects (survives broken legacy URLs in DB). */
+const PROJECT_HERO_IMAGES: Record<string, string> = {
+  'proj-san-patricio-industrial':
+    'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1200&q=80'
+};
+
 function normalizeUrl(value?: string | null): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -41,6 +47,7 @@ function normalizeUrl(value?: string | null): string | null {
 export function mapAdminAssetToMarketplaceListing(asset: MarketplaceAssetSource): MarketplaceListing {
   const gallery = asset.mediaGallery;
   const primaryImage =
+    PROJECT_HERO_IMAGES[asset.id] ??
     normalizeUrl(asset.image) ??
     gallery.find((item) => item.type === 'image')?.url ??
     fallbackImage(asset.id);
