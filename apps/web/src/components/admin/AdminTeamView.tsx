@@ -62,6 +62,7 @@ export function AdminTeamView() {
     uplineAdvisorId: ''
   });
   const [designateLoading, setDesignateLoading] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
 
   const selectedCount = selectedUserIds.length;
   const allMembersSelected = members.length > 0 && selectedCount === members.length;
@@ -219,6 +220,54 @@ export function AdminTeamView() {
     }
   }
 
+  async function submitInvite() {
+    setInviteLoading(true);
+    setActionMessage(null);
+
+    try {
+      const response = await fetch('/api/admin/team/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: designateForm.email,
+          name: designateForm.name || undefined,
+          role: designateForm.role,
+          uplineAdvisorId:
+            designateForm.role === 'ADVISOR' ? designateForm.uplineAdvisorId || undefined : null
+        })
+      });
+
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        warning?: string;
+      };
+
+      if (!response.ok) {
+        if (data.error === 'INVITE_ALREADY_PENDING') {
+          setActionMessage(t.adminTeam.invitePendingError);
+          return;
+        }
+        throw new Error('invite failed');
+      }
+
+      setDesignateForm({
+        email: '',
+        name: '',
+        role: 'ADVISOR_MANAGER',
+        uplineAdvisorId: ''
+      });
+      setActionMessage(
+        data.warning === 'INVITE_CREATED_EMAIL_NOT_SENT'
+          ? t.adminTeam.inviteEmailNotSent
+          : t.adminTeam.inviteSuccess
+      );
+    } catch {
+      setActionMessage(t.adminTeam.inviteError);
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
   async function submitDesignation(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setDesignateLoading(true);
@@ -349,10 +398,18 @@ export function AdminTeamView() {
               </label>
             ) : null}
 
-            <div className="flex items-end md:col-span-2">
+            <div className="flex flex-wrap items-end gap-3 md:col-span-2">
+              <button
+                type="button"
+                disabled={inviteLoading || designateLoading || !designateForm.email.trim()}
+                onClick={() => void submitInvite()}
+                className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-2 text-sm font-semibold text-terminal-text disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {inviteLoading ? t.adminTeam.inviteSubmitting : t.adminTeam.inviteSubmit}
+              </button>
               <button
                 type="submit"
-                disabled={designateLoading}
+                disabled={designateLoading || inviteLoading}
                 className="rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {designateLoading ? t.adminTeam.designateSubmitting : t.adminTeam.designateSubmit}

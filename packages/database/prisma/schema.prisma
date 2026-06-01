@@ -153,6 +153,13 @@ enum AdvisorNominationStatus {
   REJECTED
 }
 
+enum TeamInviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
 enum AdvisorCategory {
   BRONZE
   SILVER
@@ -233,6 +240,7 @@ model User {
   dividendDistributions DividendDistribution[]
   advisor               Advisor?
   reviewedNominations   AdvisorNomination[]    @relation("NominationReviewedBy")
+  teamInvitesSent       TeamInvite[]           @relation("TeamInviteInvitedBy")
   verificationCodes     VerificationCode[]
   secondaryListingsSold SecondaryMarketListing[] @relation("SecondarySeller")
   secondaryListingsBought SecondaryMarketListing[] @relation("SecondaryBuyer")
@@ -281,6 +289,7 @@ model Advisor {
   incorporatedInvestors Investor[]            @relation("InvestorIncorporatedBy")
   nominationsSuggested  AdvisorNomination[]   @relation("NominationSuggestedBy")
   nominationsAsUpline     AdvisorNomination[]   @relation("NominationProposedUpline")
+  teamInvites           TeamInvite[]
   commissionAccruals    CommissionAccrual[]
 
   @@index([uplineId])
@@ -308,6 +317,28 @@ model AdvisorNomination {
   @@index([status])
   @@index([suggestedByAdvisorId])
   @@index([email])
+}
+
+model TeamInvite {
+  id              String           @id @default(cuid())
+  email           String
+  name            String?
+  role            SystemRole
+  uplineAdvisorId String?
+  tokenHash       String           @unique
+  status          TeamInviteStatus @default(PENDING)
+  invitedByUserId String
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  invitedBy User     @relation("TeamInviteInvitedBy", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+  upline    Advisor? @relation(fields: [uplineAdvisorId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
 }
 
 model Investor {

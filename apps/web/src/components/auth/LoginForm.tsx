@@ -11,12 +11,17 @@ import { PasswordInput } from './PasswordInput';
 type LoginFormProps = {
   callbackUrl?: string;
   className?: string;
+  initialEmail?: string;
 };
 
-export function LoginForm({ callbackUrl = '/acceso/callback', className = '' }: LoginFormProps) {
+export function LoginForm({
+  callbackUrl = '/acceso/callback',
+  className = '',
+  initialEmail = ''
+}: LoginFormProps) {
   const t = useTranslation();
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);

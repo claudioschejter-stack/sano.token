@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Building2, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
@@ -10,6 +11,7 @@ import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import type { SystemRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import type { MarketplaceFeed } from '../../types/marketplace';
+import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
 import { PropertyCard } from './PropertyCard';
 import { TrustStrip } from './TrustStrip';
 
@@ -30,6 +32,26 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       : checklist?.kycStatus ?? 'PENDING'
     : 'APPROVED';
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
+  const [holdings, setHoldings] = useState<SecondaryMarketHolding[]>([]);
+
+  const holdingsByProject = useMemo(
+    () => new Map(holdings.map((row) => [row.projectId, row])),
+    [holdings]
+  );
+
+  useEffect(() => {
+    if (role !== 'INVESTOR' || !checklist?.operational) {
+      setHoldings([]);
+      return;
+    }
+
+    void fetch('/api/secondary-market/holdings', { cache: 'no-store' })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { holdings?: SecondaryMarketHolding[] } | null) => {
+        setHoldings(data?.holdings ?? []);
+      })
+      .catch(() => setHoldings([]));
+  }, [checklist?.operational, role]);
 
   const { listings, usedFallback } = feed;
   const roleLabels = t.access.roles as Record<SystemRole, string>;
@@ -110,6 +132,9 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               mediaGallery={listing.mediaGallery}
               contracts={listing.contracts}
               kycStatus={kycStatus}
+              role={role}
+              investorHolding={holdingsByProject.get(listing.id) ?? null}
+              readyToBorrow={listing.readyToBorrow}
               purchaseEnabled={capabilities.showPurchaseActions}
               staffPreviewHint={capabilities.showPurchaseActions ? undefined : t.marketplace.staffPreviewHint}
               onBuy={() => router.push(`/marketplace/${listing.id}/checkout`)}

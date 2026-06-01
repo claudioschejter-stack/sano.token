@@ -20,6 +20,7 @@ type RegisterFormProps = {
   /** When set, shows contact fields as read-only with onboarding data. */
   profile?: OnboardingProfile | null;
   returnTo?: string;
+  initialEmail?: string;
 };
 
 type FieldErrors = {
@@ -27,13 +28,13 @@ type FieldErrors = {
   phone?: string;
 };
 
-export function RegisterForm({ profile: profileProp, returnTo }: RegisterFormProps) {
+export function RegisterForm({ profile: profileProp, returnTo, initialEmail = '' }: RegisterFormProps) {
   const t = useTranslation();
   const r = t.access.register;
   const router = useRouter();
   const { data: session, status } = useSession();
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');

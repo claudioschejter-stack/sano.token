@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeftRight, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { PropertyCard } from '../marketplace/PropertyCard';
@@ -19,6 +20,8 @@ type SecondaryMarketViewProps = {
 export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
   const t = useTranslation();
   const sm = t.secondaryMarket;
+  const searchParams = useSearchParams();
+  const sellProjectFromQuery = searchParams.get('sell');
   const { checklist } = useAccountStatus();
   const kycApproved = checklist?.kycApproved ?? false;
 
@@ -61,6 +64,28 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    if (!sellProjectFromQuery || !kycApproved || loading) {
+      return;
+    }
+
+    const property = feed.properties.find((row) => row.listing.id === sellProjectFromQuery);
+    if (!property) {
+      return;
+    }
+
+    const holding = holdingsByProject.get(property.listing.id);
+    if ((holding?.availableToSell ?? 0) <= 0) {
+      return;
+    }
+
+    setSellProjectId(property.listing.id);
+    setSellForm({
+      tokenCount: '1',
+      pricePerTokenUsd: String(property.listing.pricePerTokenUsd)
+    });
+  }, [feed.properties, holdingsByProject, kycApproved, loading, sellProjectFromQuery]);
 
   async function handleBuy(orderId: string) {
     if (!kycApproved) {

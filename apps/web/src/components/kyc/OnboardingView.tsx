@@ -399,9 +399,10 @@ function OnboardingContent() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.replace('/acceso');
+      const destination = `/acceso?returnTo=${encodeURIComponent(`/kyc?returnTo=${encodeURIComponent(returnTo)}`)}`;
+      router.replace(destination);
     }
-  }, [router, status]);
+  }, [returnTo, router, status]);
 
   if (status === 'unauthenticated' || status === 'loading' || !sessionReady || (loading && !checklist)) {
     return (

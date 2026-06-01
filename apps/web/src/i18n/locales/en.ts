@@ -39,6 +39,11 @@ export const en = {
     limitedAvailability: "High demand",
     viewMap: "See on map",
     viewReel: "See reel",
+    soldOut: "SOLD OUT",
+    soldOutHint: "Primary marketplace allocation is sold out. Check the secondary market.",
+    staffCta: "Explore investment opportunity",
+    sellTokens: "Sell",
+    requestLoan: "Request loan",
     contracts: {
       button: "Contracts",
       title: "Legal and on-chain documentation",
@@ -129,6 +134,14 @@ export const en = {
       investor: "Tokenized real assets with immediate liquidity.Buy tokens after completing your KYC.",
       advisor: "Check out opportunities to guide your clients.The purchase is made by the investor.",
       advisorManager: "Monitor marketplace opportunities for the advisor network.No direct purchase from this role."
+    },
+    projectBorrow: {
+      eyebrow: "Collateralized loan",
+      titleFallback: "Loan against RWA tokens",
+      subtitle: "Preview the available rate and maximum amount you can borrow automatically using your tokens as collateral.",
+      backToMarketplace: "Back to marketplace",
+      loading: "Loading loan conditions…",
+      ratesUnavailable: "We could not load borrowing rates right now."
     }
   },
   nav: {
@@ -328,7 +341,19 @@ export const en = {
     backToList: "Back to loans",
     configureTitle: "Loan configuration",
     configureSubtitle: "Deploy the ERC-4626 vault, register collateral, and enable automatic borrowing.",
-    loadingRates: "Loading borrowing rates…"
+    loadingRates: "Loading borrowing rates…",
+    allowlist: {
+      title: "KYC allowlist on-chain",
+      description:
+        "Select a token and approve or revoke investor wallets directly on the SanovaAssetToken contract.",
+      noTokens: "No deployed tokens",
+      refresh: "Refresh",
+      loading: "Loading investors…",
+      error: "Failed to load allowlist.",
+      empty: "No investors with reviewed KYC.",
+      allowlist: "Allowlist",
+      revoke: "Revoke"
+    }
   },
   adminLaunch: {
     eyebrow: "RWA issue",
@@ -497,6 +522,12 @@ export const en = {
     designateSubmitting: "Designating…",
     designateSuccess: "Correctly designated user.",
     designateError: "Could not be appointed.Verify the email and the assigned manager.",
+    inviteSubmit: "Invite",
+    inviteSubmitting: "Sending invitation…",
+    inviteSuccess: "Invitation sent. They will receive an email with an Accept button to start KYC.",
+    inviteError: "Could not send the invitation. Check the email and assigned manager.",
+    invitePendingError: "A pending invitation already exists for this email.",
+    inviteEmailNotSent: "Invitation saved, but the email could not be sent (check RESEND_API_KEY).",
     roleManager: "Manager",
     roleAdvisor: "Adviser"
   },
@@ -983,6 +1014,9 @@ export const en = {
     continueVerification: "Continue onboarding",
     switchAccount: "Log out and log in with another account",
     authError: "We could not complete the entry.Please check your OAuth configuration or try again.",
+    staffInviteAccepted:
+      "Invitation accepted. Sign in or register with the same email to continue with KYC verification.",
+    inviteInvalid: "The invitation is invalid or has expired. Ask an administrator to send a new one.",
     rolesTitle: "Platform roles",
     rolesDesc: "All roles (Administrator, Manager, Advisor and Investor) must verify email, phone and complete KYC before trading.",
     roles: {

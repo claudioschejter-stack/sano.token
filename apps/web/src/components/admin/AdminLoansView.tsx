@@ -7,6 +7,7 @@ import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { AdminAssetRecord } from '../../lib/admin/assetsService';
 import { AdminGate } from './AdminGate';
+import { AdminKycAllowlistSection } from './AdminKycAllowlistSection';
 import { AdminLoansBorrowSection } from './AdminLoansBorrowSection';
 
 type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
@@ -285,6 +286,8 @@ export function AdminLoansView() {
         </div>
 
         <AdminLoansBorrowSection borrowReadyProject={borrowReadyProject} />
+
+        <AdminKycAllowlistSection />
 
         <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

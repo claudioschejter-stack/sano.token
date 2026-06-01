@@ -1,13 +1,14 @@
 'use client';
 
 import Image from 'next/image';
-import { ShieldAlert, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useCtaVariant } from '../../hooks/useCtaVariant';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import type { LaunchContracts, LaunchMediaItem } from '../../lib/admin/launchTypes';
+import type { SystemRole } from '../../lib/auth/roles';
+import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
 import { LaunchContractsPanel } from './LaunchContractsPanel';
+import { PropertyCardActions } from './PropertyCardActions';
 
 export type PropertyCardProps = {
   id: string;
@@ -30,6 +31,9 @@ export type PropertyCardProps = {
   mediaGallery?: LaunchMediaItem[];
   contracts?: LaunchContracts;
   kycStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+  role?: SystemRole;
+  investorHolding?: SecondaryMarketHolding | null;
+  readyToBorrow?: boolean;
   purchaseEnabled?: boolean;
   staffPreviewHint?: string;
   onBuy?: (propertyId: string) => void;
@@ -61,13 +65,15 @@ export function PropertyCard({
   mediaGallery = [],
   contracts = {},
   kycStatus,
+  role,
+  investorHolding,
+  readyToBorrow = false,
   purchaseEnabled = true,
   staffPreviewHint,
   onBuy,
   onStartKyc
 }: PropertyCardProps) {
   const t = useTranslation();
-  const { label: ctaLabel } = useCtaVariant();
   const { formatUsdPlain, formatPercent } = useLocalCurrency();
   const [heroIndex, setHeroIndex] = useState(0);
 
@@ -107,18 +113,8 @@ export function PropertyCard({
   const heroUrl = currentSlide?.url ?? imageUrl;
   const isExternalMedia = heroUrl.startsWith('http');
 
-  const isVerified = kycStatus === 'APPROVED';
   const estimatedAnnualYieldUsd = pricePerTokenUsd * (apyPercent / 100);
   const isScarce = totalTokens > 0 && availableTokens / totalTokens <= 0.2;
-
-  const handlePrimaryAction = () => {
-    if (isVerified) {
-      onBuy?.(id);
-      return;
-    }
-
-    onStartKyc?.(id);
-  };
 
   const isDebt = tokenInstrumentType === 'DEBT';
   const yieldLabel = isDebt ? t.propertyCard.fixedCoupon : t.common.projectedApy;
@@ -258,38 +254,19 @@ export function PropertyCard({
           </details>
         ) : null}
 
-        {purchaseEnabled ? (
-          <>
-            <p className="text-xs text-terminal-muted">
-              {isVerified ? t.propertyCard.readyForCheckout : t.propertyCard.kycRequired}
-            </p>
-
-            <button
-              type="button"
-              onClick={handlePrimaryAction}
-              className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-base font-semibold transition-all duration-200 sm:text-sm ${
-                isVerified
-                  ? 'bg-terminal-primary text-white hover:bg-blue-500 hover:shadow-lg hover:shadow-terminal-primary/25'
-                  : 'border border-terminal-warning/50 bg-terminal-bg text-terminal-warning hover:bg-terminal-warning/10'
-              }`}
-            >
-              {isVerified ? (
-                <>
-                  <Wallet size={18} />
-                  {ctaLabel}
-                </>
-              ) : (
-                <>
-                  <ShieldAlert size={18} />
-                  {t.common.completeKyc}
-                </>
-              )}
-            </button>
-          </>
-        ) : staffPreviewHint ? (
-          <p className="rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs text-terminal-muted">
-            {staffPreviewHint}
-          </p>
+        {purchaseEnabled || staffPreviewHint ? (
+          <PropertyCardActions
+            projectId={id}
+            availableTokens={availableTokens}
+            kycStatus={kycStatus}
+            role={role}
+            investorHolding={investorHolding}
+            readyToBorrow={readyToBorrow}
+            purchaseEnabled={purchaseEnabled}
+            staffPreviewHint={staffPreviewHint}
+            onBuy={onBuy}
+            onStartKyc={onStartKyc}
+          />
         ) : null}
       </div>
     </article>

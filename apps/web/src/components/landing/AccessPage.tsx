@@ -21,6 +21,9 @@ function AccessPageContent() {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const authError = searchParams.get('error');
+  const inviteEmail = searchParams.get('email')?.trim() ?? '';
+  const staffInvite = searchParams.get('staffInvite') === '1';
+  const inviteError = searchParams.get('inviteError');
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
   const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}`;
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
@@ -108,13 +111,25 @@ function AccessPageContent() {
           </p>
         ) : null}
 
+        {inviteError ? (
+          <p className="mx-auto mt-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {a.inviteInvalid}
+          </p>
+        ) : null}
+
+        {staffInvite ? (
+          <p className="mx-auto mt-6 max-w-2xl rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            {a.staffInviteAccepted}
+          </p>
+        ) : null}
+
         <div className="mt-10 grid grid-cols-1 gap-6 md:mt-12 md:grid-cols-2 md:gap-8">
           <article className="flex w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
             <h2 className="text-xl font-bold text-slate-900">{a.loginTitle}</h2>
             <p className="mt-3 text-sm text-slate-600">{a.loginDesc}</p>
 
             <div className="mt-6">
-              <LoginForm callbackUrl={callbackUrl} />
+              <LoginForm callbackUrl={callbackUrl} initialEmail={inviteEmail} />
             </div>
           </article>
 
@@ -127,7 +142,7 @@ function AccessPageContent() {
             </div>
             <p className="whitespace-pre-line text-sm text-slate-600">{a.registerDesc}</p>
             <div className="mt-6">
-              <RegisterForm returnTo={returnTo} />
+              <RegisterForm returnTo={returnTo} initialEmail={inviteEmail} />
             </div>
           </article>
         </div>

@@ -43,6 +43,13 @@ export async function registerInvestor(input: RegisterInput) {
 
   const passwordHash = await bcrypt.hash(password, 12);
   const defaultRole = (process.env.AUTH_DEFAULT_ROLE ?? 'INVESTOR') as PrismaSystemRole;
+  const preserveStaffRole =
+    existing &&
+    (existing.systemRole === 'ADVISOR' ||
+      existing.systemRole === 'ADVISOR_MANAGER' ||
+      existing.systemRole === 'ADMIN' ||
+      existing.systemRole === 'TREASURY' ||
+      existing.systemRole === 'OPERATOR');
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -61,7 +68,7 @@ export async function registerInvestor(input: RegisterInput) {
       name: fullName ?? email.split('@')[0],
       kycFullName: fullName,
       kycDocumentId: taxId,
-      systemRole: defaultRole,
+      systemRole: preserveStaffRole ? existing.systemRole : defaultRole,
       emailVerifiedAt: null,
       phoneVerifiedAt: null,
       accountStatus: 'ONBOARDING',

@@ -41,6 +41,11 @@ export const es = {
     limitedAvailability: 'Alta demanda',
     viewMap: 'Ver en mapa',
     viewReel: 'Ver reel',
+    soldOut: 'VENDIDO',
+    soldOutHint: 'Emisión agotada en marketplace primario. Consultá el mercado secundario.',
+    staffCta: 'Explorar oportunidad de inversión',
+    sellTokens: 'Vender',
+    requestLoan: 'Solicitar préstamo',
     contracts: {
       button: 'Contratos',
       title: 'Documentación legal y on-chain',
@@ -136,6 +141,14 @@ export const es = {
       advisor: 'Consultá oportunidades para orientar a tus clientes. La compra la realiza el inversor.',
       advisorManager:
         'Supervisá oportunidades del marketplace para la red de asesores. Sin compra directa desde este rol.'
+    },
+    projectBorrow: {
+      eyebrow: 'Préstamo colateralizado',
+      titleFallback: 'Préstamo sobre tokens RWA',
+      subtitle: 'Simulá la tasa disponible y el monto máximo que podés pedir automáticamente con tus tokens como colateral.',
+      backToMarketplace: 'Volver al marketplace',
+      loading: 'Cargando condiciones de préstamo…',
+      ratesUnavailable: 'No pudimos cargar las tasas de endeudamiento en este momento.'
     }
   },
   nav: {
@@ -336,7 +349,19 @@ export const es = {
     backToList: 'Volver a préstamos',
     configureTitle: 'Configuración de préstamo',
     configureSubtitle: 'Emití el vault ERC-4626, registrá colateral y habilitá el activo como colateral automático.',
-    loadingRates: 'Cargando tasas de endeudamiento…'
+    loadingRates: 'Cargando tasas de endeudamiento…',
+    allowlist: {
+      title: 'KYC allowlist on-chain',
+      description:
+        'Elegí el token y aprobá o revocá wallets de inversores directamente en el contrato SanovaAssetToken.',
+      noTokens: 'No hay tokens desplegados',
+      refresh: 'Actualizar',
+      loading: 'Cargando inversores…',
+      error: 'No se pudo cargar la allowlist.',
+      empty: 'No hay inversores con KYC revisado.',
+      allowlist: 'Allowlist',
+      revoke: 'Revocar'
+    }
   },
   adminLaunch: {
     eyebrow: 'Emisión RWA',
@@ -511,6 +536,12 @@ export const es = {
     designateSubmitting: 'Designando…',
     designateSuccess: 'Usuario designado correctamente.',
     designateError: 'No se pudo designar. Verificá el email y el gerente asignado.',
+    inviteSubmit: 'Invitar',
+    inviteSubmitting: 'Enviando invitación…',
+    inviteSuccess: 'Invitación enviada. La persona recibirá un correo con el botón Aceptar para iniciar KYC.',
+    inviteError: 'No se pudo enviar la invitación. Verificá el email y el gerente asignado.',
+    invitePendingError: 'Ya hay una invitación pendiente para ese correo.',
+    inviteEmailNotSent: 'Invitación registrada, pero no se pudo enviar el correo (Revisá RESEND_API_KEY).',
     roleManager: 'Gerente',
     roleAdvisor: 'Asesor'
   },
@@ -1016,6 +1047,9 @@ export const es = {
     continueVerification: 'Continuar onboarding',
     switchAccount: 'Cerrar sesión e ingresar con otra cuenta',
     authError: 'No pudimos completar el ingreso. Verificá la configuración OAuth o intentá de nuevo.',
+    staffInviteAccepted:
+      'Invitación aceptada. Iniciá sesión o registrate con el mismo correo para continuar con la verificación KYC.',
+    inviteInvalid: 'La invitación no es válida o ya venció. Pedile a un administrador que te envíe una nueva.',
     rolesTitle: 'Roles de la plataforma',
     rolesDesc:
       'Todos los roles (Administrador, Gerente, Asesor e Inversor) deben verificar email, teléfono y completar KYC antes de operar.',
