@@ -56,7 +56,7 @@ export const en = {
   },
   marketplace: {
     title: "Marketplace RWA",
-    subtitle: "Tokenized real assets with immediate liquidity and competitive lending rates.",
+    subtitle: "Tokenized real assets with immediate liquidity. Buy tokens after completing your KYC.",
     brandLabel: "Sanova RWA",
     bestBorrowRate: "Best debt rate",
     allBorrowRatesTitle: "World debt rates",
@@ -129,11 +129,11 @@ export const en = {
     adminManageAssets: "Manage assets",
     adminManageTreasury: "Manage treasury",
     roleSubtitles: {
-      default: "Explore tokenized assets published on the platform.",
-      admin: "Institutional view with full access to assets, RWA collateral and global lenders.",
-      investor: "Tokenized real assets with immediate liquidity.Buy tokens after completing your KYC.",
-      advisor: "Check out opportunities to guide your clients.The purchase is made by the investor.",
-      advisorManager: "Monitor marketplace opportunities for the advisor network.No direct purchase from this role."
+      default: "Tokenized real assets with immediate liquidity. Buy tokens after completing your KYC.",
+      admin: "Tokenized real assets with immediate liquidity. Buy tokens after completing your KYC.",
+      investor: "Tokenized real assets with immediate liquidity. Buy tokens after completing your KYC.",
+      advisor: "Tokenized real assets with immediate liquidity. Buy tokens after completing your KYC.",
+      advisorManager: "Tokenized real assets with immediate liquidity. Buy tokens after completing your KYC."
     },
     projectBorrow: {
       eyebrow: "Collateralized loan",

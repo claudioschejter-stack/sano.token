@@ -13,7 +13,6 @@ import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCap
 import type { MarketplaceFeed } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
 import { PropertyCard } from './PropertyCard';
-import { TrustStrip } from './TrustStrip';
 
 type MarketplaceViewProps = {
   initialFeed: MarketplaceFeed;
@@ -55,9 +54,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
 
   const { listings, usedFallback } = feed;
   const roleLabels = t.access.roles as Record<SystemRole, string>;
-  const subtitles = t.marketplace.roleSubtitles;
-  const subtitle =
-    subtitles[capabilities.subtitleKey as keyof typeof subtitles] ?? t.marketplace.subtitle;
 
   return (
     <div className="mx-auto w-full max-w-7xl">
@@ -73,7 +69,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
             </span>
           ) : null}
         </div>
-        <p className="mt-2 max-w-2xl text-base text-terminal-muted md:text-lg">{subtitle}</p>
+        <p className="mt-2 text-base text-terminal-muted md:text-lg whitespace-nowrap">{t.marketplace.subtitle}</p>
       </header>
 
       {capabilities.showAdminToolbar ? (
@@ -94,8 +90,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
           </Link>
         </div>
       ) : null}
-
-      <TrustStrip />
 
       {usedFallback ? (
         <p className="mb-6 mt-6 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">

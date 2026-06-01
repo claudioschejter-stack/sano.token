@@ -58,7 +58,7 @@ export const es = {
   },
   marketplace: {
     title: 'Marketplace RWA',
-    subtitle: 'Activos reales tokenizados con liquidez inmediata y tasas de préstamo competitivas.',
+    subtitle: 'Activos reales tokenizados con liquidez inmediata. Comprá tokens tras completar tu KYC.',
     brandLabel: 'Sanova RWA',
     bestBorrowRate: 'Mejor tasa de endeudamiento',
     allBorrowRatesTitle: 'Tasas de endeudamiento mundiales',
@@ -134,13 +134,12 @@ export const es = {
     adminManageAssets: 'Gestionar activos',
     adminManageTreasury: 'Gestionar tesorería',
     roleSubtitles: {
-      default: 'Explorá activos tokenizados publicados en la plataforma.',
-      admin:
-        'Vista institucional con acceso completo a activos, colateral RWA y prestamistas globales.',
+      default: 'Activos reales tokenizados con liquidez inmediata. Comprá tokens tras completar tu KYC.',
+      admin: 'Activos reales tokenizados con liquidez inmediata. Comprá tokens tras completar tu KYC.',
       investor: 'Activos reales tokenizados con liquidez inmediata. Comprá tokens tras completar tu KYC.',
-      advisor: 'Consultá oportunidades para orientar a tus clientes. La compra la realiza el inversor.',
+      advisor: 'Activos reales tokenizados con liquidez inmediata. Comprá tokens tras completar tu KYC.',
       advisorManager:
-        'Supervisá oportunidades del marketplace para la red de asesores. Sin compra directa desde este rol.'
+        'Activos reales tokenizados con liquidez inmediata. Comprá tokens tras completar tu KYC.'
     },
     projectBorrow: {
       eyebrow: 'Préstamo colateralizado',
