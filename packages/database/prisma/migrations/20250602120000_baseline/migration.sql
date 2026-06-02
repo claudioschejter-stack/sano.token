@@ -1,0 +1,3 @@
+-- Baseline: production schema already existed in Supabase before Prisma Migrate.
+-- Historical changes were applied via db push and manual SQL (supabase-init.sql, add-*.sql).
+-- This migration is marked as applied without executing DDL.

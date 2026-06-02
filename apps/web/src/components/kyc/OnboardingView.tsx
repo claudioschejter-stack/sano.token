@@ -43,6 +43,10 @@ function stepFromChecklist(
     return 'email';
   }
 
+  if (!checklist.phoneVerified) {
+    return 'phone';
+  }
+
   if (!checklist.kycEnabled) {
     return 'contact';
   }
@@ -603,6 +607,12 @@ function OnboardingContent() {
               <p className="font-medium text-slate-900">{o.steps.identityDesc}</p>
               <p>{o.steps.identityStep1}</p>
               <p>{o.steps.identityStep2}</p>
+              <p className="text-xs leading-relaxed text-slate-500">
+                {o.steps.identityPrivacyNotice}{' '}
+                <Link href="/privacidad" className="font-semibold text-blue-600 hover:text-blue-500">
+                  {t.legal.privacyLink}
+                </Link>
+              </p>
             </div>
 
             {checklist?.diditEnabled ? (

@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from './contactValidation';
+import { resolveInvestorAccessOnRegister } from './investorAccess';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -10,6 +11,8 @@ export type RegisterInput = {
   phone: string;
   fullName?: string;
   taxId?: string;
+  termsAccepted?: boolean;
+  inviteCode?: string;
 };
 
 export async function registerInvestor(input: RegisterInput) {
@@ -34,6 +37,17 @@ export async function registerInvestor(input: RegisterInput) {
   if (!phoneE164) {
     throw new Error('INVALID_PHONE');
   }
+
+  if (!input.termsAccepted) {
+    throw new Error('TERMS_NOT_ACCEPTED');
+  }
+
+  const investorAccessEnabled = resolveInvestorAccessOnRegister(input.inviteCode);
+  if (input.inviteCode?.trim() && !investorAccessEnabled && process.env.INVESTOR_OPEN_REGISTRATION !== 'true') {
+    throw new Error('INVALID_INVITE_CODE');
+  }
+
+  const termsAcceptedAt = new Date();
 
   const existing = await prisma.user.findUnique({ where: { email } });
 
@@ -60,7 +74,9 @@ export async function registerInvestor(input: RegisterInput) {
       name: fullName ?? email.split('@')[0],
       kycFullName: fullName,
       kycDocumentId: taxId,
-      systemRole: defaultRole
+      systemRole: defaultRole,
+      termsAcceptedAt,
+      investorAccessEnabled
     },
     update: {
       passwordHash,
@@ -72,7 +88,11 @@ export async function registerInvestor(input: RegisterInput) {
       emailVerifiedAt: null,
       phoneVerifiedAt: null,
       accountStatus: 'ONBOARDING',
-      kycStatus: 'PENDING'
+      kycStatus: 'PENDING',
+      termsAcceptedAt,
+      investorAccessEnabled: preserveStaffRole
+        ? existing.investorAccessEnabled
+        : existing.investorAccessEnabled || investorAccessEnabled
     }
   });
 

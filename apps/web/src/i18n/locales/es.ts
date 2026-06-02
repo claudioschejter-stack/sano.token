@@ -3,7 +3,8 @@ import type { Messages } from './en';
 export const es = {
   meta: {
     title: 'Sanova Global — Real Estate Tokenizado',
-    description: 'Invertí en activos reales tokenizados con rentas on-chain y cumplimiento KYC.',
+    description:
+      'Colocación privada de activos reales tokenizados. Acceso restringido, KYC y cumplimiento fiduciario. No constituye oferta pública CNV.',
     pwaTitle: 'Sanova RWA'
   },
   brand: {
@@ -35,10 +36,15 @@ export const es = {
     maturity: 'Vencimiento',
     equityParticipation: 'Participación en el activo',
     perToken: 'token',
-    instantLiquidity: 'Salida instantánea vía tesorería (−3% SanovaAMM)',
+    instantLiquidity:
+      'Salida sujeta a política fiduciaria: tesorería interna o mercado secundario autorizado (no mercado público abierto).',
     legalContractsBadge: 'Contratos legales',
     contractUnavailable: 'pendiente de carga',
     limitedAvailability: 'Alta demanda',
+    restrictedAccessLabel: 'Colocación privada',
+    restrictedAccessHint: 'Métricas tras acceso KYC',
+    publicPreviewHint:
+      'La economía detallada (precio, rendimiento, colocación) se muestra solo a inversores verificados tras el acceso a la plataforma.',
     viewMap: 'Ver en mapa',
     viewReel: 'Ver reel',
     soldOut: 'VENDIDO',
@@ -58,7 +64,8 @@ export const es = {
   },
   marketplace: {
     title: 'Marketplace RWA',
-    subtitle: 'Activos reales tokenizados con liquidez inmediata. Comprá tokens tras completar tu KYC.',
+    subtitle:
+      'Colocación privada de activos reales tokenizados. Acceso con registro, KYC y aprobación fiduciaria. Transferencias restringidas.',
     brandLabel: 'Sanova RWA',
     bestBorrowRate: 'Mejor tasa de endeudamiento',
     allBorrowRatesTitle: 'Tasas de endeudamiento mundiales',
@@ -754,13 +761,21 @@ export const es = {
     confirmPurchase: 'Confirmar compra on-chain',
     connectToContinue: 'Conecta tu wallet para continuar',
     purchaseComplete: 'Compra confirmada. Tus cuotapartes ERC-4626 ya están en tu wallet.',
-    viewPortfolio: 'Ver mi portfolio'
+    viewPortfolio: 'Ver mi portfolio',
+    paymentMethodsTitle: 'Método de pago',
+    usdcOnChainLabel: 'USDC on-chain',
+    usdcOnChainDesc: 'Pago desde tu wallet al patrimonio fiduciario del Compartimento.',
+    compartmentPayee: 'Beneficiario: patrimonio fiduciario del Compartimento (no patrimonio social de Sanova SAS).',
+    subscriptionNotice:
+      'Esta suscripción adquiere cuotapartes del Compartimento indicado, bajo colocación privada y Contrato Matriz del Fideicomiso Sanova Global RWA.',
+    sendToCompartment: 'Enviá el pago a la wallet del Compartimento y pegá el tx hash para verificar:',
+    createOrderPay: 'Crear orden y pagar'
   },
   secondaryMarket: {
     brandLabel: 'Sanova RWA',
     title: 'Mercado Secundario',
     subtitle:
-      'Comprá y vendé tokenes entre usuarios verificados con KYC. Cada propiedad muestra las ofertas activas de otros inversores.',
+      'Mercado secundario interno entre inversores verificados. Toda transferencia requiere KYC, whitelist y autorización fiduciaria.',
     kycRequired: 'Completá tu KYC para operar en el mercado secundario.',
     kycRequiredShort: 'KYC requerido',
     completeKyc: 'Completar KYC',
@@ -942,7 +957,9 @@ export const es = {
         'Vaca Muerta no es solo la segunda reserva de gas del planeta; es el epicentro global del shale no convencional. Su acelerado crecimiento ha generado un déficit crítico de infraestructura estratégica. A través de la tokenización de activos (RWA), Sanova Global conecta capital global con desarrollos inmobiliarios y comerciales prime en el corredor estratégico de la cuenca, respaldados por contratos de alquiler B2B con las principales operadoras energéticas. Ofrecemos exposición directa al sector más dinámico de Argentina con rendimientos en moneda dura, cumplimiento regulatorio (KYC) estricto y liquidación automatizada de dividendos.',
       ctaPrimary: 'Descubrir flujos de caja B2B',
       ctaSecondary: 'Cómo funciona',
-      trustLine: 'Marcos regulatorios · KYC/AML · Distribuciones on-chain en USDC'
+      trustLine: 'Marcos regulatorios · KYC/AML · Distribuciones on-chain en USDC',
+      heroBadgeTitle: 'Colocación privada',
+      heroBadgeSubtitle: 'Infraestructura RWA · acceso con KYC'
     },
     trustBadges: {
       ariaLabel: 'Garantías institucionales',
@@ -993,12 +1010,12 @@ export const es = {
       step1Desc: 'Verifica tu identidad una vez. Sanova integra proveedores de onboarding regulados.',
       step2Title: 'Elige una propiedad.',
       step2Desc:
-        'Explora activos tokenizados con información real de contratos, APY y avance de colocación informados.',
+        'Explorá activos tokenizados con información contractual y avance de colocación tras el acceso verificado a la plataforma.',
       step3Title: 'Recibe distribuciones.',
       step3Desc: 'Los ingresos por alquiler llegan a tu wallet en USDC. Seguimiento en el portal inversor.',
       step4Title: 'Participa en el Mercado Secundario.',
       step4Desc:
-        'Compra y vende tus tokenes a otros inversores de la plataforma. Obteniendo liquidez inmediata.'
+        'Transferencias secundarias solo entre inversores habilitados, con aprobación fiduciaria y whitelist. No es un mercado público abierto.'
     },
     featured: {
       title: 'Propiedades destacadas',
@@ -1013,7 +1030,7 @@ export const es = {
       incomeDesc: 'Distribuciones semanales o mensuales del flujo operativo, liquidadas on-chain.',
       liquidityTitle: 'Liquidez programada',
       liquidityDesc:
-        'Salida vía tesorería Sanova o mercado secundario. Recompramos tus tokenes o los puedes vender en nuestra plataforma. Con liquidez inmediata.',
+        'Salida sujeta a política del Fiduciario: recompra de tesorería del Compartimento o mercado secundario interno autorizado. Sin pools públicos ni negociación libre.',
       complianceTitle: 'Cumplimiento primero',
       complianceDesc:
         'KYC, disclosure legal de documentación del mundo real y registros on-chain auditables.'
@@ -1027,7 +1044,7 @@ export const es = {
       navAria: 'Pie de página',
       tagline: 'RWA · Real estate tokenizado',
       disclaimer:
-        'Gestión de capital con foco en la integridad y la preservación de valor. Sanova Global SAS provee este ecosistema digital con fines informativos, integrando tecnología de vanguardia con la solidez de los activos físicos. Comprendemos que toda inversión involucra alguna variable de mercado y que los resultados previos son, en algunos casos, referenciales y no garantías absolutas. Diseñamos nuestras operaciones con los más altos estándares de integridad, cumplimiento y compromiso para su tranquilidad.',
+        'Colocación privada de cuotapartes fiduciarias vinculadas a Compartimentos del Fideicomiso Sanova Global RWA. No constituye oferta pública de valores negociables ni emisión registrada ante la CNV (Ley 26.831, art. 2). Sanova Global SAS actúa como fiduciario y administrador tecnológico; los activos no integran su patrimonio social. Toda inversión implica riesgos. Consulte los Términos Legales y la Política de Privacidad.',
       rights: '© 2026 Sanova Global SAS. Todos los derechos reservados.',
       contact: 'Contacto',
       privacy: 'Privacidad',
@@ -1047,7 +1064,9 @@ export const es = {
     submitting: 'Enviando…',
     errorSend: 'No se pudo enviar el mensaje. Intentá de nuevo en unos minutos.',
     formNote:
-      'Al enviar serás redirigido un instante y volverás a esta página. Si es la primera vez, revisá tu bandeja de entrada (claudioschejter@gmail.com) y activá el enlace de FormSubmit — solo una vez.',
+      'Al enviar, Sanova tratará tus datos conforme a la Política de Privacidad (Ley 25.326) para responder tu consulta. Podés ejercer derechos ARCO vía Contacto.',
+    privacyNotice:
+      'Los datos de este formulario se usan solo para responder tu consulta, conforme a nuestra Política de Privacidad.',
     successTitle: 'Mensaje enviado',
     successDesc: 'Gracias por contactar a Sanova Global. Te responderemos lo antes posible.',
     backHome: 'Volver al inicio'
@@ -1159,6 +1178,11 @@ export const es = {
       submitButton: 'Crear cuenta y verificar',
       submitting: 'Creando cuenta…',
       flowHint: 'Paso 1: Registro · Paso 2: Confirmar email · Paso 3: KYC',
+      termsAcceptLabel:
+        'Acepto los Términos Legales y la Política de Privacidad, y reconozco que la operatoria es colocación privada bajo el Fideicomiso Sanova Global RWA.',
+      termsAcceptRequired: 'Debés aceptar los Términos Legales y la Política de Privacidad para continuar.',
+      termsLinkLabel: 'Términos Legales',
+      privacyLinkLabel: 'Política de Privacidad',
       devCodes: 'Códigos de verificación',
       codesOnScreenHint: 'Usá estos códigos en el siguiente paso (email/SMS aún sin proveedor):',
       errors: {
@@ -1167,6 +1191,10 @@ export const es = {
         WEAK_PASSWORD: 'La contraseña debe tener al menos 8 caracteres.',
         INVALID_EMAIL: 'Ingresá un correo electrónico válido (ej. tu@email.com).',
         INVALID_PHONE: 'Ingresá un teléfono móvil válido con código de país.',
+        TERMS_NOT_ACCEPTED:
+          'Debés aceptar los Términos Legales y la Política de Privacidad para continuar.',
+        INVALID_INVITE_CODE:
+          'El código de invitación no es válido. Contactá a Sanova para acceder a la colocación privada.',
         VERIFICATION_DELIVERY_FAILED:
           'No pudimos enviar los códigos de email y SMS. La cuenta no fue dada de alta; intentá de nuevo en unos minutos.',
         SIGN_IN_FAILED: 'Cuenta creada, pero no pudimos iniciar sesión automáticamente.'
@@ -1177,6 +1205,17 @@ export const es = {
       'Disponible después de verificar email y cargar teléfono. Didit gestiona la identidad con documento y prueba de vida.',
     kycButton: 'Ir al onboarding',
     backHome: 'Volver al inicio'
+  },
+  legal: {
+    bannerTitle: 'Colocación privada · No oferta pública CNV',
+    bannerText:
+      'Acceso restringido a inversores identificados (KYC/AML). Cuotapartes intranferibles salvo autorización fiduciaria y whitelist. No constituye oferta pública ni recomendación de inversión.',
+    termsLink: 'Términos Legales',
+    privacyLink: 'Política de Privacidad',
+    portalFooterTerms: 'Términos',
+    portalFooterPrivacy: 'Privacidad',
+    secondaryInternalBadge: 'Mercado secundario interno',
+    loginNotice: 'Al iniciar sesión confirmás haber leído los'
   },
   kyc: {
     title: 'Verificación KYC',
@@ -1223,6 +1262,8 @@ export const es = {
       identityDesc: 'Con tu teléfono celular',
       identityStep1: '1- Vamos a tomarle fotos a tu documento oficial.',
       identityStep2: '2- Vamos a tomarte una selfie para comprobar tu identidad.',
+      identityPrivacyNotice:
+        'Los datos de identidad son tratados por nuestro proveedor KYC conforme a la Política de Privacidad. Consultá la',
       startDidit: 'Validar identidad con teléfono celular',
       diditRedirecting: 'Conectando…',
       identityOperationalNote:

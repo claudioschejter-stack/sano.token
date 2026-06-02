@@ -10,7 +10,8 @@ export type ContactVerificationFields = {
 export function isContactVerificationComplete(user: ContactVerificationFields): boolean {
   return (
     Boolean(user.phone) &&
-    Boolean(user.emailVerifiedAt)
+    Boolean(user.emailVerifiedAt) &&
+    Boolean(user.phoneVerifiedAt)
   );
 }
 

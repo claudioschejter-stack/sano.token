@@ -78,13 +78,16 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
 
     const data = (await response.json()) as { error?: string; paymentIntent?: PaymentIntentResponse };
 
-    if (!response.ok) {
-      if (data.error === 'ACCOUNT_NOT_OPERATIONAL' || data.error === 'KYC_NOT_APPROVED') {
-        window.location.href = `/kyc?returnTo=/marketplace/${projectId}/checkout`;
-        throw new Error('KYC_REQUIRED');
+      if (!response.ok) {
+        if (data.error === 'ACCOUNT_NOT_OPERATIONAL' || data.error === 'KYC_NOT_APPROVED') {
+          window.location.href = `/kyc?returnTo=/marketplace/${projectId}/checkout`;
+          throw new Error('KYC_REQUIRED');
+        }
+        if (data.error === 'INVESTOR_ACCESS_NOT_ENABLED') {
+          throw new Error('INVESTOR_ACCESS_NOT_ENABLED');
+        }
+        throw new Error(data.error ?? 'PURCHASE_FAILED');
       }
-      throw new Error(data.error ?? 'PURCHASE_FAILED');
-    }
 
     if (!data.paymentIntent) {
       throw new Error('PAYMENT_INTENT_FAILED');
@@ -300,8 +303,13 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
           </div>
 
           <div className="flex flex-col gap-3">
+            <p className="rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs leading-relaxed text-terminal-muted">
+              {t.checkout.subscriptionNotice}
+            </p>
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
-              <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">Método de pago</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">
+                {t.checkout.paymentMethodsTitle}
+              </p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {PAYMENT_METHODS.map((method) => (
                   <button
@@ -320,8 +328,9 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                 ))}
               </div>
               {paymentMethod === 'USDC_ONCHAIN' ? (
-                <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs text-terminal-muted">
-                  USDC en Base (chainId 8453)
+                <div className="mt-4 space-y-2 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs text-terminal-muted">
+                  <p>USDC en Base (chainId 8453)</p>
+                  <p className="text-terminal-text">{t.checkout.compartmentPayee}</p>
                 </div>
               ) : null}
             </div>
@@ -418,7 +427,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                 ) : null}
                 {status === 'manual' && paymentIntent.payToAddress ? (
                   <div className="space-y-2 rounded-lg border border-terminal-warning/30 bg-terminal-warning/10 p-3">
-                    <p>Enviá el pago a esta treasury y pegá el tx hash para verificar:</p>
+                    <p>{t.checkout.sendToCompartment}</p>
                     <p className="break-all font-mono text-terminal-text">{paymentIntent.payToAddress}</p>
                     <input
                       value={manualTxHash}
@@ -460,7 +469,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                     : status === 'verifying'
                       ? 'Verificando pago…'
                   : isConnected || paymentMethod === 'INTERNAL_BALANCE'
-                    ? 'Crear orden y pagar'
+                    ? t.checkout.createOrderPay
                     : t.checkout.connectToContinue}
             </button>
             ) : null}
@@ -496,7 +505,7 @@ const PAYMENT_METHODS: Array<{ id: PaymentMethod; label: string; description: st
   {
     id: 'USDC_ONCHAIN',
     label: 'USDC on-chain',
-    description: 'Pago directo desde tu wallet a treasury.'
+    description: 'Pago desde tu wallet al patrimonio fiduciario del Compartimento.'
   },
   {
     id: 'STRIPE',

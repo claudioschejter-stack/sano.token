@@ -4,6 +4,7 @@ import { extractDiditIdentity, buildDiditIdentityUpdate } from '../../../../lib/
 import { mapDiditStatusToKyc, verifyDiditWebhookSignature } from '../../../../lib/onboarding/diditService';
 import { isContactVerificationComplete } from '../../../../lib/onboarding/contactVerification';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
+import { provisionInvestorProfileOnKycApproval } from '../../../../lib/investor/provisionInvestorProfile';
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -70,6 +71,10 @@ export async function POST(request: Request) {
   });
 
   await syncUserAccountStatus(vendorData);
+
+  if (kycStatus === 'APPROVED') {
+    await provisionInvestorProfileOnKycApproval(vendorData);
+  }
 
   return NextResponse.json({ ok: true });
 }

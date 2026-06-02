@@ -12,6 +12,7 @@ import type { SystemRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import type { MarketplaceFeed } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
+import { LegalDisclaimerBanner } from '../legal/LegalDisclaimerBanner';
 import { PropertyCard } from './PropertyCard';
 
 type MarketplaceViewProps = {
@@ -71,6 +72,8 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
         </div>
         <p className="mt-2 text-base text-terminal-muted md:text-lg whitespace-nowrap">{t.marketplace.subtitle}</p>
       </header>
+
+      <LegalDisclaimerBanner className="mb-6" compact />
 
       {capabilities.showAdminToolbar ? (
         <div className="mb-6 flex flex-wrap gap-3">

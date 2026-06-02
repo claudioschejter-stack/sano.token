@@ -5,7 +5,7 @@ import { LEGAL_SITE_URL } from '../../../lib/legal/legalConfig';
 export const metadata: Metadata = {
   title: 'Política de Privacidad | Sanova Global',
   description:
-    'Política de Privacidad y Protección de Datos de Sanova Global SAS. Tratamiento de datos conforme a la Ley 25.326 (Argentina) y normativas AML/CFT.',
+    'Política de Privacidad de Sanova Global SAS. Fideicomiso Sanova Global RWA, Compartimentos, KYC/AML, Ley 25.326 y tratamiento de datos Web3.',
   alternates: {
     canonical: `${LEGAL_SITE_URL}/privacidad`
   }

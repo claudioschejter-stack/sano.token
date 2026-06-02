@@ -5,6 +5,7 @@ import {
 } from '../onboarding/extractDiditIdentity';
 import { isContactVerificationComplete } from '../onboarding/contactVerification';
 import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
+import { provisionInvestorProfileOnKycApproval } from '../investor/provisionInvestorProfile';
 import { recordAdminAuditLog } from './assetsService';
 
 export type AdminInvestorRecord = {
@@ -15,6 +16,7 @@ export type AdminInvestorRecord = {
   emailVerified: boolean;
   phoneVerified: boolean;
   contactVerified: boolean;
+  investorAccessEnabled: boolean;
   walletAddress: string | null;
   jurisdiction: string | null;
   createdAt: string;
@@ -43,6 +45,7 @@ type UserWithInvestor = {
   emailVerifiedAt: Date | null;
   phoneVerifiedAt: Date | null;
   phone: string | null;
+  investorAccessEnabled: boolean;
   walletAddress: string | null;
   jurisdiction: string | null;
   kycFullName: string | null;
@@ -80,6 +83,7 @@ function mapAdminInvestorRecord(user: UserWithInvestor): AdminInvestorRecord {
     emailVerified,
     phoneVerified,
     contactVerified: isContactVerificationComplete(user),
+    investorAccessEnabled: user.investorAccessEnabled,
     walletAddress: user.walletAddress,
     jurisdiction: user.jurisdiction,
     createdAt: user.createdAt.toISOString(),
@@ -189,10 +193,55 @@ export async function updateInvestorKycStatus(
   }
 
   await syncUserAccountStatus(userId);
+
+  if (status === 'APPROVED') {
+    await provisionInvestorProfileOnKycApproval(userId);
+  }
+
   await recordAdminAuditLog({
     action: `KYC_${status}`,
     targetUserId: userId,
     metadata: { status } as Prisma.InputJsonValue
+  });
+
+  return mapAdminInvestorRecord(updated);
+}
+
+export async function updateInvestorAccessEnabled(
+  userId: string,
+  enabled: boolean
+): Promise<AdminInvestorRecord | null> {
+  const existing = await prisma.user.findFirst({
+    where: { id: userId, systemRole: 'INVESTOR' },
+    include: {
+      investor: {
+        include: {
+          incorporatedBy: { include: { user: { select: { email: true } } } }
+        }
+      }
+    }
+  });
+
+  if (!existing) {
+    return null;
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { investorAccessEnabled: enabled },
+    include: {
+      investor: {
+        include: {
+          incorporatedBy: { include: { user: { select: { email: true } } } }
+        }
+      }
+    }
+  });
+
+  await recordAdminAuditLog({
+    action: enabled ? 'INVESTOR_ACCESS_ENABLED' : 'INVESTOR_ACCESS_DISABLED',
+    targetUserId: userId,
+    metadata: { enabled } as Prisma.InputJsonValue
   });
 
   return mapAdminInvestorRecord(updated);

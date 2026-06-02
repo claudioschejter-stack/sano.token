@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
+import { LegalDisclaimerBanner } from '../legal/LegalDisclaimerBanner';
 import { PropertyCard } from '../marketplace/PropertyCard';
 import type {
   SecondaryMarketFeed,
@@ -23,6 +24,7 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
   const router = useRouter();
   const t = useTranslation();
   const sm = t.secondaryMarket;
+  const legal = t.legal;
   const searchParams = useSearchParams();
   const sellProjectFromQuery = searchParams.get('sell');
   const { data: session } = useSession();
@@ -204,11 +206,13 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
           <h1 className="text-2xl font-bold text-terminal-text md:text-3xl">{sm.title}</h1>
           <span className="inline-flex items-center gap-1 rounded-full border border-terminal-primary/30 bg-terminal-bg px-2.5 py-1 text-xs font-semibold text-terminal-primary">
             <ArrowLeftRight size={14} />
-            P2P
+            {legal.secondaryInternalBadge}
           </span>
         </div>
         <p className="mt-2 max-w-3xl text-base text-terminal-muted md:text-lg">{sm.subtitle}</p>
       </header>
+
+      <LegalDisclaimerBanner className="mb-6" compact />
 
       {!kycApproved ? (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">

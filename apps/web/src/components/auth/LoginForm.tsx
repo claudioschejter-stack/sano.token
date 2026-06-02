@@ -103,6 +103,17 @@ export function LoginForm({
           {t.access.forgotPassword}
         </Link>
       </p>
+
+      <p className="text-center text-xs leading-relaxed text-slate-500">
+        {t.legal.loginNotice}{' '}
+        <Link href="/terminos" className="font-medium text-blue-600 hover:text-blue-500">
+          {t.legal.termsLink}
+        </Link>
+        {' · '}
+        <Link href="/privacidad" className="font-medium text-blue-600 hover:text-blue-500">
+          {t.legal.privacyLink}
+        </Link>
+      </p>
     </form>
   );
 }

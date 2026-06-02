@@ -1,0 +1,363 @@
+﻿# CONTRATO MATRIZ DE FIDEICOMISO ORDINARIO DE ADMINISTRACIÓN MULTIACTIVO, MULTIJURISDICCIONAL Y POR COMPARTIMENTOS ESTANCOS
+# “SANOVA GLOBAL RWA”
+
+En la Ciudad de Ushuaia, Provincia de Tierra del Fuego, Antártida e Islas del Atlántico Sur, República Argentina, a los ___ días del mes de ________ de 2026, comparecen:
+
+## COMPARECENCIA Y DESIGNACIÓN DE ROLES
+
+**SANOVA GLOBAL S.A.S.**, CUIT N° 30-71905084-7, inscripta en el Registro Público correspondiente bajo el N° 127367, con domicilio legal en Bahía de los Abrigos 3173 PB, Ushuaia, Tierra del Fuego, CP 9410, Argentina, representada por su Administrador Titular, el Sr. Claudio Raúl Schejter, DNI N° 21.526.767, quien interviene en **triple carácter**, sin confusión patrimonial alguna:
+
+(i) **FIDEICOMITENTE INICIAL**, por el aporte fundacional previsto en la Cláusula 2;
+
+(ii) **FIDUCIARIO**, con las facultades de administración, representación, custodia documental, operatoria digital, cumplimiento normativo y demás atribuciones previstas en este Contrato Matriz;
+
+(iii) **Administrador tecnológico** de la plataforma digital de tokenización asociada al Fideicomiso;
+
+**sin ser fideicomisaria ni beneficiaria principal** de las cuotapartes o Tokens emitidos a inversores en los Compartimentos, salvo participación residual expresamente indicada en un Anexo específico.
+
+Los **FIDEICOMISARIOS** y/o **BENEFICIARIOS ECONÓMICOS** serán las personas humanas o jurídicas que suscriban contratos de adhesión o suscripción privada de cada Compartimento, completen satisfactoriamente el proceso KYC/AML y, cuando corresponda, sean incluidos en la Lista Blanca (*Whitelist*) del Smart Contract respectivo.
+
+Podrán integrarse **FIDEICOMITENTES ADICIONALES** por cada Anexo de Constitución de Compartimento, sin relevar a SANOVA GLOBAL S.A.S. de su rol de Fiduciario salvo sustitución conforme a la Cláusula 22.
+
+Las Partes acuerdan celebrar este **CONTRATO MATRIZ DE FIDEICOMISO DE ADMINISTRACIÓN**, sujeto a los artículos 1666 a 1707 del Código Civil y Comercial de la Nación (CCCN) y a las siguientes cláusulas:
+
+## CAPÍTULO I — OBJETO, ESCALABILIDAD Y BLINDAJE PATRIMONIAL
+
+CLÁUSULA 1 — OBJETO, MODALIDAD MULTIACTIVO Y ESCALABILIDAD MODULAR. El Fideicomiso tiene por finalidad la adquisición, tenencia, desarrollo, administración, explotación, locación, comodato, mejora, garantía, enajenación y disposición lícita de activos del mundo real (RWA), incluyendo —sin limitación— inmuebles, derechos reales, contratos, flujos de rentas, participaciones societarias, cuotapartes fiduciarias, participaciones en vehículos de inversión colectiva o fideicomisos financieros regulados, activos digitales de soporte operativo y demás bienes o derechos lícitamente afectables, en la República Argentina y en el exterior.
+
+El Fideicomiso se estructura bajo **sub-patrimonios independientes y estancos (Compartimentos)**, pudiendo fraccionarse la participación económica de cada Compartimento mediante la emisión de **Cuotapartes Fiduciarias** y su **representación digital** mediante Activos Digitales registrados en Blockchain (Tokens), conforme al Anexo correspondiente.
+
+La incorporación de nuevos activos, proyectos o Compartimentos se realizará **exclusivamente** mediante la suscripción de un **Anexo de Constitución de Compartimento**, el cual formará parte integrante e indivisible de este Contrato Matriz sin alterar la independencia patrimonial de los Compartimentos preexistentes.
+
+CLÁUSULA 2 — APORTE FUNDACIONAL DEL FIDEICOMITENTE INICIAL. EL FIDEICOMITENTE INICIAL aporta al patrimonio del Fideicomiso, con carácter de **afectación fiduciaria exclusiva** y sin confusión con el patrimonio social de SANOVA GLOBAL S.A.S., los siguientes bienes y/o derechos: (a) la suma de _____________; y/o (b) los activos mobiliarios, documentación, know-how operativo, estructura contractual y mandatos necesarios para la constitución del presente régimen fiduciario; y/o (c) otros bienes que se detallen en acta fundacional adjunta.
+
+Dicho aporte tiene por finalidad constituir el **Fideicomiso Matriz** y habilitar la creación modular de Compartimentos futuros.
+
+CLÁUSULA 3 — ESTRUCTURA DE COMPARTIMENTOS, AISLAMIENTO Y RECURSO LIMITADO. De conformidad con la naturaleza del fideicomiso de administración y los principios de afectación patrimonial específica reconocidos por el CCCN:
+
+a) **Aislamiento de riesgo:** Cada activo, proyecto, inmueble, participación extranjera o vehículo subyacente integrará un **Compartimento separado**. Los bienes, derechos, obligaciones, contingencias, ingresos y gastos de un Compartimento responderán **únicamente** por las obligaciones originadas en su propia administración, explotación, financiamiento y desarrollo.
+
+b) **Recurso limitado (*Limited Recourse*) y no petición:** Los acreedores, contratistas, arrendatarios, acreedores prendarios, garantes y Beneficiarios de un Compartimento limitan expresamente su derecho de cobro a los bienes y derechos integrantes de dicho Compartimento. Carecen de acción, privilegio, embargo, inhibición o derecho de agresión sobre los activos de los demás Compartimentos, del patrimonio residual del Fideicomiso Matriz no afectado a aquel Compartimento, ni del patrimonio social de SANOVA GLOBAL S.A.S., salvo obligaciones propias y no fiduciarias de esta última.
+
+c) **No liquidación cruzada:** La insolvencia, mora, pérdida, litigio o liquidación de un Compartimento **no provocará** automáticamente la liquidación del Fideicomiso Matriz ni de los demás Compartimentos.
+
+d) **Fundamento normativo de la compartimentación:** Las Partes reconocen que la figura de **Sub-patrimonio / Compartimento / Serie** no constituye una especie legal autónoma distinta del fideicomiso civil, sino una aplicación del contrato de fideicomiso de administración previsto en los **artículos 1666 a 1707 del CCCN**, sustentada en: (i) el **patrimonio separado** e inembargable por reglas generales (Art. **1685** CCCN); (ii) la **autonomía de la voluntad** para diseñar la estructura contractual (Art. **958** CCCN); (iii) la **individualización de bienes** y asignación de costos, deudas y beneficios por sub-patrimonio (Art. **1667** CCCN); y (iv) la **limitación del recurso** de acreedores a los bienes fideicomitidos (Art. **1687** CCCN). La analogía con la **compartimentación** o **series** prevista para fideicomisos financieros en la **Ley N° 26.831** y normativa CNV es meramente estructural; el presente Fideicomiso opera en modalidad **civil y privada**, sin registro CNV, salvo migración expresa conforme al Capítulo VI.
+
+## CAPÍTULO II — IDENTIFICACIÓN FISCAL, CUENTAS Y PROHIBICIÓN DE MEZCLA
+
+CLÁUSULA 4 — IDENTIFICACIÓN FISCAL Y CUENTAS DEL FIDEICOMISO. EL FIDUCIARIO tramitará la identificación fiscal del Fideicomiso (CUIT u otro identificador exigido por AFIP o autoridad competente) cuando resulte necesario para la apertura de cuentas bancarias, suscripción de inversores, transferencia registral de inmuebles, operatoria cambiaria o cumplimiento impositivo.
+
+Hasta la obtención del CUIT o identificador definitivo, EL FIDUCIARIO operará con **contabilidad segregada por Compartimento**, libros auxiliares, registros de Beneficiarios y cuentas/wallets individualizadas, bajo la denominación “Fideicomiso Sanova Global RWA — Compartimento [___] — CUIT en trámite”, **sin confundir** fondos fiduciarios con fondos propios de SANOVA GLOBAL S.A.S.
+
+Una vez obtenido el identificador fiscal, los Anexos, cuentas, contratos de suscripción y documentación registral serán actualizados oportunamente.
+
+CLÁUSULA 5 — GESTIÓN DE FONDOS, WALLETS Y PROHIBICIÓN DE COMPENSACIÓN. EL FIDUCIARIO abrirá y mantendrá cuentas bancarias (CBU/CVU), cuentas operativas, cuentas de custodia y billeteras virtuales (**Wallets**) **independientes y exclusivas** para cada Compartimento.
+
+Queda **terminantemente prohibida** la mezcla, unificación, compensación o commingling de fondos líquidos —fiat o criptoactivos— entre distintos Compartimentos o entre fondos fiduciarios y fondos propios de SANOVA GLOBAL S.A.S., salvo operaciones expresamente documentadas de honorarios fiduciarios, reembolso de gastos o comisiones de administración debidamente devengadas.
+
+Los fondos aportados por suscriptores primarios de cada Compartimento deberán ingresar directamente, o ser acreditados sin demora, a las cuentas o Wallets de **ese Compartimento**, identificadas como pertenecientes al patrimonio fiduciario y no al patrimonio social del Fiduciario.
+
+## CAPÍTULO III — DISTRIBUCIÓN ECONÓMICA, RESERVAS Y MODALIDADES DE RENTA
+
+CLÁUSULA 6 — DISTRIBUCIÓN DE RENTAS, MODALIDAD VAULT Y MODALIDAD CASH. Salvo disposición distinta del Anexo del Compartimento, una vez deducidos costos, impuestos, seguros, honorarios de administración, gastos operativos y la reserva legal prevista en la Cláusula 7, EL FIDUCIARIO distribuirá la renta neta del Compartimento conforme a una de las modalidades elegidas en el Anexo:
+
+a) **Modalidad Vault (NAV):** acumulación de rendimientos en la Bóveda Digital ERC-4626 u otro contrato autorizado, incrementando el valor liquidativo por Cuotaparte (*Net Asset Value*).
+
+b) **Modalidad Cash Yield:** distribución directa a las Wallets autorizadas de los Beneficiarios, preferentemente en USDC u otra stablecoin reconocida, USD u otra moneda indicada en el Anexo.
+
+La elección de modalidad constará en el Anexo de cada Compartimento y podrá modificarse por resolución fundada del Fiduciario con notificación a los Beneficiarios, sin reducir derechos económicos ya devengados.
+
+CLÁUSULA 7 — SEGUROS Y FONDO DE RESERVA LEGAL. Previo a la operatividad comercial de cada Compartimento, EL FIDUCIARIO contratará —en la medida disponible y razonable— seguros de responsabilidad civil, incendio, todo riesgo operativo u otros pertinentes, emitidos a nombre exclusivo del Compartimento o del activo subyacente.
+
+Asimismo, EL FIDUCIARIO podrá retener hasta un **cinco por ciento (5%)** de la renta neta del Compartimento hacia una Wallet o cuenta de **Reserva Legal** específica del Compartimento, destinada exclusivamente a afrontar costos notariales, registrales, fiscales, de mantenimiento, contingencias operativas o de liquidación futura del activo subyacente.
+
+## CAPÍTULO IV — TOKENIZACIÓN, NATURALEZA JURÍDICA Y TRANSFERIBILIDAD RESTRINGIDA
+
+CLÁUSULA 8 — NATURALEZA DE LAS CUOTAPARTES Y TOKENS. Las Cuotapartes Fiduciarias y los Tokens emitidos mediante Smart Contracts representan **derechos de beneficio económico y posición contractual privada** vinculados exclusivamente al Compartimento de origen, regidos por el derecho civil y contractual argentino y, en su caso, por la ley aplicable del Anexo Internacional correspondiente.
+
+**NO constituyen**, por sí mismos, acciones, obligaciones negociables, cuotas de fondos comunes de inversión de oferta pública, valores negociables de oferta pública ni criptoactivos de libre comercialización desvinculados de activos reales subyacentes, **salvo** que un Compartimento migre expresamente a un vehículo regulado conforme al Capítulo VI.
+
+CLÁUSULA 9 — TRANSFERIBILIDAD RESTRINGIDA, WHITELIST Y PROHIBICIÓN DE MERCADO ABIERTO. Las Cuotapartes y/o Tokens son **intranferibles** salvo:
+
+a) cesión o transferencia **previamente autorizada** por EL FIDUCIARIO;
+
+b) verificación KYC/AML satisfactoria del adquirente;
+
+c) inclusión del adquirente en la **Lista Blanca (*Whitelist*)** del Smart Contract del Compartimento, cuando exista representación digital;
+
+d) cumplimiento del contrato de suscripción privada y del reglamento del Compartimento.
+
+Queda **expresamente prohibida** la negociación, promoción, intermediación o registro en mercados secundarios abiertos, pools de liquidez públicos, exchanges descentralizados abiertos al público indeterminado o cualquier mecanismo que habilite circulación anónima o masiva no controlada por EL FIDUCIARIO.
+
+El registro en Blockchain **perfecciona** la trazabilidad técnica de la transferencia autorizada, pero **no sustituye** la aprobación fiduciaria cuando el reglamento del Compartimento o la normativa aplicable la exijan.
+
+CLÁUSULA 10 — RECUPERACIÓN DE CLAVES, SUCESIÓN DIGITAL Y BURN & MINT. El derecho de beneficio económico prevalece sobre el instrumento digital de registro. Ante extravío de claves, compromiso de seguridad, incapacidad, disolución o fallecimiento del Beneficiario —debidamente acreditado— EL FIDUCIARIO queda facultado para ejecutar la destrucción (*Burn*) de Tokens en la Wallet comprometida y reemitirlos (*Mint*) hacia una nueva Wallet segura del titular legitimado o sus sucesores, previa verificación KYC/AML y actualización de la Whitelist.
+
+CLÁUSULA 11 — PRENDA, COLATERAL Y MIGRACIÓN TECNOLÓGICA. a) Los Tokens podrán ser bloqueados en garantía (*Escrow*) a favor de acreedores autorizados dentro del ecosistema Sanova, conservando el Beneficiario el derecho a la renta líquida no afectada a garantía, conforme al contrato de colateral correspondiente.
+
+b) Ante falla sistémica grave, hackeo masivo, obsolescencia o *hard fork* de la red blockchain utilizada, EL FIDUCIARIO podrá suspender temporalmente Smart Contracts, migrar saldos contables y redesplegar contratos en una red compatible, garantizando la continuidad de los derechos económicos subyacentes y notificando a los Beneficiarios.
+
+## CAPÍTULO V — COLOCACIÓN PRIVADA, EXENCIÓN DE OFERTA PÚBLICA Y NO REGISTRO CNV
+
+CLÁUSULA 12 — RÉGIMEN DE COLOCACIÓN PRIVADA. La emisión, suscripción primaria y transferencias secundarias autorizadas de Cuotapartes y/o Tokens al amparo del presente Contrato Matriz constituyen una **Colocación Privada** destinada exclusivamente a un **universo acotado, determinado o determinable** de inversores que accedan mediante invitación, registro habilitado, relación previa, evaluación de elegibilidad y cumplimiento KYC/AML, **sin convocatoria abierta ni solicitud pública de suscripción**.
+
+CLÁUSULA 13 — NO OFERTA PÚBLICA NI INTERMEDIACIÓN CNV. Las Partes reconocen y declaran que la operatoria del Fideicomiso, en su modalidad prevista en este Contrato Matriz y en los Anexos de Compartimento:
+
+a) **NO constituye oferta pública de valores negociables** en los términos del **Artículo 2 de la Ley N° 26.831** ni emisión sujeta a autorización, registro, prospecto u oferta pública ante la **Comisión Nacional de Valores (CNV)** de la República Argentina;
+
+b) **NO requiere**, en su operatoria privada actual, autorización previa, registro, autorización de colocación ni inscripción de SANOVA GLOBAL S.A.S. como agente de mercado de capitales, agente de bolsa, ALyC, asesor de inversión registrado ni intermediario autorizado por la CNV, **siempre que** se mantengan las restricciones de colocación privada, transferibilidad controlada y ausencia de convocatoria pública previstas en este contrato;
+
+c) se desarrolla bajo la órbita del **derecho privado contractual** (CCCN) y normativa complementaria aplicable (UIF/PLA/FT, AFIP, BCRA y demás), sin perjuicio de eventuales obligaciones informativas o registrales no equivalentes a una oferta pública de valores.
+
+CLÁUSULA 14 — PROHIBICIONES DE COMERCIALIZACIÓN MASIVA. Queda prohibido utilizar medios masivos de comunicación, publicidad de colocación dirigida al público en general, *landing pages* abiertas de suscripción indiscriminada, promesas de liquidez pública permanente o cualquier mecanismo que configure convocatoria a **personas indeterminadas**. La plataforma digital operará con acceso restringido, identificación previa y políticas de elegibilidad publicadas por EL FIDUCIARIO.
+
+CLÁUSULA 15 — REGISTRO DE SUSCRIPTORES Y LÍMITES POR COMPARTIMENTO. Cada Compartimento llevará registro de suscriptores primarios, Beneficiarios, montos suscriptos, Cuotapartes/Tokens asignados, fecha, moneda, wallet autorizada y documentación KYC/AML. Cada Anexo podrá fijar un número máximo de Beneficiarios y/o un monto máximo de colocación privada.
+
+CLÁUSULA 16 — DISCLAIMER REGULATORIO. Ninguna cláusula del presente contrato implica que la CNV haya aprobado, fiscalizado o supervisado el Fideicomiso, sus Cuotapartes, Tokens o la plataforma tecnológica. La exclusión de oferta pública depende del **cumplimiento efectivo** de las condiciones de colocación privada y transferibilidad restringida, no de la sola denominación contractual.
+
+## CAPÍTULO VI — PARTICIPACIÓN EN OTROS FIDEICOMISOS Y VEHÍCULOS REGULADOS (PUENTE CNV E INTERNACIONAL)
+
+CLÁUSULA 17 — FACULTAD DE PARTICIPACIÓN EN OTROS FIDEICOMISOS Y VEHÍCULOS. EL FIDUCIARIO queda expresamente facultado —por resolución fundada y mediante Anexo o acta complementaria del Compartimento de origen— para que uno o más Compartimentos:
+
+a) suscriban cuotapartes o participaciones en **fideicomisos financieros**, **Fondos Comunes de Inversión (FCI)**, *trusts*, *REIT-like vehicles*, *SPV* u otros vehículos de inversión colectiva sujetos a regulación de mercado de capitales o equivalente internacional;
+
+b) actúen como **fideicomitente**, **beneficiario**, **partícipe** o **aportante** de dichos vehículos regulados;
+
+c) cedan, aporten, transfieran o graven activos o derechos de cobro del Compartimento hacia tales vehículos, con la finalidad de habilitar —solo respecto del Compartimento migrado— una **oferta pública** o colocación regulada en la República Argentina o en el exterior;
+
+d) mantengan participaciones minoritarias o de control en vehículos extranjeros titulares de inmuebles locales, conforme al Capítulo VII.
+
+CLÁUSULA 18 — MIGRACIÓN REGULADA SIN CONTAMINAR EL MÁSTER PRIVADO. La migración de un Compartimento a un vehículo regulado por la CNV u otro regulador extranjero:
+
+a) **no convertirá automáticamente** al Fideicomiso Matriz ni a los demás Compartimentos en oferta pública;
+
+b) requerirá aprobación del Fiduciario, acta de migración, Anexo específico y —cuando corresponda— consentimiento majoritario de Beneficiarios conforme al Anexo;
+
+c) podrá implicar conversión, canje o liquidación de Tokens privados por cuotapartes o participaciones del vehículo regulado;
+
+d) someterá **únicamente** al Compartimento migrado y al vehículo receptor a las normas de oferta pública, registro, prospecto, mantenimiento regulatorio y costos asociados exigidos por la autoridad competente.
+
+CLÁUSULA 19 — SEPARACIÓN DE COSTOS Y RESPONSABILIDADES REGULATORIAS. Los honorarios, mantenimiento anual, registros, informes, auditorías y obligaciones derivadas de un vehículo regulado serán soportados por el **Compartimento migrado** o por el vehículo regulado mismo, sin trasladar automáticamente dichos costos al resto de los Compartimentos privados, salvo pacto expreso en Anexo.
+
+CLÁUSULA 20 — COOPERACIÓN CON AUTORIDADES. Si una autoridad competente —CNV, UIF, AFIP, BCRA, CNV extranjera u otra— requiriese estructura regulada adicional para un Compartimento determinado, EL FIDUCIARIO podrá implementar la migración o participación prevista en este Capítulo sin necesidad de reformar íntegramente el Fideicomiso Matriz, preservando la continuidad económica de los Beneficiarios en la medida legalmente posible.
+
+## CAPÍTULO VII — ACTIVOS EN ARGENTINA Y EN EL EXTERIOR
+
+CLÁUSULA 21 — COMPARTIMENTOS ARGENTINOS E INTERNACIONALES. El Fideicomiso podrá integrar Compartimentos con activos ubicados en cualquier provincia de la República Argentina y Compartimentos Internacionales con activos, participaciones o derechos vinculados al exterior.
+
+CLÁUSULA 22 — INCORPORACIÓN DE INMUEBLES EN ARGENTINA. Los inmuebles argentinos —terminados, en construcción o terrenos para desarrollar— serán integrados al Fideicomiso **sin modificar el Contrato Matriz**, exclusivamente mediante el **Procedimiento Notarial-Registral** de la Cláusula 38 y el **Anexo de Constitución de Compartimento** correspondiente.
+
+El titular registral será el patrimonio del Compartimento, representado por EL FIDUCIARIO, con la fórmula indicada en la Cláusula 38 y en el Anexo I.
+
+La tokenización del Compartimento, la colocación privada de Cuotapartes/Tokens y la publicación en la plataforma digital **no sustituyen** las formalidades notariales y registrales exigidas por la ley local de la propiedad inmueble, las cuales son **condición previa** para habilitar suscripciones primarias vinculadas a dominio fiduciario inscrito o, en su caso, a derechos documentalmente afectados conforme al Anexo.
+
+CLÁUSULA 23 — INCORPORACIÓN DE ACTIVOS INTERNACIONALES. Los activos internacionales podrán integrarse mediante: (a) participación en vehículo local (*LLC*, *Ltd*, *SL*, *Trust*, etc.); (b) fideicomiso o trust del país de ubicación del activo; (c) aportes de flujos o derechos económicos vinculados; o (d) otra estructura lícita indicada en el **Anexo Internacional**.
+
+Cada Compartimento Internacional identificará ley aplicable, jurisdicción, moneda, banco custodio, asesores locales, tratamiento cambiario y obligaciones fiscales. EL FIDUCIARIO cumplirá la normativa argentina de exteriorización, BCRA y demás controles aplicables a la operatoria transfronteriza.
+
+CLÁUSULA 24 — FIDEICOMITENTES ADICIONALES POR COMPARTIMENTO. Además del FIDEICOMITENTE INICIAL, podrán ser Fideicomitentes de un Compartimento determinado: (a) el propietario del inmueble o activo que lo aporte al patrimonio del Compartimento; (b) un sponsor o desarrollador; o (c) EL FIDUCIARIO actuando por cuenta del Compartimento con fondos propios del Compartimento previamente recaudados. Cada Anexo identificará expresamente al/los Fideicomitente/s del Compartimento y la naturaleza del aporte.
+
+## CAPÍTULO VIII — REGISTROS, REPRESENTACIÓN ANTE ESCRIBANOS Y FACULTADES DISPOSITIVAS
+
+CLÁUSULA 25 — REPRESENTACIÓN REGISTRAL Y FACULTADES DEL FIDUCIARIO. Los bienes de cada Compartimento se integran en el **patrimonio de afectación específica** del Compartimento, administrado por EL FIDUCIARIO. **SANOVA GLOBAL S.A.S. no adquiere dominio a título propio** de los bienes fiduciarios, sino que actúa en nombre del Fideicomiso conforme a este contrato.
+
+EL FIDUCIARIO está facultado para comparecer ante Registros de la Propiedad Inmueble, conservadores, AFIP, UIF, bancos, notarios, escribanos y autoridades extranjeras, en representación del Fideicomiso y del Compartimento correspondiente, con facultades de adquisición, administración, locación, hipoteca, cancelación, subdivisión, aportes, cesiones y enajenación **del Compartimento respectivo**, sin requerir comparecencia individual de los Beneficiarios, salvo disposición legal imperativa o del Anexo.
+
+CLÁUSULA 26 — TRANSPARENCIA REGISTRAL Y PUBLICIDAD OPONIBLE. La tokenización no altera el dominio fiduciario del inmueble ni sustituye la inscripción registral.
+
+a) **Publicidad oponible:** La compartimentación será **oponible a terceros y acreedores** cuando conste en el **Registro de la Propiedad Inmueble (RPI)** o registro competente con la leyenda prevista en la Cláusula 38 y el Anexo I.
+
+b) **Documentación complementaria:** Además del asiento registral, la vinculación económica quedará acreditada mediante Anexo de Constitución, actas de suscripción, contratos privados y registros del Fiduciario.
+
+c) **Habilitación comercial:** EL FIDUCIARIO no habilitará colocación primaria en la Plataforma respecto de un inmueble argentino hasta contar con copia autenticada o testimonio de la escritura de dominio fiduciario y constancia de inscripción registral —o documentación equivalente para terrenos en desarrollo conforme al Anexo— salvo suspensión expresa documentada en acta fundada.
+
+## CAPÍTULO IX — APALANCAMIENTO, WATERFALL, DRAG-ALONG Y GOBERNANZA
+
+CLÁUSULA 27 — APALANCAMIENTO NON-RECOURSE. EL FIDUCIARIO podrá contratar financiamiento garantizado con los bienes de un Compartimento bajo modalidad *non-recourse*, sin recurso contra otros Compartimentos ni contra el patrimonio social de SANOVA GLOBAL S.A.S., salvo garantías expresamente otorgadas por esta fuera de su rol fiduciario.
+
+CLÁUSULA 28 — CASCADA DE PAGOS (*WATERFALL*). En caso de financiamiento del Compartimento, los ingresos aplicarán, en orden: (i) gastos operativos y fiscales; (ii) servicio de deuda del Compartimento; (iii) reserva legal; (iv) honorarios del Fiduciario; (v) distribución a Beneficiarios.
+
+CLÁUSULA 29 — DRAG-ALONG Y VENTA DEL ACTIVO. Toda venta en bloque del activo subyacente de un Compartimento requerirá dos valuaciones independientes —salvo pacto distinto en Anexo— y aprobación del **sesenta y seis por ciento (66%)** de las Cuotapartes/Tokens emitidos en ese Compartimento. Si la oferta obtuviere aprobación del **setenta y cinco por ciento (75%)** o más, operará *drag-along* sobre las minorías, liquidando su participación al mismo valor proporcional, conforme al Anexo.
+
+## CAPÍTULO X — FISCALIDAD, UIF, ADAPTACIÓN NORMATIVA Y RÉGIMEN LOW-COST
+
+CLÁUSULA 30 — TRANSPARENCIA FISCAL Y CERTIFICACIÓN. El Fideicomiso tributará conforme a las normas aplicables de transparencia fiscal y tratamiento impositivo que correspondan al Fiduciario, Fideicomitentes y Beneficiarios según la naturaleza de los flujos. EL FIDUCIARIO emitirá anualmente, o con la periodicidad exigida, un **Certificado de Participación y Rendimientos Fiduciarios** avalado por contador independiente.
+
+CLÁUSULA 31 — CUMPLIMIENTO UIF/PLA/FT. Toda suscripción, transferencia, rescate o pago relevante estará sujeta a políticas KYC/AML/CFT administradas por EL FIDUCIARIO y/o proveedores especializados. EL FIDUCIARIO podrá rechazar, suspender o revertir operaciones ante alertas de riesgo o requerimientos de autoridad competente.
+
+CLÁUSULA 32 — ADAPTACIÓN NORMATIVA. Los Beneficiarios otorgan mandato al FIDUCIARIO para adecuar procedimientos, formularios, registros y cláusulas administrativas del Fideicomiso a fin de cumplir nuevas normas impositivas, UIF, cambiarias o registrales, **sin alterar derechos económicos devengados** ni convertir la operatoria privada en oferta pública, salvo migración expresa conforme al Capítulo VI.
+
+CLÁUSULA 33 — INSTRUMENTO PRIVADO Y FIRMA DIGITAL. Este Contrato Matriz se celebra mediante **Instrumento Privado** con firmas certificadas. Los actos posteriores, resoluciones, Anexos, contratos de suscripción y registros que **no impliquen traslación de dominio inmueble** podrán instrumentarse mediante **Firma Digital** (Ley 25.506) u otros medios de certificación reconocidos, con validez equivalente al soporte papel notarial, sin perjuicio de la escritura pública exigida por ley para inmuebles.
+
+## CAPÍTULO XI — SUSTITUCIÓN, ARBITRAJE, PRUEBA DIGITAL, PLAZO Y CONTINUIDAD
+
+CLÁUSULA 34 — SUSTITUCIÓN DEL FIDUCIARIO. Ante imposibilidad sobreviniente de SANOVA GLOBAL S.A.S. para actuar como Fiduciario, se designará Fiduciario Sustituto conforme al procedimiento previsto en el Anexo de Gobernanza o, en su defecto, por Asamblea de Beneficiarios de Compartimentos afectados con mayoría absoluta.
+
+CLÁUSULA 35 — ARBITRAJE. Toda controversia derivada de este contrato será resuelta por arbitraje de derecho ante el **Tribunal Arbitral de la Cámara Argentina de Comercio** o, para Compartimentos Internacionales cuando las Partes así lo pacten en Anexo, ante institución arbitral del lugar del activo o de la Ciudad Autónoma de Buenos Aires. Las Partes reconocen validez probatoria de registros blockchain, logs de plataforma y Smart Contracts conforme a la normativa de prueba digital aplicable.
+
+CLÁUSULA 36 — PLAZO Y FIDEICOMISO CONTINUADOR. El plazo del Contrato Matriz será de **treinta (30) años** (Art. 1668 CCCN). La liquidación de un Compartimento no extingue el Fideicomiso Matriz. Próximo al vencimiento, si existieren Compartimentos activos, EL FIDUCIARIO constituirá un **Fideicomiso Continuador** con régimen equivalente, transfiriendo los patrimonios activos para garantizar continuidad ininterrumpida por un nuevo período legal.
+
+CLÁUSULA 37 — LEY APLICABLE. Este Contrato Matriz se rige por las leyes de la **República Argentina**. Los Anexos Internacionales podrán incorporar ley aplicable suplementaria respecto de activos extranjeros, sin perjuicio de normas imperativas argentinas que resulten aplicables al Fiduciario.
+
+## CAPÍTULO XII — PROCEDIMIENTO NOTARIAL-REGISTRAL DE INCORPORACIÓN DE INMUEBLES
+
+CLÁUSULA 38 — PROCEDIMIENTO NOTARIAL-REGISTRAL PARA NUEVOS INMUEBLES Y COMPARTIMENTOS. La incorporación de terrenos, inmuebles terminados u otros derechos reales argentinos al Fideicomiso Matriz **no requiere modificar este Contrato Matriz**. Deberá instrumentarse mediante el siguiente procedimiento secuencial, sin alterar la independencia patrimonial de los Compartimentos preexistentes:
+
+**PASO 1 — Adenda o Acta de Constitución de Sub-Patrimonio (Escritura Pública).** El escribano interviniente otorgará **Escritura Pública de Adenda Contractual** o **Acta Complementaria** al Contrato Matriz, en la que comparezcan EL FIDUCIARIO y el/los **FIDEICOMITENTE(S)** del proyecto (propietario aportante, sponsor, desarrollador y/o EL FIDUCIARIO por cuenta del Compartimento con fondos previamente recaudados). La escritura deberá dejar constancia expresa de:
+
+a) **Individualización del bien:** descripción del inmueble o lote (domicilio, nomenclatura catastral, matrícula del RPI, superficie, linderos, estado —terminado / en desarrollo / terreno baldío— y gravámenes conocidos);
+
+b) **Asignación de destino:** declaración de que el bien queda afectado en forma **exclusiva** al **Compartimento N° [___] / Serie [___] / Sub-patrimonio [___]** del Fideicomiso Sanova Global RWA;
+
+c) **Blindaje de acreedores:** estipulación de que flujos, deudas, contingencias, garantías y obligaciones del inmueble responden **únicamente** ante los Beneficiarios e inversores de ese Compartimento, quedando **aislados** de deudas de otros Compartimentos, del patrimonio residual no afectado y del patrimonio social de SANOVA GLOBAL S.A.S., salvo obligaciones propias no fiduciarias de esta última;
+
+d) **Régimen económico del Anexo:** referencia al Anexo I (o Anexo particular) que regirá Cuotapartes, colocación privada, modalidad Vault/Cash, honorarios y topes;
+
+e) **Terrenos en desarrollo:** cuando el activo sea un lote a urbanizar o construir, el Anexo deberá identificar fases, presupuesto, financiamiento de obra, contratistas, garantías, plazos y prohibición de mezcla de costos con otros Compartimentos.
+
+**PASO 2 — Escritura de Transferencia de Dominio Fiduciario.** Una vez delimitado el Compartimento, el escribano otorgará la escritura de traslación de dominio al patrimonio fiduciario:
+
+a) **Aporte de Dominio Fiduciario:** si el inmueble pertenece a un Fideicomitente del Compartimento;
+
+b) **Compraventa en Propiedad Fiduciaria:** si el Fideicomiso adquiere el bien a un tercero con fondos del Compartimento;
+
+c) **Fórmula de titularidad:** el adquirente comparecerá como "**SANOVA GLOBAL S.A.S.**, en su carácter de **Fiduciario** del **Fideicomiso de Administración Sanova Global RWA — Compartimento [denominación]**, con destino exclusivo al Sub-patrimonio / Serie indicada, CUIT Fiduciario 30-71905084-7, [CUIT del Fideicomiso: en trámite / N° ___]."
+
+**PASO 3 — Inscripción en el Registro de la Propiedad Inmueble (RPI).** El escribano gestionará la inscripción del testimonio ante el RPI de la provincia donde se ubique el bien. El asiento deberá reflejar, en la medida que la práctica registral lo permita, una leyenda sustancialmente equivalente a:
+
+"**Titular de dominio fiduciario:** SANOVA GLOBAL S.A.S., en su carácter de Fiduciario del Fideicomiso de Administración Sanova Global RWA — **Compartimento / Serie [___]**, bajo las condiciones del Contrato Matriz y Adenda de fecha [___]. Los bienes responden exclusivamente por las obligaciones de dicho Compartimento (Art. 1685 y 1687 CCCN)."
+
+La publicidad registral es **condición esencial** para que la compartimentación sea oponible frente a jueces, acreedores y terceros. Hasta su inscripción, las suscripciones primarias en la Plataforma podrán limitarse a reservas condicionadas o quedar suspendidas conforme acta del Fiduciario.
+
+**PASO 4 — Integración operativa y digital (posterior al RPI).** Cumplidos los Pasos 1 a 3, EL FIDUCIARIO podrá: (i) abrir cuentas/wallets del Compartimento; (ii) habilitar colocación privada y contratos de suscripción; (iii) desplegar Smart Contracts y Whitelist; y (iv) publicar el proyecto en la Plataforma, conservando copia digital de la documentación notarial en el legajo del Compartimento.
+
+**Checklist documental mínimo por Compartimento inmobiliario argentino:** (1) Escritura Pública Adenda/Acta; (2) Escritura de Aporte o Compraventa fiduciaria; (3) Certificado de dominio / inhibiciones previo; (4) Constancia de inscripción RPI con leyenda; (5) Anexo I firmado; (6) Acta de apertura de colocación privada; (7) Libro auxiliar contable del Compartimento.
+
+CLÁUSULA 39 — ACEPTACIÓN. Leído y comprendido, se firma el presente en ___ ejemplares de un mismo tenor.
+
+EL FIDEICOMITENTE INICIAL / FIDUCIARIO
+SANOVA GLOBAL S.A.S.
+_____________________________
+Claudio Raúl Schejter
+Administrador Titular
+
+## ANEXO I — MODELO DE CONSTITUCIÓN DE COMPARTIMENTO (ARGENTINA)
+
+**Referencia normativa:** Contrato Matriz (Cláusulas 3, 22, 26 y 38); arts. **958**, **1667**, **1685** y **1687** CCCN.
+
+**Procedimiento en tres pasos (resumen operativo):**
+
+**PASO 1 — Escritura Pública de Adenda / Acta de Constitución de Sub-Patrimonio**
+Comparecen EL FIDUCIARIO y el/los FIDEICOMITENTE(S) del proyecto. La escritura individualiza el bien, lo afecta en forma exclusiva al Compartimento indicado, establece blindaje frente a acreedores de otros Compartimentos y remite al presente Anexo para el régimen económico.
+
+**PASO 2 — Escritura de Aporte de Dominio Fiduciario o Compraventa en Propiedad Fiduciaria**
+Traslada dominio al Fideicomiso — Compartimento [___], con comparecencia de SANOVA GLOBAL S.A.S. como Fiduciario conforme fórmula de la Cláusula 38.
+
+**PASO 3 — Inscripción RPI con leyenda de compartimentación**
+El escribano inscribe el testimonio ante el Registro de la Propiedad Inmueble competente, procurando leyenda equivalente a:
+
+"**Titular de dominio fiduciario:** SANOVA GLOBAL S.A.S., Fiduciario del Fideicomiso Sanova Global RWA — **Compartimento / Serie [___]**, bajo Contrato Matriz y Adenda de [fecha]. Los bienes responden exclusivamente por obligaciones de dicho Compartimento (Arts. 1685 y 1687 CCCN)."
+
+---
+
+**DATOS DEL COMPARTIMENTO**
+
+COMPARTIMENTO N° / SERIE: [___] — Denominación: [NOMBRE DEL PROYECTO / EJ.: AÑELO RWA I]
+
+FIDEICOMITENTE(S) DEL COMPARTIMENTO: [SANOVA GLOBAL S.A.S. y/o tercero aportante / sponsor / desarrollador]
+
+ACTIVO AFECTADO:
+- Tipo: [ ] Inmueble terminado  [ ] En construcción  [ ] Terreno / lote en desarrollo
+- Ubicación: [dirección, partido/provincia]
+- Matrícula RPI / nomenclatura catastral: [___]
+- Superficie y linderos: [___]
+- Gravámenes conocidos: [___ / libre de gravámenes]
+
+JURISDICCIÓN REGISTRAL: [Provincia / Circunscripción / Registro]
+
+**Checklist terreno en desarrollo (completar si aplica):**
+- Fases de obra y cronograma: [___]
+- Presupuesto y fuentes de financiamiento del Compartimento: [___]
+- Contratistas principales y garantías: [___]
+- Prohibición de mezcla de costos con otros Compartimentos: **SÍ, ratificada**
+
+**RÉGIMEN ECONÓMICO Y DIGITAL**
+
+TOKENS / CUOTAPARTES: [Cantidad] bajo ticker [Símbolo] en red [Base / otra].
+
+MODALIDAD DE RENTA: [ ] Vault NAV  [ ] Cash Yield USDC
+
+DISTRIBUCIÓN ECONÓMICA: Cada Cuotaparte representa [___]% de la utilidad líquida neta del Compartimento, salvo waterfall (Cl. 28) y reserva legal.
+
+MANAGEMENT FEE: SANOVA GLOBAL S.A.S. deducirá [___]% de ingresos brutos por administración fiduciaria y tecnológica.
+
+TOPE DE BENEFICIARIOS / COLOCACIÓN PRIVADA: Máximo [___] Beneficiarios y/o USD [___] de colocación primaria.
+
+DESTINO DE SUSCRIPCIONES: CBU/CVU [___] y/o Wallet del Compartimento [___] — patrimonio fiduciario segregado.
+
+KYC / WHITELIST: Obligatorio. Transferencias sujetas a autorización fiduciaria.
+
+**DOCUMENTACIÓN NOTARIAL-REGISTRAL (adjuntar al legajo del Compartimento)**
+
+[ ] Escritura Pública Adenda / Acta (Paso 1) — Fecha: [___] — Escribano: [___]
+[ ] Escritura Aporte / Compraventa fiduciaria (Paso 2) — Fecha: [___]
+[ ] Certificado de dominio e inhibiciones previo
+[ ] Constancia de inscripción RPI con leyenda (Paso 3) — N° asiento: [___]
+[ ] Acta de apertura de colocación privada del Fiduciario
+
+**Habilitación Plataforma:** La publicación primaria en la Plataforma digital queda condicionada al cumplimiento de los Pasos 1 a 3, salvo reservas condicionadas autorizadas por acta fundada del Fiduciario (Cl. 26 y 38).
+
+AISLAMIENTO: Se ratifican las Cláusulas 3, 26 y 38 del Contrato Matriz.
+
+Firmas hológrafas o digitales:
+
+EL FIDUCIARIO — SANOVA GLOBAL S.A.S.
+EL/LOS FIDEICOMITENTE(S) DEL COMPARTIMENTO
+
+## ANEXO II — MODELO DE COMPARTIMENTO INTERNACIONAL
+
+COMPARTIMENTO INTERNACIONAL: [NOMBRE]
+
+PAÍS / JURISDICCIÓN DEL ACTIVO: [___]
+
+VEHÍCULO TITULAR LOCAL: [LLC / SL / Trust / otro], constituido en [___].
+
+PARTICIPACIÓN AFECTADA AL COMPARTIMENTO: [___]% del vehículo / activo / flujos.
+
+MONEDA OPERATIVA: [USD / EUR / otra]
+
+BANCO / CUSTODIO: [___]
+
+LEY APLICABLE DEL ANEXO: [___]
+
+EXCHANGE CONTROL / IMPUESTOS AR: Conforme Cláusula 23 del Contrato Matriz.
+
+COLOCACIÓN: Privada salvo migración conforme Capítulo VI.
+
+Firmas:
+
+EL FIDUCIARIO — SANOVA GLOBAL S.A.S.
+EL/LOS FIDEICOMITENTE(S) DEL COMPARTIMENTO
+
+## ANEXO III — MODELO DE MIGRACIÓN A VEHÍCULO REGULADO (CNV O EXTERIOR)
+
+COMPARTIMENTO ORIGEN: [___]
+
+VEHÍCULO REGULADO DESTINO: [FCI / Fideicomiso Financiero CNV / Trust regulado / otro]
+
+AUTORIDAD REGULATORIA: [CNV / SEC / FCA / otra]
+
+ACTIVOS O DERECHOS A MIGRAR: [___]
+
+MECANISMO DE CONVERSIÓN: [Canje Tokens privados → cuotapartes reguladas / liquidación / otro]
+
+APROBACIÓN REQUERIDA: Fiduciario + [___]% Beneficiarios
+
+COSTOS REGULATORIOS: A cargo del Compartimento migrado / vehículo destino.
+
+EFECTO SOBRE DEMAS COMPARTIMENTOS: Sin contaminación del régimen privado del Matriz.
+
+Firmas:
+
+EL FIDUCIARIO — SANOVA GLOBAL S.A.S.
+REPRESENTANTE DEL VEHÍCULO REGULADO (si existiere al momento de firma)

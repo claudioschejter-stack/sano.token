@@ -57,7 +57,12 @@ export async function POST(request: Request) {
         'INVESTOR_WALLET_REQUIRED',
         'WALLET_MISMATCH',
         'WALLET_REQUIRED',
-        'INVALID_WALLET'
+        'INVALID_WALLET',
+        'ALLOWLIST_NOT_APPROVED',
+        'ONCHAIN_ALLOWLIST_NOT_APPROVED',
+        'WALLET_REQUIRED_FOR_TOKENIZED_PURCHASE',
+        'PAYMENT_TX_REQUIRED',
+        'PAYMENT_CONFIRMATION_REQUIRED'
       ].includes(message)
     ) {
       return NextResponse.json({ error: message }, { status: 400 });

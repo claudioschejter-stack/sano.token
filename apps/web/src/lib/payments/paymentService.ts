@@ -22,6 +22,7 @@ import { scorePaymentRisk } from './paymentRisk';
 import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
+import { assertPaymentProofPresent, assertTokenizedPurchaseReady } from './purchaseGuard';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = [
@@ -231,7 +232,7 @@ export async function createPaymentIntent(input: {
     });
     const idempotencyKey = `${input.userId}:${input.projectId}:${input.method}:${input.tokenCount}:${payerWallet ?? 'gateway'}`;
 
-    const existing = await tx.paymentIntent.findUnique({
+    const existing = await tx.paymentIntent.findFirst({
       where: { idempotencyKey }
     });
 
@@ -463,6 +464,15 @@ export async function confirmPaymentIntent(input: {
         throw new Error('INSUFFICIENT_PLATFORM_BALANCE');
       }
     }
+
+    assertPaymentProofPresent(intent, input);
+
+    await assertTokenizedPurchaseReady({
+      project,
+      projectId: intent.projectId,
+      walletAddress: intent.payerWalletAddress,
+      tx
+    });
 
     const investment = await tx.investment.create({
       data: {

@@ -27,6 +27,7 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
   const { checklist } = useAccountStatus();
   const { feed } = useMarketplaceFeed(initialFeed);
   const featuredListings = pickFeaturedListings(feed.listings);
+  const hideFinancialMetrics = !session?.user;
   const [holdings, setHoldings] = useState<SecondaryMarketHolding[]>([]);
 
   const kycStatus = capabilities.useInvestorKycStatus
@@ -93,6 +94,7 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
               investorHolding={holdingsByProject.get(listing.id) ?? null}
               readyToBorrow={listing.readyToBorrow}
               purchaseEnabled={capabilities.showPurchaseActions}
+              hideFinancialMetrics={hideFinancialMetrics}
               staffPreviewHint={
                 capabilities.showPurchaseActions ? undefined : t.marketplace.staffPreviewHint
               }

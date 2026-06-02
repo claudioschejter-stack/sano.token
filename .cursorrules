@@ -1,0 +1,39 @@
+# CURSOR SYSTEM PROMPT & CONTEXT: SANOVA GLOBAL RWA
+
+## 1. CONTEXTO CORPORATIVO Y DE NEGOCIO
+- **Empresa:** Sanova Global SAS (entidad radicada en Tierra del Fuego, Argentina, bajo las ventajas de la Ley 19.640).
+- **Core Business:** Tokenización de Activos del Mundo Real (RWA), Real Estate y estructuración de fondos de inversión corporativos sobre Blockchain.
+- **Estrategia de Capital:** Eficiencia de capital, apalancamiento mediante préstamos colateralizados, optimización fiscal y distribución de flujos/dividendos en efectivo ("receive cash") para repago de pasivos corporativos.
+
+## 2. ARQUITECTURA TÉCNICA (STACK & ESTÁNDARES)
+- **Estándar de Tokenización:** ERC-4626 (Tokenized Vault Standard). Representa bóvedas que acumulan rendimiento (yield-bearing vaults) indexadas al valor neto de los activos (NAV).
+- **Redes e Infraestructura Principal:** Integración profunda con el ecosistema de **Coinbase** (Red L2 Base, Coinbase Cloud, Smart Wallets compatibles con EVM).
+- **Infraestructura de Oráculos:** Modelo de Oráculo Híbrido/On-Demand (estilo **RedStone** o Pyth con arquitectura "Pull") para actualizar el valor de `convertToAssets(shares)` de manera ultra-eficiente en gas, transfiriendo el costo de actualización al usuario/operador solo al momento de la transacción.
+
+## 3. ESTRATEGIA LEGAL Y BLINDAJE REGULATORIO (ARGENTINA)
+Para operar sin autorización previa de la CNV (Comisión Nacional de Valores) bajo un marco 100% legal, Sanova se rige bajo la órbita del **Derecho Privado Contractual (Código Civil y Comercial de la Nación Argentina)**.
+
+### Reglas estrictas para la generación de código y documentación:
+1. **Vehículo Legal:** Todo desarrollo y flujo de contratos debe responder a un **Fideicomiso de Administración Ordinario Privado Multicompartimentado** (o sub-patrimonios aislados). Los tokens ERC-4626 son la representación digital de derechos de beneficio privado, NO valores negociables públicos.
+2. **Destrucción de la Oferta Pública:** Está terminantemente prohibido generar flujos de código, interfaces de usuario o textos de marketing que impliquen llamados masivos, indeterminados o abiertos al público general.
+3. **Restricción Técnica Obligatoria (Whitelisting):** Al programar o modificar los contratos inteligentes ERC-4626 de Sanova, las funciones `transfer`, `transferFrom`, `deposit`, y `mint` **DEBEN implementar obligatoriamente un Hook o modificador de Lista Blanca (Whitelist)**. Si una dirección de destino no está validada mediante el KYC/AML interno del fiduciario, la transacción on-chain debe fallar automáticamente (`revert`). Esto inhabilita técnicamente la existencia de un mercado secundario público descentralizado (como pools abiertos en Uniswap).
+
+## 4. DIRECTRICES DE RESPUESTA Y ASISTENCIA AL DESARROLLO
+Cuando se te pida código (Smart Contracts, Scripts de despliegue, APIs) o textos legales para Sanova, debés cumplir con lo siguiente:
+- Asegurarte de que el código Solidity sea compatible con EVM (priorizando la red Base de Coinbase) y respete la interfaz ERC-4626.
+- Incluir lógica de `onlyRole` o firmas multifirma para la administración de las listas blancas por parte del fiduciario de Sanova.
+- En caso de requerir un "puente regulatorio" de oferta pública en el futuro para Argentina, recordar que se debe integrar vía API con un **PSAV local registrado** (ej. Ripio Select, Bitso Business) y listar en un Mercado Autorizado (como BYMA/MAV) bajo el régimen simplificado de la RG 1137 de la CNV (Bajo Impacto: hasta 1.000.000 de UVAs). Mientras tanto, priorizar la arquitectura privada aislada con Coinbase.
+
+## 5. RECURSO TEXTUAL: AVISO LEGAL COMPLETO PARA EL SITIO WEB
+*Siempre que se te pida redactar el Disclaimer o Términos y Condiciones para la interfaz web o interfaces de captación de leads de Sanova, utilizá el siguiente bloque legal:*
+
+```text
+ENCUADRE LEGAL Y EXCLUSIÓN DE OFERTA PÚBLICA (SANOVA)
+
+1. Naturaleza Jurídica del Proyecto: SANOVA GLOBAL SAS ("La Empresa") informa que los activos digitales emitidos a través de su plataforma, estructurados bajo el estándar tecnológico ERC-4626, constituyen la representación digital de derechos de beneficio o crédito privado correspondientes a compartimentos específicos y aislados de un Fideicomiso de Administración Ordinario y Privado, regido estrictamente por el Código Civil y Comercial de la Nación Argentina (Arts. 1666 y concordantes). Dichos activos digitales no revisten la naturaleza de valores negociables públicos ni títulos de suscripción masiva.
+
+2. Incompetencia y Exclusión de la Comisión Nacional de Valores (CNV): En virtud de que la actividad de La Empresa se desarrolla bajo la órbita del derecho privado contractual bilateral:
+- No se configura Oferta Pública: Las emisiones y transferencias de tokens se realizan mediante invitaciones directas a sujetos determinados o círculos cerrados de inversores, omitiendo de forma deliberada el uso de medios masivos de comunicación, difusión de prensa general o llamados indeterminados al público general. El presente esquema encuadra de forma estricta en el régimen de Ofertas Privadas.
+- Sin Supervisión de la CNV: Por los motivos expuestos, las operaciones, la plataforma técnica y los contratos subyacentes no se encuentran sujetos a la aprobación, fiscalización o control de la Comisión Nacional de Valores (CNV) de la República Argentina. Ningún folleto, Whitepaper o documento informativo de La Empresa ha sido sometido a registro ante dicho organismo regulador.
+
+3. Restricciones Técnicas a la Circulación (Smart Contracts): A fin de dar estricto cumplimiento al carácter privado de la operatoria, los contratos inteligentes (smart contracts) que rigen los tokens ERC-4626 de La Empresa cuentan con restricciones algorítmicas de transferencia (Whitelisting). Queda expresamente prohibida y técnicamente inhabilitada la libre transferencia de los tokens en mercados secundarios abiertos o pools de liquidez descentralizados públicos. Solo aquellas direcciones que hayan completado con éxito el proceso de verificación de identidad (KYC), origen de fondos (AML) y hayan suscripto el contrato de fideicomiso privado correspondiente, estarán habilitadas para operar.

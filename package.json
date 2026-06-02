@@ -59,6 +59,7 @@
   },
   "dependencies": {
     "@vitalets/google-translate-api": "^9.2.1",
+    "docx": "^9.7.1",
     "google-translate-api-x": "^10.7.2"
   }
 }

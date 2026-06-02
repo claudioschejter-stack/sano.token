@@ -9,6 +9,8 @@ export async function POST(request: Request) {
       phone?: string;
       fullName?: string;
       taxId?: string;
+      termsAccepted?: boolean;
+      inviteCode?: string;
     };
 
     const result = await registerInvestor({
@@ -16,7 +18,9 @@ export async function POST(request: Request) {
       password: body.password ?? '',
       phone: body.phone ?? '',
       fullName: body.fullName ?? '',
-      taxId: body.taxId ?? ''
+      taxId: body.taxId ?? '',
+      termsAccepted: body.termsAccepted === true,
+      inviteCode: body.inviteCode ?? ''
     });
 
     return NextResponse.json({
@@ -34,7 +38,9 @@ export async function POST(request: Request) {
         : code === 'WEAK_PASSWORD' ||
             code === 'INVALID_PHONE' ||
             code === 'INVALID_EMAIL' ||
-            code === 'INVALID_INPUT'
+            code === 'INVALID_INPUT' ||
+            code === 'TERMS_NOT_ACCEPTED' ||
+            code === 'INVALID_INVITE_CODE'
           ? 400
           : code === 'RATE_LIMIT'
             ? 429

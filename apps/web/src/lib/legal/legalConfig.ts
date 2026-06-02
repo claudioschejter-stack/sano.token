@@ -6,8 +6,8 @@ export const LEGAL_CONTACT_PATH = '/contacto';
 export const LEGAL_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'https://sano-token-web.vercel.app';
 
-export const PRIVACY_POLICY_LAST_UPDATED_ES = '1 de junio de 2026';
-export const PRIVACY_POLICY_LAST_UPDATED_EN = 'June 1, 2026';
+export const PRIVACY_POLICY_LAST_UPDATED_ES = '31 de mayo de 2026';
+export const PRIVACY_POLICY_LAST_UPDATED_EN = 'May 31, 2026';
 
-export const LEGAL_TERMS_LAST_UPDATED_ES = '1 de junio de 2026';
-export const LEGAL_TERMS_LAST_UPDATED_EN = 'June 1, 2026';
+export const LEGAL_TERMS_LAST_UPDATED_ES = '31 de mayo de 2026';
+export const LEGAL_TERMS_LAST_UPDATED_EN = 'May 31, 2026';

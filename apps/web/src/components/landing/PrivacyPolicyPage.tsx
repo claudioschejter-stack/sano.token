@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Shield } from 'lucide-react';
 import { getPrivacyPolicy } from '../../content/privacyPolicy';
-import { useLocale } from '../../i18n/LocaleProvider';
+import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
 
 function renderInlineMarkdown(text: string) {
@@ -76,6 +76,7 @@ function LegalParagraph({ text }: { text: string }) {
 
 export function PrivacyPolicyPage() {
   const { locale } = useLocale();
+  const t = useTranslation();
   const doc = getPrivacyPolicy(locale);
 
   return (
@@ -144,7 +145,10 @@ export function PrivacyPolicyPage() {
           </div>
         </article>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex flex-col items-center gap-3 text-center">
+          <Link href="/terminos" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+            {t.legal.termsLink}
+          </Link>
           <Link
             href="/"
             className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-slate-800"

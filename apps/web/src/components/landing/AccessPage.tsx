@@ -12,18 +12,21 @@ import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/re
 import { RegisterForm } from '../auth/RegisterForm';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { LandingHeader } from './LandingHeader';
+import { LegalDisclaimerBanner } from '../legal/LegalDisclaimerBanner';
 import { TrustBadges } from './TrustBadges';
 
 function AccessPageContent() {
   const router = useRouter();
   const t = useTranslation();
   const a = t.access;
+  const legal = t.legal;
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const authError = searchParams.get('error');
   const inviteEmail = searchParams.get('email')?.trim() ?? '';
   const staffInvite = searchParams.get('staffInvite') === '1';
   const inviteError = searchParams.get('inviteError');
+  const investorInvite = searchParams.get('invite')?.trim() ?? '';
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
   const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}`;
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
@@ -105,6 +108,8 @@ function AccessPageContent() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{a.title}</h1>
         </div>
 
+        <LegalDisclaimerBanner className="mx-auto mt-8 max-w-2xl" />
+
         {authError ? (
           <p className="mx-auto mt-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {a.authError}
@@ -142,14 +147,24 @@ function AccessPageContent() {
             </div>
             <p className="whitespace-pre-line text-sm text-slate-600">{a.registerDesc}</p>
             <div className="mt-6">
-              <RegisterForm returnTo={returnTo} initialEmail={inviteEmail} />
+              <RegisterForm returnTo={returnTo} initialEmail={inviteEmail} inviteCode={investorInvite} />
             </div>
           </article>
         </div>
 
         <TrustBadges className="mt-6 justify-center md:mt-8" />
 
-        <p className="mt-10 text-center text-sm text-slate-500">
+        <p className="mt-8 text-center text-xs leading-relaxed text-slate-500">
+          <Link href="/terminos" className="font-medium text-blue-600 hover:text-blue-500">
+            {legal.termsLink}
+          </Link>
+          {' · '}
+          <Link href="/privacidad" className="font-medium text-blue-600 hover:text-blue-500">
+            {legal.privacyLink}
+          </Link>
+        </p>
+
+        <p className="mt-6 text-center text-sm text-slate-500">
           <Link href="/" className="font-medium text-blue-600 hover:text-blue-500">
             ← {a.backHome}
           </Link>

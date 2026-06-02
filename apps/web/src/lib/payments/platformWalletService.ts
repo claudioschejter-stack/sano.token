@@ -225,7 +225,7 @@ export async function createPlatformDeposit(input: {
   const expiresAt = new Date(Date.now() + paymentOrderTtlMinutes() * 60_000);
   const idempotencyKey = `${input.userId}:deposit:${input.method}:${input.amountUsd}:${payerWallet ?? 'gateway'}:${network.id}`;
 
-  const existing = await prisma.platformDeposit.findUnique({
+  const existing = await prisma.platformDeposit.findFirst({
     where: { idempotencyKey }
   });
   if (existing && existing.status === 'PENDING' && existing.expiresAt > new Date()) {

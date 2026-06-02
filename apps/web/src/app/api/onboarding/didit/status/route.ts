@@ -4,6 +4,7 @@ import { extractDiditIdentity, buildDiditIdentityUpdate } from '../../../../../l
 import { mapDiditStatusToKyc, retrieveDiditDecision } from '../../../../../lib/onboarding/diditService';
 import { requireAuthenticatedSession } from '../../../../../lib/onboarding/requireAuthenticatedSession';
 import { syncUserAccountStatus } from '../../../../../lib/onboarding/syncUserAccount';
+import { provisionInvestorProfileOnKycApproval } from '../../../../../lib/investor/provisionInvestorProfile';
 
 export async function POST() {
   const ctx = await requireAuthenticatedSession();
@@ -42,6 +43,10 @@ export async function POST() {
       });
 
       await syncUserAccountStatus(ctx.userId);
+
+      if (kycStatus === 'APPROVED') {
+        await provisionInvestorProfileOnKycApproval(ctx.userId);
+      }
     }
 
     return NextResponse.json({ ok: true, kycStatus, diditStatus: status ?? null });

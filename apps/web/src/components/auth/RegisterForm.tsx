@@ -1,6 +1,7 @@
 'use client';
 
 import { signIn, useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
@@ -21,6 +22,7 @@ type RegisterFormProps = {
   profile?: OnboardingProfile | null;
   returnTo?: string;
   initialEmail?: string;
+  inviteCode?: string;
 };
 
 type FieldErrors = {
@@ -28,7 +30,7 @@ type FieldErrors = {
   phone?: string;
 };
 
-export function RegisterForm({ profile: profileProp, returnTo, initialEmail = '' }: RegisterFormProps) {
+export function RegisterForm({ profile: profileProp, returnTo, initialEmail = '', inviteCode = '' }: RegisterFormProps) {
   const t = useTranslation();
   const r = t.access.register;
   const router = useRouter();
@@ -43,6 +45,7 @@ export function RegisterForm({ profile: profileProp, returnTo, initialEmail = ''
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   const readOnly = Boolean(profileProp);
 
@@ -119,6 +122,11 @@ export function RegisterForm({ profile: profileProp, returnTo, initialEmail = ''
 
     setError(null);
 
+    if (!acceptedLegal) {
+      setError(r.termsAcceptRequired);
+      return;
+    }
+
     const contact = validateContactFields();
     if (!contact) {
       return;
@@ -133,7 +141,9 @@ export function RegisterForm({ profile: profileProp, returnTo, initialEmail = ''
         body: JSON.stringify({
           email: contact.email,
           password,
-          phone: contact.phone
+          phone: contact.phone,
+          termsAccepted: true,
+          inviteCode: inviteCode.trim() || undefined
         })
       });
 
@@ -309,9 +319,35 @@ export function RegisterForm({ profile: profileProp, returnTo, initialEmail = ''
       ) : null}
 
       {!readOnly ? (
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-600">
+          <input
+            type="checkbox"
+            checked={acceptedLegal}
+            onChange={(event) => {
+              setAcceptedLegal(event.target.checked);
+              if (error === r.termsAcceptRequired) {
+                setError(null);
+              }
+            }}
+            className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+          />
+          <span>
+            {r.termsAcceptLabel}{' '}
+            <Link href="/terminos" className="font-semibold text-blue-600 hover:text-blue-500">
+              {r.termsLinkLabel}
+            </Link>
+            {' · '}
+            <Link href="/privacidad" className="font-semibold text-blue-600 hover:text-blue-500">
+              {r.privacyLinkLabel}
+            </Link>
+          </span>
+        </label>
+      ) : null}
+
+      {!readOnly ? (
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !acceptedLegal}
           className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? r.submitting : r.submitButton}

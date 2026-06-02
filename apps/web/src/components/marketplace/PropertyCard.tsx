@@ -36,6 +36,7 @@ export type PropertyCardProps = {
   readyToBorrow?: boolean;
   purchaseEnabled?: boolean;
   staffPreviewHint?: string;
+  hideFinancialMetrics?: boolean;
   variant?: 'terminal' | 'light';
   className?: string;
   onBuy?: (propertyId: string) => void;
@@ -73,6 +74,7 @@ export function PropertyCard({
   readyToBorrow = false,
   purchaseEnabled = true,
   staffPreviewHint,
+  hideFinancialMetrics = false,
   variant = 'terminal',
   className = '',
   onBuy,
@@ -195,10 +197,21 @@ export function PropertyCard({
           {isDebt ? t.propertyCard.instrumentDebt : t.propertyCard.instrumentEquity}
         </span>
         <div className="absolute bottom-3 left-3 rounded-lg border border-terminal-border bg-terminal-bg/90 px-3 py-2 text-center backdrop-blur-sm sm:bottom-4 sm:left-4">
-          <p className="text-[10px] text-terminal-muted sm:text-xs">{yieldLabel}</p>
-          <p className="font-mono text-lg font-bold leading-tight text-terminal-success sm:text-xl">
-            {formatPercent(apyPercent, { minimum: 2, maximum: 2 })}
-          </p>
+          {hideFinancialMetrics ? (
+            <>
+              <p className="text-[10px] text-terminal-muted sm:text-xs">{t.propertyCard.restrictedAccessLabel}</p>
+              <p className="text-xs font-semibold leading-tight text-terminal-primary sm:text-sm">
+                {t.propertyCard.restrictedAccessHint}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-[10px] text-terminal-muted sm:text-xs">{yieldLabel}</p>
+              <p className="font-mono text-lg font-bold leading-tight text-terminal-success sm:text-xl">
+                {formatPercent(apyPercent, { minimum: 2, maximum: 2 })}
+              </p>
+            </>
+          )}
         </div>
         <p className="absolute bottom-20 left-3 right-3 line-clamp-2 min-h-[2.75rem] text-base font-semibold leading-snug text-white sm:bottom-24 sm:left-4 sm:right-4 sm:text-lg">
           {title}
@@ -210,49 +223,59 @@ export function PropertyCard({
           <p className={`min-h-5 truncate text-xs ${mutedText}`}>{location || '\u00A0'}</p>
 
           <div>
-            <div className={`mb-1 flex items-center justify-between text-xs ${mutedText}`}>
-              <span>{t.propertyCard.placementProgress}</span>
-              <span className={`font-mono ${bodyText}`}>{soldPercent}%</span>
-            </div>
-            <div className={`h-1.5 overflow-hidden rounded-full ${isLight ? 'bg-slate-100' : 'bg-terminal-bg'}`}>
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-terminal-primary to-terminal-success transition-all duration-500"
-                style={{ width: `${soldPercent}%` }}
-              />
-            </div>
-            <p className={`mt-1 min-h-4 text-xs ${mutedText}`}>
-              {availableTokens.toLocaleString()} / {totalTokens.toLocaleString()} {t.marketplace.tokensAvailable}
-            </p>
+            {!hideFinancialMetrics ? (
+              <>
+                <div className={`mb-1 flex items-center justify-between text-xs ${mutedText}`}>
+                  <span>{t.propertyCard.placementProgress}</span>
+                  <span className={`font-mono ${bodyText}`}>{soldPercent}%</span>
+                </div>
+                <div className={`h-1.5 overflow-hidden rounded-full ${isLight ? 'bg-slate-100' : 'bg-terminal-bg'}`}>
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-terminal-primary to-terminal-success transition-all duration-500"
+                    style={{ width: `${soldPercent}%` }}
+                  />
+                </div>
+                <p className={`mt-1 min-h-4 text-xs ${mutedText}`}>
+                  {availableTokens.toLocaleString()} / {totalTokens.toLocaleString()} {t.marketplace.tokensAvailable}
+                </p>
+              </>
+            ) : (
+              <p className={`text-xs leading-relaxed ${mutedText}`}>{t.propertyCard.publicPreviewHint}</p>
+            )}
           </div>
 
           <p className={`line-clamp-3 min-h-[4.5rem] text-sm leading-relaxed ${mutedText}`}>
             {description || '\u00A0'}
           </p>
 
-          <div className={`flex min-h-[3.25rem] items-center justify-between gap-3 rounded-lg border px-3 py-2 ${panelBg}`}>
-            <p className={`text-xs ${mutedText}`}>{t.propertyCard.tokenPrice}</p>
-            <p className={`font-mono text-xl font-bold leading-none ${bodyText}`}>
-              USD {formatUsdPlain(pricePerTokenUsd)}
-            </p>
-          </div>
+          {!hideFinancialMetrics ? (
+            <>
+              <div className={`flex min-h-[3.25rem] items-center justify-between gap-3 rounded-lg border px-3 py-2 ${panelBg}`}>
+                <p className={`text-xs ${mutedText}`}>{t.propertyCard.tokenPrice}</p>
+                <p className={`font-mono text-xl font-bold leading-none ${bodyText}`}>
+                  USD {formatUsdPlain(pricePerTokenUsd)}
+                </p>
+              </div>
 
-          <div
-            className={`min-h-[3.75rem] rounded-lg border px-3 py-2 ${
-              isLight ? 'border-emerald-200 bg-emerald-50' : 'border-terminal-success/20 bg-terminal-success/5'
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <p className={`text-xs ${mutedText}`}>{incomeLabel}</p>
-              <p className="font-mono text-sm font-semibold leading-none text-terminal-success">
-                USD {formatUsdPlain(estimatedAnnualYieldUsd, { min: 2, max: 2 })} / {t.propertyCard.perToken}
-              </p>
-            </div>
-            <p className={`mt-1 min-h-[14px] text-[10px] ${mutedText}`}>
-              {isDebt && maturityDate
-                ? `${t.propertyCard.maturity}: ${new Date(maturityDate).toLocaleDateString()}`
-                : '\u00A0'}
-            </p>
-          </div>
+              <div
+                className={`min-h-[3.75rem] rounded-lg border px-3 py-2 ${
+                  isLight ? 'border-emerald-200 bg-emerald-50' : 'border-terminal-success/20 bg-terminal-success/5'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <p className={`text-xs ${mutedText}`}>{incomeLabel}</p>
+                  <p className="font-mono text-sm font-semibold leading-none text-terminal-success">
+                    USD {formatUsdPlain(estimatedAnnualYieldUsd, { min: 2, max: 2 })} / {t.propertyCard.perToken}
+                  </p>
+                </div>
+                <p className={`mt-1 min-h-[14px] text-[10px] ${mutedText}`}>
+                  {isDebt && maturityDate
+                    ? `${t.propertyCard.maturity}: ${new Date(maturityDate).toLocaleDateString()}`
+                    : '\u00A0'}
+                </p>
+              </div>
+            </>
+          ) : null}
 
           <div className="flex min-h-7 flex-wrap items-center gap-2">
             <span

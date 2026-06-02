@@ -28,6 +28,7 @@ export async function linkInvestorWallet(userId: string, walletAddress: string) 
       phoneVerifiedAt: true,
       walletAddress: true,
       investorId: true,
+      investorAccessEnabled: true,
       systemRole: true
     }
   });
@@ -58,7 +59,9 @@ export async function linkInvestorWallet(userId: string, walletAddress: string) 
       emailVerifiedAt: user.emailVerifiedAt,
       phoneVerifiedAt: user.phoneVerifiedAt,
       walletAddress: user.walletAddress,
-      investorId: user.investorId
+      investorId: user.investorId,
+      investorAccessEnabled: user.investorAccessEnabled,
+      systemRole: user.systemRole
     },
     normalized
   );

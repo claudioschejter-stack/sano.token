@@ -14,6 +14,7 @@ import { LandingHeader } from './LandingHeader';
 export function ContactPage() {
   const t = useTranslation();
   const c = t.contact;
+  const legal = t.legal;
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
 
@@ -146,6 +147,12 @@ export function ContactPage() {
               {sending ? c.submitting : c.submit}
               <Send size={18} />
             </button>
+            <p className="text-xs leading-relaxed text-slate-500">
+              {c.formNote}{' '}
+              <Link href="/privacidad" className="font-medium text-blue-600 hover:text-blue-500">
+                {legal.privacyLink}
+              </Link>
+            </p>
           </form>
         )}
 

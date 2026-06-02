@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { requireContactVerifiedUser } from '../../../../lib/onboarding/contactVerification';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
+import { provisionInvestorProfileOnKycApproval } from '../../../../lib/investor/provisionInvestorProfile';
 
 /** Demo only — use Didit in production. */
 export async function POST() {
@@ -25,6 +26,7 @@ export async function POST() {
   });
 
   await syncUserAccountStatus(ctx.userId);
+  await provisionInvestorProfileOnKycApproval(ctx.userId);
 
   return NextResponse.json({ ok: true });
 }

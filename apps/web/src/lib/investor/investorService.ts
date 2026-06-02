@@ -1,6 +1,7 @@
 import { prisma, Prisma, type KycStatus, type AccountStatus } from '@sanova/database';
 import { calculatePurchaseCommissionSplit } from '../commission/commissionService';
 import { isAccountOperational } from '../onboarding/accountStatus';
+import { assertInvestorAccessEnabled } from '../auth/investorAccess';
 import { buildTxExplorerUrl, buildVaultExplorerUrl, readVaultPositionsForProjects } from '../portfolio/onChainVaultReader';
 import { resolveMorphoDebtForUser } from '../portfolio/morphoDebtForUser';
 import { getInvestorIdForPlatformUser } from './projectYieldService';
@@ -23,6 +24,8 @@ type UserPurchaseContext = {
   phoneVerifiedAt: Date | null;
   walletAddress: string | null;
   investorId: string | null;
+  investorAccessEnabled: boolean;
+  systemRole: string;
 };
 
 export async function getUserPurchaseContext(userId: string): Promise<UserPurchaseContext | null> {
@@ -39,7 +42,9 @@ export async function getUserPurchaseContext(userId: string): Promise<UserPurcha
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
       walletAddress: true,
-      investorId: true
+      investorId: true,
+      investorAccessEnabled: true,
+      systemRole: true
     }
   });
 }
@@ -52,6 +57,8 @@ export function assertOperationalInvestor(user: UserPurchaseContext) {
   if (user.kycStatus !== 'APPROVED') {
     throw new Error('KYC_NOT_APPROVED');
   }
+
+  assertInvestorAccessEnabled(user);
 }
 
 export async function ensureInvestorForUser(

@@ -230,6 +230,8 @@ model User {
   diditSessionId    String?
   emailVerifiedAt   DateTime?
   phoneVerifiedAt   DateTime?
+  termsAcceptedAt   DateTime?
+  investorAccessEnabled Boolean   @default(false)
   accountStatus     AccountStatus @default(ONBOARDING)
   jurisdiction      String?
   createdAt         DateTime      @default(now())
@@ -540,11 +542,11 @@ model PaymentIntent {
   chainId             Int?
   payerWalletAddress  String?
   payToAddress        String?
-  txHash              String?             @unique
+  txHash              String?
   provider            String?
   providerPaymentId   String?
   providerCheckoutUrl String?
-  idempotencyKey      String?             @unique
+  idempotencyKey      String?
   expiresAt           DateTime
   confirmedAt         DateTime?
   metadata            Json                @default("{}")
@@ -657,11 +659,11 @@ model PlatformDeposit {
   stablecoinSymbol    String?
   payerWalletAddress  String?
   payToAddress        String?
-  txHash              String?               @unique
+  txHash              String?
   provider            String?
   providerPaymentId   String?
   providerCheckoutUrl String?
-  idempotencyKey      String?               @unique
+  idempotencyKey      String?
   expiresAt           DateTime
   confirmedAt         DateTime?
   metadata            Json                  @default("{}")
@@ -686,11 +688,11 @@ model PlatformWithdrawal {
   currency            String                   @default("USD")
   stablecoinNetwork   String?
   destinationAddress  String?
-  txHash              String?                  @unique
+  txHash              String?
   provider            String?
   providerPaymentId   String?
   providerCheckoutUrl String?
-  idempotencyKey      String?                  @unique
+  idempotencyKey      String?
   metadata            Json                     @default("{}")
   confirmedAt         DateTime?
   createdAt           DateTime                 @default(now())

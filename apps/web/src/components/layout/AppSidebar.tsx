@@ -303,7 +303,17 @@ export function AppSidebar() {
           onNavigate={closeMobile}
           renderNavItem={renderNavItem}
         />
-        <div className="mt-auto shrink-0 border-t border-terminal-border p-4">{signOutButton}</div>
+        <div className="mt-auto shrink-0 space-y-3 border-t border-terminal-border p-4">
+          <div className="flex flex-wrap gap-3 text-xs text-terminal-muted">
+            <Link href="/terminos" className="hover:text-terminal-text">
+              {t.legal.portalFooterTerms}
+            </Link>
+            <Link href="/privacidad" className="hover:text-terminal-text">
+              {t.legal.portalFooterPrivacy}
+            </Link>
+          </div>
+          {signOutButton}
+        </div>
       </aside>
     </>
   );
