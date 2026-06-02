@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { linkInvestorWallet } from '../../../../lib/investor/walletService';
 
@@ -22,9 +23,11 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(result);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'UNKNOWN';
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'WALLET_ALREADY_LINKED' }, { status: 400 });
+    }
 
-    if (message === 'USER_NOT_FOUND') {
+    const message = error instanceof Error ? error.message : 'UNKNOWN';
       return NextResponse.json({ error: message }, { status: 404 });
     }
 

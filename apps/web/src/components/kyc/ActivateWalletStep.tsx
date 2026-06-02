@@ -5,7 +5,7 @@ import { Loader2, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { isWalletConnectConfigured } from '../../lib/web3/config';
+import { BASE_CHAIN_ID, isWalletConnectConfigured } from '../../lib/web3/config';
 
 type ActivateWalletStepProps = {
   onLinked: () => void | Promise<void>;
@@ -16,7 +16,7 @@ export function ActivateWalletStep({ onLinked, onError }: ActivateWalletStepProp
   const t = useTranslation();
   const o = t.onboarding.steps;
   const w = t.wallet;
-  const { address, isConnected, isConnecting } = useAccount();
+  const { address, isConnected, isConnecting, chainId } = useAccount();
   const [saving, setSaving] = useState(false);
   const savedAddressRef = useRef<string | null>(null);
 
@@ -56,10 +56,17 @@ export function ActivateWalletStep({ onLinked, onError }: ActivateWalletStepProp
   );
 
   useEffect(() => {
-    if (isConnected && address) {
-      void linkWallet(address);
+    if (!isConnected || !address) {
+      return;
     }
-  }, [address, isConnected, linkWallet]);
+
+    if (chainId != null && chainId !== BASE_CHAIN_ID) {
+      onError(w.wrongNetwork);
+      return;
+    }
+
+    void linkWallet(address);
+  }, [address, chainId, isConnected, linkWallet, onError, w.wrongNetwork]);
 
   const connectLabel = isWalletConnectConfigured ? w.connect : w.connectCoinbase;
   const busy = isConnecting || saving;

@@ -24,8 +24,8 @@ export const supportedChains = [base] as const;
 const connectors = [
   coinbaseWallet({
     appName: walletConnectMetadata.name,
-    /** Prioriza Smart Wallet de Coinbase. */
-    preference: 'smartWalletOnly'
+    /** Smart Wallet y Coinbase Wallet clásica. */
+    preference: 'all'
   }),
   ...(isWalletConnectConfigured
     ? [

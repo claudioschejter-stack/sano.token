@@ -549,6 +549,10 @@ export const en = {
     stepKyc: "Complete identity verification (KYC) to deposit, withdraw and invest.",
     stepKycRejected: "Your KYC was rejected. Review your details and try again.",
     stepReview: "We are reviewing your account. We will notify you when it is ready.",
+    walletRequiredTitle: "Wallet linking required",
+    walletRequiredDesc:
+      "Connecting in the marketplace is not enough — activate Coinbase Wallet on Base from onboarding to link the address to your profile.",
+    walletRequiredCta: "Link wallet",
     continueCta: "Complete verification",
     kycLabels: {
       PENDING: "Pending",
@@ -1161,7 +1165,7 @@ export const en = {
       walletDesc: "Connect Coinbase Smart Wallet on Base to buy RWA tokens, repay Morpho loans and receive dividends.",
       walletBullet1: "Uses Coinbase Smart Wallet — no seed phrase to manage.",
       walletBullet2: "Network: Base mainnet (USDC and vault operations).",
-      walletBullet3: "You can connect later from the marketplace if you skip this step.",
+      walletBullet3: "Required to invest, deposit, and receive USDC rent payouts.",
       walletConnect: "Connect Coinbase Wallet",
       walletSaving: "Saving wallet…",
       walletLinked: "Wallet linked",
@@ -1185,7 +1189,9 @@ export const en = {
       WALLET_REQUIRED: "Connect a wallet before continuing.",
       WALLET_LINK_FAILED: "We could not save your wallet. Try again.",
       WALLET_ALREADY_LINKED: "This wallet is already linked to another account.",
-      WALLET_MISMATCH: "The connected wallet does not match the one linked to your account."
+      WALLET_MISMATCH: "The connected wallet does not match the one linked to your account.",
+      KYC_NOT_APPROVED: "Your KYC must be approved before linking a wallet.",
+      INVESTOR_ROLE_REQUIRED: "Only investor accounts can link a wallet."
     }
   },
   pwa: {

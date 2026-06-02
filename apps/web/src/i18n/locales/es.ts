@@ -562,6 +562,10 @@ export const es = {
     stepKyc: 'Completá la verificación de identidad (KYC) para depositar, retirar e invertir.',
     stepKycRejected: 'Tu KYC fue rechazado. Revisá tus datos e intentá nuevamente.',
     stepReview: 'Estamos revisando tu cuenta. Te avisaremos cuando esté lista.',
+    walletRequiredTitle: 'Falta vincular tu billetera',
+    walletRequiredDesc:
+      'Conectar en el marketplace no alcanza: activá Coinbase Wallet en Base desde el onboarding para asociar la dirección a tu perfil.',
+    walletRequiredCta: 'Vincular billetera',
     continueCta: 'Completar verificación',
     kycLabels: {
       PENDING: 'Pendiente',
@@ -1202,7 +1206,7 @@ export const es = {
         'Conectá Coinbase Smart Wallet en Base para comprar tokens RWA, repagar préstamos Morpho y recibir dividendos.',
       walletBullet1: 'Usa Coinbase Smart Wallet — sin frase semilla que administrar.',
       walletBullet2: 'Red: Base mainnet (USDC y operaciones en bóvedas).',
-      walletBullet3: 'Podés conectar más tarde desde el marketplace si omitís este paso.',
+      walletBullet3: 'Es obligatorio para invertir, depositar y cobrar rentas en USDC.',
       walletConnect: 'Conectar Coinbase Wallet',
       walletSaving: 'Guardando billetera…',
       walletLinked: 'Billetera vinculada',
@@ -1229,7 +1233,9 @@ export const es = {
       WALLET_REQUIRED: 'Conectá una billetera antes de continuar.',
       WALLET_LINK_FAILED: 'No pudimos guardar tu billetera. Intentá de nuevo.',
       WALLET_ALREADY_LINKED: 'Esta billetera ya está vinculada a otra cuenta.',
-      WALLET_MISMATCH: 'La wallet conectada no coincide con la vinculada a tu cuenta.'
+      WALLET_MISMATCH: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
+      KYC_NOT_APPROVED: 'Tu KYC debe estar aprobado antes de vincular la billetera.',
+      INVESTOR_ROLE_REQUIRED: 'Solo cuentas inversor pueden vincular una billetera.'
     }
   },
   pwa: {

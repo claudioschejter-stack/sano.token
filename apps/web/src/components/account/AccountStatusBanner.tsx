@@ -28,7 +28,7 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
   const t = useTranslation();
   const a = t.accountStatus;
   const pathname = usePathname();
-  const { checklist, loading, isOperational } = useAccountStatus();
+  const { checklist, loading, isOperational, systemRole } = useAccountStatus();
 
   if (loading || !checklist) {
     return null;
@@ -56,6 +56,30 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
             <p className="mt-1 text-sm text-terminal-muted">{a.suspendedDesc}</p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (isOperational && systemRole === 'INVESTOR' && !checklist.walletLinked) {
+    return (
+      <div
+        className={`flex flex-wrap items-start gap-3 rounded-xl border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 md:items-center md:justify-between ${className}`}
+        role="status"
+      >
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="mt-0.5 shrink-0 text-terminal-warning" size={20} />
+          <div>
+            <p className="text-sm font-semibold text-terminal-text">{a.walletRequiredTitle}</p>
+            <p className="mt-1 text-sm text-terminal-muted">{a.walletRequiredDesc}</p>
+          </div>
+        </div>
+        <Link
+          href={kycHref}
+          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
+        >
+          <ShieldCheck size={16} />
+          {a.walletRequiredCta}
+        </Link>
       </div>
     );
   }
