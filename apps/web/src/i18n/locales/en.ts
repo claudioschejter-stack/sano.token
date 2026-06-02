@@ -147,7 +147,8 @@ export const en = {
   nav: {
     language: "Language",
     home: "Start",
-    dashboard: "Dashboard",
+    dashboard: "Control panel",
+    panel: "Control panel",
     marketplace: "Marketplace",
     myAssets: "My Assets",
     myWallet: "My Wallet",
@@ -156,7 +157,7 @@ export const en = {
     signOut: "Sign Out"
   },
   adminNav: {
-    panel: "Operations Panel",
+    panel: "Control panel",
     investors: "Investors",
     assets: "Assets",
     loans: "Loans",

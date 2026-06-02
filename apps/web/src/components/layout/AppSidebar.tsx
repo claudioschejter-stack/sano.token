@@ -35,7 +35,7 @@ type NavItem = {
 type InvestorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'home' | 'dashboard' | 'marketplace' | 'secondaryMarket' | 'myAssets' | 'myWallet' | 'cashFlow';
+  labelKey: 'home' | 'panel' | 'marketplace' | 'secondaryMarket' | 'myAssets' | 'myWallet' | 'cashFlow';
   roles?: SystemRole[];
 };
 
@@ -66,7 +66,7 @@ const advisorNavItems: AdvisorNavConfig[] = [
 
 const investorNavItems: InvestorNavConfig[] = [
   { href: '/', icon: Home, labelKey: 'home' },
-  { href: '/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
+  { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/wallet', icon: CircleDollarSign, labelKey: 'myWallet' },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' },
   { href: '/mercado-secundario', icon: ArrowLeftRight, labelKey: 'secondaryMarket' },
@@ -227,7 +227,10 @@ export function AppSidebar() {
   const investorItems: NavItem[] = visibleInvestorItems.map((item) => ({
     href: item.href,
     icon: item.icon,
-    label: t.nav[item.labelKey]
+    label:
+      item.labelKey === 'panel'
+        ? t.adminNav.panel
+        : t.nav[item.labelKey as Exclude<InvestorNavConfig['labelKey'], 'panel'>]
   }));
 
   const advisorItems: NavItem[] = advisorNavItems.map((item) => ({

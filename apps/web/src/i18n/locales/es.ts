@@ -153,7 +153,8 @@ export const es = {
   nav: {
     language: 'Idioma',
     home: 'Inicio',
-    dashboard: 'Dashboard',
+    dashboard: 'Panel de control',
+    panel: 'Panel de control',
     marketplace: 'Marketplace',
     myAssets: 'Mis Activos',
     myWallet: 'Mi Cartera',
@@ -162,7 +163,7 @@ export const es = {
     signOut: 'Cerrar Sesión'
   },
   adminNav: {
-    panel: 'Panel de Operaciones',
+    panel: 'Panel de control',
     investors: 'Inversores',
     assets: 'Activos',
     loans: 'Préstamos',
@@ -917,7 +918,7 @@ export const es = {
   },
   chart: {
     unavailable: 'Gráfico no disponible',
-    unavailableHint: 'El resto del dashboard sigue operativo. Reintenta recargando la página.'
+    unavailableHint: 'El resto del panel de control sigue operativo. Reintenta recargando la página.'
   },
   landing: {
     nav: {
@@ -1316,7 +1317,7 @@ export const es = {
     subtitle: 'Valor líquido neto, evolución y posiciones separadas por tipo de instrumento.',
     empty: 'Todavía no tenés posiciones activas. Explorá el marketplace para invertir.',
     comingSoon:
-      'La vista detallada del portfolio estará disponible pronto. Mientras tanto, explorá el marketplace o el dashboard de flujo de caja.',
+      'La vista detallada del portfolio estará disponible pronto. Mientras tanto, explorá el marketplace o el panel de control de flujo de caja.',
     loadError: 'No se pudo cargar tu cartera.',
     netLiquidValue: 'Valor líquido neto',
     netLiquidValueHint: 'Total de activos menos préstamos vigentes (USD)',
