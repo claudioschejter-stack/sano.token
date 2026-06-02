@@ -40,6 +40,7 @@ export type PropertyCardProps = {
   variant?: 'terminal' | 'light';
   className?: string;
   onBuy?: (propertyId: string) => void;
+  onAddToCart?: (propertyId: string) => void;
   onStartKyc?: (propertyId: string) => void;
 };
 
@@ -78,6 +79,7 @@ export function PropertyCard({
   variant = 'terminal',
   className = '',
   onBuy,
+  onAddToCart,
   onStartKyc
 }: PropertyCardProps) {
   const t = useTranslation();
@@ -326,6 +328,7 @@ export function PropertyCard({
               staffPreviewHint={staffPreviewHint}
               mutedTextClass={mutedText}
               onBuy={onBuy}
+              onAddToCart={onAddToCart}
               onStartKyc={onStartKyc}
             />
           </div>

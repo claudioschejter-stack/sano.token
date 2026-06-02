@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { confirmPaymentIntent, markPaymentIntentFailed } from '../../../../lib/payments/paymentService';
+import { confirmCartBatchByProvider } from '../../../../lib/payments/cartCheckoutService';
 import { confirmPlatformDeposit } from '../../../../lib/payments/platformWalletService';
 import { verifyStripeSignature } from '../../../../lib/payments/webhookSecurity';
 
@@ -26,6 +27,7 @@ export async function POST(request: Request) {
 
   const object = event.data?.object;
   const depositId = object?.metadata?.depositId;
+  const cartBatchId = object?.metadata?.cartBatchId;
   const paymentIntentId = object?.metadata?.paymentIntentId || object?.client_reference_id;
 
   if (depositId && (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded')) {
@@ -36,6 +38,16 @@ export async function POST(request: Request) {
       metadata: event
     });
     return NextResponse.json({ ok: true, deposit });
+  }
+
+  if (cartBatchId && (event.type === 'checkout.session.completed' || event.type === 'payment_intent.succeeded')) {
+    const paymentIntents = await confirmCartBatchByProvider({
+      batchId: cartBatchId,
+      provider: 'stripe',
+      providerPaymentId: object?.id,
+      payload: event
+    });
+    return NextResponse.json({ ok: true, paymentIntents });
   }
 
   if (!paymentIntentId) {

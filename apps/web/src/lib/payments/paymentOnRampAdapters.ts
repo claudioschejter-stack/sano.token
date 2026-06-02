@@ -8,6 +8,7 @@ type OnRampRequest = {
   stablecoinNetwork?: string | null;
   userEmail?: string | null;
   walletAddress?: string | null;
+  redirectPath?: string | null;
 };
 
 type OnRampResult = {
@@ -63,7 +64,9 @@ export function createTransakOnRampCheckout(input: OnRampRequest): OnRampResult 
     fiatAmount: input.amountUsd.toFixed(2),
     fiatCurrency: 'USD',
     partnerOrderId: input.depositId,
-    redirectURL: `${checkoutBaseUrl()}/dashboard/wallet?deposit=${input.depositId}&status=success`,
+    redirectURL: input.redirectPath
+      ? `${checkoutBaseUrl()}${input.redirectPath}`
+      : `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`,
     hideMenu: 'true'
   });
 
@@ -134,7 +137,9 @@ export function createBridgeOnRampCheckout(input: OnRampRequest): OnRampResult {
     destination_address: walletAddress,
     destination_chain: network.id.toLowerCase(),
     external_id: input.depositId,
-    redirect_uri: `${checkoutBaseUrl()}/dashboard/wallet?deposit=${input.depositId}&status=success`
+    redirect_uri: input.redirectPath
+      ? `${checkoutBaseUrl()}${input.redirectPath}`
+      : `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`
   });
 
   return {
@@ -205,8 +210,8 @@ async function createStripeDepositCheckout(input: OnRampRequest): Promise<OnRamp
     'line_items[0][price_data][product_data][name]': 'Saldo Sanova',
     'line_items[0][price_data][unit_amount]': Math.round(input.amountUsd * 100).toString(),
     'line_items[0][quantity]': '1',
-    success_url: `${checkoutBaseUrl()}/dashboard/wallet?deposit=${input.depositId}&status=success`,
-    cancel_url: `${checkoutBaseUrl()}/dashboard/wallet?deposit=${input.depositId}&status=cancelled`,
+    success_url: `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`,
+    cancel_url: `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=cancelled`,
     client_reference_id: input.depositId,
     'metadata[depositId]': input.depositId
   });

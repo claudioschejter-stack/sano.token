@@ -96,6 +96,7 @@ const selectClassName = inputClassName;
 export function PlatformWalletView() {
   const t = useTranslation();
   const w = t.platformWallet;
+  const cc = t.cartCheckout;
   const tw = t.wallet;
   const { intlLocale } = useLocale();
   const { formatUsd, formatDateTime } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
@@ -447,6 +448,14 @@ export function PlatformWalletView() {
         <div className="grid gap-6 lg:grid-cols-2">
           <InvestorSection title={w.depositTitle} subtitle={w.depositSubtitle}>
             <div className="space-y-3">
+              <Link
+                href="/marketplace/carrito?mode=deposit"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
+              >
+                <ArrowDownToLine size={16} />
+                {cc.depositCta}
+              </Link>
+              <p className="text-xs text-terminal-muted">{cc.depositSubtitle}</p>
               <WalletConnectButton />
               <input
                 value={amountUsd}

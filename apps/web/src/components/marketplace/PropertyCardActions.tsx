@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeftRight, Landmark, ShieldAlert, Wallet } from 'lucide-react';
+import { ArrowLeftRight, Landmark, ShieldAlert, ShoppingCart, Wallet } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { SystemRole } from '../../lib/auth/roles';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
@@ -17,6 +17,7 @@ export type PropertyCardActionsProps = {
   staffPreviewHint?: string;
   mutedTextClass?: string;
   onBuy?: (propertyId: string) => void;
+  onAddToCart?: (propertyId: string) => void;
   onStartKyc?: (propertyId: string) => void;
 };
 
@@ -31,10 +32,12 @@ export function PropertyCardActions({
   staffPreviewHint,
   mutedTextClass = 'text-terminal-muted',
   onBuy,
+  onAddToCart,
   onStartKyc
 }: PropertyCardActionsProps) {
   const t = useTranslation();
   const pc = t.propertyCard;
+  const cc = t.cartCheckout;
 
   const isSoldOut = availableTokens <= 0;
   const isInvestor = role === 'INVESTOR';
@@ -94,10 +97,16 @@ export function PropertyCardActions({
         ) : null}
 
         {showInvestorBuy ? (
-          <PropertyActionButton variant="rent" onClick={handlePrimaryAction}>
-            <Wallet size={18} />
-            {t.common.investNow}
-          </PropertyActionButton>
+          <>
+            <PropertyActionButton variant="rent" onClick={handlePrimaryAction}>
+              <Wallet size={18} />
+              {t.common.investNow}
+            </PropertyActionButton>
+            <PropertyActionButton variant="staff" onClick={() => onAddToCart?.(projectId)}>
+              <ShoppingCart size={18} />
+              {cc.addToCart}
+            </PropertyActionButton>
+          </>
         ) : null}
 
         {showKycGate ? (

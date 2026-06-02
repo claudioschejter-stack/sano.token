@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, Wallet } from 'lucide-react';
+import { Building2, ShoppingCart, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
@@ -10,6 +10,7 @@ import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import type { SystemRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
+import { useCartStore } from '../../store/useCartStore';
 import type { MarketplaceFeed } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
 import { LegalDisclaimerBanner } from '../legal/LegalDisclaimerBanner';
@@ -33,6 +34,9 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
     : 'APPROVED';
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
   const [holdings, setHoldings] = useState<SecondaryMarketHolding[]>([]);
+  const addItem = useCartStore((state) => state.addItem);
+  const cartItemCount = useCartStore((state) => state.itemCount());
+  const cc = t.cartCheckout;
 
   const holdingsByProject = useMemo(
     () => new Map(holdings.map((row) => [row.projectId, row])),
@@ -68,6 +72,15 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
             <span className="rounded-full border border-terminal-primary/30 bg-terminal-bg px-2.5 py-1 text-xs font-semibold text-terminal-primary">
               {roleLabels[role]}
             </span>
+          ) : null}
+          {session?.user && cartItemCount > 0 ? (
+            <Link
+              href="/marketplace/carrito"
+              className="ml-auto inline-flex items-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-1.5 text-xs font-semibold text-terminal-primary hover:bg-terminal-primary/20"
+            >
+              <ShoppingCart size={14} />
+              {cc.viewCart} ({cartItemCount})
+            </Link>
           ) : null}
         </div>
         <p className="mt-2 text-base text-terminal-muted md:text-lg whitespace-nowrap">{t.marketplace.subtitle}</p>
@@ -143,6 +156,21 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
                   return;
                 }
                 router.push(`/marketplace/${listing.id}/checkout`);
+              }}
+              onAddToCart={() => {
+                if (!session?.user) {
+                  router.push(`/acceso?returnTo=${encodeURIComponent('/marketplace/carrito')}`);
+                  return;
+                }
+                addItem({
+                  projectId: listing.id,
+                  title: listing.title,
+                  location: listing.location,
+                  imageUrl: listing.imageUrl,
+                  pricePerTokenUsd: listing.pricePerTokenUsd,
+                  availableTokens: listing.availableTokens,
+                  tokenSymbol: listing.tokenSymbol
+                });
               }}
               onStartKyc={() => router.push(`/kyc?returnTo=/marketplace/${listing.id}/checkout`)}
             />

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { confirmPaymentIntent, markPaymentIntentFailed } from '../../../../lib/payments/paymentService';
+import { confirmCartBatchByProvider } from '../../../../lib/payments/cartCheckoutService';
 import { verifyHmacSignature } from '../../../../lib/payments/webhookSecurity';
 
 export const dynamic = 'force-dynamic';
@@ -17,11 +18,38 @@ export async function POST(request: Request) {
     action?: string;
     data?: { id?: string };
     external_reference?: string;
-    metadata?: { paymentIntentId?: string };
+    metadata?: { paymentIntentId?: string; cartBatchId?: string };
     status?: string;
   };
 
+  const cartBatchId = event.metadata?.cartBatchId;
   const paymentIntentId = event.metadata?.paymentIntentId || event.external_reference;
+
+  if (cartBatchId) {
+    const paid = event.status === 'approved' || event.action === 'payment.updated' || event.type === 'payment';
+    const failed = ['rejected', 'cancelled', 'refunded', 'charged_back'].includes(event.status ?? '');
+
+    if (paid) {
+      const paymentIntents = await confirmCartBatchByProvider({
+        batchId: cartBatchId,
+        provider: 'mercado_pago',
+        providerPaymentId: event.data?.id,
+        payload: event
+      });
+      return NextResponse.json({ ok: true, paymentIntents });
+    }
+
+    if (failed && paymentIntentId) {
+      const paymentIntent = await markPaymentIntentFailed({
+        paymentIntentId,
+        provider: 'mercado_pago',
+        providerPaymentId: event.data?.id,
+        payload: event
+      });
+      return NextResponse.json({ ok: true, paymentIntent });
+    }
+  }
+
   if (!paymentIntentId) {
     return NextResponse.json({ ok: true, ignored: 'missing_payment_intent' });
   }
