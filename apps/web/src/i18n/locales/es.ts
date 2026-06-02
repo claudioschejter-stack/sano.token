@@ -1068,6 +1068,34 @@ export const es = {
     redirectingByRole: 'Redirigiendo según tu rol…',
     signInButton: 'Ingresar',
     forgotPassword: 'Olvidé mi contraseña',
+    passwordReset: {
+      forgotTitle: 'Recuperar contraseña',
+      forgotDesc:
+        'Ingresá el email de tu cuenta. Si existe, te enviaremos un enlace para elegir una nueva contraseña.',
+      sendButton: 'Enviar enlace',
+      sending: 'Enviando…',
+      sentTitle: 'Revisá tu correo',
+      sentDesc:
+        'Si el email está registrado con contraseña, recibirás un enlace válido por 1 hora. Revisá también spam.',
+      devLinkTitle: 'Modo desarrollo: enlace de restablecimiento',
+      resetTitle: 'Nueva contraseña',
+      resetDesc: 'Elegí una contraseña nueva de al menos 8 caracteres.',
+      newPasswordLabel: 'Nueva contraseña',
+      confirmPasswordLabel: 'Confirmar contraseña',
+      submitButton: 'Guardar contraseña',
+      submitting: 'Guardando…',
+      successTitle: 'Contraseña actualizada',
+      successDesc: 'Ya podés iniciar sesión con tu nueva contraseña. Te redirigimos al acceso…',
+      requestNewLink: 'Solicitar nuevo enlace',
+      backToLogin: 'Volver a iniciar sesión',
+      errors: {
+        GENERIC: 'No pudimos procesar la solicitud. Intentá de nuevo.',
+        WEAK_PASSWORD: 'La contraseña debe tener al menos 8 caracteres.',
+        MISMATCH_PASSWORD: 'Las contraseñas no coinciden.',
+        INVALID_OR_EXPIRED_TOKEN: 'El enlace no es válido o venció. Solicitá uno nuevo.',
+        SERVICE_UNAVAILABLE: 'El servicio no está disponible. Intentá más tarde.'
+      }
+    },
     invalidCredentials: 'Email o contraseña incorrectos.',
     signingIn: 'Ingresando…',
     signedInAs: 'Sesión activa:',

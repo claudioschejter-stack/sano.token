@@ -1038,6 +1038,34 @@ export const en = {
     redirectingByRole: "Redirecting according to your role…",
     signInButton: "Get into",
     forgotPassword: "I forgot my password",
+    passwordReset: {
+      forgotTitle: "Recover password",
+      forgotDesc:
+        "Enter your account email. If it exists, we will send a link to choose a new password.",
+      sendButton: "Send link",
+      sending: "Sending…",
+      sentTitle: "Check your email",
+      sentDesc:
+        "If the email is registered with a password, you will receive a link valid for 1 hour. Check spam too.",
+      devLinkTitle: "Development mode: reset link",
+      resetTitle: "New password",
+      resetDesc: "Choose a new password with at least 8 characters.",
+      newPasswordLabel: "New password",
+      confirmPasswordLabel: "Confirm password",
+      submitButton: "Save password",
+      submitting: "Saving…",
+      successTitle: "Password updated",
+      successDesc: "You can now sign in with your new password. Redirecting to login…",
+      requestNewLink: "Request a new link",
+      backToLogin: "Back to sign in",
+      errors: {
+        GENERIC: "We could not process the request. Try again.",
+        WEAK_PASSWORD: "Password must be at least 8 characters.",
+        MISMATCH_PASSWORD: "Passwords do not match.",
+        INVALID_OR_EXPIRED_TOKEN: "The link is invalid or expired. Request a new one.",
+        SERVICE_UNAVAILABLE: "Service unavailable. Try again later."
+      }
+    },
     invalidCredentials: "Incorrect email or password.",
     signingIn: "Entering…",
     signedInAs: "Active session:",

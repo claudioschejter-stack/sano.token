@@ -97,7 +97,7 @@ export function LoginForm({
 
       <p className="text-right">
         <Link
-          href="/contacto"
+          href="/acceso/olvidar"
           className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
         >
           {t.access.forgotPassword}

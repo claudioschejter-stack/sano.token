@@ -28,6 +28,8 @@ export async function PATCH(request: Request) {
     }
 
     const message = error instanceof Error ? error.message : 'UNKNOWN';
+
+    if (message === 'USER_NOT_FOUND') {
       return NextResponse.json({ error: message }, { status: 404 });
     }
 
