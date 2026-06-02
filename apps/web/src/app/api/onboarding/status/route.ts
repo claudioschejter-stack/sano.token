@@ -3,6 +3,7 @@ import { prisma } from '@sanova/database';
 import { buildOnboardingChecklist } from '../../../../lib/onboarding/accountStatus';
 import { buildOnboardingProfile } from '../../../../lib/onboarding/profile';
 import { getOnboardingIntegrations } from '../../../../lib/onboarding/integrationStatus';
+import { getPhoneDeliveryChannel } from '../../../../lib/onboarding/phoneDeliveryChannel';
 import { isDiditConfigured } from '../../../../lib/onboarding/diditService';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
@@ -61,6 +62,7 @@ export async function GET() {
     profile: buildOnboardingProfile(user),
     diditSessionId: user.diditSessionId,
     integrations: getOnboardingIntegrations(),
+    phoneVerificationChannel: getPhoneDeliveryChannel(),
     systemRole: user.systemRole
   });
 }

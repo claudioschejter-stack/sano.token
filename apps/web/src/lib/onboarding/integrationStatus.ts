@@ -8,13 +8,18 @@ export type IntegrationStatus = {
 export function getOnboardingIntegrations(): IntegrationStatus[] {
   const otpProvider = process.env.ONBOARDING_OTP_PROVIDER?.trim().toLowerCase();
   const supabaseOtpActive = otpProvider === 'supabase';
+  const whatsappActive = Boolean(
+    process.env.TWILIO_WHATSAPP_NUMBER?.trim() &&
+      process.env.TWILIO_ACCOUNT_SID &&
+      process.env.TWILIO_AUTH_TOKEN
+  );
 
   return [
     {
       id: 'otp-provider',
-      label: `Proveedor OTP teléfono (${supabaseOtpActive ? 'Supabase Auth' : 'Twilio directo'})`,
+      label: `Proveedor OTP teléfono (${supabaseOtpActive ? 'Supabase Auth' : whatsappActive ? 'WhatsApp (Twilio)' : 'Twilio SMS'})`,
       configured: true,
-      envKeys: ['ONBOARDING_OTP_PROVIDER']
+      envKeys: ['ONBOARDING_OTP_PROVIDER', 'ONBOARDING_PHONE_CHANNEL']
     },
     {
       id: 'resend',
@@ -31,6 +36,12 @@ export function getOnboardingIntegrations(): IntegrationStatus[] {
           process.env.TWILIO_PHONE_NUMBER
       ),
       envKeys: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']
+    },
+    {
+      id: 'twilio-whatsapp',
+      label: 'WhatsApp OTP (Twilio)',
+      configured: whatsappActive,
+      envKeys: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_WHATSAPP_NUMBER', 'ONBOARDING_PHONE_CHANNEL']
     },
     {
       id: 'didit',

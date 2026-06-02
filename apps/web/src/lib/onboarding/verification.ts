@@ -1,7 +1,12 @@
 import { createHash, randomInt } from 'crypto';
 import { prisma, VerificationChannel } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
-import { sendSms } from '../sms/sendSms';
+import {
+  getPhoneDeliveryChannel,
+  isWhatsAppPhoneVerificationEnabled,
+  phoneDeliveryFailureCode,
+  sendPhoneVerificationMessage
+} from './phoneDeliveryChannel';
 import { normalizePhoneE164 } from '../auth/contactValidation';
 import {
   isSupabaseOtpEnabled,
@@ -41,14 +46,14 @@ export async function issueVerificationCode(
 ): Promise<{ devCode?: string; delivered: boolean; deliveryError?: string }> {
   await assertRateLimit(userId, channel);
 
-  if (channel === 'PHONE' && isSupabaseOtpEnabled()) {
+  if (channel === 'PHONE' && isSupabaseOtpEnabled() && !isWhatsAppPhoneVerificationEnabled()) {
     const result = await sendSupabaseOtp(channel, target);
 
     if (!result.ok) {
       console.warn('[verification] supabase delivery failed for', channel, target, result.error);
       return {
         delivered: false,
-        deliveryError: result.error ?? 'SMS_DELIVERY_FAILED'
+        deliveryError: result.error ?? phoneDeliveryFailureCode('sms')
       };
     }
 
@@ -105,15 +110,12 @@ export async function issueVerificationCode(
       console.warn('[verification] email delivery failed for', target, deliveryError);
     }
   } else {
-    const result = await sendSms(
-      target,
-      `Sanova Global: tu código de verificación es ${code}. Válido 10 min.`
-    );
+    const result = await sendPhoneVerificationMessage(target, code);
     delivered = result.ok;
-    deliveryError = result.error;
+    deliveryError = result.error ?? (delivered ? undefined : phoneDeliveryFailureCode(result.channel));
 
     if (!delivered) {
-      console.warn('[verification] sms delivery failed for', target, deliveryError);
+      console.warn('[verification] phone delivery failed for', target, deliveryError, result.channel);
     }
   }
 
@@ -132,7 +134,7 @@ export async function consumeVerificationCode(
   channel: VerificationChannel,
   code: string
 ): Promise<boolean> {
-  if (channel === 'PHONE' && isSupabaseOtpEnabled()) {
+  if (channel === 'PHONE' && isSupabaseOtpEnabled() && !isWhatsAppPhoneVerificationEnabled()) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { email: true, phone: true }

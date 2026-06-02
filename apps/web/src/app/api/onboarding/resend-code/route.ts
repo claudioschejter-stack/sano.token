@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { issueVerificationCode } from '../../../../lib/onboarding/verification';
+import { phoneDeliveryFailureCode } from '../../../../lib/onboarding/phoneDeliveryChannel';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 
 type ResendBody = {
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
           error:
             channel === 'EMAIL'
               ? result.deliveryError ?? 'EMAIL_DELIVERY_FAILED'
-              : result.deliveryError ?? 'SMS_DELIVERY_FAILED'
+              : result.deliveryError ?? phoneDeliveryFailureCode()
         },
         { status: 502 }
       );

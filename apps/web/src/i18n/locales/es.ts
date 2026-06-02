@@ -1274,13 +1274,15 @@ export const es = {
     },
     steps: {
       contactTitle: 'Datos de contacto',
-      contactDesc: 'Usaremos tu email de sesión y guardaremos tu teléfono para contacto. No pediremos SMS en esta etapa.',
+      contactDesc: 'Usaremos tu email de sesión y guardaremos tu WhatsApp/teléfono para contacto.',
       emailTitle: 'Verificá tu email',
       emailDesc: 'Ingresá el código de 6 dígitos que enviamos a tu correo.',
       phoneTitle: 'Verificá tu teléfono',
-      phoneDesc: 'Ingresá el código SMS de 6 dígitos.',
+      phoneDescWhatsapp: 'Ingresá el código de 6 dígitos que enviamos por WhatsApp.',
+      phoneDescSms: 'Ingresá el código SMS de 6 dígitos.',
       codeSentEmail: 'Enviamos un código a tu correo. Revisá la bandeja de entrada y spam.',
-      codeSentPhone: 'Enviamos un código por SMS a tu teléfono.',
+      codeSentPhoneWhatsapp: 'Enviamos un código por WhatsApp a tu teléfono.',
+      codeSentPhoneSms: 'Enviamos un código por SMS a tu teléfono.',
       emailApproved: 'Correo aprobado',
       change: 'Cambiar',
       codeExpiredHint: 'Si no llegó o venció, podés pedir uno nuevo.',
@@ -1324,6 +1326,8 @@ export const es = {
         'No pudimos enviar el código a tu correo. Revisá spam o verificá el remitente en Resend.',
       SMS_DELIVERY_FAILED:
         'No pudimos enviar el SMS. Verificá el número o la configuración de Twilio.',
+      WHATSAPP_DELIVERY_FAILED:
+        'No pudimos enviar el código por WhatsApp. Verificá el número o la configuración de Twilio WhatsApp.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
       CONTACT_NOT_VERIFIED: 'Primero verificá tu email y cargá tu teléfono antes de iniciar el KYC.',
       UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.',

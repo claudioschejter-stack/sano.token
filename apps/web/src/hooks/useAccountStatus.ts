@@ -7,12 +7,14 @@ import type { OnboardingProfile } from '../lib/onboarding/profile';
 import { setDemoKycStatus } from './useKycStatus';
 
 type SystemRole = 'ADMIN' | 'ADVISOR_MANAGER' | 'ADVISOR' | 'INVESTOR' | 'TREASURY' | 'OPERATOR' | null;
+type PhoneVerificationChannel = 'sms' | 'whatsapp';
 
 export function useAccountStatus() {
   const { data: session, status } = useSession();
   const [checklist, setChecklist] = useState<OnboardingChecklist | null>(null);
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [systemRole, setSystemRole] = useState<SystemRole>(null);
+  const [phoneVerificationChannel, setPhoneVerificationChannel] = useState<PhoneVerificationChannel>('whatsapp');
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async (options?: { silent?: boolean }) => {
@@ -25,6 +27,7 @@ export function useAccountStatus() {
       setChecklist(null);
       setProfile(null);
       setSystemRole(null);
+      setPhoneVerificationChannel('whatsapp');
       setLoading(status === 'authenticated');
       return;
     }
@@ -42,10 +45,12 @@ export function useAccountStatus() {
           checklist: OnboardingChecklist;
           profile?: OnboardingProfile;
           systemRole?: SystemRole;
+          phoneVerificationChannel?: PhoneVerificationChannel;
         };
         setChecklist(data.checklist);
         setProfile(data.profile ?? null);
         setSystemRole(data.systemRole ?? null);
+        setPhoneVerificationChannel(data.phoneVerificationChannel ?? 'whatsapp');
 
         if (data.checklist.kycApproved) {
           setDemoKycStatus('APPROVED');
@@ -76,6 +81,7 @@ export function useAccountStatus() {
     checklist,
     profile,
     systemRole,
+    phoneVerificationChannel,
     loading,
     refresh,
     isOperational: checklist?.operational ?? false

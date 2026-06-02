@@ -75,7 +75,7 @@ function OnboardingContent() {
   const diditReturn = searchParams.get('didit') === '1';
 
   const { data: session, status } = useSession();
-  const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
+  const { checklist, loading, refresh, isOperational, systemRole, phoneVerificationChannel } = useAccountStatus();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = systemRole === 'INVESTOR';
 
@@ -154,6 +154,11 @@ function OnboardingContent() {
     }
   }, [checklist?.emailVerified]);
 
+  const phoneCodeHint =
+    phoneVerificationChannel === 'whatsapp' ? o.steps.codeSentPhoneWhatsapp : o.steps.codeSentPhoneSms;
+  const phoneStepDesc =
+    phoneVerificationChannel === 'whatsapp' ? o.steps.phoneDescWhatsapp : o.steps.phoneDescSms;
+
   const requestVerificationCode = useCallback(
     async (channel: 'EMAIL' | 'PHONE') => {
       setError(null);
@@ -185,10 +190,16 @@ function OnboardingContent() {
             return false;
           }
 
-          setDeliveryHint(channel === 'EMAIL' ? o.steps.codeSentEmail : o.steps.codeSentPhone);
+          setDeliveryHint(channel === 'EMAIL' ? o.steps.codeSentEmail : phoneCodeHint);
 
           if (data.devCode) {
-            setDevHint(channel === 'EMAIL' ? `Email: ${data.devCode}` : `SMS: ${data.devCode}`);
+            setDevHint(
+              channel === 'EMAIL'
+                ? `Email: ${data.devCode}`
+                : phoneVerificationChannel === 'whatsapp'
+                  ? `WhatsApp: ${data.devCode}`
+                  : `SMS: ${data.devCode}`
+            );
           }
 
           return true;
@@ -206,7 +217,7 @@ function OnboardingContent() {
       setError(o.errors.UNAUTHORIZED);
       return false;
     },
-    [o.errors, o.steps.codeSentEmail, o.steps.codeSentPhone]
+    [o.errors, o.steps.codeSentEmail, phoneCodeHint, phoneVerificationChannel]
   );
 
   useEffect(() => {
@@ -574,7 +585,7 @@ function OnboardingContent() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.phoneTitle}</h2>
             <p className="text-sm text-slate-600">
-              {o.steps.phoneDesc}{' '}
+              {phoneStepDesc}{' '}
               <span className="font-medium text-slate-800">{checklist.phone}</span>
             </p>
             <input
