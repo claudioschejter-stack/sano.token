@@ -1367,7 +1367,8 @@ export const en = {
   },
   portfolio: {
     title: "My assets",
-    subtitle: "Consolidated net liquid value, evolution and positions by instrument type.",
+    subtitle:
+      "Positions by instrument, portfolio evolution, deposits, withdrawals and platform balance.",
     empty: "You do not have active positions yet. Explore the marketplace to invest.",
     comingSoon:
       "Detailed portfolio view will be available soon. In the meantime, explore the marketplace or the cash flow dashboard.",

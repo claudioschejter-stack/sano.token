@@ -293,7 +293,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     <section className="mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
-          href={mode === 'deposit' ? '/dashboard/wallet' : '/marketplace'}
+          href={mode === 'deposit' ? '/dashboard/portfolio' : '/marketplace'}
           className="inline-flex items-center gap-2 text-sm text-terminal-muted hover:text-terminal-text"
         >
           <ArrowLeft size={16} />
@@ -450,7 +450,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 </Link>
               ) : (
                 <Link
-                  href="/dashboard/wallet"
+                  href="/dashboard/portfolio"
                   className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
                 >
                   {c.backToWallet}

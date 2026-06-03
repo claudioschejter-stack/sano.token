@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Building } from 'lucide-react';
 import { InvestorPortfolioPanel } from '../../../../components/dashboard/investor/InvestorPortfolioPanel';
 import { InvestorPageHeader } from '../../../../components/dashboard/investor/InvestorPageHeader';
+import { PlatformWalletView } from '../../../../components/wallet/PlatformWalletView';
 import { useTranslation } from '../../../../i18n/LocaleProvider';
 
 export default function PortfolioPage() {
@@ -11,10 +12,14 @@ export default function PortfolioPage() {
   const p = t.portfolio;
 
   return (
-    <section className="mx-auto max-w-6xl space-y-6 bg-terminal-bg text-terminal-text md:space-y-8">
+    <section className="mx-auto max-w-7xl space-y-8 bg-terminal-bg text-terminal-text md:space-y-10">
       <InvestorPageHeader eyebrow={t.nav.myAssets} title={p.title} subtitle={p.subtitle} />
 
       <InvestorPortfolioPanel />
+
+      <div className="border-t border-terminal-border pt-8 md:pt-10">
+        <PlatformWalletView hideHeader />
+      </div>
 
       <Link
         href="/marketplace"

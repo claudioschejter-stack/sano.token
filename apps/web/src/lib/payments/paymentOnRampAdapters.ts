@@ -103,7 +103,7 @@ export function createTransakOffRampCheckout(input: {
     fiatAmount: input.amountUsd.toFixed(2),
     fiatCurrency: 'USD',
     partnerOrderId: input.withdrawalId,
-    redirectURL: `${checkoutBaseUrl()}/dashboard/wallet?withdrawal=${input.withdrawalId}&status=success`,
+    redirectURL: `${checkoutBaseUrl()}/dashboard/portfolio?withdrawal=${input.withdrawalId}&status=success`,
     hideMenu: 'true'
   });
 

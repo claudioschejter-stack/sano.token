@@ -1403,7 +1403,8 @@ export const es = {
   },
   portfolio: {
     title: 'Mis activos',
-    subtitle: 'Valor líquido neto, evolución y posiciones separadas por tipo de instrumento.',
+    subtitle:
+      'Posiciones por instrumento, evolución de cartera, depósitos, retiros y saldo en plataforma.',
     empty: 'Todavía no tenés posiciones activas. Explorá el marketplace para invertir.',
     comingSoon:
       'La vista detallada del portfolio estará disponible pronto. Mientras tanto, explorá el marketplace o el panel de control de flujo de caja.',

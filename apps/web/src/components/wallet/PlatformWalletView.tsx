@@ -93,7 +93,7 @@ const inputClassName =
   'w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2.5 text-sm text-terminal-text outline-none focus:border-terminal-primary/50';
 const selectClassName = inputClassName;
 
-export function PlatformWalletView() {
+export function PlatformWalletView({ hideHeader = false }: { hideHeader?: boolean }) {
   const t = useTranslation();
   const w = t.platformWallet;
   const cc = t.cartCheckout;
@@ -351,22 +351,43 @@ export function PlatformWalletView() {
   const reserved = wallet ? Number(wallet.account.reserved) : 0;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 bg-terminal-bg text-terminal-text md:space-y-8">
-      <InvestorPageHeader
-        eyebrow={w.eyebrow}
-        title={w.title}
-        subtitle={w.subtitle}
-        action={
+    <div
+      className={`mx-auto space-y-6 bg-terminal-bg text-terminal-text md:space-y-8 ${
+        hideHeader ? 'max-w-none' : 'max-w-5xl'
+      }`}
+    >
+      {hideHeader ? (
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-base font-bold text-terminal-text sm:text-lg">{w.title}</h2>
+            <p className="mt-1 text-xs text-terminal-muted sm:text-sm">{w.subtitle}</p>
+          </div>
           <Link
             href="/marketplace"
-            className="inline-flex items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
+            className="inline-flex w-fit items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
           >
             <ShoppingBag size={16} />
             {w.buyTokens}
             <ArrowUpRight size={14} />
           </Link>
-        }
-      />
+        </div>
+      ) : (
+        <InvestorPageHeader
+          eyebrow={w.eyebrow}
+          title={w.title}
+          subtitle={w.subtitle}
+          action={
+            <Link
+              href="/marketplace"
+              className="inline-flex items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
+            >
+              <ShoppingBag size={16} />
+              {w.buyTokens}
+              <ArrowUpRight size={14} />
+            </Link>
+          }
+        />
+      )}
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <InvestorKpiCard

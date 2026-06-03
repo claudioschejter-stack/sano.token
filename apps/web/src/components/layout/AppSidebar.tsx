@@ -67,7 +67,6 @@ const advisorNavItems: AdvisorNavConfig[] = [
 const investorNavItems: InvestorNavConfig[] = [
   { href: '/', icon: Home, labelKey: 'home' },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
-  { href: '/dashboard/wallet', icon: CircleDollarSign, labelKey: 'myWallet' },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' },
   { href: '/mercado-secundario', icon: ArrowLeftRight, labelKey: 'secondaryMarket' },
   {
