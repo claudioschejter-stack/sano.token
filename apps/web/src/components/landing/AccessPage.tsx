@@ -12,7 +12,6 @@ import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/re
 import { RegisterForm } from '../auth/RegisterForm';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { LandingHeader } from './LandingHeader';
-import { LegalDisclaimerBanner } from '../legal/LegalDisclaimerBanner';
 import { TrustBadges } from './TrustBadges';
 
 function AccessPageContent() {
@@ -107,8 +106,6 @@ function AccessPageContent() {
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{a.title}</h1>
         </div>
-
-        <LegalDisclaimerBanner className="mx-auto mt-8 max-w-2xl" />
 
         {authError ? (
           <p className="mx-auto mt-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

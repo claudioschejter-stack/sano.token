@@ -11,7 +11,6 @@ import { AdminPlatformWalletSection } from './AdminPlatformWalletSection';
 
 type IntegrationId =
   | 'email'
-  | 'sms'
   | 'kyc'
   | 'googleOAuth'
   | 'appleOAuth'
@@ -28,7 +27,6 @@ type IntegrationId =
 
 const INTEGRATION_IDS: IntegrationId[] = [
   'email',
-  'sms',
   'kyc',
   'googleOAuth',
   'appleOAuth',

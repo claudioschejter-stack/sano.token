@@ -68,7 +68,6 @@ export function assertInvestorCheckoutEligible(user: UserPurchaseContext) {
 
   if (
     !user.emailVerifiedAt ||
-    !user.phoneVerifiedAt ||
     !user.phone?.trim() ||
     user.accountStatus === 'SUSPENDED'
   ) {

@@ -1,30 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { issueVerificationCode } from '../../../../lib/onboarding/verification';
-import { phoneDeliveryFailureCode } from '../../../../lib/onboarding/phoneDeliveryChannel';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 
-type ResendBody = {
-  channel?: 'EMAIL' | 'PHONE';
-};
-
-export async function POST(request: Request) {
+export async function POST() {
   const ctx = await requireAuthenticatedSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as ResendBody;
-  const channel = body.channel === 'PHONE' ? 'PHONE' : 'EMAIL';
-
   const user = await prisma.user.findUnique({
     where: { id: ctx.userId },
     select: {
       email: true,
-      phone: true,
-      emailVerifiedAt: true,
-      phoneVerifiedAt: true
+      emailVerifiedAt: true
     }
   });
 
@@ -32,36 +22,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
   }
 
-  if (channel === 'EMAIL') {
-    if (user.emailVerifiedAt) {
-      return NextResponse.json({ error: 'ALREADY_VERIFIED' }, { status: 400 });
-    }
-  } else if (user.phoneVerifiedAt) {
+  if (user.emailVerifiedAt) {
     return NextResponse.json({ error: 'ALREADY_VERIFIED' }, { status: 400 });
-  } else if (!user.phone) {
-    return NextResponse.json({ error: 'INVALID_PHONE' }, { status: 400 });
   }
 
-  const target = channel === 'EMAIL' ? user.email : user.phone!;
-
   try {
-    const result = await issueVerificationCode(ctx.userId, channel, target);
+    const result = await issueVerificationCode(ctx.userId, 'EMAIL', user.email);
 
     if (!result.delivered) {
       return NextResponse.json(
-        {
-          error:
-            channel === 'EMAIL'
-              ? result.deliveryError ?? 'EMAIL_DELIVERY_FAILED'
-              : phoneDeliveryFailureCode(result.deliveryError)
-        },
+        { error: result.deliveryError ?? 'EMAIL_DELIVERY_FAILED' },
         { status: 502 }
       );
     }
 
     return NextResponse.json({
       ok: true,
-      channel,
+      channel: 'EMAIL',
       devCode: result.devCode
     });
   } catch (error) {

@@ -1243,11 +1243,11 @@ export const en = {
       phone: "mobile phone",
       phonePlaceholder: "2617513426",
       countryLabel: "country code",
-      phoneHint: "Without 0 or 15. Example Mendoza: 2617513426 with +54."
+      phoneHint: "Without 0 or 15. Example Mendoza: 2617513426 with +54. No verification code is sent."
     },
     steps: {
       contactTitle: "Contact details",
-      contactDesc: "We will use your session email and save your WhatsApp/phone number for contact.",
+      contactDesc: "We will use your session email and save your phone number for contact.",
       emailTitle: "Check your email",
       emailDesc: "Enter the 6-digit code that we sent to your email.",
       phoneTitle: "Check your phone",

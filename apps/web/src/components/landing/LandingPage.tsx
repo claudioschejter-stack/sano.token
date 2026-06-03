@@ -18,7 +18,6 @@ import { HeroSubtitle } from './HeroSubtitle';
 import { FeaturedPropertiesSection } from './FeaturedPropertiesSection';
 import { MacroInvestmentThesis } from './MacroInvestmentThesis';
 import { MarketplaceCtaLink } from './MarketplaceCtaLink';
-import { LegalDisclaimerBanner } from '../legal/LegalDisclaimerBanner';
 import { VacaMuertaOperators } from './VacaMuertaOperators';
 import type { MarketplaceFeed } from '../../types/marketplace';
 
@@ -33,10 +32,6 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-white text-slate-900">
       <LandingHeader showLanguageSelector />
-
-      <div className="mx-auto w-full max-w-7xl px-4 pt-4 md:px-6">
-        <LegalDisclaimerBanner />
-      </div>
 
       <section className="relative overflow-hidden bg-gradient-to-br from-[#0A0E17] via-[#111827] to-[#1e3a5f] text-white">
         <div

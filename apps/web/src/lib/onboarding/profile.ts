@@ -43,7 +43,7 @@ export function buildOnboardingProfile(user: UserProfileSource): OnboardingProfi
     email: user.email,
     phone: user.phone,
     emailVerified: Boolean(user.emailVerifiedAt),
-    phoneVerified: Boolean(user.phoneVerifiedAt),
+    phoneVerified: Boolean(user.phone?.trim()),
     kycApproved: user.kycStatus === 'APPROVED',
     kycStatus: user.kycStatus,
     identity: {

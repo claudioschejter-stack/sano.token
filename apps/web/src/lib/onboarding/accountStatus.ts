@@ -3,9 +3,9 @@ import type { AccountStatus, KycStatus } from '@sanova/database';
 export type OnboardingChecklist = {
   emailVerified: boolean;
   phoneVerified: boolean;
-  /** Email verified and phone captured — required before phone OTP. */
+  /** Email verified and phone captured. */
   contactVerified: boolean;
-  /** KYC (Didit / manual review) is allowed after email and phone OTP verification. */
+  /** KYC (Didit / manual review) is allowed after contact step. */
   kycEnabled: boolean;
   kycApproved: boolean;
   operational: boolean;
@@ -32,8 +32,7 @@ type UserOnboardingFields = {
 export function isAccountOperational(user: UserOnboardingFields): boolean {
   const identityVerified =
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phoneVerifiedAt) &&
-    Boolean(user.phone) &&
+    Boolean(user.phone?.trim()) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
@@ -44,12 +43,11 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
   return identityVerified;
 }
 
-/** KYC + contact verified — allows marketplace checkout before wallet is linked. */
+/** KYC + contact captured — allows marketplace checkout before wallet is linked. */
 export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolean {
   return (
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phoneVerifiedAt) &&
-    Boolean(user.phone) &&
+    Boolean(user.phone?.trim()) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED'
   );
@@ -68,9 +66,9 @@ export function buildOnboardingChecklist(
   diditEnabled: boolean
 ): OnboardingChecklist {
   const emailVerified = Boolean(user.emailVerifiedAt);
-  const phoneVerified = Boolean(user.phoneVerifiedAt);
-  const contactVerified = Boolean(user.phone) && emailVerified;
-  const kycEnabled = contactVerified && phoneVerified;
+  const phoneVerified = Boolean(user.phone?.trim());
+  const contactVerified = phoneVerified && emailVerified;
+  const kycEnabled = contactVerified;
   const kycApproved = user.kycStatus === 'APPROVED';
   const walletAddress = user.walletAddress?.trim() || null;
   const walletLinked = Boolean(walletAddress);

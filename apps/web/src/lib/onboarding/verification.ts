@@ -1,12 +1,6 @@
 import { createHash, randomInt } from 'crypto';
 import { prisma, VerificationChannel } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
-import {
-  isTwilioVerifyWhatsAppEnabled,
-  phoneDeliveryFailureCode,
-  sendPhoneVerificationMessage,
-  verifyPhoneVerificationCode
-} from './phoneDeliveryChannel';
 import { normalizePhoneE164 } from '../auth/contactValidation';
 
 export { normalizePhoneE164 };
@@ -39,15 +33,11 @@ export async function issueVerificationCode(
   channel: VerificationChannel,
   target: string
 ): Promise<{ devCode?: string; delivered: boolean; deliveryError?: string }> {
-  await assertRateLimit(userId, channel);
-
-  if (channel === 'PHONE' && isTwilioVerifyWhatsAppEnabled()) {
-    const result = await sendPhoneVerificationMessage(target, '');
-    return {
-      delivered: result.ok,
-      deliveryError: result.error ? phoneDeliveryFailureCode(result.error) : undefined
-    };
+  if (channel !== 'EMAIL') {
+    throw new Error('PHONE_VERIFICATION_DISABLED');
   }
+
+  await assertRateLimit(userId, channel);
 
   const code = generateCode();
   const expiresAt = new Date(Date.now() + CODE_TTL_MS);
@@ -67,53 +57,38 @@ export async function issueVerificationCode(
     }
   });
 
-  let delivered = false;
-  let deliveryError: string | undefined;
+  const result = await sendTransactionalEmail({
+    to: target,
+    subject: `Tu código de verificación Sanova es ${code}`,
+    text: [
+      `Tu código de verificación Sanova es: ${code}`,
+      '',
+      'Este código vence en 10 minutos.',
+      'Si no solicitaste este acceso, podés ignorar este mensaje.',
+      '',
+      'Sanova Capital'
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
+        <p>Tu código de verificación Sanova es:</p>
+        <p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:16px 0">${code}</p>
+        <p>Este código vence en 10 minutos.</p>
+        <p style="color:#475569;font-size:14px">Si no solicitaste este acceso, podés ignorar este mensaje.</p>
+        <p style="color:#475569;font-size:14px">Sanova Capital</p>
+      </div>
+    `
+  });
 
-  if (channel === 'EMAIL') {
-    const result = await sendTransactionalEmail({
-      to: target,
-      subject: `Tu código de verificación Sanova es ${code}`,
-      text: [
-        `Tu código de verificación Sanova es: ${code}`,
-        '',
-        'Este código vence en 10 minutos.',
-        'Si no solicitaste este acceso, podés ignorar este mensaje.',
-        '',
-        'Sanova Capital'
-      ].join('\n'),
-      html: `
-        <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
-          <p>Tu código de verificación Sanova es:</p>
-          <p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:16px 0">${code}</p>
-          <p>Este código vence en 10 minutos.</p>
-          <p style="color:#475569;font-size:14px">Si no solicitaste este acceso, podés ignorar este mensaje.</p>
-          <p style="color:#475569;font-size:14px">Sanova Capital</p>
-        </div>
-      `
-    });
-    delivered = result.ok;
-    deliveryError = result.error;
-
-    if (!delivered) {
-      console.warn('[verification] email delivery failed for', target, deliveryError);
-    }
-  } else {
-    const result = await sendPhoneVerificationMessage(target, code);
-    delivered = result.ok;
-    deliveryError = result.error ?? (delivered ? undefined : phoneDeliveryFailureCode(result.error));
-
-    if (!delivered) {
-      console.warn('[verification] whatsapp delivery failed for', target, deliveryError);
-    }
+  if (!result.ok) {
+    console.warn('[verification] email delivery failed for', target, result.error);
   }
 
   const exposeDevCode =
     process.env.ONBOARDING_DEV_EXPOSE_CODE === 'true' || process.env.NODE_ENV !== 'production';
 
   return {
-    delivered,
-    deliveryError,
+    delivered: result.ok,
+    deliveryError: result.error,
     ...(exposeDevCode ? { devCode: code } : {})
   };
 }
@@ -123,18 +98,8 @@ export async function consumeVerificationCode(
   channel: VerificationChannel,
   code: string
 ): Promise<boolean> {
-  if (channel === 'PHONE' && isTwilioVerifyWhatsAppEnabled()) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { phone: true }
-    });
-
-    if (!user?.phone) {
-      return false;
-    }
-
-    const verifyResult = await verifyPhoneVerificationCode(user.phone, code);
-    return verifyResult.ok;
+  if (channel !== 'EMAIL') {
+    return false;
   }
 
   const record = await prisma.verificationCode.findFirst({

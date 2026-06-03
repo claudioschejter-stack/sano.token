@@ -8,7 +8,6 @@ import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
-import { LegalDisclaimerBanner } from '../legal/LegalDisclaimerBanner';
 import { PropertyCard } from '../marketplace/PropertyCard';
 import type {
   SecondaryMarketFeed,
@@ -211,8 +210,6 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
         </div>
         <p className="mt-2 max-w-3xl text-base text-terminal-muted md:text-lg">{sm.subtitle}</p>
       </header>
-
-      <LegalDisclaimerBanner className="mb-6" compact />
 
       {!kycApproved ? (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">

@@ -41,18 +41,17 @@ export function RegisterForm({ profile: profileProp, returnTo, initialEmail = ''
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
 
   const readOnly = Boolean(profileProp);
+  const phoneLocked = readOnly && Boolean(profileProp?.phone);
 
   function applyProfile(profile: OnboardingProfile) {
     setEmail(profile.email);
     setEmailVerified(profile.emailVerified);
-    setPhoneVerified(profile.phoneVerified);
 
     const parsed = parseE164Phone(profile.phone);
     if (parsed) {
@@ -258,18 +257,13 @@ export function RegisterForm({ profile: profileProp, returnTo, initialEmail = ''
           <label htmlFor="register-phone" className="text-sm font-medium text-slate-700">
             {r.phoneLabel}
           </label>
-          <VerificationStatusBadge
-            verified={phoneVerified}
-            verifiedLabel={r.verifiedLabel}
-            pendingLabel={r.pendingLabel}
-          />
         </div>
         <div className="flex gap-2">
           <select
             id="register-dial"
             aria-label={r.countryLabel}
             value={dialCode}
-            disabled={readOnly || phoneVerified}
+            disabled={readOnly || phoneLocked}
             onChange={(event) => setDialCode(event.target.value)}
             className="min-h-12 w-[8.5rem] shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-600"
           >
@@ -286,7 +280,7 @@ export function RegisterForm({ profile: profileProp, returnTo, initialEmail = ''
             inputMode="tel"
             autoComplete="tel-national"
             required
-            readOnly={readOnly || phoneVerified}
+            readOnly={readOnly || phoneLocked}
             value={phoneLocal}
             onChange={(event) => {
               setPhoneLocal(event.target.value.replace(/\D/g, ''));

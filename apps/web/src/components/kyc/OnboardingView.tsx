@@ -22,9 +22,9 @@ import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { InstallAppBanner } from '../pwa/InstallAppBanner';
 import { ActivateWalletStep } from './ActivateWalletStep';
 
-type Step = 'contact' | 'email' | 'phone' | 'identity' | 'wallet' | 'done';
+type Step = 'contact' | 'email' | 'identity' | 'wallet' | 'done';
 
-const ONBOARDING_STEPS: Step[] = ['contact', 'email', 'phone', 'identity', 'wallet', 'done'];
+const ONBOARDING_STEPS: Step[] = ['contact', 'email', 'identity', 'wallet', 'done'];
 
 function stepFromChecklist(
   checklist: ReturnType<typeof useAccountStatus>['checklist'],
@@ -41,10 +41,6 @@ function stepFromChecklist(
 
   if (!checklist.emailVerified) {
     return 'email';
-  }
-
-  if (!checklist.phoneVerified) {
-    return 'phone';
   }
 
   if (!checklist.kycEnabled) {
@@ -82,13 +78,11 @@ function OnboardingContent() {
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
   const [emailCode, setEmailCode] = useState('');
-  const [phoneCode, setPhoneCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devHint, setDevHint] = useState<string | null>(null);
   const [diditLaunching, setDiditLaunching] = useState(false);
   const emailCodeSent = useRef(false);
-  const phoneCodeSent = useRef(false);
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
 
@@ -154,60 +148,56 @@ function OnboardingContent() {
     }
   }, [checklist?.emailVerified]);
 
-  const requestVerificationCode = useCallback(
-    async (channel: 'EMAIL' | 'PHONE') => {
-      setError(null);
-      setDevHint(null);
+  const requestVerificationCode = useCallback(async () => {
+    setError(null);
+    setDevHint(null);
 
-      const maxAttempts = 5;
+    const maxAttempts = 5;
 
-      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-        try {
-          const response = await fetch('/api/onboarding/resend-code', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ channel })
-          });
-          const data = (await response.json()) as {
-            error?: string;
-            devCode?: string;
-          };
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      try {
+        const response = await fetch('/api/onboarding/resend-code', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = (await response.json()) as {
+          error?: string;
+          devCode?: string;
+        };
 
-          if (response.status === 401 && attempt < maxAttempts - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
-            continue;
-          }
+        if (response.status === 401 && attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+          continue;
+        }
 
-          if (!response.ok) {
-            const errorKey = data.error ?? 'GENERIC';
-            setError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.GENERIC);
-            return false;
-          }
-
-          setDeliveryHint(channel === 'EMAIL' ? o.steps.codeSentEmail : o.steps.codeSentPhone);
-
-          if (data.devCode) {
-            setDevHint(channel === 'EMAIL' ? `Email: ${data.devCode}` : `WhatsApp: ${data.devCode}`);
-          }
-
-          return true;
-        } catch {
-          if (attempt < maxAttempts - 1) {
-            await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
-            continue;
-          }
-
-          setError(o.errors.GENERIC);
+        if (!response.ok) {
+          const errorKey = data.error ?? 'GENERIC';
+          setError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.GENERIC);
           return false;
         }
-      }
 
-      setError(o.errors.UNAUTHORIZED);
-      return false;
-    },
-    [o.errors, o.steps.codeSentEmail, o.steps.codeSentPhone]
-  );
+        setDeliveryHint(o.steps.codeSentEmail);
+
+        if (data.devCode) {
+          setDevHint(`Email: ${data.devCode}`);
+        }
+
+        return true;
+      } catch {
+        if (attempt < maxAttempts - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
+          continue;
+        }
+
+        setError(o.errors.GENERIC);
+        return false;
+      }
+    }
+
+    setError(o.errors.UNAUTHORIZED);
+    return false;
+  }, [o.errors, o.steps.codeSentEmail]);
 
   useEffect(() => {
     if (
@@ -222,38 +212,18 @@ function OnboardingContent() {
     }
 
     emailCodeSent.current = true;
-    void requestVerificationCode('EMAIL').then((ok) => {
+    void requestVerificationCode().then((ok) => {
       if (!ok) {
         emailCodeSent.current = false;
       }
     });
   }, [checklist, loading, requestVerificationCode, sessionReady, step]);
 
-  useEffect(() => {
-    if (
-      !sessionReady ||
-      loading ||
-      !checklist ||
-      step !== 'phone' ||
-      checklist.phoneVerified ||
-      phoneCodeSent.current
-    ) {
-      return;
-    }
-
-    phoneCodeSent.current = true;
-    void requestVerificationCode('PHONE').then((ok) => {
-      if (!ok) {
-        phoneCodeSent.current = false;
-      }
-    });
-  }, [checklist, loading, requestVerificationCode, sessionReady, step]);
-
   const resendCurrentCode = useCallback(async () => {
     setResending(true);
-    await requestVerificationCode(step === 'phone' ? 'PHONE' : 'EMAIL');
+    await requestVerificationCode();
     setResending(false);
-  }, [requestVerificationCode, step]);
+  }, [requestVerificationCode]);
 
   const submitContact = useCallback(async () => {
     const phone = buildAndValidateE164Phone(dialCode, phoneLocal);
@@ -283,11 +253,8 @@ function OnboardingContent() {
         return;
       }
 
-      if (data.devCodes) {
-        const parts = [];
-        if (data.devCodes.email) parts.push(`Email: ${data.devCodes.email}`);
-        if (data.devCodes.phone) parts.push(`WhatsApp: ${data.devCodes.phone}`);
-        setDevHint(parts.join(' · '));
+      if (data.devCodes?.email) {
+        setDevHint(`Email: ${data.devCodes.email}`);
       }
 
       await refresh({ silent: Boolean(checklist) });
@@ -325,34 +292,6 @@ function OnboardingContent() {
       setBusy(false);
     }
   }, [emailCode, o.errors, refresh]);
-
-  const verifyPhone = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/onboarding/verify-phone', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: phoneCode })
-      });
-
-      const data = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        const errorKey = data.error ?? 'INVALID_CODE';
-        setError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.INVALID_CODE);
-        return;
-      }
-
-      await refresh({ silent: true });
-    } catch {
-      setError(o.errors.GENERIC);
-    } finally {
-      setBusy(false);
-    }
-  }, [o.errors, phoneCode, refresh]);
 
   const startDidit = useCallback(async () => {
     setBusy(true);
@@ -457,7 +396,7 @@ function OnboardingContent() {
         </div>
 
         <div className="mx-auto mt-4 flex w-full max-w-md gap-1.5">
-          {[0, 1, 2, 3, 4].map((index) => (
+          {[0, 1, 2, 3].map((index) => (
             <div
               key={index}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
@@ -570,35 +509,6 @@ function OnboardingContent() {
           </section>
         ) : null}
 
-        {step === 'phone' ? (
-          <section className="space-y-4">
-            <h2 className="text-xl font-bold">{o.steps.phoneTitle}</h2>
-            <p className="text-sm text-slate-600">
-              {o.steps.phoneDesc}{' '}
-              <span className="font-medium text-slate-800">{checklist.phone}</span>
-            </p>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="000000"
-              value={phoneCode}
-              onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, ''))}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-5 text-center text-2xl font-semibold tracking-[0.4em] outline-none ring-blue-500 focus:ring-2"
-            />
-            <p className="text-center text-xs text-slate-500">{o.steps.codeExpiredHint}</p>
-            <button
-              type="button"
-              disabled={resending || busy}
-              onClick={() => void resendCurrentCode()}
-              className="mx-auto block text-sm font-semibold text-blue-600 hover:text-blue-500 disabled:opacity-60"
-            >
-              {resending ? o.steps.resendingCode : o.steps.resendCode}
-            </button>
-          </section>
-        ) : null}
-
         {step === 'identity' ? (
           <section className="space-y-5">
             <h2 className="text-xl font-bold">{o.steps.identityTitle}</h2>
@@ -666,11 +576,10 @@ function OnboardingContent() {
           <div className="mx-auto w-full max-w-md">
             <button
               type="button"
-              disabled={busy || (step === 'contact' && !validatedPhone) || (step === 'email' && emailCode.length !== 6) || (step === 'phone' && phoneCode.length !== 6)}
+              disabled={busy || (step === 'contact' && !validatedPhone) || (step === 'email' && emailCode.length !== 6)}
               onClick={() => {
                 if (step === 'contact') void submitContact();
                 else if (step === 'email') void verifyEmail();
-                else if (step === 'phone') void verifyPhone();
               }}
               className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 text-base font-semibold text-white disabled:opacity-60"
             >

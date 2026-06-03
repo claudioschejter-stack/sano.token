@@ -5,24 +5,8 @@ export type IntegrationStatus = {
   envKeys: string[];
 };
 
-import { isTwilioWhatsAppConfigured } from './phoneDeliveryChannel';
-
 export function getOnboardingIntegrations(): IntegrationStatus[] {
-  const whatsappActive = isTwilioWhatsAppConfigured();
-
   return [
-    {
-      id: 'twilio-whatsapp',
-      label: 'WhatsApp OTP teléfono (Twilio)',
-      configured: whatsappActive,
-      envKeys: [
-        'TWILIO_ACCOUNT_SID',
-        'TWILIO_AUTH_TOKEN',
-        'TWILIO_WHATSAPP_NUMBER',
-        'TWILIO_PHONE_NUMBER',
-        'TWILIO_VERIFY_SERVICE_SID'
-      ]
-    },
     {
       id: 'resend',
       label: 'Email OTP (Resend)',

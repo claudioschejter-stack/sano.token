@@ -72,7 +72,7 @@ type UserWithInvestor = {
 
 function mapAdminInvestorRecord(user: UserWithInvestor): AdminInvestorRecord {
   const emailVerified = Boolean(user.emailVerifiedAt);
-  const phoneVerified = Boolean(user.phoneVerifiedAt);
+  const phoneVerified = Boolean(user.phone?.trim());
   const kycIdentity = buildKycIdentitySnapshot(user);
 
   return {

@@ -1276,11 +1276,11 @@ export const es = {
       phone: 'Teléfono móvil',
       phonePlaceholder: '2617513426',
       countryLabel: 'Código de país',
-      phoneHint: 'Sin 0 ni 15. Ejemplo Mendoza: 2617513426 con +54.'
+      phoneHint: 'Sin 0 ni 15. Ejemplo Mendoza: 2617513426 con +54. No enviamos código de verificación.'
     },
     steps: {
       contactTitle: 'Datos de contacto',
-      contactDesc: 'Usaremos tu email de sesión y guardaremos tu WhatsApp/teléfono para contacto.',
+      contactDesc: 'Usaremos tu email de sesión y guardaremos tu teléfono para contacto.',
       emailTitle: 'Verificá tu email',
       emailDesc: 'Ingresá el código de 6 dígitos que enviamos a tu correo.',
       phoneTitle: 'Verificá tu teléfono',

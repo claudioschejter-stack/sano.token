@@ -3,16 +3,11 @@ import { requireAuthenticatedSession } from './requireAuthenticatedSession';
 
 export type ContactVerificationFields = {
   emailVerifiedAt: Date | null;
-  phoneVerifiedAt: Date | null;
   phone: string | null;
 };
 
 export function isContactVerificationComplete(user: ContactVerificationFields): boolean {
-  return (
-    Boolean(user.phone) &&
-    Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phoneVerifiedAt)
-  );
+  return Boolean(user.phone?.trim()) && Boolean(user.emailVerifiedAt);
 }
 
 export async function requireContactVerifiedUser() {
@@ -26,7 +21,6 @@ export async function requireContactVerifiedUser() {
     where: { id: ctx.userId },
     select: {
       emailVerifiedAt: true,
-      phoneVerifiedAt: true,
       phone: true
     }
   });
