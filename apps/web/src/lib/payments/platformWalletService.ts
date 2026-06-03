@@ -1,6 +1,6 @@
 import { prisma, Prisma, type PaymentMethod, type PlatformDepositStatus } from '@sanova/database';
 import { ethers } from 'ethers';
-import { assertOperationalInvestor, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
+import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
 import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
 import { createDepositProviderCheckout } from './paymentOnRampAdapters';
 import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
@@ -204,7 +204,7 @@ export async function createPlatformDeposit(input: {
   if (!user) {
     throw new Error('USER_NOT_FOUND');
   }
-  assertOperationalInvestor(user);
+  assertInvestorCheckoutEligible(user);
 
   if (!Number.isFinite(input.amountUsd) || input.amountUsd <= 0) {
     throw new Error('INVALID_DEPOSIT_AMOUNT');

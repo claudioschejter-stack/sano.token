@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '../../../../auth';
 import { CartCheckoutView } from '../../../../components/marketplace/CartCheckoutView';
-import { isAccountOperational } from '../../../../lib/onboarding/accountStatus';
+import { canAccessMarketplaceCheckout } from '../../../../lib/onboarding/accountStatus';
 import { prisma } from '@sanova/database';
 
 type CartPageProps = {
@@ -25,14 +25,16 @@ export default async function MarketplaceCartPage({ searchParams }: CartPageProp
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
       kycStatus: true,
-      accountStatus: true
+      accountStatus: true,
+      walletAddress: true,
+      systemRole: true
     }
   });
 
   const mode = searchParams.mode === 'deposit' ? 'deposit' : 'purchase';
   const returnPath = mode === 'deposit' ? '/marketplace/carrito?mode=deposit' : '/marketplace/carrito';
 
-  if (!user || !isAccountOperational(user)) {
+  if (!user || !canAccessMarketplaceCheckout(user)) {
     redirect(`/kyc?returnTo=${encodeURIComponent(returnPath)}`);
   }
 

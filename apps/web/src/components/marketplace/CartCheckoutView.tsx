@@ -12,7 +12,7 @@ import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { PaymentMethod } from '@sanova/database';
 import { useCartStore } from '../../store/useCartStore';
-import { WalletConnectButton } from './WalletConnectButton';
+import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 
 type CheckoutMethodOption = {
   id: PaymentMethod;
@@ -435,12 +435,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           </div>
 
           {requiresWallet ? (
-            <>
-              <WalletConnectButton />
-              {!walletGuard.isWalletLinked ? (
-                <p className="text-xs font-medium text-terminal-warning">{w.walletNotLinked}</p>
-              ) : null}
-            </>
+            <InvestorWalletLinker variant="checkout" onError={(message) => setError(message)} />
           ) : null}
 
           {status === 'done' ? (

@@ -755,6 +755,11 @@ export const en = {
     subscriptionNotice:
       "This subscription acquires shares of the indicated Compartment under private placement and the Sanova Global RWA Master Trust.",
     sendToCompartment: "Send payment to the Compartment wallet and paste the tx hash to verify:",
+    walletSectionTitle: "Wallet to pay on Base",
+    walletSectionDesc:
+      "Create a Coinbase Smart Wallet or connect an existing one. It is linked automatically to your account.",
+    walletSectionHint: "The address is saved on your investor profile for future operations.",
+    walletConnectPrompt: "Your wallet is already registered. Connect it to sign the payment.",
     createOrderPay: "Create order and pay"
   },
   cartCheckout: {
@@ -827,6 +832,7 @@ export const en = {
     connecting: "Connecting…",
     connect: "Connect wallet",
     connectCoinbase: "Connect with Coinbase Wallet",
+    connectFailed: "We couldn't connect the wallet. Try again.",
     noWallet: "Connect your wallet with Coinbase Wallet or WalletConnect.",
     wrongNetwork: "Switch to Base network",
     walletMismatch: "The connected wallet does not match the one linked to your account.",
@@ -1261,21 +1267,27 @@ export const en = {
         "Identity data is processed by our KYC provider under our Privacy Policy. See",
       startDidit: "Validate identity with cell phone",
       diditRedirecting: "Connecting…",
-      identityOperationalNote: "After the identity is verified, the account will be operational and ready to operate.",
-      identityWalletNote: "After identity verification you will activate your Coinbase Smart Wallet to operate on Base.",
+      identityOperationalNote:
+        "After identity verification, link your Base wallet to become an approved investor.",
+      identityWalletNote:
+        "After KYC you will create or connect a Base wallet (USDC) automatically linked to your account.",
       demoKyc: "Simulate verification (demo only)",
       walletTitle: "Activate your wallet",
-      walletDesc: "Connect Coinbase Smart Wallet on Base to buy RWA tokens, repay Morpho loans and receive dividends.",
-      walletBullet1: "Uses Coinbase Smart Wallet — no seed phrase to manage.",
-      walletBullet2: "Network: Base mainnet (USDC and vault operations).",
-      walletBullet3: "Required to invest, deposit, and receive USDC rent payouts.",
+      walletDesc: "Required to become an approved investor: receive USDC, buy RWA tokens and operate on Base.",
+      walletBullet1: "Coinbase Smart Wallet: created in seconds, no seed phrase.",
+      walletBullet2: "Existing wallet: MetaMask, Rainbow and others via WalletConnect.",
+      walletBullet3: "Base mainnet — your address is linked to your Sanova account.",
+      createCoinbaseWallet: "Create Coinbase wallet",
+      connectExistingWallet: "Connect existing wallet",
+      walletConnectUnavailable:
+        "WalletConnect is not configured on the server. Use Coinbase Wallet or contact support.",
       walletConnect: "Connect Coinbase Wallet",
       walletSaving: "Saving wallet…",
       walletLinked: "Wallet linked",
       walletHint: "We save your address to match on-chain purchases and repayments with your account.",
       walletSkip: "Skip for now",
-      doneTitle: "Operating account",
-      doneDesc: "Verified email and identity.You can now operate in the marketplace."
+      doneTitle: "Approved investor",
+      doneDesc: "Identity verified and wallet linked. You can now operate in the marketplace."
     },
     errors: {
       GENERIC: "We couldn't complete the step.Try again.",
@@ -1303,7 +1315,9 @@ export const en = {
       WALLET_ALREADY_LINKED: "This wallet is already linked to another account.",
       WALLET_MISMATCH: "The connected wallet does not match the one linked to your account.",
       KYC_NOT_APPROVED: "Your KYC must be approved before linking a wallet.",
-      INVESTOR_ROLE_REQUIRED: "Only investor accounts can link a wallet."
+      INVESTOR_ROLE_REQUIRED: "Only investor accounts can link a wallet.",
+      WALLET_CONNECT_NOT_CONFIGURED:
+        "WalletConnect is not configured. Create a Coinbase wallet or contact support."
     }
   },
   pwa: {

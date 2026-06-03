@@ -1,6 +1,6 @@
 import { prisma, Prisma, type PaymentMethod } from '@sanova/database';
 import { ethers } from 'ethers';
-import { assertOperationalInvestor, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
+import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
 import {
   checkoutBaseUrl,
   paymentGatewayConfigured,
@@ -170,7 +170,7 @@ export async function createCartPurchaseCheckout(input: {
   if (!user) {
     throw new Error('USER_NOT_FOUND');
   }
-  assertOperationalInvestor(user);
+  assertInvestorCheckoutEligible(user);
 
   const network =
     input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN'

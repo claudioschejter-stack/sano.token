@@ -2,6 +2,7 @@ import { prisma } from '@sanova/database';
 import { getAddress, isAddress } from 'ethers';
 import { assertWalletAvailableForUser } from './linkedWalletPolicy';
 import { ensureInvestorForUser } from './investorService';
+import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
 
 function normalizeWalletAddress(walletAddress: string): string {
   const trimmed = walletAddress.trim();
@@ -58,13 +59,15 @@ export async function linkInvestorWallet(userId: string, walletAddress: string) 
       accountStatus: user.accountStatus,
       emailVerifiedAt: user.emailVerifiedAt,
       phoneVerifiedAt: user.phoneVerifiedAt,
-      walletAddress: user.walletAddress,
+      walletAddress: normalized,
       investorId: user.investorId,
       investorAccessEnabled: user.investorAccessEnabled,
       systemRole: user.systemRole
     },
     normalized
   );
+
+  await syncUserAccountStatus(userId);
 
   return { walletAddress: normalized };
 }

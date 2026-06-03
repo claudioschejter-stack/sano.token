@@ -10,7 +10,9 @@ export async function syncUserAccountStatus(userId: string) {
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
       kycStatus: true,
-      accountStatus: true
+      accountStatus: true,
+      walletAddress: true,
+      systemRole: true
     }
   });
 

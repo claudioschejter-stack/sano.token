@@ -14,13 +14,14 @@ export async function requireOperationalSession() {
     select: {
       id: true,
       email: true,
+      phone: true,
       walletAddress: true,
       investorId: true,
       kycStatus: true,
       accountStatus: true,
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
-      phone: true
+      systemRole: true
     }
   });
 

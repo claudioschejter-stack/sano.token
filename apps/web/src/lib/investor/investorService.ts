@@ -61,6 +61,23 @@ export function assertOperationalInvestor(user: UserPurchaseContext) {
   assertInvestorAccessEnabled(user);
 }
 
+export function assertInvestorCheckoutEligible(user: UserPurchaseContext) {
+  if (user.kycStatus !== 'APPROVED') {
+    throw new Error('KYC_NOT_APPROVED');
+  }
+
+  if (
+    !user.emailVerifiedAt ||
+    !user.phoneVerifiedAt ||
+    !user.phone?.trim() ||
+    user.accountStatus === 'SUSPENDED'
+  ) {
+    throw new Error('ACCOUNT_NOT_OPERATIONAL');
+  }
+
+  assertInvestorAccessEnabled(user);
+}
+
 export async function ensureInvestorForUser(
   user: UserPurchaseContext,
   walletAddress: string

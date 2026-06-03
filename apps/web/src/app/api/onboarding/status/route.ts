@@ -54,7 +54,8 @@ export async function GET() {
         phoneVerifiedAt: user.phoneVerifiedAt,
         kycStatus: user.kycStatus,
         accountStatus: user.accountStatus,
-        walletAddress
+        walletAddress,
+        systemRole: user.systemRole
       },
       isDiditConfigured()
     ),

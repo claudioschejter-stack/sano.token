@@ -55,11 +55,11 @@ function stepFromChecklist(
     return 'identity';
   }
 
-  if (checklist.operational) {
-    if (requireWallet && !checklist.walletLinked) {
-      return 'wallet';
-    }
+  if (requireWallet && !checklist.walletLinked) {
+    return 'wallet';
+  }
 
+  if (checklist.operational) {
     return 'done';
   }
 

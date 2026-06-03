@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { auth } from '../../../../../auth';
 import { CheckoutView } from '../../../../../components/marketplace/CheckoutView';
-import { isAccountOperational } from '../../../../../lib/onboarding/accountStatus';
+import { canAccessMarketplaceCheckout } from '../../../../../lib/onboarding/accountStatus';
 import { prisma } from '@sanova/database';
 
 type CheckoutPageProps = {
@@ -25,11 +25,13 @@ export default async function MarketplaceCheckoutPage({ params }: CheckoutPagePr
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
       kycStatus: true,
-      accountStatus: true
+      accountStatus: true,
+      walletAddress: true,
+      systemRole: true
     }
   });
 
-  if (!user || !isAccountOperational(user)) {
+  if (!user || !canAccessMarketplaceCheckout(user)) {
     redirect(`/kyc?returnTo=/marketplace/${params.projectId}/checkout`);
   }
 

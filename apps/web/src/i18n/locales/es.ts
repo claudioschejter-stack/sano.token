@@ -769,6 +769,11 @@ export const es = {
     subscriptionNotice:
       'Esta suscripción adquiere cuotapartes del Compartimento indicado, bajo colocación privada y Contrato Matriz del Fideicomiso Sanova Global RWA.',
     sendToCompartment: 'Enviá el pago a la wallet del Compartimento y pegá el tx hash para verificar:',
+    walletSectionTitle: 'Billetera para pagar en Base',
+    walletSectionDesc:
+      'Creá una Coinbase Smart Wallet o conectá tu billetera existente. Queda vinculada automáticamente a tu cuenta.',
+    walletSectionHint: 'La dirección se guarda en tu perfil de inversor para futuras operaciones.',
+    walletConnectPrompt: 'Tu billetera ya está registrada. Conectala para firmar el pago.',
     createOrderPay: 'Crear orden y pagar'
   },
   cartCheckout: {
@@ -841,6 +846,7 @@ export const es = {
     connecting: 'Conectando…',
     connect: 'Conectar wallet',
     connectCoinbase: 'Conectar con Coinbase Wallet',
+    connectFailed: 'No pudimos conectar la billetera. Intentá de nuevo.',
     noWallet: 'Conectá tu billetera con Coinbase Wallet o WalletConnect.',
     wrongNetwork: 'Cambiar a red Base',
     walletMismatch: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
@@ -1295,23 +1301,27 @@ export const es = {
       startDidit: 'Validar identidad con teléfono celular',
       diditRedirecting: 'Conectando…',
       identityOperationalNote:
-        'Luego de verificada la identidad, la cuenta estará operativa y lista para operar.',
+        'Luego de verificar la identidad, vinculá tu billetera en Base para quedar como inversor aprobado.',
       identityWalletNote:
-        'Después de verificar tu identidad activarás tu Coinbase Smart Wallet para operar en Base.',
+        'Después del KYC vas a crear o conectar una billetera en Base (USDC) vinculada automáticamente a tu cuenta.',
       demoKyc: 'Simular verificación (solo demo)',
       walletTitle: 'Activá tu billetera',
       walletDesc:
-        'Conectá Coinbase Smart Wallet en Base para comprar tokens RWA, repagar préstamos Morpho y recibir dividendos.',
-      walletBullet1: 'Usa Coinbase Smart Wallet — sin frase semilla que administrar.',
-      walletBullet2: 'Red: Base mainnet (USDC y operaciones en bóvedas).',
-      walletBullet3: 'Es obligatorio para invertir, depositar y cobrar rentas en USDC.',
+        'Es obligatorio para quedar como inversor aprobado: recibir USDC, comprar tokens RWA y operar en Base.',
+      walletBullet1: 'Coinbase Smart Wallet: se crea en segundos, sin frase semilla.',
+      walletBullet2: 'Wallet existente: MetaMask, Rainbow u otras vía WalletConnect.',
+      walletBullet3: 'Red Base mainnet — la dirección queda vinculada a tu cuenta Sanova.',
+      createCoinbaseWallet: 'Crear billetera Coinbase',
+      connectExistingWallet: 'Conectar billetera existente',
+      walletConnectUnavailable:
+        'WalletConnect no está configurado en el servidor. Usá Coinbase Wallet o contactá soporte.',
       walletConnect: 'Conectar Coinbase Wallet',
       walletSaving: 'Guardando billetera…',
       walletLinked: 'Billetera vinculada',
       walletHint: 'Guardamos tu dirección para asociar compras y repagos on-chain con tu cuenta.',
       walletSkip: 'Omitir por ahora',
-      doneTitle: 'Cuenta operativa',
-      doneDesc: 'Email e identidad verificados. Ya podés operar en el marketplace.'
+      doneTitle: 'Inversor aprobado',
+      doneDesc: 'Identidad verificada y billetera vinculada. Ya podés operar en el marketplace.'
     },
     errors: {
       GENERIC: 'No pudimos completar el paso. Intentá de nuevo.',
@@ -1340,7 +1350,9 @@ export const es = {
       WALLET_ALREADY_LINKED: 'Esta billetera ya está vinculada a otra cuenta.',
       WALLET_MISMATCH: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
       KYC_NOT_APPROVED: 'Tu KYC debe estar aprobado antes de vincular la billetera.',
-      INVESTOR_ROLE_REQUIRED: 'Solo cuentas inversor pueden vincular una billetera.'
+      INVESTOR_ROLE_REQUIRED: 'Solo cuentas inversor pueden vincular una billetera.',
+      WALLET_CONNECT_NOT_CONFIGURED:
+        'WalletConnect no está configurado. Creá una Coinbase Wallet o contactá soporte.'
     }
   },
   pwa: {

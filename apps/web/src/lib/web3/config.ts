@@ -24,15 +24,15 @@ export const supportedChains = [base] as const;
 const connectors = [
   coinbaseWallet({
     appName: walletConnectMetadata.name,
-    /** Smart Wallet y Coinbase Wallet clásica. */
-    preference: 'all'
+    /** Crea Coinbase Smart Wallet en Base si el usuario no tiene una. */
+    preference: 'smartWalletOnly'
   }),
   ...(isWalletConnectConfigured
     ? [
         walletConnect({
           projectId: walletConnectProjectId,
           metadata: walletConnectMetadata,
-          showQrModal: false
+          showQrModal: true
         })
       ]
     : [])

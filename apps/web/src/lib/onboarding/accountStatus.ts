@@ -26,9 +26,26 @@ type UserOnboardingFields = {
   kycStatus: KycStatus;
   accountStatus: AccountStatus;
   walletAddress?: string | null;
+  systemRole?: string | null;
 };
 
 export function isAccountOperational(user: UserOnboardingFields): boolean {
+  const identityVerified =
+    Boolean(user.emailVerifiedAt) &&
+    Boolean(user.phoneVerifiedAt) &&
+    Boolean(user.phone) &&
+    user.kycStatus === 'APPROVED' &&
+    user.accountStatus !== 'SUSPENDED';
+
+  if (user.systemRole === 'INVESTOR') {
+    return identityVerified && Boolean(user.walletAddress?.trim());
+  }
+
+  return identityVerified;
+}
+
+/** KYC + contact verified — allows marketplace checkout before wallet is linked. */
+export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolean {
   return (
     Boolean(user.emailVerifiedAt) &&
     Boolean(user.phoneVerifiedAt) &&
@@ -55,10 +72,10 @@ export function buildOnboardingChecklist(
   const contactVerified = Boolean(user.phone) && emailVerified;
   const kycEnabled = contactVerified && phoneVerified;
   const kycApproved = user.kycStatus === 'APPROVED';
-  const operational = isAccountOperational(user);
-  const accountStatus = deriveAccountStatus(user);
   const walletAddress = user.walletAddress?.trim() || null;
   const walletLinked = Boolean(walletAddress);
+  const operational = isAccountOperational({ ...user, walletAddress });
+  const accountStatus = deriveAccountStatus({ ...user, walletAddress });
 
   return {
     emailVerified,

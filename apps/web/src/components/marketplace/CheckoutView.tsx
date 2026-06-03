@@ -14,7 +14,7 @@ import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import { BASE_USDC_ADDRESS } from '../../lib/web3/config';
 import type { MarketplaceListing } from '../../types/marketplace';
 import { BuyButton } from './BuyButton';
-import { WalletConnectButton } from './WalletConnectButton';
+import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 
 type CheckoutViewProps = {
   projectId: string;
@@ -335,15 +335,11 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
               ) : null}
             </div>
 
-            <WalletConnectButton />
-            {!walletGuard.isWalletLinked ? (
-              <p className="text-xs font-medium text-terminal-warning">{w.walletNotLinked}</p>
-            ) : null}
-            {walletGuard.isWalletMismatch ? (
-              <p className="text-xs font-medium text-terminal-warning">{w.walletMismatch}</p>
-            ) : null}
-            {walletGuard.isWrongNetwork ? (
-              <p className="text-xs font-medium text-terminal-warning">{w.wrongNetwork}</p>
+            {paymentMethod !== 'INTERNAL_BALANCE' ? (
+              <InvestorWalletLinker
+                variant="checkout"
+                onError={(message) => setPurchaseError(message)}
+              />
             ) : null}
             {vaultCheckout ? (
               <BuyButton
