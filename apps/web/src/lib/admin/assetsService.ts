@@ -1041,8 +1041,15 @@ export async function updateAdminAsset(
   return mapProject(finalProject);
 }
 
+type ListMarketplaceListingsOptions = {
+  /** Skip Supabase sync and geocoding on read-heavy paths like the public feed. */
+  skipHeavySync?: boolean;
+};
+
 /** Published assets from the admin editor, synced for marketplace cards. */
-export async function listMarketplaceListings(): Promise<MarketplaceListing[]> {
+export async function listMarketplaceListings(
+  options: ListMarketplaceListingsOptions = {}
+): Promise<MarketplaceListing[]> {
   const activeProjects = await prisma.project.findMany({
     where: { isActive: true },
     select: { id: true },
@@ -1052,7 +1059,10 @@ export async function listMarketplaceListings(): Promise<MarketplaceListing[]> {
   const listings: MarketplaceListing[] = [];
 
   for (const { id } of activeProjects) {
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY) {
+    if (
+      !options.skipHeavySync &&
+      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY)
+    ) {
       await syncProjectAssetsFromStorage(id).catch(() => undefined);
     }
 
@@ -1061,7 +1071,10 @@ export async function listMarketplaceListings(): Promise<MarketplaceListing[]> {
       continue;
     }
 
-    if (locationNeedsResolve(asset.location, asset.latitude, asset.longitude)) {
+    if (
+      !options.skipHeavySync &&
+      locationNeedsResolve(asset.location, asset.latitude, asset.longitude)
+    ) {
       const resolved = await resolveLocationInput(asset.location);
       if (resolved?.latitude != null && resolved.longitude != null) {
         await prisma.project.update({

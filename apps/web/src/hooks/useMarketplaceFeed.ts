@@ -9,6 +9,10 @@ export function useMarketplaceFeed(initialFeed: MarketplaceFeed) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
+    if (initialFeed.dataSource === 'live' && !initialFeed.usedFallback) {
+      return;
+    }
+
     let cancelled = false;
 
     async function refresh() {
@@ -23,7 +27,13 @@ export function useMarketplaceFeed(initialFeed: MarketplaceFeed) {
         setFeed({ ...nextFeed, usedFallback: false });
       } catch {
         if (!cancelled) {
-          setFeed((current) => ({ ...current, usedFallback: true }));
+          setFeed((current) => {
+            if (current.dataSource === 'live' && current.listings.length > 0) {
+              return current;
+            }
+
+            return { ...current, usedFallback: true };
+          });
         }
       } finally {
         if (!cancelled) {
@@ -37,7 +47,7 @@ export function useMarketplaceFeed(initialFeed: MarketplaceFeed) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialFeed.dataSource, initialFeed.usedFallback]);
 
   return { feed, isRefreshing };
 }

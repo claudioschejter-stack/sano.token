@@ -3,7 +3,7 @@
 import { Banknote, CircleDollarSign, Loader2, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useLinkedWalletGuard } from '../../../hooks/useLinkedWalletGuard';
 import { InvestorSection } from './InvestorSection';
@@ -15,7 +15,15 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
   const w = t.wallet;
   const r = t.rentPayout;
   const router = useRouter();
+  const pathname = usePathname();
   const walletGuard = useLinkedWalletGuard();
+  const walletCheckoutHref = (preference?: 'USDC') => {
+    const params = new URLSearchParams({ mode: 'wallet', returnTo: pathname });
+    if (preference) {
+      params.set('preference', preference);
+    }
+    return `/marketplace/carrito?${params.toString()}`;
+  };
 
   const [preference, setPreference] = useState<RentPayoutPreference | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,14 +61,17 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
     }
 
     if (next === 'USDC' && !walletGuard.isWalletLinked) {
-      router.push(
-        '/marketplace/carrito?mode=wallet&returnTo=/dashboard&preference=USDC'
-      );
+      router.push(walletCheckoutHref('USDC'));
       return;
     }
 
     if (next === 'USDC' && !walletGuard.canSignOnChain) {
-      setError(walletGuard.isWrongNetwork ? w.wrongNetwork : walletGuard.isWalletMismatch ? w.walletMismatch : w.noWallet);
+      if (walletGuard.isWalletMismatch) {
+        router.push(walletCheckoutHref('USDC'));
+        return;
+      }
+
+      setError(walletGuard.isWrongNetwork ? w.wrongNetwork : w.noWallet);
       return;
     }
 
@@ -166,14 +177,19 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
             </div>
             {!walletGuard.isWalletLinked ? (
               <Link
-                href="/marketplace/carrito?mode=wallet&returnTo=/dashboard&preference=USDC"
+                href={walletCheckoutHref('USDC')}
                 className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
               >
                 {r.linkWalletInCheckout}
               </Link>
             ) : null}
             {walletGuard.isWalletMismatch ? (
-              <p className="text-xs font-medium text-terminal-warning">{w.walletMismatch}</p>
+              <Link
+                href={walletCheckoutHref('USDC')}
+                className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+              >
+                {r.linkWalletInCheckout}
+              </Link>
             ) : null}
           </div>
         </div>

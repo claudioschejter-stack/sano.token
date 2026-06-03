@@ -3,7 +3,7 @@ import { listMarketplaceListings } from '../admin/assetsService';
 import type { MarketplaceFeed } from '../../types/marketplace';
 
 export async function fetchMarketplaceFeedFromDb(): Promise<MarketplaceFeed> {
-  const listings = await listMarketplaceListings();
+  const listings = await listMarketplaceListings({ skipHeavySync: true });
   const borrowRate = await fetchBestBorrowRate().catch(() => null);
 
   return {

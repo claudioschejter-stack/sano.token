@@ -315,24 +315,15 @@ export function PropertyCard({
           ) : null}
         </div>
 
-        {purchaseEnabled || staffPreviewHint ? (
-          <div className="mt-auto shrink-0 pt-4">
-            <PropertyCardActions
-              projectId={id}
-              availableTokens={availableTokens}
-              kycStatus={kycStatus}
-              role={role}
-              investorHolding={investorHolding}
-              readyToBorrow={readyToBorrow}
-              purchaseEnabled={purchaseEnabled}
-              staffPreviewHint={staffPreviewHint}
-              mutedTextClass={mutedText}
-              onBuy={onBuy}
-              onAddToCart={onAddToCart}
-              onStartKyc={onStartKyc}
-            />
-          </div>
-        ) : null}
+        <div className="mt-auto shrink-0 pt-4">
+          <PropertyCardActions
+            projectId={id}
+            availableTokens={availableTokens}
+            kycStatus={kycStatus}
+            onBuy={onBuy}
+            onStartKyc={onStartKyc}
+          />
+        </div>
       </div>
     </article>
   );

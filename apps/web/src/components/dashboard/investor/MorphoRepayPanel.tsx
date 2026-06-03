@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowDownToLine, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BrowserProvider } from 'ethers';
 import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
@@ -33,6 +34,7 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
   const { formatUsd } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
   const w = t.wallet;
   const walletGuard = useLinkedWalletGuard();
+  const router = useRouter();
 
   const [preview, setPreview] = useState<RepayPreview | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -130,7 +132,9 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
       }
 
       if (walletGuard.isWalletMismatch) {
-        setStatus(w.walletMismatch);
+        router.push(
+          `/marketplace/carrito?mode=wallet&returnTo=${encodeURIComponent('/dashboard/cash-flow')}`
+        );
         return;
       }
 

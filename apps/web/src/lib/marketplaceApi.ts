@@ -31,7 +31,7 @@ export function buildFallbackFeed(): MarketplaceFeed {
   };
 }
 
-const API_TIMEOUT_MS = 4_000;
+const API_TIMEOUT_MS = 20_000;
 
 async function fetchFeed(init?: RequestInit): Promise<MarketplaceFeed> {
   const controller = new AbortController();

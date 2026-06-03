@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Banknote, CircleDollarSign, Landmark } from 'lucide-react';
 import {
   translateAssetLabel,
@@ -9,6 +10,7 @@ import {
 } from '../../../../i18n/demoLabels';
 import { createIntlFormatters } from '../../../../i18n/formatters';
 import { useLocale, useTranslation } from '../../../../i18n/LocaleProvider';
+import { useLinkedWalletGuard } from '../../../../hooks/useLinkedWalletGuard';
 import { usePortfolioStore } from '../../../../store/usePortfolioStore';
 import { DashboardSkeleton } from '../../../../components/dashboard/DashboardSkeleton';
 import { InvestorKpiCard } from '../../../../components/dashboard/investor/InvestorKpiCard';
@@ -22,6 +24,8 @@ import { CheckCircle2 } from 'lucide-react';
 export default function CashFlowPage() {
   const t = useTranslation();
   const c = t.cashFlow;
+  const router = useRouter();
+  const walletGuard = useLinkedWalletGuard();
   const { intlLocale } = useLocale();
   const { formatUsd, formatDate } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
 
@@ -36,6 +40,16 @@ export default function CashFlowPage() {
     setMounted(true);
     void fetchPortfolio();
   }, [fetchPortfolio]);
+
+  useEffect(() => {
+    if (!mounted || !walletGuard.isWalletMismatch) {
+      return;
+    }
+
+    router.replace(
+      `/marketplace/carrito?mode=wallet&returnTo=${encodeURIComponent('/dashboard/cash-flow')}`
+    );
+  }, [mounted, router, walletGuard.isWalletMismatch]);
 
   const totalDistributed = useMemo(
     () => cashFlowHistory.reduce((sum, record) => sum + record.amountUsd, 0),
