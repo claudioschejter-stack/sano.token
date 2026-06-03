@@ -144,7 +144,7 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
     stablecoinPositions.push({
       id: `wallet-usdc-${balance.network}-${balance.chainId}`,
       type: 'STABLECOIN' as const,
-      label: `${balance.symbol} en wallet (${balance.network})`,
+      label: `${balance.symbol} en ${balance.network}`,
       amount: balance.amountUsdc,
       currency: balance.symbol,
       valueUsdc: balance.amountUsdc,

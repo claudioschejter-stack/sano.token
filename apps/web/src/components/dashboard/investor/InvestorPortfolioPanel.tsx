@@ -20,6 +20,37 @@ import { InvestorSection } from './InvestorSection';
 
 type PositionRow = AggregatedPortfolio['positions'][number];
 
+function describeStablecoinHoldings(rows: PositionRow[]): string {
+  if (!rows.length) {
+    return '';
+  }
+
+  return [
+    ...new Set(
+      rows.map((row) => {
+        const network = row.metadata?.network as string | undefined;
+        if (network) {
+          return `${row.currency} en ${network}`;
+        }
+
+        return row.label || row.currency;
+      })
+    )
+  ].join(' · ');
+}
+
+function describeFiatHoldings(rows: PositionRow[]): string {
+  if (!rows.length) {
+    return '';
+  }
+
+  return [...new Set(rows.map((row) => row.currency))].join(' · ');
+}
+
+function sumPositionUsd(rows: PositionRow[]): number {
+  return rows.reduce((sum, row) => sum + row.valueUsd, 0);
+}
+
 function PositionTable({
   rows,
   labels,
@@ -67,22 +98,31 @@ function PositionTable({
         ))}
       </div>
 
-      <div className="hidden overflow-x-auto md:block">
-        <table className="min-w-full text-sm">
-          <thead className="border-b border-terminal-border bg-terminal-bg/60 text-left text-xs uppercase tracking-wider text-terminal-muted">
-            <tr>
-              <th className="px-4 py-3 lg:px-6">{labels.colInstrument}</th>
-              <th className="px-4 py-3 text-right lg:px-6">{labels.colValueUsdc}</th>
-              <th className="px-4 py-3 text-right lg:px-6">{labels.colPosition}</th>
+      <div className="hidden md:block">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-terminal-border bg-terminal-bg/80 text-left text-xs uppercase tracking-wider text-terminal-muted">
+              <th className="border-r border-terminal-border px-4 py-3 lg:px-6">{labels.colInstrument}</th>
+              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colValueUsdc}</th>
+              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colPosition}</th>
               <th className="px-4 py-3 text-right lg:px-6">{labels.colValueUsd}</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="border-b border-terminal-border/60 last:border-0">
-                <td className="px-4 py-3 font-medium text-terminal-text lg:px-6">{row.label}</td>
-                <td className="px-4 py-3 text-right font-mono lg:px-6">{formatUsd(row.valueUsdc)}</td>
-                <td className="px-4 py-3 text-right font-mono text-terminal-muted lg:px-6">
+            {rows.map((row, index) => (
+              <tr
+                key={row.id}
+                className={`border-b border-terminal-border ${
+                  index === rows.length - 1 ? 'border-b-0' : ''
+                }`}
+              >
+                <td className="border-r border-terminal-border px-4 py-3 font-medium text-terminal-text lg:px-6">
+                  {row.label}
+                </td>
+                <td className="border-r border-terminal-border px-4 py-3 text-right font-mono lg:px-6">
+                  {formatUsd(row.valueUsdc)}
+                </td>
+                <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-muted lg:px-6">
                   {row.amount.toLocaleString(intlLocale, { maximumFractionDigits: 6 })} {row.currency}
                 </td>
                 <td className="px-4 py-3 text-right font-mono font-semibold text-terminal-primary lg:px-6">
@@ -128,11 +168,6 @@ export function InvestorPortfolioPanel() {
     [portfolio]
   );
 
-  const positionsSubtotalUsd = useMemo(() => {
-    if (!portfolio) return 0;
-    return portfolio.positions.reduce((sum, row) => sum + row.valueUsd, 0);
-  }, [portfolio]);
-
   const tableLabels = {
     colInstrument: p.colInstrument,
     colValueUsdc: p.colValueUsdc,
@@ -140,6 +175,17 @@ export function InvestorPortfolioPanel() {
     colValueUsd: p.colValueUsd,
     empty: p.sectionEmpty
   };
+
+  const tokenTotalUsd = useMemo(() => sumPositionUsd(tokenPositions), [tokenPositions]);
+  const stablecoinTotalUsd = useMemo(() => sumPositionUsd(stablecoinPositions), [stablecoinPositions]);
+  const fiatTotalUsd = useMemo(() => sumPositionUsd(fiatPositions), [fiatPositions]);
+
+  const stablecoinSubtitle =
+    describeStablecoinHoldings(stablecoinPositions) || p.sectionStablecoinsHint;
+  const fiatSubtitle = describeFiatHoldings(fiatPositions) || p.sectionFiatHint;
+
+  const sectionTotalClassName =
+    'shrink-0 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-1.5 font-mono text-sm font-semibold text-terminal-primary';
 
   const chartData = useMemo(() => {
     if (!portfolio) return [];
@@ -171,7 +217,6 @@ export function InvestorPortfolioPanel() {
   }
 
   const { totals } = portfolio;
-  const reconciliationDelta = positionsSubtotalUsd - totals.debtUsd - totals.netLiquidValueUsd;
 
   return (
     <div className="space-y-6 md:space-y-8">
@@ -257,7 +302,12 @@ export function InvestorPortfolioPanel() {
         </div>
       </article>
 
-      <InvestorSection title={p.sectionTokens} subtitle={p.sectionTokensHint} bodyClassName="p-0">
+      <InvestorSection
+        title={p.sectionTokens}
+        subtitle={p.sectionTokensHint}
+        action={<span className={sectionTotalClassName}>{formatUsd(tokenTotalUsd)}</span>}
+        bodyClassName="p-0"
+      >
         <PositionTable
           rows={tokenPositions}
           labels={{ ...tableLabels, empty: p.sectionTokensEmpty }}
@@ -266,7 +316,12 @@ export function InvestorPortfolioPanel() {
         />
       </InvestorSection>
 
-      <InvestorSection title={p.sectionStablecoins} subtitle={p.sectionStablecoinsHint} bodyClassName="p-0">
+      <InvestorSection
+        title={p.sectionStablecoins}
+        subtitle={stablecoinSubtitle}
+        action={<span className={sectionTotalClassName}>{formatUsd(stablecoinTotalUsd)}</span>}
+        bodyClassName="p-0"
+      >
         <PositionTable
           rows={stablecoinPositions}
           labels={{ ...tableLabels, empty: p.sectionStablecoinsEmpty }}
@@ -275,7 +330,12 @@ export function InvestorPortfolioPanel() {
         />
       </InvestorSection>
 
-      <InvestorSection title={p.sectionFiat} subtitle={p.sectionFiatHint} bodyClassName="p-0">
+      <InvestorSection
+        title={p.sectionFiat}
+        subtitle={fiatSubtitle}
+        action={<span className={sectionTotalClassName}>{formatUsd(fiatTotalUsd)}</span>}
+        bodyClassName="p-0"
+      >
         <PositionTable
           rows={fiatPositions}
           labels={{ ...tableLabels, empty: p.sectionFiatEmpty }}
@@ -283,31 +343,6 @@ export function InvestorPortfolioPanel() {
           intlLocale={intlLocale}
         />
       </InvestorSection>
-
-      <article className="rounded-xl border border-terminal-border bg-terminal-card p-4 sm:p-6">
-        <h3 className="text-sm font-semibold text-terminal-text">{p.reconciliationTitle}</h3>
-        <div className="mt-4 space-y-2 text-sm">
-          <div className="flex justify-between gap-4">
-            <span className="text-terminal-muted">{p.positionsSubtotal}</span>
-            <span className="font-mono text-terminal-text">{formatUsd(positionsSubtotalUsd)}</span>
-          </div>
-          <div className="flex justify-between gap-4">
-            <span className="text-terminal-muted">{p.loansTaken}</span>
-            <span className="font-mono text-terminal-warning">− {formatUsd(totals.debtUsd)}</span>
-          </div>
-          <div className="border-t border-terminal-border pt-2">
-            <div className="flex justify-between gap-4 font-semibold">
-              <span className="text-terminal-text">{p.netLiquidValue}</span>
-              <span className="font-mono text-terminal-primary">{formatUsd(totals.netLiquidValueUsd)}</span>
-            </div>
-          </div>
-        </div>
-        {Math.abs(reconciliationDelta) > 0.01 ? (
-          <p className="mt-3 text-xs text-terminal-warning">{p.reconciliationWarning}</p>
-        ) : (
-          <p className="mt-3 text-xs text-terminal-success">{p.reconciliationOk}</p>
-        )}
-      </article>
     </div>
   );
 }

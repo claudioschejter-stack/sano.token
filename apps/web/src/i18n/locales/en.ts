@@ -280,8 +280,8 @@ export const en = {
     contactPendingHint: "The investor must verify email and charge phone before approving KYC."
   },
   identityProfile: {
-    title: "Identity data (Didit)",
-    empty: "No identity data.They are filled automatically when checking with Didit.",
+    title: "Identity data",
+    empty: "No identity data yet. It is filled automatically when you verify your identity.",
     fullName: "Full name",
     documentId: "Document / CUIT",
     dateOfBirth: "Birthdate",
@@ -546,7 +546,8 @@ export const en = {
   userRoleHeader: {
     fallbackName: "User",
     approvedStatus: "Approved",
-    kycPrefix: "KYC"
+    kycPrefix: "KYC",
+    identityButton: "Identity"
   },
   accountStatus: {
     operationalTitle: "Account verified and operational",
@@ -1380,14 +1381,14 @@ export const en = {
     evolutionTitle: "Net liquid value evolution",
     evolutionSubtitle: "Daily snapshot: assets − loans in USD",
     baseUsdBadge: "USD base",
-    sectionTokens: "A — Tokens",
+    sectionTokens: "Tokens",
     sectionTokensHint: "Tokenized RWA positions",
     sectionTokensEmpty: "No RWA token positions.",
-    sectionStablecoins: "B — Stablecoins",
-    sectionStablecoinsHint: "USDC and other stable balances",
+    sectionStablecoins: "Stablecoins",
+    sectionStablecoinsHint: "No stablecoins in portfolio.",
     sectionStablecoinsEmpty: "No stablecoin positions.",
-    sectionFiat: "C — Fiat currencies",
-    sectionFiatHint: "Sanova platform wallet and fiat balances",
+    sectionFiat: "Fiat currencies",
+    sectionFiatHint: "No fiat currency in portfolio.",
     sectionFiatEmpty: "No fiat balance on platform.",
     sectionEmpty: "No positions in this category.",
     colInstrument: "Instrument",

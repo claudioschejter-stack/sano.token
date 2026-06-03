@@ -287,8 +287,8 @@ export const es = {
     contactPendingHint: 'El inversor debe verificar email y cargar teléfono antes de aprobar KYC.'
   },
   identityProfile: {
-    title: 'Datos de identidad (Didit)',
-    empty: 'Sin datos de identidad. Se completan automáticamente al verificar con Didit.',
+    title: 'Datos de identidad',
+    empty: 'Sin datos de identidad. Se completan automáticamente al verificar tu identidad.',
     fullName: 'Nombre completo',
     documentId: 'Documento / CUIT',
     dateOfBirth: 'Fecha de nacimiento',
@@ -559,7 +559,8 @@ export const es = {
   userRoleHeader: {
     fallbackName: 'Usuario',
     approvedStatus: 'Aprobado',
-    kycPrefix: 'KYC'
+    kycPrefix: 'KYC',
+    identityButton: 'Identidad'
   },
   accountStatus: {
     operationalTitle: 'Cuenta verificada y operativa',
@@ -1416,14 +1417,14 @@ export const es = {
     evolutionTitle: 'Evolución del valor líquido neto',
     evolutionSubtitle: 'Snapshot diario: activos − préstamos en USD',
     baseUsdBadge: 'Base USD',
-    sectionTokens: 'A — Tokens',
+    sectionTokens: 'Tokenes',
     sectionTokensHint: 'Posiciones RWA tokenizadas',
     sectionTokensEmpty: 'Sin posiciones en tokens RWA.',
-    sectionStablecoins: 'B — Stablecoins',
-    sectionStablecoinsHint: 'USDC y otros saldos estables',
+    sectionStablecoins: 'Stablecoins',
+    sectionStablecoinsHint: 'Sin stablecoins en cartera.',
     sectionStablecoinsEmpty: 'Sin posiciones en stablecoins.',
-    sectionFiat: 'C — Monedas fiat',
-    sectionFiatHint: 'Billetera Sanova y saldos en moneda fiat',
+    sectionFiat: 'Monedas fiat',
+    sectionFiatHint: 'Sin moneda fiat en cartera.',
     sectionFiatEmpty: 'Sin saldo fiat en plataforma.',
     sectionEmpty: 'Sin posiciones en esta categoría.',
     colInstrument: 'Instrumento',

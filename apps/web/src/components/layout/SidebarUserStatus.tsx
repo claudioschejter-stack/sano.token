@@ -7,6 +7,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import type { SystemRole } from '../../lib/auth/roles';
 import type { KycStatus } from '@sanova/database';
+import { SidebarIdentityDropdown } from './SidebarIdentityDropdown';
 
 function kycBadgeClass(status: KycStatus): string {
   switch (status) {
@@ -64,9 +65,16 @@ export function SidebarUserStatus() {
             >
               {u.kycPrefix}: {kycLabel}
             </span>
-            <span className="inline-flex rounded-full border border-terminal-border bg-terminal-bg px-2.5 py-0.5 text-xs font-medium text-terminal-muted">
+            <span
+              className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${
+                checklist.operational
+                  ? 'border-terminal-success/30 bg-terminal-success/10 text-terminal-success'
+                  : 'border-terminal-border bg-terminal-bg text-terminal-muted'
+              }`}
+            >
               {accountLabel}
             </span>
+            <SidebarIdentityDropdown />
           </>
         ) : null}
       </div>

@@ -2,29 +2,17 @@
 
 import Link from 'next/link';
 import { Building } from 'lucide-react';
-import { KycIdentityDetails } from '../../../../components/identity/KycIdentityDetails';
 import { InvestorPortfolioPanel } from '../../../../components/dashboard/investor/InvestorPortfolioPanel';
 import { InvestorPageHeader } from '../../../../components/dashboard/investor/InvestorPageHeader';
-import { useAccountStatus } from '../../../../hooks/useAccountStatus';
 import { useTranslation } from '../../../../i18n/LocaleProvider';
 
 export default function PortfolioPage() {
   const t = useTranslation();
   const p = t.portfolio;
-  const identityLabels = t.identityProfile;
-  const { profile, loading: profileLoading } = useAccountStatus();
 
   return (
     <section className="mx-auto max-w-6xl space-y-6 bg-terminal-bg text-terminal-text md:space-y-8">
       <InvestorPageHeader eyebrow={t.nav.myAssets} title={p.title} subtitle={p.subtitle} />
-
-      {!profileLoading && profile ? (
-        <KycIdentityDetails
-          identity={profile.identity}
-          labels={identityLabels}
-          className="border-terminal-border bg-terminal-card text-terminal-text"
-        />
-      ) : null}
 
       <InvestorPortfolioPanel />
 
