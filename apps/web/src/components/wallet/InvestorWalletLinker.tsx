@@ -2,7 +2,7 @@
 
 import { Loader2, Link2, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAccount, useConnect, useSwitchChain, type Connector } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useSwitchChain, type Connector } from 'wagmi';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import { useTranslation } from '../../i18n/LocaleProvider';
@@ -43,8 +43,9 @@ export function InvestorWalletLinker({
   const c = t.checkout;
   const { refresh } = useAccountStatus();
   const walletGuard = useLinkedWalletGuard();
-  const { address, isConnected, chainId } = useAccount();
+  const { address, isConnected, chainId, connector: activeConnector } = useAccount();
   const { connectors, connectAsync, isPending, error: connectError } = useConnect();
+  const { disconnectAsync } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
   const [saving, setSaving] = useState(false);
   const [activeFlow, setActiveFlow] = useState<'coinbase' | 'walletconnect' | null>(null);
@@ -205,11 +206,24 @@ export function InvestorWalletLinker({
     setActiveFlow('coinbase');
 
     try {
+      if (isConnected && activeConnector?.id !== coinbaseConnector.id) {
+        await disconnectAsync();
+      }
+
       await connectAsync({ connector: coinbaseConnector, chainId: BASE_CHAIN_ID });
     } catch {
       reportError(w.connectFailed);
     }
-  }, [coinbaseConnector, connectAsync, reportError, t.onboarding.errors.GENERIC, w.connectFailed]);
+  }, [
+    activeConnector?.id,
+    coinbaseConnector,
+    connectAsync,
+    disconnectAsync,
+    isConnected,
+    reportError,
+    t.onboarding.errors.GENERIC,
+    w.connectFailed
+  ]);
 
   const connectExistingWallet = useCallback(async () => {
     if (!walletConnectConnector) {
@@ -220,11 +234,24 @@ export function InvestorWalletLinker({
     setActiveFlow('walletconnect');
 
     try {
+      if (isConnected && activeConnector?.id !== walletConnectConnector.id) {
+        await disconnectAsync();
+      }
+
       await connectAsync({ connector: walletConnectConnector, chainId: BASE_CHAIN_ID });
     } catch {
       reportError(w.connectFailed);
     }
-  }, [connectAsync, reportError, t.onboarding.errors.WALLET_CONNECT_NOT_CONFIGURED, w.connectFailed, walletConnectConnector]);
+  }, [
+    activeConnector?.id,
+    connectAsync,
+    disconnectAsync,
+    isConnected,
+    reportError,
+    t.onboarding.errors.WALLET_CONNECT_NOT_CONFIGURED,
+    w.connectFailed,
+    walletConnectConnector
+  ]);
 
   const busy = isPending || saving;
   const displayAddress =
@@ -366,7 +393,7 @@ export function InvestorWalletLinker({
             ) : (
               <>
                 <Wallet size={18} />
-                {o.createCoinbaseWallet}
+                {w.connectCoinbase}
               </>
             )}
           </button>
@@ -385,7 +412,7 @@ export function InvestorWalletLinker({
             ) : (
               <>
                 <Link2 size={18} />
-                {o.connectExistingWallet}
+                {w.connectWalletConnect}
               </>
             )}
           </button>
