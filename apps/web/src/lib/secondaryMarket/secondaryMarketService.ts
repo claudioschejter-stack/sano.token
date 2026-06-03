@@ -1,12 +1,15 @@
-import { prisma } from '@sanova/database';
+import { prisma, Prisma } from '@sanova/database';
 import { listMarketplaceListings } from '../admin/assetsService';
-import { ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
+import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
+import { creditPlatformWallet } from '../payments/platformWalletService';
 import type {
   SecondaryMarketFeed,
   SecondaryMarketHolding,
   SecondaryMarketOrder,
   SecondaryMarketProperty
 } from '../../types/secondaryMarket';
+
+const PLATFORM_BUYBACK_DISCOUNT = 0.03;
 
 async function getActiveTokenHoldings(userId: string): Promise<Map<string, number>> {
   const user = await prisma.user.findUnique({
@@ -118,13 +121,25 @@ export async function getSecondaryMarketFeed(viewerUserId?: string): Promise<Sec
   }
 
   const properties: SecondaryMarketProperty[] = listings.map((listing) => {
-    const orders = ordersByProject.get(listing.id) ?? [];
+    const orders = [...(ordersByProject.get(listing.id) ?? [])].sort(
+      (a, b) => a.pricePerTokenUsd - b.pricePerTokenUsd
+    );
+    const referencePriceUsd = listing.pricePerTokenUsd;
+    const buybackPriceUsd = Number((referencePriceUsd * (1 - PLATFORM_BUYBACK_DISCOUNT)).toFixed(2));
     const totalTokensForSale = orders.reduce((sum, row) => sum + row.tokenCount, 0);
     const lowestAskUsd = orders.length > 0 ? orders[0].pricePerTokenUsd : null;
 
     return {
       listing,
       orders,
+      platformBuyback: {
+        id: `buyback-${listing.id}`,
+        projectId: listing.id,
+        pricePerTokenUsd: buybackPriceUsd,
+        referencePriceUsd,
+        discountPercent: Math.round(PLATFORM_BUYBACK_DISCOUNT * 100),
+        label: 'Sanova'
+      },
       totalTokensForSale,
       lowestAskUsd
     };
@@ -320,5 +335,169 @@ export async function buySecondaryListing(input: { buyerUserId: string; listingI
     tokenCount: listing.tokenCount,
     totalUsd,
     txHash
+  };
+}
+
+export async function getSecondaryListingQuote(listingId: string) {
+  const listing = await prisma.secondaryMarketListing.findUnique({
+    where: { id: listingId },
+    include: {
+      project: {
+        select: {
+          id: true,
+          title: true,
+          tokenSymbol: true,
+          pricePerToken: true
+        }
+      }
+    }
+  });
+
+  if (!listing || listing.status !== 'OPEN') {
+    throw new Error('LISTING_NOT_FOUND');
+  }
+
+  const pricePerTokenUsd = listing.pricePerTokenUsd.toNumber();
+
+  return {
+    listingId: listing.id,
+    projectId: listing.projectId,
+    projectTitle: listing.project.title,
+    tokenSymbol: listing.project.tokenSymbol ?? 'RWA',
+    tokenCount: listing.tokenCount,
+    pricePerTokenUsd,
+    totalUsd: pricePerTokenUsd * listing.tokenCount,
+    side: 'SELL' as const
+  };
+}
+
+export async function getPlatformBuybackQuote(input: { projectId: string; tokenCount: number }) {
+  if (!Number.isInteger(input.tokenCount) || input.tokenCount <= 0) {
+    throw new Error('INVALID_TOKEN_COUNT');
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: input.projectId },
+    select: {
+      id: true,
+      title: true,
+      tokenSymbol: true,
+      pricePerToken: true,
+      isActive: true
+    }
+  });
+
+  if (!project?.isActive) {
+    throw new Error('PROJECT_NOT_AVAILABLE');
+  }
+
+  const referencePriceUsd = project.pricePerToken.toNumber();
+  const pricePerTokenUsd = Number((referencePriceUsd * (1 - PLATFORM_BUYBACK_DISCOUNT)).toFixed(2));
+
+  return {
+    projectId: project.id,
+    projectTitle: project.title,
+    tokenSymbol: project.tokenSymbol ?? 'RWA',
+    tokenCount: input.tokenCount,
+    pricePerTokenUsd,
+    referencePriceUsd,
+    discountPercent: Math.round(PLATFORM_BUYBACK_DISCOUNT * 100),
+    totalUsd: pricePerTokenUsd * input.tokenCount,
+    side: 'BUY' as const
+  };
+}
+
+export async function executePlatformBuyback(input: {
+  userId: string;
+  projectId: string;
+  tokenCount: number;
+}) {
+  if (!Number.isInteger(input.tokenCount) || input.tokenCount <= 0) {
+    throw new Error('INVALID_TOKEN_COUNT');
+  }
+
+  const buyerContext = await getUserPurchaseContext(input.userId);
+  if (!buyerContext) {
+    throw new Error('USER_NOT_FOUND');
+  }
+
+  await assertInvestorCheckoutEligible(buyerContext);
+
+  const project = await prisma.project.findUnique({
+    where: { id: input.projectId },
+    select: { id: true, pricePerToken: true, isActive: true, tokenSymbol: true, title: true }
+  });
+
+  if (!project?.isActive) {
+    throw new Error('PROJECT_NOT_AVAILABLE');
+  }
+
+  const holdings = await getSecondaryMarketHoldings(input.userId);
+  const holding = holdings.find((row) => row.projectId === input.projectId);
+
+  if (!holding || holding.availableToSell < input.tokenCount) {
+    throw new Error('INSUFFICIENT_TOKENS');
+  }
+
+  const referencePriceUsd = project.pricePerToken.toNumber();
+  const pricePerTokenUsd = Number((referencePriceUsd * (1 - PLATFORM_BUYBACK_DISCOUNT)).toFixed(2));
+  const totalUsd = pricePerTokenUsd * input.tokenCount;
+  const idempotencyKey = `platform-buyback:${input.userId}:${input.projectId}:${Date.now()}`;
+
+  await prisma.$transaction(async (tx) => {
+    const user = await tx.user.findUniqueOrThrow({
+      where: { id: input.userId },
+      select: { investorId: true }
+    });
+
+    if (!user.investorId) {
+      throw new Error('INVESTOR_NOT_FOUND');
+    }
+
+    const sellerInvestment = await tx.investment.findFirst({
+      where: {
+        investorId: user.investorId,
+        projectId: input.projectId,
+        status: 'ACTIVE'
+      },
+      orderBy: { purchasedAt: 'asc' }
+    });
+
+    if (!sellerInvestment || sellerInvestment.tokenCount < input.tokenCount) {
+      throw new Error('INSUFFICIENT_TOKENS');
+    }
+
+    const remainingSellerTokens = sellerInvestment.tokenCount - input.tokenCount;
+
+    await tx.investment.update({
+      where: { id: sellerInvestment.id },
+      data: {
+        tokenCount: remainingSellerTokens,
+        status: remainingSellerTokens === 0 ? 'LIQUIDATED' : 'ACTIVE'
+      }
+    });
+  });
+
+  await creditPlatformWallet({
+    userId: input.userId,
+    investorId: buyerContext.investorId,
+    amountUsd: totalUsd,
+    idempotencyKey,
+    metadata: {
+      source: 'SECONDARY_PLATFORM_BUYBACK',
+      projectId: input.projectId,
+      tokenCount: input.tokenCount,
+      pricePerTokenUsd,
+      referencePriceUsd
+    }
+  });
+
+  return {
+    projectId: input.projectId,
+    projectTitle: project.title,
+    tokenSymbol: project.tokenSymbol ?? 'RWA',
+    tokenCount: input.tokenCount,
+    pricePerTokenUsd,
+    totalUsd
   };
 }

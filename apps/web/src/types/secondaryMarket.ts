@@ -12,9 +12,19 @@ export type SecondaryMarketOrder = {
   isOwnListing: boolean;
 };
 
+export type SecondaryMarketPlatformBuyback = {
+  id: string;
+  projectId: string;
+  pricePerTokenUsd: number;
+  referencePriceUsd: number;
+  discountPercent: number;
+  label: string;
+};
+
 export type SecondaryMarketProperty = {
   listing: MarketplaceListing;
   orders: SecondaryMarketOrder[];
+  platformBuyback: SecondaryMarketPlatformBuyback;
   totalTokensForSale: number;
   lowestAskUsd: number | null;
 };

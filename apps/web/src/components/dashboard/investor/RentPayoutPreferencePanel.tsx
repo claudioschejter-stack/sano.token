@@ -1,11 +1,12 @@
 'use client';
 
 import { Banknote, CircleDollarSign, Loader2, Wallet } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useLinkedWalletGuard } from '../../../hooks/useLinkedWalletGuard';
 import { InvestorSection } from './InvestorSection';
-import { WalletConnectButton } from '../../marketplace/WalletConnectButton';
 
 type RentPayoutPreference = 'FIAT' | 'USDC';
 
@@ -13,6 +14,7 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
   const t = useTranslation();
   const w = t.wallet;
   const r = t.rentPayout;
+  const router = useRouter();
   const walletGuard = useLinkedWalletGuard();
 
   const [preference, setPreference] = useState<RentPayoutPreference | null>(null);
@@ -51,7 +53,9 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
     }
 
     if (next === 'USDC' && !walletGuard.isWalletLinked) {
-      setError(w.walletNotLinked);
+      router.push(
+        '/marketplace/carrito?mode=wallet&returnTo=/dashboard&preference=USDC'
+      );
       return;
     }
 
@@ -160,7 +164,14 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
                 </p>
               </div>
             </div>
-            {!walletGuard.isWalletLinked ? <WalletConnectButton /> : null}
+            {!walletGuard.isWalletLinked ? (
+              <Link
+                href="/marketplace/carrito?mode=wallet&returnTo=/dashboard&preference=USDC"
+                className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+              >
+                {r.linkWalletInCheckout}
+              </Link>
+            ) : null}
             {walletGuard.isWalletMismatch ? (
               <p className="text-xs font-medium text-terminal-warning">{w.walletMismatch}</p>
             ) : null}

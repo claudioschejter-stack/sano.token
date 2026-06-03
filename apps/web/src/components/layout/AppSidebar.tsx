@@ -40,6 +40,7 @@ type InvestorNavConfig = {
 };
 
 const adminNavItems = [
+  { href: '/', icon: Home, labelKey: 'home' as const },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' as const },
   { href: '/dashboard/investors', icon: Users, labelKey: 'investors' as const },
   { href: '/dashboard/assets', icon: Building2, labelKey: 'assets' as const },
@@ -53,10 +54,11 @@ const adminNavItems = [
 type AdvisorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'panel' | 'clients' | 'marketplace' | 'secondaryMarket' | 'myWallet';
+  labelKey: 'home' | 'panel' | 'clients' | 'marketplace' | 'secondaryMarket' | 'myWallet';
 };
 
 const advisorNavItems: AdvisorNavConfig[] = [
+  { href: '/', icon: Home, labelKey: 'home' },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
   { href: '/dashboard/wallet', icon: CircleDollarSign, labelKey: 'myWallet' },
@@ -84,7 +86,7 @@ const investorNavItems: InvestorNavConfig[] = [
 ];
 
 type SidebarContentProps = {
-  panelItem: NavItem | undefined;
+  topNavItem: NavItem | undefined;
   secondaryNavItems: NavItem[];
   isAdmin: boolean;
   isAdvisorStaff: boolean;
@@ -93,7 +95,7 @@ type SidebarContentProps = {
 };
 
 function SidebarContent({
-  panelItem,
+  topNavItem,
   secondaryNavItems,
   isAdmin,
   isAdvisorStaff,
@@ -119,7 +121,7 @@ function SidebarContent({
 
       <div className="px-4 pt-4">
         <SidebarUserStatus />
-        {panelItem ? renderNavItem(panelItem, onNavigate) : null}
+        {topNavItem ? renderNavItem(topNavItem, onNavigate) : null}
       </div>
 
       <div className="mx-4 border-t border-terminal-border" />
@@ -220,7 +222,7 @@ export function AppSidebar() {
   const adminItems: NavItem[] = adminNavItems.map((item) => ({
     href: item.href,
     icon: item.icon,
-    label: t.adminNav[item.labelKey]
+    label: item.labelKey === 'home' ? t.nav.home : t.adminNav[item.labelKey]
   }));
 
   const investorItems: NavItem[] = visibleInvestorItems.map((item) => ({
@@ -236,20 +238,27 @@ export function AppSidebar() {
     href: item.href,
     icon: item.icon,
     label:
-      item.labelKey === 'clients'
-        ? t.advisorPortal.navClients
-        : item.labelKey === 'marketplace'
-          ? t.nav.marketplace
-          : item.labelKey === 'secondaryMarket'
-            ? t.nav.secondaryMarket
-            : item.labelKey === 'myWallet'
-              ? t.nav.myWallet
-              : t.adminNav.panel
+      item.labelKey === 'home'
+        ? t.nav.home
+        : item.labelKey === 'clients'
+          ? t.advisorPortal.navClients
+          : item.labelKey === 'marketplace'
+            ? t.nav.marketplace
+            : item.labelKey === 'secondaryMarket'
+              ? t.nav.secondaryMarket
+              : item.labelKey === 'myWallet'
+                ? t.nav.myWallet
+                : t.adminNav.panel
   }));
 
   const primaryNavItems = isAdmin ? adminItems : isAdvisorStaff ? advisorItems : investorItems;
+  const homeItem = primaryNavItems.find((item) => item.href === '/');
   const panelItem = primaryNavItems.find((item) => item.href === '/dashboard');
-  const secondaryNavItems = primaryNavItems.filter((item) => item.href !== '/dashboard');
+  const topNavItem = homeItem ?? panelItem;
+  const secondaryNavItems = [
+    ...(homeItem && panelItem ? [panelItem] : []),
+    ...primaryNavItems.filter((item) => item.href !== '/' && item.href !== '/dashboard')
+  ];
   const closeMobile = () => setMobileOpen(false);
 
   const signOutButton = (
@@ -295,22 +304,14 @@ export function AppSidebar() {
         }`}
       >
         <SidebarContent
-          panelItem={panelItem}
+          topNavItem={topNavItem}
           secondaryNavItems={secondaryNavItems}
           isAdmin={isAdmin}
           isAdvisorStaff={isAdvisorStaff}
           onNavigate={closeMobile}
           renderNavItem={renderNavItem}
         />
-        <div className="mt-auto shrink-0 space-y-3 border-t border-terminal-border p-4">
-          <div className="flex flex-wrap gap-3 text-xs text-terminal-muted">
-            <Link href="/terminos" className="hover:text-terminal-text">
-              {t.legal.portalFooterTerms}
-            </Link>
-            <Link href="/privacidad" className="hover:text-terminal-text">
-              {t.legal.portalFooterPrivacy}
-            </Link>
-          </div>
+        <div className="mt-auto shrink-0 border-t border-terminal-border p-4">
           {signOutButton}
         </div>
       </aside>

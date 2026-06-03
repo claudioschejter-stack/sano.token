@@ -764,6 +764,11 @@ export const en = {
     createOrderPay: "Create order and pay"
   },
   cartCheckout: {
+    walletLinkEyebrow: "Checkout",
+    walletLinkTitle: "Link wallet",
+    walletLinkSubtitle:
+      "Connect or create your Base wallet to receive rent in USDC. The address stays linked to your account.",
+    walletLinkBack: "Back to dashboard",
     purchaseTitle: "Multi-project cart",
     purchaseSubtitle: "Review your assets, choose a payment method and confirm to credit tokens automatically.",
     depositTitle: "Deposit funds",
@@ -795,7 +800,7 @@ export const en = {
     brandLabel: "Sanova RWA",
     title: "Secondary Market",
     subtitle:
-      "Internal secondary market among verified investors. Every transfer requires KYC, whitelist and fiduciary authorization.",
+      "Internal secondary market among verified investors. Every transfer requires KYC, whitelist and fiduciary authorization. Instant token buyback by the platform is offered at a 3% discount.",
     kycRequired: "Complete your KYC to operate in the secondary market.",
     kycRequiredShort: "KYC required",
     completeKyc: "Complete KYC",
@@ -826,7 +831,27 @@ export const en = {
     colPrice: "Price/token",
     colTotal: "Total",
     colAction: "Action",
-    anonymousSeller: "Verified investor"
+    anonymousSeller: "Verified investor",
+    colBuy: "Buy",
+    colSell: "Sell",
+    colAsset: "Asset",
+    ledgerPrice: "Price",
+    ledgerQty: "Qty",
+    emptyBuy: "No buy bids",
+    emptySell: "No sell offers",
+    holdingAvailable: "Available: {count}",
+    checkoutEyebrow: "Secondary market",
+    checkoutTitle: "Processing order",
+    checkoutSubtitle: "Your order is executed automatically against the internal ledger.",
+    checkoutBack: "Back to market",
+    checkoutSide: "Side",
+    checkoutBuySide: "Buy from investor",
+    checkoutSellSide: "Sell to Sanova (3% discount)",
+    checkoutRunning: "Executing trade…",
+    checkoutPending: "Preparing checkout…",
+    checkoutSuccess: "Trade completed. Returning to market…",
+    checkoutFailed: "Trade failed",
+    checkoutError: "Could not complete the trade."
   },
   wallet: {
     disconnect: "Disconnect",
@@ -854,6 +879,7 @@ export const en = {
     eyebrow: "Sanova Wallet",
     title: "My wallet",
     subtitle: "Deposit USDC or fiat, withdraw to your wallet, and use balance to buy RWA tokens.",
+    subtitleCompact: "Deposits via checkout, automatic withdrawals to your linked wallet, and activity history.",
     buyTokens: "Buy tokens",
     kpiAvailable: "Available balance",
     kpiAvailableHint: "Ready to invest or withdraw",
@@ -868,6 +894,9 @@ export const en = {
     depositSubtitle: "The system picks the cheapest route (USDC on-chain on Base recommended).",
     withdrawTitle: "Withdraw funds",
     withdrawSubtitle: "USDC to your connected wallet or fiat withdrawal with treasury review.",
+    withdrawAutoSubtitle: "Withdrawal is sent automatically to the wallet linked to your account.",
+    withdrawAutoRunning: "Processing automatic withdrawal…",
+    withdrawAutoHint: "When you select Withdraw, we transfer your available balance to your wallet.",
     amountPlaceholder: "Amount USD",
     methodAuto: "Auto: cheapest option",
     methodUsdc: "USDC on-chain",
@@ -909,7 +938,8 @@ export const en = {
     depositConfirmed: "Deposit credited successfully.",
     errorDepositCreate: "Could not create deposit.",
     errorDepositVerify: "Could not verify deposit.",
-    errorWithdrawal: "Could not request withdrawal."
+    errorWithdrawal: "Could not request withdrawal.",
+    errorNoBalance: "No available balance to withdraw."
   },
   dashboard: {
     eyebrow: "Capital and Coverage",
@@ -944,6 +974,7 @@ export const en = {
     portfolioEvolutionTitle: "Net liquid value evolution",
     portfolioEvolutionSubtitle: "Daily snapshot: assets − loans in USD",
     compositionTitle: "Allocation",
+    compositionEmpty: "No assets recorded to show allocation.",
     breakdownRwa: "RWA tokens",
     breakdownStablecoins: "Stablecoins",
     breakdownFiat: "Fiat / Sanova balance",
@@ -1386,7 +1417,7 @@ export const en = {
     sectionTokensHint: "Tokenized RWA positions",
     sectionTokensEmpty: "No RWA token positions.",
     sectionStablecoins: "Stablecoins",
-    sectionStablecoinsHint: "No stablecoins in portfolio.",
+    sectionStablecoinsHint: "USDC on each network",
     sectionStablecoinsEmpty: "No stablecoin positions.",
     sectionFiat: "Fiat currencies",
     sectionFiatHint: "No fiat currency in portfolio.",
@@ -1395,6 +1426,14 @@ export const en = {
     colInstrument: "Instrument",
     colValueUsdc: "Value in USDC",
     colPosition: "Position (holdings)",
+    colQuantity: "Quantity",
+    colTokenCode: "Token code",
+    colStablecoinType: "Stablecoin",
+    colCurrency: "Currency",
+    colActions: "Actions",
+    actionBuy: "Buy",
+    actionSell: "Sell",
+    actionLoan: "Request loan",
     colValueUsd: "Value in USD",
     reconciliationTitle: "Portfolio reconciliation",
     positionsSubtotal: "Sum of positions (USD)",
@@ -1450,7 +1489,8 @@ export const en = {
     saved: "Preference saved. It applies to the next rent distribution.",
     loadError: "Could not load your rent payout preference.",
     saveError: "Could not save your preference.",
-    walletRequired: "Connect a wallet before selecting USDC payouts."
+    walletRequired: "Connect a wallet before selecting USDC payouts.",
+    linkWalletInCheckout: "Link wallet in checkout"
   },
   demo: {
     assets: {

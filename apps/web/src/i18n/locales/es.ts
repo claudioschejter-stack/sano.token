@@ -778,6 +778,11 @@ export const es = {
     createOrderPay: 'Crear orden y pagar'
   },
   cartCheckout: {
+    walletLinkEyebrow: 'Checkout',
+    walletLinkTitle: 'Vincular billetera',
+    walletLinkSubtitle:
+      'Conectá o creá tu billetera en Base para recibir rentas en USDC. La dirección queda asociada a tu cuenta.',
+    walletLinkBack: 'Volver al panel',
     purchaseTitle: 'Carrito multi-proyecto',
     purchaseSubtitle: 'Revisá tus activos, elegí un método de pago y confirmá para acreditar tokens automáticamente.',
     depositTitle: 'Depositar fondos',
@@ -809,7 +814,7 @@ export const es = {
     brandLabel: 'Sanova RWA',
     title: 'Mercado Secundario',
     subtitle:
-      'Mercado secundario interno entre inversores verificados. Toda transferencia requiere KYC, whitelist y autorización fiduciaria.',
+      'Mercado secundario interno entre inversores verificados. Toda transferencia requiere KYC, whitelist y autorización fiduciaria. La recompra instantánea del token por parte de la plataforma se realizará con un 3% de descuento.',
     kycRequired: 'Completá tu KYC para operar en el mercado secundario.',
     kycRequiredShort: 'KYC requerido',
     completeKyc: 'Completar KYC',
@@ -840,7 +845,27 @@ export const es = {
     colPrice: 'Precio/token',
     colTotal: 'Total',
     colAction: 'Acción',
-    anonymousSeller: 'Inversor verificado'
+    anonymousSeller: 'Inversor verificado',
+    colBuy: 'Compra',
+    colSell: 'Venta',
+    colAsset: 'Activo',
+    ledgerPrice: 'Precio',
+    ledgerQty: 'Cant.',
+    emptyBuy: 'Sin ofertas de compra',
+    emptySell: 'Sin ofertas de venta',
+    holdingAvailable: 'Disponibles: {count}',
+    checkoutEyebrow: 'Mercado secundario',
+    checkoutTitle: 'Procesando operación',
+    checkoutSubtitle: 'La operación se ejecuta automáticamente en el libro interno.',
+    checkoutBack: 'Volver al mercado',
+    checkoutSide: 'Lado',
+    checkoutBuySide: 'Compra a inversor',
+    checkoutSellSide: 'Venta a Sanova (3% descuento)',
+    checkoutRunning: 'Ejecutando operación…',
+    checkoutPending: 'Preparando checkout…',
+    checkoutSuccess: 'Operación completada. Volviendo al mercado…',
+    checkoutFailed: 'Operación fallida',
+    checkoutError: 'No se pudo completar la operación.'
   },
   wallet: {
     disconnect: 'Desconectar',
@@ -869,6 +894,7 @@ export const es = {
     title: 'Mi cartera',
     subtitle:
       'Depositá USDC o fiat, retirá a tu wallet y usá el saldo para comprar tokens RWA en el marketplace.',
+    subtitleCompact: 'Depósitos vía checkout, retiros automáticos a tu wallet vinculada e historial de movimientos.',
     buyTokens: 'Comprar tokens',
     kpiAvailable: 'Saldo disponible',
     kpiAvailableHint: 'Listo para invertir o retirar',
@@ -883,6 +909,9 @@ export const es = {
     depositSubtitle: 'El sistema elige la ruta más barata (USDC on-chain recomendado en Base).',
     withdrawTitle: 'Retirar fondos',
     withdrawSubtitle: 'USDC a tu wallet conectada o retiro fiat con revisión de tesorería.',
+    withdrawAutoSubtitle: 'El retiro se envía automáticamente a la wallet vinculada a tu cuenta.',
+    withdrawAutoRunning: 'Procesando retiro automático…',
+    withdrawAutoHint: 'Al seleccionar Retirar, transferimos el saldo disponible a tu wallet.',
     amountPlaceholder: 'Monto USD',
     methodAuto: 'Automático: opción más barata',
     methodUsdc: 'USDC on-chain',
@@ -924,7 +953,8 @@ export const es = {
     depositConfirmed: 'Depósito acreditado correctamente.',
     errorDepositCreate: 'No se pudo crear el depósito.',
     errorDepositVerify: 'No se pudo verificar el depósito.',
-    errorWithdrawal: 'No se pudo solicitar el retiro.'
+    errorWithdrawal: 'No se pudo solicitar el retiro.',
+    errorNoBalance: 'No hay saldo disponible para retirar.'
   },
   dashboard: {
     eyebrow: 'Capital y Cobertura',
@@ -960,6 +990,7 @@ export const es = {
     portfolioEvolutionTitle: 'Evolución del valor líquido neto',
     portfolioEvolutionSubtitle: 'Snapshot diario: activos − préstamos en USD',
     compositionTitle: 'Composición',
+    compositionEmpty: 'Sin activos registrados para mostrar la composición.',
     breakdownRwa: 'Tokens RWA',
     breakdownStablecoins: 'Stablecoins',
     breakdownFiat: 'Fiat / Saldo Sanova',
@@ -1422,7 +1453,7 @@ export const es = {
     sectionTokensHint: 'Posiciones RWA tokenizadas',
     sectionTokensEmpty: 'Sin posiciones en tokens RWA.',
     sectionStablecoins: 'Stablecoins',
-    sectionStablecoinsHint: 'Sin stablecoins en cartera.',
+    sectionStablecoinsHint: 'USDC en cada red',
     sectionStablecoinsEmpty: 'Sin posiciones en stablecoins.',
     sectionFiat: 'Monedas fiat',
     sectionFiatHint: 'Sin moneda fiat en cartera.',
@@ -1431,6 +1462,14 @@ export const es = {
     colInstrument: 'Instrumento',
     colValueUsdc: 'Valor en USDC',
     colPosition: 'Posición (cantidad en cartera)',
+    colQuantity: 'Cantidad',
+    colTokenCode: 'Código del token',
+    colStablecoinType: 'Stablecoin',
+    colCurrency: 'Moneda',
+    colActions: 'Acciones',
+    actionBuy: 'Comprar',
+    actionSell: 'Vender',
+    actionLoan: 'Solicitar préstamo',
     colValueUsd: 'Valor en USD',
     reconciliationTitle: 'Conciliación de cartera',
     positionsSubtotal: 'Suma de posiciones (USD)',
@@ -1486,7 +1525,8 @@ export const es = {
     saved: 'Preferencia guardada. Se aplicará en la próxima distribución de rentas.',
     loadError: 'No se pudo cargar tu preferencia de cobro.',
     saveError: 'No se pudo guardar tu preferencia.',
-    walletRequired: 'Conectá una wallet antes de elegir cobro en USDC.'
+    walletRequired: 'Conectá una wallet antes de elegir cobro en USDC.',
+    linkWalletInCheckout: 'Vincular billetera en checkout'
   },
   demo: {
     assets: {

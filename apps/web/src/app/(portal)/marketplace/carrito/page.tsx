@@ -31,8 +31,14 @@ export default async function MarketplaceCartPage({ searchParams }: CartPageProp
     }
   });
 
-  const mode = searchParams.mode === 'deposit' ? 'deposit' : 'purchase';
-  const returnPath = mode === 'deposit' ? '/marketplace/carrito?mode=deposit' : '/marketplace/carrito';
+  const mode =
+    searchParams.mode === 'deposit' ? 'deposit' : searchParams.mode === 'wallet' ? 'wallet' : 'purchase';
+  const returnPath =
+    mode === 'deposit'
+      ? '/marketplace/carrito?mode=deposit'
+      : mode === 'wallet'
+        ? '/marketplace/carrito?mode=wallet&returnTo=/dashboard&preference=USDC'
+        : '/marketplace/carrito';
 
   if (!user || !canAccessMarketplaceCheckout(user)) {
     redirect(`/kyc?returnTo=${encodeURIComponent(returnPath)}`);

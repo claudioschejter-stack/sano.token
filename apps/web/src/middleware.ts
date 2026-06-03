@@ -20,6 +20,7 @@ export default auth((request) => {
 
   const isProtected =
     pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/mercado-secundario/checkout') ||
     (pathname.startsWith('/marketplace') &&
       (pathname.includes('/checkout') || pathname === '/marketplace/carrito'));
 
@@ -41,5 +42,14 @@ export default auth((request) => {
 });
 
 export const config = {
-  matcher: ['/', '/marketplace', '/mercado-secundario', '/acceso', '/dashboard/:path*', '/marketplace/:path*/checkout', '/marketplace/carrito']
+  matcher: [
+    '/',
+    '/marketplace',
+    '/mercado-secundario',
+    '/mercado-secundario/checkout',
+    '/acceso',
+    '/dashboard/:path*',
+    '/marketplace/:path*/checkout',
+    '/marketplace/carrito'
+  ]
 };

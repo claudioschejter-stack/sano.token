@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleDollarSign, Minus, TrendingUp } from 'lucide-react';
 import {
   Area,
@@ -20,38 +21,46 @@ import { InvestorSection } from './InvestorSection';
 
 type PositionRow = AggregatedPortfolio['positions'][number];
 
-function describeStablecoinHoldings(rows: PositionRow[]): string {
-  if (!rows.length) {
-    return '';
-  }
-
-  return [
-    ...new Set(
-      rows.map((row) => {
-        const network = row.metadata?.network as string | undefined;
-        if (network) {
-          return `${row.currency} en ${network}`;
-        }
-
-        return row.label || row.currency;
-      })
-    )
-  ].join(' · ');
-}
-
-function describeFiatHoldings(rows: PositionRow[]): string {
-  if (!rows.length) {
-    return '';
-  }
-
-  return [...new Set(rows.map((row) => row.currency))].join(' · ');
-}
-
 function sumPositionUsd(rows: PositionRow[]): number {
   return rows.reduce((sum, row) => sum + row.valueUsd, 0);
 }
 
-function PositionTable({
+function formatAmount(value: number, intlLocale: string): string {
+  return value.toLocaleString(intlLocale, { maximumFractionDigits: 6 });
+}
+
+function TokenActions({
+  projectId,
+  labels
+}: {
+  projectId: string;
+  labels: { buy: string; sell: string; loan: string };
+}) {
+  return (
+    <div className="flex flex-wrap justify-end gap-1.5">
+      <Link
+        href={`/marketplace/${projectId}/checkout`}
+        className="rounded-md bg-terminal-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white hover:bg-blue-500 sm:text-xs"
+      >
+        {labels.buy}
+      </Link>
+      <Link
+        href={`/mercado-secundario?sell=${encodeURIComponent(projectId)}`}
+        className="rounded-md bg-terminal-success px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white hover:bg-emerald-600 sm:text-xs"
+      >
+        {labels.sell}
+      </Link>
+      <Link
+        href={`/marketplace/${projectId}/prestamo`}
+        className="rounded-md bg-orange-500 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white hover:bg-orange-600 sm:text-xs"
+      >
+        {labels.loan}
+      </Link>
+    </div>
+  );
+}
+
+function RwaPositionTable({
   rows,
   labels,
   formatUsd,
@@ -61,12 +70,129 @@ function PositionTable({
   labels: {
     colInstrument: string;
     colValueUsdc: string;
-    colPosition: string;
+    colQuantity: string;
+    colTokenCode: string;
+    colValueUsd: string;
+    colActions: string;
+    actionBuy: string;
+    actionSell: string;
+    actionLoan: string;
+    empty: string;
+  };
+  formatUsd: (value: number) => string;
+  intlLocale: string;
+}) {
+  if (!rows.length) {
+    return <p className="px-4 py-6 text-sm text-terminal-muted sm:px-6">{labels.empty}</p>;
+  }
+
+  const actionLabels = { buy: labels.actionBuy, sell: labels.actionSell, loan: labels.actionLoan };
+
+  return (
+    <>
+      <div className="space-y-3 p-4 md:hidden">
+        {rows.map((row) => {
+          const projectId = String(row.metadata?.projectId ?? '');
+          return (
+            <article key={row.id} className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
+              <p className="font-medium text-terminal-text">{row.label}</p>
+              <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-terminal-muted">{labels.colValueUsdc}</p>
+                  <p className="font-mono font-semibold">{formatUsd(row.valueUsdc)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-terminal-muted">{labels.colValueUsd}</p>
+                  <p className="font-mono font-semibold">{formatUsd(row.valueUsd)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-terminal-muted">{labels.colQuantity}</p>
+                  <p className="font-mono">{formatAmount(row.amount, intlLocale)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-terminal-muted">{labels.colTokenCode}</p>
+                  <p className="font-mono text-terminal-muted">{row.currency}</p>
+                </div>
+              </div>
+              {projectId ? (
+                <div className="mt-3 border-t border-terminal-border pt-3">
+                  <TokenActions projectId={projectId} labels={actionLabels} />
+                </div>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[920px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-terminal-border bg-terminal-bg/80 text-left text-xs uppercase tracking-wider text-terminal-muted">
+              <th className="border-r border-terminal-border px-4 py-3 lg:px-6">{labels.colInstrument}</th>
+              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colValueUsdc}</th>
+              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colQuantity}</th>
+              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colTokenCode}</th>
+              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colValueUsd}</th>
+              <th className="px-4 py-3 text-right lg:px-6">{labels.colActions}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => {
+              const projectId = String(row.metadata?.projectId ?? '');
+              return (
+                <tr
+                  key={row.id}
+                  className={`border-b border-terminal-border ${index === rows.length - 1 ? 'border-b-0' : ''}`}
+                >
+                  <td className="border-r border-terminal-border px-4 py-3 font-medium text-terminal-text lg:px-6">
+                    {row.label}
+                  </td>
+                  <td className="border-r border-terminal-border px-4 py-3 text-right font-mono lg:px-6">
+                    {formatUsd(row.valueUsdc)}
+                  </td>
+                  <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-text lg:px-6">
+                    {formatAmount(row.amount, intlLocale)}
+                  </td>
+                  <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-muted lg:px-6">
+                    {row.currency}
+                  </td>
+                  <td className="border-r border-terminal-border px-4 py-3 text-right font-mono font-semibold text-terminal-primary lg:px-6">
+                    {formatUsd(row.valueUsd)}
+                  </td>
+                  <td className="px-4 py-3 lg:px-6">
+                    {projectId ? <TokenActions projectId={projectId} labels={actionLabels} /> : null}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}
+
+function SplitPositionTable({
+  rows,
+  labels,
+  formatUsd,
+  intlLocale,
+  quantityKey,
+  typeKey
+}: {
+  rows: PositionRow[];
+  labels: {
+    colInstrument: string;
+    colValueUsdc: string;
+    colQuantity: string;
+    colType: string;
     colValueUsd: string;
     empty: string;
   };
   formatUsd: (value: number) => string;
   intlLocale: string;
+  quantityKey: 'amount';
+  typeKey: 'currency';
 }) {
   if (!rows.length) {
     return <p className="px-4 py-6 text-sm text-terminal-muted sm:px-6">{labels.empty}</p>;
@@ -87,11 +213,13 @@ function PositionTable({
                 <p className="text-xs text-terminal-muted">{labels.colValueUsd}</p>
                 <p className="font-mono font-semibold">{formatUsd(row.valueUsd)}</p>
               </div>
-              <div className="col-span-2">
-                <p className="text-xs text-terminal-muted">{labels.colPosition}</p>
-                <p className="font-mono text-sm">
-                  {row.amount.toLocaleString(intlLocale, { maximumFractionDigits: 6 })} {row.currency}
-                </p>
+              <div>
+                <p className="text-xs text-terminal-muted">{labels.colQuantity}</p>
+                <p className="font-mono">{formatAmount(row[quantityKey], intlLocale)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-terminal-muted">{labels.colType}</p>
+                <p className="font-mono text-terminal-muted">{row[typeKey]}</p>
               </div>
             </div>
           </article>
@@ -104,7 +232,8 @@ function PositionTable({
             <tr className="border-b border-terminal-border bg-terminal-bg/80 text-left text-xs uppercase tracking-wider text-terminal-muted">
               <th className="border-r border-terminal-border px-4 py-3 lg:px-6">{labels.colInstrument}</th>
               <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colValueUsdc}</th>
-              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colPosition}</th>
+              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colQuantity}</th>
+              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colType}</th>
               <th className="px-4 py-3 text-right lg:px-6">{labels.colValueUsd}</th>
             </tr>
           </thead>
@@ -112,9 +241,7 @@ function PositionTable({
             {rows.map((row, index) => (
               <tr
                 key={row.id}
-                className={`border-b border-terminal-border ${
-                  index === rows.length - 1 ? 'border-b-0' : ''
-                }`}
+                className={`border-b border-terminal-border ${index === rows.length - 1 ? 'border-b-0' : ''}`}
               >
                 <td className="border-r border-terminal-border px-4 py-3 font-medium text-terminal-text lg:px-6">
                   {row.label}
@@ -122,8 +249,11 @@ function PositionTable({
                 <td className="border-r border-terminal-border px-4 py-3 text-right font-mono lg:px-6">
                   {formatUsd(row.valueUsdc)}
                 </td>
+                <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-text lg:px-6">
+                  {formatAmount(row[quantityKey], intlLocale)}
+                </td>
                 <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-muted lg:px-6">
-                  {row.amount.toLocaleString(intlLocale, { maximumFractionDigits: 6 })} {row.currency}
+                  {row[typeKey]}
                 </td>
                 <td className="px-4 py-3 text-right font-mono font-semibold text-terminal-primary lg:px-6">
                   {formatUsd(row.valueUsd)}
@@ -141,7 +271,7 @@ export function InvestorPortfolioPanel() {
   const t = useTranslation();
   const p = t.portfolio;
   const { intlLocale } = useLocale();
-  const { formatUsd, formatDate } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
+  const { formatUsd } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
 
   const [portfolio, setPortfolio] = useState<AggregatedPortfolio | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -168,21 +298,9 @@ export function InvestorPortfolioPanel() {
     [portfolio]
   );
 
-  const tableLabels = {
-    colInstrument: p.colInstrument,
-    colValueUsdc: p.colValueUsdc,
-    colPosition: p.colPosition,
-    colValueUsd: p.colValueUsd,
-    empty: p.sectionEmpty
-  };
-
   const tokenTotalUsd = useMemo(() => sumPositionUsd(tokenPositions), [tokenPositions]);
   const stablecoinTotalUsd = useMemo(() => sumPositionUsd(stablecoinPositions), [stablecoinPositions]);
   const fiatTotalUsd = useMemo(() => sumPositionUsd(fiatPositions), [fiatPositions]);
-
-  const stablecoinSubtitle =
-    describeStablecoinHoldings(stablecoinPositions) || p.sectionStablecoinsHint;
-  const fiatSubtitle = describeFiatHoldings(fiatPositions) || p.sectionFiatHint;
 
   const sectionTotalClassName =
     'shrink-0 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-1.5 font-mono text-sm font-semibold text-terminal-primary';
@@ -218,9 +336,18 @@ export function InvestorPortfolioPanel() {
 
   const { totals } = portfolio;
 
+  const splitTableLabels = {
+    colInstrument: p.colInstrument,
+    colValueUsdc: p.colValueUsdc,
+    colQuantity: p.colQuantity,
+    colType: p.colStablecoinType,
+    colValueUsd: p.colValueUsd,
+    empty: p.sectionEmpty
+  };
+
   return (
     <div className="space-y-6 md:space-y-8">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 [&>article]:h-full">
         <InvestorKpiCard
           label={p.netLiquidValue}
           value={formatUsd(totals.netLiquidValueUsd)}
@@ -282,13 +409,23 @@ export function InvestorPortfolioPanel() {
                 tickFormatter={(value) => `$${Number(value).toLocaleString(intlLocale)}`}
                 tickLine={false}
                 axisLine={false}
-                width={56}
+                width={72}
                 fontSize={11}
               />
               <Tooltip
-                formatter={(value) => formatUsd(Number(value))}
-                labelFormatter={(value) => formatDate(String(value))}
-                contentStyle={{ background: '#020617', border: '1px solid #1f2937', borderRadius: 12 }}
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) {
+                    return null;
+                  }
+
+                  return (
+                    <div className="rounded-lg border border-terminal-border bg-terminal-card px-2.5 py-1.5 shadow-lg">
+                      <p className="font-mono text-sm font-semibold text-terminal-primary">
+                        {formatUsd(Number(payload[0]?.value ?? 0))}
+                      </p>
+                    </div>
+                  );
+                }}
               />
               <Area
                 type="monotone"
@@ -308,9 +445,20 @@ export function InvestorPortfolioPanel() {
         action={<span className={sectionTotalClassName}>{formatUsd(tokenTotalUsd)}</span>}
         bodyClassName="p-0"
       >
-        <PositionTable
+        <RwaPositionTable
           rows={tokenPositions}
-          labels={{ ...tableLabels, empty: p.sectionTokensEmpty }}
+          labels={{
+            colInstrument: p.colInstrument,
+            colValueUsdc: p.colValueUsdc,
+            colQuantity: p.colQuantity,
+            colTokenCode: p.colTokenCode,
+            colValueUsd: p.colValueUsd,
+            colActions: p.colActions,
+            actionBuy: p.actionBuy,
+            actionSell: p.actionSell,
+            actionLoan: p.actionLoan,
+            empty: p.sectionTokensEmpty
+          }}
           formatUsd={formatUsd}
           intlLocale={intlLocale}
         />
@@ -318,29 +466,33 @@ export function InvestorPortfolioPanel() {
 
       <InvestorSection
         title={p.sectionStablecoins}
-        subtitle={stablecoinSubtitle}
+        subtitle={p.sectionStablecoinsHint}
         action={<span className={sectionTotalClassName}>{formatUsd(stablecoinTotalUsd)}</span>}
         bodyClassName="p-0"
       >
-        <PositionTable
+        <SplitPositionTable
           rows={stablecoinPositions}
-          labels={{ ...tableLabels, empty: p.sectionStablecoinsEmpty }}
+          labels={{ ...splitTableLabels, empty: p.sectionStablecoinsEmpty, colType: p.colStablecoinType }}
           formatUsd={formatUsd}
           intlLocale={intlLocale}
+          quantityKey="amount"
+          typeKey="currency"
         />
       </InvestorSection>
 
       <InvestorSection
         title={p.sectionFiat}
-        subtitle={fiatSubtitle}
+        subtitle={p.sectionFiatHint}
         action={<span className={sectionTotalClassName}>{formatUsd(fiatTotalUsd)}</span>}
         bodyClassName="p-0"
       >
-        <PositionTable
+        <SplitPositionTable
           rows={fiatPositions}
-          labels={{ ...tableLabels, empty: p.sectionFiatEmpty }}
+          labels={{ ...splitTableLabels, empty: p.sectionFiatEmpty, colType: p.colCurrency }}
           formatUsd={formatUsd}
           intlLocale={intlLocale}
+          quantityKey="amount"
+          typeKey="currency"
         />
       </InvestorSection>
     </div>

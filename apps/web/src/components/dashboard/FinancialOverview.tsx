@@ -27,7 +27,10 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  CartesianGrid
+  CartesianGrid,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
@@ -83,6 +86,20 @@ export function FinancialOverview() {
     [formatMonthLabel, monthlyComparison]
   );
 
+  const compositionSlices = useMemo(() => {
+    if (!portfolio) {
+      return [];
+    }
+
+    const slices = [
+      { name: d.breakdownRwa, value: portfolio.totals.rwaValueUsd, color: '#60a5fa' },
+      { name: d.breakdownStablecoins, value: portfolio.totals.stablecoinUsd, color: '#34d399' },
+      { name: d.breakdownFiat, value: portfolio.totals.fiatUsd, color: '#fbbf24' }
+    ].filter((slice) => slice.value > 0);
+
+    return slices;
+  }, [d.breakdownFiat, d.breakdownRwa, d.breakdownStablecoins, portfolio]);
+
   if (!mounted) {
     return <DashboardSkeleton />;
   }
@@ -95,7 +112,7 @@ export function FinancialOverview() {
 
       <RentPayoutPreferencePanel />
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>article]:h-full">
         <InvestorKpiCard
           label={d.kpiTotalPortfolio}
           value={portfolio ? formatUsdc(portfolio.totals.netLiquidValueUsd) : '—'}
@@ -187,13 +204,32 @@ export function FinancialOverview() {
                     tickFormatter={(value) => `$${Number(value).toLocaleString(intlLocale)}`}
                     tickLine={false}
                     axisLine={false}
-                    width={56}
+                    width={72}
                     fontSize={11}
                   />
                   <Tooltip
-                    formatter={(value) => formatUsdc(Number(value))}
-                    labelFormatter={(value) => new Date(String(value)).toLocaleDateString(intlLocale)}
-                    contentStyle={{ background: '#020617', border: '1px solid #1f2937', borderRadius: 12 }}
+                    content={({ active, payload, label }) => {
+                      if (!active || !payload?.length) {
+                        return null;
+                      }
+
+                      const value = Number(payload[0]?.value ?? 0);
+
+                      return (
+                        <div className="rounded-xl border border-terminal-border bg-terminal-card px-3 py-2 text-sm shadow-lg">
+                          <p className="text-xs text-terminal-muted">
+                            {new Date(String(label)).toLocaleDateString(intlLocale, {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </p>
+                          <p className="mt-1 font-mono font-semibold text-terminal-primary">
+                            {formatUsdc(value)}
+                          </p>
+                        </div>
+                      );
+                    }}
                   />
                   <Area
                     type="monotone"
@@ -209,26 +245,54 @@ export function FinancialOverview() {
 
           <article className="rounded-xl border border-terminal-border bg-terminal-card p-4 sm:p-6">
             <h2 className="text-base font-bold text-terminal-text sm:text-lg">{d.compositionTitle}</h2>
-            <div className="mt-4 space-y-3">
-              <BreakdownRow
-                label={d.breakdownRwa}
-                value={portfolio.totals.rwaValueUsd}
-                total={portfolio.totals.grossAssetsUsd}
-                formatUsd={formatUsdc}
-              />
-              <BreakdownRow
-                label={d.breakdownStablecoins}
-                value={portfolio.totals.stablecoinUsd}
-                total={portfolio.totals.grossAssetsUsd}
-                formatUsd={formatUsdc}
-              />
-              <BreakdownRow
-                label={d.breakdownFiat}
-                value={portfolio.totals.fiatUsd}
-                total={portfolio.totals.grossAssetsUsd}
-                formatUsd={formatUsdc}
-              />
-            </div>
+            {compositionSlices.length ? (
+              <>
+                <div className="mx-auto mt-4 h-52 w-full max-w-xs sm:h-56">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={compositionSlices}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={52}
+                        outerRadius={84}
+                        paddingAngle={2}
+                        stroke="rgb(15,23,42)"
+                        strokeWidth={2}
+                      >
+                        {compositionSlices.map((slice) => (
+                          <Cell key={slice.name} fill={slice.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => formatUsdc(Number(value))}
+                        contentStyle={{
+                          background: '#020617',
+                          border: '1px solid #1f2937',
+                          borderRadius: 12
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-4 space-y-3">
+                  {compositionSlices.map((slice) => (
+                    <BreakdownRow
+                      key={slice.name}
+                      label={slice.name}
+                      value={slice.value}
+                      total={portfolio.totals.grossAssetsUsd}
+                      formatUsd={formatUsdc}
+                      color={slice.color}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="mt-4 text-sm text-terminal-muted">{d.compositionEmpty}</p>
+            )}
           </article>
         </section>
       ) : null}
@@ -369,22 +433,26 @@ function BreakdownRow({
   label,
   value,
   total,
-  formatUsd
+  formatUsd,
+  color = '#60a5fa'
 }: {
   label: string;
   value: number;
   total: number;
   formatUsd: (value: number) => string;
+  color?: string;
 }) {
   const pct = total > 0 ? Math.round((value / total) * 100) : 0;
   return (
     <div>
       <div className="flex justify-between gap-2 text-sm">
-        <span className="text-terminal-muted">{label}</span>
+        <span className="text-terminal-muted">
+          {label} · {pct}%
+        </span>
         <span className="font-mono text-terminal-text">{formatUsd(value)}</span>
       </div>
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-terminal-bg">
-        <div className="h-full rounded-full bg-terminal-primary" style={{ width: `${pct}%` }} />
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
     </div>
   );

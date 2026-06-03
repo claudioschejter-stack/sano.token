@@ -46,7 +46,7 @@ type DepositResponse = {
 
 type CartCheckoutViewProps = {
   investorName: string;
-  initialMode?: 'purchase' | 'deposit';
+  initialMode?: 'purchase' | 'deposit' | 'wallet';
 };
 
 export function CartCheckoutView({ investorName, initialMode = 'purchase' }: CartCheckoutViewProps) {
@@ -60,7 +60,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const { address, isConnected } = useAccount();
   const walletGuard = useLinkedWalletGuard();
 
-  const mode = searchParams.get('mode') === 'deposit' ? 'deposit' : initialMode;
+  const mode =
+    searchParams.get('mode') === 'deposit'
+      ? 'deposit'
+      : searchParams.get('mode') === 'wallet'
+        ? 'wallet'
+        : initialMode;
   const returnStatus = searchParams.get('status');
   const batchFromQuery = searchParams.get('batch');
 
@@ -288,6 +293,56 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   };
 
   const payToAddress = mode === 'deposit' ? deposit?.payToAddress : checkout?.payToAddress;
+
+  if (mode === 'wallet') {
+    const returnTo = searchParams.get('returnTo') ?? '/dashboard';
+    const pendingPreference = searchParams.get('preference');
+
+    return (
+      <section className="mx-auto max-w-3xl">
+        <div className="mb-6">
+          <Link
+            href={returnTo}
+            className="inline-flex items-center gap-2 text-sm text-terminal-muted hover:text-terminal-text"
+          >
+            <ArrowLeft size={16} />
+            {c.walletLinkBack}
+          </Link>
+        </div>
+
+        <article className="overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
+          <div className="border-b border-terminal-border px-8 py-6">
+            <p className="text-sm font-medium uppercase tracking-wider text-terminal-primary">{c.walletLinkEyebrow}</p>
+            <h1 className="mt-2 text-2xl font-bold text-terminal-text">{c.walletLinkTitle}</h1>
+            <p className="mt-1 text-sm text-terminal-muted">{c.walletLinkSubtitle}</p>
+          </div>
+
+          <div className="space-y-4 p-8">
+            <InvestorWalletLinker
+              variant="checkout"
+              onError={(message) => setError(message)}
+              onLinked={async () => {
+                if (pendingPreference === 'USDC') {
+                  await fetch('/api/investor/rent-payout-preference', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ preference: 'USDC' })
+                  });
+                }
+
+                router.push(returnTo);
+              }}
+            />
+            {error ? (
+              <p className="rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-3 py-2 text-xs text-terminal-warning">
+                {error}
+              </p>
+            ) : null}
+          </div>
+        </article>
+      </section>
+    );
+  }
 
   return (
     <section className="mx-auto max-w-3xl">
