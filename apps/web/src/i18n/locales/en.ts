@@ -758,7 +758,7 @@ export const en = {
     sendToCompartment: "Send payment to the Compartment wallet and paste the tx hash to verify:",
     walletSectionTitle: "Wallet to pay on Base",
     walletSectionDesc:
-      "Create a Coinbase Smart Wallet or connect an existing one. It is linked automatically to your account.",
+      "Create a Coinbase Smart Wallet or connect an existing one. You can change the linked wallet from here.",
     walletSectionHint: "The address is saved on your investor profile for future operations.",
     walletConnectPrompt: "Your wallet is already registered. Connect it to sign the payment.",
     createOrderPay: "Create order and pay"
@@ -862,6 +862,12 @@ export const en = {
     noWallet: "Connect your wallet with Coinbase Wallet or WalletConnect.",
     wrongNetwork: "Switch to Base network",
     walletMismatch: "The connected wallet does not match the one linked to your account.",
+    replaceWalletTitle: "Different wallet than the linked one",
+    replaceWalletHint:
+      "You can only have one active wallet per account. If you confirm, we replace the previous one with the wallet connected now.",
+    replaceWalletButton: "Use this wallet",
+    linkedWalletLabel: "Linked",
+    connectedWalletLabel: "Connected",
     walletNotLinked: "Link your wallet during onboarding before operating.",
     buyOneClick: "Buy shares (USDC → Vault)",
     buyChecking: "Checking allowance…",

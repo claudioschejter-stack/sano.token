@@ -338,6 +338,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
             {paymentMethod !== 'INTERNAL_BALANCE' ? (
               <InvestorWalletLinker
                 variant="checkout"
+                allowReplace
                 onError={(message) => setPurchaseError(message)}
               />
             ) : null}

@@ -10,6 +10,8 @@ import { BASE_CHAIN_ID, isWalletConnectConfigured } from '../../lib/web3/config'
 
 export type InvestorWalletLinkerProps = {
   variant?: 'onboarding' | 'checkout';
+  /** When true, lets the investor replace the linked wallet with the currently connected one. */
+  allowReplace?: boolean;
   onLinked?: () => void | Promise<void>;
   onError?: (message: string) => void;
 };
@@ -31,6 +33,7 @@ function pickConnector(connectors: readonly Connector[], kind: 'coinbase' | 'wal
 
 export function InvestorWalletLinker({
   variant = 'checkout',
+  allowReplace = false,
   onLinked,
   onError
 }: InvestorWalletLinkerProps) {
@@ -64,7 +67,7 @@ export function InvestorWalletLinker({
   }, [onLinked, refresh]);
 
   const linkWallet = useCallback(
-    async (walletAddress: string) => {
+    async (walletAddress: string, options?: { forceReplace?: boolean }) => {
       const normalized = walletAddress.toLowerCase();
 
       if (linkedRef.current === normalized) {
@@ -72,7 +75,11 @@ export function InvestorWalletLinker({
         return;
       }
 
-      if (walletGuard.isWalletLinked && walletGuard.linkedWallet !== normalized) {
+      if (
+        walletGuard.isWalletLinked &&
+        walletGuard.linkedWallet !== normalized &&
+        !(allowReplace && options?.forceReplace)
+      ) {
         reportError(w.walletMismatch);
         return;
       }
@@ -98,6 +105,7 @@ export function InvestorWalletLinker({
         }
 
         linkedRef.current = (data.walletAddress ?? normalized).toLowerCase();
+        syncedRef.current = true;
         await notifyLinked();
       } catch {
         reportError(t.onboarding.errors.GENERIC);
@@ -105,7 +113,15 @@ export function InvestorWalletLinker({
         setSaving(false);
       }
     },
-    [notifyLinked, reportError, t.onboarding.errors, walletGuard.isWalletLinked, walletGuard.linkedWallet, w.walletMismatch]
+    [
+      allowReplace,
+      notifyLinked,
+      reportError,
+      t.onboarding.errors,
+      walletGuard.isWalletLinked,
+      walletGuard.linkedWallet,
+      w.walletMismatch
+    ]
   );
 
   const ensureBaseNetwork = useCallback(async () => {
@@ -135,7 +151,9 @@ export function InvestorWalletLinker({
     }
 
     if (walletGuard.isWalletMismatch) {
-      reportError(w.walletMismatch);
+      if (!allowReplace) {
+        reportError(w.walletMismatch);
+      }
       return;
     }
 
@@ -168,7 +186,8 @@ export function InvestorWalletLinker({
     walletGuard.isWalletLinked,
     walletGuard.isWalletMismatch,
     walletGuard.linkedWallet,
-    w.walletMismatch
+    w.walletMismatch,
+    allowReplace
   ]);
 
   useEffect(() => {
@@ -213,7 +232,12 @@ export function InvestorWalletLinker({
     linkedRef.current ??
     (walletGuard.canSignOnChain ? address?.toLowerCase() : null);
 
-  const showConnectButtons = !walletGuard.canSignOnChain;
+  const showReplaceWallet =
+    allowReplace &&
+    walletGuard.isWalletMismatch &&
+    Boolean(address) &&
+    Boolean(walletGuard.linkedWallet);
+  const showConnectButtons = !walletGuard.canSignOnChain && !showReplaceWallet;
   const isOnboarding = variant === 'onboarding';
 
   const primaryButtonClass = isOnboarding
@@ -274,10 +298,53 @@ export function InvestorWalletLinker({
           {walletGuard.isWalletLinked && !walletGuard.isConnected ? (
             <p className={`text-xs ${isOnboarding ? 'text-slate-600' : 'text-terminal-muted'}`}>{c.walletConnectPrompt}</p>
           ) : null}
-          {walletGuard.isWalletMismatch ? (
+          {walletGuard.isWalletMismatch && !allowReplace ? (
             <p className={`text-xs font-medium ${isOnboarding ? 'text-red-600' : 'text-terminal-warning'}`}>
               {w.walletMismatch}
             </p>
+          ) : null}
+          {showReplaceWallet ? (
+            <div
+              className={`space-y-2 rounded-lg border px-3 py-3 text-xs ${
+                isOnboarding
+                  ? 'border-amber-200 bg-amber-50 text-amber-900'
+                  : 'border-terminal-warning/30 bg-terminal-warning/10 text-terminal-muted'
+              }`}
+            >
+              <p className="font-medium text-terminal-text">{w.replaceWalletTitle}</p>
+              <p>{w.replaceWalletHint}</p>
+              <p>
+                {w.linkedWalletLabel}:{' '}
+                <span className="font-mono">
+                  {walletGuard.linkedWallet?.slice(0, 6)}…{walletGuard.linkedWallet?.slice(-4)}
+                </span>
+              </p>
+              <p>
+                {w.connectedWalletLabel}:{' '}
+                <span className="font-mono">
+                  {address?.slice(0, 6)}…{address?.slice(-4)}
+                </span>
+              </p>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void linkWallet(address!, { forceReplace: true })}
+                className={
+                  isOnboarding
+                    ? 'mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60'
+                    : 'mt-1 flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50'
+                }
+              >
+                {busy ? (
+                  <>
+                    <Loader2 className="animate-spin" size={16} />
+                    {o.walletSaving}
+                  </>
+                ) : (
+                  w.replaceWalletButton
+                )}
+              </button>
+            </div>
           ) : null}
           {walletGuard.isWrongNetwork ? (
             <p className={`text-xs font-medium ${isOnboarding ? 'text-amber-700' : 'text-terminal-warning'}`}>

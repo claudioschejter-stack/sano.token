@@ -772,7 +772,7 @@ export const es = {
     sendToCompartment: 'Enviá el pago a la wallet del Compartimento y pegá el tx hash para verificar:',
     walletSectionTitle: 'Billetera para pagar en Base',
     walletSectionDesc:
-      'Creá una Coinbase Smart Wallet o conectá tu billetera existente. Queda vinculada automáticamente a tu cuenta.',
+      'Creá una Coinbase Smart Wallet o conectá tu billetera existente. Podés cambiar la billetera vinculada desde aquí.',
     walletSectionHint: 'La dirección se guarda en tu perfil de inversor para futuras operaciones.',
     walletConnectPrompt: 'Tu billetera ya está registrada. Conectala para firmar el pago.',
     createOrderPay: 'Crear orden y pagar'
@@ -876,6 +876,12 @@ export const es = {
     noWallet: 'Conectá tu billetera con Coinbase Wallet o WalletConnect.',
     wrongNetwork: 'Cambiar a red Base',
     walletMismatch: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
+    replaceWalletTitle: 'Billetera distinta a la vinculada',
+    replaceWalletHint:
+      'Solo podés tener una billetera activa por cuenta. Si confirmás, reemplazamos la anterior por la conectada ahora.',
+    replaceWalletButton: 'Usar esta billetera',
+    linkedWalletLabel: 'Vinculada',
+    connectedWalletLabel: 'Conectada',
     walletNotLinked: 'Vinculá tu wallet en el onboarding antes de operar.',
     buyOneClick: 'Comprar cuotapartes (USDC → Vault)',
     buyChecking: 'Verificando allowance…',

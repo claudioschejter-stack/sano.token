@@ -320,6 +320,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           <div className="space-y-4 p-8">
             <InvestorWalletLinker
               variant="checkout"
+              allowReplace
               onError={(message) => setError(message)}
               onLinked={async () => {
                 if (pendingPreference === 'USDC') {
@@ -490,7 +491,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           </div>
 
           {requiresWallet ? (
-            <InvestorWalletLinker variant="checkout" onError={(message) => setError(message)} />
+            <InvestorWalletLinker
+              variant="checkout"
+              allowReplace
+              onError={(message) => setError(message)}
+            />
           ) : null}
 
           {status === 'done' ? (
