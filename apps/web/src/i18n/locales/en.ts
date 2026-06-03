@@ -1287,6 +1287,13 @@ export const en = {
       EMAIL_DELIVERY_FAILED: "We couldn't send the code to your email.Check spam or verify the sender in Resend.",
       WHATSAPP_DELIVERY_FAILED:
         "We could not send the WhatsApp code. Check the phone number or Twilio WhatsApp settings.",
+      TWILIO_WHATSAPP_NOT_CONFIGURED:
+        "WhatsApp OTP is not configured on the server. TWILIO_WHATSAPP_NUMBER or Twilio credentials are missing.",
+      WHATSAPP_SANDBOX_REQUIRED:
+        "Join the Twilio WhatsApp sandbox from your phone before receiving the code.",
+      WHATSAPP_TEMPLATE_REQUIRED:
+        "WhatsApp requires an approved template or Twilio Verify. Set TWILIO_VERIFY_SERVICE_SID in Vercel.",
+      TWILIO_AUTH_FAILED: "Invalid Twilio credentials. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.",
       DIDIT_NOT_CONFIGURED: "Didit is not configured on the server yet.Contact support.",
       CONTACT_NOT_VERIFIED: "First verify your email and charge your phone before starting the KYC.",
       UNAUTHORIZED: "Your session is not ready yet.Wait a moment and try again.",

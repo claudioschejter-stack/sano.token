@@ -1,3 +1,4 @@
+import { isTwilioWhatsAppConfigured } from '../onboarding/phoneDeliveryChannel';
 import {
   getAdminPlatformConfig,
   type AdminPlatformConfig
@@ -59,11 +60,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       { id: 'email', configured: isConfigured(process.env.RESEND_API_KEY) },
       {
         id: 'sms',
-        configured: isConfigured(
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN,
-          process.env.TWILIO_WHATSAPP_NUMBER
-        )
+        configured: isTwilioWhatsAppConfigured()
       },
       {
         id: 'kyc',

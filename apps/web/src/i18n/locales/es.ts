@@ -1324,6 +1324,13 @@ export const es = {
         'No pudimos enviar el código a tu correo. Revisá spam o verificá el remitente en Resend.',
       WHATSAPP_DELIVERY_FAILED:
         'No pudimos enviar el código por WhatsApp. Verificá el número o la configuración de Twilio WhatsApp.',
+      TWILIO_WHATSAPP_NOT_CONFIGURED:
+        'WhatsApp OTP no está configurado en el servidor. Falta TWILIO_WHATSAPP_NUMBER o credenciales Twilio.',
+      WHATSAPP_SANDBOX_REQUIRED:
+        'Unite al sandbox de WhatsApp de Twilio desde tu celular antes de recibir el código.',
+      WHATSAPP_TEMPLATE_REQUIRED:
+        'WhatsApp requiere plantilla aprobada o Twilio Verify. Configurá TWILIO_VERIFY_SERVICE_SID en Vercel.',
+      TWILIO_AUTH_FAILED: 'Credenciales Twilio inválidas. Revisá TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
       CONTACT_NOT_VERIFIED: 'Primero verificá tu email y cargá tu teléfono antes de iniciar el KYC.',
       UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.',

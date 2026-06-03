@@ -1,7 +1,12 @@
 import { createHash, randomInt } from 'crypto';
 import { prisma, VerificationChannel } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
-import { phoneDeliveryFailureCode, sendPhoneVerificationMessage } from './phoneDeliveryChannel';
+import {
+  isTwilioVerifyWhatsAppEnabled,
+  phoneDeliveryFailureCode,
+  sendPhoneVerificationMessage,
+  verifyPhoneVerificationCode
+} from './phoneDeliveryChannel';
 import { normalizePhoneE164 } from '../auth/contactValidation';
 
 export { normalizePhoneE164 };
@@ -35,6 +40,14 @@ export async function issueVerificationCode(
   target: string
 ): Promise<{ devCode?: string; delivered: boolean; deliveryError?: string }> {
   await assertRateLimit(userId, channel);
+
+  if (channel === 'PHONE' && isTwilioVerifyWhatsAppEnabled()) {
+    const result = await sendPhoneVerificationMessage(target, '');
+    return {
+      delivered: result.ok,
+      deliveryError: result.error ? phoneDeliveryFailureCode(result.error) : undefined
+    };
+  }
 
   const code = generateCode();
   const expiresAt = new Date(Date.now() + CODE_TTL_MS);
@@ -88,7 +101,7 @@ export async function issueVerificationCode(
   } else {
     const result = await sendPhoneVerificationMessage(target, code);
     delivered = result.ok;
-    deliveryError = result.error ?? (delivered ? undefined : phoneDeliveryFailureCode());
+    deliveryError = result.error ?? (delivered ? undefined : phoneDeliveryFailureCode(result.error));
 
     if (!delivered) {
       console.warn('[verification] whatsapp delivery failed for', target, deliveryError);
@@ -110,6 +123,20 @@ export async function consumeVerificationCode(
   channel: VerificationChannel,
   code: string
 ): Promise<boolean> {
+  if (channel === 'PHONE' && isTwilioVerifyWhatsAppEnabled()) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone: true }
+    });
+
+    if (!user?.phone) {
+      return false;
+    }
+
+    const verifyResult = await verifyPhoneVerificationCode(user.phone, code);
+    return verifyResult.ok;
+  }
+
   const record = await prisma.verificationCode.findFirst({
     where: {
       userId,

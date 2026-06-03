@@ -5,19 +5,23 @@ export type IntegrationStatus = {
   envKeys: string[];
 };
 
+import { isTwilioWhatsAppConfigured } from './phoneDeliveryChannel';
+
 export function getOnboardingIntegrations(): IntegrationStatus[] {
-  const whatsappActive = Boolean(
-    process.env.TWILIO_WHATSAPP_NUMBER?.trim() &&
-      process.env.TWILIO_ACCOUNT_SID &&
-      process.env.TWILIO_AUTH_TOKEN
-  );
+  const whatsappActive = isTwilioWhatsAppConfigured();
 
   return [
     {
       id: 'twilio-whatsapp',
       label: 'WhatsApp OTP teléfono (Twilio)',
       configured: whatsappActive,
-      envKeys: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_WHATSAPP_NUMBER']
+      envKeys: [
+        'TWILIO_ACCOUNT_SID',
+        'TWILIO_AUTH_TOKEN',
+        'TWILIO_WHATSAPP_NUMBER',
+        'TWILIO_PHONE_NUMBER',
+        'TWILIO_VERIFY_SERVICE_SID'
+      ]
     },
     {
       id: 'resend',

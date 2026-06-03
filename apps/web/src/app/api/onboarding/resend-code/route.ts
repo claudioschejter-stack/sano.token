@@ -53,7 +53,7 @@ export async function POST(request: Request) {
           error:
             channel === 'EMAIL'
               ? result.deliveryError ?? 'EMAIL_DELIVERY_FAILED'
-              : result.deliveryError ?? phoneDeliveryFailureCode()
+              : phoneDeliveryFailureCode(result.deliveryError)
         },
         { status: 502 }
       );
