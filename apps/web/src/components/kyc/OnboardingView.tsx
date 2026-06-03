@@ -75,7 +75,7 @@ function OnboardingContent() {
   const diditReturn = searchParams.get('didit') === '1';
 
   const { data: session, status } = useSession();
-  const { checklist, loading, refresh, isOperational, systemRole, phoneVerificationChannel } = useAccountStatus();
+  const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = systemRole === 'INVESTOR';
 
@@ -154,11 +154,6 @@ function OnboardingContent() {
     }
   }, [checklist?.emailVerified]);
 
-  const phoneCodeHint =
-    phoneVerificationChannel === 'whatsapp' ? o.steps.codeSentPhoneWhatsapp : o.steps.codeSentPhoneSms;
-  const phoneStepDesc =
-    phoneVerificationChannel === 'whatsapp' ? o.steps.phoneDescWhatsapp : o.steps.phoneDescSms;
-
   const requestVerificationCode = useCallback(
     async (channel: 'EMAIL' | 'PHONE') => {
       setError(null);
@@ -190,16 +185,10 @@ function OnboardingContent() {
             return false;
           }
 
-          setDeliveryHint(channel === 'EMAIL' ? o.steps.codeSentEmail : phoneCodeHint);
+          setDeliveryHint(channel === 'EMAIL' ? o.steps.codeSentEmail : o.steps.codeSentPhone);
 
           if (data.devCode) {
-            setDevHint(
-              channel === 'EMAIL'
-                ? `Email: ${data.devCode}`
-                : phoneVerificationChannel === 'whatsapp'
-                  ? `WhatsApp: ${data.devCode}`
-                  : `SMS: ${data.devCode}`
-            );
+            setDevHint(channel === 'EMAIL' ? `Email: ${data.devCode}` : `WhatsApp: ${data.devCode}`);
           }
 
           return true;
@@ -217,7 +206,7 @@ function OnboardingContent() {
       setError(o.errors.UNAUTHORIZED);
       return false;
     },
-    [o.errors, o.steps.codeSentEmail, phoneCodeHint, phoneVerificationChannel]
+    [o.errors, o.steps.codeSentEmail, o.steps.codeSentPhone]
   );
 
   useEffect(() => {
@@ -297,7 +286,7 @@ function OnboardingContent() {
       if (data.devCodes) {
         const parts = [];
         if (data.devCodes.email) parts.push(`Email: ${data.devCodes.email}`);
-        if (data.devCodes.phone) parts.push(`SMS: ${data.devCodes.phone}`);
+        if (data.devCodes.phone) parts.push(`WhatsApp: ${data.devCodes.phone}`);
         setDevHint(parts.join(' · '));
       }
 
@@ -585,7 +574,7 @@ function OnboardingContent() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.phoneTitle}</h2>
             <p className="text-sm text-slate-600">
-              {phoneStepDesc}{' '}
+              {o.steps.phoneDesc}{' '}
               <span className="font-medium text-slate-800">{checklist.phone}</span>
             </p>
             <input

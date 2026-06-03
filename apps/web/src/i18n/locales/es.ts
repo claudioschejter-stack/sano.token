@@ -622,7 +622,7 @@ export const es = {
     integrationsDesc: 'Estado de servicios externos configurados en el servidor.',
     integrations: {
       email: 'Email (Resend)',
-      sms: 'SMS (Twilio)',
+      sms: 'WhatsApp OTP (Twilio)',
       kyc: 'KYC (Didit)',
       googleOAuth: 'Google OAuth',
       appleOAuth: 'Apple OAuth',
@@ -1212,7 +1212,7 @@ export const es = {
       termsLinkLabel: 'Términos Legales',
       privacyLinkLabel: 'Política de Privacidad',
       devCodes: 'Códigos de verificación',
-      codesOnScreenHint: 'Usá estos códigos en el siguiente paso (email/SMS aún sin proveedor):',
+      codesOnScreenHint: 'Usá estos códigos en el siguiente paso (email/WhatsApp aún sin proveedor):',
       errors: {
         GENERIC: 'No pudimos crear la cuenta. Intentá de nuevo.',
         EMAIL_IN_USE: 'Este email ya está registrado. Iniciá sesión.',
@@ -1224,7 +1224,7 @@ export const es = {
         INVALID_INVITE_CODE:
           'El código de invitación no es válido. Contactá a Sanova para acceder a la colocación privada.',
         VERIFICATION_DELIVERY_FAILED:
-          'No pudimos enviar los códigos de email y SMS. La cuenta no fue dada de alta; intentá de nuevo en unos minutos.',
+          'No pudimos enviar los códigos de email y WhatsApp. La cuenta no fue dada de alta; intentá de nuevo en unos minutos.',
         SIGN_IN_FAILED: 'Cuenta creada, pero no pudimos iniciar sesión automáticamente.'
       }
     },
@@ -1278,11 +1278,9 @@ export const es = {
       emailTitle: 'Verificá tu email',
       emailDesc: 'Ingresá el código de 6 dígitos que enviamos a tu correo.',
       phoneTitle: 'Verificá tu teléfono',
-      phoneDescWhatsapp: 'Ingresá el código de 6 dígitos que enviamos por WhatsApp.',
-      phoneDescSms: 'Ingresá el código SMS de 6 dígitos.',
+      phoneDesc: 'Ingresá el código de 6 dígitos que enviamos por WhatsApp.',
       codeSentEmail: 'Enviamos un código a tu correo. Revisá la bandeja de entrada y spam.',
-      codeSentPhoneWhatsapp: 'Enviamos un código por WhatsApp a tu teléfono.',
-      codeSentPhoneSms: 'Enviamos un código por SMS a tu teléfono.',
+      codeSentPhone: 'Enviamos un código por WhatsApp a tu teléfono.',
       emailApproved: 'Correo aprobado',
       change: 'Cambiar',
       codeExpiredHint: 'Si no llegó o venció, podés pedir uno nuevo.',
@@ -1321,11 +1319,9 @@ export const es = {
       INVALID_PHONE: 'Ingresá un teléfono válido con código de país.',
       RATE_LIMIT: 'Demasiados intentos. Esperá unos minutos.',
       VERIFICATION_DELIVERY_FAILED:
-        'No pudimos enviar los códigos de email y SMS. Revisá la configuración de correo/SMS o intentá de nuevo.',
+        'No pudimos enviar los códigos de email y WhatsApp. Revisá la configuración o intentá de nuevo.',
       EMAIL_DELIVERY_FAILED:
         'No pudimos enviar el código a tu correo. Revisá spam o verificá el remitente en Resend.',
-      SMS_DELIVERY_FAILED:
-        'No pudimos enviar el SMS. Verificá el número o la configuración de Twilio.',
       WHATSAPP_DELIVERY_FAILED:
         'No pudimos enviar el código por WhatsApp. Verificá el número o la configuración de Twilio WhatsApp.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',

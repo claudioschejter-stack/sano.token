@@ -62,7 +62,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
         configured: isConfigured(
           process.env.TWILIO_ACCOUNT_SID,
           process.env.TWILIO_AUTH_TOKEN,
-          process.env.TWILIO_PHONE_NUMBER
+          process.env.TWILIO_WHATSAPP_NUMBER
         )
       },
       {

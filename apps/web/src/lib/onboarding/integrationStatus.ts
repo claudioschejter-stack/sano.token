@@ -6,8 +6,6 @@ export type IntegrationStatus = {
 };
 
 export function getOnboardingIntegrations(): IntegrationStatus[] {
-  const otpProvider = process.env.ONBOARDING_OTP_PROVIDER?.trim().toLowerCase();
-  const supabaseOtpActive = otpProvider === 'supabase';
   const whatsappActive = Boolean(
     process.env.TWILIO_WHATSAPP_NUMBER?.trim() &&
       process.env.TWILIO_ACCOUNT_SID &&
@@ -16,32 +14,16 @@ export function getOnboardingIntegrations(): IntegrationStatus[] {
 
   return [
     {
-      id: 'otp-provider',
-      label: `Proveedor OTP teléfono (${supabaseOtpActive ? 'Supabase Auth' : whatsappActive ? 'WhatsApp (Twilio)' : 'Twilio SMS'})`,
-      configured: true,
-      envKeys: ['ONBOARDING_OTP_PROVIDER', 'ONBOARDING_PHONE_CHANNEL']
+      id: 'twilio-whatsapp',
+      label: 'WhatsApp OTP teléfono (Twilio)',
+      configured: whatsappActive,
+      envKeys: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_WHATSAPP_NUMBER']
     },
     {
       id: 'resend',
       label: 'Email OTP (Resend)',
       configured: Boolean(process.env.RESEND_API_KEY && process.env.ONBOARDING_FROM_EMAIL),
       envKeys: ['RESEND_API_KEY', 'ONBOARDING_FROM_EMAIL']
-    },
-    {
-      id: 'twilio',
-      label: 'SMS OTP (Twilio)',
-      configured: Boolean(
-        process.env.TWILIO_ACCOUNT_SID &&
-          process.env.TWILIO_AUTH_TOKEN &&
-          process.env.TWILIO_PHONE_NUMBER
-      ),
-      envKeys: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER']
-    },
-    {
-      id: 'twilio-whatsapp',
-      label: 'WhatsApp OTP (Twilio)',
-      configured: whatsappActive,
-      envKeys: ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_WHATSAPP_NUMBER', 'ONBOARDING_PHONE_CHANNEL']
     },
     {
       id: 'didit',
