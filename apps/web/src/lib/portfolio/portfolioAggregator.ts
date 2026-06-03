@@ -40,7 +40,7 @@ export type AggregatedPortfolio = {
 };
 
 export async function aggregatePortfolioForUser(userId: string): Promise<AggregatedPortfolio> {
-  const [user, wallet, deposits, snapshots] = await Promise.all([
+  const [user, walletAccounts, deposits, snapshots] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -70,8 +70,9 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
         }
       }
     }),
-    prisma.platformWalletAccount.findUnique({
-      where: { userId_currency: { userId, currency: 'USD' } }
+    prisma.platformWalletAccount.findMany({
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { currency: 'asc' }
     }),
     prisma.platformDeposit.findMany({
       where: {
@@ -131,7 +132,20 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
   });
 
   const rwaValueUsd = rwaPositions.reduce((sum, item) => sum + item.valueUsd, 0);
-  const availableUsd = wallet ? wallet.balance.minus(wallet.reserved).toNumber() : 0;
+  const fiatPositions: AggregatedPortfolio['positions'] = walletAccounts.map((account) => {
+      const available = account.balance.minus(account.reserved).toNumber();
+      return {
+        id: account.id,
+        type: 'FIAT_BALANCE' as const,
+        label: 'Saldo disponible',
+        amount: available,
+        currency: account.currency,
+        valueUsdc: available,
+        valueUsd: available,
+        metadata: { reservedUsd: account.reserved.toString() }
+    };
+  });
+  const availableUsd = fiatPositions.reduce((sum, item) => sum + item.valueUsd, 0);
   const fiatUsd = availableUsd;
 
   const stablecoinPositions: AggregatedPortfolio['positions'] = buildStablecoinPositions(deposits);
@@ -146,7 +160,7 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
       type: 'STABLECOIN' as const,
       label: `${balance.symbol} en ${balance.network}`,
       amount: balance.amountUsdc,
-      currency: balance.symbol,
+      currency: `${balance.symbol} · ${balance.network}`,
       valueUsdc: balance.amountUsdc,
       valueUsd: balance.amountUsdc,
       metadata: {
@@ -173,20 +187,9 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
   const netLiquidValueUsd = grossAssetsUsd - debtUsd;
   const ltv = grossAssetsUsd > 0 ? (debtUsd / grossAssetsUsd) * 100 : 0;
 
-  const positions = [
-    ...rwaPositions,
-    ...stablecoinPositions,
-    {
-      id: wallet?.id ?? `wallet-${userId}`,
-      type: 'FIAT_BALANCE' as const,
-      label: 'Saldo Sanova disponible',
-      amount: availableUsd,
-      currency: 'USD',
-      valueUsdc: availableUsd,
-      valueUsd: availableUsd,
-      metadata: { reservedUsd: wallet?.reserved.toString() ?? '0' }
-    }
-  ].filter((position) => position.valueUsd > 0 || position.type === 'FIAT_BALANCE');
+  const positions = [...rwaPositions, ...stablecoinPositions, ...fiatPositions].filter(
+    (position) => position.valueUsd > 0
+  );
 
   return {
     baseCurrency: 'USD',
@@ -299,7 +302,7 @@ function buildStablecoinPositions(deposits: Array<{
     type: 'STABLECOIN' as const,
     label: `${item.symbol} en ${item.network}`,
     amount: item.amount,
-    currency: item.symbol,
+    currency: `${item.symbol} · ${item.network}`,
     valueUsdc: item.amount,
     valueUsd: item.amount,
     metadata: { network: item.network, recentTxHashes: item.txHashes.slice(0, 5) }

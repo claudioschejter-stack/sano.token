@@ -36,23 +36,26 @@ function TokenActions({
   projectId: string;
   labels: { buy: string; sell: string; loan: string };
 }) {
+  const buttonClass =
+    'inline-flex min-h-9 w-full items-center justify-center rounded-md px-2 py-1.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-white sm:text-xs';
+
   return (
-    <div className="flex flex-wrap justify-end gap-1.5">
+    <div className="grid grid-cols-3 gap-1.5">
       <Link
         href={`/marketplace/${projectId}/checkout`}
-        className="rounded-md bg-terminal-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white hover:bg-blue-500 sm:text-xs"
+        className={`${buttonClass} bg-terminal-primary hover:bg-blue-500`}
       >
         {labels.buy}
       </Link>
       <Link
         href={`/mercado-secundario?sell=${encodeURIComponent(projectId)}`}
-        className="rounded-md bg-terminal-success px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white hover:bg-emerald-600 sm:text-xs"
+        className={`${buttonClass} bg-terminal-success hover:bg-emerald-600`}
       >
         {labels.sell}
       </Link>
       <Link
         href={`/marketplace/${projectId}/prestamo`}
-        className="rounded-md bg-orange-500 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white hover:bg-orange-600 sm:text-xs"
+        className={`${buttonClass} bg-orange-500 hover:bg-orange-600`}
       >
         {labels.loan}
       </Link>
@@ -82,15 +85,21 @@ function RwaPositionTable({
   formatUsd: (value: number) => string;
   intlLocale: string;
 }) {
-  if (!rows.length) {
-    return <p className="px-4 py-6 text-sm text-terminal-muted sm:px-6">{labels.empty}</p>;
-  }
-
   const actionLabels = { buy: labels.actionBuy, sell: labels.actionSell, loan: labels.actionLoan };
+
+  const headerClass =
+    'border-r border-terminal-border px-3 py-3 text-center text-xs uppercase tracking-wider text-terminal-muted last:border-r-0 lg:px-4';
+  const cellClass =
+    'border-r border-terminal-border px-3 py-3 text-center font-mono lg:px-4 last:border-r-0';
+  const labelCellClass =
+    'border-r border-terminal-border px-3 py-3 text-center font-medium text-terminal-text lg:px-4';
 
   return (
     <>
       <div className="space-y-3 p-4 md:hidden">
+        {rows.length === 0 ? (
+          <p className="py-4 text-center text-sm text-terminal-muted">{labels.empty}</p>
+        ) : null}
         {rows.map((row) => {
           const projectId = String(row.metadata?.projectId ?? '');
           return (
@@ -127,16 +136,23 @@ function RwaPositionTable({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[920px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-terminal-border bg-terminal-bg/80 text-left text-xs uppercase tracking-wider text-terminal-muted">
-              <th className="border-r border-terminal-border px-4 py-3 lg:px-6">{labels.colInstrument}</th>
-              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colValueUsdc}</th>
-              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colQuantity}</th>
-              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colTokenCode}</th>
-              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colValueUsd}</th>
-              <th className="px-4 py-3 text-right lg:px-6">{labels.colActions}</th>
+            <tr className="border-b border-terminal-border bg-terminal-bg/80">
+              <th className={headerClass}>{labels.colInstrument}</th>
+              <th className={headerClass}>{labels.colValueUsdc}</th>
+              <th className={headerClass}>{labels.colQuantity}</th>
+              <th className={headerClass}>{labels.colTokenCode}</th>
+              <th className={headerClass}>{labels.colValueUsd}</th>
+              <th className={`${headerClass} last:border-r-0`}>{labels.colActions}</th>
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-6 text-center text-sm text-terminal-muted">
+                  {labels.empty}
+                </td>
+              </tr>
+            ) : null}
             {rows.map((row, index) => {
               const projectId = String(row.metadata?.projectId ?? '');
               return (
@@ -144,22 +160,14 @@ function RwaPositionTable({
                   key={row.id}
                   className={`border-b border-terminal-border ${index === rows.length - 1 ? 'border-b-0' : ''}`}
                 >
-                  <td className="border-r border-terminal-border px-4 py-3 font-medium text-terminal-text lg:px-6">
-                    {row.label}
-                  </td>
-                  <td className="border-r border-terminal-border px-4 py-3 text-right font-mono lg:px-6">
-                    {formatUsd(row.valueUsdc)}
-                  </td>
-                  <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-text lg:px-6">
-                    {formatAmount(row.amount, intlLocale)}
-                  </td>
-                  <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-muted lg:px-6">
-                    {row.currency}
-                  </td>
-                  <td className="border-r border-terminal-border px-4 py-3 text-right font-mono font-semibold text-terminal-primary lg:px-6">
+                  <td className={labelCellClass}>{row.label}</td>
+                  <td className={`${cellClass} text-terminal-text`}>{formatUsd(row.valueUsdc)}</td>
+                  <td className={`${cellClass} text-terminal-text`}>{formatAmount(row.amount, intlLocale)}</td>
+                  <td className={`${cellClass} text-terminal-muted`}>{row.currency}</td>
+                  <td className={`${cellClass} font-semibold text-terminal-primary`}>
                     {formatUsd(row.valueUsd)}
                   </td>
-                  <td className="px-4 py-3 lg:px-6">
+                  <td className="px-3 py-3 lg:px-4">
                     {projectId ? <TokenActions projectId={projectId} labels={actionLabels} /> : null}
                   </td>
                 </tr>
@@ -194,13 +202,19 @@ function SplitPositionTable({
   quantityKey: 'amount';
   typeKey: 'currency';
 }) {
-  if (!rows.length) {
-    return <p className="px-4 py-6 text-sm text-terminal-muted sm:px-6">{labels.empty}</p>;
-  }
+  const headerClass =
+    'border-r border-terminal-border px-3 py-3 text-center text-xs uppercase tracking-wider text-terminal-muted last:border-r-0 lg:px-4';
+  const cellClass =
+    'border-r border-terminal-border px-3 py-3 text-center font-mono lg:px-4 last:border-r-0';
+  const labelCellClass =
+    'border-r border-terminal-border px-3 py-3 text-center font-medium text-terminal-text lg:px-4';
 
   return (
     <>
       <div className="space-y-3 p-4 md:hidden">
+        {rows.length === 0 ? (
+          <p className="py-4 text-center text-sm text-terminal-muted">{labels.empty}</p>
+        ) : null}
         {rows.map((row) => (
           <article key={row.id} className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
             <p className="font-medium text-terminal-text">{row.label}</p>
@@ -229,33 +243,32 @@ function SplitPositionTable({
       <div className="hidden md:block">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-terminal-border bg-terminal-bg/80 text-left text-xs uppercase tracking-wider text-terminal-muted">
-              <th className="border-r border-terminal-border px-4 py-3 lg:px-6">{labels.colInstrument}</th>
-              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colValueUsdc}</th>
-              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colQuantity}</th>
-              <th className="border-r border-terminal-border px-4 py-3 text-right lg:px-6">{labels.colType}</th>
-              <th className="px-4 py-3 text-right lg:px-6">{labels.colValueUsd}</th>
+            <tr className="border-b border-terminal-border bg-terminal-bg/80">
+              <th className={headerClass}>{labels.colInstrument}</th>
+              <th className={headerClass}>{labels.colValueUsdc}</th>
+              <th className={headerClass}>{labels.colQuantity}</th>
+              <th className={headerClass}>{labels.colType}</th>
+              <th className={`${headerClass} last:border-r-0`}>{labels.colValueUsd}</th>
             </tr>
           </thead>
           <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-sm text-terminal-muted">
+                  {labels.empty}
+                </td>
+              </tr>
+            ) : null}
             {rows.map((row, index) => (
               <tr
                 key={row.id}
                 className={`border-b border-terminal-border ${index === rows.length - 1 ? 'border-b-0' : ''}`}
               >
-                <td className="border-r border-terminal-border px-4 py-3 font-medium text-terminal-text lg:px-6">
-                  {row.label}
-                </td>
-                <td className="border-r border-terminal-border px-4 py-3 text-right font-mono lg:px-6">
-                  {formatUsd(row.valueUsdc)}
-                </td>
-                <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-text lg:px-6">
-                  {formatAmount(row[quantityKey], intlLocale)}
-                </td>
-                <td className="border-r border-terminal-border px-4 py-3 text-right font-mono text-terminal-muted lg:px-6">
-                  {row[typeKey]}
-                </td>
-                <td className="px-4 py-3 text-right font-mono font-semibold text-terminal-primary lg:px-6">
+                <td className={labelCellClass}>{row.label}</td>
+                <td className={`${cellClass} text-terminal-text`}>{formatUsd(row.valueUsdc)}</td>
+                <td className={`${cellClass} text-terminal-text`}>{formatAmount(row[quantityKey], intlLocale)}</td>
+                <td className={`${cellClass} text-terminal-muted`}>{row[typeKey]}</td>
+                <td className={`${cellClass} font-semibold text-terminal-primary`}>
                   {formatUsd(row.valueUsd)}
                 </td>
               </tr>
@@ -488,7 +501,12 @@ export function InvestorPortfolioPanel() {
       >
         <SplitPositionTable
           rows={fiatPositions}
-          labels={{ ...splitTableLabels, empty: p.sectionFiatEmpty, colType: p.colCurrency }}
+          labels={{
+            ...splitTableLabels,
+            colValueUsdc: p.colValue,
+            empty: p.sectionFiatEmpty,
+            colType: p.colCurrency
+          }}
           formatUsd={formatUsd}
           intlLocale={intlLocale}
           quantityKey="amount"

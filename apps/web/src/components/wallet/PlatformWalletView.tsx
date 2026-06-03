@@ -37,7 +37,7 @@ type WalletSummary = {
   }>;
 };
 
-type WalletTab = 'withdraw' | 'history';
+type WalletTab = 'deposit' | 'withdraw' | 'history';
 
 type ActivityItem = {
   id: string;
@@ -59,7 +59,7 @@ export function PlatformWalletView({ hideHeader = false }: { hideHeader?: boolea
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [isLoadingWallet, setIsLoadingWallet] = useState(true);
-  const [activeTab, setActiveTab] = useState<WalletTab>('history');
+  const [activeTab, setActiveTab] = useState<WalletTab>('deposit');
   const [status, setStatus] = useState<'idle' | 'withdrawing'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -242,8 +242,15 @@ export function PlatformWalletView({ hideHeader = false }: { hideHeader?: boolea
       <div className="flex flex-wrap gap-2 rounded-xl border border-terminal-border bg-terminal-card p-2">
         <button
           type="button"
-          onClick={() => router.push('/marketplace/carrito?mode=deposit')}
-          className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text sm:flex-none sm:px-5"
+          onClick={() => {
+            setActiveTab('deposit');
+            router.push('/marketplace/carrito?mode=deposit');
+          }}
+          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors sm:flex-none sm:px-5 ${
+            activeTab === 'deposit'
+              ? 'bg-terminal-primary text-white'
+              : 'text-terminal-muted hover:bg-terminal-bg hover:text-terminal-text'
+          }`}
         >
           {w.tabDeposit}
         </button>
@@ -287,6 +294,17 @@ export function PlatformWalletView({ hideHeader = false }: { hideHeader?: boolea
         <p className="rounded-lg border border-terminal-success/30 bg-terminal-success/10 px-4 py-3 text-sm text-terminal-success">
           {success}
         </p>
+      ) : null}
+
+      {activeTab === 'deposit' ? (
+        <InvestorSection title={w.depositTitle} subtitle={w.depositSubtitle}>
+          <Link
+            href="/marketplace/carrito?mode=deposit"
+            className="inline-flex items-center justify-center rounded-lg bg-terminal-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500"
+          >
+            {w.tabDeposit}
+          </Link>
+        </InvestorSection>
       ) : null}
 
       {activeTab === 'withdraw' ? (
