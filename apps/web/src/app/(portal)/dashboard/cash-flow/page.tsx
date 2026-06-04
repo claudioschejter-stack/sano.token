@@ -17,7 +17,6 @@ import { InvestorKpiCard } from '../../../../components/dashboard/investor/Inves
 import { InvestorPageHeader } from '../../../../components/dashboard/investor/InvestorPageHeader';
 import { InvestorSection } from '../../../../components/dashboard/investor/InvestorSection';
 import { MorphoRepayPanel } from '../../../../components/dashboard/investor/MorphoRepayPanel';
-import { RentPayoutPreferencePanel } from '../../../../components/dashboard/investor/RentPayoutPreferencePanel';
 import { ProjectYieldPanel } from '../../../../components/dashboard/ProjectYieldPanel';
 import { CheckCircle2 } from 'lucide-react';
 import { collectionWalletHref } from '../../../../lib/navigation/collectionWalletPath';
@@ -91,8 +90,6 @@ export default function CashFlowPage() {
       </section>
 
       <MorphoRepayPanel onRepaid={() => void fetchPortfolio()} />
-
-      <RentPayoutPreferencePanel />
 
       <ProjectYieldPanel />
 
