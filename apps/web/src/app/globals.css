@@ -3,6 +3,32 @@
 @tailwind utilities;
 
 /* Operator logo marquee — pure CSS infinite scroll */
+@keyframes marketplace-publish-cta-blink {
+  0%,
+  100% {
+    opacity: 1;
+    border-color: rgb(59 130 246 / 0.45);
+    background-color: rgb(59 130 246 / 0.1);
+    box-shadow: 0 0 0 0 rgb(59 130 246 / 0);
+  }
+  50% {
+    opacity: 0.75;
+    border-color: rgb(96 165 250 / 1);
+    background-color: rgb(59 130 246 / 0.28);
+    box-shadow: 0 0 12px 0 rgb(59 130 246 / 0.35);
+  }
+}
+
+.marketplace-publish-cta {
+  animation: marketplace-publish-cta-blink 1.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketplace-publish-cta {
+    animation: none;
+  }
+}
+
 @keyframes operator-marquee-scroll {
   from {
     transform: translate3d(0, 0, 0);

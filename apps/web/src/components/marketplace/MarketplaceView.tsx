@@ -237,7 +237,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               </div>
               <Link
                 href={LEGAL_CONTACT_PATH}
-                className="inline-flex max-w-xl shrink-0 items-center justify-center rounded-lg border-2 border-terminal-primary bg-terminal-primary/10 px-4 py-3 text-center text-xs font-bold uppercase leading-snug tracking-wide text-terminal-primary transition-colors hover:border-blue-400 hover:bg-terminal-primary/20 md:text-sm"
+                className="marketplace-publish-cta inline-flex max-w-xl shrink-0 items-center justify-center rounded-lg border-2 border-terminal-primary bg-terminal-primary/10 px-4 py-3 text-center text-xs font-bold uppercase leading-snug tracking-wide text-terminal-primary transition-colors hover:border-blue-400 hover:bg-terminal-primary/20 md:text-sm"
               >
                 {t.marketplace.publishPropertyCta}
               </Link>
@@ -245,12 +245,12 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
             {available.length > 0 ? (
               <MarketplaceListingGrid listings={available} {...gridProps} />
             ) : (
-              <div
+              <p
                 role="status"
-                className="inline-flex w-full max-w-3xl items-center justify-center rounded-xl border-2 border-red-500/60 bg-red-500/10 px-6 py-4 text-center text-sm font-bold uppercase leading-snug tracking-wide text-red-500 shadow-sm md:text-base"
+                className="inline-block rounded-md border border-red-500/50 bg-red-500/10 px-3 py-1.5 text-xs font-semibold text-red-500"
               >
                 {t.marketplace.availableSectionEmpty}
-              </div>
+              </p>
             )}
           </section>
 
