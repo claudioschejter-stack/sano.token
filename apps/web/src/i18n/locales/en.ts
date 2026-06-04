@@ -807,8 +807,8 @@ export const en = {
     depositComplete: "Deposit confirmed. Balance updated in your Sanova wallet.",
     backToWallet: "Back to wallet",
     depositWalletRequired:
-      "To pay with your own wallet (USDC on-chain), set up and connect it under Collection wallet.",
-    goToCollectionWallet: "Go to Collection wallet",
+      "To pay with your own wallet (USDC on-chain), set up and connect it in the dashboard (Collection wallet section).",
+    goToCollectionWallet: "Go to dashboard (Collection wallet)",
     addToCart: "Add to cart",
     viewCart: "View cart",
     depositCta: "Deposit"
@@ -1523,7 +1523,7 @@ export const en = {
     loadError: "Could not load your rent payout preference.",
     saveError: "Could not save your preference.",
     walletRequired: "Connect a wallet before selecting USDC payouts.",
-    linkWalletInCheckout: "Go to Collection wallet"
+    linkWalletInCheckout: "Set up in dashboard"
   },
   demo: {
     assets: {

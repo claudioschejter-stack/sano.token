@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Building2, CircleDollarSign, Landmark, ShieldCheck, TrendingUp } from 'lucide-react';
 import { useRealTimeDividends } from '../../hooks/useRealTimeDividends';
 import {
@@ -34,6 +34,7 @@ import {
 } from 'recharts';
 
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
+import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
 
 export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
@@ -109,6 +110,10 @@ export function FinancialOverview() {
       <LiveDividendStream />
       <InvestorPageHeader eyebrow={d.eyebrow} title={d.title} subtitle={d.subtitle} />
       <AccountStatusBanner showWhenOperational />
+
+      <Suspense fallback={<div className="h-48 animate-pulse rounded-xl border border-terminal-border bg-terminal-card" />}>
+        <InvestorCollectionWalletPanel />
+      </Suspense>
 
       <RentPayoutPreferencePanel />
 

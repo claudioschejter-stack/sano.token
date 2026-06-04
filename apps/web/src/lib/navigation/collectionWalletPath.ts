@@ -1,4 +1,6 @@
-export const COLLECTION_WALLET_PATH = '/dashboard/wallet-cobro';
+export const COLLECTION_WALLET_SECTION_ID = 'wallet-cobro';
+
+export const COLLECTION_WALLET_PATH = '/dashboard';
 
 export function collectionWalletHref(options?: { returnTo?: string; preference?: 'USDC' }) {
   const params = new URLSearchParams();
@@ -9,5 +11,6 @@ export function collectionWalletHref(options?: { returnTo?: string; preference?:
     params.set('preference', options.preference);
   }
   const query = params.toString();
-  return query ? `${COLLECTION_WALLET_PATH}?${query}` : COLLECTION_WALLET_PATH;
+  const base = query ? `${COLLECTION_WALLET_PATH}?${query}` : COLLECTION_WALLET_PATH;
+  return `${base}#${COLLECTION_WALLET_SECTION_ID}`;
 }

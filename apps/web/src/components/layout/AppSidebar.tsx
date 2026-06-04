@@ -7,7 +7,6 @@ import {
   Home,
   Landmark,
   LayoutDashboard,
-  Link2,
   LogOut,
   Menu,
   Settings,
@@ -43,8 +42,7 @@ type InvestorNavConfig = {
     | 'secondaryMarket'
     | 'myAssets'
     | 'myWallet'
-    | 'cashFlow'
-    | 'collectionWallet';
+    | 'cashFlow';
   roles?: SystemRole[];
 };
 
@@ -91,12 +89,6 @@ const investorNavItems: InvestorNavConfig[] = [
     icon: Wallet,
     labelKey: 'cashFlow',
     roles: ['INVESTOR', 'TREASURY']
-  },
-  {
-    href: '/dashboard/wallet-cobro',
-    icon: Link2,
-    labelKey: 'collectionWallet',
-    roles: ['INVESTOR']
   }
 ];
 

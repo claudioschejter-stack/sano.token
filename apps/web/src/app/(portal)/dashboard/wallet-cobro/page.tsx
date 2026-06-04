@@ -1,7 +1,15 @@
-'use client';
+import { redirect } from 'next/navigation';
+import { collectionWalletHref } from '../../../../lib/navigation/collectionWalletPath';
 
-import { InvestorCollectionWalletView } from '../../../../components/wallet/InvestorCollectionWalletView';
+type WalletCobroPageProps = {
+  searchParams?: Record<string, string | string[] | undefined>;
+};
 
-export default function WalletCobroPage() {
-  return <InvestorCollectionWalletView />;
+export default function WalletCobroPage({ searchParams }: WalletCobroPageProps) {
+  const returnTo =
+    typeof searchParams?.returnTo === 'string' ? searchParams.returnTo : undefined;
+  const preference =
+    searchParams?.preference === 'USDC' ? ('USDC' as const) : undefined;
+
+  redirect(collectionWalletHref({ returnTo, preference }));
 }

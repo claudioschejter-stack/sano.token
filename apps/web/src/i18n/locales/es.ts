@@ -820,8 +820,8 @@ export const es = {
     depositComplete: 'Depósito confirmado. Saldo actualizado en tu billetera Sanova.',
     backToWallet: 'Volver a billetera',
     depositWalletRequired:
-      'Para pagar con cartera propia (USDC on-chain), configurá y conectá tu billetera en Wallet de cobro.',
-    goToCollectionWallet: 'Ir a Wallet de cobro',
+      'Para pagar con cartera propia (USDC on-chain), configurá y conectá tu billetera en Panel de control (sección Wallet de cobro).',
+    goToCollectionWallet: 'Ir a Panel de control (Wallet de cobro)',
     addToCart: 'Agregar al carrito',
     viewCart: 'Ver carrito',
     depositCta: 'Depositar'
@@ -1558,7 +1558,7 @@ export const es = {
     loadError: 'No se pudo cargar tu preferencia de cobro.',
     saveError: 'No se pudo guardar tu preferencia.',
     walletRequired: 'Conectá una wallet antes de elegir cobro en USDC.',
-    linkWalletInCheckout: 'Ir a Wallet de cobro'
+    linkWalletInCheckout: 'Configurar en Panel de control'
   },
   demo: {
     assets: {
