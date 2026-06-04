@@ -24,8 +24,8 @@ export const supportedChains = [base] as const;
 const connectors = [
   coinbaseWallet({
     appName: walletConnectMetadata.name,
-    /** Crea Coinbase Smart Wallet en Base si el usuario no tiene una. */
-    preference: 'smartWalletOnly'
+    /** Permite Smart Wallet o EOA para reconectar la dirección ya registrada en el perfil. */
+    preference: 'all'
   }),
   ...(isWalletConnectConfigured
     ? [

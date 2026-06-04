@@ -772,6 +772,8 @@ export const en = {
       "Use Coinbase Wallet with the first button. If you already have another wallet (MetaMask, Rainbow, etc.), connect it with WalletConnect.",
     walletSectionHint: "The address is saved on your investor profile for future operations.",
     walletConnectPrompt: "Your wallet is already registered. Connect it to sign the payment.",
+    walletConnectPromptLinked:
+      "Your wallet {address} is registered. Connect the same address via WalletConnect (MetaMask, Rainbow, etc.) or Coinbase Wallet.",
     createOrderPay: "Create order and pay"
   },
   cartCheckout: {
@@ -893,6 +895,9 @@ export const en = {
     connectCoinbase: "Connect Coinbase Wallet",
     connectWalletConnect: "Connect existing wallet (WalletConnect)",
     connectFailed: "We couldn't connect the wallet. Try again.",
+    connectRejected: "Connection cancelled. You can try again.",
+    connectRetryWalletConnect:
+      "If you use MetaMask or another external wallet, use \"Connect existing wallet (WalletConnect)\" with the same registered address.",
     noWallet: "Connect your wallet with Coinbase Wallet or WalletConnect.",
     wrongNetwork: "Switch to Base network",
     walletMismatch: "The connected wallet does not match the one linked to your account.",

@@ -786,6 +786,8 @@ export const es = {
       'Usá Coinbase Wallet con el primer botón. Si ya tenés otra billetera (MetaMask, Rainbow, etc.), conectala con WalletConnect.',
     walletSectionHint: 'La dirección se guarda en tu perfil de inversor para futuras operaciones.',
     walletConnectPrompt: 'Tu billetera ya está registrada. Conectala para firmar el pago.',
+    walletConnectPromptLinked:
+      'Tu billetera {address} está registrada. Conectá la misma dirección con WalletConnect (MetaMask, Rainbow, etc.) o Coinbase Wallet.',
     createOrderPay: 'Crear orden y pagar'
   },
   cartCheckout: {
@@ -906,6 +908,9 @@ export const es = {
     connectCoinbase: 'Conectar Coinbase Wallet',
     connectWalletConnect: 'Conectar billetera existente (WalletConnect)',
     connectFailed: 'No pudimos conectar la billetera. Intentá de nuevo.',
+    connectRejected: 'Conexión cancelada. Podés volver a intentarlo.',
+    connectRetryWalletConnect:
+      'Si tu billetera es MetaMask u otra externa, usá «Conectar billetera existente (WalletConnect)» con la misma dirección registrada.',
     noWallet: 'Conectá tu billetera con Coinbase Wallet o WalletConnect.',
     wrongNetwork: 'Cambiar a red Base',
     walletMismatch: 'La wallet conectada no coincide con la vinculada a tu cuenta.',

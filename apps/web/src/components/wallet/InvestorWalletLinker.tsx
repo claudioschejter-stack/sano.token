@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount, useConnect, useDisconnect, useSwitchChain, type Connector } from 'wagmi';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
+import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { BASE_CHAIN_ID, isWalletConnectConfigured } from '../../lib/web3/config';
 
@@ -13,8 +14,32 @@ export type InvestorWalletLinkerProps = {
   /** When true, lets the investor replace the linked wallet with the currently connected one. */
   allowReplace?: boolean;
   onLinked?: () => void | Promise<void>;
-  onError?: (message: string) => void;
+  onError?: (message: string | null) => void;
 };
+
+function humanizeConnectError(
+  error: unknown,
+  messages: { connectFailed: string; connectRejected: string; walletConnectNotConfigured: string }
+): string {
+  const name = error instanceof Error ? error.name : '';
+  const text = error instanceof Error ? error.message : String(error);
+  const lower = text.toLowerCase();
+
+  if (
+    name === 'UserRejectedRequestError' ||
+    lower.includes('user rejected') ||
+    lower.includes('user denied') ||
+    lower.includes('rejected the request')
+  ) {
+    return messages.connectRejected;
+  }
+
+  if (lower.includes('project id') || lower.includes('walletconnect') && lower.includes('not configured')) {
+    return messages.walletConnectNotConfigured;
+  }
+
+  return messages.connectFailed;
+}
 
 function pickConnector(connectors: readonly Connector[], kind: 'coinbase' | 'walletConnect') {
   if (kind === 'coinbase') {
@@ -45,28 +70,30 @@ export function InvestorWalletLinker({
   const { refresh } = useAccountStatus();
   const walletGuard = useLinkedWalletGuard();
   const { address, isConnected, chainId, connector: activeConnector } = useAccount();
-  const { connectors, connectAsync, isPending, error: connectError } = useConnect();
+  const { connectors, connectAsync, isPending, error: connectError, reset: resetConnect } = useConnect();
   const { disconnectAsync } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
   const [saving, setSaving] = useState(false);
   const [activeFlow, setActiveFlow] = useState<'coinbase' | 'walletconnect' | null>(null);
   const linkedRef = useRef<string | null>(walletGuard.linkedWallet);
   const syncedRef = useRef(false);
+  const userInitiatedConnectRef = useRef(false);
 
   const coinbaseConnector = useMemo(() => pickConnector(connectors, 'coinbase'), [connectors]);
   const walletConnectConnector = useMemo(() => pickConnector(connectors, 'walletConnect'), [connectors]);
 
   const reportError = useCallback(
-    (message: string) => {
+    (message: string | null) => {
       onError?.(message);
     },
     [onError]
   );
 
   const notifyLinked = useCallback(async () => {
+    reportError(null);
     await refresh({ silent: true });
     await onLinked?.();
-  }, [onLinked, refresh]);
+  }, [onLinked, refresh, reportError]);
 
   const linkWallet = useCallback(
     async (walletAddress: string, options?: { forceReplace?: boolean }) => {
@@ -193,10 +220,26 @@ export function InvestorWalletLinker({
   ]);
 
   useEffect(() => {
-    if (connectError) {
-      reportError(w.connectFailed);
+    if (!connectError || !userInitiatedConnectRef.current) {
+      return;
     }
-  }, [connectError, reportError, w.connectFailed]);
+
+    userInitiatedConnectRef.current = false;
+    reportError(
+      humanizeConnectError(connectError, {
+        connectFailed: w.connectFailed,
+        connectRejected: w.connectRejected,
+        walletConnectNotConfigured: t.onboarding.errors.WALLET_CONNECT_NOT_CONFIGURED
+      })
+    );
+    resetConnect();
+  }, [connectError, reportError, resetConnect, t.onboarding.errors.WALLET_CONNECT_NOT_CONFIGURED, w.connectFailed, w.connectRejected]);
+
+  const beginConnect = useCallback(() => {
+    userInitiatedConnectRef.current = true;
+    reportError(null);
+    resetConnect();
+  }, [reportError, resetConnect]);
 
   const connectCoinbaseWallet = useCallback(async () => {
     if (!coinbaseConnector) {
@@ -204,6 +247,7 @@ export function InvestorWalletLinker({
       return;
     }
 
+    beginConnect();
     setActiveFlow('coinbase');
 
     try {
@@ -212,18 +256,28 @@ export function InvestorWalletLinker({
       }
 
       await connectAsync({ connector: coinbaseConnector, chainId: BASE_CHAIN_ID });
-    } catch {
-      reportError(w.connectFailed);
+    } catch (error) {
+      userInitiatedConnectRef.current = false;
+      reportError(
+        humanizeConnectError(error, {
+          connectFailed: w.connectFailed,
+          connectRejected: w.connectRejected,
+          walletConnectNotConfigured: t.onboarding.errors.WALLET_CONNECT_NOT_CONFIGURED
+        })
+      );
     }
   }, [
     activeConnector?.id,
+    beginConnect,
     coinbaseConnector,
     connectAsync,
     disconnectAsync,
     isConnected,
     reportError,
     t.onboarding.errors.GENERIC,
-    w.connectFailed
+    t.onboarding.errors.WALLET_CONNECT_NOT_CONFIGURED,
+    w.connectFailed,
+    w.connectRejected
   ]);
 
   const connectExistingWallet = useCallback(async () => {
@@ -232,6 +286,7 @@ export function InvestorWalletLinker({
       return;
     }
 
+    beginConnect();
     setActiveFlow('walletconnect');
 
     try {
@@ -240,17 +295,26 @@ export function InvestorWalletLinker({
       }
 
       await connectAsync({ connector: walletConnectConnector, chainId: BASE_CHAIN_ID });
-    } catch {
-      reportError(w.connectFailed);
+    } catch (error) {
+      userInitiatedConnectRef.current = false;
+      reportError(
+        humanizeConnectError(error, {
+          connectFailed: w.connectFailed,
+          connectRejected: w.connectRejected,
+          walletConnectNotConfigured: t.onboarding.errors.WALLET_CONNECT_NOT_CONFIGURED
+        })
+      );
     }
   }, [
     activeConnector?.id,
+    beginConnect,
     connectAsync,
     disconnectAsync,
     isConnected,
     reportError,
     t.onboarding.errors.WALLET_CONNECT_NOT_CONFIGURED,
     w.connectFailed,
+    w.connectRejected,
     walletConnectConnector
   ]);
 
@@ -266,6 +330,10 @@ export function InvestorWalletLinker({
     Boolean(address) &&
     Boolean(walletGuard.linkedWallet);
   const showConnectButtons = !walletGuard.canSignOnChain && !showReplaceWallet;
+  const needsLinkedReconnect = walletGuard.isWalletLinked && !walletGuard.isConnected;
+  const linkedAddressLabel = walletGuard.linkedWallet
+    ? `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
+    : null;
   const isOnboarding = variant === 'onboarding';
   const isDashboard = variant === 'dashboard';
 
@@ -280,6 +348,48 @@ export function InvestorWalletLinker({
   const linkedBadgeClass = isOnboarding
     ? 'rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-4 text-center text-sm font-semibold text-emerald-800'
     : 'rounded-lg border border-terminal-success/30 bg-terminal-success/10 px-4 py-3 text-center text-sm font-semibold text-terminal-success';
+
+  const walletConnectButton = (
+    <button
+      type="button"
+      onClick={() => void connectExistingWallet()}
+      disabled={busy || !isWalletConnectConfigured}
+      className={needsLinkedReconnect ? primaryButtonClass : secondaryButtonClass}
+    >
+      {busy && activeFlow === 'walletconnect' ? (
+        <>
+          <Loader2 className="animate-spin" size={18} />
+          {w.connecting}
+        </>
+      ) : (
+        <>
+          <Link2 size={18} />
+          {w.connectWalletConnect}
+        </>
+      )}
+    </button>
+  );
+
+  const coinbaseButton = (
+    <button
+      type="button"
+      onClick={() => void connectCoinbaseWallet()}
+      disabled={busy || !coinbaseConnector}
+      className={needsLinkedReconnect ? secondaryButtonClass : primaryButtonClass}
+    >
+      {busy && activeFlow === 'coinbase' ? (
+        <>
+          <Loader2 className="animate-spin" size={18} />
+          {w.connecting}
+        </>
+      ) : (
+        <>
+          <Wallet size={18} />
+          {w.connectCoinbase}
+        </>
+      )}
+    </button>
+  );
 
   return (
     <div className={isOnboarding ? 'space-y-5' : 'space-y-3'}>
@@ -324,8 +434,17 @@ export function InvestorWalletLinker({
 
       {showConnectButtons ? (
         <div className="space-y-3">
-          {walletGuard.isWalletLinked && !walletGuard.isConnected ? (
-            <p className={`text-xs ${isOnboarding ? 'text-slate-600' : 'text-terminal-muted'}`}>{c.walletConnectPrompt}</p>
+          {needsLinkedReconnect ? (
+            <p className={`text-xs ${isOnboarding ? 'text-slate-600' : 'text-terminal-muted'}`}>
+              {linkedAddressLabel
+                ? formatMessage(c.walletConnectPromptLinked, { address: linkedAddressLabel })
+                : c.walletConnectPrompt}
+            </p>
+          ) : null}
+          {needsLinkedReconnect ? (
+            <p className={`text-xs ${isOnboarding ? 'text-slate-600' : 'text-terminal-muted'}`}>
+              {w.connectRetryWalletConnect}
+            </p>
           ) : null}
           {walletGuard.isWalletMismatch && !allowReplace ? (
             <p className={`text-xs font-medium ${isOnboarding ? 'text-red-600' : 'text-terminal-warning'}`}>
@@ -381,43 +500,17 @@ export function InvestorWalletLinker({
             </p>
           ) : null}
 
-          <button
-            type="button"
-            onClick={() => void connectCoinbaseWallet()}
-            disabled={busy || !coinbaseConnector}
-            className={primaryButtonClass}
-          >
-            {busy && activeFlow === 'coinbase' ? (
-              <>
-                <Loader2 className="animate-spin" size={18} />
-                {w.connecting}
-              </>
-            ) : (
-              <>
-                <Wallet size={18} />
-                {w.connectCoinbase}
-              </>
-            )}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => void connectExistingWallet()}
-            disabled={busy || !isWalletConnectConfigured}
-            className={secondaryButtonClass}
-          >
-            {busy && activeFlow === 'walletconnect' ? (
-              <>
-                <Loader2 className="animate-spin" size={18} />
-                {w.connecting}
-              </>
-            ) : (
-              <>
-                <Link2 size={18} />
-                {w.connectWalletConnect}
-              </>
-            )}
-          </button>
+          {needsLinkedReconnect ? (
+            <>
+              {walletConnectButton}
+              {coinbaseButton}
+            </>
+          ) : (
+            <>
+              {coinbaseButton}
+              {walletConnectButton}
+            </>
+          )}
 
           {!isWalletConnectConfigured ? (
             <p className={`text-center text-xs ${isOnboarding ? 'text-amber-700' : 'text-terminal-warning'}`}>

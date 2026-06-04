@@ -53,7 +53,7 @@ export function InvestorCollectionWalletPanel({
         <InvestorWalletLinker
           variant="dashboard"
           allowReplace
-          onError={(message) => setError(message)}
+          onError={(message) => setError(message ?? null)}
           onLinked={async () => {
             if (pendingPreference === 'USDC') {
               await fetch('/api/investor/rent-payout-preference', {
