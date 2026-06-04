@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const id = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const id = mergeLocale({
     }
   },
   marketplace: {
-    title: "ATMR Pasar",
+    title: "Pasar Token RWA",
     subtitle: "Aset riil yang diberi token dengan likuiditas langsung dan suku bunga pinjaman yang kompetitif.",
     brandLabel: "Sanova ATMR",
     bestBorrowRate: "Tingkat utang terbaik",
@@ -725,7 +725,7 @@ export const id = mergeLocale({
 
   dashboard: {
     eyebrow: "Modal dan Cakupan",
-    title: "Sanova Global SAS — Analisis Portofolio",
+    title: "Panel Kontrol",
     subtitle: "Pelacakan kelembagaan atas arus kas cair, cakupan utang, dan kinerja aset fisik yang diberi token.",
     kpiDividends: "Dividen Tunai Diterima (USDC)",
     kpiDividendsHint: "Akumulasi diselesaikan melalui pendengar on-chain",
@@ -1045,7 +1045,7 @@ export const id = mergeLocale({
   },
   cashFlow: {
     eyebrow: "Arus Kas",
-    title: "Dividen tunai untuk pembayaran margin",
+    title: "Dividen dan Pinjaman",
     subtitle: "Hasil operasional diselesaikan secara tunai untuk memfasilitasi amortisasi liabilitas akun investasi.",
     availableCashLabel: "Akumulasi uang tunai tersedia untuk pembayaran kembali",
     coverageLabel: "Perlindungan terhadap utang aktif",

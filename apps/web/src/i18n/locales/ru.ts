@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const ru = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const ru = mergeLocale({
     }
   },
   marketplace: {
-    title: "Торговая площадка RWA",
+    title: "Рынок токенов RWA",
     subtitle: "Токенизированные реальные активы с немедленной ликвидностью и конкурентоспособными ставками по кредитам.",
     brandLabel: "Санова RWA",
     bestBorrowRate: "Лучшая ставка по долгу",
@@ -725,7 +725,7 @@ export const ru = mergeLocale({
 
   dashboard: {
     eyebrow: "Капитал и покрытие",
-    title: "Sanova Global SAS — Портфельная аналитика",
+    title: "Панель управления",
     subtitle: "Институциональное отслеживание движения ликвидных денежных средств, покрытия долга и эффективности токенизированных физических активов.",
     kpiDividends: "Полученные денежные дивиденды (USDC)",
     kpiDividendsHint: "Накопленные расчеты через прослушиватель цепочки",
@@ -1045,7 +1045,7 @@ export const ru = mergeLocale({
   },
   cashFlow: {
     eyebrow: "Денежный поток",
-    title: "Денежные дивиденды на погашение маржи",
+    title: "Дивиденды и займы",
     subtitle: "Операционные доходы рассчитываются строго наличными, чтобы облегчить амортизацию обязательств инвестиционного счета.",
     availableCashLabel: "Накопленные денежные средства, доступные для погашения",
     coverageLabel: "Покрытие активной задолженности",

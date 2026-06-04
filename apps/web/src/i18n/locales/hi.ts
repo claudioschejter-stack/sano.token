@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const hi = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const hi = mergeLocale({
     }
   },
   marketplace: {
-    title: "मार्केटप्लेस आरडब्ल्यूए",
+    title: "RWA टोकन बाज़ार",
     subtitle: "तत्काल तरलता और प्रतिस्पर्धी उधार दरों के साथ टोकनयुक्त वास्तविक संपत्तियां।",
     brandLabel: "सनोवा आरडब्ल्यूए",
     bestBorrowRate: "सर्वोत्तम ऋण दर",
@@ -725,7 +725,7 @@ export const hi = mergeLocale({
 
   dashboard: {
     eyebrow: "पूंजी और कवरेज",
-    title: "सनोवा ग्लोबल एसएएस - पोर्टफोलियो एनालिटिक्स",
+    title: "नियंत्रण कक्ष",
     subtitle: "तरल नकदी प्रवाह, ऋण कवरेज और टोकनयुक्त भौतिक संपत्तियों के प्रदर्शन की संस्थागत ट्रैकिंग।",
     kpiDividends: "प्राप्त नकद लाभांश (यूएसडीसी)",
     kpiDividendsHint: "संचित ऑन-चेन श्रोता के माध्यम से व्यवस्थित किया गया",
@@ -1045,7 +1045,7 @@ export const hi = mergeLocale({
   },
   cashFlow: {
     eyebrow: "नकदी प्रवाह",
-    title: "मार्जिन पुनर्भुगतान के लिए नकद लाभांश",
+    title: "लाभांश और ऋण",
     subtitle: "निवेश खाते की देनदारियों के परिशोधन की सुविधा के लिए परिचालन रिटर्न का निपटान सख्ती से नकद में किया जाता है।",
     availableCashLabel: "पुनर्भुगतान के लिए संचित नकदी उपलब्ध है",
     coverageLabel: "सक्रिय ऋण के विरुद्ध कवरेज",

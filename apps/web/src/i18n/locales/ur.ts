@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const ur = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const ur = mergeLocale({
     }
   },
   marketplace: {
-    title: "مارکیٹ پلیس RWA",
+    title: "RWA ٹوکن مارکیٹ",
     subtitle: "فوری لیکویڈیٹی اور مسابقتی قرضے کی شرحوں کے ساتھ ٹوکنائزڈ حقیقی اثاثے۔",
     brandLabel: "سانووا آر ڈبلیو اے",
     bestBorrowRate: "بہترین قرض کی شرح",
@@ -725,7 +725,7 @@ export const ur = mergeLocale({
 
   dashboard: {
     eyebrow: "سرمایہ اور کوریج",
-    title: "Sanova Global SAS - پورٹ فولیو تجزیات",
+    title: "کنٹرول پینل",
     subtitle: "مائع کیش فلو، قرض کی کوریج اور ٹوکنائزڈ فزیکل اثاثوں کی کارکردگی کا ادارہ جاتی ٹریکنگ۔",
     kpiDividends: "کیش ڈیویڈنڈ موصول ہوا (USDC)",
     kpiDividendsHint: "آن چین سننے والے کے ذریعے جمع کیا گیا۔",
@@ -1045,7 +1045,7 @@ export const ur = mergeLocale({
   },
   cashFlow: {
     eyebrow: "کیش فلو",
-    title: "مارجن کی ادائیگی کے لیے نقد منافع",
+    title: "منافع اور قرضے",
     subtitle: "آپریٹنگ ریٹرن کو سختی سے نقد رقم میں طے کیا جاتا ہے تاکہ سرمایہ کاری اکاؤنٹ کی ذمہ داریوں کو معاف کرنے میں آسانی ہو۔",
     availableCashLabel: "جمع شدہ نقد ادائیگی کے لیے دستیاب ہے۔",
     coverageLabel: "فعال قرض کے خلاف کوریج",

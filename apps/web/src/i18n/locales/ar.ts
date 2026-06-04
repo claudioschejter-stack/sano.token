@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const ar = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const ar = mergeLocale({
     }
   },
   marketplace: {
-    title: "سوق روا",
+    title: "Mercado de Tokenes RWA",
     subtitle: "أصول حقيقية مُرمزة مع سيولة فورية ومعدلات إقراض تنافسية.",
     brandLabel: "سانوفا ار دبليو ايه",
     bestBorrowRate: "أفضل معدل للديون",
@@ -725,7 +725,7 @@ export const ar = mergeLocale({
 
   dashboard: {
     eyebrow: "رأس المال والتغطية",
-    title: "Sanova Global SAS — Analítica de Portfolio",
+    title: "Panel de Control",
     subtitle: "التتبع المؤسسي للتدفق النقدي السائل وتغطية الديون وأداء الأصول المادية الرمزية.",
     kpiDividends: "الأرباح النقدية المستلمة (USDC)",
     kpiDividendsHint: "Acumulado liquidado vía listener on-chain",
@@ -1045,7 +1045,7 @@ export const ar = mergeLocale({
   },
   cashFlow: {
     eyebrow: "التدفق النقدي",
-    title: "توزيعات نقدية لسداد الهامش",
+    title: "Dividendos y Prestamos",
     subtitle: "Los rendimientos operativos se liquidan estrictamente en cash para facilitar la amortización de pasivos de la cuenta de inversión.",
     availableCashLabel: "Efectivo acumulado disponible para repago",
     coverageLabel: "Cobertura contra deuda activa",

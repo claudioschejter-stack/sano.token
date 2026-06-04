@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const sw = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const sw = mergeLocale({
     }
   },
   marketplace: {
-    title: "Soko la RWA",
+    title: "Soko la Tokeni RWA",
     subtitle: "Mali halisi zilizowekwa alama na ukwasi wa haraka na viwango vya ushindani vya ukopeshaji.",
     brandLabel: "Sanova RWA",
     bestBorrowRate: "Kiwango bora cha deni",
@@ -725,7 +725,7 @@ export const sw = mergeLocale({
 
   dashboard: {
     eyebrow: "Mtaji na Chanjo",
-    title: "Sanova Global SAS - Uchambuzi wa Kwingineko",
+    title: "Paneli ya Udhibiti",
     subtitle: "Ufuatiliaji wa kitaasisi wa mtiririko wa pesa kioevu, malipo ya deni na utendakazi wa mali zilizowekwa alama.",
     kpiDividends: "Gawio la Fedha Taslimu Limepokelewa (USDC)",
     kpiDividendsHint: "Imekusanywa kutatuliwa kupitia msikilizaji wa mnyororo",
@@ -1045,7 +1045,7 @@ export const sw = mergeLocale({
   },
   cashFlow: {
     eyebrow: "Mtiririko wa Fedha",
-    title: "Mgao wa pesa taslimu kwa ulipaji wa kiasi",
+    title: "Gawio na Mikopo",
     subtitle: "Marejesho ya uendeshaji yanalipwa kwa fedha taslimu ili kuwezesha ulipaji wa madeni ya akaunti ya uwekezaji.",
     availableCashLabel: "Pesa zilizokusanywa zinapatikana kwa malipo",
     coverageLabel: "Chanjo dhidi ya deni hai",

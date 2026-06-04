@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const pt = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const pt = mergeLocale({
     }
   },
   marketplace: {
-    title: "Mercado RWA",
+    title: "Mercado de Tokens RWA",
     subtitle: "Ativos reais tokenizados com liquidez imediata e taxas de empréstimo competitivas.",
     brandLabel: "Sanova RWA",
     bestBorrowRate: "Melhor taxa de dívida",
@@ -725,7 +725,7 @@ export const pt = mergeLocale({
 
   dashboard: {
     eyebrow: "Capital e Cobertura",
-    title: "Sanova Global SAS — Análise de portfólio",
+    title: "Painel de Controle",
     subtitle: "Acompanhamento institucional do fluxo de caixa líquido, cobertura de dívidas e desempenho de ativos físicos tokenizados.",
     kpiDividends: "Dividendos em dinheiro recebidos (USDC)",
     kpiDividendsHint: "Acumulado liquidado via ouvinte on-chain",
@@ -1045,7 +1045,7 @@ export const pt = mergeLocale({
   },
   cashFlow: {
     eyebrow: "Fluxo de caixa",
-    title: "Dividendos em dinheiro para reembolso de margem",
+    title: "Dividendos e Empréstimos",
     subtitle: "Os retornos operacionais são liquidados estritamente em dinheiro para facilitar a amortização dos passivos da conta de investimento.",
     availableCashLabel: "Dinheiro acumulado disponível para reembolso",
     coverageLabel: "Cobertura contra dívida ativa",

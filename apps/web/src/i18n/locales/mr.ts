@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const mr = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const mr = mergeLocale({
     }
   },
   marketplace: {
-    title: "मार्केटप्लेस RWA",
+    title: "RWA टोकन बाजार",
     subtitle: "तात्काळ तरलता आणि स्पर्धात्मक कर्ज दरांसह टोकनीकृत वास्तविक मालमत्ता.",
     brandLabel: "Sanova RWA",
     bestBorrowRate: "सर्वोत्तम कर्ज दर",
@@ -725,7 +725,7 @@ export const mr = mergeLocale({
 
   dashboard: {
     eyebrow: "भांडवल आणि व्याप्ती",
-    title: "सनोव्हा ग्लोबल एसएएस - पोर्टफोलिओ विश्लेषण",
+    title: "नियंत्रण पॅनेल",
     subtitle: "लिक्विड कॅश फ्लो, डेट कव्हरेज आणि टोकनाइज्ड भौतिक मालमत्तेचे कार्यप्रदर्शन यांचे संस्थात्मक ट्रॅकिंग.",
     kpiDividends: "रोख लाभांश मिळाला (USDC)",
     kpiDividendsHint: "ऑन-चेन श्रोता द्वारे जमा केले गेले",
@@ -1045,7 +1045,7 @@ export const mr = mergeLocale({
   },
   cashFlow: {
     eyebrow: "रोख प्रवाह",
-    title: "मार्जिन परतफेडीसाठी रोख लाभांश",
+    title: "लाभांश आणि कर्ज",
     subtitle: "गुंतवणुकीच्या खात्यातील दायित्वांचे परिशोधन सुलभ करण्यासाठी ऑपरेटिंग रिटर्न्स काटेकोरपणे रोखीत सेटल केले जातात.",
     availableCashLabel: "परतफेडीसाठी जमा रोख उपलब्ध",
     coverageLabel: "सक्रिय कर्जाविरूद्ध कव्हरेज",

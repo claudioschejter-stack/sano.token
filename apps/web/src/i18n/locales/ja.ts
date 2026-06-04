@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const ja = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const ja = mergeLocale({
     }
   },
   marketplace: {
-    title: "マーケットプレイス RWA",
+    title: "RWAトークン市場",
     subtitle: "即時の流動性と競争力のある貸出金利を備えたトークン化された実物資産。",
     brandLabel: "サノバ RWA",
     bestBorrowRate: "最高の負債金利",
@@ -725,7 +725,7 @@ export const ja = mergeLocale({
 
   dashboard: {
     eyebrow: "資本と適用範囲",
-    title: "Sanova Global SAS — ポートフォリオ分析",
+    title: "コントロールパネル",
     subtitle: "流動的なキャッシュフロー、債務カバー、トークン化された物理的資産のパフォーマンスを機関が追跡します。",
     kpiDividends: "受け取った現金配当 (USDC)",
     kpiDividendsHint: "オンチェーンリスナー経由で蓄積決済",
@@ -1045,7 +1045,7 @@ export const ja = mergeLocale({
   },
   cashFlow: {
     eyebrow: "キャッシュフロー",
-    title: "証拠金返済のための現金配当",
+    title: "配当とローン",
     subtitle: "投資口座の負債の償却を容易にするため、営業利益は厳密に現金で決済されます。",
     availableCashLabel: "貯まった現金は返済可能",
     coverageLabel: "有効債務に対する補償",

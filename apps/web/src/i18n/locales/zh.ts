@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const zh = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const zh = mergeLocale({
     }
   },
   marketplace: {
-    title: "市场 RWA",
+    title: "RWA代币市场",
     subtitle: "具有即时流动性和有竞争力的贷款利率的代币化实物资产。",
     brandLabel: "萨诺瓦RWA",
     bestBorrowRate: "最佳债务率",
@@ -725,7 +725,7 @@ export const zh = mergeLocale({
 
   dashboard: {
     eyebrow: "资本和覆盖范围",
-    title: "Sanova Global SAS — 投资组合分析",
+    title: "控制面板",
     subtitle: "对流动现金流、债务覆盖率和代币化实物资产绩效的机构跟踪。",
     kpiDividends: "收到的现金股息（USDC）",
     kpiDividendsHint: "通过链上监听器累计结算",
@@ -1045,7 +1045,7 @@ export const zh = mergeLocale({
   },
   cashFlow: {
     eyebrow: "现金周转",
-    title: "现金红利用于偿还保证金",
+    title: "股息与贷款",
     subtitle: "经营收益严格以现金结算，以利于投资账户负债的摊销。",
     availableCashLabel: "累积可偿还现金",
     coverageLabel: "主动债务保障",

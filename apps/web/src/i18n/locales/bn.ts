@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const bn = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const bn = mergeLocale({
     }
   },
   marketplace: {
-    title: "মার্কেটপ্লেস RWA",
+    title: "Mercado de Tokenes RWA",
     subtitle: "অবিলম্বে তারল্য এবং প্রতিযোগিতামূলক ঋণের হার সহ প্রকৃত সম্পদের টোকেনাইজড।",
     brandLabel: "সানোভা RWA",
     bestBorrowRate: "সেরা ঋণ হার",
@@ -725,7 +725,7 @@ export const bn = mergeLocale({
 
   dashboard: {
     eyebrow: "Capital y Cobertura",
-    title: "Sanova Global SAS — Analítica de Portfolio",
+    title: "Panel de Control",
     subtitle: "Seguimiento institucional del flujo de caja líquido, cobertura de deuda y rendimiento de activos físicos tokenizados.",
     kpiDividends: "Dividendos en Efectivo Recibidos (USDC)",
     kpiDividendsHint: "Acumulado liquidado vía listener on-chain",
@@ -1045,7 +1045,7 @@ export const bn = mergeLocale({
   },
   cashFlow: {
     eyebrow: "Flujo de Caja",
-    title: "Dividendos en efectivo para repago de margen",
+    title: "Dividendos y Prestamos",
     subtitle: "Los rendimientos operativos se liquidan estrictamente en cash para facilitar la amortización de pasivos de la cuenta de inversión.",
     availableCashLabel: "Efectivo acumulado disponible para repago",
     coverageLabel: "Cobertura contra deuda activa",

@@ -63,7 +63,7 @@ export const en = {
     }
   },
   marketplace: {
-    title: "Marketplace RWA",
+    title: "RWA Token Market",
     subtitle:
       "Private placement of tokenized real assets. Access with registration, KYC and fiduciary approval. Restricted transfers.",
     brandLabel: "Sanova RWA",
@@ -985,7 +985,7 @@ export const en = {
   },
   dashboard: {
     eyebrow: "Capital and Coverage",
-    title: "Sanova Global SAS — Portfolio Analytics",
+    title: "Control Panel",
     subtitle: "Institutional tracking of liquid cash flow, debt coverage and performance of tokenized physical assets.",
     walletConnectionTitle: "Wallet connection on Base",
     walletConnectionSubtitle:
@@ -1406,7 +1406,7 @@ export const en = {
   },
   cashFlow: {
     eyebrow: "Cash Flow",
-    title: "Dividends and Morpho loans",
+    title: "Dividends and Loans",
     subtitle: "Track liquidated rent and repay Morpho loans on-chain from your connected Base wallet.",
     availableCashLabel: "Accumulated cash (dividends)",
     availableCashHint: "Platform USDC available for withdrawal or token purchases",

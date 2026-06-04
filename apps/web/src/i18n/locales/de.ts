@@ -1,4 +1,4 @@
-import { mergeLocale } from './mergeLocale';
+﻿import { mergeLocale } from './mergeLocale';
 
 export const de = mergeLocale({
   meta: {
@@ -52,7 +52,7 @@ export const de = mergeLocale({
     }
   },
   marketplace: {
-    title: "Marktplatz-RWA",
+    title: "RWA-Token-Markt",
     subtitle: "Tokenisierte Sachwerte mit sofortiger Liquidität und wettbewerbsfähigen Kreditzinsen.",
     brandLabel: "Sanova RWA",
     bestBorrowRate: "Bester Schuldenzins",
@@ -725,7 +725,7 @@ export const de = mergeLocale({
 
   dashboard: {
     eyebrow: "Kapital und Deckung",
-    title: "Sanova Global SAS – Portfolioanalyse",
+    title: "Kontrollpanel",
     subtitle: "Institutionelle Verfolgung des liquiden Cashflows, der Schuldendeckung und der Wertentwicklung tokenisierter physischer Vermögenswerte.",
     kpiDividends: "Erhaltene Bardividenden (USDC)",
     kpiDividendsHint: "Kumulierte Abrechnung über On-Chain-Listener",
@@ -1045,7 +1045,7 @@ export const de = mergeLocale({
   },
   cashFlow: {
     eyebrow: "Cashflow",
-    title: "Bardividenden zur Margenrückzahlung",
+    title: "Dividenden und Kredite",
     subtitle: "Betriebserträge werden ausschließlich in bar beglichen, um die Tilgung der Verbindlichkeiten des Anlagekontos zu erleichtern.",
     availableCashLabel: "Angesammelte Barmittel stehen zur Rückzahlung zur Verfügung",
     coverageLabel: "Absicherung gegen aktive Schulden",
