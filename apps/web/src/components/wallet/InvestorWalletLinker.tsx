@@ -9,7 +9,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { BASE_CHAIN_ID, isWalletConnectConfigured } from '../../lib/web3/config';
 
 export type InvestorWalletLinkerProps = {
-  variant?: 'onboarding' | 'checkout';
+  variant?: 'onboarding' | 'checkout' | 'dashboard';
   /** When true, lets the investor replace the linked wallet with the currently connected one. */
   allowReplace?: boolean;
   onLinked?: () => void | Promise<void>;
@@ -41,6 +41,7 @@ export function InvestorWalletLinker({
   const o = t.onboarding.steps;
   const w = t.wallet;
   const c = t.checkout;
+  const d = t.dashboard;
   const { refresh } = useAccountStatus();
   const walletGuard = useLinkedWalletGuard();
   const { address, isConnected, chainId, connector: activeConnector } = useAccount();
@@ -266,6 +267,7 @@ export function InvestorWalletLinker({
     Boolean(walletGuard.linkedWallet);
   const showConnectButtons = !walletGuard.canSignOnChain && !showReplaceWallet;
   const isOnboarding = variant === 'onboarding';
+  const isDashboard = variant === 'dashboard';
 
   const primaryButtonClass = isOnboarding
     ? 'flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white disabled:opacity-60'
@@ -298,7 +300,7 @@ export function InvestorWalletLinker({
             <li>{o.walletBullet3}</li>
           </ul>
         </>
-      ) : (
+      ) : isDashboard ? null : (
         <div>
           <p className="text-sm font-semibold text-terminal-text">{c.walletSectionTitle}</p>
           <p className="mt-1 text-xs text-terminal-muted">{c.walletSectionDesc}</p>
@@ -426,7 +428,7 @@ export function InvestorWalletLinker({
       ) : null}
 
       <p className={`text-center text-xs ${isOnboarding ? 'text-slate-500' : 'text-terminal-muted'}`}>
-        {isOnboarding ? o.walletHint : c.walletSectionHint}
+        {isOnboarding ? o.walletHint : isDashboard ? d.walletConnectionHint : c.walletSectionHint}
       </p>
     </div>
   );

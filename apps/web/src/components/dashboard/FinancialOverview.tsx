@@ -17,7 +17,6 @@ import { InvestorKpiCard } from './investor/InvestorKpiCard';
 import { InvestorPageHeader } from './investor/InvestorPageHeader';
 import { InvestorSection } from './investor/InvestorSection';
 import { LiveDividendStream } from './LiveDividendStream';
-import { RentPayoutPreferencePanel } from './investor/RentPayoutPreferencePanel';
 import { ProjectYieldPanel } from './ProjectYieldPanel';
 import { MonthlyCashFlowChart } from './MonthlyCashFlowChart';
 import {
@@ -114,8 +113,6 @@ export function FinancialOverview() {
       <Suspense fallback={<div className="h-48 animate-pulse rounded-xl border border-terminal-border bg-terminal-card" />}>
         <InvestorCollectionWalletPanel />
       </Suspense>
-
-      <RentPayoutPreferencePanel />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>article]:h-full">
         <InvestorKpiCard

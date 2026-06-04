@@ -830,8 +830,8 @@ export const es = {
     depositComplete: 'Depósito confirmado. Saldo actualizado en tu billetera Sanova.',
     backToWallet: 'Volver a billetera',
     depositWalletRequired:
-      'Para pagar con cartera propia (USDC on-chain), configurá y conectá tu billetera en Panel de control (sección Wallet de cobro).',
-    goToCollectionWallet: 'Ir a Panel de control (Wallet de cobro)',
+      'Para pagar con cartera propia (USDC on-chain), configurá y conectá tu billetera en Panel de control.',
+    goToCollectionWallet: 'Ir a Panel de control',
     addToCart: 'Agregar al carrito',
     viewCart: 'Ver carrito',
     depositCta: 'Depositar'
@@ -1002,6 +1002,10 @@ export const es = {
     title: 'Sanova Global SAS — Analítica de Portfolio',
     subtitle:
       'Seguimiento institucional del flujo de caja líquido, cobertura de deuda y rendimiento de activos físicos tokenizados.',
+    walletConnectionTitle: 'Conexión de billetera en Base',
+    walletConnectionSubtitle:
+      'Usá Coinbase Wallet (recomendado) o conectá otra billetera con WalletConnect. La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC.',
+    walletConnectionHint: 'La dirección se guarda en tu perfil de inversor para futuras operaciones.',
     kpiDividends: 'Dividendos en Efectivo Recibidos (USDC)',
     kpiDividendsHint: 'Acumulado liquidado vía listener on-chain',
     kpiDebtCoverage: 'Cobertura de Deuda Activa',

@@ -1,4 +1,4 @@
-export const COLLECTION_WALLET_SECTION_ID = 'wallet-cobro';
+export const COLLECTION_WALLET_SECTION_ID = 'conexion-billetera';
 
 export const COLLECTION_WALLET_PATH = '/dashboard';
 

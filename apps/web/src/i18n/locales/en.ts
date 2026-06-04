@@ -818,7 +818,7 @@ export const en = {
     backToWallet: "Back to wallet",
     depositWalletRequired:
       "To pay with your own wallet (USDC on-chain), set up and connect it in the dashboard (Collection wallet section).",
-    goToCollectionWallet: "Go to dashboard (Collection wallet)",
+    goToCollectionWallet: "Go to dashboard",
     addToCart: "Add to cart",
     viewCart: "View cart",
     depositCta: "Deposit"
@@ -987,6 +987,10 @@ export const en = {
     eyebrow: "Capital and Coverage",
     title: "Sanova Global SAS — Portfolio Analytics",
     subtitle: "Institutional tracking of liquid cash flow, debt coverage and performance of tokenized physical assets.",
+    walletConnectionTitle: "Wallet connection on Base",
+    walletConnectionSubtitle:
+      "Use Coinbase Wallet (recommended) or connect another wallet via WalletConnect. The address is saved to your profile for payments, deposits and USDC rent payouts.",
+    walletConnectionHint: "The address is saved to your investor profile for future operations.",
     kpiDividends: "Cash Dividends Received (USDC)",
     kpiDividendsHint: "Accumulated settled via on-chain listener",
     kpiDebtCoverage: "Active Debt Coverage",
