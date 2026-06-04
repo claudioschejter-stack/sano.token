@@ -2,7 +2,7 @@ import type { PaymentMethod } from '@sanova/database';
 import { quoteCheapestPaymentRoutes } from './cheapestPaymentRouter';
 import { paymentGatewayConfigured } from './paymentConfig';
 
-export const DEPOSIT_QUOTE_TTL_SECONDS = 60;
+export const DEPOSIT_QUOTE_TTL_SECONDS = 40;
 
 export type DepositPaymentOption = {
   id: string;
@@ -61,21 +61,28 @@ const FALLBACK_FX_USD_TO_LOCAL: Record<string, number> = {
 
 const DEPOSIT_DISPLAY_ROWS: DepositDisplayRow[] = [
   {
-    id: 'electronic_wallet',
-    method: 'COINBASE',
-    label: 'Billetera electrónica',
-    fallbackFeeBps: 100,
-    fallbackGasUsd: 0.04,
-    fallbackNetworkUsd: 0.02,
-    usesLocalCurrency: true
+    id: 'google_pay',
+    method: 'STRIPE',
+    label: 'Google Pay',
+    fallbackFeeBps: 265,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.03
   },
   {
-    id: 'mercado_pago',
-    method: 'MERCADO_PAGO',
-    label: 'Mercado Pago',
-    fallbackFeeBps: 320,
+    id: 'apple_pay',
+    method: 'STRIPE',
+    label: 'Apple Pay',
+    fallbackFeeBps: 265,
     fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.05,
+    fallbackNetworkUsd: 0.03
+  },
+  {
+    id: 'paypal',
+    method: 'STRIPE',
+    label: 'PayPal',
+    fallbackFeeBps: 340,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.04,
     usesLocalCurrency: true
   },
   {
@@ -95,11 +102,82 @@ const DEPOSIT_DISPLAY_ROWS: DepositDisplayRow[] = [
     fallbackNetworkUsd: 0.03
   },
   {
+    id: 'mercado_pago',
+    method: 'MERCADO_PAGO',
+    label: 'Mercado Pago',
+    fallbackFeeBps: 320,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.05,
+    usesLocalCurrency: true
+  },
+  {
+    id: 'pix',
+    method: 'LOCAL_RAIL',
+    label: 'Pix (Brasil)',
+    fallbackFeeBps: 55,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.02,
+    usesLocalCurrency: true
+  },
+  {
     id: 'local_transfer',
     method: 'LOCAL_RAIL',
     label: 'Transferencia bancaria local',
     fallbackFeeBps: 45,
     fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.02,
+    usesLocalCurrency: true
+  },
+  {
+    id: 'sepa',
+    method: 'LOCAL_RAIL',
+    label: 'SEPA (Europa)',
+    fallbackFeeBps: 35,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.02,
+    usesLocalCurrency: true
+  },
+  {
+    id: 'ach',
+    method: 'LOCAL_RAIL',
+    label: 'ACH (EE.UU.)',
+    fallbackFeeBps: 40,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.02
+  },
+  {
+    id: 'alipay',
+    method: 'LOCAL_RAIL',
+    label: 'Alipay',
+    fallbackFeeBps: 120,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.03,
+    usesLocalCurrency: true
+  },
+  {
+    id: 'wechat_pay',
+    method: 'LOCAL_RAIL',
+    label: 'WeChat Pay',
+    fallbackFeeBps: 120,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.03,
+    usesLocalCurrency: true
+  },
+  {
+    id: 'wise',
+    method: 'BRIDGE',
+    label: 'Wise',
+    fallbackFeeBps: 95,
+    fallbackGasUsd: 0.05,
+    fallbackNetworkUsd: 0.04,
+    usesLocalCurrency: true
+  },
+  {
+    id: 'electronic_wallet',
+    method: 'COINBASE',
+    label: 'Billetera electrónica (Coinbase)',
+    fallbackFeeBps: 100,
+    fallbackGasUsd: 0.04,
     fallbackNetworkUsd: 0.02,
     usesLocalCurrency: true
   },
@@ -140,6 +218,28 @@ const DEPOSIT_DISPLAY_ROWS: DepositDisplayRow[] = [
   }
 ];
 
+function depositRowConfigured(row: DepositDisplayRow): boolean {
+  if (row.id === 'paypal') {
+    return Boolean(process.env.PAYPAL_CLIENT_ID ?? process.env.PAYPAL_SECRET);
+  }
+  if (row.id === 'google_pay') {
+    return Boolean(process.env.GOOGLE_PAY_MERCHANT_ID);
+  }
+  if (row.id === 'apple_pay') {
+    return Boolean(process.env.APPLE_PAY_MERCHANT_ID);
+  }
+  if (row.id === 'pix' || row.id === 'sepa' || row.id === 'ach' || row.id === 'alipay' || row.id === 'wechat_pay') {
+    return Boolean(
+      process.env.LOCAL_RAILS_ENABLED === 'true' || process.env.DLOCAL_API_KEY || process.env.EBANX_API_KEY
+    );
+  }
+  if (row.id === 'wise') {
+    return Boolean(process.env.BRIDGE_API_KEY || process.env.WISE_API_KEY);
+  }
+
+  return paymentGatewayConfigured(row.method) || row.method === 'CUSTODIAL_STABLECOIN';
+}
+
 function lowestPlatformFeeUsd(method: PaymentMethod, amountUsd: number, country: string): number | null {
   const quotes = quoteCheapestPaymentRoutes({
     amountUsd,
@@ -175,7 +275,7 @@ export function buildDepositPaymentOptions(
   const quoteExpiresAt = new Date(Date.now() + DEPOSIT_QUOTE_TTL_SECONDS * 1000).toISOString();
 
   const options = DEPOSIT_DISPLAY_ROWS.map((row) => {
-    const configured = paymentGatewayConfigured(row.method) || row.method === 'CUSTODIAL_STABLECOIN';
+    const configured = depositRowConfigured(row);
 
     const quotedPlatform = lowestPlatformFeeUsd(row.method, normalizedAmount, country);
     const platformFeeUsd =

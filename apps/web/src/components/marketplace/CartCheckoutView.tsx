@@ -553,77 +553,85 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           )}
 
-          <div className="rounded-lg border border-terminal-border p-4">
-            <div className="flex justify-between text-base font-semibold text-terminal-text">
-              <span>{mode === 'deposit' ? c.totalDepositUsd : formatMessage(c.totalUsdc, { currency })}</span>
-              <span className="font-mono text-terminal-primary">
-                {mode === 'deposit' ? formatUsd(totalUsd) : formatFromUsd(totalUsd)}
-              </span>
-            </div>
-            {mode === 'deposit' && selectedDepositOption ? (
-              <div className="mt-3 flex justify-between border-t border-terminal-border pt-3 text-sm text-terminal-muted">
-                <span>{c.totalUsdLabel}</span>
-                <span className="font-mono font-semibold text-terminal-text">
-                  {formatUsd(selectedDepositOption.totalUsd)}
-                </span>
+          {mode === 'deposit' ? (
+            <div className="rounded-lg border border-terminal-border p-4">
+              <div className="flex items-baseline justify-between gap-4 text-base font-semibold text-terminal-text">
+                <span>{c.totalDepositUsd}</span>
+                <span className="shrink-0 font-mono text-terminal-primary">{formatUsd(totalUsd)}</span>
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-terminal-border p-4">
+              <div className="flex items-baseline justify-between gap-4 text-base font-semibold text-terminal-text">
+                <span>{formatMessage(c.totalUsdc, { currency })}</span>
+                <span className="shrink-0 font-mono text-terminal-primary">{formatFromUsd(totalUsd)}</span>
+              </div>
+            </div>
+          )}
 
           {mode === 'deposit' ? (
             <div className="space-y-3">
-              {quoteExpiresAt && quoteSecondsLeft > 0 ? (
-                <p className="text-center text-xs font-medium text-terminal-primary">
-                  {formatMessage(c.quoteExpiresIn, { seconds: String(quoteSecondsLeft) })}
-                </p>
-              ) : null}
+              <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text">
+                {c.selectPaymentMethod}
+              </p>
               {depositQuoteExpired ? (
-                <p className="text-center text-xs text-terminal-warning">{c.quoteExpired}</p>
+                <p className="text-xs text-terminal-warning">{c.quoteExpired}</p>
               ) : null}
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
                 {depositOptions.map((option) => {
                   const selected = selectedDepositOptionId === option.id;
-                  const amountPrimary = option.usesLocalCurrency && option.totalLocal != null
-                    ? formatDepositLocal(option.totalLocal, option.displayCurrency, currencyLocale)
-                    : formatUsd(option.totalUsd);
-                  const amountSecondary =
+                  const amountPrimary =
                     option.usesLocalCurrency && option.totalLocal != null
-                      ? formatUsd(option.totalUsd)
-                      : null;
+                      ? formatDepositLocal(option.totalLocal, option.displayCurrency, currencyLocale)
+                      : formatUsd(option.totalUsd);
+                  const amountSecondary =
+                    option.usesLocalCurrency && option.totalLocal != null ? formatUsd(option.totalUsd) : null;
 
                   return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      disabled={!option.configured}
-                      onClick={() => option.configured && setSelectedDepositOptionId(option.id)}
-                      className={`flex min-h-[8.5rem] flex-col justify-between rounded-lg border-2 px-4 py-3 text-left transition-colors ${
-                        selected
-                          ? 'border-blue-600 bg-white text-slate-900 shadow-md ring-2 ring-blue-600/25'
-                          : 'border-slate-200 bg-white text-slate-900 hover:border-blue-400'
-                      } ${!option.configured ? 'cursor-not-allowed opacity-50' : ''}`}
-                    >
-                      <span className="text-sm font-bold leading-snug">{option.label}</span>
-                      <div className="mt-3 space-y-1 text-[11px] text-slate-600">
-                        <p>
-                          {c.feePlatform}: {formatUsd(option.platformFeeUsd)}
-                        </p>
-                        <p>
-                          {c.feeGas}: {formatUsd(option.gasFeeUsd + option.networkFeeUsd)}
-                        </p>
-                      </div>
-                      <div className="mt-3 border-t border-slate-200 pt-2">
-                        <p className="font-mono text-base font-bold text-blue-700">{amountPrimary}</p>
-                        {amountSecondary ? (
-                          <p className="mt-0.5 font-mono text-xs text-slate-500">{amountSecondary}</p>
-                        ) : null}
-                        {!option.configured ? (
-                          <p className="mt-1 text-[10px] font-semibold uppercase text-amber-700">
-                            {c.paymentUnavailable}
-                          </p>
-                        ) : null}
-                      </div>
-                    </button>
+                    <div key={option.id} className="bg-white">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDepositOptionId(option.id)}
+                        className={`flex w-full items-center justify-between gap-4 px-4 py-3.5 text-left transition-colors ${
+                          selected ? 'bg-blue-50' : 'hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <span className="text-sm font-semibold text-slate-900">{option.label}</span>
+                          {!option.configured ? (
+                            <span className="mt-0.5 block text-[11px] font-medium uppercase text-amber-700">
+                              {c.paymentUnavailable}
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="font-mono text-sm font-bold text-blue-700">{amountPrimary}</p>
+                          {amountSecondary ? (
+                            <p className="font-mono text-[11px] text-slate-500">{amountSecondary}</p>
+                          ) : null}
+                        </div>
+                      </button>
+                      {selected ? (
+                        <div className="space-y-1 border-t border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
+                          <div className="flex justify-between gap-4">
+                            <span>{c.feeCommission}</span>
+                            <span className="font-mono font-medium text-slate-900">
+                              {formatUsd(option.platformFeeUsd)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span>{c.feeGas}</span>
+                            <span className="font-mono font-medium text-slate-900">{formatUsd(option.gasFeeUsd)}</span>
+                          </div>
+                          <div className="flex justify-between gap-4">
+                            <span>{c.feeOther}</span>
+                            <span className="font-mono font-medium text-slate-900">
+                              {formatUsd(option.networkFeeUsd)}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   );
                 })}
               </div>
@@ -635,6 +643,15 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               {depositOptions.length === 0 && totalUsd <= 0 ? (
                 <p className="text-xs text-terminal-warning">{c.invalidAmount}</p>
               ) : null}
+
+              <div className="rounded-lg border border-terminal-border p-4">
+                <div className="flex items-baseline justify-between gap-4 text-base font-semibold text-terminal-text">
+                  <span>{c.totalToPayLabel}</span>
+                  <span className="shrink-0 font-mono text-terminal-primary">
+                    {formatUsd(selectedDepositOption?.totalUsd ?? totalUsd)}
+                  </span>
+                </div>
+              </div>
             </div>
           ) : (
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
@@ -741,29 +758,36 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
 
           {status !== 'done' ? (
-            <button
-              type="button"
-              disabled={
-                (status !== 'idle' && status !== 'manual') ||
-                (mode === 'purchase' && items.length === 0) ||
-                (mode === 'deposit' &&
-                  (depositOptions.length === 0 ||
-                    !selectedDepositOptionId ||
-                    depositQuoteExpired ||
-                    !selectedDepositOption?.configured)) ||
-                (requiresWallet && !walletGuard.canSignOnChain)
-              }
-              onClick={() => void handleConfirm()}
-              className="w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {status === 'processing'
-                ? c.processing
-                : status === 'verifying'
-                  ? c.verifying
-                  : mode === 'deposit'
-                    ? c.continueDeposit
-                    : c.confirmButton}
-            </button>
+            <div className={mode === 'deposit' ? 'space-y-1' : undefined}>
+              <button
+                type="button"
+                disabled={
+                  (status !== 'idle' && status !== 'manual') ||
+                  (mode === 'purchase' && items.length === 0) ||
+                  (mode === 'deposit' &&
+                    (depositOptions.length === 0 ||
+                      !selectedDepositOptionId ||
+                      depositQuoteExpired ||
+                      !selectedDepositOption?.configured)) ||
+                  (requiresWallet && !walletGuard.canSignOnChain)
+                }
+                onClick={() => void handleConfirm()}
+                className="w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {status === 'processing'
+                  ? c.processing
+                  : status === 'verifying'
+                    ? c.verifying
+                    : mode === 'deposit'
+                      ? c.continueDeposit
+                      : c.confirmButton}
+              </button>
+              {mode === 'deposit' && quoteExpiresAt && quoteSecondsLeft > 0 ? (
+                <p className="text-right text-xs font-medium text-terminal-primary">
+                  {formatMessage(c.quoteExpiresIn, { seconds: String(quoteSecondsLeft) })}
+                </p>
+              ) : null}
+            </div>
           ) : null}
 
           {mode === 'purchase' && items.length > 0 ? (
