@@ -3,6 +3,7 @@ import { getAddress, isAddress } from 'ethers';
 import { assertWalletAvailableForUser } from './linkedWalletPolicy';
 import { ensureInvestorForUser } from './investorService';
 import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
+import { sanitizeWalletProvider } from './walletDisplayName';
 
 function normalizeWalletAddress(walletAddress: string): string {
   const trimmed = walletAddress.trim();
@@ -12,8 +13,13 @@ function normalizeWalletAddress(walletAddress: string): string {
   return getAddress(trimmed).toLowerCase();
 }
 
-export async function linkInvestorWallet(userId: string, walletAddress: string) {
+export async function linkInvestorWallet(
+  userId: string,
+  walletAddress: string,
+  walletProvider?: string | null
+) {
   const normalized = normalizeWalletAddress(walletAddress);
+  const providerLabel = sanitizeWalletProvider(walletProvider);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -64,12 +70,13 @@ export async function linkInvestorWallet(userId: string, walletAddress: string) 
       investorAccessEnabled: user.investorAccessEnabled,
       systemRole: user.systemRole
     },
-    normalized
+    normalized,
+    providerLabel
   );
 
   await syncUserAccountStatus(userId);
 
-  return { walletAddress: normalized };
+  return { walletAddress: normalized, walletProvider: providerLabel };
 }
 
 export function hasLinkedWallet(walletAddress: string | null | undefined): boolean {

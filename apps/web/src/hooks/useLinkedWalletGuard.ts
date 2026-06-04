@@ -7,6 +7,7 @@ import { BASE_CHAIN_ID } from '../lib/web3/config';
 
 export type LinkedWalletGuard = {
   linkedWallet: string | null;
+  linkedWalletProvider: string | null;
   connectedWallet: string | null;
   isConnected: boolean;
   isWrongNetwork: boolean;
@@ -20,6 +21,7 @@ export function useLinkedWalletGuard(): LinkedWalletGuard {
   const { checklist } = useAccountStatus();
 
   const linkedWallet = checklist?.walletLinked ? checklist.walletAddress : null;
+  const linkedWalletProvider = checklist?.walletProvider?.trim() || null;
 
   return useMemo(() => {
     const connected = address?.trim().toLowerCase() ?? null;
@@ -30,6 +32,7 @@ export function useLinkedWalletGuard(): LinkedWalletGuard {
 
     return {
       linkedWallet: linked,
+      linkedWalletProvider,
       connectedWallet: connected,
       isConnected,
       isWrongNetwork,
@@ -37,5 +40,5 @@ export function useLinkedWalletGuard(): LinkedWalletGuard {
       isWalletMismatch,
       canSignOnChain: isWalletLinked && isConnected && !isWrongNetwork && !isWalletMismatch
     };
-  }, [address, chainId, isConnected, linkedWallet]);
+  }, [address, chainId, isConnected, linkedWallet, linkedWalletProvider]);
 }

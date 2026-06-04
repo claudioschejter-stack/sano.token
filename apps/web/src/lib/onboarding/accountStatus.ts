@@ -16,6 +16,7 @@ export type OnboardingChecklist = {
   diditEnabled: boolean;
   walletLinked: boolean;
   walletAddress: string | null;
+  walletProvider: string | null;
 };
 
 type UserOnboardingFields = {
@@ -26,6 +27,7 @@ type UserOnboardingFields = {
   kycStatus: KycStatus;
   accountStatus: AccountStatus;
   walletAddress?: string | null;
+  walletProvider?: string | null;
   systemRole?: string | null;
 };
 
@@ -88,6 +90,7 @@ export function buildOnboardingChecklist(
     email: user.email,
     diditEnabled: diditEnabled && kycEnabled,
     walletLinked,
-    walletAddress
+    walletAddress,
+    walletProvider: user.walletProvider?.trim() || null
   };
 }

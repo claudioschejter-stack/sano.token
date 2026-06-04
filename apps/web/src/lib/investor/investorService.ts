@@ -79,14 +79,17 @@ export function assertInvestorCheckoutEligible(user: UserPurchaseContext) {
 
 export async function ensureInvestorForUser(
   user: UserPurchaseContext,
-  walletAddress: string
+  walletAddress: string,
+  walletProvider?: string | null
 ): Promise<string> {
   const normalizedWallet = walletAddress.trim().toLowerCase();
+  const providerData =
+    walletProvider === undefined ? {} : { walletProvider: walletProvider?.trim() || null };
 
   if (user.investorId) {
     await prisma.user.update({
       where: { id: user.id },
-      data: { walletAddress: normalizedWallet }
+      data: { walletAddress: normalizedWallet, ...providerData }
     });
 
     await prisma.investor.update({
@@ -115,7 +118,8 @@ export async function ensureInvestorForUser(
     where: { id: user.id },
     data: {
       investorId: investor.id,
-      walletAddress: normalizedWallet
+      walletAddress: normalizedWallet,
+      ...providerData
     }
   });
 

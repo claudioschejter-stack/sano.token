@@ -7,6 +7,7 @@ import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { normalizeWalletDisplayName, resolveWalletProviderForLink } from '../../lib/investor/walletDisplayName';
 import { BASE_CHAIN_ID, isWalletConnectConfigured } from '../../lib/web3/config';
 
 export type InvestorWalletLinkerProps = {
@@ -39,40 +40,6 @@ function humanizeConnectError(
   }
 
   return messages.connectFailed;
-}
-
-function normalizeWalletDisplayName(
-  connectorName: string | undefined,
-  flow: 'coinbase' | 'walletconnect' | null
-): string | null {
-  if (connectorName) {
-    const lower = connectorName.toLowerCase();
-    if (lower.includes('coinbase')) {
-      return 'Coinbase Wallet';
-    }
-    if (lower.includes('metamask')) {
-      return 'MetaMask';
-    }
-    if (lower.includes('rainbow')) {
-      return 'Rainbow';
-    }
-    if (lower.includes('trust')) {
-      return 'Trust Wallet';
-    }
-    if (lower.includes('rabby')) {
-      return 'Rabby';
-    }
-    if (lower.includes('phantom')) {
-      return 'Phantom';
-    }
-    return connectorName;
-  }
-
-  if (flow === 'coinbase') {
-    return 'Coinbase Wallet';
-  }
-
-  return null;
 }
 
 function pickConnector(connectors: readonly Connector[], kind: 'coinbase' | 'walletConnect') {
@@ -154,6 +121,10 @@ export function InvestorWalletLinker({
   const linkWallet = useCallback(
     async (walletAddress: string, options?: { forceReplace?: boolean }) => {
       const normalized = walletAddress.toLowerCase();
+      const walletProvider = resolveWalletProviderForLink({
+        connectorName: activeConnector?.name,
+        activeFlow
+      });
 
       if (linkedRef.current === normalized) {
         await notifyLinked();
@@ -176,10 +147,14 @@ export function InvestorWalletLinker({
           method: 'PATCH',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress: normalized })
+          body: JSON.stringify({ walletAddress: normalized, walletProvider })
         });
 
-        const data = (await response.json()) as { error?: string; walletAddress?: string };
+        const data = (await response.json()) as {
+          error?: string;
+          walletAddress?: string;
+          walletProvider?: string | null;
+        };
 
         if (!response.ok) {
           const errorKey = data.error ?? 'GENERIC';
@@ -199,6 +174,8 @@ export function InvestorWalletLinker({
       }
     },
     [
+      activeConnector?.name,
+      activeFlow,
       allowReplace,
       notifyLinked,
       reportError,
@@ -408,14 +385,19 @@ export function InvestorWalletLinker({
   const needsLinkedReconnect = walletGuard.isWalletLinked && !walletGuard.isConnected;
   const currentWalletAddress = walletGuard.linkedWallet ?? displayAddress;
 
-  const currentWalletName = useMemo(
-    () =>
-      normalizeWalletDisplayName(
-        isConnected && walletGuard.canSignOnChain ? activeConnector?.name : undefined,
-        activeFlow
-      ),
-    [activeConnector?.name, activeFlow, isConnected, walletGuard.canSignOnChain]
-  );
+  const currentWalletName = useMemo(() => {
+    const liveName = normalizeWalletDisplayName(
+      isConnected && walletGuard.canSignOnChain ? activeConnector?.name : undefined,
+      activeFlow
+    );
+    return liveName ?? walletGuard.linkedWalletProvider;
+  }, [
+    activeConnector?.name,
+    activeFlow,
+    isConnected,
+    walletGuard.canSignOnChain,
+    walletGuard.linkedWalletProvider
+  ]);
   const linkedAddressLabel = walletGuard.linkedWallet
     ? `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
     : null;

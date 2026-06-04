@@ -33,6 +33,7 @@ export async function GET() {
       kycStatus: true,
       accountStatus: true,
       walletAddress: true,
+      walletProvider: true,
       systemRole: true,
       diditSessionId: true,
       investor: { select: { fullName: true, cuit: true, walletAddress: true } }
@@ -55,6 +56,7 @@ export async function GET() {
         kycStatus: user.kycStatus,
         accountStatus: user.accountStatus,
         walletAddress,
+        walletProvider: user.walletProvider,
         systemRole: user.systemRole
       },
       isDiditConfigured()

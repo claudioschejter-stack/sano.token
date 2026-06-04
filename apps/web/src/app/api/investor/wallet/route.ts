@@ -13,13 +13,13 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as { walletAddress?: string };
+    const body = (await request.json()) as { walletAddress?: string; walletProvider?: string | null };
 
     if (!body.walletAddress?.trim()) {
       return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
     }
 
-    const result = await linkInvestorWallet(ctx.userId, body.walletAddress);
+    const result = await linkInvestorWallet(ctx.userId, body.walletAddress, body.walletProvider);
 
     return NextResponse.json(result);
   } catch (error) {

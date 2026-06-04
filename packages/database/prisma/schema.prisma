@@ -213,6 +213,7 @@ model User {
   name              String?
   image             String?
   walletAddress     String?       @unique
+  walletProvider    String?
   systemRole        SystemRole    @default(INVESTOR)
   passwordHash      String?
   oauthProvider     String?
