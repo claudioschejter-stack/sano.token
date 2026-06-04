@@ -133,9 +133,20 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
   const depositCountry = CURRENCY_COUNTRY[currency] ?? 'AR';
+  const sortedDepositOptions = useMemo(
+    () =>
+      [...depositOptions].sort((a, b) => {
+        if (a.configured !== b.configured) {
+          return a.configured ? -1 : 1;
+        }
+        return a.totalUsd - b.totalUsd;
+      }),
+    [depositOptions]
+  );
+
   const selectedDepositOption = useMemo(
-    () => depositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
-    [depositOptions, selectedDepositOptionId]
+    () => sortedDepositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
+    [sortedDepositOptions, selectedDepositOptionId]
   );
   const requiresWallet = mode !== 'deposit' && paymentMethod !== 'INTERNAL_BALANCE';
   const depositQuoteExpired = mode === 'deposit' && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
@@ -168,7 +179,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           if (current && next.some((row) => row.id === current && row.configured)) {
             return current;
           }
-          return next.find((row) => row.configured)?.id ?? null;
+          const ordered = [...next].sort((a, b) => {
+            if (a.configured !== b.configured) {
+              return a.configured ? -1 : 1;
+            }
+            return a.totalUsd - b.totalUsd;
+          });
+          return ordered.find((row) => row.configured)?.id ?? null;
         });
       })
       .catch(() => {
@@ -578,7 +595,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 <p className="text-xs text-terminal-warning">{c.quoteExpired}</p>
               ) : null}
               <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                {depositOptions.map((option) => {
+                {sortedDepositOptions.map((option) => {
                   const selected = selectedDepositOptionId === option.id;
                   const amountPrimary =
                     option.usesLocalCurrency && option.totalLocal != null
@@ -588,11 +605,21 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                     option.usesLocalCurrency && option.totalLocal != null ? formatUsd(option.totalUsd) : null;
 
                   return (
-                    <div key={option.id} className="bg-white">
-                      <button
-                        type="button"
+                    <div
+                      key={option.id}
+                      className={`bg-white ${!option.configured ? 'opacity-70' : ''}`}
+                    >
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setSelectedDepositOptionId(option.id)}
-                        className={`flex w-full items-center justify-between gap-4 px-4 py-3.5 text-left transition-colors ${
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            setSelectedDepositOptionId(option.id);
+                          }
+                        }}
+                        className={`flex w-full cursor-pointer items-center gap-3 px-4 py-3.5 text-left transition-colors ${
                           selected ? 'bg-blue-50' : 'hover:bg-slate-50'
                         }`}
                       >
@@ -610,7 +637,23 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                             <p className="font-mono text-[11px] text-slate-500">{amountSecondary}</p>
                           ) : null}
                         </div>
-                      </button>
+                        <button
+                          type="button"
+                          aria-label={option.label}
+                          aria-pressed={selected}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedDepositOptionId(option.id);
+                          }}
+                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 bg-white shadow-sm transition-colors ${
+                            selected
+                              ? 'border-blue-600 ring-2 ring-blue-600/20'
+                              : 'border-slate-300 hover:border-blue-400'
+                          }`}
+                        >
+                          {selected ? <span className="h-3 w-3 rounded-sm bg-blue-600" /> : null}
+                        </button>
+                      </div>
                       {selected ? (
                         <div className="space-y-1 border-t border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
                           <div className="flex justify-between gap-4">
@@ -635,12 +678,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   );
                 })}
               </div>
-              {depositOptions.length === 0 && totalUsd > 0 ? (
+              {sortedDepositOptions.length === 0 && totalUsd > 0 ? (
                 <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
                   {c.processing}
                 </p>
               ) : null}
-              {depositOptions.length === 0 && totalUsd <= 0 ? (
+              {sortedDepositOptions.length === 0 && totalUsd <= 0 ? (
                 <p className="text-xs text-terminal-warning">{c.invalidAmount}</p>
               ) : null}
 
@@ -765,7 +808,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   (status !== 'idle' && status !== 'manual') ||
                   (mode === 'purchase' && items.length === 0) ||
                   (mode === 'deposit' &&
-                    (depositOptions.length === 0 ||
+                    (sortedDepositOptions.length === 0 ||
                       !selectedDepositOptionId ||
                       depositQuoteExpired ||
                       !selectedDepositOption?.configured)) ||

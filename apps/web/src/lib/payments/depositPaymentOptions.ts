@@ -312,7 +312,12 @@ export function buildDepositPaymentOptions(
       configured,
       stablecoinNetwork: row.stablecoinNetwork
     };
-  }).sort((a, b) => a.totalUsd - b.totalUsd);
+  }).sort((a, b) => {
+    if (a.configured !== b.configured) {
+      return a.configured ? -1 : 1;
+    }
+    return a.totalUsd - b.totalUsd;
+  });
 
   return {
     options,
