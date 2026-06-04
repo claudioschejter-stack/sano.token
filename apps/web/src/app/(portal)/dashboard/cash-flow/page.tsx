@@ -18,6 +18,7 @@ import { InvestorPageHeader } from '../../../../components/dashboard/investor/In
 import { InvestorSection } from '../../../../components/dashboard/investor/InvestorSection';
 import { MorphoRepayPanel } from '../../../../components/dashboard/investor/MorphoRepayPanel';
 import { ProjectYieldPanel } from '../../../../components/dashboard/ProjectYieldPanel';
+import { PlatformWalletView } from '../../../../components/wallet/PlatformWalletView';
 import { CheckCircle2 } from 'lucide-react';
 import { collectionWalletHref } from '../../../../lib/navigation/collectionWalletPath';
 
@@ -88,6 +89,10 @@ export default function CashFlowPage() {
           iconClassName="bg-terminal-bg text-terminal-accent"
         />
       </section>
+
+      <article className="rounded-xl border border-terminal-border bg-terminal-card p-4 sm:p-6">
+        <PlatformWalletView hideHeader embedded showMarketplaceCta />
+      </article>
 
       <MorphoRepayPanel onRepaid={() => void fetchPortfolio()} />
 

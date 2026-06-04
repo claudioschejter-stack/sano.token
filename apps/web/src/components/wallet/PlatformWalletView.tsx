@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, History, Loader2, ShoppingBag } from 'lucide-react';
+import { ArrowUpRight, Building, History, Loader2, ShoppingBag } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DashboardSkeleton } from '../dashboard/DashboardSkeleton';
 import { InvestorSection } from '../dashboard/investor/InvestorSection';
@@ -48,7 +48,19 @@ type ActivityItem = {
   date: string;
 };
 
-export function PlatformWalletView({ hideHeader = false }: { hideHeader?: boolean }) {
+type PlatformWalletViewProps = {
+  hideHeader?: boolean;
+  /** Renders inside a parent card (e.g. cash-flow) without extra page chrome. */
+  embedded?: boolean;
+  /** Shows “Abrir marketplace” below the tab bar. */
+  showMarketplaceCta?: boolean;
+};
+
+export function PlatformWalletView({
+  hideHeader = false,
+  embedded = false,
+  showMarketplaceCta = false
+}: PlatformWalletViewProps) {
   const router = useRouter();
   const t = useTranslation();
   const w = t.platformWallet;
@@ -218,9 +230,9 @@ export function PlatformWalletView({ hideHeader = false }: { hideHeader?: boolea
 
   return (
     <div
-      className={`mx-auto space-y-6 bg-terminal-bg text-terminal-text md:space-y-8 ${
-        hideHeader ? 'max-w-none' : 'max-w-5xl'
-      }`}
+      className={`mx-auto space-y-6 text-terminal-text md:space-y-8 ${
+        embedded ? '' : 'bg-terminal-bg'
+      } ${hideHeader || embedded ? 'max-w-none' : 'max-w-5xl'}`}
     >
       {hideHeader ? (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -284,6 +296,16 @@ export function PlatformWalletView({ hideHeader = false }: { hideHeader?: boolea
           {w.tabHistory}
         </button>
       </div>
+
+      {showMarketplaceCta ? (
+        <Link
+          href="/marketplace"
+          className="inline-flex items-center gap-2 text-sm font-medium text-terminal-primary transition hover:text-blue-400"
+        >
+          <Building size={16} />
+          {t.landing.cta.button}
+        </Link>
+      ) : null}
 
       {error ? (
         <p className="rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">

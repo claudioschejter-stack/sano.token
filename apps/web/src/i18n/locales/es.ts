@@ -918,6 +918,10 @@ export const es = {
     replaceWalletHint:
       'Solo podés tener una billetera activa por cuenta. Si confirmás, reemplazamos la anterior por la conectada ahora.',
     replaceWalletButton: 'Usar esta billetera',
+    changeWallet: 'Cambiar billetera',
+    changeWalletHint:
+      'Solo podés tener una billetera activa por cuenta. Al confirmar otra dirección, reemplazamos la vinculada anterior.',
+    cancelChangeWallet: 'Cancelar',
     linkedWalletLabel: 'Vinculada',
     connectedWalletLabel: 'Conectada',
     walletNotLinked: 'Vinculá tu wallet en el onboarding antes de operar.',

@@ -905,6 +905,10 @@ export const en = {
     replaceWalletHint:
       "You can only have one active wallet per account. If you confirm, we replace the previous one with the wallet connected now.",
     replaceWalletButton: "Use this wallet",
+    changeWallet: "Change wallet",
+    changeWalletHint:
+      "You can only have one active wallet per account. Confirming a new address replaces the previous linked wallet.",
+    cancelChangeWallet: "Cancel",
     linkedWalletLabel: "Linked",
     connectedWalletLabel: "Connected",
     walletNotLinked: "Link your wallet during onboarding before operating.",
