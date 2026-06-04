@@ -44,6 +44,26 @@ type DepositResponse = {
   providerCheckoutUrl: string | null;
 };
 
+type DepositPaymentOption = {
+  id: string;
+  method: PaymentMethod;
+  label: string;
+  feeUsd: number;
+  feeBps: number;
+  totalUsd: number;
+  configured: boolean;
+  stablecoinNetwork?: string;
+};
+
+const CURRENCY_COUNTRY: Record<string, string> = {
+  ARS: 'AR',
+  BRL: 'BR',
+  USD: 'US',
+  EUR: 'EU',
+  INR: 'IN',
+  MXN: 'MX'
+};
+
 type CartCheckoutViewProps = {
   investorName: string;
   initialMode?: 'purchase' | 'deposit' | 'wallet';
@@ -77,6 +97,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const cartItemCount = useCartStore((state) => state.itemCount());
 
   const [methods, setMethods] = useState<CheckoutMethodOption[]>([]);
+  const [depositOptions, setDepositOptions] = useState<DepositPaymentOption[]>([]);
+  const [selectedDepositOptionId, setSelectedDepositOptionId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('USDC_ONCHAIN');
   const [stablecoinNetwork, setStablecoinNetwork] = useState('BASE');
   const [depositAmount, setDepositAmount] = useState('100');
@@ -88,9 +110,21 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [error, setError] = useState<string | null>(null);
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
-  const requiresWallet = paymentMethod !== 'INTERNAL_BALANCE';
+  const depositCountry = CURRENCY_COUNTRY[currency] ?? 'AR';
+  const selectedDepositOption = useMemo(
+    () => depositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
+    [depositOptions, selectedDepositOptionId]
+  );
+  const requiresWallet =
+    mode === 'deposit'
+      ? paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN'
+      : paymentMethod !== 'INTERNAL_BALANCE';
 
   useEffect(() => {
+    if (mode === 'deposit') {
+      return;
+    }
+
     void fetch(`/api/marketplace/cart/methods?mode=${mode}`, { cache: 'no-store' })
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { methods?: CheckoutMethodOption[] } | null) => {
@@ -102,6 +136,55 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       })
       .catch(() => setMethods([]));
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== 'deposit' || !Number.isFinite(totalUsd) || totalUsd <= 0) {
+      setDepositOptions([]);
+      setSelectedDepositOptionId(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      void fetch(
+        `/api/marketplace/cart/deposit-options?amountUsd=${encodeURIComponent(String(totalUsd))}&country=${encodeURIComponent(depositCountry)}`,
+        { cache: 'no-store', signal: controller.signal }
+      )
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data: { options?: DepositPaymentOption[] } | null) => {
+          const next = data?.options ?? [];
+          setDepositOptions(next);
+          setSelectedDepositOptionId((current) => {
+            if (current && next.some((row) => row.id === current)) {
+              return current;
+            }
+            return next[0]?.id ?? null;
+          });
+        })
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            setDepositOptions([]);
+            setSelectedDepositOptionId(null);
+          }
+        });
+    }, 280);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [depositCountry, mode, totalUsd]);
+
+  useEffect(() => {
+    if (mode !== 'deposit' || !selectedDepositOption) {
+      return;
+    }
+
+    setPaymentMethod(selectedDepositOption.method);
+    if (selectedDepositOption.stablecoinNetwork) {
+      setStablecoinNetwork(selectedDepositOption.stablecoinNetwork);
+    }
+  }, [mode, selectedDepositOption]);
 
   useEffect(() => {
     if (returnStatus === 'success' && batchFromQuery) {
@@ -441,7 +524,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 value={depositAmount}
                 onChange={(event) => setDepositAmount(event.target.value)}
                 inputMode="decimal"
-                className="mt-2 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2.5 font-mono text-lg text-terminal-text outline-none focus:border-terminal-primary/50"
+                className="mt-2 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2.5 text-right font-mono text-lg text-terminal-text outline-none focus:border-terminal-primary/50"
                 placeholder="100"
               />
             </div>
@@ -454,41 +537,95 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           </div>
 
-          <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
-            <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">{c.paymentMethodsTitle}</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {methods.map((method) => (
+          {mode === 'deposit' ? (
+            <div className="space-y-2">
+              {depositOptions.map((option) => (
                 <button
-                  key={method.id}
+                  key={option.id}
                   type="button"
-                  onClick={() => setPaymentMethod(method.id)}
-                  className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
-                    paymentMethod === method.id
-                      ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
-                      : 'border-terminal-border text-terminal-muted hover:text-terminal-text'
+                  onClick={() => setSelectedDepositOptionId(option.id)}
+                  className={`flex w-full items-center justify-between gap-4 rounded-lg border px-4 py-3 text-left transition-colors ${
+                    selectedDepositOptionId === option.id
+                      ? 'border-terminal-primary bg-terminal-primary/10'
+                      : 'border-terminal-border bg-terminal-bg hover:border-terminal-primary/40'
                   }`}
                 >
-                  <span className="block font-semibold">{methodLabels.get(method.id)?.label ?? method.label}</span>
-                  <span className="mt-1 block">{methodLabels.get(method.id)?.description ?? method.description}</span>
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={`block text-sm font-semibold ${
+                        selectedDepositOptionId === option.id ? 'text-terminal-primary' : 'text-terminal-text'
+                      }`}
+                    >
+                      {option.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs text-terminal-muted">
+                      {c.feeIncluded}
+                      {option.feeUsd > 0 ? ` · ${formatFromUsd(option.feeUsd)}` : ''}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-right font-mono text-sm font-semibold text-terminal-primary">
+                    {formatFromUsd(option.totalUsd)}
+                  </span>
                 </button>
               ))}
+              {depositOptions.length === 0 && totalUsd > 0 ? (
+                <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
+                  {c.processing}
+                </p>
+              ) : null}
+              {depositOptions.length === 0 && totalUsd <= 0 ? (
+                <p className="text-xs text-terminal-warning">{c.invalidAmount}</p>
+              ) : null}
+              {paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN' ? (
+                <div className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
+                  <label className="block font-medium text-terminal-text">{c.networkLabel}</label>
+                  <select
+                    value={stablecoinNetwork}
+                    onChange={(event) => setStablecoinNetwork(event.target.value)}
+                    className="mt-2 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-terminal-text"
+                  >
+                    <option value="BASE">Base (USDC)</option>
+                  </select>
+                </div>
+              ) : null}
             </div>
-            {methods.length === 0 ? (
-              <p className="mt-3 text-xs text-terminal-warning">{c.noMethodsConfigured}</p>
-            ) : null}
-            {(paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') && (
-              <div className="mt-4 rounded-lg border border-terminal-border px-3 py-2 text-xs text-terminal-muted">
-                <label className="block font-medium text-terminal-text">{c.networkLabel}</label>
-                <select
-                  value={stablecoinNetwork}
-                  onChange={(event) => setStablecoinNetwork(event.target.value)}
-                  className="mt-2 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-terminal-text"
-                >
-                  <option value="BASE">Base (USDC)</option>
-                </select>
+          ) : (
+            <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
+              <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">{c.paymentMethodsTitle}</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {methods.map((method) => (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(method.id)}
+                    className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
+                      paymentMethod === method.id
+                        ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
+                        : 'border-terminal-border text-terminal-muted hover:text-terminal-text'
+                    }`}
+                  >
+                    <span className="block font-semibold">{methodLabels.get(method.id)?.label ?? method.label}</span>
+                    <span className="mt-1 block">{methodLabels.get(method.id)?.description ?? method.description}</span>
+                  </button>
+                ))}
               </div>
-            )}
-          </div>
+              {methods.length === 0 ? (
+                <p className="mt-3 text-xs text-terminal-warning">{c.noMethodsConfigured}</p>
+              ) : null}
+              {(paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') && (
+                <div className="mt-4 rounded-lg border border-terminal-border px-3 py-2 text-xs text-terminal-muted">
+                  <label className="block font-medium text-terminal-text">{c.networkLabel}</label>
+                  <select
+                    value={stablecoinNetwork}
+                    onChange={(event) => setStablecoinNetwork(event.target.value)}
+                    className="mt-2 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-terminal-text"
+                  >
+                    <option value="BASE">Base (USDC)</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           {requiresWallet ? (
             <InvestorWalletLinker
@@ -562,6 +699,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               disabled={
                 (status !== 'idle' && status !== 'manual') ||
                 (mode === 'purchase' && items.length === 0) ||
+                (mode === 'deposit' && (depositOptions.length === 0 || !selectedDepositOptionId)) ||
                 (requiresWallet && !walletGuard.canSignOnChain)
               }
               onClick={() => void handleConfirm()}
@@ -571,7 +709,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 ? c.processing
                 : status === 'verifying'
                   ? c.verifying
-                  : c.confirmButton}
+                  : mode === 'deposit'
+                    ? c.continueDeposit
+                    : c.confirmButton}
             </button>
           ) : null}
 
