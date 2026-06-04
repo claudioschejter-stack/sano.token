@@ -906,9 +906,12 @@ export const en = {
       "You can only have one active wallet per account. If you confirm, we replace the previous one with the wallet connected now.",
     replaceWalletButton: "Use this wallet",
     changeWallet: "Change wallet",
+    changeConnectedWallet: "Change connected wallet",
     changeWalletHint:
       "You can only have one active wallet per account. Confirming a new address replaces the previous linked wallet.",
     cancelChangeWallet: "Cancel",
+    currentWalletTitle: "Current wallet",
+    currentWalletLinkedName: "Linked wallet",
     linkedWalletLabel: "Linked",
     connectedWalletLabel: "Connected",
     walletNotLinked: "Link your wallet during onboarding before operating.",
@@ -1001,9 +1004,12 @@ export const en = {
     title: "Control Panel",
     subtitle: "Institutional tracking of liquid cash flow, debt coverage and performance of tokenized physical assets.",
     walletConnectionTitle: "Wallet connection on Base",
-    walletConnectionSubtitle:
-      "Use Coinbase Wallet (recommended) or connect another wallet via WalletConnect. The address is saved to your profile for payments, deposits and USDC rent payouts.",
-    walletConnectionHint: "The address is saved to your investor profile for future operations.",
+    walletConnectionLine1:
+      "Use Coinbase Wallet (recommended) or connect another wallet via WalletConnect.",
+    walletConnectionLine2:
+      "The address is saved to your profile for payments, deposits and USDC rent payouts.",
+    walletConnectionLine3:
+      "The address is saved to your investor profile for future operations.",
     kpiDividends: "Cash Dividends Received (USDC)",
     kpiDividendsHint: "Accumulated settled via on-chain listener",
     kpiDebtCoverage: "Active Debt Coverage",

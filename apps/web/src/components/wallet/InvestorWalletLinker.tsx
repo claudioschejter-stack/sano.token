@@ -66,7 +66,6 @@ export function InvestorWalletLinker({
   const o = t.onboarding.steps;
   const w = t.wallet;
   const c = t.checkout;
-  const d = t.dashboard;
   const { refresh } = useAccountStatus();
   const walletGuard = useLinkedWalletGuard();
   const { address, isConnected, chainId, connector: activeConnector } = useAccount();
@@ -352,32 +351,74 @@ export function InvestorWalletLinker({
   ]);
 
   const busy = isPending || saving;
+  const isOnboarding = variant === 'onboarding';
+  const isDashboard = variant === 'dashboard';
   const displayAddress =
     walletGuard.linkedWallet ??
     linkedRef.current ??
     (walletGuard.canSignOnChain ? address?.toLowerCase() : null);
 
   const showReplaceWallet =
+    !isDashboard &&
     allowReplace &&
     !walletChangeMode &&
     walletGuard.isWalletMismatch &&
     Boolean(address) &&
     Boolean(walletGuard.linkedWallet);
-  const showConnectButtons = walletChangeMode || (!walletGuard.canSignOnChain && !showReplaceWallet);
+  const showConnectButtons = isDashboard
+    ? walletChangeMode || !walletGuard.isWalletLinked
+    : walletChangeMode || (!walletGuard.canSignOnChain && !showReplaceWallet);
+  const showDashboardCurrentWallet =
+    isDashboard && Boolean(walletGuard.linkedWallet) && !walletChangeMode;
+  const showDashboardChangeButton = showDashboardCurrentWallet;
   const needsLinkedReconnect = walletGuard.isWalletLinked && !walletGuard.isConnected;
+  const currentWalletAddress = walletGuard.linkedWallet ?? displayAddress;
+
+  const currentWalletName = useMemo(() => {
+    if (isConnected && walletGuard.canSignOnChain && activeConnector?.name) {
+      return activeConnector.name;
+    }
+    if (activeFlow === 'coinbase') {
+      return 'Coinbase Wallet';
+    }
+    if (activeFlow === 'walletconnect') {
+      return 'WalletConnect';
+    }
+    return w.currentWalletLinkedName;
+  }, [
+    activeConnector?.name,
+    activeFlow,
+    isConnected,
+    w.currentWalletLinkedName,
+    walletGuard.canSignOnChain
+  ]);
   const linkedAddressLabel = walletGuard.linkedWallet
     ? `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
     : null;
-  const isOnboarding = variant === 'onboarding';
-  const isDashboard = variant === 'dashboard';
 
-  const primaryButtonClass = isOnboarding
-    ? 'flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white disabled:opacity-60'
-    : 'flex w-full items-center justify-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-3 text-sm font-semibold text-terminal-primary hover:bg-terminal-primary/20 disabled:opacity-50';
+  const dashboardChangeButtonClass =
+    'flex w-full max-w-none items-center justify-center rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text transition hover:border-terminal-primary/50 disabled:opacity-50';
 
-  const secondaryButtonClass = isOnboarding
-    ? 'flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-4 text-base font-semibold text-slate-900 disabled:opacity-60'
-    : 'flex w-full items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text hover:border-terminal-primary/50 disabled:opacity-50';
+  const dashboardCurrentWalletFrame = showDashboardCurrentWallet && currentWalletAddress ? (
+    <div className="w-full max-w-none rounded-lg border-2 border-amber-400/90 bg-amber-50 px-4 py-3.5 text-amber-950 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wide text-amber-900/80">{w.currentWalletTitle}</p>
+      <p className="mt-1.5 text-sm font-semibold text-amber-950">{currentWalletName}</p>
+      <p className="mt-1 break-all font-mono text-xs leading-relaxed text-amber-900/90">{currentWalletAddress}</p>
+      {!walletGuard.canSignOnChain ? (
+        <p className="mt-2 text-xs leading-relaxed text-amber-800/90">{w.connectRetryWalletConnect}</p>
+      ) : null}
+    </div>
+  ) : null;
+
+  const connectButtonsLikeOnboarding = isOnboarding || (isDashboard && walletChangeMode);
+
+  const primaryButtonClass = connectButtonsLikeOnboarding
+    ? 'flex min-h-14 w-full max-w-none items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white disabled:opacity-60'
+    : 'flex w-full max-w-none items-center justify-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-3 text-sm font-semibold text-terminal-primary hover:bg-terminal-primary/20 disabled:opacity-50';
+
+  const secondaryButtonClass = connectButtonsLikeOnboarding
+    ? 'flex min-h-14 w-full max-w-none items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-4 py-4 text-base font-semibold text-slate-900 disabled:opacity-60'
+    : 'flex w-full max-w-none items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text hover:border-terminal-primary/50 disabled:opacity-50';
 
   const linkedBadgeClass = isOnboarding
     ? 'rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-4 text-center text-sm font-semibold text-emerald-800'
@@ -451,7 +492,24 @@ export function InvestorWalletLinker({
         </div>
       )}
 
-      {displayAddress && walletGuard.canSignOnChain && !walletChangeMode ? (
+      {dashboardCurrentWalletFrame}
+
+      {showDashboardChangeButton ? (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void beginWalletChange()}
+          className={dashboardChangeButtonClass}
+        >
+          {w.changeConnectedWallet}
+        </button>
+      ) : null}
+
+      {isDashboard && walletGuard.isWalletMismatch && !walletChangeMode ? (
+        <p className="w-full max-w-none text-xs font-medium text-terminal-warning">{w.walletMismatch}</p>
+      ) : null}
+
+      {displayAddress && walletGuard.canSignOnChain && !walletChangeMode && !isDashboard ? (
         <div className={`${linkedBadgeClass} space-y-3`}>
           {busy ? (
             <span className="inline-flex items-center gap-2">
@@ -483,18 +541,20 @@ export function InvestorWalletLinker({
       ) : null}
 
       {showConnectButtons ? (
-        <div className="space-y-3">
+        <div className="w-full max-w-none space-y-3">
           {walletChangeMode ? (
             <div
-              className={`space-y-2 rounded-lg border px-3 py-3 text-xs ${
+              className={`w-full max-w-none space-y-2 rounded-lg border px-3 py-3 text-xs leading-relaxed ${
                 isOnboarding
                   ? 'border-blue-200 bg-blue-50 text-slate-700'
                   : 'border-terminal-primary/30 bg-terminal-primary/5 text-terminal-muted'
               }`}
             >
-              <p className="font-medium text-terminal-text">{w.changeWallet}</p>
-              <p>{w.changeWalletHint}</p>
-              {walletGuard.linkedWallet ? (
+              <p className="font-medium text-terminal-text">
+                {isDashboard ? w.changeConnectedWallet : w.changeWallet}
+              </p>
+              <p className="text-pretty">{w.changeWalletHint}</p>
+              {walletGuard.linkedWallet && !isDashboard ? (
                 <p>
                   {w.linkedWalletLabel}:{' '}
                   <span className="font-mono">
@@ -508,22 +568,22 @@ export function InvestorWalletLinker({
                 onClick={cancelWalletChange}
                 className={
                   isOnboarding
-                    ? 'flex w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800'
-                    : 'flex w-full items-center justify-center rounded-lg border border-terminal-border bg-terminal-bg px-4 py-2 text-sm font-semibold text-terminal-text'
+                    ? 'flex w-full max-w-none items-center justify-center rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800'
+                    : 'flex w-full max-w-none items-center justify-center rounded-lg border border-terminal-border bg-terminal-bg px-4 py-2 text-sm font-semibold text-terminal-text'
                 }
               >
                 {w.cancelChangeWallet}
               </button>
             </div>
           ) : null}
-          {needsLinkedReconnect && !walletChangeMode ? (
+          {needsLinkedReconnect && !walletChangeMode && !isDashboard ? (
             <p className={`text-xs ${isOnboarding ? 'text-slate-600' : 'text-terminal-muted'}`}>
               {linkedAddressLabel
                 ? formatMessage(c.walletConnectPromptLinked, { address: linkedAddressLabel })
                 : c.walletConnectPrompt}
             </p>
           ) : null}
-          {needsLinkedReconnect && !walletChangeMode ? (
+          {needsLinkedReconnect && !walletChangeMode && !isDashboard ? (
             <p className={`text-xs ${isOnboarding ? 'text-slate-600' : 'text-terminal-muted'}`}>
               {w.connectRetryWalletConnect}
             </p>
@@ -582,7 +642,7 @@ export function InvestorWalletLinker({
             </p>
           ) : null}
 
-          {needsLinkedReconnect ? (
+          {needsLinkedReconnect && !isDashboard ? (
             <>
               {walletConnectButton}
               {coinbaseButton}
@@ -602,9 +662,11 @@ export function InvestorWalletLinker({
         </div>
       ) : null}
 
-      <p className={`text-center text-xs ${isOnboarding ? 'text-slate-500' : 'text-terminal-muted'}`}>
-        {isOnboarding ? o.walletHint : isDashboard ? d.walletConnectionHint : c.walletSectionHint}
-      </p>
+      {!isDashboard ? (
+        <p className={`text-center text-xs ${isOnboarding ? 'text-slate-500' : 'text-terminal-muted'}`}>
+          {isOnboarding ? o.walletHint : c.walletSectionHint}
+        </p>
+      ) : null}
     </div>
   );
 }

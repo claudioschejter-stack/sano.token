@@ -919,9 +919,12 @@ export const es = {
       'Solo podés tener una billetera activa por cuenta. Si confirmás, reemplazamos la anterior por la conectada ahora.',
     replaceWalletButton: 'Usar esta billetera',
     changeWallet: 'Cambiar billetera',
+    changeConnectedWallet: 'Cambiar Wallet Conectada',
     changeWalletHint:
       'Solo podés tener una billetera activa por cuenta. Al confirmar otra dirección, reemplazamos la vinculada anterior.',
     cancelChangeWallet: 'Cancelar',
+    currentWalletTitle: 'Wallet actual',
+    currentWalletLinkedName: 'Billetera vinculada',
     linkedWalletLabel: 'Vinculada',
     connectedWalletLabel: 'Conectada',
     walletNotLinked: 'Vinculá tu wallet en el onboarding antes de operar.',
@@ -1016,9 +1019,12 @@ export const es = {
     subtitle:
       'Seguimiento institucional del flujo de caja líquido, cobertura de deuda y rendimiento de activos físicos tokenizados.',
     walletConnectionTitle: 'Conexión de billetera en Base',
-    walletConnectionSubtitle:
-      'Usá Coinbase Wallet (recomendado) o conectá otra billetera con WalletConnect. La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC.',
-    walletConnectionHint: 'La dirección se guarda en tu perfil de inversor para futuras operaciones.',
+    walletConnectionLine1:
+      'Usá Coinbase Wallet (recomendado) o conectá otra billetera con WalletConnect.',
+    walletConnectionLine2:
+      'La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC.',
+    walletConnectionLine3:
+      'La dirección se guarda en tu perfil de inversor para futuras operaciones.',
     kpiDividends: 'Dividendos en Efectivo Recibidos (USDC)',
     kpiDividendsHint: 'Acumulado liquidado vía listener on-chain',
     kpiDebtCoverage: 'Cobertura de Deuda Activa',

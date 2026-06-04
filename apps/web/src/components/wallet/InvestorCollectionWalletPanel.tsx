@@ -49,7 +49,12 @@ export function InvestorCollectionWalletPanel({
 
   return (
     <div id={COLLECTION_WALLET_SECTION_ID} ref={sectionRef} className="scroll-mt-20">
-      <InvestorSection title={d.walletConnectionTitle} subtitle={d.walletConnectionSubtitle} bodyClassName="p-6 md:p-8">
+      <InvestorSection title={d.walletConnectionTitle} bodyClassName="p-6 md:p-8">
+        <div className="mb-6 w-full max-w-none space-y-2.5 text-sm leading-relaxed text-terminal-muted">
+          <p className="text-pretty">{d.walletConnectionLine1}</p>
+          <p className="text-pretty">{d.walletConnectionLine2}</p>
+          <p className="text-pretty">{d.walletConnectionLine3}</p>
+        </div>
         <InvestorWalletLinker
           variant="dashboard"
           allowReplace
