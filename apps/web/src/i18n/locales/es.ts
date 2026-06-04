@@ -822,7 +822,9 @@ export const es = {
     brandLabel: 'Sanova RWA',
     title: 'Mercado Secundario',
     subtitle:
-      'Mercado secundario interno entre inversores verificados. Toda transferencia requiere KYC, whitelist y autorización fiduciaria. La recompra instantánea del token por parte de la plataforma se realizará con un 3% de descuento.',
+      'Mercado secundario interno entre inversores verificados. Toda transferencia requiere KYC, whitelist y autorización fiduciaria.',
+    subtitleBuyback:
+      'La recompra instantánea del token por parte de la plataforma se realizará con un 3% de descuento.',
     kycRequired: 'Completá tu KYC para operar en el mercado secundario.',
     kycRequiredShort: 'KYC requerido',
     completeKyc: 'Completar KYC',

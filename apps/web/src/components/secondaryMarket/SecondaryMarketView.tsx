@@ -140,8 +140,8 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
   const formatQty = (value: number) => value.toLocaleString(intlLocale);
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
-      <header className="mb-6">
+    <div className="w-full">
+      <header className="mb-6 w-full">
         <p className="text-xs font-medium uppercase tracking-wider text-terminal-primary md:text-sm">
           {sm.brandLabel}
         </p>
@@ -152,7 +152,10 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
             {legal.secondaryInternalBadge}
           </span>
         </div>
-        <p className="mt-2 max-w-3xl text-sm text-terminal-muted md:text-base">{sm.subtitle}</p>
+        <div className="mt-2 w-full space-y-2 text-sm text-terminal-muted md:text-base">
+          <p className="w-full">{sm.subtitle}</p>
+          <p className="w-full">{sm.subtitleBuyback}</p>
+        </div>
       </header>
 
       {!kycApproved ? (

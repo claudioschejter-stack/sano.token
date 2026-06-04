@@ -808,7 +808,9 @@ export const en = {
     brandLabel: "Sanova RWA",
     title: "Secondary Market",
     subtitle:
-      "Internal secondary market among verified investors. Every transfer requires KYC, whitelist and fiduciary authorization. Instant token buyback by the platform is offered at a 3% discount.",
+      'Internal secondary market among verified investors. Every transfer requires KYC, whitelist and fiduciary authorization.',
+    subtitleBuyback:
+      'Instant token buyback by the platform will be offered at a 3% discount.',
     kycRequired: "Complete your KYC to operate in the secondary market.",
     kycRequiredShort: "KYC required",
     completeKyc: "Complete KYC",
