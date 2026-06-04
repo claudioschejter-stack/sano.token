@@ -16,13 +16,20 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const amountUsd = Number(params.get('amountUsd'));
   const country = params.get('country') ?? 'AR';
+  const fxRate = Number(params.get('fxRate'));
 
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
     return NextResponse.json({ error: 'INVALID_AMOUNT' }, { status: 400 });
   }
 
+  const quote = buildDepositPaymentOptions(
+    amountUsd,
+    country,
+    Number.isFinite(fxRate) && fxRate > 0 ? fxRate : undefined
+  );
+
   return NextResponse.json({
     ok: true,
-    options: buildDepositPaymentOptions(amountUsd, country)
+    ...quote
   });
 }

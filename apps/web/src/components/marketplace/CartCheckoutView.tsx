@@ -4,7 +4,7 @@ import { ArrowLeft, ExternalLink, Minus, Plus, ShoppingCart, Trash2 } from 'luci
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
 import { formatMessage } from '../../i18n';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
@@ -12,7 +12,6 @@ import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { PaymentMethod } from '@sanova/database';
 import { useCartStore } from '../../store/useCartStore';
-import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 
 type CheckoutMethodOption = {
@@ -49,12 +48,32 @@ type DepositPaymentOption = {
   id: string;
   method: PaymentMethod;
   label: string;
+  platformFeeUsd: number;
+  gasFeeUsd: number;
+  networkFeeUsd: number;
   feeUsd: number;
   feeBps: number;
   totalUsd: number;
+  totalLocal: number | null;
+  displayCurrency: string;
+  usesLocalCurrency: boolean;
   configured: boolean;
   stablecoinNetwork?: string;
 };
+
+type DepositQuoteResponse = {
+  options?: DepositPaymentOption[];
+  quoteExpiresAt?: string;
+  quoteTtlSeconds?: number;
+};
+
+function formatDepositLocal(amount: number, currencyCode: string, intlLocale: string) {
+  return new Intl.NumberFormat(intlLocale, {
+    style: 'currency',
+    currency: currencyCode,
+    maximumFractionDigits: 0
+  }).format(amount);
+}
 
 const CURRENCY_COUNTRY: Record<string, string> = {
   ARS: 'AR',
@@ -75,7 +94,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const c = t.cartCheckout;
   const w = t.wallet;
   const { intlLocale } = useLocale();
-  const { formatFromUsd, currency } = useLocalCurrency();
+  const { formatFromUsd, formatUsd, currency, rates, intlLocale: currencyLocale } = useLocalCurrency();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { address, isConnected } = useAccount();
@@ -100,7 +119,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [methods, setMethods] = useState<CheckoutMethodOption[]>([]);
   const [depositOptions, setDepositOptions] = useState<DepositPaymentOption[]>([]);
   const [selectedDepositOptionId, setSelectedDepositOptionId] = useState<string | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('USDC_ONCHAIN');
+  const [quoteExpiresAt, setQuoteExpiresAt] = useState<string | null>(null);
+  const [quoteSecondsLeft, setQuoteSecondsLeft] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('MERCADO_PAGO');
   const [stablecoinNetwork, setStablecoinNetwork] = useState('BASE');
   const [depositAmount, setDepositAmount] = useState('100');
   const [manualTxHash, setManualTxHash] = useState('');
@@ -116,10 +137,51 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     () => depositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
     [depositOptions, selectedDepositOptionId]
   );
-  const requiresWallet =
-    mode === 'deposit'
-      ? paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN'
-      : paymentMethod !== 'INTERNAL_BALANCE';
+  const requiresWallet = mode !== 'deposit' && paymentMethod !== 'INTERNAL_BALANCE';
+  const depositQuoteExpired = mode === 'deposit' && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
+
+  const loadDepositQuote = useCallback(() => {
+    if (!Number.isFinite(totalUsd) || totalUsd <= 0) {
+      setDepositOptions([]);
+      setSelectedDepositOptionId(null);
+      setQuoteExpiresAt(null);
+      setQuoteSecondsLeft(0);
+      return () => undefined;
+    }
+
+    const controller = new AbortController();
+    const fxRate = rates[currency] ?? rates.USD ?? 1;
+
+    void fetch(
+      `/api/marketplace/cart/deposit-options?amountUsd=${encodeURIComponent(String(totalUsd))}&country=${encodeURIComponent(depositCountry)}&fxRate=${encodeURIComponent(String(fxRate))}`,
+      { cache: 'no-store', signal: controller.signal }
+    )
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: DepositQuoteResponse | null) => {
+        const next = data?.options ?? [];
+        setDepositOptions(next);
+        setQuoteExpiresAt(data?.quoteExpiresAt ?? null);
+        const expiresMs = data?.quoteExpiresAt ? new Date(data.quoteExpiresAt).getTime() - Date.now() : 0;
+        setQuoteSecondsLeft(Math.max(0, Math.ceil(expiresMs / 1000)));
+
+        setSelectedDepositOptionId((current) => {
+          if (current && next.some((row) => row.id === current && row.configured)) {
+            return current;
+          }
+          return next.find((row) => row.configured)?.id ?? null;
+        });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setDepositOptions([]);
+          setSelectedDepositOptionId(null);
+          setQuoteExpiresAt(null);
+          setQuoteSecondsLeft(0);
+        }
+      });
+
+    return () => controller.abort();
+  }, [currency, depositCountry, rates, totalUsd]);
 
   useEffect(() => {
     if (mode === 'deposit') {
@@ -139,42 +201,42 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   }, [mode]);
 
   useEffect(() => {
-    if (mode !== 'deposit' || !Number.isFinite(totalUsd) || totalUsd <= 0) {
-      setDepositOptions([]);
-      setSelectedDepositOptionId(null);
+    if (mode !== 'deposit') {
       return;
     }
 
-    const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      void fetch(
-        `/api/marketplace/cart/deposit-options?amountUsd=${encodeURIComponent(String(totalUsd))}&country=${encodeURIComponent(depositCountry)}`,
-        { cache: 'no-store', signal: controller.signal }
-      )
-        .then((response) => (response.ok ? response.json() : null))
-        .then((data: { options?: DepositPaymentOption[] } | null) => {
-          const next = data?.options ?? [];
-          setDepositOptions(next);
-          setSelectedDepositOptionId((current) => {
-            if (current && next.some((row) => row.id === current)) {
-              return current;
-            }
-            return next[0]?.id ?? null;
-          });
-        })
-        .catch(() => {
-          if (!controller.signal.aborted) {
-            setDepositOptions([]);
-            setSelectedDepositOptionId(null);
-          }
-        });
+      loadDepositQuote();
     }, 280);
 
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
+    return () => window.clearTimeout(timer);
+  }, [loadDepositQuote, mode]);
+
+  useEffect(() => {
+    if (mode !== 'deposit' || !quoteExpiresAt) {
+      return;
+    }
+
+    const tick = () => {
+      const seconds = Math.max(0, Math.ceil((new Date(quoteExpiresAt).getTime() - Date.now()) / 1000));
+      setQuoteSecondsLeft(seconds);
+      return seconds;
     };
-  }, [depositCountry, mode, totalUsd]);
+
+    if (tick() === 0) {
+      loadDepositQuote();
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      if (tick() === 0) {
+        window.clearInterval(interval);
+        loadDepositQuote();
+      }
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [loadDepositQuote, mode, quoteExpiresAt]);
 
   useEffect(() => {
     if (mode !== 'deposit' || !selectedDepositOption) {
@@ -214,6 +276,17 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
     if (mode === 'deposit' && (!Number.isFinite(totalUsd) || totalUsd <= 0)) {
       setError(c.invalidAmount);
+      return;
+    }
+
+    if (mode === 'deposit' && depositQuoteExpired) {
+      setError(c.quoteExpired);
+      loadDepositQuote();
+      return;
+    }
+
+    if (mode === 'deposit' && (!selectedDepositOption?.configured)) {
+      setError(c.paymentUnavailable);
       return;
     }
 
@@ -469,7 +542,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             )
           ) : (
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
-              <label className="text-xs font-medium uppercase tracking-wider text-terminal-muted">{c.depositAmount}</label>
+              <label className="text-xs font-medium uppercase tracking-wider text-terminal-muted">{c.depositAmountUsd}</label>
               <input
                 value={depositAmount}
                 onChange={(event) => setDepositAmount(event.target.value)}
@@ -481,43 +554,79 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           )}
 
           <div className="rounded-lg border border-terminal-border p-4">
-            <div className="flex justify-between border-t border-terminal-border pt-3 text-base font-semibold text-terminal-text">
-              <span>{formatMessage(c.totalUsdc, { currency })}</span>
-              <span className="font-mono text-terminal-primary">{formatFromUsd(totalUsd)}</span>
+            <div className="flex justify-between text-base font-semibold text-terminal-text">
+              <span>{mode === 'deposit' ? c.totalDepositUsd : formatMessage(c.totalUsdc, { currency })}</span>
+              <span className="font-mono text-terminal-primary">
+                {mode === 'deposit' ? formatUsd(totalUsd) : formatFromUsd(totalUsd)}
+              </span>
             </div>
+            {mode === 'deposit' && selectedDepositOption ? (
+              <div className="mt-3 flex justify-between border-t border-terminal-border pt-3 text-sm text-terminal-muted">
+                <span>{c.totalUsdLabel}</span>
+                <span className="font-mono font-semibold text-terminal-text">
+                  {formatUsd(selectedDepositOption.totalUsd)}
+                </span>
+              </div>
+            ) : null}
           </div>
 
           {mode === 'deposit' ? (
-            <div className="space-y-2">
-              {depositOptions.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setSelectedDepositOptionId(option.id)}
-                  className={`flex w-full items-center justify-between gap-4 rounded-lg border px-4 py-3 text-left transition-colors ${
-                    selectedDepositOptionId === option.id
-                      ? 'border-terminal-primary bg-terminal-primary/10'
-                      : 'border-terminal-border bg-terminal-bg hover:border-terminal-primary/40'
-                  }`}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={`block text-sm font-semibold ${
-                        selectedDepositOptionId === option.id ? 'text-terminal-primary' : 'text-terminal-text'
-                      }`}
+            <div className="space-y-3">
+              {quoteExpiresAt && quoteSecondsLeft > 0 ? (
+                <p className="text-center text-xs font-medium text-terminal-primary">
+                  {formatMessage(c.quoteExpiresIn, { seconds: String(quoteSecondsLeft) })}
+                </p>
+              ) : null}
+              {depositQuoteExpired ? (
+                <p className="text-center text-xs text-terminal-warning">{c.quoteExpired}</p>
+              ) : null}
+              <div className="grid gap-3 sm:grid-cols-2">
+                {depositOptions.map((option) => {
+                  const selected = selectedDepositOptionId === option.id;
+                  const amountPrimary = option.usesLocalCurrency && option.totalLocal != null
+                    ? formatDepositLocal(option.totalLocal, option.displayCurrency, currencyLocale)
+                    : formatUsd(option.totalUsd);
+                  const amountSecondary =
+                    option.usesLocalCurrency && option.totalLocal != null
+                      ? formatUsd(option.totalUsd)
+                      : null;
+
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      disabled={!option.configured}
+                      onClick={() => option.configured && setSelectedDepositOptionId(option.id)}
+                      className={`flex min-h-[8.5rem] flex-col justify-between rounded-lg border-2 px-4 py-3 text-left transition-colors ${
+                        selected
+                          ? 'border-blue-600 bg-white text-slate-900 shadow-md ring-2 ring-blue-600/25'
+                          : 'border-slate-200 bg-white text-slate-900 hover:border-blue-400'
+                      } ${!option.configured ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
-                      {option.label}
-                    </span>
-                    <span className="mt-0.5 block text-xs text-terminal-muted">
-                      {c.feeIncluded}
-                      {option.feeUsd > 0 ? ` · ${formatFromUsd(option.feeUsd)}` : ''}
-                    </span>
-                  </span>
-                  <span className="shrink-0 text-right font-mono text-sm font-semibold text-terminal-primary">
-                    {formatFromUsd(option.totalUsd)}
-                  </span>
-                </button>
-              ))}
+                      <span className="text-sm font-bold leading-snug">{option.label}</span>
+                      <div className="mt-3 space-y-1 text-[11px] text-slate-600">
+                        <p>
+                          {c.feePlatform}: {formatUsd(option.platformFeeUsd)}
+                        </p>
+                        <p>
+                          {c.feeGas}: {formatUsd(option.gasFeeUsd + option.networkFeeUsd)}
+                        </p>
+                      </div>
+                      <div className="mt-3 border-t border-slate-200 pt-2">
+                        <p className="font-mono text-base font-bold text-blue-700">{amountPrimary}</p>
+                        {amountSecondary ? (
+                          <p className="mt-0.5 font-mono text-xs text-slate-500">{amountSecondary}</p>
+                        ) : null}
+                        {!option.configured ? (
+                          <p className="mt-1 text-[10px] font-semibold uppercase text-amber-700">
+                            {c.paymentUnavailable}
+                          </p>
+                        ) : null}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
               {depositOptions.length === 0 && totalUsd > 0 ? (
                 <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
                   {c.processing}
@@ -525,18 +634,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               ) : null}
               {depositOptions.length === 0 && totalUsd <= 0 ? (
                 <p className="text-xs text-terminal-warning">{c.invalidAmount}</p>
-              ) : null}
-              {paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN' ? (
-                <div className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
-                  <label className="block font-medium text-terminal-text">{c.networkLabel}</label>
-                  <select
-                    value={stablecoinNetwork}
-                    onChange={(event) => setStablecoinNetwork(event.target.value)}
-                    className="mt-2 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-terminal-text"
-                  >
-                    <option value="BASE">Base (USDC)</option>
-                  </select>
-                </div>
               ) : null}
             </div>
           ) : (
@@ -578,23 +675,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           )}
 
           {requiresWallet ? (
-            mode === 'deposit' ? (
-              <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
-                <p className="text-sm text-terminal-muted">{c.depositWalletRequired}</p>
-                <Link
-                  href={collectionWalletHref({ returnTo: '/marketplace/carrito?mode=deposit' })}
-                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 sm:w-auto"
-                >
-                  {c.goToCollectionWallet}
-                </Link>
-              </div>
-            ) : (
-              <InvestorWalletLinker
-                variant="checkout"
-                allowReplace
-                onError={(message) => setError(message)}
-              />
-            )
+            <InvestorWalletLinker
+              variant="checkout"
+              allowReplace
+              onError={(message) => setError(message)}
+            />
           ) : null}
 
           {status === 'done' ? (
@@ -661,7 +746,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               disabled={
                 (status !== 'idle' && status !== 'manual') ||
                 (mode === 'purchase' && items.length === 0) ||
-                (mode === 'deposit' && (depositOptions.length === 0 || !selectedDepositOptionId)) ||
+                (mode === 'deposit' &&
+                  (depositOptions.length === 0 ||
+                    !selectedDepositOptionId ||
+                    depositQuoteExpired ||
+                    !selectedDepositOption?.configured)) ||
                 (requiresWallet && !walletGuard.canSignOnChain)
               }
               onClick={() => void handleConfirm()}
