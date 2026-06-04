@@ -12,6 +12,7 @@ import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { PaymentMethod } from '@sanova/database';
 import { useCartStore } from '../../store/useCartStore';
+import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 
 type CheckoutMethodOption = {
@@ -377,57 +378,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
   const payToAddress = mode === 'deposit' ? deposit?.payToAddress : checkout?.payToAddress;
 
-  if (mode === 'wallet') {
-    const returnTo = searchParams.get('returnTo') ?? '/dashboard';
-    const pendingPreference = searchParams.get('preference');
-
-    return (
-      <section className="mx-auto max-w-3xl">
-        <div className="mb-6">
-          <Link
-            href={returnTo}
-            className="inline-flex items-center gap-2 text-sm text-terminal-muted hover:text-terminal-text"
-          >
-            <ArrowLeft size={16} />
-            {c.walletLinkBack}
-          </Link>
-        </div>
-
-        <article className="overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
-          <div className="border-b border-terminal-border px-8 py-6">
-            <p className="text-sm font-medium uppercase tracking-wider text-terminal-primary">{c.walletLinkEyebrow}</p>
-            <h1 className="mt-2 text-2xl font-bold text-terminal-text">{c.walletLinkTitle}</h1>
-            <p className="mt-1 text-sm text-terminal-muted">{c.walletLinkSubtitle}</p>
-          </div>
-
-          <div className="space-y-4 p-8">
-            <InvestorWalletLinker
-              variant="checkout"
-              allowReplace
-              onError={(message) => setError(message)}
-              onLinked={async () => {
-                if (pendingPreference === 'USDC') {
-                  await fetch('/api/investor/rent-payout-preference', {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ preference: 'USDC' })
-                  });
-                }
-
-                router.push(returnTo);
-              }}
-            />
-            {error ? (
-              <p className="rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-3 py-2 text-xs text-terminal-warning">
-                {error}
-              </p>
-            ) : null}
-          </div>
-        </article>
-      </section>
-    );
-  }
-
   return (
     <section className="mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -628,11 +578,23 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           )}
 
           {requiresWallet ? (
-            <InvestorWalletLinker
-              variant="checkout"
-              allowReplace
-              onError={(message) => setError(message)}
-            />
+            mode === 'deposit' ? (
+              <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
+                <p className="text-sm text-terminal-muted">{c.depositWalletRequired}</p>
+                <Link
+                  href={collectionWalletHref({ returnTo: '/marketplace/carrito?mode=deposit' })}
+                  className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 sm:w-auto"
+                >
+                  {c.goToCollectionWallet}
+                </Link>
+              </div>
+            ) : (
+              <InvestorWalletLinker
+                variant="checkout"
+                allowReplace
+                onError={(message) => setError(message)}
+              />
+            )
           ) : null}
 
           {status === 'done' ? (

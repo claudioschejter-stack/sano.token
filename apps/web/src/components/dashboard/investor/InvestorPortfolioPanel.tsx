@@ -180,6 +180,19 @@ function RwaPositionTable({
   );
 }
 
+/** Shared column widths so stablecoin and fiat tables align when stacked. */
+const SPLIT_TABLE_COL_WIDTHS = ['30%', '22%', '18%', '16%', '14%'] as const;
+
+function SplitTableColGroup() {
+  return (
+    <colgroup>
+      {SPLIT_TABLE_COL_WIDTHS.map((width) => (
+        <col key={width} style={{ width }} />
+      ))}
+    </colgroup>
+  );
+}
+
 function SplitPositionTable({
   rows,
   labels,
@@ -240,8 +253,9 @@ function SplitPositionTable({
         ))}
       </div>
 
-      <div className="hidden md:block">
-        <table className="w-full border-collapse text-sm">
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full min-w-[720px] table-fixed border-collapse text-sm">
+          <SplitTableColGroup />
           <thead>
             <tr className="border-b border-terminal-border bg-terminal-bg/80">
               <th className={headerClass}>{labels.colInstrument}</th>

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useLinkedWalletGuard } from '../../../hooks/useLinkedWalletGuard';
+import { collectionWalletHref } from '../../../lib/navigation/collectionWalletPath';
 import { InvestorSection } from './InvestorSection';
 
 type RentPayoutPreference = 'FIAT' | 'USDC';
@@ -17,13 +18,8 @@ export function RentPayoutPreferencePanel({ compact = false }: { compact?: boole
   const router = useRouter();
   const pathname = usePathname();
   const walletGuard = useLinkedWalletGuard();
-  const walletCheckoutHref = (preference?: 'USDC') => {
-    const params = new URLSearchParams({ mode: 'wallet', returnTo: pathname });
-    if (preference) {
-      params.set('preference', preference);
-    }
-    return `/marketplace/carrito?${params.toString()}`;
-  };
+  const walletCheckoutHref = (preference?: 'USDC') =>
+    collectionWalletHref({ returnTo: pathname, preference });
 
   const [preference, setPreference] = useState<RentPayoutPreference | null>(null);
   const [isLoading, setIsLoading] = useState(true);

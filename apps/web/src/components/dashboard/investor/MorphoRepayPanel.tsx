@@ -7,6 +7,7 @@ import { BrowserProvider } from 'ethers';
 import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
 import { createIntlFormatters } from '../../../i18n/formatters';
 import { useLinkedWalletGuard } from '../../../hooks/useLinkedWalletGuard';
+import { collectionWalletHref } from '../../../lib/navigation/collectionWalletPath';
 
 type RepayPosition = {
   projectId: string | null;
@@ -132,9 +133,7 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
       }
 
       if (walletGuard.isWalletMismatch) {
-        router.push(
-          `/marketplace/carrito?mode=wallet&returnTo=${encodeURIComponent('/dashboard/cash-flow')}`
-        );
+        router.push(collectionWalletHref({ returnTo: '/dashboard/cash-flow' }));
         return;
       }
 

@@ -176,6 +176,7 @@ export const es = {
     myAssets: 'Mis Activos',
     myWallet: 'Mi Cartera',
     cashFlow: 'Flujo de Caja',
+    collectionWallet: 'Wallet de cobro',
     secondaryMarket: 'Mercado Secundario',
     signOut: 'Cerrar Sesión'
   },
@@ -818,6 +819,9 @@ export const es = {
     purchaseComplete: 'Compra confirmada. Los tokens se acreditaron en tu portfolio.',
     depositComplete: 'Depósito confirmado. Saldo actualizado en tu billetera Sanova.',
     backToWallet: 'Volver a billetera',
+    depositWalletRequired:
+      'Para pagar con cartera propia (USDC on-chain), configurá y conectá tu billetera en Wallet de cobro.',
+    goToCollectionWallet: 'Ir a Wallet de cobro',
     addToCart: 'Agregar al carrito',
     viewCart: 'Ver carrito',
     depositCta: 'Depositar'
@@ -909,6 +913,12 @@ export const es = {
     userRejected: 'Transacción cancelada en la wallet.',
     retry: 'Reintentar',
     vaultNotConfigured: 'Vault ERC-4626 no configurado para este activo.'
+  },
+  collectionWallet: {
+    title: 'Wallet de cobro',
+    subtitle:
+      'Conectá Coinbase Wallet o tu billetera existente (MetaMask, Rainbow, etc.) en Base. La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC.',
+    back: 'Volver'
   },
   platformWallet: {
     eyebrow: 'Wallet Sanova',
@@ -1548,7 +1558,7 @@ export const es = {
     loadError: 'No se pudo cargar tu preferencia de cobro.',
     saveError: 'No se pudo guardar tu preferencia.',
     walletRequired: 'Conectá una wallet antes de elegir cobro en USDC.',
-    linkWalletInCheckout: 'Vincular billetera en checkout'
+    linkWalletInCheckout: 'Ir a Wallet de cobro'
   },
   demo: {
     assets: {

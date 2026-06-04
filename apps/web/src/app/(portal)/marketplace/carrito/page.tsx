@@ -4,8 +4,10 @@ import { CartCheckoutView } from '../../../../components/marketplace/CartCheckou
 import { canAccessMarketplaceCheckout } from '../../../../lib/onboarding/accountStatus';
 import { prisma } from '@sanova/database';
 
+import { collectionWalletHref } from '../../../../lib/navigation/collectionWalletPath';
+
 type CartPageProps = {
-  searchParams: { mode?: string };
+  searchParams: { mode?: string; returnTo?: string; preference?: string };
 };
 
 export default async function MarketplaceCartPage({ searchParams }: CartPageProps) {
@@ -31,14 +33,18 @@ export default async function MarketplaceCartPage({ searchParams }: CartPageProp
     }
   });
 
-  const mode =
-    searchParams.mode === 'deposit' ? 'deposit' : searchParams.mode === 'wallet' ? 'wallet' : 'purchase';
+  if (searchParams.mode === 'wallet') {
+    redirect(
+      collectionWalletHref({
+        returnTo: searchParams.returnTo ?? '/dashboard',
+        preference: searchParams.preference === 'USDC' ? 'USDC' : undefined
+      })
+    );
+  }
+
+  const mode = searchParams.mode === 'deposit' ? 'deposit' : 'purchase';
   const returnPath =
-    mode === 'deposit'
-      ? '/marketplace/carrito?mode=deposit'
-      : mode === 'wallet'
-        ? '/marketplace/carrito?mode=wallet&returnTo=/dashboard&preference=USDC'
-        : '/marketplace/carrito';
+    mode === 'deposit' ? '/marketplace/carrito?mode=deposit' : '/marketplace/carrito';
 
   if (!user || !canAccessMarketplaceCheckout(user)) {
     redirect(`/kyc?returnTo=${encodeURIComponent(returnPath)}`);

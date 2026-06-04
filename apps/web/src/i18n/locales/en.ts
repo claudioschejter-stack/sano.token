@@ -170,6 +170,7 @@ export const en = {
     myAssets: "My Assets",
     myWallet: "My Wallet",
     cashFlow: "Cash Flow",
+    collectionWallet: "Collection wallet",
     secondaryMarket: "Secondary Market",
     signOut: "Sign Out"
   },
@@ -805,6 +806,9 @@ export const en = {
     purchaseComplete: "Purchase confirmed. Tokens were credited to your portfolio.",
     depositComplete: "Deposit confirmed. Balance updated in your Sanova wallet.",
     backToWallet: "Back to wallet",
+    depositWalletRequired:
+      "To pay with your own wallet (USDC on-chain), set up and connect it under Collection wallet.",
+    goToCollectionWallet: "Go to Collection wallet",
     addToCart: "Add to cart",
     viewCart: "View cart",
     depositCta: "Deposit"
@@ -896,6 +900,12 @@ export const en = {
     userRejected: "Transaction cancelled in wallet.",
     retry: "Retry",
     vaultNotConfigured: "ERC-4626 vault not configured for this asset."
+  },
+  collectionWallet: {
+    title: "Collection wallet",
+    subtitle:
+      "Connect Coinbase Wallet or an existing wallet (MetaMask, Rainbow, etc.) on Base. The address is saved to your profile for payments, deposits, and USDC rent payouts.",
+    back: "Back"
   },
   platformWallet: {
     eyebrow: "Sanova Wallet",
@@ -1513,7 +1523,7 @@ export const en = {
     loadError: "Could not load your rent payout preference.",
     saveError: "Could not save your preference.",
     walletRequired: "Connect a wallet before selecting USDC payouts.",
-    linkWalletInCheckout: "Link wallet in checkout"
+    linkWalletInCheckout: "Go to Collection wallet"
   },
   demo: {
     assets: {

@@ -7,6 +7,7 @@ import {
   Home,
   Landmark,
   LayoutDashboard,
+  Link2,
   LogOut,
   Menu,
   Settings,
@@ -35,7 +36,15 @@ type NavItem = {
 type InvestorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'home' | 'panel' | 'marketplace' | 'secondaryMarket' | 'myAssets' | 'myWallet' | 'cashFlow';
+  labelKey:
+    | 'home'
+    | 'panel'
+    | 'marketplace'
+    | 'secondaryMarket'
+    | 'myAssets'
+    | 'myWallet'
+    | 'cashFlow'
+    | 'collectionWallet';
   roles?: SystemRole[];
 };
 
@@ -82,6 +91,12 @@ const investorNavItems: InvestorNavConfig[] = [
     icon: Wallet,
     labelKey: 'cashFlow',
     roles: ['INVESTOR', 'TREASURY']
+  },
+  {
+    href: '/dashboard/wallet-cobro',
+    icon: Link2,
+    labelKey: 'collectionWallet',
+    roles: ['INVESTOR']
   }
 ];
 

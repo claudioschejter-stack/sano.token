@@ -20,6 +20,7 @@ import { MorphoRepayPanel } from '../../../../components/dashboard/investor/Morp
 import { RentPayoutPreferencePanel } from '../../../../components/dashboard/investor/RentPayoutPreferencePanel';
 import { ProjectYieldPanel } from '../../../../components/dashboard/ProjectYieldPanel';
 import { CheckCircle2 } from 'lucide-react';
+import { collectionWalletHref } from '../../../../lib/navigation/collectionWalletPath';
 
 export default function CashFlowPage() {
   const t = useTranslation();
@@ -46,9 +47,7 @@ export default function CashFlowPage() {
       return;
     }
 
-    router.replace(
-      `/marketplace/carrito?mode=wallet&returnTo=${encodeURIComponent('/dashboard/cash-flow')}`
-    );
+    router.replace(collectionWalletHref({ returnTo: '/dashboard/cash-flow' }));
   }, [mounted, router, walletGuard.isWalletMismatch]);
 
   const totalDistributed = useMemo(
