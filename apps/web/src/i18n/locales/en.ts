@@ -129,6 +129,8 @@ export const en = {
     availableSectionTitle: "Available properties",
     availableSectionSubtitle: "Units with tokens available for sale on the primary marketplace.",
     availableSectionEmpty: "There are no properties with available tokens right now.",
+    publishPropertyCta:
+      "If you want to list your property on this real estate marketplace, click here and we will get in touch with you",
     soldSectionTitle: "Sold properties",
     soldSectionSubtitle: "Units with primary placement sold out. Check the secondary market.",
     soldSectionEmpty: "There are no sold properties at the moment.",

@@ -134,6 +134,8 @@ export const es = {
     availableSectionTitle: 'Propiedades disponibles',
     availableSectionSubtitle: 'Unidades con tokens disponibles para la venta en marketplace primario.',
     availableSectionEmpty: 'No hay propiedades con tokens disponibles en este momento.',
+    publishPropertyCta:
+      'Si querés publicar tu propiedad en este sitio de compra venta de inmuebles, hacé click acá y nos comunicamos contigo',
     soldSectionTitle: 'Propiedades vendidas',
     soldSectionSubtitle: 'Unidades con colocación primaria agotada. Podés consultar el mercado secundario.',
     soldSectionEmpty: 'No hay propiedades vendidas por el momento.',

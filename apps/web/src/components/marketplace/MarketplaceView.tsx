@@ -10,6 +10,7 @@ import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import type { SystemRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
+import { LEGAL_CONTACT_PATH } from '../../lib/legal/legalConfig';
 import { splitMarketplaceListings } from '../../lib/marketplace/splitMarketplaceListings';
 import { useCartStore } from '../../store/useCartStore';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
@@ -227,16 +228,29 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       ) : (
         <div className="space-y-12">
           <section>
-            <div className="mb-6 border-b border-terminal-border pb-4">
-              <h2 className="text-lg font-bold uppercase tracking-wide text-terminal-text md:text-xl">
-                {t.marketplace.availableSectionTitle}
-              </h2>
-              <p className="mt-1 text-sm text-terminal-muted">{t.marketplace.availableSectionSubtitle}</p>
+            <div className="mb-6 flex flex-col gap-4 border-b border-terminal-border pb-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-bold uppercase tracking-wide text-terminal-text md:text-xl">
+                  {t.marketplace.availableSectionTitle}
+                </h2>
+                <p className="mt-1 text-sm text-terminal-muted">{t.marketplace.availableSectionSubtitle}</p>
+              </div>
+              <Link
+                href={LEGAL_CONTACT_PATH}
+                className="inline-flex max-w-xl shrink-0 items-center justify-center rounded-lg border-2 border-terminal-primary bg-terminal-primary/10 px-4 py-3 text-center text-xs font-bold uppercase leading-snug tracking-wide text-terminal-primary transition-colors hover:border-blue-400 hover:bg-terminal-primary/20 md:text-sm"
+              >
+                {t.marketplace.publishPropertyCta}
+              </Link>
             </div>
             {available.length > 0 ? (
               <MarketplaceListingGrid listings={available} {...gridProps} />
             ) : (
-              <p className="text-sm text-terminal-muted">{t.marketplace.availableSectionEmpty}</p>
+              <div
+                role="status"
+                className="inline-flex w-full max-w-3xl items-center justify-center rounded-xl border-2 border-red-500/60 bg-red-500/10 px-6 py-4 text-center text-sm font-bold uppercase leading-snug tracking-wide text-red-500 shadow-sm md:text-base"
+              >
+                {t.marketplace.availableSectionEmpty}
+              </div>
             )}
           </section>
 
