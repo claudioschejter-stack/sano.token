@@ -91,7 +91,7 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     configured: paymentGatewayConfigured('LOCAL_RAIL'),
     automatic: true,
     supportsDeposit: true,
-    supportsPurchase: false
+    supportsPurchase: true
   },
   {
     id: 'RAMP',
@@ -100,7 +100,7 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     configured: paymentGatewayConfigured('RAMP'),
     automatic: true,
     supportsDeposit: true,
-    supportsPurchase: false
+    supportsPurchase: true
   }
 ];
 
@@ -111,7 +111,10 @@ export function listCheckoutMethods(mode: 'purchase' | 'deposit'): CheckoutMetho
 }
 
 export function isCheckoutMethodConfigured(method: PaymentMethodId): boolean {
-  return CHECKOUT_METHODS.find((row) => row.id === method)?.configured ?? paymentGatewayConfigured(method);
+  if (method === 'INTERNAL_BALANCE') {
+    return true;
+  }
+  return paymentGatewayConfigured(method);
 }
 
 export function parsePaymentMethod(value: string | undefined): PaymentMethod | null {

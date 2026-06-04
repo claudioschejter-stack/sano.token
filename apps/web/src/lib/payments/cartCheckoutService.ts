@@ -146,6 +146,15 @@ async function attachCartGatewayCheckout(input: {
       redirectPath
     });
   }
+  if (input.method === 'RAMP') {
+    return createTransakOnRampCheckout({
+      depositId: input.batchId,
+      amountUsd: input.totalUsd,
+      stablecoinNetwork: input.stablecoinNetwork,
+      userEmail: input.userEmail,
+      redirectPath
+    });
+  }
 
   return null;
 }

@@ -14,16 +14,6 @@ import type { PaymentMethod } from '@sanova/database';
 import { useCartStore } from '../../store/useCartStore';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 
-type CheckoutMethodOption = {
-  id: PaymentMethod;
-  label: string;
-  description: string;
-  configured: boolean;
-  automatic: boolean;
-  supportsDeposit: boolean;
-  supportsPurchase: boolean;
-};
-
 type CartCheckoutResult = {
   batchId: string;
   totalUsd: string;
@@ -116,7 +106,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const cartTotalUsd = useCartStore((state) => state.totalUsd());
   const cartItemCount = useCartStore((state) => state.itemCount());
 
-  const [methods, setMethods] = useState<CheckoutMethodOption[]>([]);
   const [depositOptions, setDepositOptions] = useState<DepositPaymentOption[]>([]);
   const [selectedDepositOptionId, setSelectedDepositOptionId] = useState<string | null>(null);
   const [quoteExpiresAt, setQuoteExpiresAt] = useState<string | null>(null);
@@ -148,8 +137,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     () => sortedDepositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
     [sortedDepositOptions, selectedDepositOptionId]
   );
-  const requiresWallet = mode !== 'deposit' && paymentMethod !== 'INTERNAL_BALANCE';
-  const depositQuoteExpired = mode === 'deposit' && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
+  const showPaymentMethods =
+    (mode === 'deposit' && totalUsd > 0) || (mode === 'purchase' && items.length > 0);
+  const requiresWallet = selectedDepositOption?.method === 'CUSTODIAL_STABLECOIN';
+  const paymentQuoteExpired = showPaymentMethods && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
 
   const loadDepositQuote = useCallback(() => {
     if (!Number.isFinite(totalUsd) || totalUsd <= 0) {
@@ -201,24 +192,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   }, [currency, depositCountry, rates, totalUsd]);
 
   useEffect(() => {
-    if (mode === 'deposit') {
-      return;
-    }
-
-    void fetch(`/api/marketplace/cart/methods?mode=${mode}`, { cache: 'no-store' })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { methods?: CheckoutMethodOption[] } | null) => {
-        const next = data?.methods ?? [];
-        setMethods(next);
-        if (next.length) {
-          setPaymentMethod((current) => (next.some((row) => row.id === current) ? current : next[0].id));
-        }
-      })
-      .catch(() => setMethods([]));
-  }, [mode]);
-
-  useEffect(() => {
-    if (mode !== 'deposit') {
+    if (!showPaymentMethods) {
+      setDepositOptions([]);
+      setSelectedDepositOptionId(null);
+      setQuoteExpiresAt(null);
+      setQuoteSecondsLeft(0);
       return;
     }
 
@@ -227,10 +205,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }, 280);
 
     return () => window.clearTimeout(timer);
-  }, [loadDepositQuote, mode]);
+  }, [loadDepositQuote, showPaymentMethods]);
 
   useEffect(() => {
-    if (mode !== 'deposit' || !quoteExpiresAt) {
+    if (!showPaymentMethods || !quoteExpiresAt) {
       return;
     }
 
@@ -253,10 +231,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [loadDepositQuote, mode, quoteExpiresAt]);
+  }, [loadDepositQuote, quoteExpiresAt, showPaymentMethods]);
 
   useEffect(() => {
-    if (mode !== 'deposit' || !selectedDepositOption) {
+    if (!selectedDepositOption) {
       return;
     }
 
@@ -264,7 +242,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     if (selectedDepositOption.stablecoinNetwork) {
       setStablecoinNetwork(selectedDepositOption.stablecoinNetwork);
     }
-  }, [mode, selectedDepositOption]);
+  }, [selectedDepositOption]);
 
   useEffect(() => {
     if (returnStatus === 'success' && batchFromQuery) {
@@ -277,14 +255,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }
   }, [batchFromQuery, clearCart, mode, returnStatus]);
 
-  const methodLabels = useMemo(() => {
-    const map = new Map<string, CheckoutMethodOption>();
-    for (const method of methods) {
-      map.set(method.id, method);
-    }
-    return map;
-  }, [methods]);
-
   const handleConfirm = async () => {
     if (mode === 'purchase' && items.length === 0) {
       setError(c.emptyCart);
@@ -296,13 +266,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       return;
     }
 
-    if (mode === 'deposit' && depositQuoteExpired) {
+    if (showPaymentMethods && paymentQuoteExpired) {
       setError(c.quoteExpired);
       loadDepositQuote();
       return;
     }
 
-    if (mode === 'deposit' && (!selectedDepositOption?.configured)) {
+    if (showPaymentMethods && (!selectedDepositOption?.configured || !selectedDepositOptionId)) {
       setError(c.paymentUnavailable);
       return;
     }
@@ -570,28 +540,23 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           )}
 
-          {mode === 'deposit' ? (
+          {showPaymentMethods ? (
             <div className="rounded-lg border border-terminal-border p-4">
               <div className="flex items-baseline justify-between gap-4 text-base font-semibold text-terminal-text">
-                <span>{c.totalDepositUsd}</span>
-                <span className="shrink-0 font-mono text-terminal-primary">{formatUsd(totalUsd)}</span>
+                <span>{mode === 'deposit' ? c.totalDepositUsd : formatMessage(c.totalUsdc, { currency })}</span>
+                <span className="shrink-0 font-mono text-terminal-primary">
+                  {mode === 'deposit' ? formatUsd(totalUsd) : formatFromUsd(totalUsd)}
+                </span>
               </div>
             </div>
-          ) : (
-            <div className="rounded-lg border border-terminal-border p-4">
-              <div className="flex items-baseline justify-between gap-4 text-base font-semibold text-terminal-text">
-                <span>{formatMessage(c.totalUsdc, { currency })}</span>
-                <span className="shrink-0 font-mono text-terminal-primary">{formatFromUsd(totalUsd)}</span>
-              </div>
-            </div>
-          )}
+          ) : null}
 
-          {mode === 'deposit' ? (
+          {showPaymentMethods ? (
             <div className="space-y-3">
               <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text">
                 {c.selectPaymentMethod}
               </p>
-              {depositQuoteExpired ? (
+              {paymentQuoteExpired ? (
                 <p className="text-xs text-terminal-warning">{c.quoteExpired}</p>
               ) : null}
               <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
@@ -696,43 +661,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
-              <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">{c.paymentMethodsTitle}</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                {methods.map((method) => (
-                  <button
-                    key={method.id}
-                    type="button"
-                    onClick={() => setPaymentMethod(method.id)}
-                    className={`rounded-lg border px-3 py-2 text-left text-xs transition-colors ${
-                      paymentMethod === method.id
-                        ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
-                        : 'border-terminal-border text-terminal-muted hover:text-terminal-text'
-                    }`}
-                  >
-                    <span className="block font-semibold">{methodLabels.get(method.id)?.label ?? method.label}</span>
-                    <span className="mt-1 block">{methodLabels.get(method.id)?.description ?? method.description}</span>
-                  </button>
-                ))}
-              </div>
-              {methods.length === 0 ? (
-                <p className="mt-3 text-xs text-terminal-warning">{c.noMethodsConfigured}</p>
-              ) : null}
-              {(paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') && (
-                <div className="mt-4 rounded-lg border border-terminal-border px-3 py-2 text-xs text-terminal-muted">
-                  <label className="block font-medium text-terminal-text">{c.networkLabel}</label>
-                  <select
-                    value={stablecoinNetwork}
-                    onChange={(event) => setStablecoinNetwork(event.target.value)}
-                    className="mt-2 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-terminal-text"
-                  >
-                    <option value="BASE">Base (USDC)</option>
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
+          ) : null}
 
           {requiresWallet ? (
             <InvestorWalletLinker
@@ -801,16 +730,16 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
 
           {status !== 'done' ? (
-            <div className={mode === 'deposit' ? 'space-y-1' : undefined}>
+            <div className={showPaymentMethods ? 'space-y-1' : undefined}>
               <button
                 type="button"
                 disabled={
                   (status !== 'idle' && status !== 'manual') ||
                   (mode === 'purchase' && items.length === 0) ||
-                  (mode === 'deposit' &&
+                  (showPaymentMethods &&
                     (sortedDepositOptions.length === 0 ||
                       !selectedDepositOptionId ||
-                      depositQuoteExpired ||
+                      paymentQuoteExpired ||
                       !selectedDepositOption?.configured)) ||
                   (requiresWallet && !walletGuard.canSignOnChain)
                 }
@@ -825,7 +754,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                       ? c.continueDeposit
                       : c.confirmButton}
               </button>
-              {mode === 'deposit' && quoteExpiresAt && quoteSecondsLeft > 0 ? (
+              {showPaymentMethods && quoteExpiresAt && quoteSecondsLeft > 0 ? (
                 <p className="text-right text-xs font-medium text-terminal-primary">
                   {formatMessage(c.quoteExpiresIn, { seconds: String(quoteSecondsLeft) })}
                 </p>
