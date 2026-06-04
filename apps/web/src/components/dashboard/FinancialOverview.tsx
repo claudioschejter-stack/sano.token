@@ -17,7 +17,6 @@ import { InvestorKpiCard } from './investor/InvestorKpiCard';
 import { InvestorPageHeader } from './investor/InvestorPageHeader';
 import { InvestorSection } from './investor/InvestorSection';
 import { LiveDividendStream } from './LiveDividendStream';
-import { ProjectYieldPanel } from './ProjectYieldPanel';
 import { MonthlyCashFlowChart } from './MonthlyCashFlowChart';
 import {
   ResponsiveContainer,
@@ -425,8 +424,6 @@ export function FinancialOverview() {
           </table>
         </div>
       </InvestorSection>
-
-      <ProjectYieldPanel compact />
     </div>
   );
 }
