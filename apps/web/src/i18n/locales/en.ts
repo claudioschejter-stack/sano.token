@@ -1003,13 +1003,9 @@ export const en = {
     eyebrow: "Capital and Coverage",
     title: "Control Panel",
     subtitle: "Institutional tracking of liquid cash flow, debt coverage and performance of tokenized physical assets.",
-    walletConnectionTitle: "Wallet connection on Base",
-    walletConnectionLine1:
-      "Use Coinbase Wallet (recommended) or connect another wallet via WalletConnect.",
-    walletConnectionLine2:
-      "The address is saved to your profile for payments, deposits and USDC rent payouts.",
-    walletConnectionLine3:
-      "The address is saved to your investor profile for future operations.",
+    walletConnectionTitle: "Wallet connection",
+    walletConnectionIntro:
+      "Use Coinbase Wallet (recommended) or connect another wallet via WalletConnect. The address is saved to your profile for payments, deposits and USDC rent payouts. The address is saved to your investor profile for future operations.",
     kpiDividends: "Cash Dividends Received (USDC)",
     kpiDividendsHint: "Accumulated settled via on-chain listener",
     kpiDebtCoverage: "Active Debt Coverage",

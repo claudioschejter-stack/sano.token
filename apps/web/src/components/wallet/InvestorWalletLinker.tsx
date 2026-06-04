@@ -41,6 +41,40 @@ function humanizeConnectError(
   return messages.connectFailed;
 }
 
+function normalizeWalletDisplayName(
+  connectorName: string | undefined,
+  flow: 'coinbase' | 'walletconnect' | null
+): string | null {
+  if (connectorName) {
+    const lower = connectorName.toLowerCase();
+    if (lower.includes('coinbase')) {
+      return 'Coinbase Wallet';
+    }
+    if (lower.includes('metamask')) {
+      return 'MetaMask';
+    }
+    if (lower.includes('rainbow')) {
+      return 'Rainbow';
+    }
+    if (lower.includes('trust')) {
+      return 'Trust Wallet';
+    }
+    if (lower.includes('rabby')) {
+      return 'Rabby';
+    }
+    if (lower.includes('phantom')) {
+      return 'Phantom';
+    }
+    return connectorName;
+  }
+
+  if (flow === 'coinbase') {
+    return 'Coinbase Wallet';
+  }
+
+  return null;
+}
+
 function pickConnector(connectors: readonly Connector[], kind: 'coinbase' | 'walletConnect') {
   if (kind === 'coinbase') {
     return connectors.find(
@@ -374,24 +408,14 @@ export function InvestorWalletLinker({
   const needsLinkedReconnect = walletGuard.isWalletLinked && !walletGuard.isConnected;
   const currentWalletAddress = walletGuard.linkedWallet ?? displayAddress;
 
-  const currentWalletName = useMemo(() => {
-    if (isConnected && walletGuard.canSignOnChain && activeConnector?.name) {
-      return activeConnector.name;
-    }
-    if (activeFlow === 'coinbase') {
-      return 'Coinbase Wallet';
-    }
-    if (activeFlow === 'walletconnect') {
-      return 'WalletConnect';
-    }
-    return w.currentWalletLinkedName;
-  }, [
-    activeConnector?.name,
-    activeFlow,
-    isConnected,
-    w.currentWalletLinkedName,
-    walletGuard.canSignOnChain
-  ]);
+  const currentWalletName = useMemo(
+    () =>
+      normalizeWalletDisplayName(
+        isConnected && walletGuard.canSignOnChain ? activeConnector?.name : undefined,
+        activeFlow
+      ),
+    [activeConnector?.name, activeFlow, isConnected, walletGuard.canSignOnChain]
+  );
   const linkedAddressLabel = walletGuard.linkedWallet
     ? `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
     : null;
@@ -401,12 +425,13 @@ export function InvestorWalletLinker({
 
   const dashboardCurrentWalletFrame = showDashboardCurrentWallet && currentWalletAddress ? (
     <div className="w-full max-w-none rounded-lg border-2 border-amber-400/90 bg-amber-50 px-4 py-3.5 text-amber-950 shadow-sm">
-      <p className="text-xs font-bold uppercase tracking-wide text-amber-900/80">{w.currentWalletTitle}</p>
-      <p className="mt-1.5 text-sm font-semibold text-amber-950">{currentWalletName}</p>
-      <p className="mt-1 break-all font-mono text-xs leading-relaxed text-amber-900/90">{currentWalletAddress}</p>
-      {!walletGuard.canSignOnChain ? (
-        <p className="mt-2 text-xs leading-relaxed text-amber-800/90">{w.connectRetryWalletConnect}</p>
+      {currentWalletName ? (
+        <p className="text-base font-bold leading-snug text-amber-950">{currentWalletName}</p>
       ) : null}
+      <div className={currentWalletName ? 'mt-2' : ''}>
+        <p className="text-sm font-semibold text-amber-950">{w.currentWalletLinkedName}</p>
+        <p className="mt-1 break-all font-mono text-xs leading-relaxed text-amber-900/90">{currentWalletAddress}</p>
+      </div>
     </div>
   ) : null;
 

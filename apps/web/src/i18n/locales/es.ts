@@ -1018,13 +1018,9 @@ export const es = {
     title: 'Panel de Control',
     subtitle:
       'Seguimiento institucional del flujo de caja líquido, cobertura de deuda y rendimiento de activos físicos tokenizados.',
-    walletConnectionTitle: 'Conexión de billetera en Base',
-    walletConnectionLine1:
-      'Usá Coinbase Wallet (recomendado) o conectá otra billetera con WalletConnect.',
-    walletConnectionLine2:
-      'La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC.',
-    walletConnectionLine3:
-      'La dirección se guarda en tu perfil de inversor para futuras operaciones.',
+    walletConnectionTitle: 'Conexión de billetera',
+    walletConnectionIntro:
+      'Usá Coinbase Wallet (recomendado) o conectá otra billetera con WalletConnect. La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC. La dirección se guarda en tu perfil de inversor para futuras operaciones.',
     kpiDividends: 'Dividendos en Efectivo Recibidos (USDC)',
     kpiDividendsHint: 'Acumulado liquidado vía listener on-chain',
     kpiDebtCoverage: 'Cobertura de Deuda Activa',
