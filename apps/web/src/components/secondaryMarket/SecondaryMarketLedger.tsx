@@ -54,13 +54,13 @@ function LedgerColumn({
 }) {
   return (
     <div className="min-w-0">
-      <div className="border-b border-terminal-border bg-terminal-bg/80 px-2 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-terminal-muted">
+      <div className="border-b border-terminal-border bg-terminal-bg/80 px-2 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-terminal-muted">
         {title}
       </div>
-      <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,0.7fr)_minmax(0,0.9fr)] border-b border-terminal-border bg-terminal-bg/50 px-2 py-1 text-[10px] uppercase tracking-wide text-terminal-muted">
+      <div className="grid grid-cols-3 place-items-center border-b border-terminal-border bg-terminal-bg/50 px-2 py-1 text-center text-[10px] uppercase tracking-wide text-terminal-muted">
         <span>{colPrice}</span>
-        <span className="text-right">{colQty}</span>
-        <span className="text-right">{colAsset}</span>
+        <span>{colQty}</span>
+        <span>{colAsset}</span>
       </div>
       {rows.length ? (
         <div className="max-h-40 overflow-y-auto">
@@ -69,20 +69,20 @@ function LedgerColumn({
               key={row.id}
               type="button"
               onClick={() => onSelect(row)}
-              className={`grid w-full grid-cols-[minmax(0,1.1fr)_minmax(0,0.7fr)_minmax(0,0.9fr)] border-b border-terminal-border/70 px-2 py-1.5 text-left text-[11px] font-mono transition-colors hover:bg-terminal-primary/10 ${
+              className={`grid w-full grid-cols-3 place-items-center border-b border-terminal-border/70 px-2 py-1.5 text-center text-[11px] font-mono transition-colors hover:bg-terminal-primary/10 ${
                 row.isOwn ? 'bg-terminal-warning/5 hover:bg-terminal-warning/10' : ''
               }`}
             >
-              <span className="font-semibold text-terminal-primary">{formatUsd(row.pricePerTokenUsd)}</span>
-              <span className="text-right text-terminal-text">{formatQty(row.tokenCount)}</span>
-              <span className="truncate text-right text-terminal-muted">
+              <span className="w-full font-semibold text-terminal-primary">{formatUsd(row.pricePerTokenUsd)}</span>
+              <span className="w-full text-terminal-text">{formatQty(row.tokenCount)}</span>
+              <span className="w-full min-w-0 truncate text-terminal-muted">
                 {row.isOwn && ownListingHint ? ownListingHint : row.symbol}
               </span>
             </button>
           ))}
         </div>
       ) : (
-        <p className="px-2 py-3 text-[11px] text-terminal-muted">{emptyLabel}</p>
+        <p className="px-2 py-3 text-center text-[11px] text-terminal-muted">{emptyLabel}</p>
       )}
     </div>
   );
