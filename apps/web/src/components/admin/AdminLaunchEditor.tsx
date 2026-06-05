@@ -661,7 +661,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       jurisdiction: form.jurisdiction,
       isActive: form.isActive,
       collateralProtocols: selectedCollateral(form),
-      deployToken: isErc4626Launch || (isLending && (shouldAutoDeploy || form.deployToken))
+      deployToken: isLending && (isErc4626Launch || shouldAutoDeploy || form.deployToken)
     };
   }
 
@@ -800,7 +800,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       const patchBody: Record<string, unknown> = {
         ...payload,
         availableTokens: Number.parseInt(form.availableTokens, 10),
-        deployToken: isErc4626Launch || shouldAutoDeploy
+        deployToken: isLending && (isErc4626Launch || shouldAutoDeploy)
       };
 
       if (!isErc4626Launch) {

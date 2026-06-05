@@ -82,17 +82,20 @@ export type Erc4626SavePipelineResult =
 
 export async function validateErc4626BeforePersist(
   body: CreateAdminAssetInput | UpdateAdminAssetInput,
-  existing: AdminAssetRecord | null
+  existing: AdminAssetRecord | null,
+  options: { requireOnChain?: boolean } = {}
 ): Promise<LaunchGateIssue[]> {
   const standard = body.tokenStandard ?? existing?.tokenStandard;
   if (!isErc4626Standard(standard)) {
     return [];
   }
 
+  const requireOnChain = options.requireOnChain ?? body.deployToken === true;
+
   return mergeLaunchGateIssues(
     validateErc4626LaunchForm(formInputFromBody(body, existing)),
     validateErc4626MorphoFormRequirements(morphoFormInputFromBody(body, existing), existing),
-    await getDeployInfrastructureIssues()
+    requireOnChain ? await getDeployInfrastructureIssues() : []
   );
 }
 

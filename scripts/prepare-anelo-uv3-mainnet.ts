@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../packages/database/.env') });
 config({ path: resolve(__dirname, '../.env') });
+config({ path: resolve(__dirname, '../apps/web/.env.local') });
 
 import { getAdminAsset, updateAdminAsset } from '../apps/web/src/lib/admin/assetsService';
 import { buildInitialCollateralTargets } from '../apps/web/src/lib/collateral/collateralTargetsService';

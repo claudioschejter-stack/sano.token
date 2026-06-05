@@ -11,6 +11,7 @@ import { waitForAutomationTx } from '../apps/web/src/lib/blockchain/automationTx
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../packages/database/.env') });
 config({ path: resolve(__dirname, '../.env') });
+config({ path: resolve(__dirname, '../apps/web/.env.local') });
 
 async function step(name: string, fn: () => Promise<void>) {
   process.stdout.write(`[step] ${name}... `);

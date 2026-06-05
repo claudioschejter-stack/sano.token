@@ -6,7 +6,7 @@ import {
   sanitizeErc4626UpdateBody,
   validateErc4626BeforePersist
 } from '../../../../../lib/admin/erc4626LaunchSave';
-import { isErc4626Standard } from '../../../../../lib/admin/erc4626LaunchGate';
+import { isErc4626OnChainReady, isErc4626Standard } from '../../../../../lib/admin/erc4626LaunchGate';
 import { requireAdminSession } from '../../../../../lib/admin/requireAdmin';
 import { syncProjectAssetsFromStorage } from '../../../../../lib/storage/syncLaunchStorage';
 
@@ -62,16 +62,19 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const standard = body.tokenStandard ?? existing.tokenStandard;
     const wantsPublish = body.isActive === true;
+    const wantsOnChainDeploy = body.deployToken === true;
     const partialCardUpdate = isLaunchCardPartialUpdate(body);
     const sanitized = partialCardUpdate ? body : sanitizeErc4626UpdateBody(body, existing);
 
-    if (isErc4626Standard(standard) && !partialCardUpdate) {
+    if (isErc4626Standard(standard) && wantsOnChainDeploy && !partialCardUpdate) {
       sanitized.deployToken = true;
       sanitized.isActive = false;
     }
 
     if (!partialCardUpdate) {
-      const gateIssues = await validateErc4626BeforePersist(sanitized, existing);
+      const gateIssues = await validateErc4626BeforePersist(sanitized, existing, {
+        requireOnChain: wantsOnChainDeploy || wantsPublish
+      });
       if (gateIssues.length) {
         return NextResponse.json({ error: 'LAUNCH_NOT_READY', issues: gateIssues }, { status: 422 });
       }
@@ -83,7 +86,19 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
 
-    if (partialCardUpdate) {
+    if (partialCardUpdate || (isErc4626Standard(standard) && !wantsOnChainDeploy)) {
+      if (wantsPublish && isErc4626Standard(standard) && !isErc4626OnChainReady(updated)) {
+        await updateAdminAsset(projectId, { isActive: false });
+        return NextResponse.json(
+          {
+            error: 'LAUNCH_NOT_READY',
+            issues: [{ code: 'CANNOT_PUBLISH_INCOMPLETE' }],
+            asset: await getAdminAsset(projectId)
+          },
+          { status: 422 }
+        );
+      }
+
       return NextResponse.json({ asset: updated });
     }
 
