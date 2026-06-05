@@ -119,7 +119,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   );
   const showPaymentMethods =
     (mode === 'deposit' && totalUsd > 0) || (mode === 'purchase' && items.length > 0);
-  const requiresWallet = selectedDepositOption?.method === 'CUSTODIAL_STABLECOIN';
+  const requiresWallet =
+    selectedDepositOption?.method === 'CUSTODIAL_STABLECOIN' ||
+    selectedDepositOption?.method === 'USDC_ONCHAIN';
   const paymentQuoteExpired = showPaymentMethods && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
 
   const loadDepositQuote = useCallback(() => {
@@ -443,6 +445,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               <span className="mt-0.5 block text-[11px] font-medium uppercase text-amber-700">
                 {c.paymentUnavailable}
               </span>
+            ) : option.id === 'electronic_wallet' && walletGuard.linkedWallet ? (
+              <span className="mt-0.5 block text-[11px] text-slate-600">
+                {formatMessage(c.electronicWalletLinkedHint, {
+                  address: `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
+                })}
+              </span>
             ) : null}
           </div>
           <div className="shrink-0 text-right">
@@ -656,6 +664,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               variant="checkout"
               allowReplace
               onError={(message) => setError(message)}
+              onLinked={() => loadDepositQuote()}
             />
           ) : null}
 

@@ -213,12 +213,13 @@ const DEPOSIT_DISPLAY_ROWS: DepositDisplayRow[] = [
   },
   {
     id: 'electronic_wallet',
-    method: 'COINBASE',
+    method: 'USDC_ONCHAIN',
     label: 'Billetera electrónica (Coinbase)',
-    fallbackFeeBps: 100,
-    fallbackGasUsd: 0.04,
-    fallbackNetworkUsd: 0.02,
-    usesLocalCurrency: true
+    fallbackFeeBps: 25,
+    fallbackGasUsd: 0.02,
+    fallbackNetworkUsd: 0.01,
+    stablecoinNetwork: 'BASE',
+    usesLocalCurrency: false
   },
   {
     id: 'transak',
@@ -257,7 +258,17 @@ const DEPOSIT_DISPLAY_ROWS: DepositDisplayRow[] = [
   }
 ];
 
-function depositRowConfigured(row: DepositDisplayRow): boolean {
+export type BuildDepositPaymentOptionsContext = {
+  linkedWalletAddress?: string | null;
+};
+
+function depositRowConfigured(row: DepositDisplayRow, context?: BuildDepositPaymentOptionsContext): boolean {
+  if (row.id === 'electronic_wallet') {
+    return (
+      paymentGatewayConfigured('USDC_ONCHAIN') && Boolean(context?.linkedWalletAddress?.trim())
+    );
+  }
+
   if (row.id === 'paypal') {
     return Boolean(process.env.PAYPAL_CLIENT_ID ?? process.env.PAYPAL_SECRET);
   }
@@ -291,6 +302,10 @@ function lowestPlatformFeeUsd(method: PaymentMethod, amountUsd: number, country:
 }
 
 function estimateGasUsd(row: DepositDisplayRow): number {
+  if (row.method === 'USDC_ONCHAIN') {
+    return row.fallbackGasUsd;
+  }
+
   if (row.method === 'CUSTODIAL_STABLECOIN') {
     return row.fallbackGasUsd;
   }
@@ -306,7 +321,8 @@ function estimateGasUsd(row: DepositDisplayRow): number {
 export function buildDepositPaymentOptions(
   amountUsd: number,
   country = 'AR',
-  fxRateUsdToLocal?: number
+  fxRateUsdToLocal?: number,
+  context?: BuildDepositPaymentOptionsContext
 ): DepositQuoteBundle {
   const normalizedAmount = Number.isFinite(amountUsd) && amountUsd > 0 ? amountUsd : 0;
   const localCurrency = COUNTRY_LOCAL_CURRENCY[country] ?? 'USD';
@@ -314,7 +330,7 @@ export function buildDepositPaymentOptions(
   const quoteExpiresAt = new Date(Date.now() + DEPOSIT_QUOTE_TTL_SECONDS * 1000).toISOString();
 
   const options = DEPOSIT_DISPLAY_ROWS.map((row) => {
-    const configured = depositRowConfigured(row);
+    const configured = depositRowConfigured(row, context);
 
     const quotedPlatform = lowestPlatformFeeUsd(row.method, normalizedAmount, country);
     const platformFeeUsd =

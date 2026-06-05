@@ -807,6 +807,8 @@ export const es = {
     selectPaymentMethod: 'Seleccione su forma de Pago:',
     paymentMethodsAvailable: 'Formas de pago aceptadas',
     paymentMethodsUnavailable: 'Formas de pago no disponibles',
+    electronicWalletLinkedHint:
+      'USDC desde tu billetera vinculada ({address}) en Base — se acredita al confirmar la transferencia.',
     paymentMethodsTitle: 'Opciones de pago automáticas',
     confirmButton: 'Confirmar',
     continueDeposit: 'Continuar',

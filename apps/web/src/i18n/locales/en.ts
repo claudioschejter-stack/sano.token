@@ -794,6 +794,8 @@ export const en = {
     selectPaymentMethod: "Select your payment method:",
     paymentMethodsAvailable: "Accepted payment methods",
     paymentMethodsUnavailable: "Unavailable payment methods",
+    electronicWalletLinkedHint:
+      "USDC from your linked wallet ({address}) on Base — credited after transfer confirmation.",
     paymentMethodsTitle: "Automatic payment options",
     confirmButton: "Confirm",
     continueDeposit: "Continue",
