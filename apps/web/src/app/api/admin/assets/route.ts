@@ -15,6 +15,8 @@ import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
 
 const VALID_FILTERS = new Set<AssetListFilter>(['ALL', 'ACTIVE', 'INACTIVE']);
 
+export const maxDuration = 300;
+
 export async function GET(request: Request) {
   if (!(await requireAdminSession())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

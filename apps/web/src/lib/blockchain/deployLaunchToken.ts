@@ -3,7 +3,7 @@ import type { TokenStandard, TokenInstrumentType, VaultFundingStatus } from '../
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deployAssetToken';
-import { sendAutomationTx, waitForAutomationTx } from './automationTx';
+import { ensureAutomationSignerReady, sendAutomationTx, waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 import { configureInitialContractSecurity } from './securityPolicy';
@@ -181,6 +181,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
   try {
     const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
     const wallet = new Wallet(privateKey, provider);
+    await ensureAutomationSignerReady(wallet);
     const gasBalance = await provider.getBalance(wallet.address);
     if (gasBalance <= 0n) {
       provider.destroy();
@@ -209,7 +210,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       await waitForAutomationTx(setKycTx);
     }
 
-    const mintTx = await asset.mint(mintRecipient, mintAmount);
+    const mintTx = await sendAutomationTx(() => asset.mint(mintRecipient, mintAmount), wallet);
     const mintReceipt = await waitForAutomationTx(mintTx);
 
     if (input.tokenStandard === 'SANOVA_KYC') {

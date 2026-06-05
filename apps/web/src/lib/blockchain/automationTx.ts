@@ -31,6 +31,13 @@ function asSigner(runner: ContractRunner | null | undefined): Signer | null {
   return runner as Signer;
 }
 
+export async function ensureAutomationSignerReady(wallet?: ContractRunner | null): Promise<void> {
+  const signer = asSigner(wallet);
+  if (signer) {
+    await waitForPendingNonce(signer);
+  }
+}
+
 async function waitForPendingNonce(signer: Signer, timeoutMs = 120_000): Promise<void> {
   const provider = signer.provider as JsonRpcProvider | null;
   if (!provider) return;

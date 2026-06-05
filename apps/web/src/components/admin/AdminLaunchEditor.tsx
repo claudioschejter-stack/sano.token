@@ -301,6 +301,8 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       vaultFundingStatus,
       contracts: { smartContract: form.contracts.smartContract || null }
     });
+  /** ERC-4626: emit token + vault + Morpho from marketplace or loans when not yet on-chain. */
+  const shouldEmitErc4626OnChain = isErc4626Launch && !onChainLaunchReady;
 
   function launchGateMessages(): Record<LaunchGateIssueCode, string> {
     return l.launchGate as Record<LaunchGateIssueCode, string>;
@@ -661,7 +663,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       jurisdiction: form.jurisdiction,
       isActive: form.isActive,
       collateralProtocols: selectedCollateral(form),
-      deployToken: isLending && (isErc4626Launch || shouldAutoDeploy || form.deployToken)
+      deployToken: shouldEmitErc4626OnChain || (!isErc4626Launch && (shouldAutoDeploy || form.deployToken))
     };
   }
 
@@ -800,7 +802,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       const patchBody: Record<string, unknown> = {
         ...payload,
         availableTokens: Number.parseInt(form.availableTokens, 10),
-        deployToken: isLending && (isErc4626Launch || shouldAutoDeploy)
+        deployToken: shouldEmitErc4626OnChain || (!isErc4626Launch && shouldAutoDeploy)
       };
 
       if (!isErc4626Launch) {
@@ -1655,6 +1657,16 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
               </>
             ) : null}
 
+            {isMarketplace && isErc4626Launch ? (
+              <p className="rounded-lg border border-dashed border-terminal-border px-4 py-3 text-xs text-terminal-muted">
+                {onChainLaunchReady
+                  ? l.launchSavedOnChain
+                  : tokenDeployReady === false
+                    ? l.tokenDeployOptionalHint
+                    : l.tokenDeployMandatoryHint}
+              </p>
+            ) : null}
+
             <div className="flex flex-wrap items-center gap-4">
               {isMarketplace ? (
               <label className="flex items-center gap-2 text-sm text-terminal-text">
@@ -1673,7 +1685,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                 className="inline-flex items-center gap-2 rounded-lg bg-terminal-primary px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                {saving ? l.saving : l.save}
+                {saving ? (shouldEmitErc4626OnChain ? l.emittingOnChain : l.saving) : l.save}
               </button>
             </div>
 

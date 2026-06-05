@@ -6,12 +6,17 @@ import {
   sanitizeErc4626UpdateBody,
   validateErc4626BeforePersist
 } from '../../../../../lib/admin/erc4626LaunchSave';
-import { isErc4626OnChainReady, isErc4626Standard } from '../../../../../lib/admin/erc4626LaunchGate';
+import {
+  isErc4626OnChainReady,
+  isErc4626Standard,
+  needsErc4626Deploy
+} from '../../../../../lib/admin/erc4626LaunchGate';
 import { requireAdminSession } from '../../../../../lib/admin/requireAdmin';
 import { syncProjectAssetsFromStorage } from '../../../../../lib/storage/syncLaunchStorage';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 300;
 
 type RouteContext = {
   params: Promise<{ projectId: string }>;
@@ -62,7 +67,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const standard = body.tokenStandard ?? existing.tokenStandard;
     const wantsPublish = body.isActive === true;
-    const wantsOnChainDeploy = body.deployToken === true;
+    const wantsOnChainDeploy =
+      body.deployToken === true ||
+      (isErc4626Standard(standard) && wantsPublish && needsErc4626Deploy(existing));
     const partialCardUpdate = isLaunchCardPartialUpdate(body);
     const sanitized = partialCardUpdate ? body : sanitizeErc4626UpdateBody(body, existing);
 

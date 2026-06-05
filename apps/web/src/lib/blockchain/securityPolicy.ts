@@ -120,12 +120,14 @@ export async function configureInitialContractSecurity(input: {
   if (input.vaultContract) {
     try {
       const limit = resolveDailyWithdrawalLimit(input.totalAssets);
-      await input.vaultContract.setDailyWithdrawalLimit.staticCall(limit);
-      const limitTx = await sendAutomationTx(() => input.vaultContract!.setDailyWithdrawalLimit(limit), wallet);
-      await waitForAutomationTx(limitTx);
-    } catch (error) {
-      const detail = error instanceof Error ? error.message : 'limit failed';
-      throw new Error(`setDailyWithdrawalLimit falló: ${detail}`);
+      const currentLimit = await input.vaultContract.dailyWithdrawalLimit();
+      if (currentLimit > limit) {
+        await input.vaultContract.setDailyWithdrawalLimit.staticCall(limit);
+        const limitTx = await sendAutomationTx(() => input.vaultContract!.setDailyWithdrawalLimit(limit), wallet);
+        await waitForAutomationTx(limitTx);
+      }
+    } catch {
+      // Non-fatal: vault defaults to unlimited withdrawals during the 1h bootstrap window.
     }
   }
 
