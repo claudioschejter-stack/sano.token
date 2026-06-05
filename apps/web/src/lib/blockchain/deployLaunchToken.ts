@@ -72,26 +72,73 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
 }
 
+async function waitForExternalContractAllowed(
+  contract: Contract,
+  account: string,
+  timeoutMs = 30_000
+): Promise<void> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    if (await contract.externalContractAllowed(account)) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  }
+  throw new Error(`externalContractAllowed(${account}) no quedó activo a tiempo.`);
+}
+
 async function ensureExternalContractAllowed(
   contract: Contract,
   account: string,
   wallet: ContractRunner | null
 ): Promise<void> {
-  const allowed = await contract.externalContractAllowed(account);
-  if (allowed) {
+  if (await contract.externalContractAllowed(account)) {
     return;
   }
 
   await contract.setExternalContractAllowed.staticCall(account, true);
   const tx = await sendAutomationTx(() => contract.setExternalContractAllowed(account, true), wallet);
   await waitForAutomationTx(tx);
+  await waitForExternalContractAllowed(contract, account);
+}
+
+async function transferVaultSharesToTreasury(input: {
+  asset: Contract;
+  vaultContract: Contract;
+  walletAddress: string;
+  treasuryAddress: string;
+  wallet: ContractRunner | null;
+}): Promise<void> {
+  if (input.walletAddress.toLowerCase() === input.treasuryAddress.toLowerCase()) {
+    return;
+  }
+
+  const shares = await input.vaultContract.balanceOf(input.walletAddress);
+  if (shares <= 0n) {
+    return;
+  }
+
+  const treasuryKyc = await input.asset.kycApproved(input.treasuryAddress);
+  if (!treasuryKyc) {
+    const setTreasuryKycTx = await sendAutomationTx(
+      () => input.asset.setKyc(input.treasuryAddress, true),
+      input.wallet
+    );
+    await waitForAutomationTx(setTreasuryKycTx);
+  }
+
+  await ensureExternalContractAllowed(input.vaultContract, input.treasuryAddress, input.wallet);
+  const transferTx = await sendAutomationTx(
+    () => input.vaultContract.transfer(input.treasuryAddress, shares),
+    input.wallet
+  );
+  await waitForAutomationTx(transferTx);
 }
 
 async function fundVaultWithDeployerBalance(input: {
   asset: Contract;
   vaultContract: Contract;
   walletAddress: string;
-  receiverAddress: string;
   vaultAddress: string;
   amount: bigint;
 }): Promise<VaultFundingResult> {
@@ -102,16 +149,6 @@ async function fundVaultWithDeployerBalance(input: {
     if (!deployerKyc) {
       const setKycTx = await sendAutomationTx(() => input.asset.setKyc(input.walletAddress, true), wallet);
       await waitForAutomationTx(setKycTx);
-    }
-    if (input.receiverAddress.toLowerCase() !== input.walletAddress.toLowerCase()) {
-      const receiverKyc = await input.asset.kycApproved(input.receiverAddress);
-      if (!receiverKyc) {
-        const setReceiverKycTx = await sendAutomationTx(
-          () => input.asset.setKyc(input.receiverAddress, true),
-          wallet
-        );
-        await waitForAutomationTx(setReceiverKycTx);
-      }
     }
 
     const vaultKyc = await input.asset.kycApproved(input.vaultAddress);
@@ -125,20 +162,24 @@ async function fundVaultWithDeployerBalance(input: {
 
     await ensureExternalContractAllowed(input.asset, input.vaultAddress, wallet);
 
-    if (input.receiverAddress.toLowerCase() !== input.walletAddress.toLowerCase()) {
-      await ensureExternalContractAllowed(input.asset, input.receiverAddress, wallet);
-      await ensureExternalContractAllowed(input.vaultContract, input.receiverAddress, wallet);
-    }
-
     const depositTx = await sendAutomationTx(
-      () => input.vaultContract.deposit(input.amount, input.receiverAddress),
+      () => input.vaultContract.deposit(input.amount, input.walletAddress),
       wallet
     );
     const depositReceipt = await waitForAutomationTx(depositTx);
-    const totalAssets = await input.vaultContract.totalAssets();
-    const shares = await input.vaultContract.balanceOf(input.receiverAddress);
 
-    if (totalAssets >= input.amount && shares > 0n) {
+    let totalAssets = 0n;
+    let shares = 0n;
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      totalAssets = await input.vaultContract.totalAssets();
+      shares = await input.vaultContract.balanceOf(input.walletAddress);
+      if (shares > 0n) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
+
+    if (shares > 0n) {
       return {
         status: 'FUNDED',
         amount: input.amount.toString(),
@@ -151,7 +192,7 @@ async function fundVaultWithDeployerBalance(input: {
       status: 'FAILED',
       amount: null,
       txHash: depositReceipt?.hash ?? depositTx.hash,
-      error: 'Vault deposit completed but totalAssets/share balance did not verify.'
+      error: `Vault deposit completed but share balance did not verify (totalAssets=${totalAssets}, shares=${shares}).`
     };
   } catch (error) {
     return {
@@ -178,6 +219,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     return { status: 'SKIPPED', reason: 'Supply de tokens inválido para la emisión.' };
   }
 
+  let deploymentStep = 'bootstrap';
   try {
     const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
     const wallet = new Wallet(privateKey, provider);
@@ -200,6 +242,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       wallet
     );
 
+    deploymentStep = 'asset_deploy';
     const assetToken = await assetFactory.deploy(tokenName, symbol, wallet.address);
     await assetToken.waitForDeployment();
     const contractAddress = await assetToken.getAddress();
@@ -210,7 +253,9 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       await waitForAutomationTx(setKycTx);
     }
 
-    const mintTx = await sendAutomationTx(() => asset.mint(mintRecipient, mintAmount), wallet);
+    deploymentStep = 'asset_mint';
+    await ensureAutomationSignerReady(wallet);
+    const mintTx = await asset.mint(mintRecipient, mintAmount);
     const mintReceipt = await waitForAutomationTx(mintTx);
 
     if (input.tokenStandard === 'SANOVA_KYC') {
@@ -247,15 +292,16 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       wallet
     );
 
+    deploymentStep = 'vault_deploy';
     const vault = await vaultFactory.deploy(contractAddress, vaultName, vaultSymbol, wallet.address);
     await vault.waitForDeployment();
     const vaultAddress = await vault.getAddress();
     const vaultContract = new Contract(vaultAddress, SanovaRwaVaultArtifact.abi, wallet);
+    deploymentStep = 'vault_fund';
     const funding = await fundVaultWithDeployerBalance({
       asset,
       vaultContract,
       walletAddress: wallet.address,
-      receiverAddress: treasuryAddress,
       vaultAddress,
       amount: mintAmount
     });
@@ -268,13 +314,38 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       };
     }
 
-    const security = await configureInitialContractSecurity({
-      asset,
-      vaultContract,
-      treasuryAddress,
-      totalAssets: mintAmount,
-      extraAllowedContracts: [vaultAddress]
-    });
+    let security: { allowedContracts: string[] } = { allowedContracts: [] };
+    let securityConfigError: string | null = null;
+    deploymentStep = 'security_config';
+    try {
+      security = await configureInitialContractSecurity({
+        asset,
+        vaultContract,
+        treasuryAddress,
+        totalAssets: mintAmount,
+        extraAllowedContracts: [vaultAddress]
+      });
+    } catch (error) {
+      securityConfigError =
+        error instanceof Error ? error.message : 'No se pudo aplicar la política de seguridad inicial.';
+    }
+
+    let treasuryShareTransferError: string | null = securityConfigError;
+    deploymentStep = 'treasury_share_transfer';
+    try {
+      await transferVaultSharesToTreasury({
+        asset,
+        vaultContract,
+        walletAddress: wallet.address,
+        treasuryAddress,
+        wallet
+      });
+    } catch (error) {
+      treasuryShareTransferError =
+        error instanceof Error ? error.message : 'No se pudieron transferir shares al treasury Safe.';
+    }
+
+    deploymentStep = 'ownership_transfer';
     const ownershipTransfers = [
       await transferOwnershipToTreasury({
         contractName: 'SanovaAssetToken',
@@ -299,7 +370,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       vaultFundingStatus: funding.status,
       vaultFundingAmount: funding.amount,
       vaultFundingTxHash: funding.txHash,
-      vaultFundingError: funding.error,
+      vaultFundingError: treasuryShareTransferError ?? funding.error,
       chainId,
       txHash: funding.txHash ?? mintReceipt?.hash ?? 'deploy-submitted',
       ownershipTransfers,
@@ -307,7 +378,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown deployment error';
-    return { status: 'SKIPPED', reason: `Sanova contracts: ${message}` };
+    return { status: 'SKIPPED', reason: `Sanova contracts [${deploymentStep}]: ${message}` };
   }
 }
 

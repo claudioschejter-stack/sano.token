@@ -1,5 +1,5 @@
 import type { AdminAssetRecord, CreateAdminAssetInput, UpdateAdminAssetInput } from './assetsService';
-import { getAdminAsset, updateAdminAsset } from './assetsService';
+import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from './assetsService';
 import { executeProjectTokenDeploy } from '../blockchain/projectTokenDeploy';
 import type { CollateralProtocol } from './launchTypes';
 import {
@@ -149,9 +149,26 @@ export async function finalizeErc4626AfterPersist(
 
   asset = (await ensureMorphoCollateralRegistered(projectId)) ?? asset;
 
+  const { repairTreasuryVaultShares } = await import('../blockchain/repairTreasuryVaultShares');
+  const treasuryRepair = await repairTreasuryVaultShares(asset);
+  if (treasuryRepair.ok) {
+    await appendDeploymentEvent(projectId, {
+      step: 'VAULT_FUNDING',
+      status: 'SUCCESS',
+      message: treasuryRepair.message,
+      txHash: treasuryRepair.txHash ?? null
+    });
+  } else if (asset.vaultAddress) {
+    await appendDeploymentEvent(projectId, {
+      step: 'VAULT_FUNDING',
+      status: 'FAILED',
+      message: treasuryRepair.message
+    });
+  }
+
   const onChainIssues = getErc4626OnChainIssues(asset);
-  const morphoIssues = getMorphoPostDeployIssues(asset);
-  const treasuryIssues = await getTreasuryReadinessIssues(asset);
+  const morphoIssues = options.requestedPublish ? getMorphoPostDeployIssues(asset) : [];
+  const treasuryIssues = options.requestedPublish ? await getTreasuryReadinessIssues(asset) : [];
   const allIssues = mergeLaunchGateIssues(onChainIssues, morphoIssues, treasuryIssues);
 
   if (allIssues.length) {

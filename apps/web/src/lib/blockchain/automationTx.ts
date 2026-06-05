@@ -38,7 +38,7 @@ export async function ensureAutomationSignerReady(wallet?: ContractRunner | null
   }
 }
 
-async function waitForPendingNonce(signer: Signer, timeoutMs = 120_000): Promise<void> {
+async function waitForPendingNonce(signer: Signer, timeoutMs = 180_000): Promise<void> {
   const provider = signer.provider as JsonRpcProvider | null;
   if (!provider) return;
 

@@ -3,7 +3,7 @@ import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import { resolveChainId } from './explorerUrls';
 import type { VaultFundingStatus } from '../admin/launchTypes';
-import { waitForAutomationTx } from './automationTx';
+import { sendAutomationTx, waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 import { configureInitialContractSecurity } from './securityPolicy';
@@ -135,19 +135,12 @@ export async function deployVaultForExistingToken(
           const allowVaultTx = await asset.setExternalContractAllowed(vaultAddress, true);
           await waitForAutomationTx(allowVaultTx);
         }
-        if (treasuryAddress.toLowerCase() !== wallet.address.toLowerCase()) {
-          const receiverAllowed = await vaultContract.externalContractAllowed(treasuryAddress);
-          if (!receiverAllowed) {
-            const allowReceiverTx = await vaultContract.setExternalContractAllowed(treasuryAddress, true);
-            await waitForAutomationTx(allowReceiverTx);
-          }
-        }
         const approveTx = await asset.approve(vaultAddress, depositAmount);
         await waitForAutomationTx(approveTx);
-        const depositTx = await vaultContract.deposit(depositAmount, treasuryAddress);
+        const depositTx = await vaultContract.deposit(depositAmount, wallet.address);
         const depositReceipt = await waitForAutomationTx(depositTx);
         const totalAssets = await vaultContract.totalAssets();
-        const shares = await vaultContract.balanceOf(treasuryAddress);
+        const shares = await vaultContract.balanceOf(wallet.address);
 
         vaultFundingTxHash = depositReceipt?.hash ?? depositTx.hash;
         if (totalAssets >= depositAmount && shares > 0n) {
@@ -173,6 +166,33 @@ export async function deployVaultForExistingToken(
       totalAssets: vaultFundingAmount ? BigInt(vaultFundingAmount) : BigInt(input.totalSupplyUnits) * 10n ** 18n,
       extraAllowedContracts: [vaultAddress]
     });
+
+    if (vaultFundingStatus === 'FUNDED' && treasuryAddress.toLowerCase() !== wallet.address.toLowerCase()) {
+      const deployerShares = await vaultContract.balanceOf(wallet.address);
+      if (deployerShares > 0n) {
+        const treasuryKyc = await asset.kycApproved(treasuryAddress);
+        if (!treasuryKyc) {
+          const setTreasuryKycTx = await sendAutomationTx(() => asset.setKyc(treasuryAddress, true), wallet);
+          await waitForAutomationTx(setTreasuryKycTx);
+        }
+        const receiverAllowed = await vaultContract.externalContractAllowed(treasuryAddress);
+        if (!receiverAllowed) {
+          const allowReceiverTx = await sendAutomationTx(
+            () => vaultContract.setExternalContractAllowed(treasuryAddress, true),
+            wallet
+          );
+          await waitForAutomationTx(allowReceiverTx);
+        }
+        for (let attempt = 0; attempt < 8 && !(await vaultContract.externalContractAllowed(treasuryAddress)); attempt += 1) {
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+        }
+        const transferTx = await sendAutomationTx(
+          () => vaultContract.transfer(treasuryAddress, deployerShares),
+          wallet
+        );
+        await waitForAutomationTx(transferTx);
+      }
+    }
 
     const ownershipTransfers = [
       await transferOwnershipToTreasury({

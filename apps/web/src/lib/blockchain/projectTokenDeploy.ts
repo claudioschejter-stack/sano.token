@@ -197,7 +197,15 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
 
   const preflight = await recordAutomationPreflight(projectId, asset);
   if (!preflight.ok) {
-    return { status: 'SKIPPED', asset, reason: 'Preflight automático falló. Revisá el historial de eventos.' };
+    const failedChecks = preflight.checks
+      .filter((check) => !check.ok)
+      .map((check) => `${check.label}: ${check.detail}`)
+      .join(' | ');
+    return {
+      status: 'SKIPPED',
+      asset,
+      reason: `Preflight automático falló (${failedChecks || 'revisá el historial de eventos'}).`
+    };
   }
 
   if (asset.contractAddress) {

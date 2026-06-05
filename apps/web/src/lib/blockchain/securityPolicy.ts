@@ -113,7 +113,11 @@ export async function configureInitialContractSecurity(input: {
       }
     } catch (error) {
       const detail = error instanceof Error ? error.message : 'allow failed';
-      throw new Error(`setExternalContractAllowed(${address}) falló: ${detail}`);
+      const isTreasury = address.toLowerCase() === input.treasuryAddress.toLowerCase();
+      if (isTreasury) {
+        throw new Error(`setExternalContractAllowed(${address}) falló: ${detail}`);
+      }
+      console.warn(`[securityPolicy] skip non-treasury allow for ${address}: ${detail}`);
     }
   }
 

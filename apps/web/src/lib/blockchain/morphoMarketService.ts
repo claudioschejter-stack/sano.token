@@ -142,8 +142,18 @@ export async function createMorphoMarketForVault(
       params.lltv
     ]);
     const receipt = await waitForAutomationTx(tx);
-    const stored = await morpho.idToMarketParams(marketId);
-    const storedCollateral = (stored?.collateralToken ?? stored?.[1] ?? '') as string;
+    let storedCollateral = '';
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      const stored = await morpho.idToMarketParams(marketId);
+      storedCollateral = (stored?.collateralToken ?? stored?.[1] ?? '') as string;
+      if (
+        storedCollateral &&
+        storedCollateral.toLowerCase() !== '0x0000000000000000000000000000000000000000'
+      ) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+    }
     const empty =
       !storedCollateral || storedCollateral.toLowerCase() === '0x0000000000000000000000000000000000000000';
     if (empty) {

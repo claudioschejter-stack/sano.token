@@ -88,14 +88,22 @@ async function main() {
     await waitForAutomationTx(tx);
   });
 
-  await step('allow treasury on vault', async () => {
-    const tx = await vault.setExternalContractAllowed(treasury, true);
-    await waitForAutomationTx(tx);
+  await step('approve + deposit to deployer', async () => {
+    const balance = await asset.balanceOf(wallet.address);
+    console.log(`\n       balance=${balance}`);
+    await waitForAutomationTx(await asset.approve(vaultAddress, mintAmount));
+    const allowance = await asset.allowance(wallet.address, vaultAddress);
+    console.log(`\n       allowance=${allowance}`);
+    await waitForAutomationTx(await vault.deposit(mintAmount, wallet.address));
+    const totalAssets = await vault.totalAssets();
+    const shares = await vault.balanceOf(wallet.address);
+    console.log(`\n       totalAssets=${totalAssets} shares=${shares}`);
   });
 
-  await step('approve + deposit', async () => {
-    await waitForAutomationTx(await asset.approve(vaultAddress, mintAmount));
-    await waitForAutomationTx(await vault.deposit(mintAmount, treasury));
+  await step('allow treasury on vault + transfer shares', async () => {
+    await waitForAutomationTx(await vault.setExternalContractAllowed(treasury, true));
+    const shares = await vault.balanceOf(wallet.address);
+    await waitForAutomationTx(await vault.transfer(treasury, shares));
   });
 
   console.log('\nAll steps OK');
