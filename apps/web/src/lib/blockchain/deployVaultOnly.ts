@@ -4,6 +4,7 @@ import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import { resolveChainId } from './explorerUrls';
 import type { VaultFundingStatus } from '../admin/launchTypes';
 import { sendAutomationTx, waitForAutomationTx } from './automationTx';
+import { assertTreasuryVaultSharesReady } from './verifyTreasuryVaultShares';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 import { configureInitialContractSecurity } from './securityPolicy';
@@ -210,6 +211,21 @@ export async function deployVaultForExistingToken(
         treasuryAddress
       })
     ];
+
+    if (vaultFundingStatus === 'FUNDED') {
+      const treasuryReady = await assertTreasuryVaultSharesReady({
+        vaultAddress,
+        contractAddress,
+        chainId
+      });
+      if (treasuryReady.ok === false) {
+        provider.destroy();
+        return {
+          status: 'SKIPPED',
+          reason: treasuryReady.reason
+        };
+      }
+    }
 
     provider.destroy();
 

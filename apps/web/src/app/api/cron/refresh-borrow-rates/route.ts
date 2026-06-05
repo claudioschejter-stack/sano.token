@@ -8,22 +8,14 @@ import { enqueueAutomationJob, processAutomationJobs } from '../../../../lib/adm
 import { recordRwaSecurityReport } from '../../../../lib/blockchain/rwaSecurityReport';
 import { reconcilePayments } from '../../../../lib/payments/paymentReconciliation';
 import { recordPortfolioSnapshotsForActiveInvestors } from '../../../../lib/portfolio/portfolioAggregator';
+import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
 
 export const dynamic = 'force-dynamic';
-
-function isAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) {
-    return process.env.NODE_ENV !== 'production';
-  }
-
-  const header = request.headers.get('authorization');
-  return header === `Bearer ${secret}`;
-}
+export const maxDuration = 300;
 
 /** Vercel Cron — daily maintenance: rates cache + limited RWA automation repair. */
 export async function GET(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!isCronRequestAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

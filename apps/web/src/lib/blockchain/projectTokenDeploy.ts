@@ -9,6 +9,7 @@ import {
 } from '../admin/assetsService';
 import { buildSmartContractDocUrl } from './explorerUrls';
 import { deployLaunchToken } from './deployLaunchToken';
+import { assertTreasuryVaultSharesReady } from './verifyTreasuryVaultShares';
 import { deployVaultForExistingToken } from './deployVaultOnly';
 import { recordExplorerVerification } from './contractVerification';
 import { recordAutomationPreflight } from './automationPreflight';
@@ -95,18 +96,41 @@ async function executeProjectVaultDeployUnlocked(projectId: string): Promise<Pro
   const vaultExplorerUrl =
     buildSmartContractDocUrl(result.chainId, result.vaultAddress) ?? result.vaultAddress;
 
+  let vaultDeployStatus: 'DEPLOYED' | 'FAILED' = result.vaultFundingStatus === 'FUNDED' ? 'DEPLOYED' : 'FAILED';
+  let vaultFundingError = result.vaultFundingError;
+  if (vaultDeployStatus === 'DEPLOYED') {
+    const treasuryReady = await assertTreasuryVaultSharesReady({
+      vaultAddress: result.vaultAddress,
+      contractAddress: asset.contractAddress,
+      chainId: result.chainId
+    });
+    if (treasuryReady.ok === false) {
+      vaultDeployStatus = 'FAILED';
+      vaultFundingError = treasuryReady.reason;
+    }
+  }
+
   const updated = await updateAdminAsset(projectId, {
     vaultAddress: result.vaultAddress,
     chainId: result.chainId,
-    tokenDeployStatus: result.vaultFundingStatus === 'FUNDED' ? 'DEPLOYED' : 'FAILED',
+    tokenDeployStatus: vaultDeployStatus,
     vaultFundingStatus: result.vaultFundingStatus,
     vaultFundingAmount: result.vaultFundingAmount,
     vaultFundingTxHash: result.vaultFundingTxHash,
-    vaultFundingError: result.vaultFundingError,
+    vaultFundingError,
     contracts: {
       smartContract: vaultExplorerUrl
     }
   });
+
+  if (vaultDeployStatus !== 'DEPLOYED') {
+    await appendDeploymentEvent(projectId, {
+      step: 'VAULT_FUNDING',
+      status: 'FAILED',
+      message: vaultFundingError ?? 'Treasury vault shares missing after vault deploy.'
+    });
+    return { status: 'SKIPPED', asset: updated, reason: vaultFundingError ?? 'Treasury vault shares missing.' };
+  }
 
   await appendDeploymentEvent(projectId, {
     step: 'VAULT_DEPLOY',
@@ -257,9 +281,27 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
         ? buildSmartContractDocUrl(result.chainId, vaultAddress)
         : null;
 
+      let tokenDeployStatus: 'DEPLOYED' | 'FAILED' = 'DEPLOYED';
+      let vaultFundingError = result.vaultFundingError ?? null;
+
+      if (asset.tokenStandard === 'ERC4626') {
+        if (result.vaultFundingStatus !== 'FUNDED' || !vaultAddress) {
+          tokenDeployStatus = 'FAILED';
+        } else {
+          const treasuryReady = await assertTreasuryVaultSharesReady({
+            vaultAddress,
+            contractAddress: result.contractAddress,
+            chainId: result.chainId
+          });
+          if (treasuryReady.ok === false) {
+            tokenDeployStatus = 'FAILED';
+            vaultFundingError = treasuryReady.reason;
+          }
+        }
+      }
+
       const updated = await updateAdminAsset(projectId, {
-        tokenDeployStatus:
-          asset.tokenStandard === 'ERC4626' && result.vaultFundingStatus !== 'FUNDED' ? 'FAILED' : 'DEPLOYED',
+        tokenDeployStatus,
         contractAddress: result.contractAddress,
         vaultAddress,
         vaultFundingStatus:
@@ -268,12 +310,25 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
             : 'NOT_REQUIRED',
         vaultFundingAmount: result.vaultFundingAmount ?? null,
         vaultFundingTxHash: result.vaultFundingTxHash ?? null,
-        vaultFundingError: result.vaultFundingError ?? null,
+        vaultFundingError,
         chainId: result.chainId,
         contracts: {
           smartContract: vaultExplorerUrl ?? explorerUrl
         }
       });
+
+      if (tokenDeployStatus !== 'DEPLOYED') {
+        await appendDeploymentEvent(projectId, {
+          step: 'TOKEN_DEPLOY',
+          status: 'FAILED',
+          message: vaultFundingError ?? 'Treasury vault shares missing after deploy.'
+        });
+        return {
+          status: 'SKIPPED',
+          asset: updated,
+          reason: vaultFundingError ?? 'Treasury vault shares missing after deploy.'
+        };
+      }
 
       await appendDeploymentEvent(projectId, {
         step: 'TOKEN_DEPLOY',

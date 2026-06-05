@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { updateAdminAsset, getAdminAsset } from '../../../../lib/admin/assetsService';
 import type { CollateralProtocol } from '../../../../lib/admin/launchTypes';
+import { verifySharedSecret } from '../../../../lib/payments/webhookSecurity';
 
 type WebhookBody = {
   projectId: string;
@@ -12,10 +13,12 @@ type WebhookBody = {
 };
 
 export async function POST(request: Request) {
-  const secret = process.env.COLLATERAL_WEBHOOK_SECRET?.trim();
-  const provided = request.headers.get('x-sanova-webhook-secret');
-
-  if (!secret || provided !== secret) {
+  if (
+    !verifySharedSecret({
+      secret: process.env.COLLATERAL_WEBHOOK_SECRET,
+      provided: request.headers.get('x-sanova-webhook-secret')
+    })
+  ) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

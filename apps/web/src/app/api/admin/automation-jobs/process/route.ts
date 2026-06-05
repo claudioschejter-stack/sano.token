@@ -4,6 +4,7 @@ import { processAutomationJobs } from '../../../../../lib/admin/automationJobs';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   if (!(await requireAdminSession())) {

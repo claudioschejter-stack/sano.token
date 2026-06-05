@@ -168,7 +168,8 @@ export async function finalizeErc4626AfterPersist(
 
   const onChainIssues = getErc4626OnChainIssues(asset);
   const morphoIssues = options.requestedPublish ? getMorphoPostDeployIssues(asset) : [];
-  const treasuryIssues = options.requestedPublish ? await getTreasuryReadinessIssues(asset) : [];
+  const treasuryIssues =
+    options.requestedPublish || deploy ? await getTreasuryReadinessIssues(asset) : [];
   const allIssues = mergeLaunchGateIssues(onChainIssues, morphoIssues, treasuryIssues);
 
   if (allIssues.length) {

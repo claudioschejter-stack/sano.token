@@ -4,6 +4,7 @@ import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deployAssetToken';
 import { ensureAutomationSignerReady, sendAutomationTx, waitForAutomationTx } from './automationTx';
+import { assertTreasuryVaultSharesReady } from './verifyTreasuryVaultShares';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 import { configureInitialContractSecurity } from './securityPolicy';
@@ -249,13 +250,13 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const asset = new Contract(contractAddress, SanovaAssetTokenArtifact.abi, wallet);
 
     if (mintRecipient.toLowerCase() !== wallet.address.toLowerCase()) {
-      const setKycTx = await asset.setKyc(mintRecipient, true);
+      const setKycTx = await sendAutomationTx(() => asset.setKyc(mintRecipient, true), wallet);
       await waitForAutomationTx(setKycTx);
     }
 
     deploymentStep = 'asset_mint';
     await ensureAutomationSignerReady(wallet);
-    const mintTx = await asset.mint(mintRecipient, mintAmount);
+    const mintTx = await sendAutomationTx(() => asset.mint(mintRecipient, mintAmount), wallet);
     const mintReceipt = await waitForAutomationTx(mintTx);
 
     if (input.tokenStandard === 'SANOVA_KYC') {
@@ -330,7 +331,6 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
         error instanceof Error ? error.message : 'No se pudo aplicar la política de seguridad inicial.';
     }
 
-    let treasuryShareTransferError: string | null = securityConfigError;
     deploymentStep = 'treasury_share_transfer';
     try {
       await transferVaultSharesToTreasury({
@@ -341,9 +341,23 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
         wallet
       });
     } catch (error) {
-      treasuryShareTransferError =
+      provider.destroy();
+      const message =
         error instanceof Error ? error.message : 'No se pudieron transferir shares al treasury Safe.';
+      return { status: 'SKIPPED', reason: `Treasury share transfer failed: ${message}` };
     }
+
+    const treasuryReady = await assertTreasuryVaultSharesReady({
+      vaultAddress,
+      contractAddress,
+      chainId
+    });
+    if (treasuryReady.ok === false) {
+      provider.destroy();
+      return { status: 'SKIPPED', reason: treasuryReady.reason };
+    }
+
+    const treasuryShareTransferError: string | null = securityConfigError;
 
     deploymentStep = 'ownership_transfer';
     const ownershipTransfers = [

@@ -5,6 +5,7 @@ import { recordAutomationPreflight } from '../../../../../../lib/blockchain/auto
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 60;
 
 type RouteContext = {
   params: Promise<{ projectId: string }>;

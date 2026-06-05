@@ -7,6 +7,7 @@ import { setInvestorKycAllowlist } from '../../../../../../lib/blockchain/kycAll
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const maxDuration = 120;
 
 type RouteContext = {
   params: Promise<{ userId: string }>;

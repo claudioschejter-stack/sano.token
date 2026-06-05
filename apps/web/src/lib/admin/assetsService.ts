@@ -348,8 +348,6 @@ const EMPTY_AUTOMATION_META: AutomationMeta = {
   launchAuditHash: null
 };
 
-const automationLocks = new Map<string, { owner: string; step: string; expiresAt: number }>();
-
 function parseAutomationMeta(raw: string): AutomationMeta {
   try {
     const parsed = JSON.parse(raw) as Partial<AutomationMeta>;
@@ -506,6 +504,8 @@ function mapProject(project: {
   vaultFundingTxHash: string | null;
   vaultFundingError: string | null;
   chainId: number | null;
+  automationLockStep?: string | null;
+  automationLockExpiresAt?: Date | null;
   totalTokens: number;
   availableTokens: number;
   pricePerToken: { toString(): string } | number;
@@ -573,8 +573,9 @@ function mapProject(project: {
     automationReadiness: readiness,
     automationFailureCount: meta.automationFailureCount,
     automationCircuitBreaker: meta.automationCircuitBreaker,
-    automationLockStep: meta.automationLockStep,
-    automationLockExpiresAt: meta.automationLockExpiresAt,
+    automationLockStep: project.automationLockStep ?? meta.automationLockStep,
+    automationLockExpiresAt:
+      project.automationLockExpiresAt?.toISOString() ?? meta.automationLockExpiresAt,
     morphoLiquidityStatus: meta.morphoLiquidityStatus,
     explorerVerificationStatus:
       meta.explorerVerificationStatus,
@@ -968,6 +969,13 @@ export async function updateAdminAsset(
     data.pricePerToken = input.pricePerToken;
   }
 
+  if (input.automationLockStep !== undefined) {
+    data.automationLockStep = input.automationLockStep;
+  }
+  if (input.automationLockExpiresAt !== undefined) {
+    data.automationLockExpiresAt = input.automationLockExpiresAt;
+  }
+
   const hasAutomationMetaInput =
     input.automationReadiness !== undefined ||
     input.automationFailureCount !== undefined ||
@@ -1187,31 +1195,44 @@ export async function withProjectAutomationLock<T>(
   callback: () => Promise<T>,
   ttlMs = 10 * 60 * 1000
 ): Promise<T> {
-  const now = new Date();
   const owner = randomId();
-  const existingLock = automationLocks.get(projectId);
+  const expiresAt = new Date(Date.now() + ttlMs);
 
-  if (existingLock && existingLock.expiresAt > now.getTime()) {
+  const acquired = await prisma.project.updateMany({
+    where: {
+      id: projectId,
+      OR: [{ automationLockExpiresAt: null }, { automationLockExpiresAt: { lte: new Date() } }]
+    },
+    data: {
+      automationLockStep: step,
+      automationLockExpiresAt: expiresAt,
+      automationLockOwner: owner
+    }
+  });
+
+  if (acquired.count === 0) {
     throw new Error('AUTOMATION_LOCKED');
   }
 
-  automationLocks.set(projectId, {
-    owner,
-    step,
-    expiresAt: now.getTime() + ttlMs
-  });
   await updateAdminAsset(projectId, {
     automationLockStep: step,
-    automationLockExpiresAt: new Date(now.getTime() + ttlMs)
+    automationLockExpiresAt: expiresAt
   }).catch(() => undefined);
 
   try {
     return await callback();
   } finally {
-    const current = automationLocks.get(projectId);
-    if (current?.owner === owner) {
-      automationLocks.delete(projectId);
-    }
+    await prisma.project
+      .updateMany({
+        where: { id: projectId, automationLockOwner: owner },
+        data: {
+          automationLockStep: null,
+          automationLockExpiresAt: null,
+          automationLockOwner: null
+        }
+      })
+      .catch(() => undefined);
+
     await updateAdminAsset(projectId, {
       automationLockStep: null,
       automationLockExpiresAt: null

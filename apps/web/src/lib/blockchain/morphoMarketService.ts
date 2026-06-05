@@ -7,7 +7,7 @@ import {
   prepareMorphoCreateMarket,
   type MorphoMarketParams
 } from '../lending/protocols/morphoBorrow';
-import { waitForAutomationTx } from './automationTx';
+import { ensureAutomationSignerReady, sendAutomationTx, waitForAutomationTx } from './automationTx';
 import { getLendingChainConfig } from '../lending/baseContracts';
 import { fixedUsdPriceToMorphoOraclePrice } from './pricingOracleValidation';
 
@@ -134,13 +134,18 @@ export async function createMorphoMarketForVault(
       return { status: 'SKIPPED', reason: message };
     }
 
-    const tx = await morpho.createMarket([
-      params.loanToken,
-      params.collateralToken,
-      params.oracle,
-      params.irm,
-      params.lltv
-    ]);
+    await ensureAutomationSignerReady(wallet);
+    const tx = await sendAutomationTx(
+      () =>
+        morpho.createMarket([
+          params.loanToken,
+          params.collateralToken,
+          params.oracle,
+          params.irm,
+          params.lltv
+        ]),
+      wallet
+    );
     const receipt = await waitForAutomationTx(tx);
     let storedCollateral = '';
     for (let attempt = 0; attempt < 8; attempt += 1) {

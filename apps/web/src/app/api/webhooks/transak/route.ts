@@ -9,7 +9,6 @@ export async function POST(request: Request) {
   const signature = request.headers.get('x-transak-signature');
 
   if (
-    process.env.TRANSAK_WEBHOOK_SECRET &&
     !verifyHmacSignature({
       secret: process.env.TRANSAK_WEBHOOK_SECRET,
       payload,

@@ -1,22 +1,14 @@
 import { NextResponse } from 'next/server';
 import { processAutomationJobs } from '../../../../lib/admin/automationJobs';
 import { autoEnqueueEligibleYieldBatches } from '../../../../lib/yield/yieldJobProcessor';
+import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
 
 export const dynamic = 'force-dynamic';
-
-function isAuthorized(request: Request): boolean {
-  const secret = process.env.CRON_SECRET?.trim();
-  if (!secret) {
-    return process.env.NODE_ENV !== 'production';
-  }
-
-  const header = request.headers.get('authorization');
-  return header === `Bearer ${secret}`;
-}
+export const maxDuration = 300;
 
 /** Cron — auto-batch tenant operating balances, convert fiat, distribute USDC to vaults. */
 export async function GET(request: Request) {
-  if (!isAuthorized(request)) {
+  if (!isCronRequestAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

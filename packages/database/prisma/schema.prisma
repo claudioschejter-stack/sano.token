@@ -432,6 +432,9 @@ model Project {
   vaultFundingTxHash   String?
   vaultFundingError    String?
   chainId              Int?
+  automationLockStep       String?
+  automationLockExpiresAt  DateTime?
+  automationLockOwner      String?
   isActive             Boolean      @default(true)
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
@@ -445,6 +448,7 @@ model Project {
   @@index([fiscalRegime])
   @@index([isActive])
   @@index([isActive, createdAt])
+  @@index([automationLockExpiresAt])
 }
 
 model AdminAuditLog {
