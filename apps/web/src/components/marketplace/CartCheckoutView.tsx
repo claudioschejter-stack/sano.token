@@ -122,6 +122,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const requiresWallet =
     selectedDepositOption?.method === 'CUSTODIAL_STABLECOIN' ||
     selectedDepositOption?.method === 'USDC_ONCHAIN';
+  const showWalletLinker = requiresWallet && mode !== 'deposit';
+  const linkedWalletAddress = walletGuard.linkedWallet;
   const paymentQuoteExpired = showPaymentMethods && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
 
   const loadDepositQuote = useCallback(() => {
@@ -181,7 +183,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }, 280);
 
     return () => window.clearTimeout(timer);
-  }, [loadDepositQuote, showPaymentMethods]);
+  }, [loadDepositQuote, showPaymentMethods, walletGuard.isWalletLinked]);
 
   useEffect(() => {
     if (!showPaymentMethods || !quoteExpiresAt) {
@@ -254,15 +256,18 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }
 
     if (requiresWallet) {
-      if (!walletGuard.isWalletLinked) {
+      if (!walletGuard.isWalletLinked || !linkedWalletAddress) {
         setError(w.walletNotLinked);
         return;
       }
-      if (!walletGuard.canSignOnChain || !address) {
-        setError(
-          walletGuard.isWrongNetwork ? w.wrongNetwork : walletGuard.isWalletMismatch ? w.walletMismatch : w.noWallet
-        );
-        return;
+
+      if (mode === 'purchase') {
+        if (!walletGuard.canSignOnChain || !address) {
+          setError(
+            walletGuard.isWrongNetwork ? w.wrongNetwork : walletGuard.isWalletMismatch ? w.walletMismatch : w.noWallet
+          );
+          return;
+        }
       }
     }
 
@@ -281,7 +286,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             method: paymentMethod,
             auto: false,
             stablecoinNetwork,
-            walletAddress: address
+            walletAddress: linkedWalletAddress
           })
         });
 
@@ -397,7 +402,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       body: JSON.stringify({
         depositId: deposit.id,
         txHash: manualTxHash.trim(),
-        walletAddress: address
+        walletAddress: linkedWalletAddress ?? undefined
       })
     });
 
@@ -659,13 +664,25 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           ) : null}
 
-          {requiresWallet ? (
+          {showWalletLinker ? (
             <InvestorWalletLinker
               variant="checkout"
               allowReplace
               onError={(message) => setError(message)}
               onLinked={() => loadDepositQuote()}
             />
+          ) : null}
+
+          {mode === 'deposit' &&
+          requiresWallet &&
+          linkedWalletAddress &&
+          status === 'manual' &&
+          payToAddress ? (
+            <p className="text-xs text-terminal-muted">
+              {formatMessage(c.depositFromLinkedWalletHint, {
+                address: `${linkedWalletAddress.slice(0, 6)}…${linkedWalletAddress.slice(-4)}`
+              })}
+            </p>
           ) : null}
 
           {status === 'done' ? (

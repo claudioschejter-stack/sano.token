@@ -796,6 +796,8 @@ export const en = {
     paymentMethodsUnavailable: "Unavailable payment methods",
     electronicWalletLinkedHint:
       "USDC from your linked wallet ({address}) on Base — credited after transfer confirmation.",
+    depositFromLinkedWalletHint:
+      "Send USDC from your linked wallet ({address}) on Base to the address below.",
     paymentMethodsTitle: "Automatic payment options",
     confirmButton: "Confirm",
     continueDeposit: "Continue",

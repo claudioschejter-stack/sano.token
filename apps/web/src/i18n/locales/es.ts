@@ -809,6 +809,8 @@ export const es = {
     paymentMethodsUnavailable: 'Formas de pago no disponibles',
     electronicWalletLinkedHint:
       'USDC desde tu billetera vinculada ({address}) en Base — se acredita al confirmar la transferencia.',
+    depositFromLinkedWalletHint:
+      'Enviá USDC desde tu billetera vinculada ({address}) en Base a la dirección de abajo.',
     paymentMethodsTitle: 'Opciones de pago automáticas',
     confirmButton: 'Confirmar',
     continueDeposit: 'Continuar',
