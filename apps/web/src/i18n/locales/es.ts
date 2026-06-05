@@ -494,9 +494,20 @@ export const es = {
     publishOnSave: 'Publicar en marketplace al guardar',
     tokenDeployTitle: 'Emisión on-chain del token',
     tokenDeployDesc:
-      'Obligatorio para ERC-4626. Al guardar se despliegan automáticamente el token, el vault y el fondeo; no se aceptan direcciones manuales.',
+      'Obligatorio para ERC-4626. Al guardar se despliegan automáticamente el token, el vault, el registro Morpho y las shares en el treasury Safe; no se aceptan direcciones manuales.',
     tokenDeployMandatoryHint:
-      'Al guardar se emiten on-chain el token Sanova, el vault ERC-4626 y el enlace del smart contract en la tarjeta. Si falta algo, verás el detalle del error.',
+      'Al guardar se emiten on-chain el token Sanova, el vault ERC-4626, el mercado Morpho y las shares en el treasury Safe. Si falta algo, verás el detalle del error y no se guardará ni publicará.',
+    treasurySharesTitle: 'Shares en treasury Safe',
+    treasurySharesDesc:
+      'Las emisiones nuevas acreditan shares en TOKEN_TREASURY_ADDRESS. Para usar colateral en tu Coinbase, migrá shares ya emitidas con el botón debajo.',
+    coinbaseDestination: 'Destino Coinbase vinculado',
+    migrateSharesToCoinbase: 'Migrar mis shares del treasury a Coinbase',
+    migrateSharesSuccess: 'Shares transferidas on-chain a tu Coinbase.',
+    migrateSharesError: 'No se pudieron migrar las shares. Revisá TREASURY_OWNER_PRIVATE_KEY y la wallet vinculada.',
+    issuerWalletMissing: 'Sin wallet Coinbase vinculada. Conectala desde el dashboard inversor.',
+    morphoRequiredTitle: 'Requisitos Morpho (obligatorio para ERC-4626)',
+    morphoRequiredDesc:
+      'Completá la documentación legal, el fideicomiso, el oráculo NAV y el checklist antes de guardar. El mercado Morpho se registra automáticamente al emitir.',
     tokenDeployOptionalHint:
       'La emisión automática no está configurada en el servidor (TOKEN_DEPLOY_PRIVATE_KEY, RPC o gas). No se puede guardar un lanzamiento ERC-4626 hasta configurarlo.',
     tokenDeployReadyHint:
@@ -537,7 +548,23 @@ export const es = {
       AUTOMATION_BLOCKED: 'Automatización bloqueada (circuit breaker o demasiados fallos).',
       MORPHO_REQUIRED_FOR_PUBLISH:
         'Para publicar en marketplace con ERC-4626, activá Morpho como protocolo de colateral.',
-      CANNOT_PUBLISH_INCOMPLETE: 'No se puede publicar hasta completar la emisión on-chain.'
+      MORPHO_NOT_SELECTED: 'Morpho es obligatorio para lanzamientos ERC-4626.',
+      MORPHO_MIN_SUPPLY: 'Morpho requiere al menos 5.000 tokens en la emisión.',
+      MISSING_TRUST_CONTRACT: 'Subí el contrato de fideicomiso (PDF).',
+      MORPHO_LEGAL_AUDIT: 'Marcá la auditoría legal como completada en el checklist.',
+      MISSING_NAV_ORACLE: 'Configurá la URL del oráculo NAV.',
+      MORPHO_KYC_POLICY: 'Activá la política KYC en el checklist legal.',
+      MORPHO_LIQUIDITY_PLAN: 'Documentá el plan de liquidez en el checklist.',
+      MISSING_JURISDICTION: 'Indicá la jurisdicción del activo.',
+      MISSING_SPV: 'Documentá la SPV (nombre o contrato de fideicomiso).',
+      MORPHO_CHAIN_UNSUPPORTED: 'La red configurada no está soportada por Morpho.',
+      MORPHO_MARKET_NOT_REGISTERED: 'El mercado Morpho no quedó registrado on-chain.',
+      MORPHO_ORACLE_MISSING: 'Falta el oráculo de precio del mercado Morpho.',
+      MORPHO_COLLATERAL_NOT_READY: 'El colateral Morpho no cumple todos los requisitos.',
+      TREASURY_NOT_CONFIGURED: 'Falta TOKEN_TREASURY_ADDRESS en Vercel.',
+      TREASURY_VAULT_SHARES_MISSING: 'Las shares del vault no llegaron al treasury Safe.',
+      TREASURY_KYC_NOT_APPROVED: 'El treasury Safe no tiene KYC aprobado on-chain en el token.',
+      CANNOT_PUBLISH_INCOMPLETE: 'No se puede publicar hasta completar la emisión on-chain y Morpho.'
     }
   },
   adminTeam: {
@@ -813,11 +840,11 @@ export const es = {
     sendToCompartment: 'Enviá el pago a la wallet del Compartimento y pegá el tx hash para verificar:',
     walletSectionTitle: 'Billetera para pagar en Base',
     walletSectionDesc:
-      'Usá Coinbase Wallet con el primer botón. Si ya tenés otra billetera (MetaMask, Rainbow, etc.), conectala con WalletConnect.',
-    walletSectionHint: 'La dirección se guarda en tu perfil de inversor para futuras operaciones.',
-    walletConnectPrompt: 'Tu billetera ya está registrada. Conectala para firmar el pago.',
+      'Conectá tu Coinbase Wallet en Base para firmar el pago. Las cuotapartes se acreditan en la treasury de la plataforma.',
+    walletSectionHint: 'Tu Coinbase Wallet queda en tu perfil para firmar pagos y cobrar rentas en USDC.',
+    walletConnectPrompt: 'Tu Coinbase Wallet ya está registrada. Conectala para firmar el pago.',
     walletConnectPromptLinked:
-      'Tu billetera {address} está registrada. Conectá la misma dirección con WalletConnect (MetaMask, Rainbow, etc.) o Coinbase Wallet.',
+      'Tu billetera {address} está registrada. Reconectá la misma Coinbase Wallet en Base.',
     createOrderPay: 'Crear orden y pagar'
   },
   cartCheckout: {
@@ -942,12 +969,12 @@ export const es = {
     connecting: 'Conectando…',
     connect: 'Conectar wallet',
     connectCoinbase: 'Conectar Coinbase Wallet',
-    connectWalletConnect: 'Conectar billetera existente (WalletConnect)',
-    connectFailed: 'No pudimos conectar la billetera. Intentá de nuevo.',
+    connectWalletConnect: 'Conectar Coinbase Wallet',
+    connectFailed: 'No pudimos conectar Coinbase Wallet. Intentá de nuevo.',
     connectRejected: 'Conexión cancelada. Podés volver a intentarlo.',
     connectRetryWalletConnect:
-      'Si tu billetera es MetaMask u otra externa, usá «Conectar billetera existente (WalletConnect)» con la misma dirección registrada.',
-    noWallet: 'Conectá tu billetera con Coinbase Wallet o WalletConnect.',
+      'Reconectá la misma dirección de Coinbase Wallet que tenés registrada en tu perfil.',
+    noWallet: 'Conectá tu Coinbase Wallet en la red Base.',
     wrongNetwork: 'Cambiar a red Base',
     walletMismatch: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
     replaceWalletTitle: 'Billetera distinta a la vinculada',
@@ -974,12 +1001,15 @@ export const es = {
     viewTx: 'Ver transacción',
     userRejected: 'Transacción cancelada en la wallet.',
     retry: 'Reintentar',
-    vaultNotConfigured: 'Vault ERC-4626 no configurado para este activo.'
+    vaultNotConfigured: 'Vault ERC-4626 no configurado para este activo.',
+    treasuryDepositNote: 'Depósito a treasury de plataforma',
+    platformTreasuryMissing:
+      'Falta NEXT_PUBLIC_TOKEN_TREASURY_ADDRESS en Vercel. Contactá soporte.'
   },
   collectionWallet: {
     title: 'Wallet de cobro',
     subtitle:
-      'Conectá Coinbase Wallet o tu billetera existente (MetaMask, Rainbow, etc.) en Base. La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC.',
+      'Conectá tu Coinbase Wallet en Base. La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC.',
     back: 'Volver'
   },
   platformWallet: {
@@ -1437,13 +1467,12 @@ export const es = {
       walletDesc:
         'Es obligatorio para quedar como inversor aprobado: recibir USDC, comprar tokens RWA y operar en Base.',
       walletBullet1: 'Coinbase Wallet: conectá o creá tu Smart Wallet en Base.',
-      walletBullet2: 'Otra billetera existente: MetaMask, Rainbow u otras solo vía WalletConnect.',
+      walletBullet2: 'Usá una cuenta Coinbase separada por rol (inversor, admin, operador).',
       walletBullet3: 'Red Base mainnet — la dirección queda vinculada a tu cuenta Sanova.',
       createCoinbaseWallet: 'Conectar Coinbase Wallet',
-      connectExistingWallet: 'Conectar billetera existente (WalletConnect)',
-      walletConnectUnavailable:
-        'WalletConnect no está configurado en el servidor. Usá Coinbase Wallet o contactá soporte.',
-      walletConnect: 'WalletConnect',
+      connectExistingWallet: 'Conectar Coinbase Wallet',
+      walletConnectUnavailable: 'Solo Coinbase Wallet está habilitada en la plataforma.',
+      walletConnect: 'Coinbase Wallet',
       walletSaving: 'Guardando billetera…',
       walletLinked: 'Billetera vinculada',
       walletHint: 'Guardamos tu dirección para asociar compras y repagos on-chain con tu cuenta.',

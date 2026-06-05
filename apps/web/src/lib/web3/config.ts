@@ -1,17 +1,12 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base } from 'wagmi/chains';
-import { coinbaseWallet, walletConnect } from '@wagmi/connectors';
-import {
-  isWalletConnectConfigured,
-  walletConnectMetadata,
-  walletConnectProjectId
-} from './walletConnect';
+import { coinbaseWallet } from '@wagmi/connectors';
+import { walletConnectMetadata } from './walletConnect';
 
-export {
-  isWalletConnectConfigured,
-  walletConnectAllowedOrigins,
-  walletConnectProjectId
-} from './walletConnect';
+export { walletConnectAllowedOrigins } from './walletConnect';
+
+/** @deprecated Coinbase-only; WalletConnect removed. */
+export const isWalletConnectConfigured = false;
 
 const baseRpcUrl =
   process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() ||
@@ -26,16 +21,7 @@ const connectors = [
     appName: walletConnectMetadata.name,
     /** Permite Smart Wallet o EOA para reconectar la dirección ya registrada en el perfil. */
     preference: 'all'
-  }),
-  ...(isWalletConnectConfigured
-    ? [
-        walletConnect({
-          projectId: walletConnectProjectId,
-          metadata: walletConnectMetadata,
-          showQrModal: true
-        })
-      ]
-    : [])
+  })
 ];
 
 export const wagmiConfig = createConfig({
@@ -56,3 +42,10 @@ export const BASE_USDC_ADDRESS =
   (process.env.NEXT_PUBLIC_BASE_USDC_TOKEN_ADDRESS?.trim() ||
     process.env.BASE_USDC_TOKEN_ADDRESS?.trim() ||
     '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') as `0x${string}`;
+
+/** Treasury Safe — vault shares y colateral de plataforma (no wallet personal del inversor). */
+export const PLATFORM_TREASURY_ADDRESS = (
+  process.env.NEXT_PUBLIC_TOKEN_TREASURY_ADDRESS?.trim() ||
+  process.env.NEXT_PUBLIC_SANOVA_TREASURY_ADDRESS?.trim() ||
+  ''
+).toLowerCase() as `0x${string}` | '';

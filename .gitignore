@@ -52,6 +52,8 @@ yarn-error.log*
 .env
 .env*.local
 .env.local
+.env.vercel*
+.env copy*
 
 # vercel
 .vercel
@@ -70,3 +72,5 @@ apps/web/next-env.d.ts
 # Cursor / agent local cache
 .agents/
 skills-lock.json
+
+.vercel

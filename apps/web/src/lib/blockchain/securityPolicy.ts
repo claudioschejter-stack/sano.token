@@ -1,5 +1,5 @@
 import type { Contract } from 'ethers';
-import { waitForAutomationTx } from './automationTx';
+import { sendAutomationTx, waitForAutomationTx } from './automationTx';
 import { getLendingChainConfig } from '../lending/baseContracts';
 
 function parseAddressList(value?: string): string[] {
@@ -90,19 +90,43 @@ export async function configureInitialContractSecurity(input: {
     ])
   );
 
+  const wallet = input.asset.runner;
+
   for (const address of allowed) {
-    const assetTx = await input.asset.setExternalContractAllowed(address, true);
-    await waitForAutomationTx(assetTx);
-    if (input.vaultContract) {
-      const vaultTx = await input.vaultContract.setExternalContractAllowed(address, true);
-      await waitForAutomationTx(vaultTx);
+    try {
+      const assetAllowed = await input.asset.externalContractAllowed(address);
+      if (!assetAllowed) {
+        await input.asset.setExternalContractAllowed.staticCall(address, true);
+        const assetTx = await sendAutomationTx(() => input.asset.setExternalContractAllowed(address, true), wallet);
+        await waitForAutomationTx(assetTx);
+      }
+      if (input.vaultContract) {
+        const vaultAllowed = await input.vaultContract.externalContractAllowed(address);
+        if (!vaultAllowed) {
+          await input.vaultContract.setExternalContractAllowed.staticCall(address, true);
+          const vaultTx = await sendAutomationTx(
+            () => input.vaultContract!.setExternalContractAllowed(address, true),
+            wallet
+          );
+          await waitForAutomationTx(vaultTx);
+        }
+      }
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'allow failed';
+      throw new Error(`setExternalContractAllowed(${address}) falló: ${detail}`);
     }
   }
 
   if (input.vaultContract) {
-    const limit = resolveDailyWithdrawalLimit(input.totalAssets);
-    const limitTx = await input.vaultContract.setDailyWithdrawalLimit(limit);
-    await waitForAutomationTx(limitTx);
+    try {
+      const limit = resolveDailyWithdrawalLimit(input.totalAssets);
+      await input.vaultContract.setDailyWithdrawalLimit.staticCall(limit);
+      const limitTx = await sendAutomationTx(() => input.vaultContract!.setDailyWithdrawalLimit(limit), wallet);
+      await waitForAutomationTx(limitTx);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'limit failed';
+      throw new Error(`setDailyWithdrawalLimit falló: ${detail}`);
+    }
   }
 
   return { allowedContracts: allowed };

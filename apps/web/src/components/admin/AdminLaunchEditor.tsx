@@ -33,10 +33,12 @@ import { buildSmartContractDocUrl } from '../../lib/blockchain/explorerUrls';
 import {
   formatLaunchGateIssues,
   isErc4626OnChainReady,
+  mergeLaunchGateIssues,
   validateErc4626LaunchForm,
   type LaunchGateIssue,
   type LaunchGateIssueCode
 } from '../../lib/admin/erc4626LaunchGate';
+import { validateErc4626MorphoFormRequirements } from '../../lib/admin/erc4626MorphoGate';
 import { AdminGate } from './AdminGate';
 
 type AdminLaunchEditorProps = {
@@ -186,7 +188,7 @@ function selectedCollateral(form: FormState): CollateralProtocol[] {
   const protocols: CollateralProtocol[] = [];
   if (form.collateralCentrifuge) protocols.push('CENTRIFUGE');
   if (form.collateralSky) protocols.push('SKY');
-  if (form.collateralMorpho) protocols.push('MORPHO');
+  if (form.collateralMorpho || form.tokenStandard === 'ERC4626') protocols.push('MORPHO');
   if (form.collateralAaveHorizon) protocols.push('AAVE_HORIZON');
   if (form.collateralMaple) protocols.push('MAPLE');
   if (form.collateralClearpool) protocols.push('CLEARPOOL');
@@ -228,6 +230,8 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
   const [registeringCollateral, setRegisteringCollateral] = useState(false);
   const [repairingAutomation, setRepairingAutomation] = useState(false);
   const [runningPreflight, setRunningPreflight] = useState(false);
+  const [linkedInvestorWallet, setLinkedInvestorWallet] = useState<string | null>(null);
+  const [migratingShares, setMigratingShares] = useState(false);
   const skipAutoSaveRef = useRef(true);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -274,6 +278,15 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
         setTokenDeployReady(Boolean(data?.configured));
       })
       .catch(() => setTokenDeployReady(false));
+  }, []);
+
+  useEffect(() => {
+    void fetch('/api/admin/launch-issuer-wallet')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { walletAddress?: string | null } | null) => {
+        setLinkedInvestorWallet(data?.walletAddress?.trim() || null);
+      })
+      .catch(() => setLinkedInvestorWallet(null));
   }, []);
 
   const isErc4626Launch = form.tokenStandard === 'ERC4626';
@@ -595,18 +608,69 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
   function erc4626FormValidationIssues(wantsPublish: boolean): LaunchGateIssue[] {
     if (!isErc4626Launch) return [];
 
-    return validateErc4626LaunchForm({
-      title: form.title,
-      description: form.description,
-      location: form.location,
-      totalTokens: Number.parseInt(form.totalTokens, 10),
-      pricePerToken: Number.parseFloat(form.pricePerToken),
-      tokenName: form.tokenName || form.title,
-      tokenSymbol: form.tokenSymbol,
-      mediaGallery: form.mediaGallery,
-      isActive: wantsPublish,
-      collateralMorpho: form.collateralMorpho
+    const checklist = autoFillCentrifugeChecklist({
+      checklist: form.centrifugeChecklist,
+      hasTrustContract: Boolean(form.contracts.trust),
+      hasNavOracleUrl: Boolean(form.navOracleUrl.trim()),
+      hasSpvName: Boolean(form.spvEntityName.trim()),
+      tokenDeployed: Boolean(form.contractAddress)
     });
+
+    return mergeLaunchGateIssues(
+      validateErc4626LaunchForm({
+        title: form.title,
+        description: form.description,
+        location: form.location,
+        totalTokens: Number.parseInt(form.totalTokens, 10),
+        pricePerToken: Number.parseFloat(form.pricePerToken),
+        tokenName: form.tokenName || form.title,
+        tokenSymbol: form.tokenSymbol,
+        mediaGallery: form.mediaGallery,
+        isActive: wantsPublish,
+        collateralMorpho: true
+      }),
+      validateErc4626MorphoFormRequirements({
+        totalTokens: Number.parseInt(form.totalTokens, 10),
+        spvEntityName: form.spvEntityName || null,
+        navOracleUrl: form.navOracleUrl || null,
+        jurisdiction: form.jurisdiction,
+        contracts: form.contracts,
+        centrifugeChecklist: checklist,
+        collateralMorpho: true
+      })
+    );
+  }
+
+  async function handleMigrateSharesToCoinbase() {
+    if (!projectId) return;
+    setMigratingShares(true);
+    setError(null);
+    setMessage(null);
+
+    try {
+      const response = await fetch('/api/admin/migrate-investor-shares', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId })
+      });
+      const data = (await response.json()) as {
+        ok?: boolean;
+        txHash?: string;
+        error?: string;
+        detail?: string;
+      };
+
+      if (!response.ok) {
+        setError(data.detail ? `${data.error}: ${data.detail}` : (data.error ?? l.migrateSharesError));
+        return;
+      }
+
+      setMessage(`${l.migrateSharesSuccess} ${data.txHash ?? ''}`.trim());
+    } catch {
+      setError(l.migrateSharesError);
+    } finally {
+      setMigratingShares(false);
+    }
   }
 
   const centrifugeScore = useMemo(
@@ -1153,6 +1217,30 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
               <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
                 <p className="text-sm font-medium text-terminal-text">{l.tokenDeployTitle}</p>
                 <p className="mt-1 text-xs text-terminal-muted">{l.tokenDeployDesc}</p>
+                <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2">
+                  <p className="text-xs font-medium text-terminal-text">{l.treasurySharesTitle}</p>
+                  <p className="mt-1 text-xs text-terminal-muted">{l.treasurySharesDesc}</p>
+                  {mode === 'edit' && onChainLaunchReady ? (
+                    <button
+                      type="button"
+                      disabled={migratingShares || !linkedInvestorWallet}
+                      onClick={() => void handleMigrateSharesToCoinbase()}
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-terminal-primary/40 px-3 py-1.5 text-xs font-semibold text-terminal-primary hover:bg-terminal-primary/10 disabled:opacity-50"
+                    >
+                      {migratingShares ? <Loader2 size={14} className="animate-spin" /> : null}
+                      {linkedInvestorWallet ? l.migrateSharesToCoinbase : l.issuerWalletMissing}
+                    </button>
+                  ) : null}
+                  {linkedInvestorWallet ? (
+                    <p className="mt-2 font-mono text-xs text-terminal-muted">
+                      {l.coinbaseDestination}: {linkedInvestorWallet}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2">
+                  <p className="text-xs font-medium text-terminal-text">{l.morphoRequiredTitle}</p>
+                  <p className="mt-1 text-xs text-terminal-muted">{l.morphoRequiredDesc}</p>
+                </div>
                 {tokenDeployReady === false ? (
                   <p className="mt-2 text-xs text-amber-400/90">{l.tokenDeployOptionalHint}</p>
                 ) : (
@@ -1466,7 +1554,8 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                       <label className="flex items-center gap-2 text-sm text-terminal-text">
                         <input
                           type="checkbox"
-                          checked={Boolean(form[key])}
+                          checked={isErc4626Launch && protocol === 'MORPHO' ? true : Boolean(form[key])}
+                          disabled={isErc4626Launch && protocol === 'MORPHO'}
                           onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
                         />
                         <span className="font-medium">{label}</span>
@@ -1515,7 +1604,12 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
               ) : null}
               <button
                 type="submit"
-                disabled={saving || uploading}
+                disabled={
+                  saving ||
+                  uploading ||
+                  (isErc4626Launch &&
+                    (tokenDeployReady === false || erc4626FormValidationIssues(form.isActive).length > 0))
+                }
                 className="inline-flex items-center gap-2 rounded-lg bg-terminal-primary px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
               >
                 {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}

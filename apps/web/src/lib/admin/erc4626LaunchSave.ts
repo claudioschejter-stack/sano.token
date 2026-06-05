@@ -1,6 +1,12 @@
 import type { AdminAssetRecord, CreateAdminAssetInput, UpdateAdminAssetInput } from './assetsService';
 import { getAdminAsset, updateAdminAsset } from './assetsService';
 import { executeProjectTokenDeploy } from '../blockchain/projectTokenDeploy';
+import type { CollateralProtocol } from './launchTypes';
+import {
+  getMorphoPostDeployIssues,
+  getTreasuryReadinessIssues,
+  validateErc4626MorphoFormRequirements
+} from './erc4626MorphoGate';
 import {
   deployResultToIssues,
   getDeployInfrastructureIssues,
@@ -13,6 +19,12 @@ import {
   validateErc4626LaunchForm,
   type LaunchGateIssue
 } from './erc4626LaunchGate';
+
+function ensureMorphoCollateralProtocols(protocols: CollateralProtocol[] | undefined): CollateralProtocol[] {
+  const set = new Set(protocols ?? []);
+  set.add('MORPHO');
+  return Array.from(set);
+}
 
 function formInputFromBody(
   body: CreateAdminAssetInput | UpdateAdminAssetInput,
@@ -34,7 +46,29 @@ function formInputFromBody(
     collateralMorpho:
       collateralProtocols?.includes('MORPHO') ??
       existing?.collateralTargets.some((t) => t.protocol === 'MORPHO') ??
-      false
+      true
+  };
+}
+
+function morphoFormInputFromBody(
+  body: CreateAdminAssetInput | UpdateAdminAssetInput,
+  existing?: AdminAssetRecord | null
+) {
+  const collateralProtocols =
+    'collateralProtocols' in body ? body.collateralProtocols : undefined;
+
+  return {
+    totalTokens: body.totalTokens ?? existing?.totalTokens,
+    spvEntityName: body.spvEntityName ?? existing?.spvEntityName,
+    navOracleUrl: body.navOracleUrl ?? existing?.navOracleUrl,
+    jurisdiction: body.jurisdiction ?? existing?.jurisdiction,
+    contracts: body.contracts ?? existing?.contracts,
+    centrifugeChecklist: body.centrifugeChecklist ?? existing?.centrifugeChecklist,
+    chainId: existing?.chainId,
+    collateralMorpho:
+      collateralProtocols?.includes('MORPHO') ??
+      existing?.collateralTargets.some((t) => t.protocol === 'MORPHO') ??
+      true
   };
 }
 
@@ -57,8 +91,23 @@ export async function validateErc4626BeforePersist(
 
   return mergeLaunchGateIssues(
     validateErc4626LaunchForm(formInputFromBody(body, existing)),
+    validateErc4626MorphoFormRequirements(morphoFormInputFromBody(body, existing), existing),
     await getDeployInfrastructureIssues()
   );
+}
+
+async function ensureMorphoCollateralRegistered(projectId: string): Promise<AdminAssetRecord | null> {
+  const asset = await getAdminAsset(projectId);
+  if (!asset) return null;
+
+  const morphoTarget = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
+  if (morphoTarget?.status === 'REGISTERED' && morphoTarget.oracleAddress) {
+    return asset;
+  }
+
+  const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
+  const summary = await registerProjectCollateral(projectId, ['MORPHO'], { skipLock: true });
+  return summary?.updatedAsset ?? (await getAdminAsset(projectId));
 }
 
 export async function finalizeErc4626AfterPersist(
@@ -95,14 +144,18 @@ export async function finalizeErc4626AfterPersist(
     }
   }
 
-  asset = (await getAdminAsset(projectId))!;
+  asset = (await ensureMorphoCollateralRegistered(projectId)) ?? asset;
 
   const onChainIssues = getErc4626OnChainIssues(asset);
-  if (onChainIssues.length) {
+  const morphoIssues = getMorphoPostDeployIssues(asset);
+  const treasuryIssues = await getTreasuryReadinessIssues(asset);
+  const allIssues = mergeLaunchGateIssues(onChainIssues, morphoIssues, treasuryIssues);
+
+  if (allIssues.length) {
     if (options.requestedPublish) {
       await updateAdminAsset(projectId, { isActive: false });
     }
-    return { ok: false, issues: onChainIssues };
+    return { ok: false, issues: allIssues };
   }
 
   if (options.requestedPublish && !isErc4626OnChainReady(asset)) {
@@ -121,7 +174,16 @@ export function sanitizeErc4626UpdateBody(
   existing: AdminAssetRecord
 ): UpdateAdminAssetInput {
   const standard = body.tokenStandard ?? existing.tokenStandard;
-  return stripClientOnChainFieldsForErc4626(body, standard) as UpdateAdminAssetInput;
+  const stripped = stripClientOnChainFieldsForErc4626(body, standard) as UpdateAdminAssetInput;
+
+  if (!isErc4626Standard(standard)) {
+    return stripped;
+  }
+
+  return {
+    ...stripped,
+    collateralProtocols: ensureMorphoCollateralProtocols(stripped.collateralProtocols)
+  };
 }
 
 export function sanitizeErc4626CreateBody(body: CreateAdminAssetInput): CreateAdminAssetInput {
@@ -131,6 +193,7 @@ export function sanitizeErc4626CreateBody(body: CreateAdminAssetInput): CreateAd
 
   return {
     ...stripClientOnChainFieldsForErc4626(body, body.tokenStandard),
+    collateralProtocols: ensureMorphoCollateralProtocols(body.collateralProtocols),
     deployToken: true,
     isActive: false
   } as CreateAdminAssetInput;

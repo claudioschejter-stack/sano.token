@@ -1,9 +1,9 @@
-import { Contract, ContractFactory, JsonRpcProvider, Wallet } from 'ethers';
+import { Contract, ContractFactory, JsonRpcProvider, Wallet, type ContractRunner } from 'ethers';
 import type { TokenStandard, TokenInstrumentType, VaultFundingStatus } from '../admin/launchTypes';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deployAssetToken';
-import { waitForAutomationTx } from './automationTx';
+import { sendAutomationTx, waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 import { configureInitialContractSecurity } from './securityPolicy';
@@ -72,6 +72,21 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
 }
 
+async function ensureExternalContractAllowed(
+  contract: Contract,
+  account: string,
+  wallet: ContractRunner | null
+): Promise<void> {
+  const allowed = await contract.externalContractAllowed(account);
+  if (allowed) {
+    return;
+  }
+
+  await contract.setExternalContractAllowed.staticCall(account, true);
+  const tx = await sendAutomationTx(() => contract.setExternalContractAllowed(account, true), wallet);
+  await waitForAutomationTx(tx);
+}
+
 async function fundVaultWithDeployerBalance(input: {
   asset: Contract;
   vaultContract: Contract;
@@ -80,47 +95,45 @@ async function fundVaultWithDeployerBalance(input: {
   vaultAddress: string;
   amount: bigint;
 }): Promise<VaultFundingResult> {
+  const wallet = input.asset.runner;
+
   try {
     const deployerKyc = await input.asset.kycApproved(input.walletAddress);
     if (!deployerKyc) {
-      const setKycTx = await input.asset.setKyc(input.walletAddress, true);
+      const setKycTx = await sendAutomationTx(() => input.asset.setKyc(input.walletAddress, true), wallet);
       await waitForAutomationTx(setKycTx);
     }
     if (input.receiverAddress.toLowerCase() !== input.walletAddress.toLowerCase()) {
       const receiverKyc = await input.asset.kycApproved(input.receiverAddress);
       if (!receiverKyc) {
-        const setReceiverKycTx = await input.asset.setKyc(input.receiverAddress, true);
+        const setReceiverKycTx = await sendAutomationTx(
+          () => input.asset.setKyc(input.receiverAddress, true),
+          wallet
+        );
         await waitForAutomationTx(setReceiverKycTx);
       }
     }
 
     const vaultKyc = await input.asset.kycApproved(input.vaultAddress);
     if (!vaultKyc) {
-      const setVaultKycTx = await input.asset.setKyc(input.vaultAddress, true);
+      const setVaultKycTx = await sendAutomationTx(() => input.asset.setKyc(input.vaultAddress, true), wallet);
       await waitForAutomationTx(setVaultKycTx);
     }
 
-    const approveTx = await input.asset.approve(input.vaultAddress, input.amount);
+    const approveTx = await sendAutomationTx(() => input.asset.approve(input.vaultAddress, input.amount), wallet);
     await waitForAutomationTx(approveTx);
 
-    const vaultAllowed = await input.asset.externalContractAllowed(input.vaultAddress);
-    if (!vaultAllowed) {
-      const allowVaultTx = await input.asset.setExternalContractAllowed(input.vaultAddress, true);
-      await waitForAutomationTx(allowVaultTx);
-    }
+    await ensureExternalContractAllowed(input.asset, input.vaultAddress, wallet);
 
     if (input.receiverAddress.toLowerCase() !== input.walletAddress.toLowerCase()) {
-      const receiverAllowed = await input.vaultContract.externalContractAllowed(input.receiverAddress);
-      if (!receiverAllowed) {
-        const allowReceiverTx = await input.vaultContract.setExternalContractAllowed(
-          input.receiverAddress,
-          true
-        );
-        await waitForAutomationTx(allowReceiverTx);
-      }
+      await ensureExternalContractAllowed(input.asset, input.receiverAddress, wallet);
+      await ensureExternalContractAllowed(input.vaultContract, input.receiverAddress, wallet);
     }
 
-    const depositTx = await input.vaultContract.deposit(input.amount, input.receiverAddress);
+    const depositTx = await sendAutomationTx(
+      () => input.vaultContract.deposit(input.amount, input.receiverAddress),
+      wallet
+    );
     const depositReceipt = await waitForAutomationTx(depositTx);
     const totalAssets = await input.vaultContract.totalAssets();
     const shares = await input.vaultContract.balanceOf(input.receiverAddress);
@@ -245,6 +258,15 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       vaultAddress,
       amount: mintAmount
     });
+
+    if (funding.status !== 'FUNDED') {
+      provider.destroy();
+      return {
+        status: 'SKIPPED',
+        reason: `Vault funding failed: ${funding.error ?? 'unknown error'}`
+      };
+    }
+
     const security = await configureInitialContractSecurity({
       asset,
       vaultContract,

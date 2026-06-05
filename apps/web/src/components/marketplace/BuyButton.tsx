@@ -1,11 +1,11 @@
 'use client';
 
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { CheckCircle2, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { useCallback } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useBuyToken, type BuyTokenStatus } from '../../hooks/useBuyToken';
-import { BASE_CHAIN_ID, BASE_USDC_ADDRESS, isWalletConnectConfigured } from '../../lib/web3/config';
+import { BASE_CHAIN_ID, BASE_USDC_ADDRESS } from '../../lib/web3/config';
+import { CoinbaseConnectButton } from '../wallet/CoinbaseConnectButton';
 
 export type BuyButtonProps = {
   vaultAddress?: string | null;
@@ -92,39 +92,12 @@ export function BuyButton({
 
   const label = statusLabel(status, t);
 
-  const connectLabel = isWalletConnectConfigured ? t.wallet.connect : t.wallet.connectCoinbase;
-
   if (!isConnected) {
-    return (
-      <ConnectButton.Custom>
-        {({ openConnectModal, mounted }) => (
-          <button
-            type="button"
-            onClick={openConnectModal}
-            disabled={!mounted || disabled}
-            className={`flex w-full items-center justify-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-3 text-sm font-semibold text-terminal-primary hover:bg-terminal-primary/20 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-          >
-            {connectLabel}
-          </button>
-        )}
-      </ConnectButton.Custom>
-    );
+    return <CoinbaseConnectButton className={className} disabled={disabled} showAccount={false} />;
   }
 
   if (wrongChain) {
-    return (
-      <ConnectButton.Custom>
-        {({ openChainModal }) => (
-          <button
-            type="button"
-            onClick={openChainModal}
-            className={`w-full rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm font-semibold text-terminal-warning ${className}`}
-          >
-            {t.wallet.wrongNetwork}
-          </button>
-        )}
-      </ConnectButton.Custom>
-    );
+    return <CoinbaseConnectButton className={className} />;
   }
 
   return (
@@ -149,7 +122,7 @@ export function BuyButton({
 
       {address ? (
         <p className="text-center text-xs text-terminal-muted">
-          {address.slice(0, 6)}…{address.slice(-4)} · Base · ERC-4626
+          {address.slice(0, 6)}…{address.slice(-4)} · Base · {t.wallet.treasuryDepositNote}
         </p>
       ) : null}
 
@@ -174,7 +147,13 @@ export function BuyButton({
 
       {status === 'error' && error ? (
         <div className="space-y-2 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-3 py-2 text-xs text-terminal-warning">
-          <p>{error === 'USER_REJECTED' ? t.wallet.userRejected : error}</p>
+          <p>
+            {error === 'USER_REJECTED'
+              ? t.wallet.userRejected
+              : error === 'PLATFORM_TREASURY_NOT_CONFIGURED'
+                ? t.wallet.platformTreasuryMissing
+                : error}
+          </p>
           <button type="button" onClick={reset} className="font-semibold underline-offset-2 hover:underline">
             {t.wallet.retry}
           </button>

@@ -22,6 +22,22 @@ export type LaunchGateIssueCode =
   | 'DEPLOY_FAILED'
   | 'AUTOMATION_BLOCKED'
   | 'MORPHO_REQUIRED_FOR_PUBLISH'
+  | 'MORPHO_NOT_SELECTED'
+  | 'MORPHO_MIN_SUPPLY'
+  | 'MISSING_TRUST_CONTRACT'
+  | 'MORPHO_LEGAL_AUDIT'
+  | 'MISSING_NAV_ORACLE'
+  | 'MORPHO_KYC_POLICY'
+  | 'MORPHO_LIQUIDITY_PLAN'
+  | 'MISSING_JURISDICTION'
+  | 'MISSING_SPV'
+  | 'MORPHO_CHAIN_UNSUPPORTED'
+  | 'MORPHO_MARKET_NOT_REGISTERED'
+  | 'MORPHO_ORACLE_MISSING'
+  | 'MORPHO_COLLATERAL_NOT_READY'
+  | 'TREASURY_NOT_CONFIGURED'
+  | 'TREASURY_VAULT_SHARES_MISSING'
+  | 'TREASURY_KYC_NOT_APPROVED'
   | 'CANNOT_PUBLISH_INCOMPLETE';
 
 export type LaunchGateIssue = {
@@ -143,6 +159,10 @@ export function validateErc4626LaunchForm(input: Erc4626LaunchFormInput): Launch
 
   if (!input.tokenName?.trim() && !input.title?.trim()) {
     issues.push({ code: 'MISSING_TOKEN_NAME' });
+  }
+
+  if (input.collateralMorpho === false) {
+    issues.push({ code: 'MORPHO_NOT_SELECTED' });
   }
 
   if (input.isActive && input.collateralMorpho === false) {

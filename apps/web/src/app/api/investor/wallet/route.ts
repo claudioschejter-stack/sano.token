@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
-import { linkInvestorWallet } from '../../../../lib/investor/walletService';
+import { linkUserWallet } from '../../../../lib/investor/walletService';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
     }
 
-    const result = await linkInvestorWallet(ctx.userId, body.walletAddress, body.walletProvider);
+    const result = await linkUserWallet(ctx.userId, body.walletAddress, body.walletProvider);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -36,6 +36,7 @@ export async function PATCH(request: Request) {
     if (
       message === 'KYC_NOT_APPROVED' ||
       message === 'INVESTOR_ROLE_REQUIRED' ||
+      message === 'ROLE_NOT_ALLOWED' ||
       message === 'INVALID_WALLET' ||
       message === 'WALLET_ALREADY_LINKED'
     ) {

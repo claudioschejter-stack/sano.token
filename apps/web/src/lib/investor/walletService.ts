@@ -13,13 +13,22 @@ function normalizeWalletAddress(walletAddress: string): string {
   return getAddress(trimmed).toLowerCase();
 }
 
-export async function linkInvestorWallet(
+const PLATFORM_WALLET_ROLES = new Set([
+  'ADMIN',
+  'OPERATOR',
+  'TREASURY',
+  'ADVISOR',
+  'ADVISOR_MANAGER',
+  'INVESTOR'
+]);
+
+export async function linkUserWallet(
   userId: string,
   walletAddress: string,
   walletProvider?: string | null
 ) {
   const normalized = normalizeWalletAddress(walletAddress);
-  const providerLabel = sanitizeWalletProvider(walletProvider);
+  const providerLabel = sanitizeWalletProvider(walletProvider) ?? 'Coinbase Wallet';
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -44,39 +53,55 @@ export async function linkInvestorWallet(
     throw new Error('USER_NOT_FOUND');
   }
 
-  if (user.kycStatus !== 'APPROVED') {
-    throw new Error('KYC_NOT_APPROVED');
+  if (!PLATFORM_WALLET_ROLES.has(user.systemRole)) {
+    throw new Error('ROLE_NOT_ALLOWED');
   }
 
-  if (user.systemRole !== 'INVESTOR') {
-    throw new Error('INVESTOR_ROLE_REQUIRED');
+  if (user.systemRole === 'INVESTOR' && user.kycStatus !== 'APPROVED') {
+    throw new Error('KYC_NOT_APPROVED');
   }
 
   await assertWalletAvailableForUser(userId, normalized);
 
-  await ensureInvestorForUser(
-    {
-      id: user.id,
-      email: user.email,
-      phone: user.phone,
-      kycFullName: user.kycFullName,
-      kycDocumentId: user.kycDocumentId,
-      kycStatus: user.kycStatus,
-      accountStatus: user.accountStatus,
-      emailVerifiedAt: user.emailVerifiedAt,
-      phoneVerifiedAt: user.phoneVerifiedAt,
-      walletAddress: normalized,
-      investorId: user.investorId,
-      investorAccessEnabled: user.investorAccessEnabled,
-      systemRole: user.systemRole
-    },
-    normalized,
-    providerLabel
-  );
+  if (user.systemRole === 'INVESTOR') {
+    await ensureInvestorForUser(
+      {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        kycFullName: user.kycFullName,
+        kycDocumentId: user.kycDocumentId,
+        kycStatus: user.kycStatus,
+        accountStatus: user.accountStatus,
+        emailVerifiedAt: user.emailVerifiedAt,
+        phoneVerifiedAt: user.phoneVerifiedAt,
+        walletAddress: normalized,
+        investorId: user.investorId,
+        investorAccessEnabled: user.investorAccessEnabled,
+        systemRole: user.systemRole
+      },
+      normalized,
+      providerLabel
+    );
+  } else {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { walletAddress: normalized, walletProvider: providerLabel }
+    });
+  }
 
   await syncUserAccountStatus(userId);
 
   return { walletAddress: normalized, walletProvider: providerLabel };
+}
+
+/** @deprecated Use linkUserWallet */
+export async function linkInvestorWallet(
+  userId: string,
+  walletAddress: string,
+  walletProvider?: string | null
+) {
+  return linkUserWallet(userId, walletAddress, walletProvider);
 }
 
 export function hasLinkedWallet(walletAddress: string | null | undefined): boolean {

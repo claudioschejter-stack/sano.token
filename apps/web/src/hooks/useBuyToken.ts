@@ -8,7 +8,7 @@ import {
 } from '@wagmi/core';
 import { erc20Abi, maxUint256, parseUnits } from 'viem';
 import { useAccount, useConfig } from 'wagmi';
-import { BASE_CHAIN_ID } from '../lib/web3/config';
+import { BASE_CHAIN_ID, PLATFORM_TREASURY_ADDRESS } from '../lib/web3/config';
 
 const ERC4626_DEPOSIT_ABI = [
   {
@@ -37,7 +37,11 @@ export type BuyTokenInput = {
   amountUsd: string;
   usdcDecimals?: number;
   chainId?: number;
-  /** Receiver of vault shares; defaults to connected wallet. */
+  /**
+   * Receiver of vault shares.
+   * Defaults to platform treasury (TOKEN_TREASURY_ADDRESS), not the connected wallet.
+   * Personal wallets only receive shares via admin migration or explicit override.
+   */
   receiver?: `0x${string}`;
 };
 
@@ -84,7 +88,18 @@ export function useBuyToken() {
 
       const decimals = input.usdcDecimals ?? 6;
       const amount = parseUsdToBaseUnits(input.amountUsd, decimals);
-      const receiver = input.receiver ?? address;
+      const treasuryReceiver =
+        PLATFORM_TREASURY_ADDRESS && /^0x[a-f0-9]{40}$/.test(PLATFORM_TREASURY_ADDRESS)
+          ? (PLATFORM_TREASURY_ADDRESS as `0x${string}`)
+          : null;
+      const receiver = input.receiver ?? treasuryReceiver;
+
+      if (!receiver) {
+        const message = 'PLATFORM_TREASURY_NOT_CONFIGURED';
+        setStatus('error');
+        setError(message);
+        throw new Error(message);
+      }
 
       setStatus('checking');
       setError(null);

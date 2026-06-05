@@ -1,11 +1,10 @@
 'use client';
 
-import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { Check, Copy, ExternalLink, RefreshCw, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { PlatformWalletConfig } from '../../lib/admin/platformWalletConfig';
-import { isWalletConnectConfigured } from '../../lib/web3/config';
+import { CoinbaseConnectButton } from '../wallet/CoinbaseConnectButton';
 
 type PlatformWalletResponse = {
   config: PlatformWalletConfig;
@@ -125,8 +124,6 @@ export function AdminPlatformWalletSection() {
     }
   }, []);
 
-  const connectLabel = isWalletConnectConfigured ? w.connect : w.connectCoinbase;
-
   return (
     <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -215,72 +212,7 @@ export function AdminPlatformWalletSection() {
             <p className="mt-1 text-sm text-terminal-muted">{pw.connectDesc}</p>
 
             <div className="mt-4 max-w-md">
-              <ConnectButton.Custom>
-                {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
-                  const ready = mounted;
-                  const connected = ready && account && chain;
-
-                  if (!connected) {
-                    return (
-                      <button
-                        type="button"
-                        onClick={openConnectModal}
-                        disabled={!ready}
-                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-3 text-sm font-semibold text-terminal-primary hover:bg-terminal-primary/20 disabled:opacity-50"
-                      >
-                        {connectLabel}
-                      </button>
-                    );
-                  }
-
-                  if (chain.unsupported) {
-                    return (
-                      <button
-                        type="button"
-                        onClick={openChainModal}
-                        className="w-full rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm font-semibold text-terminal-warning"
-                      >
-                        {w.wrongNetwork}
-                      </button>
-                    );
-                  }
-
-                  return (
-                    <div className="space-y-3">
-                      <button
-                        type="button"
-                        onClick={openAccountModal}
-                        className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text hover:border-terminal-primary/50"
-                      >
-                        {account.displayName}
-                      </button>
-                      <div className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3">
-                        <p className="text-xs text-terminal-muted">{pw.connectedAddress}</p>
-                        <p className="mt-1 break-all font-mono text-xs text-terminal-text">{account.address}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => void handleCopy(account.address ?? '', 'connected-wallet')}
-                            className="inline-flex items-center gap-1 rounded-md border border-terminal-border px-2 py-1 text-xs text-terminal-muted hover:text-terminal-text"
-                          >
-                            {copiedKey === 'connected-wallet' ? <Check size={14} /> : <Copy size={14} />}
-                            {copiedKey === 'connected-wallet' ? pw.copied : pw.copy}
-                          </button>
-                          <a
-                            href={`${config.explorerBaseUrl}/address/${account.address}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1 rounded-md border border-terminal-border px-2 py-1 text-xs text-terminal-primary hover:border-terminal-primary/40"
-                          >
-                            <ExternalLink size={14} />
-                            {pw.viewExplorer}
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }}
-              </ConnectButton.Custom>
+              <CoinbaseConnectButton />
             </div>
           </div>
 

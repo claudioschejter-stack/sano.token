@@ -486,9 +486,20 @@ export const en = {
     publishOnSave: "Publish to marketplace when saving",
     tokenDeployTitle: "On-chain token issuance",
     tokenDeployDesc:
-      "Required for ERC-4626. Saving auto-deploys the token, vault, and funding; manual addresses are not accepted.",
+      "Required for ERC-4626. Saving auto-deploys the token, vault, Morpho registration, and vault shares in the treasury Safe; manual addresses are not accepted.",
     tokenDeployMandatoryHint:
-      "Saving issues the Sanova token, ERC-4626 vault, and smart contract link on the property card. Missing items are listed as errors.",
+      "Saving issues the Sanova token, ERC-4626 vault, Morpho market, and shares in the treasury Safe on-chain. If anything fails, errors are shown and save/publish are blocked.",
+    treasurySharesTitle: "Shares in treasury Safe",
+    treasurySharesDesc:
+      "New issuances credit shares to TOKEN_TREASURY_ADDRESS. To use collateral in Coinbase, migrate already-issued shares with the button below.",
+    coinbaseDestination: "Linked Coinbase destination",
+    migrateSharesToCoinbase: "Migrate my treasury shares to Coinbase",
+    migrateSharesSuccess: "Shares transferred on-chain to your Coinbase.",
+    migrateSharesError: "Could not migrate shares. Check TREASURY_OWNER_PRIVATE_KEY and linked wallet.",
+    issuerWalletMissing: "No Coinbase wallet linked. Connect it from the investor dashboard.",
+    morphoRequiredTitle: "Morpho requirements (mandatory for ERC-4626)",
+    morphoRequiredDesc:
+      "Complete legal docs, trust contract, NAV oracle, and checklist before saving. The Morpho market is registered automatically on issuance.",
     tokenDeployOptionalHint:
       "Automatic issuance is not configured on the server (TOKEN_DEPLOY_PRIVATE_KEY, RPC, or gas). ERC-4626 launches cannot be saved until fixed.",
     tokenDeployReadyHint:
@@ -528,7 +539,23 @@ export const en = {
       AUTOMATION_BLOCKED: "Automation is blocked (circuit breaker or too many failures).",
       MORPHO_REQUIRED_FOR_PUBLISH:
         "To publish on the marketplace with ERC-4626, enable Morpho as a collateral protocol.",
-      CANNOT_PUBLISH_INCOMPLETE: "Cannot publish until on-chain issuance is complete."
+      MORPHO_NOT_SELECTED: "Morpho is mandatory for ERC-4626 launches.",
+      MORPHO_MIN_SUPPLY: "Morpho requires at least 5,000 tokens in the issuance.",
+      MISSING_TRUST_CONTRACT: "Upload the trust contract (PDF).",
+      MORPHO_LEGAL_AUDIT: "Mark the legal audit as complete in the checklist.",
+      MISSING_NAV_ORACLE: "Configure the NAV oracle URL.",
+      MORPHO_KYC_POLICY: "Enable the KYC policy in the legal checklist.",
+      MORPHO_LIQUIDITY_PLAN: "Document the liquidity plan in the checklist.",
+      MISSING_JURISDICTION: "Set the asset jurisdiction.",
+      MISSING_SPV: "Document the SPV (name or trust contract).",
+      MORPHO_CHAIN_UNSUPPORTED: "The configured network is not supported by Morpho.",
+      MORPHO_MARKET_NOT_REGISTERED: "The Morpho market was not registered on-chain.",
+      MORPHO_ORACLE_MISSING: "The Morpho market price oracle is missing.",
+      MORPHO_COLLATERAL_NOT_READY: "Morpho collateral does not meet all requirements.",
+      TREASURY_NOT_CONFIGURED: "TOKEN_TREASURY_ADDRESS is missing in Vercel.",
+      TREASURY_VAULT_SHARES_MISSING: "Vault shares did not reach the treasury Safe.",
+      TREASURY_KYC_NOT_APPROVED: "The treasury Safe does not have on-chain KYC approval on the token.",
+      CANNOT_PUBLISH_INCOMPLETE: "Cannot publish until on-chain issuance and Morpho are complete."
     }
   },
   adminTeam: {
@@ -801,11 +828,11 @@ export const en = {
     sendToCompartment: "Send payment to the Compartment wallet and paste the tx hash to verify:",
     walletSectionTitle: "Wallet to pay on Base",
     walletSectionDesc:
-      "Use Coinbase Wallet with the first button. If you already have another wallet (MetaMask, Rainbow, etc.), connect it with WalletConnect.",
-    walletSectionHint: "The address is saved on your investor profile for future operations.",
-    walletConnectPrompt: "Your wallet is already registered. Connect it to sign the payment.",
+      "Connect your Coinbase Wallet on Base to sign the payment. Shares are credited to the platform treasury.",
+    walletSectionHint: "Your Coinbase Wallet is saved on your profile to sign payments and receive USDC rent.",
+    walletConnectPrompt: "Your Coinbase Wallet is already registered. Connect it to sign the payment.",
     walletConnectPromptLinked:
-      "Your wallet {address} is registered. Connect the same address via WalletConnect (MetaMask, Rainbow, etc.) or Coinbase Wallet.",
+      "Your wallet {address} is registered. Reconnect the same Coinbase Wallet on Base.",
     createOrderPay: "Create order and pay"
   },
   cartCheckout: {
@@ -931,12 +958,12 @@ export const en = {
     connecting: "Connecting…",
     connect: "Connect wallet",
     connectCoinbase: "Connect Coinbase Wallet",
-    connectWalletConnect: "Connect existing wallet (WalletConnect)",
-    connectFailed: "We couldn't connect the wallet. Try again.",
+    connectWalletConnect: "Connect Coinbase Wallet",
+    connectFailed: "We couldn't connect Coinbase Wallet. Try again.",
     connectRejected: "Connection cancelled. You can try again.",
     connectRetryWalletConnect:
-      "If you use MetaMask or another external wallet, use \"Connect existing wallet (WalletConnect)\" with the same registered address.",
-    noWallet: "Connect your wallet with Coinbase Wallet or WalletConnect.",
+      "Reconnect the same Coinbase Wallet address registered on your profile.",
+    noWallet: "Connect your Coinbase Wallet on Base network.",
     wrongNetwork: "Switch to Base network",
     walletMismatch: "The connected wallet does not match the one linked to your account.",
     replaceWalletTitle: "Different wallet than the linked one",
@@ -963,12 +990,15 @@ export const en = {
     viewTx: "View transaction",
     userRejected: "Transaction cancelled in wallet.",
     retry: "Retry",
-    vaultNotConfigured: "ERC-4626 vault not configured for this asset."
+    vaultNotConfigured: "ERC-4626 vault not configured for this asset.",
+    treasuryDepositNote: "Deposit to platform treasury",
+    platformTreasuryMissing:
+      "NEXT_PUBLIC_TOKEN_TREASURY_ADDRESS is missing in Vercel. Contact support."
   },
   collectionWallet: {
     title: "Collection wallet",
     subtitle:
-      "Connect Coinbase Wallet or an existing wallet (MetaMask, Rainbow, etc.) on Base. The address is saved to your profile for payments, deposits, and USDC rent payouts.",
+      "Connect your Coinbase Wallet on Base. The address is saved to your profile for payments, deposits, and USDC rent payouts.",
     back: "Back"
   },
   platformWallet: {
@@ -1406,13 +1436,12 @@ export const en = {
       walletTitle: "Activate your wallet",
       walletDesc: "Required to become an approved investor: receive USDC, buy RWA tokens and operate on Base.",
       walletBullet1: "Coinbase Wallet: connect or create your Smart Wallet on Base.",
-      walletBullet2: "Other existing wallet: MetaMask, Rainbow and others via WalletConnect only.",
+      walletBullet2: "Use a separate Coinbase account per role (investor, admin, operator).",
       walletBullet3: "Base mainnet — your address is linked to your Sanova account.",
       createCoinbaseWallet: "Connect Coinbase Wallet",
-      connectExistingWallet: "Connect existing wallet (WalletConnect)",
-      walletConnectUnavailable:
-        "WalletConnect is not configured on the server. Use Coinbase Wallet or contact support.",
-      walletConnect: "WalletConnect",
+      connectExistingWallet: "Connect Coinbase Wallet",
+      walletConnectUnavailable: "Only Coinbase Wallet is enabled on the platform.",
+      walletConnect: "Coinbase Wallet",
       walletSaving: "Saving wallet…",
       walletLinked: "Wallet linked",
       walletHint: "We save your address to match on-chain purchases and repayments with your account.",

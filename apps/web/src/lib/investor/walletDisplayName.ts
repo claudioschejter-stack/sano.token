@@ -8,48 +8,21 @@ export function sanitizeWalletProvider(value: string | null | undefined): string
   return trimmed.slice(0, MAX_WALLET_PROVIDER_LENGTH);
 }
 
-/** Human-readable wallet app name from wagmi connector or connect flow. */
+/** Human-readable wallet app name — platform uses Coinbase Wallet only. */
 export function normalizeWalletDisplayName(
-  connectorName: string | undefined,
-  flow: 'coinbase' | 'walletconnect' | null = null
+  connectorName?: string,
+  _flow: 'coinbase' | null = null
 ): string | null {
-  if (connectorName) {
-    const lower = connectorName.toLowerCase();
-    if (lower.includes('coinbase')) {
-      return 'Coinbase Wallet';
-    }
-    if (lower.includes('metamask')) {
-      return 'MetaMask';
-    }
-    if (lower.includes('rainbow')) {
-      return 'Rainbow';
-    }
-    if (lower.includes('trust')) {
-      return 'Trust Wallet';
-    }
-    if (lower.includes('rabby')) {
-      return 'Rabby';
-    }
-    if (lower.includes('phantom')) {
-      return 'Phantom';
-    }
-    return connectorName.trim();
-  }
-
-  if (flow === 'coinbase') {
+  if (connectorName?.toLowerCase().includes('coinbase')) {
     return 'Coinbase Wallet';
   }
-
-  return null;
+  return connectorName?.trim() ? 'Coinbase Wallet' : 'Coinbase Wallet';
 }
 
 export function resolveWalletProviderForLink(input: {
   connectorName?: string;
-  activeFlow?: 'coinbase' | 'walletconnect' | null;
+  activeFlow?: 'coinbase' | null;
   explicitProvider?: string | null;
 }): string | null {
-  return sanitizeWalletProvider(
-    input.explicitProvider ??
-      normalizeWalletDisplayName(input.connectorName, input.activeFlow ?? null)
-  );
+  return sanitizeWalletProvider(input.explicitProvider ?? 'Coinbase Wallet');
 }
