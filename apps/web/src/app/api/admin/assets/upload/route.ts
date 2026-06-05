@@ -47,6 +47,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'STORAGE_NOT_CONFIGURED' }, { status: 503 });
     }
 
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Upload failed', detail: code !== 'Upload failed' ? code : undefined },
+      { status: 500 }
+    );
   }
 }

@@ -10,6 +10,7 @@ import {
 const MAX_BYTES = 20 * 1024 * 1024;
 const ALLOWED_TYPES = new Set([
   'image/jpeg',
+  'image/jpg',
   'image/png',
   'image/webp',
   'image/gif',
@@ -42,37 +43,54 @@ function sanitizeFolder(folder: string): string {
   return folder.replace(/[^a-zA-Z0-9._/-]/g, '_').slice(0, 80);
 }
 
+const MIME_BY_EXTENSION: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  heic: 'image/heic',
+  heif: 'image/heif',
+  mp4: 'video/mp4',
+  webm: 'video/webm',
+  mov: 'video/quicktime',
+  pdf: 'application/pdf'
+};
+
+const GENERIC_BROWSER_MIME = new Set(['', 'application/octet-stream', 'binary/octet-stream']);
+
 function resolveKind(mimeType: string): UploadLaunchAssetResult['kind'] {
   if (mimeType.startsWith('video/')) return 'reel';
   if (mimeType === 'application/pdf') return 'pdf';
   return 'image';
 }
 
-function inferMimeType(mimeType: string, originalName: string): string {
-  if (mimeType?.trim()) {
-    return mimeType.trim().toLowerCase();
+export function resolveLaunchUploadKind(mimeType: string): UploadLaunchAssetResult['kind'] {
+  return resolveKind(mimeType);
+}
+
+export function resolveLaunchUploadMimeType(mimeType: string, originalName: string): string {
+  const ext = originalName.split('.').pop()?.toLowerCase() ?? '';
+  const fromExt = ext ? MIME_BY_EXTENSION[ext] : undefined;
+  const normalized = mimeType?.trim().toLowerCase() ?? '';
+
+  if (fromExt && (GENERIC_BROWSER_MIME.has(normalized) || normalized === 'image/jpg')) {
+    return fromExt;
   }
 
-  const ext = originalName.split('.').pop()?.toLowerCase() ?? '';
-  const byExt: Record<string, string> = {
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    png: 'image/png',
-    webp: 'image/webp',
-    gif: 'image/gif',
-    heic: 'image/heic',
-    heif: 'image/heif',
-    mp4: 'video/mp4',
-    webm: 'video/webm',
-    mov: 'video/quicktime',
-    pdf: 'application/pdf'
-  };
+  if (normalized === 'image/jpg') {
+    return 'image/jpeg';
+  }
 
-  return byExt[ext] ?? mimeType;
+  if (fromExt && !ALLOWED_TYPES.has(normalized)) {
+    return fromExt;
+  }
+
+  return normalized || fromExt || mimeType;
 }
 
 export function validateLaunchUpload(mimeType: string, size: number, originalName = ''): string | null {
-  const resolved = inferMimeType(mimeType, originalName);
+  const resolved = resolveLaunchUploadMimeType(mimeType, originalName);
   if (!ALLOWED_TYPES.has(resolved)) {
     return 'unsupported_type';
   }
@@ -130,7 +148,7 @@ async function uploadToLocalDisk(input: UploadLaunchAssetInput): Promise<UploadL
 export async function uploadLaunchAsset(input: UploadLaunchAssetInput): Promise<UploadLaunchAssetResult> {
   const normalizedInput = {
     ...input,
-    mimeType: inferMimeType(input.mimeType, input.originalName)
+    mimeType: resolveLaunchUploadMimeType(input.mimeType, input.originalName)
   };
 
   if (isSupabaseStorageConfigured()) {

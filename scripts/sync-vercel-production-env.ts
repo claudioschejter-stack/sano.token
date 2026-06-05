@@ -44,7 +44,11 @@ const SYNC_KEYS = [
   'BASE_USDC_TOKEN_ADDRESS',
   'BASE_STABLECOIN_TREASURY_ADDRESS',
   'USDC_DECIMALS',
-  'NEXT_PUBLIC_SITE_URL'
+  'NEXT_PUBLIC_SITE_URL',
+  'SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'SUPABASE_KEY',
+  'SUPABASE_STORAGE_BUCKET'
 ] as const;
 
 function parseEnvFile(path: string): Record<string, string> {

@@ -6,8 +6,13 @@ values (
   'launches',
   'launches',
   true,
-  20971520,
-  array['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm', 'application/pdf']
+  104857600,
+  array[
+    'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif',
+    'image/heic', 'image/heif',
+    'video/mp4', 'video/webm', 'video/quicktime',
+    'application/pdf'
+  ]
 )
 on conflict (id) do update set
   public = excluded.public,

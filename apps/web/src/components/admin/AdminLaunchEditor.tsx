@@ -315,15 +315,66 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
     setError(null);
 
     try {
+      const signedResponse = await fetch('/api/admin/assets/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: file.name,
+          mimeType: file.type,
+          size: file.size,
+          folder
+        })
+      });
+
+      const signedData = (await signedResponse.json()) as {
+        uploadUrl?: string;
+        url?: string;
+        kind?: string;
+        mimeType?: string;
+        error?: string;
+        detail?: string;
+        storage?: string;
+      };
+
+      if (signedResponse.ok && signedData.uploadUrl && signedData.url) {
+        const putResponse = await fetch(signedData.uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': signedData.mimeType || file.type || 'application/octet-stream'
+          },
+          body: file
+        });
+
+        if (!putResponse.ok) {
+          throw new Error(signedData.detail ?? 'upload failed');
+        }
+
+        return {
+          url: signedData.url,
+          kind: signedData.kind,
+          storage: signedData.storage
+        };
+      }
+
+      if (signedData.error === 'STORAGE_NOT_CONFIGURED') {
+        throw new Error('STORAGE_NOT_CONFIGURED');
+      }
+
       const body = new FormData();
       body.append('file', file);
       body.append('folder', folder);
 
       const response = await fetch('/api/admin/assets/upload', { method: 'POST', body });
-      const data = (await response.json()) as { url?: string; kind?: string; error?: string; storage?: string };
+      const data = (await response.json()) as {
+        url?: string;
+        kind?: string;
+        error?: string;
+        detail?: string;
+        storage?: string;
+      };
 
       if (!response.ok || !data.url) {
-        throw new Error(data.error ?? 'upload failed');
+        throw new Error(data.detail ?? data.error ?? 'upload failed');
       }
 
       return data;
@@ -560,8 +611,16 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       return l.uploadUnsupportedType;
     }
 
-    if (code === 'File too large (max 20 MB)') {
+    if (code?.includes('File too large')) {
       return l.uploadTooLarge;
+    }
+
+    if (code?.includes('mime type') && code.includes('not supported')) {
+      return l.uploadUnsupportedType;
+    }
+
+    if (code && code !== 'upload failed' && code !== 'Upload failed') {
+      return `${l.uploadError} ${code}`;
     }
 
     return l.uploadError;
