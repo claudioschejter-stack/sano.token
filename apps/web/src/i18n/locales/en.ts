@@ -433,7 +433,7 @@ export const en = {
     fieldVaultAddress: "Vault ERC-4626",
     fieldSpvEntity: "SPV/trust entity",
     fieldNavOracle: "NAV Oracle URL",
-    fieldContractAddress: "Contract address (manual)",
+    fieldContractAddress: "Token address (on-chain)",
     tokenStandardSanova: "Sanova KYC (recommended — production)",
     tokenStandardErc4626: "Sanova + ERC-4626 (DeFi vault)",
     tokenStandardThirdweb: "Thirdweb demo (tests only)",
@@ -485,9 +485,14 @@ export const en = {
     },
     publishOnSave: "Publish to marketplace when saving",
     tokenDeployTitle: "On-chain token issuance",
-    tokenDeployDesc: "Optional.You can issue the token on-chain or upload the contract address manually.",
-    tokenDeployOptionalHint: "Automatic issuance is not configured (TOKEN_DEPLOY_PRIVATE_KEY is missing).You can still publish the card and upload the contract address by hand.",
-    tokenDeployReadyHint: "Automatic issuance is active. Saving deploys the token + ERC-4626 vault on-chain (no manual addresses).",
+    tokenDeployDesc:
+      "Required for ERC-4626. Saving auto-deploys the token, vault, and funding; manual addresses are not accepted.",
+    tokenDeployMandatoryHint:
+      "Saving issues the Sanova token, ERC-4626 vault, and smart contract link on the property card. Missing items are listed as errors.",
+    tokenDeployOptionalHint:
+      "Automatic issuance is not configured on the server (TOKEN_DEPLOY_PRIVATE_KEY, RPC, or gas). ERC-4626 launches cannot be saved until fixed.",
+    tokenDeployReadyHint:
+      "Server ready. Save the launch to auto-deploy token + ERC-4626 vault.",
     tokenDeployAutoPlaceholder: "Filled automatically when you save",
     tokenDeployThirdwebHint: "Thirdweb is not configured.Use manual contract issuance or set THIRDWEB_SECRET_KEY for demos only.",
     deployToken: "Issue token",
@@ -497,7 +502,34 @@ export const en = {
     tokenSkipped: "Automatic broadcast skipped",
     tokenDeployed: "Token deployed.Check the explorer.",
     tokenRequested: "Registered issuance request.",
-    tokenDeployError: "Error when requesting token issuance."
+    tokenDeployError: "Error when requesting token issuance.",
+    launchGateTitle: "ERC-4626 launch could not be completed",
+    launchGateIntro: "Fix the following and save again:",
+    launchSavedOnChain: "Launch saved: token, ERC-4626 vault, and smart contract issued on-chain.",
+    launchGate: {
+      MISSING_TITLE: "Asset title is required.",
+      MISSING_DESCRIPTION: "Description is required.",
+      MISSING_LOCATION: "Location is required.",
+      MISSING_MEDIA: "Upload at least one property photo.",
+      INVALID_TOTAL_TOKENS: "Total tokens must be a positive integer.",
+      INVALID_PRICE: "Price per token must be greater than 0.",
+      MISSING_TOKEN_SYMBOL: "Token symbol is required.",
+      MISSING_TOKEN_NAME: "Token name is required.",
+      DEPLOY_NOT_CONFIGURED:
+        "On-chain issuance is not configured on Vercel (TOKEN_DEPLOY_PRIVATE_KEY and BASE_RPC_URL).",
+      DEPLOY_NO_GAS: "Deployer wallet has no gas on the configured network.",
+      DEPLOY_RPC_ERROR: "Could not connect to the network RPC.",
+      TOKEN_NOT_DEPLOYED: "RWA token was not deployed on-chain.",
+      VAULT_NOT_DEPLOYED: "ERC-4626 vault was not deployed.",
+      VAULT_NOT_FUNDED: "Vault is not funded (required for DeFi collateral).",
+      SMART_CONTRACT_NOT_LINKED: "Smart contract link is missing on the property card.",
+      DEPLOY_SKIPPED: "On-chain issuance was skipped by the server.",
+      DEPLOY_FAILED: "On-chain issuance failed.",
+      AUTOMATION_BLOCKED: "Automation is blocked (circuit breaker or too many failures).",
+      MORPHO_REQUIRED_FOR_PUBLISH:
+        "To publish on the marketplace with ERC-4626, enable Morpho as a collateral protocol.",
+      CANNOT_PUBLISH_INCOMPLETE: "Cannot publish until on-chain issuance is complete."
+    }
   },
   adminTeam: {
     email: "E-mail",

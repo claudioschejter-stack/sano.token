@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getAdminAsset, updateAdminAsset, deleteAdminAsset, type UpdateAdminAssetInput } from '../../../../../lib/admin/assetsService';
+import {
+  finalizeErc4626AfterPersist,
+  sanitizeErc4626UpdateBody,
+  validateErc4626BeforePersist
+} from '../../../../../lib/admin/erc4626LaunchSave';
+import { isErc4626Standard } from '../../../../../lib/admin/erc4626LaunchGate';
 import { requireAdminSession } from '../../../../../lib/admin/requireAdmin';
 import { syncProjectAssetsFromStorage } from '../../../../../lib/storage/syncLaunchStorage';
 
@@ -51,14 +57,47 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
 
-    const updated = await updateAdminAsset(projectId, body);
+    const standard = body.tokenStandard ?? existing.tokenStandard;
+    const wantsPublish = body.isActive === true;
+    const sanitized = sanitizeErc4626UpdateBody(body, existing);
+
+    if (isErc4626Standard(standard)) {
+      sanitized.deployToken = true;
+      sanitized.isActive = false;
+    }
+
+    const gateIssues = await validateErc4626BeforePersist(sanitized, existing);
+    if (gateIssues.length) {
+      return NextResponse.json({ error: 'LAUNCH_NOT_READY', issues: gateIssues }, { status: 422 });
+    }
+
+    const updated = await updateAdminAsset(projectId, sanitized);
 
     if (!updated) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }
 
+    if (isErc4626Standard(standard)) {
+      const finalized = await finalizeErc4626AfterPersist(projectId, { requestedPublish: wantsPublish });
+      if (finalized.ok === false) {
+        const current = await getAdminAsset(projectId);
+        return NextResponse.json(
+          { error: 'LAUNCH_NOT_READY', issues: finalized.issues, asset: current },
+          { status: 422 }
+        );
+      }
+
+      let finalAsset = finalized.asset;
+      if (wantsPublish) {
+        const published = await updateAdminAsset(projectId, { isActive: true });
+        finalAsset = published ?? finalAsset;
+      }
+
+      return NextResponse.json({ asset: finalAsset, deploy: finalized.deploy });
+    }
+
     const shouldDeployOrRepair =
-      body.deployToken &&
+      sanitized.deployToken &&
       (!updated.contractAddress || (updated.tokenStandard === 'ERC4626' && !updated.vaultAddress));
 
     if (shouldDeployOrRepair) {

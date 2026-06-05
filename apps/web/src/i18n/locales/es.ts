@@ -441,7 +441,7 @@ export const es = {
     fieldVaultAddress: 'Vault ERC-4626',
     fieldSpvEntity: 'Entidad SPV / fideicomiso',
     fieldNavOracle: 'URL del oráculo NAV',
-    fieldContractAddress: 'Dirección del contrato (manual)',
+    fieldContractAddress: 'Dirección del token (on-chain)',
     tokenStandardSanova: 'Sanova KYC (recomendado — producción)',
     tokenStandardErc4626: 'Sanova + ERC-4626 (vault DeFi)',
     tokenStandardThirdweb: 'Thirdweb demo (solo pruebas)',
@@ -493,11 +493,14 @@ export const es = {
     },
     publishOnSave: 'Publicar en marketplace al guardar',
     tokenDeployTitle: 'Emisión on-chain del token',
-    tokenDeployDesc: 'Opcional. Podés emitir el token on-chain o cargar la dirección del contrato manualmente.',
+    tokenDeployDesc:
+      'Obligatorio para ERC-4626. Al guardar se despliegan automáticamente el token, el vault y el fondeo; no se aceptan direcciones manuales.',
+    tokenDeployMandatoryHint:
+      'Al guardar se emiten on-chain el token Sanova, el vault ERC-4626 y el enlace del smart contract en la tarjeta. Si falta algo, verás el detalle del error.',
     tokenDeployOptionalHint:
-      'La emisión automática no está configurada (falta TOKEN_DEPLOY_PRIVATE_KEY). Podés publicar la tarjeta igual y cargar la dirección del contrato a mano.',
+      'La emisión automática no está configurada en el servidor (TOKEN_DEPLOY_PRIVATE_KEY, RPC o gas). No se puede guardar un lanzamiento ERC-4626 hasta configurarlo.',
     tokenDeployReadyHint:
-      'Emisión automática activa. Al guardar se despliegan token + vault ERC-4626 on-chain (sin cargar direcciones a mano).',
+      'Servidor listo. Guardá el lanzamiento para emitir token + vault ERC-4626 automáticamente.',
     tokenDeployAutoPlaceholder: 'Se completa automáticamente al guardar',
     tokenDeployThirdwebHint:
       'Thirdweb no está configurado. Usá emisión manual del contrato o configurá THIRDWEB_SECRET_KEY solo para demos.',
@@ -508,7 +511,34 @@ export const es = {
     tokenSkipped: 'Emisión automática omitida',
     tokenDeployed: 'Token desplegado. Verificá el explorer.',
     tokenRequested: 'Solicitud de emisión registrada.',
-    tokenDeployError: 'Error al solicitar emisión del token.'
+    tokenDeployError: 'Error al solicitar emisión del token.',
+    launchGateTitle: 'No se pudo completar el lanzamiento ERC-4626',
+    launchGateIntro: 'Corregí lo siguiente y volvé a guardar:',
+    launchSavedOnChain: 'Lanzamiento guardado: token, vault ERC-4626 y smart contract emitidos on-chain.',
+    launchGate: {
+      MISSING_TITLE: 'Falta el título del activo.',
+      MISSING_DESCRIPTION: 'Falta la descripción.',
+      MISSING_LOCATION: 'Falta la ubicación.',
+      MISSING_MEDIA: 'Subí al menos una foto del activo.',
+      INVALID_TOTAL_TOKENS: 'El total de tokens debe ser un entero mayor a 0.',
+      INVALID_PRICE: 'El precio por token debe ser mayor a 0.',
+      MISSING_TOKEN_SYMBOL: 'Falta el símbolo del token.',
+      MISSING_TOKEN_NAME: 'Falta el nombre del token.',
+      DEPLOY_NOT_CONFIGURED:
+        'Emisión on-chain no configurada en Vercel (TOKEN_DEPLOY_PRIVATE_KEY y BASE_RPC_URL).',
+      DEPLOY_NO_GAS: 'La wallet de emisión no tiene gas en la red configurada.',
+      DEPLOY_RPC_ERROR: 'No se pudo conectar al RPC de la red.',
+      TOKEN_NOT_DEPLOYED: 'El token RWA no se desplegó on-chain.',
+      VAULT_NOT_DEPLOYED: 'El vault ERC-4626 no se desplegó.',
+      VAULT_NOT_FUNDED: 'El vault no quedó fondeado (requerido para colateral DeFi).',
+      SMART_CONTRACT_NOT_LINKED: 'Falta el enlace del smart contract en la tarjeta.',
+      DEPLOY_SKIPPED: 'Emisión on-chain omitida por el servidor.',
+      DEPLOY_FAILED: 'Falló la emisión on-chain.',
+      AUTOMATION_BLOCKED: 'Automatización bloqueada (circuit breaker o demasiados fallos).',
+      MORPHO_REQUIRED_FOR_PUBLISH:
+        'Para publicar en marketplace con ERC-4626, activá Morpho como protocolo de colateral.',
+      CANNOT_PUBLISH_INCOMPLETE: 'No se puede publicar hasta completar la emisión on-chain.'
+    }
   },
   adminTeam: {
     email: 'Email',

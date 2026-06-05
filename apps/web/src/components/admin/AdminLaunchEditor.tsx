@@ -30,6 +30,13 @@ import {
   instrumentTypeDefaults
 } from '../../lib/admin/launchTypes';
 import { buildSmartContractDocUrl } from '../../lib/blockchain/explorerUrls';
+import {
+  formatLaunchGateIssues,
+  isErc4626OnChainReady,
+  validateErc4626LaunchForm,
+  type LaunchGateIssue,
+  type LaunchGateIssueCode
+} from '../../lib/admin/erc4626LaunchGate';
 import { AdminGate } from './AdminGate';
 
 type AdminLaunchEditorProps = {
@@ -212,6 +219,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenStatus, setTokenStatus] = useState<string | null>(null);
+  const [vaultFundingStatus, setVaultFundingStatus] = useState<string>('NOT_REQUIRED');
   const [tokenDeployReady, setTokenDeployReady] = useState<boolean | null>(null);
   const [tokenDeployHealth, setTokenDeployHealth] = useState<TokenDeployHealth | null>(null);
   const [collateralTargets, setCollateralTargets] = useState<CollateralTarget[]>([]);
@@ -240,6 +248,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       const data = (await response.json()) as { asset: AdminAssetRecord };
       setForm(assetToForm(data.asset));
       setTokenStatus(data.asset.tokenDeployStatus);
+      setVaultFundingStatus(data.asset.vaultFundingStatus);
       setCollateralTargets(data.asset.collateralTargets);
       setDeploymentEvents(data.asset.deploymentEvents);
       setAutomationReadiness(data.asset.automationReadiness);
@@ -267,7 +276,26 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       .catch(() => setTokenDeployReady(false));
   }, []);
 
-  const shouldAutoDeploy = tokenDeployReady === true && !form.contractAddress;
+  const isErc4626Launch = form.tokenStandard === 'ERC4626';
+  const shouldAutoDeploy = isErc4626Launch || (tokenDeployReady === true && !form.contractAddress);
+  const onChainLaunchReady =
+    isErc4626Launch &&
+    isErc4626OnChainReady({
+      tokenStandard: form.tokenStandard,
+      tokenDeployStatus: tokenStatus ?? 'NOT_REQUESTED',
+      contractAddress: form.contractAddress || null,
+      vaultAddress: form.vaultAddress || null,
+      vaultFundingStatus,
+      contracts: { smartContract: form.contracts.smartContract || null }
+    });
+
+  function launchGateMessages(): Record<LaunchGateIssueCode, string> {
+    return l.launchGate as Record<LaunchGateIssueCode, string>;
+  }
+
+  function formatLaunchIssues(issues: LaunchGateIssue[]): string {
+    return `${l.launchGateTitle}\n${l.launchGateIntro}\n${formatLaunchGateIssues(issues, launchGateMessages())}`;
+  }
 
   async function uploadFile(file: File, folder: string) {
     setUploading(true);
@@ -485,7 +513,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
   }
 
   useEffect(() => {
-    if (mode !== 'edit' || !projectId || loading) {
+    if (mode !== 'edit' || !projectId || loading || form.tokenStandard === 'ERC4626') {
       return;
     }
 
@@ -560,8 +588,25 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       jurisdiction: form.jurisdiction,
       isActive: form.isActive,
       collateralProtocols: selectedCollateral(form),
-      deployToken: isLending && (shouldAutoDeploy || form.deployToken)
+      deployToken: isErc4626Launch || (isLending && (shouldAutoDeploy || form.deployToken))
     };
+  }
+
+  function erc4626FormValidationIssues(wantsPublish: boolean): LaunchGateIssue[] {
+    if (!isErc4626Launch) return [];
+
+    return validateErc4626LaunchForm({
+      title: form.title,
+      description: form.description,
+      location: form.location,
+      totalTokens: Number.parseInt(form.totalTokens, 10),
+      pricePerToken: Number.parseFloat(form.pricePerToken),
+      tokenName: form.tokenName || form.title,
+      tokenSymbol: form.tokenSymbol,
+      mediaGallery: form.mediaGallery,
+      isActive: wantsPublish,
+      collateralMorpho: form.collateralMorpho
+    });
   }
 
   const centrifugeScore = useMemo(
@@ -575,18 +620,51 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
     setError(null);
     setMessage(null);
 
+    const wantsPublish = form.isActive;
+
     try {
+      const clientIssues = erc4626FormValidationIssues(wantsPublish);
+      if (clientIssues.length) {
+        setError(formatLaunchIssues(clientIssues));
+        return;
+      }
+
+      if (isErc4626Launch && tokenDeployReady === false) {
+        setError(l.tokenDeployOptionalHint);
+        return;
+      }
+
+      const payload = buildPayload();
+
       if (mode === 'create') {
         const response = await fetch('/api/admin/assets', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(buildPayload())
+          body: JSON.stringify(payload)
         });
 
-        const data = (await response.json()) as { asset?: AdminAssetRecord; error?: string };
-        if (!response.ok || !data.asset) {
+        const data = (await response.json()) as {
+          asset?: AdminAssetRecord;
+          error?: string;
+          issues?: LaunchGateIssue[];
+        };
+
+        if (!response.ok) {
+          if (data.issues?.length) {
+            setError(formatLaunchIssues(data.issues));
+          } else {
+            setError(l.saveError);
+          }
+          return;
+        }
+
+        if (!data.asset) {
           setError(l.saveError);
           return;
+        }
+
+        if (isErc4626Launch) {
+          setMessage(l.launchSavedOnChain);
         }
 
         router.push(`/dashboard/assets/${data.asset.id}/edit?created=1`);
@@ -595,37 +673,69 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
 
       if (!projectId) return;
 
+      const patchBody: Record<string, unknown> = {
+        ...payload,
+        availableTokens: Number.parseInt(form.availableTokens, 10),
+        deployToken: isErc4626Launch || shouldAutoDeploy
+      };
+
+      if (!isErc4626Launch) {
+        patchBody.contractAddress = form.contractAddress || null;
+        patchBody.contracts = {
+          ...form.contracts,
+          smartContract:
+            form.contracts.smartContract ||
+            (form.contractAddress ? buildSmartContractDocUrl(null, form.contractAddress) : null)
+        };
+      }
+
       const response = await fetch(`/api/admin/assets/${projectId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...buildPayload(),
-          availableTokens: Number.parseInt(form.availableTokens, 10),
-          contractAddress: form.contractAddress || null,
-          contracts: {
-            ...form.contracts,
-            smartContract:
-              form.contracts.smartContract ||
-              (form.contractAddress ? buildSmartContractDocUrl(null, form.contractAddress) : null)
-          },
-          deployToken: shouldAutoDeploy
-        })
+        body: JSON.stringify(patchBody)
       });
 
-      const data = (await response.json()) as { asset?: AdminAssetRecord; deploy?: { status?: string; reason?: string } };
-      if (!response.ok || !data.asset) {
+      const data = (await response.json()) as {
+        asset?: AdminAssetRecord;
+        deploy?: { status?: string; reason?: string };
+        issues?: LaunchGateIssue[];
+      };
+
+      if (!response.ok) {
+        if (data.issues?.length) {
+          setError(formatLaunchIssues(data.issues));
+        } else {
+          setError(l.saveError);
+        }
+        if (data.asset) {
+          setForm(assetToForm(data.asset));
+          setTokenStatus(data.asset.tokenDeployStatus);
+          setVaultFundingStatus(data.asset.vaultFundingStatus);
+          setCollateralTargets(data.asset.collateralTargets);
+        }
+        return;
+      }
+
+      if (!data.asset) {
         setError(l.saveError);
         return;
       }
 
       setForm(assetToForm(data.asset));
       setTokenStatus(data.asset.tokenDeployStatus);
+      setVaultFundingStatus(data.asset.vaultFundingStatus);
       setCollateralTargets(data.asset.collateralTargets);
 
-      if (data.deploy?.status === 'SKIPPED' && data.deploy.reason) {
-        setMessage(data.deploy.reason.includes('TOKEN_DEPLOY_PRIVATE_KEY') ? l.tokenDeployOptionalHint : `${l.tokenSkipped}: ${data.deploy.reason}`);
-      } else if (data.asset.contractAddress) {
-        setMessage(l.tokenDeployReadyHint);
+      if (isErc4626Launch && isErc4626OnChainReady(data.asset)) {
+        setMessage(l.launchSavedOnChain);
+      } else if (data.deploy?.status === 'SKIPPED' && data.deploy.reason) {
+        setMessage(
+          data.deploy.reason.includes('TOKEN_DEPLOY_PRIVATE_KEY')
+            ? l.tokenDeployOptionalHint
+            : `${l.tokenSkipped}: ${data.deploy.reason}`
+        );
+      } else if (!isErc4626Launch && data.asset.contractAddress) {
+        setMessage(l.saveSuccess);
       } else {
         setMessage(l.saveSuccess);
       }
@@ -1039,6 +1149,45 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
               </div>
             </section>
 
+            {isErc4626Launch ? (
+              <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+                <p className="text-sm font-medium text-terminal-text">{l.tokenDeployTitle}</p>
+                <p className="mt-1 text-xs text-terminal-muted">{l.tokenDeployDesc}</p>
+                {tokenDeployReady === false ? (
+                  <p className="mt-2 text-xs text-amber-400/90">{l.tokenDeployOptionalHint}</p>
+                ) : (
+                  <p className="mt-2 text-xs text-terminal-success">
+                    {onChainLaunchReady ? l.launchSavedOnChain : l.tokenDeployMandatoryHint}
+                  </p>
+                )}
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <label className="block text-sm">
+                    <span className="text-terminal-muted">{l.fieldContractAddress}</span>
+                    <input value={form.contractAddress} readOnly placeholder={l.tokenDeployAutoPlaceholder} className={inputClass} />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="text-terminal-muted">{l.fieldVaultAddress}</span>
+                    <input value={form.vaultAddress} readOnly placeholder={l.tokenDeployAutoPlaceholder} className={inputClass} />
+                  </label>
+                </div>
+                {tokenStatus ? (
+                  <p className="mt-2 text-xs text-terminal-muted">
+                    {l.tokenStatus}: {tokenStatus} · Vault: {vaultFundingStatus}
+                  </p>
+                ) : null}
+                {form.contracts.smartContract ? (
+                  <a
+                    href={form.contracts.smartContract}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block truncate text-xs text-terminal-primary"
+                  >
+                    {form.contracts.smartContract}
+                  </a>
+                ) : null}
+              </section>
+            ) : null}
+
             <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
               <h2 className="text-lg font-semibold text-terminal-text">{l.sectionMedia}</h2>
               <p className="mt-1 text-sm text-terminal-muted">{l.mediaDesc}</p>
@@ -1124,17 +1273,18 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                   <p className="mt-1 text-xs text-terminal-muted">{l.tokenDeployDesc}</p>
                   {tokenDeployReady === false ? (
                     <p className="mt-2 text-xs text-amber-400/90">{l.tokenDeployOptionalHint}</p>
-                  ) : tokenDeployReady ? (
-                    <p className="mt-2 text-xs text-terminal-success">{l.tokenDeployReadyHint}</p>
-                  ) : null}
+                  ) : (
+                    <p className="mt-2 text-xs text-terminal-success">
+                      {onChainLaunchReady ? l.launchSavedOnChain : l.tokenDeployMandatoryHint}
+                    </p>
+                  )}
                   <div className="mt-4 flex flex-wrap gap-3">
                     <label className="block min-w-[16rem] flex-1 text-sm">
                       <span className="text-terminal-muted">{l.fieldContractAddress}</span>
                       <input
                         value={form.contractAddress}
-                        readOnly={shouldAutoDeploy}
-                        onChange={(e) => setForm({ ...form, contractAddress: e.target.value })}
-                        placeholder={shouldAutoDeploy ? l.tokenDeployAutoPlaceholder : '0x…'}
+                        readOnly
+                        placeholder={l.tokenDeployAutoPlaceholder}
                         className={inputClass}
                       />
                     </label>
@@ -1374,7 +1524,11 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
             </div>
 
             {message ? <p className="text-sm text-terminal-success">{message}</p> : null}
-            {error ? <p className="text-sm text-red-400">{error}</p> : null}
+            {error ? (
+              <pre className="whitespace-pre-wrap rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-sm text-red-400">
+                {error}
+              </pre>
+            ) : null}
           </form>
         )}
       </div>
