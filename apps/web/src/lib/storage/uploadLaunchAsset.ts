@@ -13,8 +13,11 @@ const ALLOWED_TYPES = new Set([
   'image/png',
   'image/webp',
   'image/gif',
+  'image/heic',
+  'image/heif',
   'video/mp4',
   'video/webm',
+  'video/quicktime',
   'application/pdf'
 ]);
 
@@ -45,8 +48,32 @@ function resolveKind(mimeType: string): UploadLaunchAssetResult['kind'] {
   return 'image';
 }
 
-export function validateLaunchUpload(mimeType: string, size: number): string | null {
-  if (!ALLOWED_TYPES.has(mimeType)) {
+function inferMimeType(mimeType: string, originalName: string): string {
+  if (mimeType?.trim()) {
+    return mimeType.trim().toLowerCase();
+  }
+
+  const ext = originalName.split('.').pop()?.toLowerCase() ?? '';
+  const byExt: Record<string, string> = {
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    png: 'image/png',
+    webp: 'image/webp',
+    gif: 'image/gif',
+    heic: 'image/heic',
+    heif: 'image/heif',
+    mp4: 'video/mp4',
+    webm: 'video/webm',
+    mov: 'video/quicktime',
+    pdf: 'application/pdf'
+  };
+
+  return byExt[ext] ?? mimeType;
+}
+
+export function validateLaunchUpload(mimeType: string, size: number, originalName = ''): string | null {
+  const resolved = inferMimeType(mimeType, originalName);
+  if (!ALLOWED_TYPES.has(resolved)) {
     return 'unsupported_type';
   }
 
@@ -101,15 +128,20 @@ async function uploadToLocalDisk(input: UploadLaunchAssetInput): Promise<UploadL
 }
 
 export async function uploadLaunchAsset(input: UploadLaunchAssetInput): Promise<UploadLaunchAssetResult> {
+  const normalizedInput = {
+    ...input,
+    mimeType: inferMimeType(input.mimeType, input.originalName)
+  };
+
   if (isSupabaseStorageConfigured()) {
-    return uploadToSupabase(input);
+    return uploadToSupabase(normalizedInput);
   }
 
   if (process.env.VERCEL) {
     throw new Error('STORAGE_NOT_CONFIGURED');
   }
 
-  return uploadToLocalDisk(input);
+  return uploadToLocalDisk(normalizedInput);
 }
 
 export { isSupabaseStorageConfigured, MAX_BYTES as LAUNCH_UPLOAD_MAX_BYTES };

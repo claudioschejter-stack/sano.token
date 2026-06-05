@@ -468,7 +468,8 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
     });
 
     if (!response.ok) {
-      throw new Error('save failed');
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      throw new Error(data?.error ?? 'save failed');
     }
   }
 

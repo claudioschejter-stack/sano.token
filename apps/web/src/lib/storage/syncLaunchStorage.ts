@@ -11,7 +11,7 @@ import {
   isSupabaseStorageConfigured
 } from './supabaseAdmin';
 
-const IMAGE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif']);
+const IMAGE_EXT = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif']);
 const VIDEO_EXT = new Set(['mp4', 'webm', 'mov']);
 const PDF_EXT = new Set(['pdf']);
 

@@ -169,6 +169,18 @@ export async function finalizeErc4626AfterPersist(
   return { ok: true, asset, deploy };
 }
 
+const LAUNCH_CARD_PARTIAL_UPDATE_KEYS = new Set<keyof UpdateAdminAssetInput>([
+  'mediaGallery',
+  'image',
+  'contracts'
+]);
+
+/** Media/contracts saves should not trigger ERC-4626 deploy or publish gates. */
+export function isLaunchCardPartialUpdate(body: UpdateAdminAssetInput): boolean {
+  const keys = Object.keys(body) as Array<keyof UpdateAdminAssetInput>;
+  return keys.length > 0 && keys.every((key) => LAUNCH_CARD_PARTIAL_UPDATE_KEYS.has(key));
+}
+
 export function sanitizeErc4626UpdateBody(
   body: UpdateAdminAssetInput,
   existing: AdminAssetRecord

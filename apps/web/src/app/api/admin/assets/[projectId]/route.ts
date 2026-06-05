@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getAdminAsset, updateAdminAsset, deleteAdminAsset, type UpdateAdminAssetInput } from '../../../../../lib/admin/assetsService';
 import {
   finalizeErc4626AfterPersist,
+  isLaunchCardPartialUpdate,
   sanitizeErc4626UpdateBody,
   validateErc4626BeforePersist
 } from '../../../../../lib/admin/erc4626LaunchSave';
@@ -61,22 +62,29 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const standard = body.tokenStandard ?? existing.tokenStandard;
     const wantsPublish = body.isActive === true;
-    const sanitized = sanitizeErc4626UpdateBody(body, existing);
+    const partialCardUpdate = isLaunchCardPartialUpdate(body);
+    const sanitized = partialCardUpdate ? body : sanitizeErc4626UpdateBody(body, existing);
 
-    if (isErc4626Standard(standard)) {
+    if (isErc4626Standard(standard) && !partialCardUpdate) {
       sanitized.deployToken = true;
       sanitized.isActive = false;
     }
 
-    const gateIssues = await validateErc4626BeforePersist(sanitized, existing);
-    if (gateIssues.length) {
-      return NextResponse.json({ error: 'LAUNCH_NOT_READY', issues: gateIssues }, { status: 422 });
+    if (!partialCardUpdate) {
+      const gateIssues = await validateErc4626BeforePersist(sanitized, existing);
+      if (gateIssues.length) {
+        return NextResponse.json({ error: 'LAUNCH_NOT_READY', issues: gateIssues }, { status: 422 });
+      }
     }
 
     const updated = await updateAdminAsset(projectId, sanitized);
 
     if (!updated) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
+    }
+
+    if (partialCardUpdate) {
+      return NextResponse.json({ asset: updated });
     }
 
     if (isErc4626Standard(standard)) {

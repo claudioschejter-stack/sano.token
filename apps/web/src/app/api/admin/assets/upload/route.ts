@@ -16,7 +16,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing file' }, { status: 400 });
     }
 
-    const validationError = validateLaunchUpload(file.type, file.size);
+    const validationError = validateLaunchUpload(file.type, file.size, file.name);
     if (validationError === 'unsupported_type') {
       return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
     }
