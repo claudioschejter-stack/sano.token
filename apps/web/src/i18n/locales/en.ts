@@ -792,6 +792,8 @@ export const en = {
     totalDepositUsd: "Net amount to credit (USD)",
     totalToPayLabel: "Total amount to pay",
     selectPaymentMethod: "Select your payment method:",
+    paymentMethodsAvailable: "Accepted payment methods",
+    paymentMethodsUnavailable: "Unavailable payment methods",
     paymentMethodsTitle: "Automatic payment options",
     confirmButton: "Confirm",
     continueDeposit: "Continue",

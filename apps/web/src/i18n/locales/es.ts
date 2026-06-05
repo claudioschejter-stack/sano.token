@@ -805,6 +805,8 @@ export const es = {
     totalDepositUsd: 'Monto neto a acreditar (USD)',
     totalToPayLabel: 'Monto total a pagar',
     selectPaymentMethod: 'Seleccione su forma de Pago:',
+    paymentMethodsAvailable: 'Formas de pago aceptadas',
+    paymentMethodsUnavailable: 'Formas de pago no disponibles',
     paymentMethodsTitle: 'Opciones de pago automáticas',
     confirmButton: 'Confirmar',
     continueDeposit: 'Continuar',

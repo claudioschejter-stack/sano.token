@@ -4,6 +4,45 @@ import { paymentGatewayConfigured } from './paymentConfig';
 
 export const DEPOSIT_QUOTE_TTL_SECONDS = 40;
 
+function toUsdAmount(value: number | string | undefined): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+export function compareDepositPaymentOptions(
+  a: DepositPaymentOption,
+  b: DepositPaymentOption
+): number {
+  if (a.configured !== b.configured) {
+    return a.configured ? -1 : 1;
+  }
+
+  const totalDiff = toUsdAmount(a.totalUsd) - toUsdAmount(b.totalUsd);
+  if (totalDiff !== 0) {
+    return totalDiff;
+  }
+
+  const feeDiff = toUsdAmount(a.feeUsd) - toUsdAmount(b.feeUsd);
+  if (feeDiff !== 0) {
+    return feeDiff;
+  }
+
+  return a.label.localeCompare(b.label, 'es');
+}
+
+export function sortDepositPaymentOptions(options: DepositPaymentOption[]): DepositPaymentOption[] {
+  return [...options].sort(compareDepositPaymentOptions);
+}
+
+export function partitionDepositPaymentOptions(options: DepositPaymentOption[]) {
+  const sorted = sortDepositPaymentOptions(options);
+  return {
+    sorted,
+    available: sorted.filter((row) => row.configured),
+    unavailable: sorted.filter((row) => !row.configured)
+  };
+}
+
 export type DepositPaymentOption = {
   id: string;
   method: PaymentMethod;
@@ -312,15 +351,10 @@ export function buildDepositPaymentOptions(
       configured,
       stablecoinNetwork: row.stablecoinNetwork
     };
-  }).sort((a, b) => {
-    if (a.configured !== b.configured) {
-      return a.configured ? -1 : 1;
-    }
-    return a.totalUsd - b.totalUsd;
   });
 
   return {
-    options,
+    options: sortDepositPaymentOptions(options),
     quoteExpiresAt,
     quoteTtlSeconds: DEPOSIT_QUOTE_TTL_SECONDS,
     baseCurrency: 'USD',

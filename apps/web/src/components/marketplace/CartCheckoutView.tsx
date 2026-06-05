@@ -11,6 +11,11 @@ import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { PaymentMethod } from '@sanova/database';
+import {
+  partitionDepositPaymentOptions,
+  sortDepositPaymentOptions,
+  type DepositPaymentOption
+} from '../../lib/payments/depositPaymentOptions';
 import { useCartStore } from '../../store/useCartStore';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 
@@ -32,23 +37,6 @@ type DepositResponse = {
   method: string;
   payToAddress: string | null;
   providerCheckoutUrl: string | null;
-};
-
-type DepositPaymentOption = {
-  id: string;
-  method: PaymentMethod;
-  label: string;
-  platformFeeUsd: number;
-  gasFeeUsd: number;
-  networkFeeUsd: number;
-  feeUsd: number;
-  feeBps: number;
-  totalUsd: number;
-  totalLocal: number | null;
-  displayCurrency: string;
-  usesLocalCurrency: boolean;
-  configured: boolean;
-  stablecoinNetwork?: string;
 };
 
 type DepositQuoteResponse = {
@@ -122,16 +110,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
   const depositCountry = CURRENCY_COUNTRY[currency] ?? 'AR';
-  const sortedDepositOptions = useMemo(
-    () =>
-      [...depositOptions].sort((a, b) => {
-        if (a.configured !== b.configured) {
-          return a.configured ? -1 : 1;
-        }
-        return a.totalUsd - b.totalUsd;
-      }),
-    [depositOptions]
-  );
+  const { sorted: sortedDepositOptions, available: availableDepositOptions, unavailable: unavailableDepositOptions } =
+    useMemo(() => partitionDepositPaymentOptions(depositOptions), [depositOptions]);
 
   const selectedDepositOption = useMemo(
     () => sortedDepositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
@@ -160,7 +140,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     )
       .then((response) => (response.ok ? response.json() : null))
       .then((data: DepositQuoteResponse | null) => {
-        const next = data?.options ?? [];
+        const next = sortDepositPaymentOptions(data?.options ?? []);
         setDepositOptions(next);
         setQuoteExpiresAt(data?.quoteExpiresAt ?? null);
         const expiresMs = data?.quoteExpiresAt ? new Date(data.quoteExpiresAt).getTime() - Date.now() : 0;
@@ -170,13 +150,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           if (current && next.some((row) => row.id === current && row.configured)) {
             return current;
           }
-          const ordered = [...next].sort((a, b) => {
-            if (a.configured !== b.configured) {
-              return a.configured ? -1 : 1;
-            }
-            return a.totalUsd - b.totalUsd;
-          });
-          return ordered.find((row) => row.configured)?.id ?? null;
+          return next.find((row) => row.configured)?.id ?? null;
         });
       })
       .catch(() => {
@@ -438,6 +412,82 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
   const payToAddress = mode === 'deposit' ? deposit?.payToAddress : checkout?.payToAddress;
 
+  const renderDepositOption = (option: DepositPaymentOption) => {
+    const selected = selectedDepositOptionId === option.id;
+    const amountPrimary =
+      option.usesLocalCurrency && option.totalLocal != null
+        ? formatDepositLocal(option.totalLocal, option.displayCurrency, currencyLocale)
+        : formatUsd(option.totalUsd);
+    const amountSecondary =
+      option.usesLocalCurrency && option.totalLocal != null ? formatUsd(option.totalUsd) : null;
+
+    return (
+      <div key={option.id} className={`bg-white ${!option.configured ? 'opacity-70' : ''}`}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setSelectedDepositOptionId(option.id)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              setSelectedDepositOptionId(option.id);
+            }
+          }}
+          className={`flex w-full cursor-pointer items-center gap-3 px-4 py-3.5 text-left transition-colors ${
+            selected ? 'bg-blue-50' : 'hover:bg-slate-50'
+          }`}
+        >
+          <div className="min-w-0 flex-1">
+            <span className="text-sm font-semibold text-slate-900">{option.label}</span>
+            {!option.configured ? (
+              <span className="mt-0.5 block text-[11px] font-medium uppercase text-amber-700">
+                {c.paymentUnavailable}
+              </span>
+            ) : null}
+          </div>
+          <div className="shrink-0 text-right">
+            <p className="font-mono text-sm font-bold text-blue-700">{amountPrimary}</p>
+            {amountSecondary ? (
+              <p className="font-mono text-[11px] text-slate-500">{amountSecondary}</p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            aria-label={option.label}
+            aria-pressed={selected}
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedDepositOptionId(option.id);
+            }}
+            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 bg-white shadow-sm transition-colors ${
+              selected
+                ? 'border-blue-600 ring-2 ring-blue-600/20'
+                : 'border-slate-300 hover:border-blue-400'
+            }`}
+          >
+            {selected ? <span className="h-3 w-3 rounded-sm bg-blue-600" /> : null}
+          </button>
+        </div>
+        {selected ? (
+          <div className="space-y-1 border-t border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
+            <div className="flex justify-between gap-4">
+              <span>{c.feeCommission}</span>
+              <span className="font-mono font-medium text-slate-900">{formatUsd(option.platformFeeUsd)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>{c.feeGas}</span>
+              <span className="font-mono font-medium text-slate-900">{formatUsd(option.gasFeeUsd)}</span>
+            </div>
+            <div className="flex justify-between gap-4">
+              <span>{c.feeOther}</span>
+              <span className="font-mono font-medium text-slate-900">{formatUsd(option.networkFeeUsd)}</span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
+
   return (
     <section className="mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -559,89 +609,27 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               {paymentQuoteExpired ? (
                 <p className="text-xs text-terminal-warning">{c.quoteExpired}</p>
               ) : null}
-              <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                {sortedDepositOptions.map((option) => {
-                  const selected = selectedDepositOptionId === option.id;
-                  const amountPrimary =
-                    option.usesLocalCurrency && option.totalLocal != null
-                      ? formatDepositLocal(option.totalLocal, option.displayCurrency, currencyLocale)
-                      : formatUsd(option.totalUsd);
-                  const amountSecondary =
-                    option.usesLocalCurrency && option.totalLocal != null ? formatUsd(option.totalUsd) : null;
-
-                  return (
-                    <div
-                      key={option.id}
-                      className={`bg-white ${!option.configured ? 'opacity-70' : ''}`}
-                    >
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => setSelectedDepositOptionId(option.id)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            setSelectedDepositOptionId(option.id);
-                          }
-                        }}
-                        className={`flex w-full cursor-pointer items-center gap-3 px-4 py-3.5 text-left transition-colors ${
-                          selected ? 'bg-blue-50' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <div className="min-w-0 flex-1">
-                          <span className="text-sm font-semibold text-slate-900">{option.label}</span>
-                          {!option.configured ? (
-                            <span className="mt-0.5 block text-[11px] font-medium uppercase text-amber-700">
-                              {c.paymentUnavailable}
-                            </span>
-                          ) : null}
-                        </div>
-                        <div className="shrink-0 text-right">
-                          <p className="font-mono text-sm font-bold text-blue-700">{amountPrimary}</p>
-                          {amountSecondary ? (
-                            <p className="font-mono text-[11px] text-slate-500">{amountSecondary}</p>
-                          ) : null}
-                        </div>
-                        <button
-                          type="button"
-                          aria-label={option.label}
-                          aria-pressed={selected}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedDepositOptionId(option.id);
-                          }}
-                          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border-2 bg-white shadow-sm transition-colors ${
-                            selected
-                              ? 'border-blue-600 ring-2 ring-blue-600/20'
-                              : 'border-slate-300 hover:border-blue-400'
-                          }`}
-                        >
-                          {selected ? <span className="h-3 w-3 rounded-sm bg-blue-600" /> : null}
-                        </button>
-                      </div>
-                      {selected ? (
-                        <div className="space-y-1 border-t border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-700">
-                          <div className="flex justify-between gap-4">
-                            <span>{c.feeCommission}</span>
-                            <span className="font-mono font-medium text-slate-900">
-                              {formatUsd(option.platformFeeUsd)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between gap-4">
-                            <span>{c.feeGas}</span>
-                            <span className="font-mono font-medium text-slate-900">{formatUsd(option.gasFeeUsd)}</span>
-                          </div>
-                          <div className="flex justify-between gap-4">
-                            <span>{c.feeOther}</span>
-                            <span className="font-mono font-medium text-slate-900">
-                              {formatUsd(option.networkFeeUsd)}
-                            </span>
-                          </div>
-                        </div>
-                      ) : null}
+              <div className="space-y-4">
+                {availableDepositOptions.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="px-1 text-xs font-semibold uppercase tracking-wide text-terminal-muted">
+                      {c.paymentMethodsAvailable}
+                    </p>
+                    <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
+                      {availableDepositOptions.map((option) => renderDepositOption(option))}
                     </div>
-                  );
-                })}
+                  </div>
+                ) : null}
+                {unavailableDepositOptions.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="px-1 text-xs font-semibold uppercase tracking-wide text-terminal-muted">
+                      {c.paymentMethodsUnavailable}
+                    </p>
+                    <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
+                      {unavailableDepositOptions.map((option) => renderDepositOption(option))}
+                    </div>
+                  </div>
+                ) : null}
               </div>
               {sortedDepositOptions.length === 0 && totalUsd > 0 ? (
                 <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
