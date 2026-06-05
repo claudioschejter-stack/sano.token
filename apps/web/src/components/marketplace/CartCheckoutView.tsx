@@ -669,7 +669,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               variant="checkout"
               allowReplace
               onError={(message) => setError(message)}
-              onLinked={() => loadDepositQuote()}
+              onLinked={() => {
+                void loadDepositQuote();
+              }}
             />
           ) : null}
 
