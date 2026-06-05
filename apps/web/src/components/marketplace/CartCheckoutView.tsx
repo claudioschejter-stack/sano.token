@@ -757,7 +757,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                       !selectedDepositOptionId ||
                       paymentQuoteExpired ||
                       !selectedDepositOption?.configured)) ||
-                  (requiresWallet && !walletGuard.canSignOnChain)
+                  (requiresWallet &&
+                    (mode === 'deposit' ? !walletGuard.isWalletLinked : !walletGuard.canSignOnChain))
                 }
                 onClick={() => void handleConfirm()}
                 className="w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
