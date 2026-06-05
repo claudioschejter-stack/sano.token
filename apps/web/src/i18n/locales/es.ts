@@ -1625,6 +1625,28 @@ export const es = {
     walletRequired: 'Conectá una wallet antes de elegir cobro en USDC.',
     linkWalletInCheckout: 'Configurar en Panel de control'
   },
+  morphoLiquidityPanel: {
+    title: 'Liquidez Morpho',
+    subtitle:
+      'USDC disponible para pedir prestado en mercados Morpho Blue de tus vaults ERC-4626 (on-chain, Base).',
+    availableLabel: 'Liquidez Morpho disponible',
+    chainHint: 'Red {chainId} (Base)',
+    updated: 'Actualizado',
+    refresh: 'Actualizar',
+    loading: 'Leyendo mercados Morpho…',
+    error: 'No se pudo cargar la liquidez Morpho.',
+    empty: 'Todavía no hay mercados Morpho configurados para tus propiedades.',
+    supplyBorrow: 'Supply {supply} · Prestado {borrow}',
+    footnote:
+      'Es liquidez de prestamistas en el mercado, no tu colateral. Tu máximo a pedir también depende de las shares del vault en tu wallet.',
+    loansLink: 'Ver préstamos y automatización',
+    statuses: {
+      LIQUID: 'Con liquidez — se puede pedir prestado',
+      NO_LIQUIDITY: 'Sin liquidez USDC en el mercado',
+      NO_MARKET: 'Mercado aún no creado',
+      FAILED: 'No se pudo leer on-chain'
+    }
+  },
   demo: {
     assets: {
       aneloOps: 'Operaciones Añelo',

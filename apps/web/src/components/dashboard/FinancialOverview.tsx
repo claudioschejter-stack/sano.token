@@ -33,6 +33,7 @@ import {
 
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
 import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
+import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
 
 export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
@@ -112,6 +113,8 @@ export function FinancialOverview() {
       <Suspense fallback={<div className="h-48 animate-pulse rounded-xl border border-terminal-border bg-terminal-card" />}>
         <InvestorCollectionWalletPanel />
       </Suspense>
+
+      <MorphoLiquidityPanel loansHref="/marketplace" />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>article]:h-full">
         <InvestorKpiCard

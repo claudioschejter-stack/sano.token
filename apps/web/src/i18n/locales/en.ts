@@ -1592,6 +1592,27 @@ export const en = {
     walletRequired: "Connect a wallet before selecting USDC payouts.",
     linkWalletInCheckout: "Set up in dashboard"
   },
+  morphoLiquidityPanel: {
+    title: "Morpho liquidity",
+    subtitle: "USDC available to borrow in Morpho Blue markets for your ERC-4626 vaults (on-chain, Base).",
+    availableLabel: "Total Morpho liquidity available",
+    chainHint: "Chain ID {chainId} (Base)",
+    updated: "Updated",
+    refresh: "Refresh",
+    loading: "Reading Morpho markets…",
+    error: "Could not load Morpho liquidity.",
+    empty: "No Morpho markets configured for your properties yet.",
+    supplyBorrow: "Supply {supply} · Borrowed {borrow}",
+    footnote:
+      "This is lender liquidity in the market, not your collateral. Your max borrow also depends on vault shares in your wallet.",
+    loansLink: "View loans and automation",
+    statuses: {
+      LIQUID: "Liquid — borrow available",
+      NO_LIQUIDITY: "No USDC liquidity in the market",
+      NO_MARKET: "Market not created yet",
+      FAILED: "Could not read on-chain data"
+    }
+  },
   demo: {
     assets: {
       aneloOps: "Anelo Operations",

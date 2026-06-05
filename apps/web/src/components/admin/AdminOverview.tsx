@@ -15,6 +15,7 @@ import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { AdminStats } from '../../lib/admin/getAdminStats';
 import { DashboardSkeleton } from '../dashboard/DashboardSkeleton';
+import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
 import { AdminGate } from './AdminGate';
 
 type KpiCardProps = {
@@ -167,6 +168,8 @@ export function AdminOverview() {
             href="/dashboard/team"
           />
         </section>
+
+        <MorphoLiquidityPanel loansHref="/dashboard/loans" />
 
         <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
           <h2 className="text-lg font-bold text-terminal-text">{t.adminDashboard.quickLinksTitle}</h2>
