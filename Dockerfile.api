@@ -20,7 +20,6 @@ COPY . .
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 RUN npx prisma generate --schema=./packages/database/prisma/schema.prisma
 RUN npm run build -w @sanova/database
-RUN npm run build -w @sanova/blockchain
 RUN npm run build -w @sanova/api
 
 FROM base AS runner
@@ -38,10 +37,12 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
-# Use Nest-compiled workspace packages (CJS + relative requires)
-COPY --from=builder /app/apps/api/dist/packages/blockchain/src ./packages/blockchain/dist
-COPY --from=builder /app/apps/api/dist/packages/contracts/abi ./packages/contracts/abi
-RUN node -e "const fs=require('fs'); const p='packages/contracts/package.json'; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.main='abi/index.js'; j.exports={'.':'./abi/index.js','./abi/sanova-asset-token':'./abi/sanova-asset-token.abi.js','./abi/escrow-lending-pool':'./abi/escrow-lending-pool.abi.js'}; fs.writeFileSync(p, JSON.stringify(j,null,2));"
+# Point workspace packages at Nest-compiled CJS output (avoids ESM dist from tsc)
+RUN node -e "\
+const fs=require('fs');\
+const patch=(p,main,exports)=>{const j=JSON.parse(fs.readFileSync(p,'utf8')); j.main=main; j.exports=exports; fs.writeFileSync(p,JSON.stringify(j,null,2));};\
+patch('packages/blockchain/package.json','../../apps/api/dist/packages/blockchain/src/index.js',{'.':'../../apps/api/dist/packages/blockchain/src/index.js'});\
+patch('packages/contracts/package.json','../../apps/api/dist/packages/contracts/abi/index.js',{'.':'../../apps/api/dist/packages/contracts/abi/index.js','./abi/sanova-asset-token':'../../apps/api/dist/packages/contracts/abi/sanova-asset-token.abi.js','./abi/escrow-lending-pool':'../../apps/api/dist/packages/contracts/abi/escrow-lending-pool.abi.js'});"
 
 USER nestjs
 EXPOSE 3001
