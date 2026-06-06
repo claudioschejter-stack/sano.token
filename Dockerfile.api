@@ -16,10 +16,12 @@ RUN npm ci --ignore-scripts
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# COPY . . overwrites apps/api; restore workspace devDeps (e.g. @nestjs/cli)
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 RUN npx prisma generate --schema=./packages/database/prisma/schema.prisma
 RUN npm run build -w @sanova/database
 RUN npm run build -w @sanova/blockchain
-RUN npx nest build -p apps/api
+RUN npm run build -w @sanova/api
 
 FROM base AS runner
 ENV NODE_ENV=production
