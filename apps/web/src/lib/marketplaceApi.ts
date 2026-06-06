@@ -1,5 +1,4 @@
 import { MARKETPLACE_FALLBACK_LISTINGS } from '../data/marketplaceFallback';
-import { fetchMarketplaceFeedFromDb } from './marketplace/marketplaceFeedService';
 import type { MarketplaceFeed } from '../types/marketplace';
 
 const FEED_PATH = '/api/marketplace/feed';
@@ -56,6 +55,7 @@ async function fetchFeed(init?: RequestInit): Promise<MarketplaceFeed> {
 /** Server-side fetch for marketplace SSR. */
 export async function fetchMarketplaceFeed(): Promise<MarketplaceFeed> {
   try {
+    const { fetchMarketplaceFeedFromDb } = await import('./marketplace/marketplaceFeedService');
     return await fetchMarketplaceFeedFromDb();
   } catch {
     return buildFallbackFeed();
