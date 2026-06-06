@@ -67,14 +67,26 @@ for (const key of fromEnv) {
   if (v && !v.includes('[YOUR-PASSWORD]')) pairs[key] = v;
 }
 
-function pushVars() {
-  let ok = 0;
-  for (const [key, value] of Object.entries(pairs)) {
-    const result = spawnSync('npx', ['@railway/cli', 'variables', 'set', `${key}=${value}`], {
+function setVar(key, value) {
+  if (/[=;\s]/.test(value)) {
+    return spawnSync('npx', ['@railway/cli', 'variable', 'set', key, '--stdin'], {
       cwd: root,
+      input: value,
       encoding: 'utf8',
       shell: true
     });
+  }
+  return spawnSync('npx', ['@railway/cli', 'variable', 'set', `${key}=${value}`], {
+    cwd: root,
+    encoding: 'utf8',
+    shell: true
+  });
+}
+
+function pushVars() {
+  let ok = 0;
+  for (const [key, value] of Object.entries(pairs)) {
+    const result = setVar(key, value);
     if (result.status !== 0) {
       console.error(`failed ${key}`);
       process.exitCode = 1;
