@@ -38,6 +38,7 @@
     "contracts:security-audit": "node scripts/audit-rwa-contracts.mjs",
     "contracts:audit-report": "node scripts/generate-rwa-audit-report.mjs",
     "web:dev": "npm run dev -w @sanova/web",
+    "web:analyze": "npm run analyze -w @sanova/web",
     "api:dev": "npm run dev -w @sanova/api",
     "infra:up": "docker compose up postgres redis -d",
     "infra:down": "docker compose down",

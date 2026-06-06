@@ -67,4 +67,5 @@ const nextConfig = {
   }
 };
 
-module.exports = nextConfig;
+const wrapWithAnalyzer = require('./next.config.analyze.js');
+module.exports = wrapWithAnalyzer(nextConfig);

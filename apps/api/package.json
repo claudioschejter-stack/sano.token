@@ -21,6 +21,7 @@
     "@nestjs/schedule": "^6.1.3",
     "@nestjs/throttler": "^6.5.0",
     "@prisma/client": "^6.0.0",
+    "@sanova/blockchain": "*",
     "@sanova/database": "*",
     "bcrypt": "^6.0.0",
     "bullmq": "^5.34.3",

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { processAutomationJobs } from '../../../../lib/admin/automationJobs';
 import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { captureAutomationError } from '../../../../lib/observability/captureAutomationError';
 
 export const maxDuration = 300;
 
@@ -19,6 +20,11 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('[cron/process-automation-jobs]', error);
+    await captureAutomationError({
+      error,
+      title: 'process-automation-jobs cron failed',
+      tags: { cron: 'process-automation-jobs' }
+    });
     return NextResponse.json({ error: 'Automation cron failed' }, { status: 500 });
   }
 }

@@ -1,5 +1,20 @@
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
 
+async function notifySlack(text: string) {
+  const webhook = process.env.AUTOMATION_SLACK_WEBHOOK_URL?.trim();
+  if (!webhook) return;
+
+  try {
+    await fetch(webhook, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+  } catch (error) {
+    console.warn('[automationAlerts] Slack webhook failed:', error);
+  }
+}
+
 function adminEmails(): string[] {
   return (process.env.AUTH_ADMIN_EMAILS ?? '')
     .split(',')
@@ -18,11 +33,15 @@ export async function notifyAutomationIssue(input: {
     return;
   }
 
+  const severity = input.severity ?? 'warning';
+  const slackLine = `[Sanova RWA ${severity}] ${input.title} — ${input.message} (project: ${input.projectId})`;
+  await notifySlack(slackLine);
+
   await Promise.all(
     recipients.map((to) =>
       sendTransactionalEmail({
         to,
-        subject: `Sanova RWA ${input.severity ?? 'warning'} alert: ${input.title}`,
+        subject: `Sanova RWA ${severity} alert: ${input.title}`,
         text: `${input.message}\n\nProject: ${input.projectId}`,
         html: `<p>${input.message}</p><p><strong>Project:</strong> ${input.projectId}</p>`
       })

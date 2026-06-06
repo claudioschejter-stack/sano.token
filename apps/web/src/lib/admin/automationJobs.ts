@@ -3,6 +3,7 @@ import { appendDeploymentEvent, getAdminAsset } from './assetsService';
 import type { DeploymentEvent } from './launchTypes';
 import { logAutomationEvent } from './automationLogger';
 import { mirrorAutomationJobToBull } from './automationBullQueue';
+import { captureAutomationError } from '../observability/captureAutomationError';
 
 export type AutomationJobStep =
   | 'PREFLIGHT'
@@ -404,6 +405,15 @@ export async function processAutomationJobs(limit = 5) {
         message,
         metadata: { attempts, maxAttempts: job.maxAttempts }
       });
+
+      if (failed) {
+        void captureAutomationError({
+          error,
+          projectId: job.projectId,
+          title: `Automation job ${job.step} failed`,
+          tags: { step: job.step, jobId: job.id }
+        });
+      }
     }
   }
 

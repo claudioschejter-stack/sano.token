@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Contract, JsonRpcProvider, Wallet } from 'ethers';
-import { ESCROW_LENDING_POOL_ABI } from './escrow-lending-pool.abi';
+import { ESCROW_LENDING_POOL_ABI } from '@sanova/blockchain';
 
 @Injectable()
 export class BlockchainWriterService {

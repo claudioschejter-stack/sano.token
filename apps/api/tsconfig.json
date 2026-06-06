@@ -10,6 +10,7 @@
     "noEmit": false,
     "baseUrl": ".",
     "paths": {
+      "@sanova/blockchain": ["../../packages/blockchain/src/index.ts"],
       "@sanova/database": ["../../packages/database/src/index.ts"]
     }
   },

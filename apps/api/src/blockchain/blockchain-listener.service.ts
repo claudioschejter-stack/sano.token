@@ -7,8 +7,13 @@ import { Contract, JsonRpcProvider, formatUnits } from 'ethers';
 import { DIVIDEND_PROCESSED_EVENT, type DividendProcessedEvent } from '../events/dividend.events';
 import { PrismaService } from '../prisma/prisma.service';
 import { type BlockchainEventPayload } from './blockchain-event.payload';
-import { ERC3643_ASSET_ABI } from './erc3643-asset.abi';
-import { ESCROW_LENDING_POOL_ABI } from './escrow-lending-pool.abi';
+import {
+  BLOCKCHAIN_INGESTION_OWNERSHIP,
+  claimBlockchainEvent,
+  ERC3643_ASSET_ABI,
+  ESCROW_LENDING_POOL_ABI,
+  shouldRunNestBlockchainListener
+} from '@sanova/blockchain';
 
 export type { BlockchainEventPayload } from './blockchain-event.payload';
 
@@ -55,13 +60,6 @@ type DividendIngestionPayload = BlockchainEventPayload &
     contractAddress?: string;
   }>;
 
-type ClaimTransactionInput = {
-  txHash?: string;
-  eventName: string;
-  contractAddress?: string;
-  payload?: Prisma.InputJsonValue;
-};
-
 @Injectable()
 export class BlockchainListenerService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(BlockchainListenerService.name);
@@ -81,6 +79,12 @@ export class BlockchainListenerService implements OnModuleInit, OnModuleDestroy 
   ) {}
 
   async onModuleInit() {
+    if (!shouldRunNestBlockchainListener(process.env)) {
+      this.logger.warn(
+        `Blockchain listener disabled (owner=${BLOCKCHAIN_INGESTION_OWNERSHIP.rpcEvents}). Set BLOCKCHAIN_LISTENER_ENABLED=true and an RPC URL.`
+      );
+      return;
+    }
     await this.connectListeners();
   }
 
@@ -304,7 +308,7 @@ export class BlockchainListenerService implements OnModuleInit, OnModuleDestroy 
       }
 
       await this.prisma.$transaction(async (tx) => {
-        const claimed = await this.claimBlockchainTransaction(tx, {
+        const claimed = await claimBlockchainEvent(tx, {
           txHash,
           eventName: 'Transfer',
           contractAddress: tokenAddress,
@@ -481,7 +485,7 @@ export class BlockchainListenerService implements OnModuleInit, OnModuleDestroy 
     try {
       const txHash = event.log?.transactionHash;
       const updated = await this.prisma.$transaction(async (tx) => {
-        const claimed = await this.claimBlockchainTransaction(tx, {
+        const claimed = await claimBlockchainEvent(tx, {
           txHash,
           eventName,
           contractAddress: event.log.address,
@@ -584,7 +588,7 @@ export class BlockchainListenerService implements OnModuleInit, OnModuleDestroy 
     let processedEvent: DividendProcessedEvent | null = null;
 
     await this.prisma.$transaction(async (tx) => {
-      const claimed = await this.claimBlockchainTransaction(tx, {
+      const claimed = await claimBlockchainEvent(tx, {
         txHash: payload.txHash,
         eventName: 'YieldDistributedAndAmortized',
         contractAddress,
@@ -684,38 +688,6 @@ export class BlockchainListenerService implements OnModuleInit, OnModuleDestroy 
     return new Promise((resolve) => {
       setTimeout(resolve, ms);
     });
-  }
-
-  private async claimBlockchainTransaction(
-    tx: Prisma.TransactionClient,
-    input: ClaimTransactionInput
-  ): Promise<boolean> {
-    if (!input.txHash) {
-      this.logger.warn(`Skipping ${input.eventName}. Missing transaction hash.`);
-      return false;
-    }
-
-    try {
-      await tx.blockchainEvent.create({
-        data: {
-          txHash: input.txHash,
-          eventName: input.eventName,
-          contractAddress: input.contractAddress ?? 'unknown',
-          payload: input.payload
-        }
-      });
-
-      return true;
-    } catch (error) {
-      if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
-        this.logger.warn(
-          `Event already processed txHash=${input.txHash} event=${input.eventName} contract=${input.contractAddress}`
-        );
-        return false;
-      }
-
-      throw error;
-    }
   }
 
   private parseTokenAmount(value: bigint): number {
