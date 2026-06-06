@@ -34,6 +34,7 @@ const env = {
 };
 
 // Preview requires a git branch in Vercel CLI 54+ (non-interactive fails). Use development for vercel dev.
+// Note: BLOCKCHAIN_LISTENER_* on Vercel web is informational — listener runs on Nest worker only.
 function addEnv(name, value, environments = ['production', 'development']) {
   if (value === undefined || value === null || !String(value).trim()) {
     console.log(`skip ${name} (empty — set in .env and re-run)`);

@@ -15,8 +15,13 @@ export class KycWebhookService {
   ) {}
 
   verifySumsubSignature(rawBody: string, signatureHeader?: string) {
-    const secret = this.config.get<string>('SUMSUB_WEBHOOK_SECRET');
+    const secret = this.config.get<string>('SUMSUB_WEBHOOK_SECRET')?.trim();
+    const nodeEnv = this.config.get<string>('NODE_ENV') ?? 'development';
+
     if (!secret) {
+      if (nodeEnv === 'production') {
+        throw new BadRequestException('SUMSUB_WEBHOOK_SECRET is required in production.');
+      }
       return true;
     }
 

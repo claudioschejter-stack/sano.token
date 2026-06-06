@@ -11,6 +11,7 @@
     "baseUrl": ".",
     "paths": {
       "@sanova/blockchain": ["../../packages/blockchain/src/index.ts"],
+      "@sanova/contracts": ["../../packages/contracts/abi/index.ts"],
       "@sanova/database": ["../../packages/database/src/index.ts"]
     }
   },

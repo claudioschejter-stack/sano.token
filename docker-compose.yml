@@ -38,14 +38,21 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "3001:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://sanova:sanova@postgres:5432/sanova?schema=public
-      FRONTEND_ORIGINS: http://localhost:3000
-      REDIS_URL: redis://127.0.0.1:6379
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/sanova_rwa?schema=public
+      FRONTEND_ORIGINS: http://localhost:3000,https://sano-token-web.vercel.app
+      REDIS_URL: redis://redis:6379
+      BLOCKCHAIN_LISTENER_ENABLED: "true"
+      BLOCKCHAIN_WRITES_ENABLED: "true"
+      BLOCKCHAIN_RPC_URL: ${BLOCKCHAIN_RPC_URL:-https://mainnet.base.org}
+      JWT_SECRET: ${JWT_SECRET:-change-me-to-at-least-32-characters-long}
+      AUTH_INTERNAL_SECRET: ${AUTH_INTERNAL_SECRET:-change-me-internal-secret-at-least-32-chars}
 
   frontend:
     build:

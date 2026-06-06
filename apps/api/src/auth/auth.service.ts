@@ -97,14 +97,18 @@ export class AuthService {
   }
 
   private async validateServiceCredential(email: string, password: string): Promise<void> {
-    const adminEmail = this.configService.get<string>('AUTH_ADMIN_EMAIL');
-    const passwordHash = this.configService.get<string>('AUTH_ADMIN_PASSWORD_HASH');
-    const developmentPassword = this.configService.get<string>('AUTH_DEV_PASSWORD');
+    const normalizedEmail = email.trim().toLowerCase();
+    const allowedEmails = this.parseEmailList(this.configService.get<string>('AUTH_ADMIN_EMAILS'));
+    const legacyAdminEmail = this.configService.get<string>('AUTH_ADMIN_EMAIL')?.trim().toLowerCase();
+    if (legacyAdminEmail) {
+      allowedEmails.add(legacyAdminEmail);
+    }
 
-    if (!adminEmail || adminEmail.toLowerCase() !== email.toLowerCase()) {
+    if (!allowedEmails.has(normalizedEmail)) {
       throw new UnauthorizedException('Invalid credentials.');
     }
 
+    const passwordHash = this.configService.get<string>('AUTH_ADMIN_PASSWORD_HASH');
     if (passwordHash) {
       const isValid = await bcrypt.compare(password, passwordHash);
       if (!isValid) {
@@ -113,8 +117,13 @@ export class AuthService {
       return;
     }
 
-    const nodeEnv = this.configService.get<string>('NODE_ENV') ?? 'development';
+    const envPassword = this.configService.get<string>('AUTH_ADMIN_PASSWORD');
+    if (envPassword && password === envPassword) {
+      return;
+    }
 
+    const developmentPassword = this.configService.get<string>('AUTH_DEV_PASSWORD');
+    const nodeEnv = this.configService.get<string>('NODE_ENV') ?? 'development';
     if (nodeEnv !== 'production' && developmentPassword && password === developmentPassword) {
       return;
     }
