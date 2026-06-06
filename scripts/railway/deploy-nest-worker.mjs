@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const PROJECT_ID = process.env.RAILWAY_PROJECT_ID ?? 'a5014ffc-130f-4d2f-9c7b-84fd651d9f55';
 const ENVIRONMENT_ID = process.env.RAILWAY_ENVIRONMENT_ID ?? 'bb37162b-725f-40a2-885d-9ac18fb6dfbc';
+const SERVICE_ID = process.env.RAILWAY_SERVICE_ID ?? '8d5680aa-768f-45ff-9c50-f61363a0578a';
 
 function run(cmd, args, opts = {}) {
   const result = spawnSync(cmd, args, {
@@ -43,7 +44,7 @@ console.log(`Railway user: ${whoami.stdout?.trim()}`);
 console.log('\n1) Link project…');
 mustOk(
   'railway link',
-  run('npx', ['@railway/cli', 'link', '-p', PROJECT_ID, '-e', ENVIRONMENT_ID])
+  run('npx', ['@railway/cli', 'link', '-p', PROJECT_ID, '-e', ENVIRONMENT_ID, '-s', SERVICE_ID])
 );
 
 console.log('\n2) Pull Vercel production env (for DATABASE_URL, secrets)…');
