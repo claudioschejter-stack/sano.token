@@ -27,6 +27,8 @@
     "verify:morpho-borrow": "npx tsx scripts/verify-morpho-borrow-ready.ts",
     "yield:distribute": "npx tsx scripts/distribute-yield-batch.ts",
     "yield:pipeline": "npx tsx scripts/run-yield-pipeline.ts",
+    "vercel:check-phase4-ops": "node scripts/vercel/check-phase4-ops-env.mjs",
+    "vercel:sync-phase4-ops": "node scripts/vercel/sync-phase4-ops-env.mjs",
     "vercel:check-lending": "node scripts/vercel/check-lending-env.mjs",
     "vercel:check-morpho": "node scripts/vercel/check-morpho-env.mjs",
     "vercel:sync-lending": "node scripts/vercel/sync-lending-env.mjs",
