@@ -53,6 +53,7 @@ yarn-error.log*
 .env*.local
 .env.local
 .env.vercel*
+.env.railway
 .env copy*
 
 # vercel
