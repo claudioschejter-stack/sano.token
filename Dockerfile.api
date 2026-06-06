@@ -37,17 +37,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
-# Point workspace packages at Nest-compiled CJS output (avoids ESM dist from tsc)
-RUN rm -rf packages/blockchain/dist \
-  && node -e "\
-const fs=require('fs');\
-const patch=(p,main,exports)=>{if(!fs.existsSync(p))return; const j=JSON.parse(fs.readFileSync(p,'utf8')); j.main=main; j.exports=exports; fs.writeFileSync(p,JSON.stringify(j,null,2));};\
-const bcMain='apps/api/dist/packages/blockchain/src/index.js';\
-const ctMain='apps/api/dist/packages/contracts/abi/index.js';\
-const bcExports={'.':bcMain};\
-const ctExports={'.':ctMain,'./abi/sanova-asset-token':'apps/api/dist/packages/contracts/abi/sanova-asset-token.abi.js','./abi/escrow-lending-pool':'apps/api/dist/packages/contracts/abi/escrow-lending-pool.abi.js'};\
-for (const p of ['packages/blockchain/package.json','node_modules/@sanova/blockchain/package.json']) patch(p,bcMain,bcExports);\
-for (const p of ['packages/contracts/package.json','node_modules/@sanova/contracts/package.json']) patch(p,ctMain,ctExports);"
+# Bridge legacy dist/* resolution to Nest-compiled CJS output
+RUN mkdir -p packages/blockchain/dist packages/contracts/abi \
+  && printf "%s\n" "module.exports=require('../../apps/api/dist/packages/blockchain/src/index.js');" > packages/blockchain/dist/index.js \
+  && printf "%s\n" "module.exports=require('../../apps/api/dist/packages/contracts/abi/index.js');" > packages/contracts/abi/index.js
 
 USER nestjs
 EXPOSE 3001
