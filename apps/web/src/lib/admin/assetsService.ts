@@ -1058,25 +1058,27 @@ type ListMarketplaceListingsOptions = {
 export async function listMarketplaceListings(
   options: ListMarketplaceListingsOptions = {}
 ): Promise<MarketplaceListing[]> {
-  const activeProjects = await prisma.project.findMany({
+  const projects = await prisma.project.findMany({
     where: { isActive: true },
-    select: { id: true },
+    include: projectInclude,
     orderBy: { createdAt: 'desc' }
   });
 
   const listings: MarketplaceListing[] = [];
+  const hasStorageSync = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY);
 
-  for (const { id } of activeProjects) {
-    if (
-      !options.skipHeavySync &&
-      (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY)
-    ) {
-      await syncProjectAssetsFromStorage(id).catch(() => undefined);
-    }
+  for (const project of projects) {
+    let asset = mapProject(project);
 
-    const asset = await getAdminAsset(id);
-    if (!asset) {
-      continue;
+    if (!options.skipHeavySync && hasStorageSync) {
+      await syncProjectAssetsFromStorage(project.id).catch(() => undefined);
+      const refreshed = await prisma.project.findUnique({
+        where: { id: project.id },
+        include: projectInclude
+      });
+      if (refreshed) {
+        asset = mapProject(refreshed);
+      }
     }
 
     if (
@@ -1086,7 +1088,7 @@ export async function listMarketplaceListings(
       const resolved = await resolveLocationInput(asset.location);
       if (resolved?.latitude != null && resolved.longitude != null) {
         await prisma.project.update({
-          where: { id },
+          where: { id: project.id },
           data: {
             location: resolved.location,
             latitude: resolved.latitude,

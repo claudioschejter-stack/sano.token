@@ -73,7 +73,7 @@ export async function getSecondaryMarketHoldings(userId: string): Promise<Second
 }
 
 export async function getSecondaryMarketFeed(viewerUserId?: string): Promise<SecondaryMarketFeed> {
-  const listings = await listMarketplaceListings();
+  const listings = await listMarketplaceListings({ skipHeavySync: true });
 
   type OpenOrderRow = Awaited<
     ReturnType<

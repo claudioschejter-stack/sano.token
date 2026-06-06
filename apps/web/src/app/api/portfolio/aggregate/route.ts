@@ -16,11 +16,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 
+  const portfolio = await aggregatePortfolioForUser(ctx.userId);
+
   const shouldSnapshot = new URL(request.url).searchParams.get('snapshot') === 'true';
   if (shouldSnapshot) {
-    await recordPortfolioSnapshot(ctx.userId);
+    await recordPortfolioSnapshot(ctx.userId, undefined, portfolio);
   }
 
-  const portfolio = await aggregatePortfolioForUser(ctx.userId);
   return NextResponse.json({ ok: true, portfolio });
 }

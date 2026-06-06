@@ -221,8 +221,12 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
   };
 }
 
-export async function recordPortfolioSnapshot(userId: string, capturedAt = startOfUtcDay(new Date())) {
-  const portfolio = await aggregatePortfolioForUser(userId);
+export async function recordPortfolioSnapshot(
+  userId: string,
+  capturedAt = startOfUtcDay(new Date()),
+  precomputed?: AggregatedPortfolio
+) {
+  const portfolio = precomputed ?? (await aggregatePortfolioForUser(userId));
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { investorId: true }
