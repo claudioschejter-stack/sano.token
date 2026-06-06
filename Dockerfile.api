@@ -19,7 +19,7 @@ COPY . .
 RUN npx prisma generate --schema=./packages/database/prisma/schema.prisma
 RUN npm run build -w @sanova/database
 RUN npm run build -w @sanova/blockchain
-RUN npm run build -w @sanova/api
+RUN npx nest build -p apps/api
 
 FROM base AS runner
 ENV NODE_ENV=production
