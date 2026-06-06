@@ -52,16 +52,6 @@ async function fetchFeed(init?: RequestInit): Promise<MarketplaceFeed> {
   }
 }
 
-/** Server-side fetch for marketplace SSR. */
-export async function fetchMarketplaceFeed(): Promise<MarketplaceFeed> {
-  try {
-    const { fetchMarketplaceFeedFromDb } = await import('./marketplace/marketplaceFeedService');
-    return await fetchMarketplaceFeedFromDb();
-  } catch {
-    return buildFallbackFeed();
-  }
-}
-
 /** Client-side refresh after hydration. */
 export function fetchMarketplaceFeedClient() {
   return fetchFeed({ cache: 'no-store' });

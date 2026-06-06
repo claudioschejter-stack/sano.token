@@ -1,5 +1,5 @@
 import { MarketplaceView } from '../../../components/marketplace/MarketplaceView';
-import { fetchMarketplaceFeed } from '../../../lib/marketplaceApi';
+import { fetchMarketplaceFeed } from '../../../lib/marketplace/marketplaceFeedServer';
 
 export const dynamic = 'force-dynamic';
 

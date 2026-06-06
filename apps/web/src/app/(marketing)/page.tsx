@@ -1,5 +1,5 @@
 import { LandingPage } from '../../components/landing/LandingPage';
-import { fetchMarketplaceFeed } from '../../lib/marketplaceApi';
+import { fetchMarketplaceFeed } from '../../lib/marketplace/marketplaceFeedServer';
 
 export const dynamic = 'force-dynamic';
 
