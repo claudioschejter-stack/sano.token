@@ -64,14 +64,19 @@ export async function POST(request: Request) {
         );
       }
 
-      let finalAsset = finalized.asset;
-      if (wantsPublish) {
-        const { updateAdminAsset } = await import('../../../../lib/admin/assetsService');
-        const published = await updateAdminAsset(asset.id, { isActive: true });
-        finalAsset = published ?? finalAsset;
+      if (finalized.async) {
+        return NextResponse.json(
+          {
+            asset: finalized.asset,
+            async: true,
+            jobIds: finalized.jobIds ?? [],
+            message: 'Deploy ERC-4626 encolado. El estado se actualizará automáticamente.'
+          },
+          { status: 202 }
+        );
       }
 
-      return NextResponse.json({ asset: finalAsset, deploy: finalized.deploy }, { status: 201 });
+      return NextResponse.json({ asset: finalized.asset, deploy: finalized.deploy }, { status: 201 });
     }
 
     if (body.deployToken !== false && !asset.contractAddress) {

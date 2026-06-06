@@ -1,6 +1,11 @@
 import { unstable_cache } from 'next/cache';
 import { fetchBestBorrowRate } from '../lending/bestBorrowRate';
 import { listMarketplaceListings } from '../admin/assetsService';
+import {
+  BORROW_RATES_CACHE_KEY,
+  getOrSetCachedJson,
+  MARKETPLACE_FEED_CACHE_KEY
+} from '../redis/redisCache';
 import type { MarketplaceFeed } from '../../types/marketplace';
 
 function feedCacheTtlSeconds(): number {
@@ -9,7 +14,13 @@ function feedCacheTtlSeconds(): number {
 }
 
 const getCachedMarketplaceListings = unstable_cache(
-  async () => listMarketplaceListings({ skipHeavySync: true }),
+  async () =>
+    getOrSetCachedJson({
+      key: `${MARKETPLACE_FEED_CACHE_KEY}:listings`,
+      ttlEnvKey: 'MARKETPLACE_FEED_CACHE_TTL',
+      fallbackTtlSeconds: 30,
+      factory: () => listMarketplaceListings({ skipHeavySync: true })
+    }),
   ['marketplace-listings-feed'],
   {
     revalidate: feedCacheTtlSeconds(),
@@ -20,7 +31,15 @@ const getCachedMarketplaceListings = unstable_cache(
 export async function fetchMarketplaceFeedFromDb(): Promise<MarketplaceFeed> {
   const [listings, borrowRate] = await Promise.all([
     getCachedMarketplaceListings(),
-    fetchBestBorrowRate().catch(() => null)
+    getOrSetCachedJson({
+      key: BORROW_RATES_CACHE_KEY,
+      fallbackTtlSeconds: 900,
+      ttlSeconds: (() => {
+        const minutes = Number.parseInt(process.env.LENDING_RATES_CACHE_TTL_MINUTES ?? '15', 10);
+        return Number.isInteger(minutes) && minutes > 0 ? minutes * 60 : 900;
+      })(),
+      factory: () => fetchBestBorrowRate().catch(() => null)
+    })
   ]);
 
   return {

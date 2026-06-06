@@ -265,6 +265,17 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
   }, [projectId, l.loadError]);
 
   useEffect(() => {
+    if (mode !== 'edit' || !projectId) return;
+    if (tokenStatus !== 'PENDING') return;
+
+    const interval = window.setInterval(() => {
+      void loadAsset();
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [mode, projectId, tokenStatus, loadAsset]);
+
+  useEffect(() => {
     if (mode === 'edit') {
       void loadAsset();
     }
@@ -773,6 +784,8 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
           asset?: AdminAssetRecord;
           error?: string;
           issues?: LaunchGateIssue[];
+          async?: boolean;
+          message?: string;
         };
 
         if (!response.ok) {
@@ -786,6 +799,11 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
 
         if (!data.asset) {
           setError(l.saveError);
+          return;
+        }
+
+        if (response.status === 202) {
+          router.push(`/dashboard/assets/${data.asset.id}/edit?created=1&async=1`);
           return;
         }
 
@@ -825,7 +843,20 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
         asset?: AdminAssetRecord;
         deploy?: { status?: string; reason?: string };
         issues?: LaunchGateIssue[];
+        async?: boolean;
+        jobIds?: string[];
+        message?: string;
       };
+
+      if (response.status === 202 && data.asset) {
+        setForm(assetToForm(data.asset));
+        setTokenStatus(data.asset.tokenDeployStatus);
+        setVaultFundingStatus(data.asset.vaultFundingStatus);
+        setCollateralTargets(data.asset.collateralTargets);
+        setDeploymentEvents(data.asset.deploymentEvents);
+        setMessage(data.message ?? l.emittingOnChain ?? 'Deploy en curso…');
+        return;
+      }
 
       if (!response.ok) {
         if (data.issues?.length) {

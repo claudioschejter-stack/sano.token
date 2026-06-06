@@ -114,6 +114,7 @@ export type DeploymentEvent = {
     | 'REPAIR_AUTOMATION'
     | 'PREFLIGHT'
     | 'EXPLORER_VERIFY'
+    | 'LAUNCH_FINALIZE'
     | 'MORPHO_LIQUIDITY'
     | 'CIRCUIT_BREAKER'
     | 'KYC_ALLOWLIST'

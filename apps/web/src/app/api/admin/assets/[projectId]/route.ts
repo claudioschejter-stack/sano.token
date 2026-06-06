@@ -119,13 +119,19 @@ export async function PATCH(request: Request, context: RouteContext) {
         );
       }
 
-      let finalAsset = finalized.asset;
-      if (wantsPublish) {
-        const published = await updateAdminAsset(projectId, { isActive: true });
-        finalAsset = published ?? finalAsset;
+      if (finalized.async) {
+        return NextResponse.json(
+          {
+            asset: finalized.asset,
+            async: true,
+            jobIds: finalized.jobIds ?? [],
+            message: 'Deploy ERC-4626 encolado. El estado se actualizará automáticamente.'
+          },
+          { status: 202 }
+        );
       }
 
-      return NextResponse.json({ asset: finalAsset, deploy: finalized.deploy });
+      return NextResponse.json({ asset: finalized.asset, deploy: finalized.deploy });
     }
 
     const shouldDeployOrRepair =

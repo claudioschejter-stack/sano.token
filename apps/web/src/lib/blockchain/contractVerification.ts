@@ -1,8 +1,9 @@
 import { appendDeploymentEvent } from '../admin/assetsService';
 import { notifyExplorerVerification } from '../admin/automationAlerts';
-import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
-import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
-import SanovaFixedPriceOracleArtifact from './artifacts/SanovaFixedPriceOracle.json';
+import {
+  buildVerificationStandardJson,
+  pollExplorerVerificationStatus
+} from './contractVerificationSources';
 
 function explorerApiKey(chainId: number): string | null {
   if (chainId === 8453 || chainId === 84532) {
@@ -22,55 +23,27 @@ function explorerApiUrl(chainId: number): string {
   return 'https://api.etherscan.io/api';
 }
 
-function artifactFor(contractName: string): { sourceName: string; source: string; abi: unknown } | null {
-  if (contractName === 'SanovaAssetToken') {
-    return {
-      sourceName: 'contracts/SanovaAssetToken.sol',
-      source: '// Source verification is prepared from compiled artifact. Upload full source via Hardhat when exact metadata is required.',
-      abi: SanovaAssetTokenArtifact.abi
-    };
+export async function recordExplorerVerification(
+  projectId: string,
+  input: {
+    contractAddress: string;
+    contractName: string;
+    chainId: number;
   }
-  if (contractName === 'SanovaRwaVault') {
-    return {
-      sourceName: 'contracts/SanovaRwaVault.sol',
-      source: '// Source verification is prepared from compiled artifact. Upload full source via Hardhat when exact metadata is required.',
-      abi: SanovaRwaVaultArtifact.abi
-    };
-  }
-  if (contractName === 'SanovaFixedPriceOracle') {
-    return {
-      sourceName: 'contracts/SanovaFixedPriceOracle.sol',
-      source: '// Source verification is prepared from compiled artifact. Upload full source via Hardhat when exact metadata is required.',
-      abi: SanovaFixedPriceOracleArtifact.abi
-    };
-  }
-  return null;
-}
-
-export async function recordExplorerVerification(projectId: string, input: {
-  contractAddress: string;
-  contractName: string;
-  chainId: number;
-}) {
+) {
   const apiKey = explorerApiKey(input.chainId);
-  const artifact = artifactFor(input.contractName);
+  const standardJson = buildVerificationStandardJson(input.contractName);
 
-  if (apiKey && artifact) {
+  if (apiKey && standardJson) {
     const form = new URLSearchParams({
       apikey: apiKey,
       module: 'contract',
       action: 'verifysourcecode',
       contractaddress: input.contractAddress,
-      sourceCode: JSON.stringify({
-        language: 'Solidity',
-        sources: {
-          [artifact.sourceName]: { content: artifact.source }
-        },
-        settings: {}
-      }),
+      sourceCode: standardJson.sourceCode,
       codeformat: 'solidity-standard-json-input',
-      contractname: `${artifact.sourceName}:${input.contractName}`,
-      compilerversion: 'v0.8.20+commit.a1b79de6',
+      contractname: standardJson.contractName,
+      compilerversion: standardJson.compilerversion,
       optimizationUsed: '1',
       runs: '200'
     });
@@ -81,18 +54,49 @@ export async function recordExplorerVerification(projectId: string, input: {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: form
       });
-      const data = (await response.json().catch(() => null)) as { status?: string; message?: string; result?: string } | null;
-      const ok = response.ok && (data?.status === '1' || data?.message?.toLowerCase().includes('ok'));
+      const data = (await response.json().catch(() => null)) as {
+        status?: string;
+        message?: string;
+        result?: string;
+      } | null;
+      const guid = data?.result?.trim();
+      const submitted = response.ok && Boolean(guid) && !guid.toLowerCase().includes('error');
+
+      if (submitted && guid) {
+        let verifyStatus: 'pending' | 'verified' | 'failed' = 'pending';
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          verifyStatus = await pollExplorerVerificationStatus(input.chainId, guid);
+          if (verifyStatus !== 'pending') break;
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
+
+        await appendDeploymentEvent(projectId, {
+          step: 'EXPLORER_VERIFY',
+          status: verifyStatus === 'verified' ? 'SUCCESS' : verifyStatus === 'failed' ? 'FAILED' : 'PENDING',
+          message:
+            verifyStatus === 'verified'
+              ? `${input.contractName} verificado en explorer (GUID ${guid}).`
+              : verifyStatus === 'failed'
+                ? `Verificación explorer falló para ${input.contractName} (GUID ${guid}).`
+                : `Verificación enviada para ${input.contractName}. GUID: ${guid}`,
+          address: input.contractAddress,
+          externalId: guid
+        });
+        await notifyExplorerVerification(
+          projectId,
+          input.contractName,
+          verifyStatus === 'verified' ? 'VERIFIED' : verifyStatus === 'failed' ? 'FAILED' : 'PENDING'
+        );
+        return;
+      }
 
       await appendDeploymentEvent(projectId, {
         step: 'EXPLORER_VERIFY',
-        status: ok ? 'SUCCESS' : 'FAILED',
-        message: ok
-          ? `Verificación enviada para ${input.contractName}. GUID: ${data?.result ?? 'submitted'}`
-          : `Verificación explorer falló para ${input.contractName}: ${data?.result ?? data?.message ?? response.status}`,
+        status: 'FAILED',
+        message: `Verificación explorer falló para ${input.contractName}: ${data?.result ?? data?.message ?? response.status}`,
         address: input.contractAddress
       });
-      await notifyExplorerVerification(projectId, input.contractName, ok ? 'VERIFIED' : 'FAILED');
+      await notifyExplorerVerification(projectId, input.contractName, 'FAILED');
       return;
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Explorer verification failed';
@@ -111,7 +115,7 @@ export async function recordExplorerVerification(projectId: string, input: {
     step: 'EXPLORER_VERIFY',
     status: apiKey ? 'PENDING' : 'SKIPPED',
     message: apiKey
-      ? `Verificación preparada para ${input.contractName}. Ejecutar verificación explorer con artifacts compilados.`
+      ? `No se pudieron cargar fuentes Solidity para ${input.contractName}.`
       : `Falta API key explorer para verificar ${input.contractName}.`,
     address: input.contractAddress
   });

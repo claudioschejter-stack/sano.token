@@ -2,6 +2,7 @@ import { prisma } from '@sanova/database';
 import { appendDeploymentEvent, getAdminAsset } from './assetsService';
 import type { DeploymentEvent } from './launchTypes';
 import { logAutomationEvent } from './automationLogger';
+import { mirrorAutomationJobToBull } from './automationBullQueue';
 
 export type AutomationJobStep =
   | 'PREFLIGHT'
@@ -10,6 +11,7 @@ export type AutomationJobStep =
   | 'COLLATERAL_REGISTER'
   | 'MORPHO_LIQUIDITY'
   | 'EXPLORER_VERIFY'
+  | 'LAUNCH_FINALIZE'
   | 'SYNTHETIC_RWA_FLOW'
   | 'YIELD_CONVERT_BATCH'
   | 'YIELD_DISTRIBUTE_VAULT';
@@ -48,6 +50,7 @@ function jobStepToEventStep(step: AutomationJobStep): DeploymentEvent['step'] {
   if (step === 'SYNTHETIC_RWA_FLOW') return 'SYNTHETIC_RWA_FLOW';
   if (step === 'YIELD_CONVERT_BATCH') return 'YIELD_CONVERT';
   if (step === 'YIELD_DISTRIBUTE_VAULT') return 'YIELD_DISTRIBUTE';
+  if (step === 'LAUNCH_FINALIZE') return 'LAUNCH_FINALIZE';
   return step;
 }
 
@@ -84,7 +87,7 @@ export async function enqueueAutomationJob(input: {
       status: 'QUEUED',
       metadata: { runAfter: input.runAfter?.toISOString?.() ?? null }
     });
-    return await delegate.create({
+    const job = await delegate.create({
       data: {
         projectId: input.projectId ?? null,
         step: input.step,
@@ -94,6 +97,12 @@ export async function enqueueAutomationJob(input: {
         maxAttempts: input.maxAttempts ?? 3
       }
     });
+    await mirrorAutomationJobToBull({
+      projectId: input.projectId,
+      step: input.step,
+      automationJobId: job.id
+    });
+    return job;
   } catch (error) {
     if (input.projectId) {
       await appendDeploymentEvent(input.projectId, {
@@ -252,6 +261,12 @@ async function executeAutomationJob(job: AutomationJobRow) {
     return checkMorphoLiquidity(asset);
   }
 
+  if (job.step === 'LAUNCH_FINALIZE') {
+    const { completeErc4626LaunchPostDeploy } = await import('./erc4626LaunchPipeline');
+    const requestedPublish = Boolean(job.payload?.requestedPublish);
+    return completeErc4626LaunchPostDeploy(job.projectId, { requestedPublish });
+  }
+
   if (job.step === 'EXPLORER_VERIFY') {
     const asset = await getAdminAsset(job.projectId);
     if (!asset) throw new Error('Asset not found');
@@ -339,6 +354,14 @@ export async function processAutomationJobs(limit = 5) {
           externalId: job.id
         }).catch(() => undefined);
       }
+
+      if (job.step === 'TOKEN_DEPLOY' && job.projectId) {
+        const { chainErc4626PipelineAfterTokenDeploy } = await import('./erc4626LaunchPipeline');
+        await chainErc4626PipelineAfterTokenDeploy(job.projectId, job.payload).catch((error) => {
+          console.warn('[automationJobs] pipeline chain failed:', error);
+        });
+      }
+
       results.push({ id: job.id, step: job.step, status: 'DONE' });
       logAutomationEvent({
         event: 'job.done',

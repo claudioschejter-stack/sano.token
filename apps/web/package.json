@@ -7,16 +7,20 @@
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
-        "typecheck": "tsc --noEmit --pretty false"
+        "typecheck": "tsc --noEmit --pretty false",
+        "test": "vitest run",
+        "test:watch": "vitest"
     },
     "dependencies": {
+        "@rainbow-me/rainbowkit": "^2.2.8",
         "@sanova/database": "*",
         "@sentry/nextjs": "^9.5.0",
         "@supabase/supabase-js": "^2.106.1",
-        "@rainbow-me/rainbowkit": "^2.2.8",
         "@tanstack/react-query": "^5.81.5",
         "bcryptjs": "^3.0.2",
+        "bullmq": "^5.34.3",
         "ethers": "^6.16.0",
+        "ioredis": "^5.4.2",
         "jose": "^6.0.11",
         "lucide-react": "^0.363.0",
         "next": "14.2.35",
@@ -38,6 +42,7 @@
         "autoprefixer": "^10.4.19",
         "postcss": "^8.4.38",
         "tailwindcss": "^3.4.1",
-        "typescript": "^5.4.3"
+        "typescript": "^5.4.3",
+        "vitest": "^3.2.6"
     }
 }

@@ -4,7 +4,7 @@ import { listAdminAssets, listAutomationRepairCandidates } from '../../../../lib
 import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
 import { executeProjectAutomationRepair } from '../../../../lib/blockchain/projectTokenDeploy';
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
-import { enqueueAutomationJob, processAutomationJobs } from '../../../../lib/admin/automationJobs';
+import { enqueueAutomationJob } from '../../../../lib/admin/automationJobs';
 import { recordRwaSecurityReport } from '../../../../lib/blockchain/rwaSecurityReport';
 import { reconcilePayments } from '../../../../lib/payments/paymentReconciliation';
 import { recordPortfolioSnapshotsForActiveInvestors } from '../../../../lib/portfolio/portfolioAggregator';
@@ -98,8 +98,6 @@ export async function GET(request: Request) {
         queued.push({ jobId: syntheticJob.id, step: 'SYNTHETIC_RWA_FLOW' });
       }
     }
-    const jobRun = await processAutomationJobs(5);
-
     return NextResponse.json({
       ok: true,
       refreshedAt: borrowRate.best.fetchedAt,
@@ -107,7 +105,6 @@ export async function GET(request: Request) {
       best: borrowRate.best.name,
       bestApyBps: borrowRate.best.borrowApyBps,
       queued,
-      jobRun,
       repairs,
       securityReports,
       paymentReconciliation,

@@ -1,12 +1,13 @@
 import type { AdminAssetRecord, CreateAdminAssetInput, UpdateAdminAssetInput } from './assetsService';
-import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from './assetsService';
+import { getAdminAsset, updateAdminAsset } from './assetsService';
 import { executeProjectTokenDeploy } from '../blockchain/projectTokenDeploy';
 import type { CollateralProtocol } from './launchTypes';
 import {
-  getMorphoPostDeployIssues,
-  getTreasuryReadinessIssues,
-  validateErc4626MorphoFormRequirements
-} from './erc4626MorphoGate';
+  enqueueErc4626DeployPipeline,
+  shouldUseAsyncErc4626Deploy,
+  completeErc4626LaunchPostDeploy
+} from './erc4626LaunchPipeline';
+import { validateErc4626MorphoFormRequirements } from './erc4626MorphoGate';
 import {
   deployResultToIssues,
   getDeployInfrastructureIssues,
@@ -77,6 +78,8 @@ export type Erc4626SavePipelineResult =
       ok: true;
       asset: AdminAssetRecord;
       deploy?: Awaited<ReturnType<typeof executeProjectTokenDeploy>>;
+      async?: boolean;
+      jobIds?: string[];
     }
   | { ok: false; issues: LaunchGateIssue[] };
 
@@ -99,20 +102,6 @@ export async function validateErc4626BeforePersist(
   );
 }
 
-async function ensureMorphoCollateralRegistered(projectId: string): Promise<AdminAssetRecord | null> {
-  const asset = await getAdminAsset(projectId);
-  if (!asset) return null;
-
-  const morphoTarget = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
-  if (morphoTarget?.status === 'REGISTERED' && morphoTarget.oracleAddress) {
-    return asset;
-  }
-
-  const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
-  const summary = await registerProjectCollateral(projectId, ['MORPHO'], { skipLock: true });
-  return summary?.updatedAsset ?? (await getAdminAsset(projectId));
-}
-
 export async function finalizeErc4626AfterPersist(
   projectId: string,
   options: { requestedPublish: boolean }
@@ -125,6 +114,14 @@ export async function finalizeErc4626AfterPersist(
   let deploy: Awaited<ReturnType<typeof executeProjectTokenDeploy>> | undefined;
 
   if (needsErc4626Deploy(asset)) {
+    if (shouldUseAsyncErc4626Deploy()) {
+      const queued = await enqueueErc4626DeployPipeline(projectId, {
+        requestedPublish: options.requestedPublish
+      });
+      asset = (await getAdminAsset(projectId)) ?? asset;
+      return { ok: true, asset, async: true, jobIds: queued.jobIds };
+    }
+
     deploy = await executeProjectTokenDeploy(projectId);
     asset =
       deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED'
@@ -147,47 +144,7 @@ export async function finalizeErc4626AfterPersist(
     }
   }
 
-  asset = (await ensureMorphoCollateralRegistered(projectId)) ?? asset;
-
-  const { repairTreasuryVaultShares } = await import('../blockchain/repairTreasuryVaultShares');
-  const treasuryRepair = await repairTreasuryVaultShares(asset);
-  if (treasuryRepair.ok) {
-    await appendDeploymentEvent(projectId, {
-      step: 'VAULT_FUNDING',
-      status: 'SUCCESS',
-      message: treasuryRepair.message,
-      txHash: treasuryRepair.txHash ?? null
-    });
-  } else if (asset.vaultAddress) {
-    await appendDeploymentEvent(projectId, {
-      step: 'VAULT_FUNDING',
-      status: 'FAILED',
-      message: treasuryRepair.message
-    });
-  }
-
-  const onChainIssues = getErc4626OnChainIssues(asset);
-  const morphoIssues = options.requestedPublish ? getMorphoPostDeployIssues(asset) : [];
-  const treasuryIssues =
-    options.requestedPublish || deploy ? await getTreasuryReadinessIssues(asset) : [];
-  const allIssues = mergeLaunchGateIssues(onChainIssues, morphoIssues, treasuryIssues);
-
-  if (allIssues.length) {
-    if (options.requestedPublish) {
-      await updateAdminAsset(projectId, { isActive: false });
-    }
-    return { ok: false, issues: allIssues };
-  }
-
-  if (options.requestedPublish && !isErc4626OnChainReady(asset)) {
-    await updateAdminAsset(projectId, { isActive: false });
-    return {
-      ok: false,
-      issues: [{ code: 'CANNOT_PUBLISH_INCOMPLETE' }, ...getErc4626OnChainIssues(asset)]
-    };
-  }
-
-  return { ok: true, asset, deploy };
+  return completeErc4626LaunchPostDeploy(projectId, options);
 }
 
 const LAUNCH_CARD_PARTIAL_UPDATE_KEYS = new Set<keyof UpdateAdminAssetInput>([
