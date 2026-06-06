@@ -14,13 +14,7 @@ export default function RouteError({
   const t = useTranslation();
 
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_SENTRY_DSN) {
-      console.error('[sanova] route error', error);
-      return;
-    }
-    void import('@sentry/nextjs').then((Sentry) => {
-      Sentry.captureException(error, { tags: { surface: 'route-error' } });
-    });
+    console.error('[sanova] route error', error);
   }, [error]);
 
   return (
