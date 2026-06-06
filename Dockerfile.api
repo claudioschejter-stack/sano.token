@@ -20,6 +20,8 @@ COPY . .
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 RUN npx prisma generate --schema=./packages/database/prisma/schema.prisma
 RUN npm run build -w @sanova/database
+RUN npx tsc packages/contracts/abi/sanova-asset-token.abi.ts packages/contracts/abi/escrow-lending-pool.abi.ts packages/contracts/abi/index.ts --outDir packages/contracts/abi --module commonjs --esModuleInterop --skipLibCheck
+RUN npm run build -w @sanova/blockchain
 RUN npm run build -w @sanova/api
 
 FROM base AS runner
@@ -37,10 +39,11 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
-COPY --from=builder /app/apps/api/dist/packages/blockchain/src ./packages/blockchain/dist
-COPY --from=builder /app/apps/api/dist/packages/contracts/abi ./packages/contracts/abi
+COPY --from=builder /app/packages/blockchain/dist ./packages/blockchain/dist
+COPY --from=builder /app/packages/contracts/abi ./packages/contracts/abi
+RUN node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('packages/contracts/package.json','utf8'));j.main='abi/index.js';j.exports={'.':'./abi/index.js','./abi/sanova-asset-token':'./abi/sanova-asset-token.abi.js','./abi/escrow-lending-pool':'./abi/escrow-lending-pool.abi.js'};fs.writeFileSync('packages/contracts/package.json',JSON.stringify(j,null,2));"
 
 USER nestjs
 EXPOSE 3001
 ENV PORT=3001
-CMD ["node", "apps/api/dist/apps/api/src/main.js"]
+CMD ["node", "apps/api/dist/main.js"]

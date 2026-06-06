@@ -8,12 +8,7 @@
     "emitDecoratorMetadata": true,
     "outDir": "dist",
     "noEmit": false,
-    "baseUrl": ".",
-    "paths": {
-      "@sanova/blockchain": ["../../packages/blockchain/src/index.ts"],
-      "@sanova/contracts": ["../../packages/contracts/abi/index.ts"],
-      "@sanova/database": ["../../packages/database/src/index.ts"]
-    }
+    "baseUrl": "."
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "dist"]
