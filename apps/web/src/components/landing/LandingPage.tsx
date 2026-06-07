@@ -11,8 +11,9 @@ import {
   UserCheck,
   Wallet
 } from 'lucide-react';
-import { MARKETPLACE_FALLBACK_LISTINGS } from '../../data/marketplaceFallback';
 import { useTranslation } from '../../i18n/LocaleProvider';
+
+const LANDING_HERO_IMAGE = '/images/landing-hero-energy-yields.webp';
 import { LandingHeader } from './LandingHeader';
 import { HeroSubtitle } from './HeroSubtitle';
 import { FeaturedPropertiesSection } from './FeaturedPropertiesSection';
@@ -70,20 +71,19 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
             <div className="relative">
               <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
               <Image
-                src={MARKETPLACE_FALLBACK_LISTINGS[0]!.imageUrl}
-                alt={MARKETPLACE_FALLBACK_LISTINGS[0]!.title}
-                width={640}
-                height={480}
-                className="h-[420px] w-full object-cover"
+                src={LANDING_HERO_IMAGE}
+                alt={l.hero.heroImageAlt}
+                width={1400}
+                height={933}
+                className="h-[420px] w-full object-cover object-center"
                 priority
+                sizes="(min-width: 1024px) 50vw, 0px"
               />
               </div>
               <div className="absolute -bottom-5 -left-[calc(1.25rem+0.5cm)] rounded-xl border border-white/20 bg-[#111827]/95 p-4 shadow-xl backdrop-blur">
                 <p className="text-xs uppercase tracking-wider text-slate-400">{l.hero.heroBadgeTitle}</p>
                 <p className="mt-1 text-sm font-semibold text-blue-200">{l.hero.heroBadgeSubtitle}</p>
-                <p className="mt-1 text-sm text-slate-300">
-                  {MARKETPLACE_FALLBACK_LISTINGS[0]!.title}
-                </p>
+                <p className="mt-1 text-sm text-slate-300">{l.hero.heroBadgeDetail}</p>
               </div>
             </div>
           </div>

@@ -1176,7 +1176,10 @@ export const en = {
       ctaSecondary: "How it works",
       trustLine: "Regulatory frameworks · KYC/AML · On-chain distributions in USDC",
       heroBadgeTitle: "Private placement",
-      heroBadgeSubtitle: "RWA infrastructure · KYC-gated access"
+      heroBadgeSubtitle: "RWA infrastructure · KYC-gated access",
+      heroImageAlt:
+        "Field operator with smartphone and Sanova Energy Yields holographic dashboard",
+      heroBadgeDetail: "Sanova Energy Yields · APY 12.8% · USDC"
     },
     trustBadges: {
       ariaLabel: "Institutional guarantees",

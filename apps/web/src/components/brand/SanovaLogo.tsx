@@ -10,30 +10,27 @@ type SanovaLogoProps = {
   onClick?: () => void;
 };
 
-const assets = {
-  light: { src: '/brand/sanova-logo.svg', width: 220, height: 40, alt: 'Sanova Global' },
-  dark: { src: '/brand/sanova-logo-dark.svg', width: 220, height: 40, alt: 'Sanova Global' },
-  mark: { src: '/brand/sanova-isotipo.svg', width: 40, height: 40, alt: 'Sanova' }
+/** Raster app button — single source asset at max quality. */
+const asset = {
+  src: '/brand/sanova-app-button-1024.png',
+  width: 1024,
+  height: 1024,
+  alt: 'Sanova'
 } as const;
 
 export function SanovaLogo({
-  variant = 'light',
   href,
   className = '',
-  showWordmark = true,
   priority = false,
   onClick
 }: SanovaLogoProps) {
-  const resolvedVariant = variant === 'mark' || !showWordmark ? 'mark' : variant;
-  const asset = resolvedVariant === 'mark' ? assets.mark : assets[resolvedVariant];
-
   const image = (
     <Image
       src={asset.src}
       alt={asset.alt}
       width={asset.width}
       height={asset.height}
-      className={`h-8 w-auto sm:h-9 ${className}`.trim()}
+      className={`h-9 w-9 shrink-0 sm:h-10 sm:w-10 ${className}`.trim()}
       priority={priority}
     />
   );
