@@ -94,12 +94,16 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
 
       <MacroInvestmentThesis />
 
-      <section id="how-it-works" className="mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-20">
+      <section id="how-it-works" className="mx-auto w-full max-w-7xl overflow-x-hidden px-3 py-12 sm:px-4 sm:py-16 md:px-6 md:py-20">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">{l.howItWorks.title}</h2>
-          <p className="mt-4 text-base text-slate-600 md:text-lg">{l.howItWorks.subtitle}</p>
+          <h2 className="text-balance text-2xl font-bold text-slate-900 sm:text-3xl md:text-4xl">
+            {l.howItWorks.title}
+          </h2>
+          <p className="mt-3 text-pretty text-sm text-slate-600 sm:mt-4 sm:text-base md:text-lg">
+            {l.howItWorks.subtitle}
+          </p>
         </div>
-        <div className="mt-10 grid grid-cols-1 gap-6 md:mt-14 md:grid-cols-2 md:gap-8 xl:grid-cols-4">
+        <div className="mt-6 grid min-w-0 grid-cols-2 gap-2.5 sm:mt-10 sm:gap-4 md:mt-14 md:grid-cols-2 md:gap-6 xl:grid-cols-4">
           {[
             { icon: UserCheck, title: l.howItWorks.step1Title, desc: l.howItWorks.step1Desc },
             { icon: Building2, title: l.howItWorks.step2Title, desc: l.howItWorks.step2Desc },
@@ -108,20 +112,33 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
           ].map((step, index) => (
             <article
               key={step.title}
-              className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-blue-200 hover:shadow-md md:p-7"
+              className="flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:rounded-2xl sm:p-5 md:p-7"
             >
-              <div className="grid grid-cols-[1.75rem_3rem_minmax(0,1fr)] items-center gap-x-3">
+              <div className="flex items-start gap-1.5 sm:hidden">
+                <span className="shrink-0 text-[0.65rem] font-semibold tracking-wide text-blue-600">
+                  0{index + 1}
+                </span>
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                  <step.icon size={16} aria-hidden />
+                </div>
+                <h3 className="min-w-0 flex-1 text-[0.7rem] font-bold leading-snug text-slate-900">
+                  {step.title}
+                </h3>
+              </div>
+              <div className="hidden grid-cols-[1.75rem_3rem_minmax(0,1fr)] items-center gap-x-3 sm:grid">
                 <span className="flex h-12 items-center text-sm font-semibold tracking-wide text-blue-600">
                   0{index + 1}
                 </span>
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <step.icon size={24} />
+                  <step.icon size={24} aria-hidden />
                 </div>
                 <h3 className="flex h-12 items-center text-sm font-bold leading-tight text-slate-900 md:text-base">
                   <span className="line-clamp-2">{step.title}</span>
                 </h3>
               </div>
-              <p className="mt-4 w-full text-sm leading-relaxed text-slate-600">{step.desc}</p>
+              <p className="mt-1.5 line-clamp-3 text-[0.65rem] leading-snug text-slate-600 sm:mt-4 sm:line-clamp-none sm:text-sm sm:leading-relaxed">
+                {step.desc}
+              </p>
             </article>
           ))}
         </div>
