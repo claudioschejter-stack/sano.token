@@ -25,6 +25,7 @@ import {
   type TokenInstrumentType,
   type VaultFundingStatus
 } from './launchTypes';
+import { isVaultTokenStandard } from './vaultStandards';
 import { buildInitialCollateralTargets, mergeCollateralTargets } from '../collateral/collateralTargetsService';
 import type { CollateralProjectContext } from '../collateral/collateralRegistry';
 
@@ -266,7 +267,7 @@ function buildAutomationReadiness(project: {
   const events = parseDeploymentEvents(project.deploymentEvents);
   const morpho = targets.find((target) => target.protocol === 'MORPHO');
   const hasMorpho = Boolean(morpho);
-  const requiresVault = project.tokenStandard === 'ERC4626';
+  const requiresVault = isVaultTokenStandard(project.tokenStandard);
   const explorerVerified =
     project.explorerVerificationStatus === 'VERIFIED' ||
     events.some((event) => event.step === 'EXPLORER_VERIFY' && event.status === 'SUCCESS');
@@ -314,7 +315,7 @@ function deriveReadyToBorrow(input: {
   const morpho = input.collateralTargets.find((target) => target.protocol === 'MORPHO');
   return Boolean(
     input.readiness.status === 'READY' &&
-      input.tokenStandard === 'ERC4626' &&
+      isVaultTokenStandard(input.tokenStandard) &&
       input.tokenDeployStatus === 'DEPLOYED' &&
       input.contractAddress &&
       input.vaultAddress &&
@@ -638,7 +639,8 @@ export async function listAutomationRepairCandidates(limit = 3): Promise<AdminAs
       return (
         asset.tokenDeployStatus === 'FAILED' ||
         asset.tokenDeployStatus === 'PENDING' ||
-        (asset.tokenStandard === 'ERC4626' && (!asset.vaultAddress || asset.vaultFundingStatus !== 'FUNDED')) ||
+        (isVaultTokenStandard(asset.tokenStandard) &&
+          (!asset.vaultAddress || asset.vaultFundingStatus !== 'FUNDED')) ||
         Boolean(morpho && morpho.status !== 'REGISTERED')
       );
     })

@@ -1,4 +1,4 @@
-export type TokenStandard = 'SANOVA_KYC' | 'ERC4626' | 'THIRDWEB_DEMO';
+export type TokenStandard = 'SANOVA_KYC' | 'ERC4626' | 'ERC7540' | 'THIRDWEB_DEMO';
 
 export type TokenInstrumentType = 'DEBT' | 'EQUITY';
 

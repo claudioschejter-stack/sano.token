@@ -39,6 +39,7 @@ import {
   type LaunchGateIssueCode
 } from '../../lib/admin/erc4626LaunchGate';
 import { validateErc4626MorphoFormRequirements } from '../../lib/admin/erc4626MorphoGate';
+import { isVaultTokenStandard } from '../../lib/admin/vaultStandards';
 import { AdminGate } from './AdminGate';
 
 type AdminLaunchEditorProps = {
@@ -188,7 +189,7 @@ function selectedCollateral(form: FormState): CollateralProtocol[] {
   const protocols: CollateralProtocol[] = [];
   if (form.collateralCentrifuge) protocols.push('CENTRIFUGE');
   if (form.collateralSky) protocols.push('SKY');
-  if (form.collateralMorpho || form.tokenStandard === 'ERC4626') protocols.push('MORPHO');
+  if (form.collateralMorpho || isVaultTokenStandard(form.tokenStandard)) protocols.push('MORPHO');
   if (form.collateralAaveHorizon) protocols.push('AAVE_HORIZON');
   if (form.collateralMaple) protocols.push('MAPLE');
   if (form.collateralClearpool) protocols.push('CLEARPOOL');
@@ -300,7 +301,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       .catch(() => setLinkedInvestorWallet(null));
   }, []);
 
-  const isErc4626Launch = form.tokenStandard === 'ERC4626';
+  const isErc4626Launch = isVaultTokenStandard(form.tokenStandard);
   const shouldAutoDeploy = isErc4626Launch || (tokenDeployReady === true && !form.contractAddress);
   const onChainLaunchReady =
     isErc4626Launch &&
@@ -591,7 +592,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
   }
 
   useEffect(() => {
-    if (mode !== 'edit' || !projectId || loading || form.tokenStandard === 'ERC4626') {
+    if (mode !== 'edit' || !projectId || loading || isVaultTokenStandard(form.tokenStandard)) {
       return;
     }
 
@@ -1027,7 +1028,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
     {
       label: 'Vault ERC-4626',
       status:
-        form.vaultAddress ? 'DEPLOYED' : form.tokenStandard === 'ERC4626' ? 'PENDIENTE' : 'NO APLICA',
+        form.vaultAddress ? 'DEPLOYED' : isVaultTokenStandard(form.tokenStandard) ? 'PENDIENTE' : 'NO APLICA',
       detail: form.vaultAddress || 'Requerido para colateral DeFi.'
     },
     {
@@ -1094,7 +1095,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
         }
       } else if (data.explorerUrl) {
         const vaultNote =
-          data.asset?.vaultAddress && form.tokenStandard === 'ERC4626'
+          data.asset?.vaultAddress && isVaultTokenStandard(form.tokenStandard)
             ? ` | Vault: ${data.asset.vaultAddress}`
             : '';
         const collateralNote =
@@ -1136,7 +1137,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
           <p className="mt-3 max-w-3xl text-terminal-muted">
             {isLending ? t.adminLoans.configureSubtitle : l.subtitleMarketplace ?? l.subtitle}
           </p>
-          {isMarketplace && mode === 'edit' && projectId && form.tokenStandard === 'ERC4626' ? (
+          {isMarketplace && mode === 'edit' && projectId && isVaultTokenStandard(form.tokenStandard) ? (
             <Link
               href={`/dashboard/loans/${projectId}`}
               className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-terminal-primary hover:text-blue-400"
@@ -1288,18 +1289,20 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                       setForm({
                         ...form,
                         tokenStandard,
-                        collateralMorpho: tokenStandard === 'ERC4626' ? true : form.collateralMorpho
+                        collateralMorpho: isVaultTokenStandard(tokenStandard) ? true : form.collateralMorpho
                       });
                     }}
                     className={inputClass}
                   >
                     <option value="SANOVA_KYC">{l.tokenStandardSanova}</option>
                     <option value="ERC4626">{l.tokenStandardErc4626}</option>
+                    <option value="ERC7540">{l.tokenStandardErc7540}</option>
                     <option value="THIRDWEB_DEMO">{l.tokenStandardThirdweb}</option>
                   </select>
                   <p className="mt-1 text-xs text-terminal-muted">
                     {form.tokenStandard === 'SANOVA_KYC' && l.tokenStandardSanovaDesc}
-                    {form.tokenStandard === 'ERC4626' && l.tokenStandardErc4626Desc}
+                    {isVaultTokenStandard(form.tokenStandard) && l.tokenStandardErc4626Desc}
+                    {form.tokenStandard === 'ERC7540' && l.tokenStandardErc7540Desc}
                     {form.tokenStandard === 'THIRDWEB_DEMO' && l.tokenStandardThirdwebDesc}
                   </p>
                 </label>
@@ -1469,7 +1472,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                         className={inputClass}
                       />
                     </label>
-                    {form.tokenStandard === 'ERC4626' ? (
+                    {isVaultTokenStandard(form.tokenStandard) ? (
                       <label className="block min-w-[16rem] flex-1 text-sm">
                         <span className="text-terminal-muted">{l.fieldVaultAddress}</span>
                         <input value={form.vaultAddress} readOnly placeholder="0x…" className={inputClass} />

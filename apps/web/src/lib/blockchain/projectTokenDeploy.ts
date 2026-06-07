@@ -16,6 +16,7 @@ import { recordAutomationPreflight } from './automationPreflight';
 import { shouldBlockAutomation } from '../admin/automationCircuitBreaker';
 import type { OwnershipTransferResult } from './ownershipTransfer';
 import { logAutomationEvent } from '../admin/automationLogger';
+import { isVaultTokenStandard } from '../admin/vaultStandards';
 
 export type ProjectVaultDeployResult =
   | {
@@ -73,8 +74,8 @@ async function executeProjectVaultDeployUnlocked(projectId: string): Promise<Pro
     return { status: 'ALREADY_HAS_VAULT', asset, vaultExplorerUrl };
   }
 
-  if (asset.tokenStandard !== 'ERC4626') {
-    return { status: 'SKIPPED', asset, reason: 'El activo no usa estándar ERC4626.' };
+  if (!isVaultTokenStandard(asset.tokenStandard)) {
+    return { status: 'SKIPPED', asset, reason: 'El activo no usa estándar de vault (ERC-4626 / ERC-7540).' };
   }
 
   const result = await deployVaultForExistingToken({
@@ -233,7 +234,7 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
   }
 
   if (asset.contractAddress) {
-    if (asset.tokenStandard === 'ERC4626' && !asset.vaultAddress) {
+    if (isVaultTokenStandard(asset.tokenStandard) && !asset.vaultAddress) {
       const vaultResult = await executeProjectVaultDeploy(projectId, { skipLock: true });
       if (vaultResult.status === 'DEPLOYED') {
         return {
@@ -284,7 +285,7 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
       let tokenDeployStatus: 'DEPLOYED' | 'FAILED' = 'DEPLOYED';
       let vaultFundingError = result.vaultFundingError ?? null;
 
-      if (asset.tokenStandard === 'ERC4626') {
+      if (isVaultTokenStandard(asset.tokenStandard)) {
         if (result.vaultFundingStatus !== 'FUNDED' || !vaultAddress) {
           tokenDeployStatus = 'FAILED';
         } else {
@@ -305,7 +306,7 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
         contractAddress: result.contractAddress,
         vaultAddress,
         vaultFundingStatus:
-          asset.tokenStandard === 'ERC4626'
+          isVaultTokenStandard(asset.tokenStandard)
             ? result.vaultFundingStatus ?? 'FAILED'
             : 'NOT_REQUIRED',
         vaultFundingAmount: result.vaultFundingAmount ?? null,
@@ -352,7 +353,7 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
         });
       }
 
-      if (asset.tokenStandard === 'ERC4626') {
+      if (isVaultTokenStandard(asset.tokenStandard)) {
         await appendDeploymentEvent(projectId, {
           step: 'VAULT_FUNDING',
           status: result.vaultFundingStatus === 'FUNDED' ? 'SUCCESS' : 'FAILED',
@@ -367,7 +368,7 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
       let finalAsset = updated;
       let collateral = null;
 
-      if (asset.tokenStandard === 'ERC4626' && !vaultAddress) {
+      if (isVaultTokenStandard(asset.tokenStandard) && !vaultAddress) {
         const vaultResult = await executeProjectVaultDeploy(projectId, { skipLock: true });
         if (vaultResult.status === 'DEPLOYED') {
           finalAsset = vaultResult.asset;
@@ -464,7 +465,7 @@ export async function executeProjectAutomationRepair(projectId: string) {
       : await getAdminAsset(projectId);
 
   let collateral = null;
-  if (asset?.collateralTargets.length && asset.contractAddress && (asset.tokenStandard !== 'ERC4626' || asset.vaultAddress)) {
+  if (asset?.collateralTargets.length && asset.contractAddress && (!isVaultTokenStandard(asset.tokenStandard) || asset.vaultAddress)) {
     const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
     collateral = await registerProjectCollateral(projectId, undefined, { skipLock: true });
   }

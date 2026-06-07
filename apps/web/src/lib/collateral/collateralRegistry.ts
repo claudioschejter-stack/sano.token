@@ -1,5 +1,7 @@
 import type { AdminAssetRecord } from '../admin/assetsService';
 import type { CollateralProtocol, TokenStandard } from '../admin/launchTypes';
+import { isVaultTokenStandard } from '../admin/vaultStandards';
+import { PLUME_MAINNET_CHAIN_ID, PLUME_TESTNET_CHAIN_ID } from '../blockchain/supportedChains';
 
 export type CollateralRequirementId =
   | 'tokenDeployed'
@@ -95,7 +97,7 @@ export const COLLATERAL_PROTOCOLS: CollateralProtocolDefinition[] = [
     envCredentialKeys: ['CENTRIFUGE_API_KEY', 'CENTRIFUGE_POOL_ADMIN_URL'],
     docsUrl: 'https://docs.centrifuge.io',
     minTokenSupply: 1000,
-    supportedChainIds: [1, 8453, 84532, 137],
+    supportedChainIds: [1, 8453, 84532, 137, PLUME_MAINNET_CHAIN_ID, PLUME_TESTNET_CHAIN_ID],
     requiresErc4626: true,
     requiresSanovaToken: true,
     institutionalReview: true,
@@ -128,7 +130,7 @@ export const COLLATERAL_PROTOCOLS: CollateralProtocolDefinition[] = [
     envCredentialKeys: ['MORPHO_API_KEY', 'MORPHO_CURATOR_ADDRESS'],
     docsUrl: 'https://docs.morpho.org',
     minTokenSupply: 5000,
-    supportedChainIds: [1, 8453, 84532, 137],
+    supportedChainIds: [1, 8453, 84532, 137, PLUME_MAINNET_CHAIN_ID, PLUME_TESTNET_CHAIN_ID],
     requiresErc4626: true,
     requiresSanovaToken: true,
     institutionalReview: true,
@@ -220,7 +222,7 @@ export function getProtocolDefinition(protocol: CollateralProtocol): CollateralP
 }
 
 function isSanovaToken(standard: TokenStandard): boolean {
-  return standard === 'SANOVA_KYC' || standard === 'ERC4626';
+  return standard === 'SANOVA_KYC' || isVaultTokenStandard(standard);
 }
 
 export function evaluateRequirement(
@@ -236,7 +238,7 @@ export function evaluateRequirement(
     case 'kycTokenStandard':
       return isSanovaToken(project.tokenStandard);
     case 'erc4626Vault':
-      return project.tokenStandard === 'ERC4626' && Boolean(project.vaultAddress);
+      return isVaultTokenStandard(project.tokenStandard) && Boolean(project.vaultAddress);
     case 'spvDocumented':
       return checklist.spvDocumented || Boolean(project.spvEntityName) || Boolean(project.contracts.trust);
     case 'legalAuditDone':
@@ -297,7 +299,7 @@ export function evaluateCollateralReadiness(
     missing.push('kycTokenStandard');
   }
 
-  if (def.requiresErc4626 && project.tokenStandard !== 'ERC4626') {
+  if (def.requiresErc4626 && !isVaultTokenStandard(project.tokenStandard)) {
     if (!missing.includes('erc4626Vault')) {
       missing.push('erc4626Vault');
     }
@@ -330,6 +332,7 @@ export function buildCollateralSubmissionPayload(
       name: project.tokenName,
       symbol: project.tokenSymbol,
       standard: project.tokenStandard,
+      vaultKind: isVaultTokenStandard(project.tokenStandard) ? project.tokenStandard : null,
       instrumentType: project.tokenInstrumentType,
       maturityDate: project.maturityDate,
       contractAddress: project.contractAddress,

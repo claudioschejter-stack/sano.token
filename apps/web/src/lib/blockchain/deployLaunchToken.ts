@@ -2,7 +2,10 @@ import { Contract, ContractFactory, JsonRpcProvider, Wallet, type ContractRunner
 import type { TokenStandard, TokenInstrumentType, VaultFundingStatus } from '../admin/launchTypes';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
+import SanovaAsyncVaultArtifact from './artifacts/SanovaAsyncVault.json';
 import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deployAssetToken';
+import { isVaultTokenStandard } from '../admin/vaultStandards';
+import { resolveChainRpcUrl } from './explorerUrls';
 import { ensureAutomationSignerReady, sendAutomationTx, waitForAutomationTx } from './automationTx';
 import { assertTreasuryVaultSharesReady } from './verifyTreasuryVaultShares';
 import { resolveTreasuryAddress } from './treasuryPolicy';
@@ -55,22 +58,6 @@ function normalizeSymbol(symbol: string): string {
 function resolvePrivateKey(): string | null {
   const key = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
   return key || null;
-}
-
-function resolveRpcUrl(chainId: number): string {
-  if (chainId === 84532 || chainId === 8453) {
-    return process.env.BASE_RPC_URL?.trim() || (chainId === 84532 ? 'https://sepolia.base.org' : 'https://mainnet.base.org');
-  }
-
-  if (chainId === 80002 || chainId === 137) {
-    return process.env.POLYGON_RPC_URL?.trim() || (chainId === 80002 ? 'https://rpc-amoy.polygon.technology' : 'https://polygon-rpc.com');
-  }
-
-  if (chainId === 11155111) {
-    return process.env.ETHEREUM_RPC_URL?.trim() || 'https://rpc.sepolia.org';
-  }
-
-  return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
 }
 
 async function waitForExternalContractAllowed(
@@ -222,7 +209,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
 
   let deploymentStep = 'bootstrap';
   try {
-    const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
+    const provider = new JsonRpcProvider(resolveChainRpcUrl(chainId));
     const wallet = new Wallet(privateKey, provider);
     await ensureAutomationSignerReady(wallet);
     const gasBalance = await provider.getBalance(wallet.address);
@@ -234,7 +221,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const tokenName = buildOnChainTokenName(input.tokenName, input.tokenInstrumentType);
     const symbol = normalizeSymbol(input.tokenSymbol);
     const treasuryAddress = resolveTreasuryAddress(input.treasuryAddress ?? wallet.address) ?? wallet.address;
-    const mintRecipient = input.tokenStandard === 'ERC4626' ? wallet.address : treasuryAddress;
+    const mintRecipient = isVaultTokenStandard(input.tokenStandard) ? wallet.address : treasuryAddress;
     const mintAmount = BigInt(input.totalSupplyUnits) * 10n ** 18n;
 
     const assetFactory = new ContractFactory(
@@ -287,17 +274,16 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const vaultName = `${tokenName} Vault`.slice(0, 64);
     const vaultSymbol = `v${symbol}`.slice(0, 8);
 
-    const vaultFactory = new ContractFactory(
-      SanovaRwaVaultArtifact.abi,
-      SanovaRwaVaultArtifact.bytecode,
-      wallet
-    );
+    const vaultArtifact =
+      input.tokenStandard === 'ERC7540' ? SanovaAsyncVaultArtifact : SanovaRwaVaultArtifact;
+    const vaultContractName = input.tokenStandard === 'ERC7540' ? 'SanovaAsyncVault' : 'SanovaRwaVault';
+    const vaultFactory = new ContractFactory(vaultArtifact.abi, vaultArtifact.bytecode, wallet);
 
     deploymentStep = 'vault_deploy';
     const vault = await vaultFactory.deploy(contractAddress, vaultName, vaultSymbol, wallet.address);
     await vault.waitForDeployment();
     const vaultAddress = await vault.getAddress();
-    const vaultContract = new Contract(vaultAddress, SanovaRwaVaultArtifact.abi, wallet);
+    const vaultContract = new Contract(vaultAddress, vaultArtifact.abi, wallet);
     deploymentStep = 'vault_fund';
     const funding = await fundVaultWithDeployerBalance({
       asset,
@@ -369,7 +355,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
         treasuryAddress
       }),
       await transferOwnershipToTreasury({
-        contractName: 'SanovaRwaVault',
+        contractName: vaultContractName,
         contract: vaultContract,
         contractAddress: vaultAddress,
         deployerAddress: wallet.address,

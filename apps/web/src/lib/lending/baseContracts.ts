@@ -1,5 +1,6 @@
 import { getAddress } from 'ethers';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
+import { PLUME_MAINNET_CHAIN_ID, PLUME_TESTNET_CHAIN_ID } from '../blockchain/supportedChains';
 
 export type MoonwellChainConfig = {
   comptroller: string;
@@ -79,10 +80,42 @@ const ETHEREUM_MAINNET: LendingChainConfig = {
   }
 };
 
+/** Morpho Blue is deployed at the same address on many EVM chains including Plume. */
+const MORPHO_BLUE_ADDRESS = '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb';
+
+const PLUME_MAINNET: LendingChainConfig = {
+  chainId: PLUME_MAINNET_CHAIN_ID,
+  aavePool: '',
+  usdc:
+    process.env.PLUME_USDC_TOKEN_ADDRESS?.trim() ||
+    process.env.NEXT_PUBLIC_PLUME_USDC_TOKEN_ADDRESS?.trim() ||
+    '',
+  weth: process.env.PLUME_WETH_TOKEN_ADDRESS?.trim() || '',
+  morpho: process.env.MORPHO_PLUME_ADDRESS?.trim() || MORPHO_BLUE_ADDRESS,
+  morphoIrm: getAddress(
+    process.env.MORPHO_PLUME_IRM_ADDRESS?.trim() || '0x46415998764c29ab2a25cbea6254146d50d22687'
+  ),
+  morphoDefaultLltvBps: Number.parseInt(process.env.MORPHO_PLUME_LLTV_BPS?.trim() || '6250', 10)
+};
+
+const PLUME_TESTNET: LendingChainConfig = {
+  chainId: PLUME_TESTNET_CHAIN_ID,
+  aavePool: '',
+  usdc: process.env.PLUME_TESTNET_USDC_TOKEN_ADDRESS?.trim() || '',
+  weth: '',
+  morpho: process.env.MORPHO_PLUME_TESTNET_ADDRESS?.trim() || MORPHO_BLUE_ADDRESS,
+  morphoIrm: getAddress(
+    process.env.MORPHO_PLUME_TESTNET_IRM_ADDRESS?.trim() || '0x870ac11d48b15db9f1382786706e8e7a239d8928'
+  ),
+  morphoDefaultLltvBps: 6250
+};
+
 const CHAIN_CONFIGS: Record<number, LendingChainConfig> = {
   8453: BASE_MAINNET,
   84532: BASE_SEPOLIA,
-  1: ETHEREUM_MAINNET
+  1: ETHEREUM_MAINNET,
+  [PLUME_MAINNET_CHAIN_ID]: PLUME_MAINNET,
+  [PLUME_TESTNET_CHAIN_ID]: PLUME_TESTNET
 };
 
 export function getLendingChainConfig(): LendingChainConfig {

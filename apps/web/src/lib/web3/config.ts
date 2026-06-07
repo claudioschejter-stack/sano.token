@@ -1,7 +1,9 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base } from 'wagmi/chains';
+import { defineChain } from 'viem';
 import { coinbaseWallet } from '@wagmi/connectors';
 import { walletConnectMetadata } from './walletConnect';
+import { isPlumeWalletEnabled, PLUME_MAINNET_CHAIN_ID } from '../blockchain/supportedChains';
 
 export { walletConnectAllowedOrigins } from './walletConnect';
 
@@ -13,8 +15,27 @@ const baseRpcUrl =
   process.env.BASE_RPC_URL?.trim() ||
   'https://mainnet.base.org';
 
-/** Base mainnet — production RWA vault + USDC checkout. */
-export const supportedChains = [base] as const;
+export const plumeMainnet = defineChain({
+  id: PLUME_MAINNET_CHAIN_ID,
+  name: 'Plume',
+  nativeCurrency: { name: 'PLUME', symbol: 'PLUME', decimals: 18 },
+  rpcUrls: {
+    default: {
+      http: [process.env.NEXT_PUBLIC_PLUME_RPC_URL?.trim() || process.env.PLUME_RPC_URL?.trim() || 'https://rpc.plume.org']
+    }
+  },
+  blockExplorers: {
+    default: { name: 'Plume Explorer', url: 'https://explorer.plume.org' }
+  }
+});
+
+const plumeRpcUrl =
+  process.env.NEXT_PUBLIC_PLUME_RPC_URL?.trim() ||
+  process.env.PLUME_RPC_URL?.trim() ||
+  'https://rpc.plume.org';
+
+/** Base mainnet (+ optional Plume for RWA vault issuance). */
+export const supportedChains = isPlumeWalletEnabled() ? ([base, plumeMainnet] as const) : ([base] as const);
 
 const connectors = [
   coinbaseWallet({
@@ -28,7 +49,8 @@ export const wagmiConfig = createConfig({
   chains: supportedChains,
   connectors,
   transports: {
-    [base.id]: http(baseRpcUrl)
+    [base.id]: http(baseRpcUrl),
+    ...(isPlumeWalletEnabled() ? { [plumeMainnet.id]: http(plumeRpcUrl) } : {})
   },
   ssr: true,
   storage: createStorage({

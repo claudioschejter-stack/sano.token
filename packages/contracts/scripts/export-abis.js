@@ -89,7 +89,12 @@ function main() {
   const webArtifactsDir = path.join(monorepoRoot, 'apps/web/src/lib/blockchain/artifacts');
   fs.mkdirSync(webArtifactsDir, { recursive: true });
 
-  for (const contractFile of ['SanovaAssetToken.sol', 'SanovaRwaVault.sol', 'SanovaFixedPriceOracle.sol']) {
+  for (const contractFile of [
+    'SanovaAssetToken.sol',
+    'SanovaRwaVault.sol',
+    'SanovaAsyncVault.sol',
+    'SanovaFixedPriceOracle.sol'
+  ]) {
     const contractName = path.basename(contractFile, '.sol');
     const artifactPath = path.join(
       contractsRoot,

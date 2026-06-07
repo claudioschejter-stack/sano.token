@@ -136,7 +136,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     const shouldDeployOrRepair =
       sanitized.deployToken &&
-      (!updated.contractAddress || (updated.tokenStandard === 'ERC4626' && !updated.vaultAddress));
+      (!updated.contractAddress || (isErc4626Standard(updated.tokenStandard) && !updated.vaultAddress));
 
     if (shouldDeployOrRepair) {
       const { executeProjectTokenDeploy } = await import('../../../../../lib/blockchain/projectTokenDeploy');

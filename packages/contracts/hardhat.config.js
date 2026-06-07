@@ -1,4 +1,9 @@
-require("@nomicfoundation/hardhat-toolbox");
+try {
+  require("@nomicfoundation/hardhat-toolbox");
+} catch (error) {
+  // Fallback when viem peer deps are incomplete — compile still works without the full toolbox.
+  console.warn("[hardhat] toolbox unavailable, using core compiler only:", error.message);
+}
 
 try {
   require("dotenv").config({ path: ".env.local" });

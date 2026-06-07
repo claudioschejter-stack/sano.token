@@ -1,6 +1,7 @@
 import type { AdminAssetRecord } from './assetsService';
 import type { TokenStandard } from './launchTypes';
 import { getTokenDeployStatus } from '../blockchain/tokenDeployConfig';
+import { isVaultTokenStandard } from './vaultStandards';
 
 export type LaunchGateIssueCode =
   | 'MISSING_TITLE'
@@ -58,8 +59,9 @@ export type Erc4626LaunchFormInput = {
   isActive?: boolean;
 };
 
+/** ERC-4626 and ERC-7540 vault launches share the same on-chain pipeline. */
 export function isErc4626Standard(standard: string | undefined | null): boolean {
-  return standard === 'ERC4626';
+  return isVaultTokenStandard(standard);
 }
 
 export function isErc4626OnChainReady(asset: {

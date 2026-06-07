@@ -1,4 +1,5 @@
 import type { AdminAssetRecord } from '../admin/assetsService';
+import { isVaultTokenStandard } from '../admin/vaultStandards';
 import { appendDeploymentEvent } from '../admin/assetsService';
 import { getTokenDeployStatus } from './tokenDeployConfig';
 import { validateTreasuryPolicy } from './treasuryPolicy';
@@ -73,8 +74,18 @@ export async function runAutomationPreflight(asset: AdminAssetRecord): Promise<A
       maxBorrowUsdPerProject() > 0,
       `Borrow diario máximo USD ${maxBorrowUsdPerProject()}`
     ),
-    check('vault', 'Vault requerido', asset.tokenStandard !== 'ERC4626' || !asset.contractAddress || Boolean(asset.vaultAddress), asset.vaultAddress ?? 'Se desplegará automáticamente.'),
-    check('morpho', 'Morpho', !hasMorpho || asset.tokenStandard === 'ERC4626', hasMorpho ? 'Morpho requiere ERC-4626.' : 'No seleccionado.')
+    check(
+      'vault',
+      'Vault requerido',
+      !isVaultTokenStandard(asset.tokenStandard) || !asset.contractAddress || Boolean(asset.vaultAddress),
+      asset.vaultAddress ?? 'Se desplegará automáticamente.'
+    ),
+    check(
+      'morpho',
+      'Morpho',
+      !hasMorpho || isVaultTokenStandard(asset.tokenStandard),
+      hasMorpho ? 'Morpho requiere vault ERC-4626/7540.' : 'No seleccionado.'
+    )
   ];
 
   return {
@@ -91,7 +102,7 @@ export async function recordAutomationPreflight(
   const result = await runAutomationPreflight(asset);
   const plannedJobs = [
     !asset.contractAddress ? 'TOKEN_DEPLOY' : null,
-    asset.tokenStandard === 'ERC4626' && !asset.vaultAddress ? 'VAULT_DEPLOY' : null,
+    isVaultTokenStandard(asset.tokenStandard) && !asset.vaultAddress ? 'VAULT_DEPLOY' : null,
     asset.collateralTargets.length ? 'COLLATERAL_REGISTER' : null,
     asset.collateralTargets.some((target) => target.protocol === 'MORPHO') ? 'MORPHO_LIQUIDITY' : null,
     'EXPLORER_VERIFY'

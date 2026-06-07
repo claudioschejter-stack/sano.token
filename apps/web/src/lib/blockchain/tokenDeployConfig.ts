@@ -1,5 +1,5 @@
 import { JsonRpcProvider, Wallet } from 'ethers';
-import { resolveChainId } from './explorerUrls';
+import { resolveChainId, resolveChainRpcUrl } from './explorerUrls';
 
 export function isSanovaTokenDeployConfigured(): boolean {
   const privateKey = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
@@ -7,27 +7,11 @@ export function isSanovaTokenDeployConfigured(): boolean {
   return Boolean(privateKey && rpcUrl);
 }
 
-function resolveRpcUrl(chainId: number): string | null {
-  if (chainId === 84532 || chainId === 8453) {
-    return process.env.BASE_RPC_URL?.trim() || (chainId === 84532 ? 'https://sepolia.base.org' : 'https://mainnet.base.org');
-  }
-
-  if (chainId === 80002 || chainId === 137) {
-    return process.env.POLYGON_RPC_URL?.trim() || (chainId === 80002 ? 'https://rpc-amoy.polygon.technology' : 'https://polygon-rpc.com');
-  }
-
-  if (chainId === 11155111) {
-    return process.env.ETHEREUM_RPC_URL?.trim() || 'https://rpc.sepolia.org';
-  }
-
-  return process.env.BASE_RPC_URL?.trim() || null;
-}
-
 export async function getTokenDeployStatus() {
   const privateKey = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
   const thirdweb = process.env.THIRDWEB_SECRET_KEY?.trim();
   const chainId = resolveChainId();
-  const rpcUrl = resolveRpcUrl(chainId);
+  const rpcUrl = resolveChainRpcUrl(chainId);
   let deployerAddress: string | null = null;
   let gasBalanceWei: string | null = null;
   let hasGas = false;

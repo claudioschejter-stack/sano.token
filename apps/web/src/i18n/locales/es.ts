@@ -446,9 +446,12 @@ export const es = {
     fieldContractAddress: 'Dirección del token (on-chain)',
     tokenStandardSanova: 'Sanova KYC (recomendado — producción)',
     tokenStandardErc4626: 'Sanova + ERC-4626 (vault DeFi)',
+    tokenStandardErc7540: 'Sanova + ERC-7540 (vault async RWA)',
     tokenStandardThirdweb: 'Thirdweb demo (solo pruebas)',
     tokenStandardSanovaDesc: 'Token ERC-20 con KYC on-chain. Ideal para RWA regulado y onboarding Centrifuge.',
-    tokenStandardErc4626Desc: 'Emite SanovaAssetToken + vault ERC-4626 con KYC en depósitos/retiros. Compatible con integraciones DeFi.',
+    tokenStandardErc4626Desc: 'Emite SanovaAssetToken + vault ERC-4626 con KYC en depósitos/retiros. Compatible con Morpho y DeFi.',
+    tokenStandardErc7540Desc:
+      'Emite SanovaAssetToken + vault ERC-7540 (depósitos/retiros async). Recomendado para Centrifuge v3 y Plume Network.',
     tokenStandardThirdwebDesc: 'ERC-20 genérico vía Thirdweb. Solo para demos; no apto como colateral institucional.',
     sectionCentrifuge: 'Checklist Centrifuge',
     centrifugeDesc: 'Opcional. Solo necesario si vas a registrar el activo en Centrifuge / Tinlake.',

@@ -16,7 +16,8 @@
     "./abi/sanova-asset-token": "./abi/sanova-asset-token.abi.ts"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^5.1.0"
+    "@openzeppelin/contracts": "^5.1.0",
+    "viem": "^2.52.2"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.0.0",
