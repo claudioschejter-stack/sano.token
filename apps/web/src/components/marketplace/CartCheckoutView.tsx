@@ -21,6 +21,7 @@ import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath'
 import { isLocalRailManualResult } from '../../lib/payments/stripeCheckoutOptions';
 import { useCartStore } from '../../store/useCartStore';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
+import { StickyActionBar } from '../mobile/StickyActionBar';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -541,8 +542,27 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     );
   };
 
+  const confirmDisabled =
+    (status !== 'idle' && status !== 'manual') ||
+    (mode === 'purchase' && items.length === 0) ||
+    (showPaymentMethods &&
+      (sortedDepositOptions.length === 0 ||
+        !selectedDepositOptionId ||
+        paymentQuoteExpired ||
+        !selectedDepositOption?.configured)) ||
+    (requiresWallet && (mode === 'deposit' ? !walletGuard.isWalletLinked : !walletGuard.canSignOnChain));
+
+  const confirmLabel =
+    status === 'processing'
+      ? c.processing
+      : status === 'verifying'
+        ? c.verifying
+        : mode === 'deposit'
+          ? c.continueDeposit
+          : c.confirmButton;
+
   return (
-    <section className="mx-auto max-w-3xl">
+    <section className="mx-auto max-w-3xl pb-28 md:pb-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
           href={mode === 'deposit' ? '/dashboard/portfolio' : '/marketplace'}
@@ -560,7 +580,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       </div>
 
       <article className="overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
-        <div className="border-b border-terminal-border px-8 py-6">
+        <div className="border-b border-terminal-border px-4 py-5 sm:px-8 sm:py-6">
           <p className="text-sm font-medium uppercase tracking-wider text-terminal-primary">
             {mode === 'deposit' ? c.depositTitle : c.purchaseTitle}
           </p>
@@ -568,7 +588,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           <p className="mt-1 text-sm text-terminal-muted">{mode === 'deposit' ? c.depositSubtitle : c.purchaseSubtitle}</p>
         </div>
 
-        <div className="space-y-6 p-8">
+        <div className="space-y-6 p-4 sm:p-8">
           {mode === 'purchase' ? (
             items.length === 0 ? (
               <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-6 text-sm text-terminal-muted">
@@ -808,30 +828,14 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
 
           {status !== 'done' ? (
-            <div className={showPaymentMethods ? 'space-y-1' : undefined}>
+            <div className={`${showPaymentMethods ? 'space-y-1' : ''} hidden md:block`}>
               <button
                 type="button"
-                disabled={
-                  (status !== 'idle' && status !== 'manual') ||
-                  (mode === 'purchase' && items.length === 0) ||
-                  (showPaymentMethods &&
-                    (sortedDepositOptions.length === 0 ||
-                      !selectedDepositOptionId ||
-                      paymentQuoteExpired ||
-                      !selectedDepositOption?.configured)) ||
-                  (requiresWallet &&
-                    (mode === 'deposit' ? !walletGuard.isWalletLinked : !walletGuard.canSignOnChain))
-                }
+                disabled={confirmDisabled}
                 onClick={() => void handleConfirm()}
                 className="w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {status === 'processing'
-                  ? c.processing
-                  : status === 'verifying'
-                    ? c.verifying
-                    : mode === 'deposit'
-                      ? c.continueDeposit
-                      : c.confirmButton}
+                {confirmLabel}
               </button>
               {showPaymentMethods && quoteExpiresAt && quoteSecondsLeft > 0 ? (
                 <p className="text-right text-xs font-medium text-terminal-primary">
@@ -855,6 +859,28 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
         </div>
       </article>
+
+      {status !== 'done' ? (
+        <StickyActionBar
+          summary={
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-terminal-muted">{mode === 'deposit' ? c.depositTitle : c.purchaseTitle}</span>
+              <span className="font-mono font-semibold text-terminal-primary">
+                {formatUsd(totalUsd)}
+              </span>
+            </div>
+          }
+        >
+          <button
+            type="button"
+            disabled={confirmDisabled}
+            onClick={() => void handleConfirm()}
+            className="min-h-12 w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {confirmLabel}
+          </button>
+        </StickyActionBar>
+      ) : null}
     </section>
   );
 }

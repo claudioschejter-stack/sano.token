@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
-import { SignJWT } from 'jose';
 import type { SystemRole } from './roles';
+import { issueAuthUser, type AuthUser } from './issueAuthUser';
 
 const ALL_ROLES = new Set<SystemRole>([
   'ADMIN',
@@ -12,13 +12,7 @@ const ALL_ROLES = new Set<SystemRole>([
   'OPERATOR'
 ]);
 
-type AuthUser = {
-  id: string;
-  email: string;
-  role: SystemRole;
-  roles: SystemRole[];
-  accessToken: string;
-};
+export type { AuthUser };
 
 export async function verifyCredentials(email: string, password: string): Promise<AuthUser | null> {
   const normalizedEmail = email.trim().toLowerCase();
@@ -77,33 +71,6 @@ function canBootstrapWithEnvPassword(email: string, password: string): boolean {
   }
 
   return parseEmailList(process.env.AUTH_ADMIN_EMAILS).has(email);
-}
-
-async function issueAuthUser(userId: string, email: string, role: SystemRole): Promise<AuthUser> {
-  const roles = [role];
-  const secret = process.env.JWT_SECRET;
-  if (!secret || secret.length < 32) {
-    throw new Error('JWT_SECRET is not configured.');
-  }
-
-  const accessToken = await new SignJWT({
-    sub: userId,
-    email,
-    roles
-  })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setIssuer('sanova-global-api')
-    .setExpirationTime('12h')
-    .sign(new TextEncoder().encode(secret));
-
-  return {
-    id: userId,
-    email,
-    role,
-    roles,
-    accessToken
-  };
 }
 
 async function resolveRolesForEmail(email: string, currentRole?: SystemRole): Promise<SystemRole> {

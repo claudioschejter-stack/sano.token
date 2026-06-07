@@ -174,7 +174,70 @@ export function AdminInvestorsView() {
           </button>
         </div>
 
-        <section className="overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
+        <section className="space-y-4 md:space-y-0">
+          <div className="space-y-3 md:hidden">
+            {loading ? (
+              <p className="rounded-xl border border-terminal-border bg-terminal-card px-4 py-8 text-center text-sm text-terminal-muted">
+                {t.adminInvestors.loading}
+              </p>
+            ) : error ? (
+              <p className="rounded-xl border border-terminal-border bg-terminal-card px-4 py-8 text-center text-sm text-red-400">
+                {t.adminInvestors.error}
+              </p>
+            ) : investors.length === 0 ? (
+              <p className="rounded-xl border border-terminal-border bg-terminal-card px-4 py-8 text-center text-sm text-terminal-muted">
+                {t.adminInvestors.empty}
+              </p>
+            ) : (
+              investors.map((row) => {
+                const displayName = row.kycIdentity.fullName ?? row.investor?.fullName ?? row.name ?? '—';
+                const isUpdating = updatingId === row.id;
+
+                return (
+                  <article
+                    key={row.id}
+                    className="rounded-xl border border-terminal-border bg-terminal-card p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium text-terminal-text">{displayName}</p>
+                        <p className="mt-1 text-xs text-terminal-muted">{row.email}</p>
+                      </div>
+                      <span
+                        className={`inline-flex shrink-0 rounded border px-2 py-1 text-[11px] font-semibold ${statusBadgeClass(row.kycStatus)}`}
+                      >
+                        {statusLabels[row.kycStatus] ?? row.kycStatus}
+                      </span>
+                    </div>
+                    {row.kycStatus === 'PENDING' ? (
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={isUpdating || !row.contactVerified}
+                          onClick={() => void handleKycUpdate(row.id, 'APPROVED')}
+                          className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-terminal-success/30 px-3 py-2 text-xs font-semibold text-terminal-success"
+                        >
+                          <Check size={14} />
+                          {t.adminInvestors.approve}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isUpdating}
+                          onClick={() => void handleKycUpdate(row.id, 'REJECTED')}
+                          className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-red-500/30 px-3 py-2 text-xs font-semibold text-red-400"
+                        >
+                          <X size={14} />
+                          {t.adminInvestors.reject}
+                        </button>
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })
+            )}
+          </div>
+
+          <div className="hidden overflow-hidden rounded-xl border border-terminal-border bg-terminal-card md:block">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-terminal-bg text-xs uppercase tracking-wide text-terminal-muted">
@@ -327,6 +390,7 @@ export function AdminInvestorsView() {
                 )}
               </tbody>
             </table>
+          </div>
           </div>
         </section>
       </div>

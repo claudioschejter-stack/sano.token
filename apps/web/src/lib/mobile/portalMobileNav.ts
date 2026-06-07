@@ -1,0 +1,62 @@
+import type { LucideIcon } from 'lucide-react';
+import { Building2, LayoutDashboard, ShoppingBag, UserCheck, Wallet } from 'lucide-react';
+import type { SystemRole } from '../auth/roles';
+
+export type PortalMobileNavItem = {
+  href: string;
+  icon: LucideIcon;
+  labelKey: 'panel' | 'marketplace' | 'myAssets' | 'cashFlow' | 'clients' | 'myWallet';
+  matchPrefixes?: string[];
+};
+
+const investorItems: PortalMobileNavItem[] = [
+  { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
+  {
+    href: '/marketplace',
+    icon: ShoppingBag,
+    labelKey: 'marketplace',
+    matchPrefixes: ['/marketplace']
+  },
+  {
+    href: '/dashboard/portfolio',
+    icon: Building2,
+    labelKey: 'myAssets',
+    matchPrefixes: ['/dashboard/portfolio']
+  },
+  {
+    href: '/dashboard/cash-flow',
+    icon: Wallet,
+    labelKey: 'cashFlow',
+    matchPrefixes: ['/dashboard/cash-flow']
+  }
+];
+
+const advisorItems: PortalMobileNavItem[] = [
+  { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
+  { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
+  { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace', matchPrefixes: ['/marketplace'] },
+  { href: '/dashboard/wallet', icon: Wallet, labelKey: 'myWallet', matchPrefixes: ['/dashboard/wallet'] }
+];
+
+export function getPortalMobileNavItems(role: SystemRole | undefined): PortalMobileNavItem[] {
+  if (role === 'ADVISOR' || role === 'ADVISOR_MANAGER') {
+    return advisorItems;
+  }
+
+  if (role === 'ADMIN') {
+    return [];
+  }
+
+  return investorItems;
+}
+
+export function isPortalMobileNavActive(pathname: string, item: PortalMobileNavItem): boolean {
+  if (item.href === '/dashboard') {
+    return pathname === '/dashboard';
+  }
+
+  const prefixes = item.matchPrefixes ?? [item.href];
+  return prefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  );
+}

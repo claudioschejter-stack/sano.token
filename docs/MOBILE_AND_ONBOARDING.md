@@ -85,9 +85,26 @@ npx prisma db push --schema=packages/database/prisma/schema.prisma
 | POST | `/api/webhooks/didit` | Webhook de resultado KYC |
 | POST | `/api/onboarding/demo-kyc` | Solo demo (deshabilitado en prod salvo `ALLOW_DEMO_KYC=true`) |
 
+## Configuración móvil (portal + PWA)
+
+Implementado en `apps/web`:
+
+| Área | Archivos |
+|------|----------|
+| Perfiles de ruta / FAB | `src/lib/mobile/deviceConfig.ts` |
+| Barra inferior inversor/asesor | `src/components/layout/PortalMobileNav.tsx`, `src/lib/mobile/portalMobileNav.ts` |
+| Shell portal | `src/app/(portal)/layout.tsx` — `min-h-dvh`, `safe-x`, `pb-nav-safe`, banner PWA |
+| Viewport + iconos | `src/app/layout.tsx` — zoom permitido, metadata icons |
+| Utilidades CSS | `src/app/globals.css` — `safe-*`, `pb-nav-safe`, `touch-manipulation` |
+| Iconos PWA | `npm run pwa:icons` (genera PNG desde `public/icons/icon.svg`) |
+
+**Barra inferior (solo móvil):** Panel · Marketplace · Mis activos · Flujo de caja (inversor) o Clientes · Cartera (asesor). Admin sigue con menú hamburger.
+
+**Pendiente siguiente fase:** checkout con CTA fijo abajo, tablas admin en cards, PWABuilder/Capacitor para tiendas.
+
 ## Próximos pasos sugeridos
 
-- Iconos PNG 192/512 para mejor soporte PWA en Android
+- Ejecutar `cd apps/web && npm run pwa:icons` y commitear los PNG generados
 - Sumar `phone` al registro OAuth / creación de inversor en admin
 - Bloquear checkout en servidor si `accountStatus !== OPERATIONAL`
 - Integrar estado KYC de Didit también en `Investor` para on-chain whitelist automática

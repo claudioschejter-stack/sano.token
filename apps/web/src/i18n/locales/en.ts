@@ -1517,6 +1517,25 @@ export const en = {
         "WalletConnect is not configured. Create a Coinbase wallet or contact support."
     }
   },
+  mobile: {
+    bottomNavAria: "Main mobile navigation"
+  },
+  passkey: {
+    orDivider: "or with email and password",
+    loginBiometric: "Sign in with fingerprint / biometrics",
+    loginFaceId: "Sign in with Face ID",
+    signingIn: "Verifying…",
+    loginFailed: "Biometric sign-in failed. Use email and password.",
+    notSupported: "Your browser does not support passkeys. Update the OS or use email.",
+    notRegistered: "No biometrics registered for this account. Sign in with password first.",
+    registerTitle: "Enable biometric sign-in",
+    registerFaceTitle: "Enable Face ID",
+    registerDesc: "Next time you can sign in with fingerprint or face recognition on this device.",
+    registerCta: "Enable now",
+    registering: "Setting up…",
+    registerSuccess: "Biometrics enabled. You can now sign in with one tap.",
+    registerFailed: "Could not enable biometrics on this device."
+  },
   pwa: {
     installTitle: "Install Sanova on your cell phone",
     installDesc: "Quick access as an app, ideal for uploading documents and verifying identity.",

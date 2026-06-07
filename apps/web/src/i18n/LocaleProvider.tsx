@@ -2,16 +2,40 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { defaultLocale, intlLocaleByCode, messagesByLocale, resolveLocale, rtlLocales, type Locale } from './index';
+import { detectBrowserLocales, mapCountryToLocaleHint, resolveInitialLocale } from './detectLocale';
 import type { Messages } from './locales/en';
 
 const STORAGE_KEY = 'sanova.locale';
+const COUNTRY_COOKIE = 'sanova.country';
 
-function readStoredLocale(): Locale {
+function readCountryHint(): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const match = document.cookie.match(new RegExp(`(?:^|; )${COUNTRY_COOKIE}=([^;]*)`));
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function readInitialLocale(): Locale {
   if (typeof window === 'undefined') {
     return defaultLocale;
   }
 
-  return resolveLocale(window.localStorage.getItem(STORAGE_KEY));
+  const stored = window.localStorage.getItem(STORAGE_KEY);
+  if (stored && resolveLocale(stored) !== defaultLocale) {
+    return resolveLocale(stored);
+  }
+
+  if (stored) {
+    return resolveLocale(stored);
+  }
+
+  return resolveInitialLocale({
+    stored: null,
+    countryHint: readCountryHint(),
+    browserLanguages: detectBrowserLocales()
+  });
 }
 
 type LocaleContextValue = {
@@ -23,23 +47,35 @@ type LocaleContextValue = {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
+function applyDocumentLocale(locale: Locale) {
+  document.documentElement.lang = locale;
+  document.documentElement.dir = rtlLocales.includes(locale) ? 'rtl' : 'ltr';
+}
+
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(readStoredLocale);
+  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const resolved = readStoredLocale();
+    const resolved = readInitialLocale();
     setLocaleState(resolved);
-    document.documentElement.lang = resolved;
-    document.documentElement.dir = rtlLocales.includes(resolved) ? 'rtl' : 'ltr';
+    if (!window.localStorage.getItem(STORAGE_KEY)) {
+      window.localStorage.setItem(STORAGE_KEY, resolved);
+    }
+    applyDocumentLocale(resolved);
     setHydrated(true);
   }, []);
 
   const setLocale = useCallback((nextLocale: Locale) => {
     setLocaleState(nextLocale);
     window.localStorage.setItem(STORAGE_KEY, nextLocale);
-    document.documentElement.lang = nextLocale;
-    document.documentElement.dir = rtlLocales.includes(nextLocale) ? 'rtl' : 'ltr';
+    applyDocumentLocale(nextLocale);
+
+    void fetch('/api/user/preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preferredLocale: nextLocale })
+    }).catch(() => undefined);
   }, []);
 
   const value = useMemo(

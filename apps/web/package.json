@@ -10,7 +10,8 @@
         "typecheck": "tsc --noEmit --pretty false",
         "test": "vitest run",
         "test:watch": "vitest",
-        "analyze": "cross-env ANALYZE=true next build"
+        "analyze": "cross-env ANALYZE=true next build",
+        "pwa:icons": "node scripts/generate-pwa-icons.mjs"
     },
     "dependencies": {
         "@rainbow-me/rainbowkit": "^2.2.8",
@@ -37,14 +38,15 @@
         "zustand": "^5.0.3"
     },
     "devDependencies": {
+        "@next/bundle-analyzer": "^14.2.35",
         "@types/bcryptjs": "^2.4.6",
         "@types/node": "^20.11.30",
         "@types/react": "^18.2.73",
         "@types/react-dom": "^18.2.23",
-        "@next/bundle-analyzer": "^14.2.35",
         "autoprefixer": "^10.4.19",
         "cross-env": "^7.0.3",
         "postcss": "^8.4.38",
+        "sharp": "^0.34.5",
         "tailwindcss": "^3.4.1",
         "typescript": "^5.4.3",
         "vitest": "^3.2.6"

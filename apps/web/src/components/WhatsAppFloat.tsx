@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useTranslation } from '../i18n/LocaleProvider';
 import { getWhatsAppPhone, getWhatsAppUrl } from '../config/site';
+import { isPortalRoute, shouldHideWhatsAppFab } from '../lib/mobile/deviceConfig';
 
 function WhatsAppIcon() {
   return (
@@ -14,6 +16,7 @@ function WhatsAppIcon() {
 
 export function WhatsAppFloat() {
   const t = useTranslation();
+  const pathname = usePathname();
   const [phone, setPhone] = useState(() => getWhatsAppPhone());
 
   useEffect(() => {
@@ -29,7 +32,9 @@ export function WhatsAppFloat() {
 
   const href = getWhatsAppUrl(t.common.whatsappMessage, phone);
 
-  if (!href) return null;
+  if (!href || shouldHideWhatsAppFab(pathname)) return null;
+
+  const portalOffset = isPortalRoute(pathname);
 
   return (
     <a
@@ -37,7 +42,11 @@ export function WhatsAppFloat() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={t.common.whatsappLabel}
-      className="fixed bottom-4 right-4 z-40 flex h-14 w-14 min-h-12 min-w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-900/30 transition hover:scale-105 hover:bg-[#20bd5a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 sm:bottom-6 sm:right-6"
+      className={`fixed right-4 z-30 flex h-14 w-14 min-h-12 min-w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-900/30 transition hover:scale-105 hover:bg-[#20bd5a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 sm:right-6 ${
+        portalOffset
+          ? 'bottom-[calc(4.75rem+env(safe-area-inset-bottom))] md:bottom-6'
+          : 'bottom-4 safe-bottom sm:bottom-6'
+      }`}
     >
       <WhatsAppIcon />
     </a>

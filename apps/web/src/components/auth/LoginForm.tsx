@@ -7,6 +7,7 @@ import { FormEvent, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { PasswordInput } from './PasswordInput';
+import { PasskeyLoginButton } from './PasskeyLoginButton';
 
 type LoginFormProps = {
   callbackUrl?: string;
@@ -86,6 +87,10 @@ export function LoginForm({
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
+
+      <PasskeyLoginButton email={email} callbackUrl={callbackUrl} className="mb-1" />
+
+      <p className="text-center text-xs text-slate-400">{t.passkey.orDivider}</p>
 
       <button
         type="submit"

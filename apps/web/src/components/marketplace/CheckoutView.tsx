@@ -15,6 +15,7 @@ import { BASE_USDC_ADDRESS } from '../../lib/web3/config';
 import type { MarketplaceListing } from '../../types/marketplace';
 import { BuyButton } from './BuyButton';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
+import { StickyActionBar } from '../mobile/StickyActionBar';
 
 type CheckoutViewProps = {
   projectId: string;
@@ -216,8 +217,25 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
     );
   }
 
+  const payButtonLabel =
+    status === 'done'
+      ? 'Pago confirmado'
+      : status === 'creating'
+        ? 'Creando orden…'
+        : status === 'paying'
+          ? 'Enviando USDC…'
+          : status === 'manual'
+            ? 'Esperando tx hash…'
+            : status === 'verifying'
+              ? 'Verificando pago…'
+              : isConnected || paymentMethod === 'INTERNAL_BALANCE'
+                ? t.checkout.createOrderPay
+                : t.checkout.connectToContinue;
+
+  const payDisabled = (paymentMethod !== 'INTERNAL_BALANCE' && !isConnected) || status !== 'idle';
+
   return (
-    <section className="mx-auto max-w-2xl">
+    <section className="mx-auto max-w-2xl pb-28 md:pb-0">
       <Link
         href="/marketplace"
         className="mb-6 inline-flex items-center gap-2 text-sm text-terminal-muted hover:text-terminal-text"
@@ -232,7 +250,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
           <div className="absolute inset-0 bg-gradient-to-t from-terminal-card to-transparent" />
         </div>
 
-        <div className="space-y-6 p-8">
+        <div className="space-y-6 p-4 sm:p-8">
           <div>
             <p className="text-sm font-medium uppercase tracking-wider text-terminal-primary">{t.checkout.title}</p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
@@ -451,28 +469,36 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
             {!vaultCheckout ? (
             <button
               type="button"
-              disabled={(paymentMethod !== 'INTERNAL_BALANCE' && !isConnected) || status !== 'idle'}
+              disabled={payDisabled}
               onClick={() => void handlePurchase()}
-              className="w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              className="hidden w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 md:block"
             >
-              {status === 'done'
-                ? 'Pago confirmado'
-                : status === 'creating'
-                  ? 'Creando orden…'
-                  : status === 'paying'
-                    ? 'Enviando USDC…'
-                    : status === 'manual'
-                      ? 'Esperando tx hash…'
-                    : status === 'verifying'
-                      ? 'Verificando pago…'
-                  : isConnected || paymentMethod === 'INTERNAL_BALANCE'
-                    ? t.checkout.createOrderPay
-                    : t.checkout.connectToContinue}
+              {payButtonLabel}
             </button>
             ) : null}
           </div>
         </div>
       </article>
+
+      {!vaultCheckout && status !== 'done' ? (
+        <StickyActionBar
+          summary={
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-terminal-muted">{formatMessage(t.checkout.total, { currency })}</span>
+              <span className="font-mono font-semibold text-terminal-primary">{formatFromUsd(totalUsd)}</span>
+            </div>
+          }
+        >
+          <button
+            type="button"
+            disabled={payDisabled}
+            onClick={() => void handlePurchase()}
+            className="min-h-12 w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {payButtonLabel}
+          </button>
+        </StickyActionBar>
+      ) : null}
     </section>
   );
 }

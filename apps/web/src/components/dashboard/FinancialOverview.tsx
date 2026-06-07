@@ -34,6 +34,7 @@ import {
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
 import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
 import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
+import { PasskeyRegisterPrompt } from '../auth/PasskeyRegisterPrompt';
 
 export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
@@ -109,6 +110,7 @@ export function FinancialOverview() {
       <LiveDividendStream />
       <InvestorPageHeader eyebrow={d.eyebrow} title={d.title} subtitle={d.subtitle} />
       <AccountStatusBanner showWhenOperational />
+      <PasskeyRegisterPrompt className="mb-2" />
 
       <Suspense fallback={<div className="h-48 animate-pulse rounded-xl border border-terminal-border bg-terminal-card" />}>
         <InvestorCollectionWalletPanel />

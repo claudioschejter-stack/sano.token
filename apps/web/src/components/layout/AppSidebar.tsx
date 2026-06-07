@@ -281,16 +281,16 @@ export function AppSidebar() {
 
   return (
     <>
-      <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center justify-between border-b border-terminal-border bg-terminal-card px-4 md:hidden">
+      <header className="safe-top fixed inset-x-0 top-0 z-40 flex h-14 min-h-14 items-center justify-between border-b border-terminal-border bg-terminal-card px-4 md:hidden">
         <Link href="/" className="text-lg font-bold tracking-tight">
           Sanova Global
         </Link>
         <button
           type="button"
           aria-expanded={mobileOpen}
-          aria-label={mobileOpen ? 'Cerrar menú' : 'Abrir menú'}
+          aria-label={mobileOpen ? t.landing.nav.closeMenu : t.landing.nav.openMenu}
           onClick={() => setMobileOpen((open) => !open)}
-          className="rounded-lg border border-terminal-border p-2 text-terminal-text"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-terminal-border text-terminal-text"
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>

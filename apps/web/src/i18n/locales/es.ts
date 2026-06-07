@@ -1549,6 +1549,25 @@ export const es = {
         'WalletConnect no está configurado. Creá una Coinbase Wallet o contactá soporte.'
     }
   },
+  mobile: {
+    bottomNavAria: 'Navegación principal móvil'
+  },
+  passkey: {
+    orDivider: 'o con email y contraseña',
+    loginBiometric: 'Ingresar con huella / biometría',
+    loginFaceId: 'Ingresar con Face ID',
+    signingIn: 'Verificando…',
+    loginFailed: 'No se pudo ingresar con biometría. Usá email y contraseña.',
+    notSupported: 'Tu navegador no soporta passkeys. Actualizá el sistema o usá email.',
+    notRegistered: 'No hay biometría registrada para esta cuenta. Ingresá con contraseña primero.',
+    registerTitle: 'Activar ingreso biométrico',
+    registerFaceTitle: 'Activar Face ID',
+    registerDesc: 'La próxima vez ingresás con huella o reconocimiento facial en este dispositivo.',
+    registerCta: 'Activar ahora',
+    registering: 'Configurando…',
+    registerSuccess: 'Biometría activada. Ya podés ingresar con un toque.',
+    registerFailed: 'No se pudo activar la biometría en este dispositivo.'
+  },
   pwa: {
     installTitle: 'Instalá Sanova en tu celular',
     installDesc: 'Acceso rápido como app, ideal para subir documentos y verificar identidad.',

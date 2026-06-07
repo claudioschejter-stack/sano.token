@@ -235,10 +235,12 @@ model User {
   investorAccessEnabled Boolean   @default(false)
   accountStatus     AccountStatus @default(ONBOARDING)
   jurisdiction      String?
+  preferredLocale   String?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
   investor              Investor?              @relation(fields: [investorId], references: [id], onDelete: SetNull)
+  passkeys              UserPasskey[]
   portfolio             Portfolio?
   dividendDistributions DividendDistribution[]
   advisor               Advisor?
@@ -270,6 +272,35 @@ model VerificationCode {
 
   @@index([userId, channel])
   @@index([expiresAt])
+}
+
+model UserPasskey {
+  id           String   @id @default(cuid())
+  userId       String
+  credentialId String   @unique
+  publicKey    Bytes
+  counter      BigInt   @default(0)
+  deviceName   String?
+  transports   Json?
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model WebAuthnChallenge {
+  id        String   @id @default(cuid())
+  userId    String?
+  email     String?
+  challenge String   @unique
+  type      String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([userId])
 }
 
 model Advisor {
