@@ -1238,8 +1238,9 @@ export const es = {
       cta: 'Explorar Activos Tokenizados'
     },
     howItWorks: {
-      title: 'Invertí en cuatro pasos',
-      subtitle: 'Del descubrimiento a la titularidad on-chain — para inversores retail e institucionales.',
+      title: 'Invierte en cuatro pasos',
+      subtitle:
+        'Del descubrimiento a la titularidad on-chain — para inversores minoristas e institucionales.',
       step1Title: 'Completa tus Datos (KYC).',
       step1Desc: 'Verifica tu identidad una vez. Sanova integra proveedores de onboarding regulados.',
       step2Title: 'Elige una propiedad.',
@@ -1259,7 +1260,7 @@ export const es = {
       apyBadge: '{apy}% APY'
     },
     benefits: {
-      title: 'Por qué Sanova RWA',
+      title: '¿ Por qué Sanova RWA ?',
       incomeTitle: 'Ingresos recurrentes',
       incomeDesc: 'Distribuciones semanales o mensuales del flujo operativo, liquidadas on-chain.',
       liquidityTitle: 'Liquidez programada',
@@ -1270,8 +1271,8 @@ export const es = {
         'KYC, disclosure legal de documentación del mundo real y registros on-chain auditables.'
     },
     cta: {
-      title: 'Empezá tu portfolio de activos reales',
-      subtitle: 'Accedé a real estate tokenizado con estándar institucional.',
+      title: 'Realiza tu portfolio de activos reales',
+      subtitle: 'Accede a real estate tokenizado con estándar institucional.',
       button: 'Abrir marketplace'
     },
     footer: {
