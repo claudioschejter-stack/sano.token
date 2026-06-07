@@ -45,18 +45,30 @@ const connectors = [
   })
 ];
 
-export const wagmiConfig = createConfig({
-  chains: supportedChains,
-  connectors,
-  transports: {
-    [base.id]: http(baseRpcUrl),
-    ...(isPlumeWalletEnabled() ? { [plumeMainnet.id]: http(plumeRpcUrl) } : {})
-  },
-  ssr: true,
-  storage: createStorage({
-    storage: cookieStorage
-  })
+const wagmiStorage = createStorage({
+  storage: cookieStorage
 });
+
+export const wagmiConfig = isPlumeWalletEnabled()
+  ? createConfig({
+      chains: [base, plumeMainnet],
+      connectors,
+      transports: {
+        [base.id]: http(baseRpcUrl),
+        [plumeMainnet.id]: http(plumeRpcUrl)
+      },
+      ssr: true,
+      storage: wagmiStorage
+    })
+  : createConfig({
+      chains: [base],
+      connectors,
+      transports: {
+        [base.id]: http(baseRpcUrl)
+      },
+      ssr: true,
+      storage: wagmiStorage
+    });
 
 export const BASE_CHAIN_ID = base.id;
 
