@@ -866,6 +866,14 @@ export const es = {
     selectPaymentMethod: 'Seleccione su forma de Pago:',
     paymentMethodsAvailable: 'Formas de pago aceptadas',
     paymentMethodsUnavailable: 'Formas de pago no disponibles',
+    paymentGroups: {
+      linked_wallet: 'Billetera vinculada (USDC)',
+      argentina: 'Argentina',
+      global_cards: 'Tarjetas y billeteras globales',
+      latam: 'Latinoamérica',
+      asia: 'Asia',
+      international: 'Internacional y on-ramp'
+    },
     electronicWalletLinkedHint:
       'USDC desde tu billetera vinculada ({address}) en Base — se acredita al confirmar la transferencia.',
     depositFromLinkedWalletHint:
@@ -905,7 +913,14 @@ export const es = {
     goToCollectionWallet: 'Ir a Panel de control',
     addToCart: 'Agregar al carrito',
     viewCart: 'Ver carrito',
-    depositCta: 'Depositar'
+    depositCta: 'Depositar',
+    localRailPendingTitle: 'Pago registrado — pendiente de conciliación',
+    localRailPendingBody:
+      'Tu orden con {method} fue creada (referencia {reference}). Cuando conectemos el agregador, el cobro se completará automáticamente. Por ahora el equipo conciliará manualmente.',
+    localRailPendingPurchase:
+      'Tu compra con {method} quedó pendiente (lote {reference}). Te avisaremos al acreditarse los tokens.',
+    walletRequiredForCheckout: 'Vinculá tu billetera USDC antes de pagar.',
+    linkWalletCta: 'Vincular billetera'
   },
   secondaryMarket: {
     brandLabel: 'Sanova RWA',

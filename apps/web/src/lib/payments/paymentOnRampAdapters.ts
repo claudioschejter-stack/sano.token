@@ -1,6 +1,14 @@
 import { checkoutBaseUrl } from './paymentConfig';
+import { getPaymentCheckoutRowById } from './depositPaymentOptions';
+import { createLocalRailCheckout } from './localRailAdapter';
+import { appendStripePaymentMethodTypes } from './stripeCheckoutOptions';
 import { getStablecoinNetwork, type StablecoinNetworkId } from './stablecoinNetworks';
-import { createCoinbaseCheckout, createMercadoPagoCheckout, createStripeCheckout } from './paymentGatewayAdapters';
+import {
+  createCoinbaseCheckout,
+  createMercadoPagoCheckout,
+  createMercadoPagoDepositCheckout,
+  createStripeCheckout
+} from './paymentGatewayAdapters';
 
 type OnRampRequest = {
   depositId: string;
@@ -155,7 +163,20 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
   projectId?: string;
   tokenCount?: number;
   paymentIntentId?: string;
+  paymentOptionId?: string | null;
 }): Promise<OnRampResult> {
+  const checkoutRow = input.paymentOptionId ? getPaymentCheckoutRowById(input.paymentOptionId) : null;
+
+  if (input.method === 'LOCAL_RAIL' && checkoutRow) {
+    return createLocalRailCheckout({
+      depositId: input.depositId,
+      amountUsd: input.amountUsd,
+      row: checkoutRow,
+      userEmail: input.userEmail,
+      redirectPath: input.redirectPath
+    });
+  }
+
   switch (input.method) {
     case 'STRIPE':
       if (input.paymentIntentId && input.projectId) {
@@ -166,7 +187,10 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
           tokenCount: input.tokenCount ?? 1
         });
       }
-      return createStripeDepositCheckout(input);
+      return createStripeDepositCheckout({
+        ...input,
+        paymentOptionId: checkoutRow?.id ?? input.paymentOptionId
+      });
     case 'MERCADO_PAGO':
       if (input.paymentIntentId && input.projectId) {
         return createMercadoPagoCheckout({
@@ -176,7 +200,12 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
           tokenCount: input.tokenCount ?? 1
         });
       }
-      return { provider: 'mercado_pago', metadata: { configured: Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN) } };
+      return createMercadoPagoDepositCheckout({
+        depositId: input.depositId,
+        amountUsd: input.amountUsd,
+        paymentOptionId: checkoutRow?.id ?? input.paymentOptionId,
+        paymentLabel: checkoutRow?.label
+      });
     case 'COINBASE':
       if (input.paymentIntentId && input.projectId) {
         return createCoinbaseCheckout({
@@ -198,7 +227,9 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
   }
 }
 
-async function createStripeDepositCheckout(input: OnRampRequest): Promise<OnRampResult> {
+async function createStripeDepositCheckout(
+  input: OnRampRequest & { paymentOptionId?: string | null }
+): Promise<OnRampResult> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
     return { provider: 'stripe', metadata: { configured: false } };
@@ -215,6 +246,12 @@ async function createStripeDepositCheckout(input: OnRampRequest): Promise<OnRamp
     client_reference_id: input.depositId,
     'metadata[depositId]': input.depositId
   });
+
+  if (input.paymentOptionId) {
+    params.set('metadata[paymentOptionId]', input.paymentOptionId);
+  }
+
+  appendStripePaymentMethodTypes(params, input.paymentOptionId);
 
   const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',

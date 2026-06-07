@@ -27,10 +27,24 @@ function parseEnvFile(path) {
   return out;
 }
 
-const env = {
-  ...parseEnvFile(join(root, '.env')),
-  ...parseEnvFile(join(root, 'apps/web/.env.local'))
-};
+function mergeTruthyEnv(...sources) {
+  const merged = {};
+  for (const source of sources) {
+    for (const [key, value] of Object.entries(source)) {
+      if (typeof value === 'string' && value.trim()) {
+        merged[key] = value.trim();
+      }
+    }
+  }
+  return merged;
+}
+
+const env = mergeTruthyEnv(
+  parseEnvFile(join(root, '.env')),
+  parseEnvFile(join(root, '.env.local')),
+  parseEnvFile(join(root, 'apps/web/.env.local')),
+  process.env
+);
 
 const report = evaluatePaymentEnv(env);
 

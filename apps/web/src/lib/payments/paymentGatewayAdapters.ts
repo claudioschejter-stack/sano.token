@@ -1,4 +1,5 @@
 import { checkoutBaseUrl } from './paymentConfig';
+import { appendStripePaymentMethodTypes } from './stripeCheckoutOptions';
 
 type CheckoutRequest = {
   paymentIntentId: string;
@@ -156,6 +157,7 @@ type CartCheckoutRequest = {
   totalTokens: number;
   primaryProjectId: string;
   paymentIntentIds: string[];
+  paymentOptionId?: string | null;
 };
 
 function cartReturnUrls(batchId: string) {
@@ -190,6 +192,12 @@ export async function createStripeCartCheckout(input: CartCheckoutRequest): Prom
     'metadata[paymentIntentIds]': input.paymentIntentIds.join(',')
   });
 
+  if (input.paymentOptionId) {
+    params.set('metadata[paymentOptionId]', input.paymentOptionId);
+  }
+
+  appendStripePaymentMethodTypes(params, input.paymentOptionId);
+
   const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
     headers: {
@@ -208,7 +216,7 @@ export async function createStripeCartCheckout(input: CartCheckoutRequest): Prom
     provider: 'stripe',
     providerPaymentId: data.id,
     providerCheckoutUrl: data.url,
-    metadata: { configured: true, cartBatchId: input.batchId }
+    metadata: { configured: true, cartBatchId: input.batchId, paymentOptionId: input.paymentOptionId ?? null }
   };
 }
 
@@ -259,6 +267,63 @@ export async function createMercadoPagoCartCheckout(input: CartCheckoutRequest):
     providerPaymentId: data.id,
     providerCheckoutUrl: data.init_point,
     metadata: { configured: true, cartBatchId: input.batchId }
+  };
+}
+
+type DepositCheckoutRequest = {
+  depositId: string;
+  amountUsd: number;
+  paymentOptionId?: string | null;
+  paymentLabel?: string | null;
+};
+
+export async function createMercadoPagoDepositCheckout(input: DepositCheckoutRequest): Promise<CheckoutResult> {
+  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!accessToken) {
+    return { provider: 'mercado_pago', metadata: { configured: false } };
+  }
+
+  const label = input.paymentLabel?.trim() || 'Depósito Sanova';
+  const urls = {
+    success: `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`,
+    failure: `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=failed`,
+    pending: `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=pending`
+  };
+
+  const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      external_reference: input.depositId,
+      items: [
+        {
+          title: label,
+          quantity: 1,
+          currency_id: 'USD',
+          unit_price: input.amountUsd
+        }
+      ],
+      back_urls: urls,
+      metadata: {
+        depositId: input.depositId,
+        paymentOptionId: input.paymentOptionId ?? null
+      }
+    })
+  });
+
+  if (!response.ok) {
+    return { provider: 'mercado_pago', metadata: { configured: true, error: await response.text() } };
+  }
+
+  const data = await parseJson<{ id?: string; init_point?: string }>(response);
+  return {
+    provider: 'mercado_pago',
+    providerPaymentId: data.id,
+    providerCheckoutUrl: data.init_point,
+    metadata: { configured: true, depositId: input.depositId, paymentOptionId: input.paymentOptionId ?? null }
   };
 }
 

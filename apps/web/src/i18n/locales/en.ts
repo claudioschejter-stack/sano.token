@@ -855,6 +855,14 @@ export const en = {
     selectPaymentMethod: "Select your payment method:",
     paymentMethodsAvailable: "Accepted payment methods",
     paymentMethodsUnavailable: "Unavailable payment methods",
+    paymentGroups: {
+      linked_wallet: "Linked wallet (USDC)",
+      argentina: "Argentina",
+      global_cards: "Global cards & wallets",
+      latam: "Latin America",
+      asia: "Asia",
+      international: "International & on-ramp"
+    },
     electronicWalletLinkedHint:
       "USDC from your linked wallet ({address}) on Base — credited after transfer confirmation.",
     depositFromLinkedWalletHint:
@@ -894,7 +902,14 @@ export const en = {
     goToCollectionWallet: "Go to dashboard",
     addToCart: "Add to cart",
     viewCart: "View cart",
-    depositCta: "Deposit"
+    depositCta: "Deposit",
+    localRailPendingTitle: "Payment registered — pending reconciliation",
+    localRailPendingBody:
+      "Your {method} order was created (reference {reference}). Once the aggregator is connected, payment will complete automatically. For now our team will reconcile manually.",
+    localRailPendingPurchase:
+      "Your purchase via {method} is pending (batch {reference}). We will notify you when tokens are credited.",
+    walletRequiredForCheckout: "Link your USDC wallet before paying.",
+    linkWalletCta: "Link wallet"
   },
   secondaryMarket: {
     brandLabel: "Sanova RWA",

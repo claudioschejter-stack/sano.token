@@ -79,9 +79,27 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
     },
     {
       id: 'local-rails',
-      label: 'Rails locales',
+      label: 'Rails locales (dLocal / EBANX)',
       configured: paymentGatewayConfigured('LOCAL_RAIL'),
-      envKeys: ['LOCAL_RAILS_ENABLED', 'DLOCAL_API_KEY', 'EBANX_API_KEY']
+      envKeys: ['LOCAL_RAILS_ENABLED', 'DLOCAL_API_KEY', 'EBANX_API_KEY', 'ASTROPAY_API_KEY']
+    },
+    {
+      id: 'astropay',
+      label: 'AstroPay',
+      configured: Boolean(process.env.ASTROPAY_API_KEY?.trim()),
+      envKeys: ['ASTROPAY_API_KEY']
+    },
+    {
+      id: 'wise',
+      label: 'Wise',
+      configured: Boolean(process.env.WISE_API_KEY?.trim() || process.env.BRIDGE_API_KEY?.trim()),
+      envKeys: ['WISE_API_KEY', 'BRIDGE_API_KEY']
+    },
+    {
+      id: 'binance-pay',
+      label: 'Binance Pay',
+      configured: Boolean(process.env.BINANCE_PAY_API_KEY?.trim()),
+      envKeys: ['BINANCE_PAY_API_KEY']
     }
   ];
 }
@@ -100,7 +118,9 @@ export function getPaymentsProductionSummary(siteUrl: string) {
     productionReady:
       networksReady.includes('BASE') &&
       integrations.some(
-        (item) => (item.id === 'stripe' || item.id === 'transak' || item.id === 'mercadopago') && item.configured
+        (item) =>
+          ['stripe', 'transak', 'mercadopago', 'local-rails', 'astropay', 'bridge', 'coinbase'].includes(item.id) &&
+          item.configured
       ),
     integrations,
     missing,

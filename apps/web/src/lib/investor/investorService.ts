@@ -74,6 +74,10 @@ export function assertInvestorCheckoutEligible(user: UserPurchaseContext) {
     throw new Error('ACCOUNT_NOT_OPERATIONAL');
   }
 
+  if (user.systemRole === 'INVESTOR' && !user.walletAddress?.trim()) {
+    throw new Error('INVESTOR_WALLET_REQUIRED');
+  }
+
   assertInvestorAccessEnabled(user);
 }
 

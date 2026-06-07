@@ -14,6 +14,8 @@ import {
   createMercadoPagoCartCheckout,
   createStripeCartCheckout
 } from './paymentGatewayAdapters';
+import { getPaymentCheckoutRowById } from './depositPaymentOptions';
+import { createLocalRailCheckout } from './localRailAdapter';
 import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
@@ -111,6 +113,7 @@ export async function loadCartBatchIntentsAnyStatus(userId: string, batchId: str
 async function attachCartGatewayCheckout(input: {
   batchId: string;
   method: PaymentMethod;
+  paymentOptionId?: string | null;
   totalUsd: number;
   totalTokens: number;
   primaryProjectId: string;
@@ -120,8 +123,25 @@ async function attachCartGatewayCheckout(input: {
 }) {
   const redirectPath = `/marketplace/carrito?batch=${encodeURIComponent(input.batchId)}&status=success`;
 
+  if (input.method === 'LOCAL_RAIL' && input.paymentOptionId) {
+    const row = getPaymentCheckoutRowById(input.paymentOptionId);
+    if (!row) {
+      return null;
+    }
+    return createLocalRailCheckout({
+      depositId: input.batchId,
+      amountUsd: input.totalUsd,
+      row,
+      userEmail: input.userEmail,
+      redirectPath
+    });
+  }
+
   if (input.method === 'STRIPE') {
-    return createStripeCartCheckout(input);
+    return createStripeCartCheckout({
+      ...input,
+      paymentOptionId: input.paymentOptionId
+    });
   }
   if (input.method === 'MERCADO_PAGO') {
     return createMercadoPagoCartCheckout(input);
@@ -164,6 +184,7 @@ export async function createCartPurchaseCheckout(input: {
   userEmail?: string | null;
   items: CartLineInput[];
   method: PaymentMethod;
+  paymentOptionId?: string | null;
   walletAddress?: string | null;
   stablecoinNetwork?: string | null;
 }): Promise<CartCheckoutResult> {
@@ -174,6 +195,8 @@ export async function createCartPurchaseCheckout(input: {
   if (!isCheckoutMethodConfigured(input.method)) {
     throw new Error('PAYMENT_METHOD_NOT_CONFIGURED');
   }
+
+  const checkoutRow = input.paymentOptionId ? getPaymentCheckoutRowById(input.paymentOptionId) : null;
 
   const user = await getUserPurchaseContext(input.userId);
   if (!user) {
@@ -270,7 +293,10 @@ export async function createCartPurchaseCheckout(input: {
             pricePerTokenUsd: project.pricePerToken.toString(),
             purchaseMode: 'CART_TREASURY_TRANSFER',
             stablecoinNetwork: network.id,
-            treasuryAddress: payToAddress
+            treasuryAddress: payToAddress,
+            paymentOptionId: input.paymentOptionId ?? null,
+            providerRail: checkoutRow?.providerRail ?? null,
+            paymentLabel: checkoutRow?.label ?? null
           } as Prisma.InputJsonObject
         }
       });
@@ -313,6 +339,7 @@ export async function createCartPurchaseCheckout(input: {
   const gateway = await attachCartGatewayCheckout({
     batchId,
     method: input.method,
+    paymentOptionId: input.paymentOptionId ?? checkoutRow?.id,
     totalUsd,
     totalTokens,
     primaryProjectId: input.items[0].projectId,
@@ -321,16 +348,27 @@ export async function createCartPurchaseCheckout(input: {
     stablecoinNetwork: network.id
   });
 
-  if (gateway?.providerCheckoutUrl) {
-    providerCheckoutUrl = gateway.providerCheckoutUrl;
-    await prisma.paymentIntent.updateMany({
-      where: { id: { in: paymentIntentIds } },
-      data: {
-        provider: gateway.provider,
-        providerPaymentId: gateway.providerPaymentId,
-        providerCheckoutUrl: gateway.providerCheckoutUrl
-      }
-    });
+  if (gateway?.providerCheckoutUrl || gateway.providerPaymentId) {
+    providerCheckoutUrl = gateway.providerCheckoutUrl ?? null;
+
+    for (const intentId of paymentIntentIds) {
+      const intent = await prisma.paymentIntent.findUnique({ where: { id: intentId } });
+      const prior = (intent?.metadata as Record<string, unknown>) ?? {};
+
+      await prisma.paymentIntent.update({
+        where: { id: intentId },
+        data: {
+          provider: gateway.provider,
+          providerPaymentId: gateway.providerPaymentId,
+          providerCheckoutUrl: gateway.providerCheckoutUrl ?? null,
+          metadata: {
+            ...prior,
+            paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null,
+            gateway: gateway.metadata ?? {}
+          } as Prisma.InputJsonObject
+        }
+      });
+    }
   }
 
   const fresh = await loadCartBatchIntents(input.userId, batchId);

@@ -12,10 +12,13 @@ import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { PaymentMethod } from '@sanova/database';
 import {
-  partitionDepositPaymentOptions,
+  groupDepositPaymentOptions,
   sortDepositPaymentOptions,
-  type DepositPaymentOption
+  type DepositPaymentOption,
+  type DepositPaymentOptionGroup
 } from '../../lib/payments/depositPaymentOptions';
+import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
+import { isLocalRailManualResult } from '../../lib/payments/stripeCheckoutOptions';
 import { useCartStore } from '../../store/useCartStore';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 
@@ -37,10 +40,12 @@ type DepositResponse = {
   method: string;
   payToAddress: string | null;
   providerCheckoutUrl: string | null;
+  metadata?: Record<string, unknown> | null;
 };
 
 type DepositQuoteResponse = {
   options?: DepositPaymentOption[];
+  groups?: DepositPaymentOptionGroup[];
   quoteExpiresAt?: string;
   quoteTtlSeconds?: number;
 };
@@ -95,6 +100,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const cartItemCount = useCartStore((state) => state.itemCount());
 
   const [depositOptions, setDepositOptions] = useState<DepositPaymentOption[]>([]);
+  const [depositOptionGroups, setDepositOptionGroups] = useState<DepositPaymentOptionGroup[]>([]);
   const [selectedDepositOptionId, setSelectedDepositOptionId] = useState<string | null>(null);
   const [quoteExpiresAt, setQuoteExpiresAt] = useState<string | null>(null);
   const [quoteSecondsLeft, setQuoteSecondsLeft] = useState(0);
@@ -105,13 +111,19 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [batchId, setBatchId] = useState<string | null>(batchFromQuery);
   const [checkout, setCheckout] = useState<CartCheckoutResult | null>(null);
   const [deposit, setDeposit] = useState<DepositResponse | null>(null);
-  const [status, setStatus] = useState<'idle' | 'processing' | 'manual' | 'verifying' | 'done'>('idle');
+  const [status, setStatus] = useState<'idle' | 'processing' | 'manual' | 'pending_gateway' | 'verifying' | 'done'>(
+    'idle'
+  );
+  const [pendingReference, setPendingReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
   const depositCountry = CURRENCY_COUNTRY[currency] ?? 'AR';
-  const { sorted: sortedDepositOptions, available: availableDepositOptions, unavailable: unavailableDepositOptions } =
-    useMemo(() => partitionDepositPaymentOptions(depositOptions), [depositOptions]);
+  const sortedDepositOptions = useMemo(() => sortDepositPaymentOptions(depositOptions), [depositOptions]);
+  const paymentGroups = useMemo(
+    () => (depositOptionGroups.length > 0 ? depositOptionGroups : groupDepositPaymentOptions(depositOptions)),
+    [depositOptionGroups, depositOptions]
+  );
 
   const selectedDepositOption = useMemo(
     () => sortedDepositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
@@ -129,6 +141,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const loadDepositQuote = useCallback(() => {
     if (!Number.isFinite(totalUsd) || totalUsd <= 0) {
       setDepositOptions([]);
+      setDepositOptionGroups([]);
       setSelectedDepositOptionId(null);
       setQuoteExpiresAt(null);
       setQuoteSecondsLeft(0);
@@ -146,6 +159,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       .then((data: DepositQuoteResponse | null) => {
         const next = sortDepositPaymentOptions(data?.options ?? []);
         setDepositOptions(next);
+        setDepositOptionGroups(data?.groups ?? groupDepositPaymentOptions(next));
         setQuoteExpiresAt(data?.quoteExpiresAt ?? null);
         const expiresMs = data?.quoteExpiresAt ? new Date(data.quoteExpiresAt).getTime() - Date.now() : 0;
         setQuoteSecondsLeft(Math.max(0, Math.ceil(expiresMs / 1000)));
@@ -160,6 +174,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       .catch(() => {
         if (!controller.signal.aborted) {
           setDepositOptions([]);
+          setDepositOptionGroups([]);
           setSelectedDepositOptionId(null);
           setQuoteExpiresAt(null);
           setQuoteSecondsLeft(0);
@@ -172,6 +187,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   useEffect(() => {
     if (!showPaymentMethods) {
       setDepositOptions([]);
+      setDepositOptionGroups([]);
       setSelectedDepositOptionId(null);
       setQuoteExpiresAt(null);
       setQuoteSecondsLeft(0);
@@ -284,6 +300,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           body: JSON.stringify({
             amountUsd: totalUsd,
             method: paymentMethod,
+            paymentOptionId: selectedDepositOptionId,
             auto: false,
             stablecoinNetwork,
             walletAddress: linkedWalletAddress
@@ -292,6 +309,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
         const data = (await response.json()) as { error?: string; deposit?: DepositResponse };
         if (!response.ok || !data.deposit) {
+          if (data.error === 'INVESTOR_WALLET_REQUIRED') {
+            window.location.href = collectionWalletHref({ returnTo: '/marketplace/carrito?mode=deposit' });
+            return;
+          }
           throw new Error(data.error ?? 'DEPOSIT_CREATE_FAILED');
         }
 
@@ -307,6 +328,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           return;
         }
 
+        const providerMeta = (data.deposit.metadata?.provider as Record<string, unknown> | undefined) ?? data.deposit.metadata;
+        if (paymentMethod === 'LOCAL_RAIL' || isLocalRailManualResult(providerMeta)) {
+          setPendingReference(data.deposit.id);
+          setStatus('pending_gateway');
+          return;
+        }
+
         setStatus('done');
         return;
       }
@@ -317,6 +345,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         body: JSON.stringify({
           items: items.map((row) => ({ projectId: row.projectId, tokenCount: row.tokenCount })),
           method: paymentMethod,
+          paymentOptionId: selectedDepositOptionId,
           walletAddress: address,
           stablecoinNetwork
         })
@@ -324,6 +353,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
       const data = (await response.json()) as { error?: string; checkout?: CartCheckoutResult };
       if (!response.ok || !data.checkout) {
+        if (data.error === 'INVESTOR_WALLET_REQUIRED') {
+          window.location.href = collectionWalletHref({ returnTo: '/marketplace/carrito' });
+          return;
+        }
         if (data.error === 'ACCOUNT_NOT_OPERATIONAL' || data.error === 'KYC_NOT_APPROVED') {
           window.location.href = `/kyc?returnTo=/marketplace/carrito`;
           return;
@@ -348,6 +381,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
       if (paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') {
         setStatus('manual');
+        return;
+      }
+
+      if (paymentMethod === 'LOCAL_RAIL') {
+        setPendingReference(data.checkout.batchId);
+        setStatus('pending_gateway');
         return;
       }
 
@@ -450,7 +489,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               <span className="mt-0.5 block text-[11px] font-medium uppercase text-amber-700">
                 {c.paymentUnavailable}
               </span>
-            ) : option.id === 'electronic_wallet' && walletGuard.linkedWallet ? (
+            ) : (option.id === 'electronic_wallet' || option.id === 'walletconnect_usdc') &&
+              walletGuard.linkedWallet ? (
               <span className="mt-0.5 block text-[11px] text-slate-600">
                 {formatMessage(c.electronicWalletLinkedHint, {
                   address: `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
@@ -622,27 +662,31 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               {paymentQuoteExpired ? (
                 <p className="text-xs text-terminal-warning">{c.quoteExpired}</p>
               ) : null}
-              <div className="space-y-4">
-                {availableDepositOptions.length > 0 ? (
-                  <div className="space-y-2">
+              <div className="space-y-5">
+                {paymentGroups.map((group) => (
+                  <div key={group.id} className="space-y-2">
                     <p className="px-1 text-xs font-semibold uppercase tracking-wide text-terminal-muted">
-                      {c.paymentMethodsAvailable}
+                      {c.paymentGroups[group.id]}
                     </p>
-                    <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                      {availableDepositOptions.map((option) => renderDepositOption(option))}
-                    </div>
+                    {group.available.length > 0 ? (
+                      <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
+                        {group.available.map((option) => renderDepositOption(option))}
+                      </div>
+                    ) : null}
+                    {group.unavailable.length > 0 ? (
+                      <div className="space-y-1">
+                        {group.available.length > 0 ? (
+                          <p className="px-1 text-[10px] font-medium uppercase tracking-wide text-terminal-muted/80">
+                            {c.paymentMethodsUnavailable}
+                          </p>
+                        ) : null}
+                        <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-dashed border-terminal-border bg-white">
+                          {group.unavailable.map((option) => renderDepositOption(option))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-                {unavailableDepositOptions.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="px-1 text-xs font-semibold uppercase tracking-wide text-terminal-muted">
-                      {c.paymentMethodsUnavailable}
-                    </p>
-                    <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                      {unavailableDepositOptions.map((option) => renderDepositOption(option))}
-                    </div>
-                  </div>
-                ) : null}
+                ))}
               </div>
               {sortedDepositOptions.length === 0 && totalUsd > 0 ? (
                 <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
@@ -685,6 +729,24 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 address: `${linkedWalletAddress.slice(0, 6)}…${linkedWalletAddress.slice(-4)}`
               })}
             </p>
+          ) : null}
+
+          {status === 'pending_gateway' && pendingReference ? (
+            <div className="space-y-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
+              <p className="font-semibold text-terminal-primary">{c.localRailPendingTitle}</p>
+              <p className="text-xs text-terminal-muted">
+                {formatMessage(mode === 'deposit' ? c.localRailPendingBody : c.localRailPendingPurchase, {
+                  method: selectedDepositOption?.label ?? paymentMethod,
+                  reference: pendingReference
+                })}
+              </p>
+              <Link
+                href={mode === 'deposit' ? '/dashboard/portfolio' : '/dashboard/portfolio'}
+                className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
+              >
+                {mode === 'deposit' ? c.backToWallet : t.checkout.viewPortfolio}
+              </Link>
+            </div>
           ) : null}
 
           {status === 'done' ? (

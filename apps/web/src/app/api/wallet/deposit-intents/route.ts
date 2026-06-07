@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server';
 import type { PaymentMethod } from '@sanova/database';
 import { requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
+import { getPaymentCheckoutRowById } from '../../../../lib/payments/depositPaymentOptions';
+import { isDepositCheckoutRowConfigured } from '../../../../lib/payments/paymentProviderAvailability';
 import { createPlatformDeposit } from '../../../../lib/payments/platformWalletService';
 import { chooseCheapestPaymentRoute, quoteCheapestPaymentRoutes, type PaymentRouteDirection } from '../../../../lib/payments/cheapestPaymentRouter';
+import { prisma } from '@sanova/database';
 
 export const dynamic = 'force-dynamic';
 
 type DepositBody = {
   amountUsd?: number;
   method?: PaymentMethod;
+  paymentOptionId?: string;
   auto?: boolean;
   country?: string;
   currency?: string;
@@ -32,7 +36,18 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as DepositBody;
     const amountUsd = Number(body.amountUsd);
-    const auto = body.auto === true || !body.method;
+    const checkoutRow = body.paymentOptionId ? getPaymentCheckoutRowById(body.paymentOptionId) : null;
+    const user = await prisma.user.findUnique({
+      where: { id: ctx.userId },
+      select: { walletAddress: true, investor: { select: { walletAddress: true } } }
+    });
+    const linkedWalletAddress = user?.walletAddress ?? user?.investor?.walletAddress ?? body.walletAddress ?? null;
+
+    if (checkoutRow && !isDepositCheckoutRowConfigured(checkoutRow, { linkedWalletAddress })) {
+      return NextResponse.json({ error: 'PAYMENT_OPTION_NOT_CONFIGURED' }, { status: 400 });
+    }
+
+    const auto = body.auto === true || (!body.method && !checkoutRow);
     const route = auto
       ? chooseCheapestPaymentRoute({
           amountUsd,
@@ -43,13 +58,17 @@ export async function POST(request: Request) {
           preferredNetwork: body.stablecoinNetwork
         })
       : null;
-    const method = route?.method ?? (body.method && METHODS.has(body.method) ? body.method : 'USDC_ONCHAIN');
+    const method =
+      checkoutRow?.method ??
+      route?.method ??
+      (body.method && METHODS.has(body.method) ? body.method : 'USDC_ONCHAIN');
     const deposit = await createPlatformDeposit({
       userId: ctx.userId,
       amountUsd,
       method,
-      walletAddress: body.walletAddress,
-      stablecoinNetwork: route?.stablecoinNetwork ?? body.stablecoinNetwork,
+      paymentOptionId: checkoutRow?.id ?? body.paymentOptionId,
+      walletAddress: body.walletAddress ?? linkedWalletAddress,
+      stablecoinNetwork: route?.stablecoinNetwork ?? body.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork,
       routeQuote: route ?? undefined
     });
 
@@ -74,6 +93,7 @@ export async function POST(request: Request) {
         'ACCOUNT_NOT_OPERATIONAL',
         'KYC_NOT_APPROVED',
         'INVALID_DEPOSIT_AMOUNT',
+        'PAYMENT_OPTION_NOT_CONFIGURED',
         'WALLET_MISMATCH',
         'WALLET_REQUIRED',
         'INVESTOR_WALLET_REQUIRED',

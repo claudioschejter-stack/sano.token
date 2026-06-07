@@ -2,6 +2,7 @@ import { prisma, Prisma, type PaymentMethod, type PlatformDepositStatus } from '
 import { ethers } from 'ethers';
 import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
 import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
+import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createDepositProviderCheckout } from './paymentOnRampAdapters';
 import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork } from './stablecoinNetworks';
@@ -196,6 +197,7 @@ export async function createPlatformDeposit(input: {
   userId: string;
   amountUsd: number;
   method: PaymentMethod;
+  paymentOptionId?: string | null;
   walletAddress?: string | null;
   stablecoinNetwork?: string | null;
   routeQuote?: PaymentRouteQuote;
@@ -220,10 +222,12 @@ export async function createPlatformDeposit(input: {
     payerWallet = await resolveInvestorLinkedWallet(input.userId, input.walletAddress);
   }
 
+  const checkoutRow = input.paymentOptionId ? getPaymentCheckoutRowById(input.paymentOptionId) : null;
+
   const investorId =
     user.investorId ?? (payerWallet ? await ensureInvestorForUser(user, payerWallet) : null);
   const expiresAt = new Date(Date.now() + paymentOrderTtlMinutes() * 60_000);
-  const idempotencyKey = `${input.userId}:deposit:${input.method}:${input.amountUsd}:${payerWallet ?? 'gateway'}:${network.id}`;
+  const idempotencyKey = `${input.userId}:deposit:${input.method}:${input.paymentOptionId ?? 'default'}:${input.amountUsd}:${payerWallet ?? 'gateway'}:${network.id}`;
 
   const existing = await prisma.platformDeposit.findFirst({
     where: { idempotencyKey }
@@ -243,7 +247,10 @@ export async function createPlatformDeposit(input: {
       stablecoinSymbol: input.method === 'USDC_ONCHAIN' ? network.symbol : null,
       payerWalletAddress: payerWallet,
       payToAddress: input.method === 'USDC_ONCHAIN' ? network.treasuryAddress : null,
-      provider: input.routeQuote?.provider ?? (input.method === 'USDC_ONCHAIN' ? 'stablecoin_onchain' : String(input.method).toLowerCase()),
+      provider:
+        checkoutRow?.provider ??
+        input.routeQuote?.provider ??
+        (input.method === 'USDC_ONCHAIN' ? 'stablecoin_onchain' : String(input.method).toLowerCase()),
       idempotencyKey,
       expiresAt,
       metadata: {
@@ -252,7 +259,10 @@ export async function createPlatformDeposit(input: {
         tokenAddress: network.tokenAddress,
         decimals: network.decimals,
         autoTransferSupported: network.kind === 'EVM',
-        selectedRoute: input.routeQuote ?? null
+        selectedRoute: input.routeQuote ?? null,
+        paymentOptionId: input.paymentOptionId ?? null,
+        providerRail: checkoutRow?.providerRail ?? null,
+        paymentLabel: checkoutRow?.label ?? null
       }
     }
   });
@@ -260,10 +270,12 @@ export async function createPlatformDeposit(input: {
   const checkout = await createDepositProviderCheckout({
     depositId: deposit.id,
     method: input.method,
+    paymentOptionId: input.paymentOptionId ?? checkoutRow?.id,
     amountUsd: input.amountUsd,
-    stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork,
+    stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork,
     userEmail: user.email,
-    walletAddress: payerWallet
+    walletAddress: payerWallet,
+    redirectPath: `/marketplace/carrito?mode=deposit&deposit=${deposit.id}&status=success`
   });
 
   if (checkout.providerCheckoutUrl || checkout.providerPaymentId) {

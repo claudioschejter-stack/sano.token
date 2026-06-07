@@ -77,7 +77,43 @@ export const PAYMENT_ENV_GROUPS = [
     id: 'local-rails',
     label: 'Rails locales (dLocal / EBANX)',
     required: false,
-    keys: ['LOCAL_RAILS_ENABLED', 'DLOCAL_API_KEY', 'EBANX_API_KEY']
+    keys: [
+      'LOCAL_RAILS_ENABLED',
+      'DLOCAL_API_KEY',
+      'DLOCAL_CHECKOUT_BASE_URL',
+      'DLOCAL_DEFAULT_COUNTRY',
+      'EBANX_API_KEY'
+    ]
+  },
+  {
+    id: 'astropay',
+    label: 'AstroPay',
+    required: false,
+    keys: ['ASTROPAY_API_KEY']
+  },
+  {
+    id: 'wise',
+    label: 'Wise / transferencias internacionales',
+    required: false,
+    keys: ['WISE_API_KEY']
+  },
+  {
+    id: 'binance',
+    label: 'Binance Pay',
+    required: false,
+    keys: ['BINANCE_PAY_API_KEY']
+  },
+  {
+    id: 'ramp',
+    label: 'Ramp Network',
+    required: false,
+    keys: ['RAMP_API_KEY', 'RAMP_WEBHOOK_SECRET']
+  },
+  {
+    id: 'paypal',
+    label: 'PayPal (vía Stripe u opcional)',
+    required: false,
+    keys: ['PAYPAL_CLIENT_ID', 'PAYPAL_SECRET']
   }
 ];
 
@@ -115,6 +151,10 @@ export function resolvePaymentEnv(env) {
   if (!resolved.BASE_STABLECOIN_CHAIN_ID?.trim()) resolved.BASE_STABLECOIN_CHAIN_ID = '8453';
   if (!resolved.BASE_RPC_URL?.trim()) resolved.BASE_RPC_URL = 'https://mainnet.base.org';
   if (!resolved.TRANSAK_ENV?.trim()) resolved.TRANSAK_ENV = 'PRODUCTION';
+  if (!resolved.DLOCAL_DEFAULT_COUNTRY?.trim()) resolved.DLOCAL_DEFAULT_COUNTRY = 'AR';
+  if (!resolved.DLOCAL_CHECKOUT_BASE_URL?.trim()) {
+    resolved.DLOCAL_CHECKOUT_BASE_URL = 'https://checkout.dlocal.com';
+  }
 
   return resolved;
 }
@@ -138,9 +178,10 @@ export function evaluatePaymentEnv(envInput) {
     }
   }
 
-  const hasAnyGateway = ['STRIPE_SECRET_KEY', 'MERCADOPAGO_ACCESS_TOKEN', 'COINBASE_COMMERCE_API_KEY', 'TRANSAK_API_KEY', 'BRIDGE_API_KEY'].some(
-    (key) => Boolean(env[key]?.trim())
-  );
+  const hasAnyGateway =
+    ['STRIPE_SECRET_KEY', 'MERCADOPAGO_ACCESS_TOKEN', 'COINBASE_COMMERCE_API_KEY', 'TRANSAK_API_KEY', 'BRIDGE_API_KEY', 'DLOCAL_API_KEY', 'EBANX_API_KEY', 'ASTROPAY_API_KEY', 'WISE_API_KEY', 'BINANCE_PAY_API_KEY', 'RAMP_API_KEY'].some(
+      (key) => Boolean(env[key]?.trim())
+    ) || env.LOCAL_RAILS_ENABLED === 'true';
 
   const networksReady = ['BASE', 'POLYGON', 'TRON', 'SOLANA'].filter((network) => {
     if (network === 'BASE') return Boolean(env.BASE_USDC_TOKEN_ADDRESS && env.BASE_STABLECOIN_TREASURY_ADDRESS);

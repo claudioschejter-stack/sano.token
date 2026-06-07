@@ -45,14 +45,23 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
   return identityVerified;
 }
 
-/** KYC + contact captured — allows marketplace checkout before wallet is linked. */
+/** KYC + contact + wallet (investors) — required before marketplace checkout. */
 export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolean {
-  return (
+  const identityReady =
     Boolean(user.emailVerifiedAt) &&
     Boolean(user.phone?.trim()) &&
     user.kycStatus === 'APPROVED' &&
-    user.accountStatus !== 'SUSPENDED'
-  );
+    user.accountStatus !== 'SUSPENDED';
+
+  if (!identityReady) {
+    return false;
+  }
+
+  if (user.systemRole === 'INVESTOR') {
+    return Boolean(user.walletAddress?.trim());
+  }
+
+  return true;
 }
 
 export function deriveAccountStatus(user: UserOnboardingFields): AccountStatus {

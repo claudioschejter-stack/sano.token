@@ -1,13 +1,17 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@sanova/database';
 import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { parsePaymentMethod } from '../../../../../lib/payments/checkoutMethods';
 import { createCartPurchaseCheckout, type CartLineInput } from '../../../../../lib/payments/cartCheckoutService';
+import { getPaymentCheckoutRowById } from '../../../../../lib/payments/depositPaymentOptions';
+import { isDepositCheckoutRowConfigured } from '../../../../../lib/payments/paymentProviderAvailability';
 
 export const dynamic = 'force-dynamic';
 
 type CartCheckoutBody = {
   items?: CartLineInput[];
   method?: string;
+  paymentOptionId?: string;
   walletAddress?: string;
   stablecoinNetwork?: string;
 };
@@ -22,6 +26,7 @@ const CHECKOUT_ERRORS = [
   'PROJECT_NOT_AVAILABLE',
   'WALLET_REQUIRED',
   'PAYMENT_METHOD_NOT_CONFIGURED',
+  'PAYMENT_OPTION_NOT_CONFIGURED',
   'PAYMENT_CIRCUIT_BREAKER_OPEN',
   'PAYMENT_USER_DAILY_LIMIT',
   'PAYMENT_PROJECT_DAILY_LIMIT',
@@ -51,7 +56,18 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json()) as CartCheckoutBody;
-    const method = parsePaymentMethod(body.method) ?? 'USDC_ONCHAIN';
+    const checkoutRow = body.paymentOptionId ? getPaymentCheckoutRowById(body.paymentOptionId) : null;
+    const user = await prisma.user.findUnique({
+      where: { id: ctx.userId },
+      select: { walletAddress: true, investor: { select: { walletAddress: true } } }
+    });
+    const linkedWalletAddress = user?.walletAddress ?? user?.investor?.walletAddress ?? body.walletAddress ?? null;
+
+    if (checkoutRow && !isDepositCheckoutRowConfigured(checkoutRow, { linkedWalletAddress })) {
+      return NextResponse.json({ error: 'PAYMENT_OPTION_NOT_CONFIGURED' }, { status: 400 });
+    }
+
+    const method = checkoutRow?.method ?? parsePaymentMethod(body.method) ?? 'USDC_ONCHAIN';
     const items = Array.isArray(body.items) ? body.items : [];
 
     const checkout = await createCartPurchaseCheckout({
@@ -59,8 +75,9 @@ export async function POST(request: Request) {
       userEmail: ctx.email,
       items,
       method,
-      walletAddress: body.walletAddress,
-      stablecoinNetwork: body.stablecoinNetwork
+      paymentOptionId: checkoutRow?.id ?? body.paymentOptionId,
+      walletAddress: body.walletAddress ?? linkedWalletAddress,
+      stablecoinNetwork: body.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork
     });
 
     return NextResponse.json({ ok: true, checkout });

@@ -47,7 +47,12 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
   }
 
   if (method === 'LOCAL_RAIL') {
-    return Boolean(process.env.LOCAL_RAILS_ENABLED === 'true' || process.env.DLOCAL_API_KEY || process.env.EBANX_API_KEY);
+    return Boolean(
+      process.env.LOCAL_RAILS_ENABLED === 'true' ||
+        process.env.DLOCAL_API_KEY ||
+        process.env.EBANX_API_KEY ||
+        process.env.ASTROPAY_API_KEY
+    );
   }
 
   if (method === 'BRIDGE') {

@@ -1,6 +1,13 @@
 import type { PaymentMethod } from '@sanova/database';
 import { quoteCheapestPaymentRoutes } from './cheapestPaymentRouter';
-import { paymentGatewayConfigured } from './paymentConfig';
+import {
+  PAYMENT_CHECKOUT_GROUP_ORDER,
+  PAYMENT_CHECKOUT_ROWS,
+  type PaymentCheckoutGroupId,
+  type PaymentCheckoutRow,
+  paymentRowsForCountry
+} from './paymentCheckoutCatalog';
+import { isDepositCheckoutRowConfigured } from './paymentProviderAvailability';
 
 export const DEPOSIT_QUOTE_TTL_SECONDS = 40;
 
@@ -27,7 +34,7 @@ export function compareDepositPaymentOptions(
     return feeDiff;
   }
 
-  return a.label.localeCompare(b.label, 'es');
+  return a.sortOrder - b.sortOrder;
 }
 
 export function sortDepositPaymentOptions(options: DepositPaymentOption[]): DepositPaymentOption[] {
@@ -45,8 +52,11 @@ export function partitionDepositPaymentOptions(options: DepositPaymentOption[]) 
 
 export type DepositPaymentOption = {
   id: string;
+  groupId: PaymentCheckoutGroupId;
   method: PaymentMethod;
   label: string;
+  provider: PaymentCheckoutRow['provider'];
+  providerRail: string;
   platformFeeUsd: number;
   gasFeeUsd: number;
   networkFeeUsd: number;
@@ -58,26 +68,24 @@ export type DepositPaymentOption = {
   usesLocalCurrency: boolean;
   configured: boolean;
   stablecoinNetwork?: string;
+  sortOrder: number;
+};
+
+export type DepositPaymentOptionGroup = {
+  id: PaymentCheckoutGroupId;
+  available: DepositPaymentOption[];
+  unavailable: DepositPaymentOption[];
+  options: DepositPaymentOption[];
 };
 
 export type DepositQuoteBundle = {
   options: DepositPaymentOption[];
+  groups: DepositPaymentOptionGroup[];
   quoteExpiresAt: string;
   quoteTtlSeconds: number;
   baseCurrency: 'USD';
   localCurrency: string;
   fxRateUsdToLocal: number;
-};
-
-type DepositDisplayRow = {
-  id: string;
-  method: PaymentMethod;
-  label: string;
-  fallbackFeeBps: number;
-  fallbackGasUsd: number;
-  fallbackNetworkUsd: number;
-  stablecoinNetwork?: string;
-  usesLocalCurrency?: boolean;
 };
 
 const COUNTRY_LOCAL_CURRENCY: Record<string, string> = {
@@ -86,7 +94,8 @@ const COUNTRY_LOCAL_CURRENCY: Record<string, string> = {
   US: 'USD',
   EU: 'EUR',
   MX: 'MXN',
-  IN: 'INR'
+  IN: 'INR',
+  CN: 'CNY'
 };
 
 const FALLBACK_FX_USD_TO_LOCAL: Record<string, number> = {
@@ -95,199 +104,42 @@ const FALLBACK_FX_USD_TO_LOCAL: Record<string, number> = {
   BRL: 5.1,
   EUR: 0.92,
   MXN: 17.5,
-  INR: 83
+  INR: 83,
+  CNY: 7.2
 };
-
-const DEPOSIT_DISPLAY_ROWS: DepositDisplayRow[] = [
-  {
-    id: 'google_pay',
-    method: 'STRIPE',
-    label: 'Google Pay',
-    fallbackFeeBps: 265,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.03
-  },
-  {
-    id: 'apple_pay',
-    method: 'STRIPE',
-    label: 'Apple Pay',
-    fallbackFeeBps: 265,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.03
-  },
-  {
-    id: 'paypal',
-    method: 'STRIPE',
-    label: 'PayPal',
-    fallbackFeeBps: 340,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.04,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'debit_card',
-    method: 'STRIPE',
-    label: 'Tarjeta de débito',
-    fallbackFeeBps: 250,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.03
-  },
-  {
-    id: 'credit_card',
-    method: 'STRIPE',
-    label: 'Tarjeta de crédito',
-    fallbackFeeBps: 350,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.03
-  },
-  {
-    id: 'mercado_pago',
-    method: 'MERCADO_PAGO',
-    label: 'Mercado Pago',
-    fallbackFeeBps: 320,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.05,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'pix',
-    method: 'LOCAL_RAIL',
-    label: 'Pix (Brasil)',
-    fallbackFeeBps: 55,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.02,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'local_transfer',
-    method: 'LOCAL_RAIL',
-    label: 'Transferencia bancaria local',
-    fallbackFeeBps: 45,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.02,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'sepa',
-    method: 'LOCAL_RAIL',
-    label: 'SEPA (Europa)',
-    fallbackFeeBps: 35,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.02,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'ach',
-    method: 'LOCAL_RAIL',
-    label: 'ACH (EE.UU.)',
-    fallbackFeeBps: 40,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.02
-  },
-  {
-    id: 'alipay',
-    method: 'LOCAL_RAIL',
-    label: 'Alipay',
-    fallbackFeeBps: 120,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.03,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'wechat_pay',
-    method: 'LOCAL_RAIL',
-    label: 'WeChat Pay',
-    fallbackFeeBps: 120,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.03,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'wise',
-    method: 'BRIDGE',
-    label: 'Wise',
-    fallbackFeeBps: 95,
-    fallbackGasUsd: 0.05,
-    fallbackNetworkUsd: 0.04,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'electronic_wallet',
-    method: 'USDC_ONCHAIN',
-    label: 'Billetera electrónica (Coinbase)',
-    fallbackFeeBps: 25,
-    fallbackGasUsd: 0.02,
-    fallbackNetworkUsd: 0.01,
-    stablecoinNetwork: 'BASE',
-    usesLocalCurrency: false
-  },
-  {
-    id: 'transak',
-    method: 'TRANSAK',
-    label: 'Transak',
-    fallbackFeeBps: 180,
-    fallbackGasUsd: 0.08,
-    fallbackNetworkUsd: 0.04,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'bridge',
-    method: 'BRIDGE',
-    label: 'Bridge',
-    fallbackFeeBps: 80,
-    fallbackGasUsd: 0.12,
-    fallbackNetworkUsd: 0.05,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'ramp',
-    method: 'RAMP',
-    label: 'Ramp Network',
-    fallbackFeeBps: 200,
-    fallbackGasUsd: 0.07,
-    fallbackNetworkUsd: 0.04,
-    usesLocalCurrency: true
-  },
-  {
-    id: 'loan_account',
-    method: 'CUSTODIAL_STABLECOIN',
-    label: 'Cuenta de préstamo',
-    fallbackFeeBps: 40,
-    fallbackGasUsd: 0.02,
-    fallbackNetworkUsd: 0.01
-  }
-];
 
 export type BuildDepositPaymentOptionsContext = {
   linkedWalletAddress?: string | null;
 };
 
-function depositRowConfigured(row: DepositDisplayRow, context?: BuildDepositPaymentOptionsContext): boolean {
-  if (row.id === 'electronic_wallet') {
-    return (
-      paymentGatewayConfigured('USDC_ONCHAIN') && Boolean(context?.linkedWalletAddress?.trim())
-    );
+export function getPaymentCheckoutRowById(optionId: string): PaymentCheckoutRow | null {
+  return PAYMENT_CHECKOUT_ROWS.find((row) => row.id === optionId) ?? null;
+}
+
+export function groupDepositPaymentOptions(options: DepositPaymentOption[]): DepositPaymentOptionGroup[] {
+  const byGroup = new Map<PaymentCheckoutGroupId, DepositPaymentOption[]>();
+
+  for (const option of sortDepositPaymentOptions(options)) {
+    const bucket = byGroup.get(option.groupId) ?? [];
+    bucket.push(option);
+    byGroup.set(option.groupId, bucket);
   }
 
-  if (row.id === 'paypal') {
-    return Boolean(process.env.PAYPAL_CLIENT_ID ?? process.env.PAYPAL_SECRET);
-  }
-  if (row.id === 'google_pay') {
-    return Boolean(process.env.GOOGLE_PAY_MERCHANT_ID);
-  }
-  if (row.id === 'apple_pay') {
-    return Boolean(process.env.APPLE_PAY_MERCHANT_ID);
-  }
-  if (row.id === 'pix' || row.id === 'sepa' || row.id === 'ach' || row.id === 'alipay' || row.id === 'wechat_pay') {
-    return Boolean(
-      process.env.LOCAL_RAILS_ENABLED === 'true' || process.env.DLOCAL_API_KEY || process.env.EBANX_API_KEY
-    );
-  }
-  if (row.id === 'wise') {
-    return Boolean(process.env.BRIDGE_API_KEY || process.env.WISE_API_KEY);
-  }
+  return PAYMENT_CHECKOUT_GROUP_ORDER.flatMap((groupId) => {
+    const rows = byGroup.get(groupId) ?? [];
+    if (rows.length === 0) {
+      return [];
+    }
 
-  return paymentGatewayConfigured(row.method) || row.method === 'CUSTODIAL_STABLECOIN';
+    return [
+      {
+        id: groupId,
+        options: rows,
+        available: rows.filter((row) => row.configured),
+        unavailable: rows.filter((row) => !row.configured)
+      }
+    ];
+  });
 }
 
 function lowestPlatformFeeUsd(method: PaymentMethod, amountUsd: number, country: string): number | null {
@@ -301,20 +153,7 @@ function lowestPlatformFeeUsd(method: PaymentMethod, amountUsd: number, country:
   return match?.estimatedFeeUsd ?? null;
 }
 
-function estimateGasUsd(row: DepositDisplayRow): number {
-  if (row.method === 'USDC_ONCHAIN') {
-    return row.fallbackGasUsd;
-  }
-
-  if (row.method === 'CUSTODIAL_STABLECOIN') {
-    return row.fallbackGasUsd;
-  }
-  if (row.method === 'BRIDGE' || row.method === 'TRANSAK' || row.method === 'RAMP') {
-    return row.fallbackGasUsd;
-  }
-  if (row.method === 'COINBASE') {
-    return row.fallbackGasUsd;
-  }
+function estimateGasUsd(row: PaymentCheckoutRow): number {
   return row.fallbackGasUsd;
 }
 
@@ -329,8 +168,8 @@ export function buildDepositPaymentOptions(
   const fxRate = fxRateUsdToLocal ?? FALLBACK_FX_USD_TO_LOCAL[localCurrency] ?? 1;
   const quoteExpiresAt = new Date(Date.now() + DEPOSIT_QUOTE_TTL_SECONDS * 1000).toISOString();
 
-  const options = DEPOSIT_DISPLAY_ROWS.map((row) => {
-    const configured = depositRowConfigured(row, context);
+  const options = paymentRowsForCountry(country).map((row) => {
+    const configured = isDepositCheckoutRowConfigured(row, context);
 
     const quotedPlatform = lowestPlatformFeeUsd(row.method, normalizedAmount, country);
     const platformFeeUsd =
@@ -353,8 +192,11 @@ export function buildDepositPaymentOptions(
 
     return {
       id: row.id,
+      groupId: row.groupId,
       method: row.method,
       label: row.label,
+      provider: row.provider,
+      providerRail: row.providerRail,
       platformFeeUsd,
       gasFeeUsd,
       networkFeeUsd,
@@ -365,12 +207,16 @@ export function buildDepositPaymentOptions(
       displayCurrency: usesLocalCurrency ? localCurrency : 'USD',
       usesLocalCurrency,
       configured,
-      stablecoinNetwork: row.stablecoinNetwork
+      stablecoinNetwork: row.stablecoinNetwork,
+      sortOrder: row.sortOrder
     };
   });
 
+  const sorted = sortDepositPaymentOptions(options);
+
   return {
-    options: sortDepositPaymentOptions(options),
+    options: sorted,
+    groups: groupDepositPaymentOptions(sorted),
     quoteExpiresAt,
     quoteTtlSeconds: DEPOSIT_QUOTE_TTL_SECONDS,
     baseCurrency: 'USD',

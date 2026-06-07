@@ -1,0 +1,85 @@
+import type { PaymentCheckoutRow, PaymentProviderId } from './paymentCheckoutCatalog';
+import { paymentGatewayConfigured } from './paymentConfig';
+
+export function isDLocalConfigured(): boolean {
+  return Boolean(process.env.DLOCAL_API_KEY?.trim() || process.env.LOCAL_RAILS_ENABLED === 'true');
+}
+
+export function isEbanxConfigured(): boolean {
+  return Boolean(process.env.EBANX_API_KEY?.trim() || process.env.LOCAL_RAILS_ENABLED === 'true');
+}
+
+export function isLocalRailAggregatorConfigured(): boolean {
+  return isDLocalConfigured() || isEbanxConfigured();
+}
+
+export function isAstroPayConfigured(): boolean {
+  return Boolean(process.env.ASTROPAY_API_KEY?.trim()) || isLocalRailAggregatorConfigured();
+}
+
+export function isStripeConfigured(): boolean {
+  return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
+}
+
+export function isWiseConfigured(): boolean {
+  return Boolean(process.env.WISE_API_KEY?.trim() || process.env.BRIDGE_API_KEY?.trim());
+}
+
+export function isBinancePayConfigured(): boolean {
+  return Boolean(process.env.BINANCE_PAY_API_KEY?.trim());
+}
+
+export function isPaymentProviderConfigured(provider: PaymentProviderId): boolean {
+  switch (provider) {
+    case 'usdc':
+      return paymentGatewayConfigured('USDC_ONCHAIN');
+    case 'stripe':
+      return isStripeConfigured();
+    case 'mercado_pago':
+      return paymentGatewayConfigured('MERCADO_PAGO');
+    case 'dlocal':
+    case 'ebanx':
+      return isLocalRailAggregatorConfigured();
+    case 'astropay':
+      return isAstroPayConfigured();
+    case 'bridge':
+      return paymentGatewayConfigured('BRIDGE');
+    case 'wise':
+      return isWiseConfigured();
+    case 'transak':
+      return paymentGatewayConfigured('TRANSAK');
+    case 'ramp':
+      return paymentGatewayConfigured('RAMP');
+    case 'binance':
+      return isBinancePayConfigured() || paymentGatewayConfigured('USDC_ONCHAIN');
+    case 'custodial':
+      return paymentGatewayConfigured('CUSTODIAL_STABLECOIN');
+    default:
+      return false;
+  }
+}
+
+export type DepositRowContext = {
+  linkedWalletAddress?: string | null;
+};
+
+export function isDepositCheckoutRowConfigured(
+  row: PaymentCheckoutRow,
+  context?: DepositRowContext
+): boolean {
+  if (row.method === 'USDC_ONCHAIN') {
+    if (!paymentGatewayConfigured('USDC_ONCHAIN')) {
+      return false;
+    }
+    if (row.id === 'binance_usdc' && isBinancePayConfigured()) {
+      return true;
+    }
+    return Boolean(context?.linkedWalletAddress?.trim());
+  }
+
+  if (row.provider === 'stripe' && row.providerRail === 'paypal') {
+    return isStripeConfigured() || Boolean(process.env.PAYPAL_CLIENT_ID ?? process.env.PAYPAL_SECRET);
+  }
+
+  return isPaymentProviderConfigured(row.provider);
+}
