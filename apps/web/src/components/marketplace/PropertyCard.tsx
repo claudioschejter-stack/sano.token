@@ -52,6 +52,9 @@ type MediaSlide = {
 
 const GALLERY_INTERVAL_MS = 5000;
 
+const microBadgeClass =
+  'rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[10px] text-cyan-400';
+
 export function PropertyCard({
   id,
   title,
@@ -190,11 +193,7 @@ export function PropertyCard({
           </span>
         ) : null}
         <span
-          className={`absolute right-3 ${isScarce ? 'top-12' : 'top-3'} rounded-full border px-3 py-1 text-xs font-semibold ${
-            isDebt
-              ? 'border-terminal-warning/40 bg-terminal-bg/90 text-terminal-warning'
-              : 'border-terminal-primary/40 bg-terminal-bg/90 text-terminal-primary'
-          }`}
+          className={`absolute right-3 ${isScarce ? 'top-12' : 'top-3'} font-semibold uppercase tracking-wide ${microBadgeClass}`}
         >
           {isDebt ? t.propertyCard.instrumentDebt : t.propertyCard.instrumentEquity}
         </span>
@@ -215,14 +214,16 @@ export function PropertyCard({
             </>
           )}
         </div>
-        <p className="absolute bottom-20 left-3 right-3 line-clamp-2 min-h-[2.75rem] text-base font-semibold leading-snug text-white sm:bottom-24 sm:left-4 sm:right-4 sm:text-lg">
+        <h3 className="absolute bottom-20 left-3 right-3 line-clamp-2 min-h-[2.75rem] text-base font-semibold leading-snug tracking-tight text-white sm:bottom-24 sm:left-4 sm:right-4 sm:text-lg">
           {title}
-        </p>
+        </h3>
       </div>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="shrink-0 space-y-4">
-          <p className={`min-h-5 truncate text-xs ${mutedText}`}>{location || '\u00A0'}</p>
+          <p className="min-h-5 truncate text-[10px] font-bold font-mono uppercase tracking-widest text-blue-400">
+            {location || '\u00A0'}
+          </p>
 
           <div>
             {!hideFinancialMetrics ? (
@@ -280,17 +281,11 @@ export function PropertyCard({
           ) : null}
 
           <div className="flex min-h-7 flex-wrap items-center gap-2">
-            <span
-              className={`rounded-md border px-2 py-0.5 text-[10px] uppercase tracking-wide ${panelBg} ${mutedText}`}
-            >
+            <span className={`${microBadgeClass} uppercase tracking-wide`}>
               {t.propertyCard.tokenSymbolLabel}
             </span>
             {tokenSymbol ? (
-              <span
-                className={`rounded-md border px-2 py-0.5 font-mono text-[10px] font-semibold ${panelBg} ${bodyText}`}
-              >
-                {tokenSymbol}
-              </span>
+              <span className={`${microBadgeClass} font-semibold`}>{tokenSymbol}</span>
             ) : null}
             {!isSoldOut ? (
               <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />

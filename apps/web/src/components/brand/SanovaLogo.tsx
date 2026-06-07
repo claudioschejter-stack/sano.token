@@ -17,32 +17,23 @@ const markAsset = {
   alt: 'Sanova Global'
 } as const;
 
-const wordmarkTone = {
-  light: {
-    primary: 'text-slate-900',
-    secondary: 'text-slate-500'
-  },
-  dark: {
-    primary: 'text-white',
-    secondary: 'text-slate-300'
-  }
-} as const;
+const rwaCapsuleClass =
+  'mt-1 inline-flex w-fit items-center rounded-full border border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5 font-mono text-[10px] tracking-widest text-cyan-400';
 
 function LogoWordmark({ variant }: { variant: 'light' | 'dark' }) {
-  const tone = wordmarkTone[variant];
+  const isDark = variant === 'dark';
+  const sanovaGradient = isDark
+    ? 'bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent'
+    : 'bg-gradient-to-r from-slate-900 via-blue-600 to-cyan-500 bg-clip-text text-transparent';
+  const globalTone = isDark ? 'font-light text-slate-400' : 'font-light text-slate-400';
 
   return (
     <span className="flex min-w-0 flex-col justify-center leading-none">
-      <span
-        className={`truncate text-[0.68rem] font-bold uppercase tracking-[0.14em] sm:text-xs md:text-sm ${tone.primary}`}
-      >
-        SANOVA GLOBAL
+      <span className="truncate text-[0.68rem] uppercase tracking-[0.14em] sm:text-xs md:text-sm">
+        <span className={`font-black ${sanovaGradient}`}>SANOVA</span>
+        <span className={`${globalTone} ml-1`}>GLOBAL</span>
       </span>
-      <span
-        className={`mt-1 text-[0.58rem] font-semibold tracking-[0.38em] sm:text-[0.62rem] md:text-[0.65rem] ${tone.secondary}`}
-      >
-        RWA
-      </span>
+      <span className={rwaCapsuleClass}>RWA</span>
     </span>
   );
 }

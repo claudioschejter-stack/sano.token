@@ -10,6 +10,7 @@ import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCap
 import { pickFeaturedListings } from '../../lib/marketplace/pickFeaturedListings';
 import type { MarketplaceFeed } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
+import { BrandGradientText } from '../brand/BrandGradientText';
 import { PropertyCard } from '../marketplace/PropertyCard';
 import { MarketplaceCtaLink } from './MarketplaceCtaLink';
 
@@ -60,8 +61,12 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
       <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
         <div className="flex w-full flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="w-full">
-            <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">{l.featured.title}</h2>
-            <p className="mt-2 text-base text-slate-600 md:text-lg">{l.featured.subtitle}</p>
+            <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">
+              <BrandGradientText>{l.featured.title}</BrandGradientText>
+            </h2>
+            <p className="mt-2 text-base text-slate-600 md:text-lg">
+              <BrandGradientText>{l.featured.subtitle}</BrandGradientText>
+            </p>
           </div>
           <MarketplaceCtaLink className="md:shrink-0">{l.featured.viewAll}</MarketplaceCtaLink>
         </div>
