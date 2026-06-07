@@ -17,6 +17,8 @@
         "@rainbow-me/rainbowkit": "^2.2.8",
         "@sanova/blockchain": "*",
         "@sanova/database": "*",
+        "@simplewebauthn/browser": "^13.1.0",
+        "@simplewebauthn/server": "^13.1.1",
         "@sentry/nextjs": "^9.5.0",
         "@supabase/supabase-js": "^2.106.1",
         "@tanstack/react-query": "^5.81.5",
