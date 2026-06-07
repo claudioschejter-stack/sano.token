@@ -15,7 +15,7 @@ export function MacroInvestmentThesis() {
   return (
     <section
       id="macro-thesis"
-      className="relative overflow-hidden border-b border-slate-800 bg-[#0A0E17] text-slate-100"
+      className="relative overflow-x-hidden border-b border-slate-800 bg-[#0A0E17] text-slate-100"
       aria-labelledby="macro-thesis-title"
     >
       <div
@@ -25,14 +25,14 @@ export function MacroInvestmentThesis() {
             'radial-gradient(circle at 15% 0%, rgba(56,189,248,0.1) 0%, transparent 45%), radial-gradient(circle at 85% 100%, rgba(15,23,42,0.5) 0%, transparent 40%)'
         }}
       />
-      <div className="relative mx-auto flex w-full max-w-7xl flex-col px-4 py-24 md:px-6">
+      <div className="relative mx-auto flex w-full max-w-7xl flex-col overflow-hidden px-4 py-16 sm:px-6 md:px-6 md:py-24">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">
           {m.eyebrow}
         </p>
 
-        <div className="mt-10 flex min-w-0 flex-col gap-12 lg:grid lg:grid-cols-12 lg:items-stretch">
-          <figure className="flex min-w-0 w-full flex-col lg:col-span-5">
-            <div className="relative aspect-[3/4] w-full min-w-0 lg:aspect-auto lg:min-h-[28rem] lg:flex-1">
+        <div className="mt-10 flex min-w-0 max-w-full flex-col gap-10 overflow-hidden lg:grid lg:grid-cols-12 lg:items-stretch lg:gap-12">
+          <figure className="flex min-w-0 w-full max-w-full flex-col overflow-hidden lg:col-span-5">
+            <div className="relative aspect-[3/4] w-full min-w-0 max-w-full overflow-hidden lg:aspect-auto lg:min-h-[28rem] lg:flex-1">
               <VacaMuertaMacroMap className="absolute inset-0 h-full w-full" />
             </div>
             <figcaption className="mt-4 whitespace-pre-line text-sm text-slate-400">
@@ -67,7 +67,7 @@ export function MacroInvestmentThesis() {
               ))}
             </ul>
 
-            <MarketplaceCtaLink className="mt-10">{m.cta}</MarketplaceCtaLink>
+            <MarketplaceCtaLink className="mt-10 w-full max-w-full sm:w-auto">{m.cta}</MarketplaceCtaLink>
           </div>
         </div>
       </div>

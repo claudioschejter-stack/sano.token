@@ -239,13 +239,8 @@
   }
 }
 
-/* Mobile: fluid spacing so four steps fit one viewport (auto-adjusts by screen size) */
+/* Mobile: how-it-works typography scaling (spacing handled by Tailwind py-16 / gap-10) */
 @media (max-width: 639px) {
-  .how-it-works-section {
-    padding-top: clamp(1rem, 3.5svh, 2rem);
-    padding-bottom: clamp(1rem, 3.5svh, 2rem);
-  }
-
   .how-it-works-section .how-it-works-intro h2 {
     font-size: clamp(1.25rem, 5vw, 1.5rem);
   }
@@ -254,16 +249,6 @@
     margin-top: clamp(0.375rem, 1.2svh, 0.75rem);
     font-size: clamp(0.75rem, 3.2vw, 0.875rem);
     line-height: 1.35;
-  }
-
-  .how-it-works-section .how-it-works-grid {
-    margin-top: clamp(0.625rem, 2.2svh, 1.25rem);
-    gap: clamp(0.5rem, 1.6svh, 0.875rem);
-  }
-
-  .how-it-works-section .how-it-works-card {
-    padding: clamp(0.625rem, 2svh, 1rem);
-    border-radius: 0.75rem;
   }
 
   .how-it-works-section .how-it-works-step-num,
@@ -289,31 +274,6 @@
     margin-top: clamp(0.375rem, 1svh, 0.625rem);
     font-size: clamp(0.6875rem, 2.9vw, 0.8125rem);
     line-height: 1.4;
-  }
-}
-
-@media (max-width: 639px) and (max-height: 700px) {
-  .how-it-works-section {
-    padding-top: clamp(0.75rem, 2.5svh, 1.25rem);
-    padding-bottom: clamp(0.75rem, 2.5svh, 1.25rem);
-  }
-
-  .how-it-works-section .how-it-works-grid {
-    gap: clamp(0.375rem, 1.2svh, 0.625rem);
-  }
-
-  .how-it-works-section .how-it-works-card {
-    padding: clamp(0.5rem, 1.6svh, 0.75rem);
-  }
-
-  .how-it-works-section .how-it-works-step-num,
-  .how-it-works-section .how-it-works-card-icon,
-  .how-it-works-section .how-it-works-card-title {
-    height: clamp(1.75rem, 5svh, 2.125rem);
-  }
-
-  .how-it-works-section .how-it-works-card-icon {
-    width: clamp(1.75rem, 5svh, 2.125rem);
   }
 }
 
