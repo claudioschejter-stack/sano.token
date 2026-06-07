@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ArrowRight, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { SanovaLogo } from '../brand/SanovaLogo';
 import { LanguageDropdown } from './LanguageDropdown';
 import { platformEntryCtaClassName } from './MarketplaceCtaLink';
 
@@ -45,13 +46,13 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
       <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-4 py-3 md:gap-3 md:px-6 md:py-4">
-        <Link
+        <SanovaLogo
+          variant="light"
           href="/"
-          className="min-w-0 shrink text-lg font-bold tracking-tight text-slate-900 md:text-xl"
+          className="min-w-0 shrink"
+          priority={showLanguageSelector}
           onClick={closeMenu}
-        >
-          Sanova <span className="text-blue-600">Global</span>
-        </Link>
+        />
 
         <nav
           className="hidden items-center gap-8 text-sm font-medium text-slate-600 lg:flex"

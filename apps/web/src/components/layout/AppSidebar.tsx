@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react';
 import Link from 'next/link';
+import { SanovaLogo } from '../brand/SanovaLogo';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -115,8 +116,8 @@ function SidebarContent({
     <>
       <div className="border-b border-terminal-border p-6">
         <Link href="/" className="block transition-opacity hover:opacity-90" onClick={onNavigate}>
-          <h2 className="text-2xl font-bold tracking-tight">Sanova Global</h2>
-          <p className="mt-1 text-sm text-terminal-muted">
+          <SanovaLogo variant="dark" showWordmark className="h-9" />
+          <p className="mt-2 text-sm text-terminal-muted">
             {isAdmin
               ? t.adminDashboard.sidebarSubtitle
               : isAdvisorStaff
@@ -282,8 +283,8 @@ export function AppSidebar() {
   return (
     <>
       <header className="safe-top fixed inset-x-0 top-0 z-40 flex h-14 min-h-14 items-center justify-between border-b border-terminal-border bg-terminal-card px-4 md:hidden">
-        <Link href="/" className="text-lg font-bold tracking-tight">
-          Sanova Global
+        <Link href="/" className="inline-flex items-center">
+          <SanovaLogo variant="mark" className="h-8 w-8" />
         </Link>
         <button
           type="button"
