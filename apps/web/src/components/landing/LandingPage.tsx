@@ -26,6 +26,23 @@ type LandingPageProps = {
   initialFeed: MarketplaceFeed;
 };
 
+function HeroActions({ primary, secondary, trustLine }: { primary: string; secondary: string; trustLine: string }) {
+  return (
+    <div className="w-full">
+      <div className="flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:gap-4">
+        <MarketplaceCtaLink>{primary}</MarketplaceCtaLink>
+        <a
+          href="#how-it-works"
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/30 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 md:w-auto md:text-sm"
+        >
+          {secondary}
+        </a>
+      </div>
+      <p className="mt-4 text-sm text-slate-400">{trustLine}</p>
+    </div>
+  );
+}
+
 export function LandingPage({ initialFeed }: LandingPageProps) {
   const t = useTranslation();
   const l = t.landing;
@@ -42,12 +59,12 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
               'radial-gradient(circle at 20% 20%, #3B82F6 0%, transparent 40%), radial-gradient(circle at 80% 60%, #F97316 0%, transparent 35%)'
           }}
         />
-        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-4 py-12 sm:gap-12 sm:px-6 sm:py-16 md:py-20 lg:grid-cols-2 lg:items-stretch lg:gap-14 lg:py-28">
-          <div className="flex w-full flex-col justify-center lg:max-w-xl lg:pr-2 xl:max-w-[34rem]">
+        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 pb-12 pt-[0.5cm] sm:gap-10 sm:px-6 sm:pb-14 lg:grid-cols-2 lg:items-start lg:gap-10 lg:pb-16 xl:gap-12">
+          <div className="flex w-full flex-col justify-start lg:max-w-xl lg:pr-2 xl:max-w-[34rem]">
             <p className="text-xs font-semibold uppercase tracking-widest text-blue-300 sm:text-sm">
               {l.hero.eyebrow}
             </p>
-            <h1 className="mt-4 text-3xl font-bold leading-tight tracking-tight md:text-4xl lg:text-6xl">
+            <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight sm:mt-3 md:text-4xl lg:text-5xl xl:text-6xl">
               {l.hero.title.split('\n').map((line) => (
                 <span key={line} className="block last:text-blue-200">
                   {line}
@@ -55,36 +72,40 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
               ))}
             </h1>
             <HeroSubtitle hero={l.hero} />
-            <div className="mt-8 flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:gap-4">
-              <MarketplaceCtaLink>{l.hero.ctaPrimary}</MarketplaceCtaLink>
-              <a
-                href="#how-it-works"
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/30 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 md:w-auto md:text-sm"
-              >
-                {l.hero.ctaSecondary}
-              </a>
+            <div className="mt-8 lg:hidden">
+              <HeroActions
+                primary={l.hero.ctaPrimary}
+                secondary={l.hero.ctaSecondary}
+                trustLine={l.hero.trustLine}
+              />
             </div>
-            <p className="mt-6 text-sm text-slate-400 sm:mt-8">{l.hero.trustLine}</p>
           </div>
 
-          <div className="relative hidden lg:flex lg:flex-col lg:justify-center">
-            <div className="relative">
+          <div className="relative hidden lg:flex lg:flex-col lg:justify-start">
+            <div className="relative pb-6">
               <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
-              <Image
-                src={LANDING_HERO_IMAGE}
-                alt={l.hero.heroImageAlt}
-                width={1400}
-                height={933}
-                className="h-[420px] w-full object-cover object-center"
-                priority
-                sizes="(min-width: 1024px) 50vw, 0px"
-              />
+                <Image
+                  src={LANDING_HERO_IMAGE}
+                  alt={l.hero.heroImageAlt}
+                  width={1400}
+                  height={933}
+                  className="h-[min(360px,42svh)] w-full object-cover object-center xl:h-[380px]"
+                  priority
+                  sizes="(min-width: 1024px) 50vw, 0px"
+                />
               </div>
               <div className="absolute -bottom-5 -left-[calc(1.25rem+0.5cm)] rounded-xl border border-white/20 bg-[#111827]/95 p-4 shadow-xl backdrop-blur">
                 <p className="text-xs uppercase tracking-wider text-slate-400">{l.hero.heroBadgeTitle}</p>
                 <p className="mt-1 text-sm font-semibold text-blue-200">{l.hero.heroBadgeSubtitle}</p>
                 <p className="mt-1 text-sm text-slate-300">{l.hero.heroBadgeDetail}</p>
               </div>
+            </div>
+            <div className="mt-4">
+              <HeroActions
+                primary={l.hero.ctaPrimary}
+                secondary={l.hero.ctaSecondary}
+                trustLine={l.hero.trustLine}
+              />
             </div>
           </div>
         </div>
@@ -94,16 +115,19 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
 
       <MacroInvestmentThesis />
 
-      <section id="how-it-works" className="mx-auto w-full max-w-7xl overflow-x-hidden px-3 py-12 sm:px-4 sm:py-16 md:px-6 md:py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-balance text-2xl font-bold text-slate-900 sm:text-3xl md:text-4xl">
+      <section
+        id="how-it-works"
+        className="how-it-works-section mx-auto w-full max-w-7xl overflow-x-hidden px-3 sm:px-4 sm:py-16 md:px-6 md:py-20"
+      >
+        <div className="how-it-works-intro mx-auto max-w-2xl text-center">
+          <h2 className="text-balance font-bold text-slate-900 sm:text-3xl md:text-4xl">
             {l.howItWorks.title}
           </h2>
-          <p className="mt-3 text-pretty text-sm text-slate-600 sm:mt-4 sm:text-base md:text-lg">
+          <p className="text-pretty text-slate-600 sm:mt-4 sm:text-base md:text-lg">
             {l.howItWorks.subtitle}
           </p>
         </div>
-        <div className="mt-6 grid min-w-0 grid-cols-2 gap-2.5 sm:mt-10 sm:gap-4 md:mt-14 md:grid-cols-2 md:gap-6 xl:grid-cols-4">
+        <div className="how-it-works-grid mt-10 grid min-w-0 grid-cols-1 gap-6 md:mt-14 md:grid-cols-2 md:gap-8 xl:grid-cols-4">
           {[
             { icon: UserCheck, title: l.howItWorks.step1Title, desc: l.howItWorks.step1Desc },
             { icon: Building2, title: l.howItWorks.step2Title, desc: l.howItWorks.step2Desc },
@@ -112,31 +136,20 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
           ].map((step, index) => (
             <article
               key={step.title}
-              className="flex min-w-0 flex-col rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm transition hover:border-blue-200 hover:shadow-md sm:rounded-2xl sm:p-5 md:p-7"
+              className="how-it-works-card flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-blue-200 hover:shadow-md md:p-7"
             >
-              <div className="flex items-start gap-1.5 sm:hidden">
-                <span className="shrink-0 text-[0.65rem] font-semibold tracking-wide text-blue-600">
+              <div className="how-it-works-card-header grid grid-cols-[1.75rem_3rem_minmax(0,1fr)] items-center gap-x-3">
+                <span className="how-it-works-step-num flex items-center text-sm font-semibold tracking-wide text-blue-600">
                   0{index + 1}
                 </span>
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                  <step.icon size={16} aria-hidden />
-                </div>
-                <h3 className="min-w-0 flex-1 text-[0.7rem] font-bold leading-snug text-slate-900">
-                  {step.title}
-                </h3>
-              </div>
-              <div className="hidden grid-cols-[1.75rem_3rem_minmax(0,1fr)] items-center gap-x-3 sm:grid">
-                <span className="flex h-12 items-center text-sm font-semibold tracking-wide text-blue-600">
-                  0{index + 1}
-                </span>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <div className="how-it-works-card-icon flex items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                   <step.icon size={24} aria-hidden />
                 </div>
-                <h3 className="flex h-12 items-center text-sm font-bold leading-tight text-slate-900 md:text-base">
+                <h3 className="how-it-works-card-title flex items-center font-bold leading-tight text-slate-900 sm:text-sm md:text-base">
                   <span className="line-clamp-2">{step.title}</span>
                 </h3>
               </div>
-              <p className="mt-1.5 line-clamp-3 text-[0.65rem] leading-snug text-slate-600 sm:mt-4 sm:line-clamp-none sm:text-sm sm:leading-relaxed">
+              <p className="how-it-works-card-desc mt-4 w-full text-slate-600 sm:text-sm sm:leading-relaxed">
                 {step.desc}
               </p>
             </article>
