@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { UserPlus } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
@@ -13,6 +12,26 @@ import { RegisterForm } from '../auth/RegisterForm';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { LandingHeader } from './LandingHeader';
 import { TrustBadges } from './TrustBadges';
+
+function buildRegisterHref(
+  returnTo: string,
+  email: string,
+  investorInvite: string,
+  staffInvite: boolean
+) {
+  const params = new URLSearchParams();
+  params.set('returnTo', returnTo);
+  if (email) {
+    params.set('email', email);
+  }
+  if (investorInvite) {
+    params.set('invite', investorInvite);
+  }
+  if (staffInvite) {
+    params.set('staffInvite', '1');
+  }
+  return `/acceso/registro?${params.toString()}`;
+}
 
 function AccessPageContent() {
   const router = useRouter();
@@ -29,6 +48,7 @@ function AccessPageContent() {
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
   const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}`;
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
+  const registerHref = buildRegisterHref(returnTo, inviteEmail, investorInvite, staffInvite);
 
   const { isOperational, loading: accountLoading, profile } = useAccountStatus();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
@@ -102,52 +122,41 @@ function AccessPageContent() {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <LandingHeader />
 
-      <main className="mx-auto w-full max-w-4xl px-4 py-12 md:px-6 md:py-16">
+      <main className="mx-auto w-full max-w-lg px-4 py-12 md:px-6 md:py-16">
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">{a.title}</h1>
+          <p className="mt-4 text-sm text-slate-600 md:text-base">{a.loginDesc}</p>
         </div>
 
         {authError ? (
-          <p className="mx-auto mt-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="mx-auto mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {a.authError}
           </p>
         ) : null}
 
         {inviteError ? (
-          <p className="mx-auto mt-6 max-w-2xl rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="mx-auto mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {a.inviteInvalid}
           </p>
         ) : null}
 
         {staffInvite ? (
-          <p className="mx-auto mt-6 max-w-2xl rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          <p className="mx-auto mt-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
             {a.staffInviteAccepted}
           </p>
         ) : null}
 
-        <div className="mt-10 grid grid-cols-1 gap-6 md:mt-12 md:grid-cols-2 md:gap-8">
-          <article className="flex w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-            <h2 className="text-xl font-bold text-slate-900">{a.loginTitle}</h2>
-            <p className="mt-3 text-sm text-slate-600">{a.loginDesc}</p>
+        <article className="mt-10 flex w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <h2 className="text-xl font-bold text-slate-900">{a.loginTitle}</h2>
 
-            <div className="mt-6">
-              <LoginForm callbackUrl={callbackUrl} initialEmail={inviteEmail} />
-            </div>
-          </article>
-
-          <article className="flex w-full flex-col rounded-2xl border border-blue-200 bg-white p-6 shadow-sm ring-1 ring-blue-100 md:p-8">
-            <div className="mb-4 flex items-center gap-3">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                <UserPlus size={24} />
-              </div>
-              <h2 className="text-xl font-bold text-slate-900">{a.registerTitle}</h2>
-            </div>
-            <p className="whitespace-pre-line text-sm text-slate-600">{a.registerDesc}</p>
-            <div className="mt-6">
-              <RegisterForm returnTo={returnTo} initialEmail={inviteEmail} inviteCode={investorInvite} />
-            </div>
-          </article>
-        </div>
+          <div className="mt-6">
+            <LoginForm
+              callbackUrl={callbackUrl}
+              initialEmail={inviteEmail}
+              registerHref={registerHref}
+            />
+          </div>
+        </article>
 
         <TrustBadges className="mt-6 justify-center md:mt-8" />
 

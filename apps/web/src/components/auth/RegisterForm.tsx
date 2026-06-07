@@ -23,6 +23,7 @@ type RegisterFormProps = {
   returnTo?: string;
   initialEmail?: string;
   inviteCode?: string;
+  loginHref?: string;
 };
 
 type FieldErrors = {
@@ -30,7 +31,13 @@ type FieldErrors = {
   phone?: string;
 };
 
-export function RegisterForm({ profile: profileProp, returnTo, initialEmail = '', inviteCode = '' }: RegisterFormProps) {
+export function RegisterForm({
+  profile: profileProp,
+  returnTo,
+  initialEmail = '',
+  inviteCode = '',
+  loginHref
+}: RegisterFormProps) {
   const t = useTranslation();
   const r = t.access.register;
   const router = useRouter();
@@ -346,6 +353,17 @@ export function RegisterForm({ profile: profileProp, returnTo, initialEmail = ''
         >
           {loading ? r.submitting : r.submitButton}
         </button>
+      ) : null}
+
+      {!readOnly && loginHref ? (
+        <p>
+          <Link
+            href={loginHref}
+            className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
+          >
+            {t.access.alreadyRegistered}
+          </Link>
+        </p>
       ) : null}
 
       <p className="text-center text-xs text-slate-500">{readOnly ? r.profileHint : r.flowHint}</p>

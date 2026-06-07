@@ -1172,6 +1172,8 @@ export const es = {
       secondaryMarket: 'Mercado Secundario',
       platformAccess: 'Acceso a Plataforma',
       enterPlatform: 'Ingresar a la Plataforma',
+      signUp: 'Registrarse',
+      signIn: 'Ingresar',
       mainNavAria: 'Principal',
       mobileNavAria: 'Menú móvil',
       openMenu: 'Abrir menú',
@@ -1316,6 +1318,8 @@ export const es = {
     redirecting: 'Redirigiendo…',
     redirectingByRole: 'Redirigiendo según tu rol…',
     signInButton: 'Ingresar',
+    notRegisteredYet: 'Aún no estoy registrado',
+    alreadyRegistered: 'Ya tengo cuenta',
     forgotPassword: 'Olvidé mi contraseña',
     passwordReset: {
       forgotTitle: 'Recuperar contraseña',

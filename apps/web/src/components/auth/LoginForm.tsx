@@ -13,12 +13,14 @@ type LoginFormProps = {
   callbackUrl?: string;
   className?: string;
   initialEmail?: string;
+  registerHref?: string;
 };
 
 export function LoginForm({
   callbackUrl = '/acceso/callback',
   className = '',
-  initialEmail = ''
+  initialEmail = '',
+  registerHref = '/acceso/registro'
 }: LoginFormProps) {
   const t = useTranslation();
   const router = useRouter();
@@ -100,14 +102,20 @@ export function LoginForm({
         {loading ? t.access.signingIn : t.access.signInButton}
       </button>
 
-      <p className="text-right">
+      <div className="flex items-center justify-between gap-4">
+        <Link
+          href={registerHref}
+          className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
+        >
+          {t.access.notRegisteredYet}
+        </Link>
         <Link
           href="/acceso/olvidar"
           className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
         >
           {t.access.forgotPassword}
         </Link>
-      </p>
+      </div>
 
       <p className="text-center text-xs leading-relaxed text-slate-500">
         {t.legal.loginNotice}{' '}

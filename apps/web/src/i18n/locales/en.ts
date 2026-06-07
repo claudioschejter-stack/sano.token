@@ -1159,6 +1159,8 @@ export const en = {
       secondaryMarket: "Secondary Market",
       platformAccess: "Platform Access",
       enterPlatform: "Enter the Platform",
+      signUp: "Sign up",
+      signIn: "Sign in",
       mainNavAria: "Major",
       mobileNavAria: "Mobile menu",
       openMenu: "Open menu",
@@ -1295,6 +1297,8 @@ export const en = {
     redirecting: "Redirecting…",
     redirectingByRole: "Redirecting according to your role…",
     signInButton: "Get into",
+    notRegisteredYet: "I'm not registered yet",
+    alreadyRegistered: "I already have an account",
     forgotPassword: "I forgot my password",
     passwordReset: {
       forgotTitle: "Recover password",

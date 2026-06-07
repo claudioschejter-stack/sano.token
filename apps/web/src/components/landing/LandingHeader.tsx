@@ -10,6 +10,12 @@ import { platformEntryCtaClassName } from './MarketplaceCtaLink';
 const navLinkClass =
   'block w-full rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 lg:inline-block lg:w-auto lg:rounded-none lg:px-0 lg:py-0 lg:text-sm';
 
+const headerSignUpClass =
+  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:min-h-10 sm:px-4 sm:text-sm';
+
+const headerSignInClass =
+  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full bg-slate-900 px-3 text-xs font-semibold text-white transition hover:bg-blue-600 sm:min-h-10 sm:px-4 sm:text-sm';
+
 type LandingHeaderProps = {
   /** Language selector is shown only on the main landing page. */
   showLanguageSelector?: boolean;
@@ -38,10 +44,10 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
 
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-6 md:py-4">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-2 px-4 py-3 md:gap-3 md:px-6 md:py-4">
         <Link
           href="/"
-          className="text-lg font-bold tracking-tight text-slate-900 md:text-xl"
+          className="min-w-0 shrink text-lg font-bold tracking-tight text-slate-900 md:text-xl"
           onClick={closeMenu}
         >
           Sanova <span className="text-blue-600">Global</span>
@@ -64,24 +70,38 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
           )}
         </nav>
 
-        <div className="hidden items-center gap-3 lg:flex">
-          {showLanguageSelector ? <LanguageDropdown /> : null}
-          <Link href="/acceso" className={platformEntryCtaClassName}>
-            {l.nav.enterPlatform}
-            <ArrowRight size={18} aria-hidden />
-          </Link>
-        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2 lg:hidden">
+            <Link href="/acceso/registro" className={headerSignUpClass} onClick={closeMenu}>
+              {l.nav.signUp}
+            </Link>
+            <Link href="/acceso" className={headerSignInClass} onClick={closeMenu}>
+              {l.nav.signIn}
+            </Link>
+          </div>
 
-        <button
-          type="button"
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-800 transition hover:bg-slate-50 lg:hidden"
-          aria-expanded={menuOpen}
-          aria-controls="landing-mobile-nav"
-          aria-label={menuOpen ? l.nav.closeMenu : l.nav.openMenu}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
-        </button>
+          <div className="hidden items-center gap-3 lg:flex">
+            {showLanguageSelector ? <LanguageDropdown /> : null}
+            <Link href="/acceso/registro" className={headerSignUpClass}>
+              {l.nav.signUp}
+            </Link>
+            <Link href="/acceso" className={platformEntryCtaClassName}>
+              {l.nav.signIn}
+              <ArrowRight size={18} aria-hidden />
+            </Link>
+          </div>
+
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-800 transition hover:bg-slate-50 lg:hidden"
+            aria-expanded={menuOpen}
+            aria-controls="landing-mobile-nav"
+            aria-label={menuOpen ? l.nav.closeMenu : l.nav.openMenu}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <X size={22} aria-hidden /> : <Menu size={22} aria-hidden />}
+          </button>
+        </div>
       </div>
 
       <div
@@ -132,14 +152,13 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
             </Link>
           </div>
 
-          <div className="flex flex-col gap-4 border-t border-slate-200 px-4 py-6">
+          <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-6">
             {showLanguageSelector ? <LanguageDropdown className="w-full" /> : null}
-            <Link
-              href="/acceso"
-              className={platformEntryCtaClassName}
-              onClick={closeMenu}
-            >
-              {l.nav.enterPlatform}
+            <Link href="/acceso/registro" className={headerSignUpClass} onClick={closeMenu}>
+              {l.nav.signUp}
+            </Link>
+            <Link href="/acceso" className={platformEntryCtaClassName} onClick={closeMenu}>
+              {l.nav.signIn}
               <ArrowRight size={18} aria-hidden />
             </Link>
           </div>
