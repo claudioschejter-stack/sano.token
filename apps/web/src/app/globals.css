@@ -29,6 +29,32 @@
   }
 }
 
+@keyframes whatsapp-fab-blink {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 10px 15px -3px rgb(6 78 59 / 0.3),
+      0 0 0 0 rgb(37 211 102 / 0.8);
+  }
+  50% {
+    opacity: 0.82;
+    box-shadow:
+      0 10px 15px -3px rgb(6 78 59 / 0.3),
+      0 0 0 14px rgb(37 211 102 / 0);
+  }
+}
+
+.whatsapp-fab-blink {
+  animation: whatsapp-fab-blink 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .whatsapp-fab-blink {
+    animation: none;
+  }
+}
+
 @keyframes operator-marquee-scroll {
   from {
     transform: translate3d(0, 0, 0);
