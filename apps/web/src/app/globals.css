@@ -42,6 +42,8 @@
   --operator-marquee-duration: 72s;
   position: relative;
   width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .operator-marquee__viewport {
@@ -215,6 +217,13 @@
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+    max-width: 100%;
   }
 
   button,

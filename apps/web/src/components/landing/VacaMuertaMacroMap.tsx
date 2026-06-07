@@ -22,7 +22,7 @@ export function VacaMuertaMacroMap({ className = '' }: VacaMuertaMacroMapProps) 
         alt={mapAlt}
         fill
         className="pointer-events-none object-cover object-center"
-        sizes="(max-width: 1024px) 100vw, 560px"
+        sizes="(max-width: 1024px) 100%, 560px"
         quality={95}
         priority={false}
         draggable={false}

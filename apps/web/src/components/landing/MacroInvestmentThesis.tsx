@@ -14,7 +14,7 @@ export function MacroInvestmentThesis() {
   return (
     <section
       id="macro-thesis"
-      className="relative border-b border-slate-800 bg-[#0A0E17] text-slate-100"
+      className="relative overflow-hidden border-b border-slate-800 bg-[#0A0E17] text-slate-100"
       aria-labelledby="macro-thesis-title"
     >
       <div
@@ -24,14 +24,14 @@ export function MacroInvestmentThesis() {
             'radial-gradient(circle at 15% 0%, rgba(56,189,248,0.1) 0%, transparent 45%), radial-gradient(circle at 85% 100%, rgba(15,23,42,0.5) 0%, transparent 40%)'
         }}
       />
-      <div className="relative mx-auto w-full max-w-7xl flex-col px-4 py-24 md:px-6">
+      <div className="relative mx-auto flex w-full max-w-7xl flex-col px-4 py-24 md:px-6">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-400">
           {m.eyebrow}
         </p>
 
-        <div className="mt-10 flex flex-col gap-12 lg:grid lg:grid-cols-12 lg:items-stretch">
-          <figure className="flex w-full flex-col lg:col-span-5">
-            <div className="relative aspect-[4/5] w-full sm:aspect-[3/4] lg:aspect-auto lg:min-h-[28rem] lg:flex-1">
+        <div className="mt-10 flex min-w-0 flex-col gap-12 lg:grid lg:grid-cols-12 lg:items-stretch">
+          <figure className="flex min-w-0 w-full flex-col lg:col-span-5">
+            <div className="relative aspect-[3/4] w-full min-w-0 lg:aspect-auto lg:min-h-[28rem] lg:flex-1">
               <VacaMuertaMacroMap className="absolute inset-0 h-full w-full" />
             </div>
             <figcaption className="mt-4 whitespace-pre-line text-sm text-slate-400">
@@ -39,7 +39,7 @@ export function MacroInvestmentThesis() {
             </figcaption>
           </figure>
 
-          <div className="flex w-full flex-col lg:col-span-7">
+          <div className="flex min-w-0 w-full flex-col lg:col-span-7">
             <h2
               id="macro-thesis-title"
               className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl"

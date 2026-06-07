@@ -30,7 +30,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
   const l = t.landing;
 
   return (
-    <div className="min-h-screen bg-white text-slate-900">
+    <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
       <LandingHeader showLanguageSelector />
 
       <section className="relative overflow-hidden bg-gradient-to-br from-[#0A0E17] via-[#111827] to-[#1e3a5f] text-white">
@@ -163,22 +163,22 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
       <footer className="border-t border-slate-200 bg-slate-900 px-4 pb-10 text-slate-400 md:px-6 md:pb-12">
         <div className="mx-auto w-full max-w-7xl">
           <nav
-            className="mt-[1cm] flex flex-row flex-nowrap items-center justify-end gap-x-5 text-sm text-slate-300 sm:gap-x-6"
+            className="mt-8 flex flex-col gap-2 text-sm text-slate-300 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-x-5"
             aria-label={l.footer.navAria}
           >
-            <Link href="/acceso?returnTo=/marketplace" className="shrink-0 whitespace-nowrap hover:text-white">
+            <Link href="/acceso?returnTo=/marketplace" className="hover:text-white">
               {l.nav.marketplace}
             </Link>
-            <Link href="/acceso" className="shrink-0 whitespace-nowrap hover:text-white">
+            <Link href="/acceso" className="hover:text-white">
               {l.nav.platformAccess}
             </Link>
-            <Link href="/privacidad" className="shrink-0 whitespace-nowrap hover:text-white">
+            <Link href="/privacidad" className="hover:text-white">
               {l.footer.privacy}
             </Link>
-            <Link href="/terminos" className="shrink-0 whitespace-nowrap hover:text-white">
+            <Link href="/terminos" className="hover:text-white">
               {l.footer.terms}
             </Link>
-            <Link href="/contacto" className="shrink-0 whitespace-nowrap hover:text-white">
+            <Link href="/contacto" className="hover:text-white">
               {l.footer.contact}
             </Link>
           </nav>
