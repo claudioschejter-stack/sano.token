@@ -32,7 +32,10 @@ export function PasswordInput({
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-slate-700">
+      <label
+        htmlFor={id}
+        className="mb-1.5 block text-[10px] font-mono uppercase tracking-widest text-slate-400"
+      >
         {label}
       </label>
       <div className="relative">
@@ -45,14 +48,14 @@ export function PasswordInput({
           minLength={minLength}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-slate-300 py-3 pl-4 pr-12 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className="min-h-12 w-full rounded-lg border border-white/10 bg-white/5 py-3 pl-4 pr-12 font-light text-white outline-none transition-all duration-300 placeholder:text-slate-500 focus:border-blue-500/50 focus:bg-white/10 focus:ring-0"
           placeholder={placeholder}
         />
         <button
           type="button"
           tabIndex={-1}
           aria-label={visible ? access.hidePassword : access.showPassword}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-400 transition-all duration-300 hover:bg-white/10 hover:text-white"
           onClick={() => setVisible((v) => !v)}
         >
           {visible ? <EyeOff size={18} /> : <Eye size={18} />}

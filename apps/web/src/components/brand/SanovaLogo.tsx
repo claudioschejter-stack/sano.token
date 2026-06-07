@@ -21,16 +21,18 @@ const wordmarkSizeClass = 'text-[0.68rem] uppercase tracking-[0.14em] sm:text-xs
 
 function LogoWordmark({ variant }: { variant: 'light' | 'dark' }) {
   const isDark = variant === 'dark';
+  const metallicGradient =
+    'bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent';
   const sanovaGradient = isDark
-    ? 'bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent'
+    ? metallicGradient
     : 'bg-gradient-to-r from-slate-900 via-blue-600 to-cyan-500 bg-clip-text text-transparent';
-  const globalTone = isDark ? 'font-light text-slate-400' : 'font-light text-slate-400';
+  const globalTone = isDark ? `font-light ${metallicGradient}` : 'font-light text-slate-400';
   const rwaTone = isDark ? 'text-white' : 'text-black';
 
   return (
     <span className="flex min-w-0 flex-col justify-center leading-none">
-      <span className={`truncate ${wordmarkSizeClass}`}>
-        <span className={`font-black ${sanovaGradient}`}>SANOVA</span>
+      <span className={`truncate font-extrabold tracking-tight ${wordmarkSizeClass}`}>
+        <span className={isDark ? metallicGradient : `font-black ${sanovaGradient}`}>SANOVA</span>
         <span className={`${globalTone} ml-1`}>GLOBAL</span>
       </span>
       <span className={`mt-1 truncate font-black ${wordmarkSizeClass} ${rwaTone}`}>RWA</span>
