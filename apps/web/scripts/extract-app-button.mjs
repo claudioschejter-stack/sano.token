@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Isolates and upscales the Sanova app button from the source JPG
- * into logo + PWA + store PNG assets (raster-only, no SVG composite).
+ * Extracts the Sanova app button/logo from a source image (white bg + optional Gemini watermark),
+ * removes padding/watermark, upscales to max resolution, and writes platform + store PNGs.
  */
-import { copyFile, mkdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, writeFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import sharp from 'sharp';
@@ -16,45 +16,79 @@ const storeDir = path.join(publicDir, 'store');
 
 const SOURCE = process.argv[2] ?? path.join(
   process.env.USERPROFILE ?? '',
-  'Pictures',
-  'Sanova Global — Tokenized Real Estate_files',
-  'logo sanova.jpg'
+  'Downloads',
+  'Gemini_Generated_Image_b1lctmb1lctmb1lc.png'
 );
 
-const ANDROID_SAFE = 324;
 const ANDROID_CANVAS = 512;
+const MASTER_SIZE = 4096;
+const WATERMARK_INSET = 28;
 
-/** Square-crop center region (source is already the app button). */
-async function isolateButton(input) {
-  const meta = await sharp(input).metadata();
-  const side = Math.min(meta.width ?? 0, meta.height ?? 0);
-  const left = Math.round(((meta.width ?? side) - side) / 2);
-  const top = Math.round(((meta.height ?? side) - side) / 2);
+/** Detect blue squircle bounds; ignore white bg and faint Gemini star. */
+async function detectLogoBounds(input) {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
 
-  return sharp(input)
-    .extract({ left, top, width: side, height: side })
-    .png()
-    .toBuffer();
+  let minX = width;
+  let minY = height;
+  let maxX = 0;
+  let maxY = 0;
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * channels;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const isLogoPixel = b > 100 && r < 200 && g < 220 && r + g + b < 700;
+      if (!isLogoPixel) continue;
+      minX = Math.min(minX, x);
+      maxX = Math.max(maxX, x);
+      minY = Math.min(minY, y);
+      maxY = Math.max(maxY, y);
+    }
+  }
+
+  const boxW = maxX - minX + 1;
+  const boxH = maxY - minY + 1;
+  const side = Math.min(boxW, boxH) - WATERMARK_INSET;
+  const cx = Math.round((minX + maxX) / 2);
+  const cy = Math.round((minY + maxY) / 2);
+  const left = Math.max(0, cx - Math.floor(side / 2));
+  const top = Math.max(0, cy - Math.floor(side / 2));
+
+  return { left, top, width: side, height: side };
+}
+
+async function isolateLogo(input) {
+  const bounds = await detectLogoBounds(input);
+  return sharp(input).extract(bounds).png().toBuffer();
 }
 
 let masterCache = null;
 
-/** Progressive upscale to 2048, then downsample for crisp edges. */
+/** Progressive upscale to 4096 for maximum quality. */
 async function buildMaster(isolated) {
   if (masterCache) return masterCache;
+
+  const meta = await sharp(isolated).metadata();
+  const base = meta.width ?? 512;
+
   masterCache = await sharp(isolated)
-    .resize(646, 646, { kernel: sharp.kernel.lanczos3 })
-    .resize(2048, 2048, { kernel: sharp.kernel.lanczos3 })
-    .sharpen({ sigma: 1.1, m1: 0.6, m2: 0.3, x1: 2, y2: 10, y3: 20 })
+    .resize(Math.round(base * 2), Math.round(base * 2), { kernel: sharp.kernel.lanczos3 })
+    .resize(Math.round(base * 4), Math.round(base * 4), { kernel: sharp.kernel.lanczos3 })
+    .resize(MASTER_SIZE, MASTER_SIZE, { kernel: sharp.kernel.lanczos3 })
+    .sharpen({ sigma: 1.2, m1: 0.65, m2: 0.32, x1: 2, y2: 10, y3: 20 })
     .png({ compressionLevel: 9, adaptiveFiltering: true })
     .toBuffer();
+
   return masterCache;
 }
 
 function upscaleFromMaster(master, size) {
   return sharp(master)
     .resize(size, size, { kernel: sharp.kernel.lanczos3 })
-    .sharpen({ sigma: size >= 256 ? 0.6 : 0.35, m1: 0.5, m2: 0.25, x1: 2, y2: 10, y3: 20 })
+    .sharpen({ sigma: size >= 256 ? 0.65 : 0.4, m1: 0.5, m2: 0.25, x1: 2, y2: 10, y3: 20 })
     .png({ compressionLevel: 9, adaptiveFiltering: true })
     .toBuffer();
 }
@@ -67,23 +101,32 @@ async function main() {
   const meta = await sharp(SOURCE).metadata();
   console.log('source', SOURCE, `${meta.width}x${meta.height}`);
 
-  const isolated = await isolateButton(SOURCE);
-  await writeFile(path.join(brandDir, 'sanova-app-button-source.png'), isolated);
-  console.log('ok brand/sanova-app-button-source.png');
+  const isolated = await isolateLogo(SOURCE);
+  const isoMeta = await sharp(isolated).metadata();
+  console.log('isolated', `${isoMeta.width}x${isoMeta.height}`);
 
-  const master2048 = await buildMaster(isolated);
-  await writeFile(path.join(brandDir, 'sanova-app-button-2048.png'), master2048);
-  console.log('ok brand/sanova-app-button-2048.png');
+  await writeFile(path.join(brandDir, 'logo-sanova-source.png'), isolated);
+  console.log('ok brand/logo-sanova-source.png');
 
-  const master1024 = await upscaleFromMaster(master2048, 1024);
-  await writeFile(path.join(brandDir, 'sanova-app-button-1024.png'), master1024);
-  console.log('ok brand/sanova-app-button-1024.png');
+  const master4096 = await buildMaster(isolated);
+  await writeFile(path.join(brandDir, 'logo-sanova-4096.png'), master4096);
+  console.log('ok brand/logo-sanova-4096.png');
 
-  await copyFile(
-    path.join(brandDir, 'sanova-app-button-1024.png'),
-    path.join(brandDir, 'sanova-logo.png')
-  );
-  console.log('ok brand/sanova-logo.png');
+  const master2048 = await upscaleFromMaster(master4096, 2048);
+  await writeFile(path.join(brandDir, 'logo-sanova-2048.png'), master2048);
+  console.log('ok brand/logo-sanova-2048.png');
+
+  const master1024 = await upscaleFromMaster(master4096, 1024);
+  await writeFile(path.join(brandDir, 'logo-sanova.png'), master1024);
+  await writeFile(path.join(brandDir, 'logo-sanova-1024.png'), master1024);
+  console.log('ok brand/logo-sanova.png');
+
+  // Legacy aliases used by SanovaLogo + prior commits
+  await copyFile(path.join(brandDir, 'logo-sanova.png'), path.join(brandDir, 'sanova-app-button-1024.png'));
+  await copyFile(path.join(brandDir, 'logo-sanova-2048.png'), path.join(brandDir, 'sanova-app-button-2048.png'));
+  await copyFile(path.join(brandDir, 'logo-sanova-source.png'), path.join(brandDir, 'sanova-app-button-source.png'));
+  await copyFile(path.join(brandDir, 'logo-sanova.png'), path.join(brandDir, 'sanova-logo.png'));
+  console.log('ok brand legacy aliases');
 
   const webSizes = [
     { name: 'favicon-16.png', size: 16 },
@@ -95,23 +138,22 @@ async function main() {
   ];
 
   for (const { name, size } of webSizes) {
-    const buffer = await upscaleFromMaster(master2048, size);
+    const buffer = await upscaleFromMaster(master4096, size);
     await writeFile(path.join(iconsDir, name), buffer);
     console.log(`ok icons/${name}`);
   }
 
-  const favicon32 = await upscaleFromMaster(master2048, 32);
+  const favicon32 = await upscaleFromMaster(master4096, 32);
   await writeFile(path.join(publicDir, 'favicon.ico'), favicon32);
   console.log('ok favicon.ico');
 
   await writeFile(path.join(storeDir, 'ios-app-icon-1024.png'), master1024);
   console.log('ok store/ios-app-icon-1024.png');
 
-  const play512 = await upscaleFromMaster(master2048, 512);
+  const play512 = await upscaleFromMaster(master4096, 512);
   await writeFile(path.join(storeDir, 'google-play-icon-512.png'), play512);
   console.log('ok store/google-play-icon-512.png');
 
-  // Adaptive Android: full button as opaque layers (no separate foreground mark)
   await writeFile(path.join(storeDir, 'android-adaptive-background-512.png'), play512);
   const transparentFg = await sharp({
     create: {
@@ -120,9 +162,17 @@ async function main() {
       channels: 4,
       background: { r: 0, g: 0, b: 0, alpha: 0 }
     }
-  }).png().toBuffer();
+  })
+    .png()
+    .toBuffer();
   await writeFile(path.join(storeDir, 'android-adaptive-foreground-512.png'), transparentFg);
   console.log('ok store/android-adaptive-*-512.png');
+
+  try {
+    await unlink(path.join(brandDir, '_test-crop.png'));
+  } catch {
+    // optional cleanup
+  }
 }
 
 main().catch((error) => {

@@ -10,9 +10,9 @@ type SanovaLogoProps = {
   onClick?: () => void;
 };
 
-/** Raster app button — single source asset at max quality. */
+/** LOGO SANOVA — raster app button at max quality (1024 master, 4096 source). */
 const asset = {
-  src: '/brand/sanova-app-button-1024.png',
+  src: '/brand/logo-sanova.png',
   width: 1024,
   height: 1024,
   alt: 'Sanova'
