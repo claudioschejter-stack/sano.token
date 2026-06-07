@@ -13,6 +13,8 @@ import {
 } from './erc4626LaunchGate';
 import { getMorphoPostDeployIssues, getTreasuryReadinessIssues } from './erc4626MorphoGate';
 import type { Erc4626SavePipelineResult } from './erc4626LaunchSave';
+import { autoCollateralProtocolsForAsset } from './emissionProfiles';
+import type { CollateralProtocol } from './launchTypes';
 
 export const ERC4626_LAUNCH_PIPELINE = 'ERC4626_LAUNCH';
 
@@ -52,17 +54,33 @@ export async function enqueueErc4626DeployPipeline(
   return { jobIds, async: true };
 }
 
-async function ensureMorphoCollateralRegistered(projectId: string): Promise<AdminAssetRecord | null> {
+function collateralProtocolsNeedingRegistration(
+  asset: AdminAssetRecord,
+  protocols: CollateralProtocol[]
+): CollateralProtocol[] {
+  const existing = new Map(asset.collateralTargets.map((target) => [target.protocol, target]));
+
+  return protocols.filter((protocol) => {
+    const target = existing.get(protocol);
+    if (protocol === 'MORPHO') {
+      return !(target?.status === 'REGISTERED' && target.oracleAddress);
+    }
+    return target?.status !== 'REGISTERED' && target?.status !== 'SUBMITTED';
+  });
+}
+
+async function ensureAutoCollateralRegistered(projectId: string): Promise<AdminAssetRecord | null> {
   const asset = await getAdminAsset(projectId);
   if (!asset) return null;
 
-  const morphoTarget = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
-  if (morphoTarget?.status === 'REGISTERED' && morphoTarget.oracleAddress) {
+  const protocols = autoCollateralProtocolsForAsset(asset);
+  const pending = collateralProtocolsNeedingRegistration(asset, protocols);
+  if (!pending.length) {
     return asset;
   }
 
   const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
-  const summary = await registerProjectCollateral(projectId, ['MORPHO'], { skipLock: true });
+  const summary = await registerProjectCollateral(projectId, pending, { skipLock: true });
   return summary?.updatedAsset ?? (await getAdminAsset(projectId));
 }
 
@@ -76,7 +94,7 @@ export async function completeErc4626LaunchPostDeploy(
     return asset ? { ok: true, asset } : { ok: false, issues: [{ code: 'DEPLOY_FAILED', detail: 'NOT_FOUND' }] };
   }
 
-  asset = (await ensureMorphoCollateralRegistered(projectId)) ?? asset;
+  asset = (await ensureAutoCollateralRegistered(projectId)) ?? asset;
 
   const { repairTreasuryVaultShares } = await import('../blockchain/repairTreasuryVaultShares');
   const treasuryRepair = await repairTreasuryVaultShares(asset);
@@ -133,11 +151,13 @@ export async function chainErc4626PipelineAfterTokenDeploy(
 
   const requestedPublish = Boolean(payload?.requestedPublish);
   const now = new Date();
+  const asset = await getAdminAsset(projectId);
+  const protocols = asset ? autoCollateralProtocolsForAsset(asset) : ['MORPHO'];
 
   await enqueueAutomationJob({
     projectId,
     step: 'COLLATERAL_REGISTER',
-    payload: { pipeline: ERC4626_LAUNCH_PIPELINE, requestedPublish },
+    payload: { pipeline: ERC4626_LAUNCH_PIPELINE, requestedPublish, protocols },
     runAfter: now
   });
   await enqueueAutomationJob({

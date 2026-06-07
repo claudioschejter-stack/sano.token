@@ -252,7 +252,11 @@ async function executeAutomationJob(job: AutomationJobRow) {
 
   if (job.step === 'COLLATERAL_REGISTER') {
     const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
-    return registerProjectCollateral(job.projectId, undefined, { skipLock: true });
+    const rawProtocols = job.payload?.protocols;
+    const protocols = Array.isArray(rawProtocols) ?
+        rawProtocols.filter((value): value is import('./launchTypes').CollateralProtocol => typeof value === 'string')
+      : undefined;
+    return registerProjectCollateral(job.projectId, protocols, { skipLock: true });
   }
 
   if (job.step === 'MORPHO_LIQUIDITY') {

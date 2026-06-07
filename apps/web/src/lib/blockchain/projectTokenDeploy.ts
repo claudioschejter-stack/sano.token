@@ -272,7 +272,8 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
       tokenInstrumentType: asset.tokenInstrumentType,
       tokenName: asset.tokenName ?? asset.title,
       tokenSymbol: asset.tokenSymbol ?? 'RWA',
-      totalSupplyUnits: asset.totalTokens
+      totalSupplyUnits: asset.totalTokens,
+      chainId: asset.chainId
     });
 
     if (result.status === 'DEPLOYED') {

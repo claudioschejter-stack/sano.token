@@ -3,7 +3,8 @@ import type { TokenStandard, TokenInstrumentType, VaultFundingStatus } from '../
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import SanovaAsyncVaultArtifact from './artifacts/SanovaAsyncVault.json';
-import { deployAssetToken as deployThirdwebDemo, resolveChainId } from './deployAssetToken';
+import { deployAssetToken as deployThirdwebDemo } from './deployAssetToken';
+import { resolveProjectDeployChainId } from './projectDeployChain';
 import { isVaultTokenStandard } from '../admin/vaultStandards';
 import { resolveChainRpcUrl } from './explorerUrls';
 import { ensureAutomationSignerReady, sendAutomationTx, waitForAutomationTx } from './automationTx';
@@ -19,6 +20,8 @@ export type DeployLaunchTokenInput = {
   tokenSymbol: string;
   totalSupplyUnits: number;
   treasuryAddress?: string;
+  /** When set (from emission profile), deploy uses this chain instead of TOKEN_DEPLOY_CHAIN_ID only. */
+  chainId?: number | null;
 };
 
 function buildOnChainTokenName(name: string, instrumentType?: TokenInstrumentType): string {
@@ -194,7 +197,7 @@ async function fundVaultWithDeployerBalance(input: {
 
 async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<DeployLaunchTokenResult> {
   const privateKey = resolvePrivateKey();
-  const chainId = resolveChainId();
+  const chainId = resolveProjectDeployChainId(input.chainId);
 
   if (!privateKey) {
     return {

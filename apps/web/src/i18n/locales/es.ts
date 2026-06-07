@@ -439,6 +439,23 @@ export const es = {
     fieldYield: 'Yield objetivo (%)',
     fieldTokenName: 'Nombre del token',
     fieldTokenSymbol: 'Símbolo del token',
+    fieldEmissionProfile: 'Tipo de emisión',
+    emissionProfileBaseMorpho: 'Base · ERC-4626 · Morpho (automático)',
+    emissionProfileBaseMorphoDesc:
+      'Emite token + vault ERC-4626 en Base y registra colateral en Morpho al guardar. Ideal para liquidez DeFi en L2.',
+    emissionProfileBaseFull: 'Base · ERC-4626 · Morpho + Centrifuge (automático)',
+    emissionProfileBaseFullDesc:
+      'Emite en Base con vault ERC-4626 y registra Morpho y Centrifuge automáticamente tras el deploy.',
+    emissionProfilePlumeRwa: 'Plume · ERC-7540 · Morpho + Centrifuge (automático)',
+    emissionProfilePlumeRwaDesc:
+      'Emite vault async ERC-7540 en Plume Network y registra Morpho + Centrifuge como colateral RWA institucional.',
+    emissionProfileCustom: 'Personalizado (manual)',
+    emissionProfileCustomDesc: 'Elegí estándar y protocolos de colateral manualmente.',
+    emissionProfileAutoHint:
+      'Al guardar se emiten automáticamente token, vault, registro Morpho y Centrifuge (si aplica) sin pasos extra.',
+    emissionProfileChainLabel: 'Red',
+    emissionChainBase: 'Base (8453)',
+    emissionChainPlume: 'Plume (98866)',
     fieldTokenStandard: 'Estándar de emisión',
     fieldVaultAddress: 'Vault ERC-4626',
     fieldSpvEntity: 'Entidad SPV / fideicomiso',

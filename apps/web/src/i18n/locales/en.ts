@@ -431,6 +431,23 @@ export const en = {
     fieldYield: "Target Yield (%)",
     fieldTokenName: "Token name",
     fieldTokenSymbol: "Token symbol",
+    fieldEmissionProfile: "Emission type",
+    emissionProfileBaseMorpho: "Base · ERC-4626 · Morpho (automatic)",
+    emissionProfileBaseMorphoDesc:
+      "Issues token + ERC-4626 vault on Base and registers Morpho collateral on save. Ideal for DeFi liquidity on L2.",
+    emissionProfileBaseFull: "Base · ERC-4626 · Morpho + Centrifuge (automatic)",
+    emissionProfileBaseFullDesc:
+      "Issues on Base with ERC-4626 vault and auto-registers Morpho and Centrifuge after deploy.",
+    emissionProfilePlumeRwa: "Plume · ERC-7540 · Morpho + Centrifuge (automatic)",
+    emissionProfilePlumeRwaDesc:
+      "Issues async ERC-7540 vault on Plume Network and auto-registers Morpho + Centrifuge as institutional RWA collateral.",
+    emissionProfileCustom: "Custom (manual)",
+    emissionProfileCustomDesc: "Choose token standard and collateral protocols manually.",
+    emissionProfileAutoHint:
+      "Saving auto-issues token, vault, Morpho registration, and Centrifuge (when applicable) with no extra steps.",
+    emissionProfileChainLabel: "Network",
+    emissionChainBase: "Base (8453)",
+    emissionChainPlume: "Plume (98866)",
     fieldTokenStandard: "Emission standard",
     fieldVaultAddress: "Vault ERC-4626",
     fieldSpvEntity: "SPV/trust entity",

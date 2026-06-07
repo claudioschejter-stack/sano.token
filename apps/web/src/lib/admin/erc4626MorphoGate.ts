@@ -59,7 +59,7 @@ function toMorphoProjectContext(
     title: existing?.title ?? '',
     tokenName: existing?.tokenName ?? null,
     tokenSymbol: existing?.tokenSymbol ?? null,
-    tokenStandard: 'ERC4626',
+    tokenStandard: existing?.tokenStandard ?? 'ERC4626',
     tokenInstrumentType: existing?.tokenInstrumentType ?? 'EQUITY',
     maturityDate: existing?.maturityDate ?? null,
     tokenDeployStatus: existing?.tokenDeployStatus ?? 'NOT_REQUESTED',

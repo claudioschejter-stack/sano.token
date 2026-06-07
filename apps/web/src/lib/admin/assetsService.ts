@@ -109,6 +109,7 @@ export type CreateAdminAssetInput = {
   collateralProtocols?: CollateralProtocol[];
   collateralTargets?: CollateralTarget[];
   deployToken?: boolean;
+  chainId?: number | null;
 };
 
 export type UpdateAdminAssetInput = {
@@ -705,7 +706,7 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       tokenDeployStatus: input.deployToken ? 'PENDING' : 'NOT_REQUESTED',
       contractAddress: null,
       vaultAddress: null,
-      chainId: null,
+      chainId: input.chainId ?? null,
       totalTokens: input.totalTokens,
       pricePerToken: input.pricePerToken,
       spvEntityName: input.spvEntityName?.trim() || null,
@@ -789,6 +790,7 @@ export async function createAdminAsset(input: CreateAdminAssetInput): Promise<Ad
       targetYield: input.targetYield,
       fiscalRegime: input.fiscalRegime ?? 'LEY_19640',
       jurisdiction: input.jurisdiction ?? null,
+      chainId: input.chainId ?? null,
       isActive: input.isActive ?? false
     },
     include: projectInclude

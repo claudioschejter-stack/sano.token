@@ -39,6 +39,14 @@ import {
   type LaunchGateIssueCode
 } from '../../lib/admin/erc4626LaunchGate';
 import { validateErc4626MorphoFormRequirements } from '../../lib/admin/erc4626MorphoGate';
+import {
+  AUTOMATIC_EMISSION_PROFILE_IDS,
+  collateralFlagsFromProtocols,
+  DEFAULT_EMISSION_PROFILE_ID,
+  getEmissionProfile,
+  inferEmissionProfileFromAsset,
+  type EmissionProfileId
+} from '../../lib/admin/emissionProfiles';
 import { isVaultTokenStandard } from '../../lib/admin/vaultStandards';
 import { AdminGate } from './AdminGate';
 
@@ -74,6 +82,8 @@ type FormState = {
   tokenName: string;
   tokenSymbol: string;
   tokenStandard: TokenStandard;
+  emissionProfile: EmissionProfileId;
+  chainId: string;
   spvEntityName: string;
   navOracleUrl: string;
   centrifugeChecklist: CentrifugeChecklist;
@@ -99,6 +109,20 @@ type FormState = {
   reelUrl: string;
 };
 
+function formPatchFromEmissionProfile(profileId: Exclude<EmissionProfileId, 'CUSTOM'>): Partial<FormState> {
+  const profile = getEmissionProfile(profileId);
+  if (!profile) {
+    return {};
+  }
+
+  return {
+    emissionProfile: profileId,
+    tokenStandard: profile.tokenStandard,
+    chainId: String(profile.chainId),
+    ...collateralFlagsFromProtocols(profile.collateralProtocols)
+  };
+}
+
 const EMPTY_FORM: FormState = {
   title: '',
   description: '',
@@ -114,7 +138,9 @@ const EMPTY_FORM: FormState = {
   equitySharePercent: '100',
   tokenName: '',
   tokenSymbol: '',
-  tokenStandard: 'ERC4626',
+  tokenStandard: 'ERC7540',
+  emissionProfile: DEFAULT_EMISSION_PROFILE_ID,
+  chainId: String(getEmissionProfile(DEFAULT_EMISSION_PROFILE_ID)!.chainId),
   spvEntityName: '',
   navOracleUrl: '',
   centrifugeChecklist: { ...EMPTY_CENTRIFUGE_CHECKLIST },
@@ -123,7 +149,7 @@ const EMPTY_FORM: FormState = {
   contractAddress: '',
   isActive: false,
   deployToken: true,
-  collateralCentrifuge: false,
+  collateralCentrifuge: true,
   collateralSky: false,
   collateralMorpho: true,
   collateralAaveHorizon: false,
@@ -165,6 +191,8 @@ function assetToForm(asset: AdminAssetRecord): FormState {
     tokenName: asset.tokenName ?? '',
     tokenSymbol: asset.tokenSymbol ?? '',
     tokenStandard: asset.tokenStandard,
+    emissionProfile: inferEmissionProfileFromAsset(asset),
+    chainId: asset.chainId != null ? String(asset.chainId) : '',
     spvEntityName: asset.spvEntityName ?? '',
     navOracleUrl: asset.navOracleUrl ?? '',
     centrifugeChecklist: asset.centrifugeChecklist,
@@ -505,15 +533,38 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       .catch(() => setError(l.saveError));
   }
 
-  function applyInstrumentDefaults(type: TokenInstrumentType) {
-    const defaults = instrumentTypeDefaults(type);
+  function applyEmissionProfile(profileId: EmissionProfileId) {
+    if (profileId === 'CUSTOM') {
+      setForm((current) => ({ ...current, emissionProfile: 'CUSTOM' }));
+      return;
+    }
+
     setForm((current) => ({
       ...current,
-      tokenInstrumentType: type,
-      tokenStandard: defaults.tokenStandard,
-      maturityDate: type === 'DEBT' ? current.maturityDate : '',
-      equitySharePercent: type === 'EQUITY' ? current.equitySharePercent || '100' : ''
+      ...formPatchFromEmissionProfile(profileId)
     }));
+  }
+
+  function applyInstrumentDefaults(type: TokenInstrumentType) {
+    setForm((current) => {
+      const base: FormState = {
+        ...current,
+        tokenInstrumentType: type,
+        maturityDate: type === 'DEBT' ? current.maturityDate : '',
+        equitySharePercent: type === 'EQUITY' ? current.equitySharePercent || '100' : ''
+      };
+
+      if (current.emissionProfile !== 'CUSTOM') {
+        return { ...base, ...formPatchFromEmissionProfile(current.emissionProfile) };
+      }
+
+      const defaults = instrumentTypeDefaults(type);
+      return {
+        ...base,
+        tokenStandard: defaults.tokenStandard,
+        ...collateralFlagsFromProtocols(defaults.collateralProtocols)
+      };
+    });
   }
 
   async function persistMediaGallery(gallery: LaunchMediaItem[]) {
@@ -660,6 +711,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       tokenName: form.tokenName || form.title,
       tokenSymbol: form.tokenSymbol,
       tokenStandard: form.tokenStandard,
+      chainId: form.chainId ? Number.parseInt(form.chainId, 10) : null,
       tokenInstrumentType: form.tokenInstrumentType,
       maturityDate: form.tokenInstrumentType === 'DEBT' && form.maturityDate ? form.maturityDate : null,
       equitySharePercent:
@@ -701,7 +753,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
         tokenSymbol: form.tokenSymbol,
         mediaGallery: form.mediaGallery,
         isActive: wantsPublish,
-        collateralMorpho: true
+        collateralMorpho: form.collateralMorpho || isVaultTokenStandard(form.tokenStandard)
       }),
       validateErc4626MorphoFormRequirements({
         totalTokens: Number.parseInt(form.totalTokens, 10),
@@ -710,7 +762,8 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
         jurisdiction: form.jurisdiction,
         contracts: form.contracts,
         centrifugeChecklist: checklist,
-        collateralMorpho: true
+        collateralMorpho: form.collateralMorpho || isVaultTokenStandard(form.tokenStandard),
+        chainId: form.chainId ? Number.parseInt(form.chainId, 10) : null
       })
     );
   }
@@ -1281,31 +1334,67 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                   <input value={form.tokenSymbol} onChange={(e) => setForm({ ...form, tokenSymbol: e.target.value.toUpperCase() })} placeholder="RWA" className={inputClass} />
                 </label>
                 <label className="md:col-span-2 block text-sm">
-                  <span className="text-terminal-muted">{l.fieldTokenStandard}</span>
+                  <span className="text-terminal-muted">{l.fieldEmissionProfile}</span>
                   <select
-                    value={form.tokenStandard}
+                    value={form.emissionProfile === 'CUSTOM' ? '' : form.emissionProfile}
                     onChange={(e) => {
-                      const tokenStandard = e.target.value as TokenStandard;
-                      setForm({
-                        ...form,
-                        tokenStandard,
-                        collateralMorpho: isVaultTokenStandard(tokenStandard) ? true : form.collateralMorpho
-                      });
+                      const value = e.target.value as EmissionProfileId | '';
+                      applyEmissionProfile(value || 'CUSTOM');
                     }}
                     className={inputClass}
                   >
-                    <option value="SANOVA_KYC">{l.tokenStandardSanova}</option>
-                    <option value="ERC4626">{l.tokenStandardErc4626}</option>
-                    <option value="ERC7540">{l.tokenStandardErc7540}</option>
-                    <option value="THIRDWEB_DEMO">{l.tokenStandardThirdweb}</option>
+                    {AUTOMATIC_EMISSION_PROFILE_IDS.map((profileId) => (
+                      <option key={profileId} value={profileId}>
+                        {l[getEmissionProfile(profileId)!.labelKey as keyof typeof l] as string}
+                      </option>
+                    ))}
+                    <option value="">{l.emissionProfileCustom}</option>
                   </select>
-                  <p className="mt-1 text-xs text-terminal-muted">
-                    {form.tokenStandard === 'SANOVA_KYC' && l.tokenStandardSanovaDesc}
-                    {isVaultTokenStandard(form.tokenStandard) && l.tokenStandardErc4626Desc}
-                    {form.tokenStandard === 'ERC7540' && l.tokenStandardErc7540Desc}
-                    {form.tokenStandard === 'THIRDWEB_DEMO' && l.tokenStandardThirdwebDesc}
-                  </p>
+                  {form.emissionProfile !== 'CUSTOM' && getEmissionProfile(form.emissionProfile) ? (
+                    <>
+                      <p className="mt-1 text-xs text-terminal-muted">
+                        {l[getEmissionProfile(form.emissionProfile)!.descriptionKey as keyof typeof l] as string}
+                      </p>
+                      <p className="mt-1 text-xs text-terminal-success">{l.emissionProfileAutoHint}</p>
+                      <p className="mt-1 text-xs text-terminal-muted">
+                        {l.emissionProfileChainLabel}:{' '}
+                        {l[getEmissionProfile(form.emissionProfile)!.chainLabelKey as keyof typeof l] as string}
+                        {' · '}
+                        {form.tokenStandard}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-1 text-xs text-terminal-muted">{l.emissionProfileCustomDesc}</p>
+                  )}
                 </label>
+                {form.emissionProfile === 'CUSTOM' ? (
+                  <label className="md:col-span-2 block text-sm">
+                    <span className="text-terminal-muted">{l.fieldTokenStandard}</span>
+                    <select
+                      value={form.tokenStandard}
+                      onChange={(e) => {
+                        const tokenStandard = e.target.value as TokenStandard;
+                        setForm({
+                          ...form,
+                          tokenStandard,
+                          collateralMorpho: isVaultTokenStandard(tokenStandard) ? true : form.collateralMorpho
+                        });
+                      }}
+                      className={inputClass}
+                    >
+                      <option value="SANOVA_KYC">{l.tokenStandardSanova}</option>
+                      <option value="ERC4626">{l.tokenStandardErc4626}</option>
+                      <option value="ERC7540">{l.tokenStandardErc7540}</option>
+                      <option value="THIRDWEB_DEMO">{l.tokenStandardThirdweb}</option>
+                    </select>
+                    <p className="mt-1 text-xs text-terminal-muted">
+                      {form.tokenStandard === 'SANOVA_KYC' && l.tokenStandardSanovaDesc}
+                      {form.tokenStandard === 'ERC4626' && l.tokenStandardErc4626Desc}
+                      {form.tokenStandard === 'ERC7540' && l.tokenStandardErc7540Desc}
+                      {form.tokenStandard === 'THIRDWEB_DEMO' && l.tokenStandardThirdwebDesc}
+                    </p>
+                  </label>
+                ) : null}
               </div>
             </section>
 
@@ -1642,6 +1731,15 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
               <div className="mt-4 space-y-3">
                 {COLLATERAL_FORM_KEYS.map(({ key, protocol, label }) => {
                   const target = collateralTargetFor(protocol);
+                  const autoProfile =
+                    form.emissionProfile !== 'CUSTOM' ? getEmissionProfile(form.emissionProfile) : null;
+                  const profileLocksProtocol = Boolean(
+                    autoProfile?.collateralProtocols.includes(protocol)
+                  );
+                  const checked =
+                    profileLocksProtocol || (isErc4626Launch && protocol === 'MORPHO') ?
+                      true
+                    : Boolean(form[key]);
                   return (
                     <div
                       key={key}
@@ -1650,8 +1748,8 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                       <label className="flex items-center gap-2 text-sm text-terminal-text">
                         <input
                           type="checkbox"
-                          checked={isErc4626Launch && protocol === 'MORPHO' ? true : Boolean(form[key])}
-                          disabled={isErc4626Launch && protocol === 'MORPHO'}
+                          checked={checked}
+                          disabled={profileLocksProtocol || (isErc4626Launch && protocol === 'MORPHO')}
                           onChange={(e) => setForm({ ...form, [key]: e.target.checked })}
                         />
                         <span className="font-medium">{label}</span>

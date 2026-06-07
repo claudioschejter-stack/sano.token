@@ -1,7 +1,7 @@
 import type { AdminAssetRecord, CreateAdminAssetInput, UpdateAdminAssetInput } from './assetsService';
 import { getAdminAsset, updateAdminAsset } from './assetsService';
 import { executeProjectTokenDeploy } from '../blockchain/projectTokenDeploy';
-import type { CollateralProtocol } from './launchTypes';
+import { ensureVaultCollateralProtocols } from './emissionProfiles';
 import {
   enqueueErc4626DeployPipeline,
   shouldUseAsyncErc4626Deploy,
@@ -20,12 +20,6 @@ import {
   validateErc4626LaunchForm,
   type LaunchGateIssue
 } from './erc4626LaunchGate';
-
-function ensureMorphoCollateralProtocols(protocols: CollateralProtocol[] | undefined): CollateralProtocol[] {
-  const set = new Set(protocols ?? []);
-  set.add('MORPHO');
-  return Array.from(set);
-}
 
 function formInputFromBody(
   body: CreateAdminAssetInput | UpdateAdminAssetInput,
@@ -65,7 +59,7 @@ function morphoFormInputFromBody(
     jurisdiction: body.jurisdiction ?? existing?.jurisdiction,
     contracts: body.contracts ?? existing?.contracts,
     centrifugeChecklist: body.centrifugeChecklist ?? existing?.centrifugeChecklist,
-    chainId: existing?.chainId,
+    chainId: 'chainId' in body ? body.chainId : existing?.chainId,
     collateralMorpho:
       collateralProtocols?.includes('MORPHO') ??
       existing?.collateralTargets.some((t) => t.protocol === 'MORPHO') ??
@@ -172,7 +166,10 @@ export function sanitizeErc4626UpdateBody(
 
   return {
     ...stripped,
-    collateralProtocols: ensureMorphoCollateralProtocols(stripped.collateralProtocols)
+    collateralProtocols: ensureVaultCollateralProtocols(
+      stripped.collateralProtocols,
+      standard
+    )
   };
 }
 
@@ -183,7 +180,7 @@ export function sanitizeErc4626CreateBody(body: CreateAdminAssetInput): CreateAd
 
   return {
     ...stripClientOnChainFieldsForErc4626(body, body.tokenStandard),
-    collateralProtocols: ensureMorphoCollateralProtocols(body.collateralProtocols),
+    collateralProtocols: ensureVaultCollateralProtocols(body.collateralProtocols, body.tokenStandard),
     deployToken: true,
     isActive: false
   } as CreateAdminAssetInput;
