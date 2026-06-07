@@ -11,8 +11,8 @@ type SanovaLogoProps = {
 };
 
 const assets = {
-  light: { src: '/brand/sanova-logo.svg', width: 200, height: 50, alt: 'Sanova Global' },
-  dark: { src: '/brand/sanova-logo-dark.svg', width: 200, height: 50, alt: 'Sanova Global' },
+  light: { src: '/brand/sanova-logo.svg', width: 220, height: 40, alt: 'Sanova Global' },
+  dark: { src: '/brand/sanova-logo-dark.svg', width: 220, height: 40, alt: 'Sanova Global' },
   mark: { src: '/brand/sanova-isotipo.svg', width: 40, height: 40, alt: 'Sanova' }
 } as const;
 

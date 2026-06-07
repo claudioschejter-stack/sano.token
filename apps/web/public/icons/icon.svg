@@ -1,23 +1,47 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sanova">
   <defs>
-    <linearGradient id="sanova-bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#06101F"/>
-      <stop offset="0.5" stop-color="#0B2240"/>
-      <stop offset="1" stop-color="#0F3D6E"/>
+    <linearGradient id="sanova-bg" x1="256" y1="0" x2="256" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#22A9E5"/>
+      <stop offset="0.45" stop-color="#1278BE"/>
+      <stop offset="1" stop-color="#0B2240"/>
     </linearGradient>
     <linearGradient id="sanova-symbol" x1="120" y1="392" x2="420" y2="92" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#06B6D4"/>
-      <stop offset="0.42" stop-color="#38BDF8"/>
+      <stop offset="0" stop-color="#0891B2"/>
+      <stop offset="0.28" stop-color="#06B6D4"/>
+      <stop offset="0.58" stop-color="#38BDF8"/>
       <stop offset="1" stop-color="#E0F2FE"/>
     </linearGradient>
+    <filter id="sanova-shadow" x="-12%" y="-12%" width="124%" height="124%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#042033" flood-opacity="0.28"/>
+    </filter>
   </defs>
   <rect width="512" height="512" fill="url(#sanova-bg)"/>
-  <g transform="translate(96 96) scale(1)">
-    <g fill="url(#sanova-symbol)">
-      <path d="M72 228c0-34 30-52 58-52h34v36h-28c-12 0-20 7-20 16s8 16 20 16h42v36H130c-40 0-58-22-58-36z"/>
-      <path d="M142 148h76v32h-76z"/>
-      <path d="M208 92c34 0 52 22 52 36s-18 36-52 36h-34v-36h26c12 0 20-7 20-16s-8-16-20-16h-22l34-34 28 28-18 18h-12z"/>
-      <path d="M252 56l44 44-24 24-12-12v12h-32V56z"/>
-    </g>
+  <g transform="translate(96 96) scale(1)" filter="url(#sanova-shadow)">
+    <path
+      fill="none"
+      stroke="url(#sanova-symbol)"
+      stroke-width="42"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      d="M 86 250
+         C 66 250, 52 264, 54 282
+         C 56 300, 74 312, 94 302
+         C 110 294, 114 276, 102 262
+         C 92 250, 104 242, 120 248
+         L 156 260
+         C 190 274, 218 258, 220 228
+         C 222 198, 196 174, 158 168
+         C 120 162, 92 180, 94 208
+         C 96 236, 124 252, 158 256
+         L 192 258
+         C 224 260, 248 238, 246 208
+         C 244 178, 218 156, 182 152
+         L 206 128
+         L 262 72"
+    />
+    <path
+      fill="url(#sanova-symbol)"
+      d="M 262 72 L 286 48 L 248 58 L 230 78 Z"
+    />
   </g>
 </svg>
