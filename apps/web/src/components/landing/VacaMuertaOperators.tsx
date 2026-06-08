@@ -27,7 +27,7 @@ export function VacaMuertaOperators() {
 
   return (
     <section
-      className="relative overflow-x-hidden border-b border-slate-200 bg-gradient-to-b from-slate-50 via-white to-slate-50"
+      className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-b from-slate-50 via-white to-slate-50"
       aria-labelledby="vaca-muerta-operators-title"
     >
       <div
@@ -37,7 +37,7 @@ export function VacaMuertaOperators() {
             'radial-gradient(circle at 15% 0%, rgba(59,130,246,0.08) 0%, transparent 42%), radial-gradient(circle at 85% 100%, rgba(249,115,22,0.06) 0%, transparent 38%)'
         }}
       />
-      <div className="relative mx-auto w-full max-w-7xl overflow-hidden px-4 py-16 sm:px-6 md:px-6 md:py-16 lg:py-20">
+      <div className="relative mx-auto w-full max-w-7xl px-4 py-12 md:px-6 md:py-16 lg:py-20">
         <div className="mx-auto w-full max-w-3xl text-center">
           <h2
             id="vaca-muerta-operators-title"
@@ -52,7 +52,7 @@ export function VacaMuertaOperators() {
           ) : null}
         </div>
 
-        <div className="mt-12 w-full max-w-full overflow-hidden sm:mt-14">
+        <div className="mt-12 w-full sm:mt-14">
           <OperatorLogoMarquee
             logos={marqueeLogos}
             durationSeconds={80}

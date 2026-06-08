@@ -57,9 +57,9 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
   }, [checklist?.operational, role]);
 
   return (
-    <section id="properties" className="overflow-x-hidden bg-slate-50 py-16 md:py-20">
-      <div className="mx-auto w-full max-w-7xl overflow-hidden px-4 sm:px-6 md:px-6">
-        <div className="flex w-full max-w-full flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <section id="properties" className="bg-slate-50 py-16 md:py-20">
+      <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
+        <div className="flex w-full flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="w-full">
             <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">
               <BrandGradientText>{l.featured.title}</BrandGradientText>
@@ -68,10 +68,10 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
               <BrandGradientText>{l.featured.subtitle}</BrandGradientText>
             </p>
           </div>
-          <MarketplaceCtaLink className="w-full sm:w-auto md:shrink-0">{l.featured.viewAll}</MarketplaceCtaLink>
+          <MarketplaceCtaLink className="md:shrink-0">{l.featured.viewAll}</MarketplaceCtaLink>
         </div>
 
-        <div className="mt-8 grid w-full max-w-full grid-cols-1 items-stretch gap-10 overflow-hidden md:mt-10 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 items-stretch gap-6 md:mt-10 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
           {featuredListings.map((listing) => (
             <PropertyCard
               key={listing.id}

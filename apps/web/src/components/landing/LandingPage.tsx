@@ -29,12 +29,12 @@ type LandingPageProps = {
 
 function HeroActions({ primary, secondary, trustLine }: { primary: string; secondary: string; trustLine: string }) {
   return (
-    <div className="w-full max-w-full overflow-hidden">
-      <div className="flex w-full max-w-full flex-col gap-4 sm:flex-row md:flex-wrap">
-        <MarketplaceCtaLink className="w-full sm:w-auto">{primary}</MarketplaceCtaLink>
+    <div className="w-full">
+      <div className="flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:gap-4">
+        <MarketplaceCtaLink>{primary}</MarketplaceCtaLink>
         <a
           href="#how-it-works"
-          className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/30 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 sm:w-auto md:text-sm"
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/30 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 md:w-auto md:text-sm"
         >
           {secondary}
         </a>
@@ -52,7 +52,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
     <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
       <LandingHeader showLanguageSelector />
 
-      <section className="relative overflow-x-hidden bg-gradient-to-br from-[#0A0E17] via-[#111827] to-[#1e3a5f] text-white">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#0A0E17] via-[#111827] to-[#1e3a5f] text-white">
         <div
           className="pointer-events-none absolute inset-0 opacity-30"
           style={{
@@ -60,8 +60,8 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
               'radial-gradient(circle at 20% 20%, #3B82F6 0%, transparent 40%), radial-gradient(circle at 80% 60%, #F97316 0%, transparent 35%)'
           }}
         />
-        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 overflow-hidden px-4 py-16 sm:gap-10 sm:px-6 lg:grid-cols-2 lg:items-start lg:gap-10 lg:pb-16 lg:pt-[0.5cm] xl:gap-12">
-          <div className="flex w-full max-w-full flex-col justify-start overflow-hidden lg:max-w-xl lg:pr-2 xl:max-w-[34rem]">
+        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 pb-12 pt-[0.5cm] sm:gap-10 sm:px-6 sm:pb-14 lg:grid-cols-2 lg:items-start lg:gap-10 lg:pb-16 xl:gap-12">
+          <div className="flex w-full flex-col justify-start lg:max-w-xl lg:pr-2 xl:max-w-[34rem]">
             <p className="text-xs font-semibold uppercase tracking-widest text-blue-300 sm:text-sm">
               {l.hero.eyebrow}
             </p>
@@ -118,7 +118,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
 
       <section
         id="how-it-works"
-        className="how-it-works-section mx-auto w-full max-w-7xl overflow-x-hidden px-4 py-16 sm:px-6 md:px-6 md:py-20"
+        className="how-it-works-section mx-auto w-full max-w-7xl overflow-x-hidden px-3 sm:px-4 sm:py-16 md:px-6 md:py-20"
       >
         <div className="how-it-works-intro mx-auto max-w-2xl text-center">
           <h2 className="text-balance font-bold text-slate-900 sm:text-3xl md:text-4xl">
@@ -128,7 +128,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
             {l.howItWorks.subtitle}
           </p>
         </div>
-        <div className="how-it-works-grid mt-10 grid min-w-0 max-w-full grid-cols-1 gap-10 overflow-hidden md:mt-14 md:grid-cols-2 md:gap-8 xl:grid-cols-4">
+        <div className="how-it-works-grid mt-10 grid min-w-0 grid-cols-1 gap-6 md:mt-14 md:grid-cols-2 md:gap-8 xl:grid-cols-4">
           {[
             { icon: UserCheck, title: l.howItWorks.step1Title, desc: l.howItWorks.step1Desc },
             { icon: Building2, title: l.howItWorks.step2Title, desc: l.howItWorks.step2Desc },
@@ -160,11 +160,11 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
 
       <FeaturedPropertiesSection initialFeed={initialFeed} />
 
-      <section className="mx-auto w-full max-w-7xl overflow-x-hidden px-4 py-16 sm:px-6 md:px-6 md:py-20">
+      <section className="mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-20">
         <h2 className="text-center text-3xl font-bold text-slate-900 md:text-4xl">
           <BrandGradientText>{l.benefits.title}</BrandGradientText>
         </h2>
-        <div className="mt-10 grid w-full max-w-full grid-cols-1 gap-10 overflow-hidden md:mt-12 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 gap-6 md:mt-12 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
           {[
             { icon: CircleDollarSign, title: l.benefits.incomeTitle, desc: l.benefits.incomeDesc },
             { icon: TrendingUp, title: l.benefits.liquidityTitle, desc: l.benefits.liquidityDesc },
@@ -185,18 +185,18 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
         </div>
       </section>
 
-      <section className="overflow-x-hidden bg-gradient-to-r from-blue-600 to-blue-800 py-16 text-white md:py-16">
-        <div className="mx-auto w-full max-w-3xl overflow-hidden px-4 text-center sm:px-6 md:px-6">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-12 text-white md:py-16">
+        <div className="mx-auto w-full max-w-3xl px-4 text-center md:px-6">
           <h2 className="text-3xl font-bold md:text-4xl">
             <BrandGradientText glow>{l.cta.title}</BrandGradientText>
           </h2>
           <p className="mt-4 text-base text-blue-100 md:text-lg">{l.cta.subtitle}</p>
-          <MarketplaceCtaLink className="mt-8 w-full sm:w-auto">{l.cta.button}</MarketplaceCtaLink>
+          <MarketplaceCtaLink className="mt-8">{l.cta.button}</MarketplaceCtaLink>
         </div>
       </section>
 
-      <footer className="overflow-x-hidden border-t border-slate-200 bg-slate-900 px-4 pb-10 text-slate-400 sm:px-6 md:px-6 md:pb-12">
-        <div className="mx-auto w-full max-w-7xl overflow-hidden">
+      <footer className="border-t border-slate-200 bg-slate-900 px-4 pb-10 text-slate-400 md:px-6 md:pb-12">
+        <div className="mx-auto w-full max-w-7xl">
           <nav
             className="mt-8 flex flex-col gap-2 text-sm text-slate-300 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-x-5"
             aria-label={l.footer.navAria}
