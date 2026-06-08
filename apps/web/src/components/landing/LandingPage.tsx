@@ -28,7 +28,7 @@ type LandingPageProps = {
 
 function HeroActions({ primary, secondary, trustLine }: { primary: string; secondary: string; trustLine: string }) {
   return (
-    <div className="w-full">
+    <div className="w-full translate-y-[2mm]">
       <div className="flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:gap-4">
         <MarketplaceCtaLink>{primary}</MarketplaceCtaLink>
         <a
