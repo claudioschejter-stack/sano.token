@@ -14,13 +14,11 @@ export function LanguageDropdown({ variant = 'light', className = '' }: Language
   const t = useTranslation();
 
   const labelClass =
-    variant === 'light'
-      ? 'text-slate-600'
-      : 'text-[10px] font-mono uppercase tracking-widest text-slate-400';
+    variant === 'light' ? 'text-slate-600' : 'text-terminal-muted';
   const selectClass =
     variant === 'light'
       ? 'border-slate-300 bg-white text-slate-900 focus:border-blue-500 focus:ring-blue-500'
-      : 'border-white/10 bg-white/5 text-white font-light transition-all duration-300 focus:border-blue-500/50 focus:bg-white/10 focus:ring-0';
+      : 'border-terminal-border bg-terminal-card text-terminal-text focus:border-terminal-primary focus:ring-terminal-primary';
 
   return (
     <label

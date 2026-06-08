@@ -61,10 +61,7 @@ export function LoginForm({
   return (
     <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
       <div>
-        <label
-          htmlFor="access-email"
-          className="mb-1.5 block text-[10px] font-mono uppercase tracking-widest text-slate-400"
-        >
+        <label htmlFor="access-email" className="mb-1.5 block text-sm font-medium text-slate-700">
           {t.access.emailLabel}
         </label>
         <input
@@ -75,7 +72,7 @@ export function LoginForm({
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 font-light text-white outline-none transition-all duration-300 placeholder:text-slate-500 focus:border-blue-500/50 focus:bg-white/10 focus:ring-0"
+          className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           placeholder={t.access.emailPlaceholder}
         />
       </div>
@@ -100,7 +97,7 @@ export function LoginForm({
       <button
         type="submit"
         disabled={loading}
-        className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-500 hover:shadow-[0_0_20px_rgba(0,145,255,0.3)] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+        className="flex min-h-12 w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? t.access.signingIn : t.access.signInButton}
       </button>

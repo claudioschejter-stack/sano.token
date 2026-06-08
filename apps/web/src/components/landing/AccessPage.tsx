@@ -146,8 +146,8 @@ function AccessPageContent() {
           </p>
         ) : null}
 
-        <article className="mt-10 flex w-full flex-col rounded-2xl border border-white/10 bg-[#151C2C]/40 p-6 shadow-2xl backdrop-blur-md md:p-8">
-          <h2 className="text-xl font-bold text-white">{a.loginTitle}</h2>
+        <article className="mt-10 flex w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <h2 className="text-xl font-bold text-slate-900">{a.loginTitle}</h2>
 
           <div className="mt-6">
             <LoginForm
