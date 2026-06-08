@@ -86,7 +86,7 @@ function HeroImageMobile({
           sizes="100vw"
         />
       </div>
-      <div className="absolute bottom-0 right-0 z-10 translate-y-[5mm] rounded-lg border border-terminal-border bg-terminal-bg/90 px-3 py-2 text-center backdrop-blur-sm">
+      <div className="absolute bottom-0 right-0 z-10 translate-x-[2mm] translate-y-[5mm] rounded-lg border border-terminal-border bg-terminal-bg/90 px-3 py-2 text-center backdrop-blur-sm">
         <p className="text-[10px] text-terminal-muted sm:text-xs">{yieldLabel}</p>
         <p className="font-mono text-lg font-bold leading-tight text-terminal-success sm:text-xl">
           {yieldValue}
