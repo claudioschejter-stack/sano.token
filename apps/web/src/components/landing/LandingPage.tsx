@@ -14,7 +14,6 @@ import {
 import { useTranslation } from '../../i18n/LocaleProvider';
 
 const LANDING_HERO_IMAGE = '/images/landing-hero-energy-yields.webp';
-import { BrandGradientText } from '../brand/BrandGradientText';
 import { LandingHeader } from './LandingHeader';
 import { HeroSubtitle } from './HeroSubtitle';
 import { FeaturedPropertiesSection } from './FeaturedPropertiesSection';
@@ -68,7 +67,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
             <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight sm:mt-3 md:text-4xl lg:text-5xl xl:text-6xl">
               {l.hero.title.split('\n').map((line) => (
                 <span key={line} className="block last:text-blue-200">
-                  <BrandGradientText glow>{line}</BrandGradientText>
+                  {line}
                 </span>
               ))}
             </h1>
@@ -122,7 +121,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
       >
         <div className="how-it-works-intro mx-auto max-w-2xl text-center">
           <h2 className="text-balance font-bold text-slate-900 sm:text-3xl md:text-4xl">
-            <BrandGradientText>{l.howItWorks.title}</BrandGradientText>
+            {l.howItWorks.title}
           </h2>
           <p className="text-pretty text-slate-600 sm:mt-4 sm:text-base md:text-lg">
             {l.howItWorks.subtitle}
@@ -161,9 +160,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
       <FeaturedPropertiesSection initialFeed={initialFeed} />
 
       <section className="mx-auto w-full max-w-7xl px-4 py-16 md:px-6 md:py-20">
-        <h2 className="text-center text-3xl font-bold text-slate-900 md:text-4xl">
-          <BrandGradientText>{l.benefits.title}</BrandGradientText>
-        </h2>
+        <h2 className="text-center text-3xl font-bold text-slate-900 md:text-4xl">{l.benefits.title}</h2>
         <div className="mt-10 grid grid-cols-1 gap-6 md:mt-12 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
           {[
             { icon: CircleDollarSign, title: l.benefits.incomeTitle, desc: l.benefits.incomeDesc },
@@ -187,9 +184,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
 
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-12 text-white md:py-16">
         <div className="mx-auto w-full max-w-3xl px-4 text-center md:px-6">
-          <h2 className="text-3xl font-bold md:text-4xl">
-            <BrandGradientText glow>{l.cta.title}</BrandGradientText>
-          </h2>
+          <h2 className="text-3xl font-bold md:text-4xl">{l.cta.title}</h2>
           <p className="mt-4 text-base text-blue-100 md:text-lg">{l.cta.subtitle}</p>
           <MarketplaceCtaLink className="mt-8">{l.cta.button}</MarketplaceCtaLink>
         </div>
@@ -219,12 +214,8 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
           </nav>
 
           <div className="mt-8 w-full md:mt-10">
-            <p className="text-lg font-bold text-white md:text-xl">
-              <BrandGradientText glow>Sanova Global</BrandGradientText>
-            </p>
-            <p className="mt-2 text-sm leading-relaxed">
-              <BrandGradientText glow>{l.footer.tagline}</BrandGradientText>
-            </p>
+            <p className="text-lg font-bold text-white md:text-xl">Sanova Global</p>
+            <p className="mt-2 text-sm leading-relaxed">{l.footer.tagline}</p>
           </div>
 
           <p className="mt-8 text-xs leading-relaxed md:mt-10">{l.footer.disclaimer}</p>

@@ -2,7 +2,6 @@
 
 import { Check } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { BrandGradientText } from '../brand/BrandGradientText';
 import { MarketplaceCtaLink } from './MarketplaceCtaLink';
 import { VacaMuertaMacroMap } from './VacaMuertaMacroMap';
 
@@ -45,7 +44,7 @@ export function MacroInvestmentThesis() {
               id="macro-thesis-title"
               className="text-3xl font-bold leading-tight tracking-tight text-white lg:text-4xl"
             >
-              <BrandGradientText glow>{m.title}</BrandGradientText>
+              {m.title}
             </h2>
             <p className="mt-6 text-base leading-relaxed text-slate-300 lg:text-lg">{m.intro}</p>
 
