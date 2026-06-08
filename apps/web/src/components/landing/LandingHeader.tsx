@@ -14,8 +14,11 @@ const navLinkClass =
 const headerSignUpClass =
   'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:min-h-10 sm:px-4 sm:text-sm';
 
-const headerSignInClass =
-  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full bg-slate-900 px-3 text-xs font-semibold text-white transition hover:bg-blue-600 sm:min-h-10 sm:px-4 sm:text-sm';
+const headerSignUpMobileClass =
+  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 bg-transparent px-3 text-xs font-semibold text-blue-600 transition hover:bg-blue-500/10 sm:min-h-10 sm:px-4 sm:text-sm';
+
+const headerSignInMobileClass =
+  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full bg-blue-500 px-3 text-xs font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-400 sm:min-h-10 sm:px-4 sm:text-sm';
 
 type LandingHeaderProps = {
   /** Language selector is shown only on the main landing page. */
@@ -73,10 +76,10 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
 
         <div className="flex shrink-0 items-center gap-2">
           <div className="flex items-center gap-2 lg:hidden">
-            <Link href="/acceso/registro" className={headerSignUpClass} onClick={closeMenu}>
+            <Link href="/acceso/registro" className={headerSignUpMobileClass} onClick={closeMenu}>
               {l.nav.signUp}
             </Link>
-            <Link href="/acceso" className={headerSignInClass} onClick={closeMenu}>
+            <Link href="/acceso" className={headerSignInMobileClass} onClick={closeMenu}>
               {l.nav.signIn}
             </Link>
           </div>

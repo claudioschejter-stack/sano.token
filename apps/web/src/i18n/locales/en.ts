@@ -1172,6 +1172,12 @@ export const en = {
       eyebrow: "Tokenized real estate",
       title: "Own real assets in Vaca Muerta.\nReceive income on-chain.",
       subtitle: "Vaca Muerta is not only the second gas reserve on the planet;It is the global epicenter of unconventional shale.Its accelerated growth has generated a critical deficit in strategic infrastructure.Through the tokenization of assets (RWA), Sanova Global connects global capital with prime real estate and commercial developments in the strategic corridor of the basin, supported by B2B rental contracts with the main energy operators.We offer direct exposure to Argentina's most dynamic sector with hard currency yields, strict regulatory compliance (KYC), and automated dividend settlement.",
+      subtitleLead:
+        "Vaca Muerta is not only the second gas reserve on the planet; it is the global epicenter of unconventional shale. Its accelerated growth has generated a critical deficit in strategic infrastructure.",
+      subtitleTail:
+        "Through the tokenization of assets (RWA), Sanova Global connects global capital with prime real estate and commercial developments in the strategic corridor of the basin, supported by B2B rental contracts with the main energy operators. We offer direct exposure to Argentina's most dynamic sector with hard currency yields, strict regulatory compliance (KYC), and automated dividend settlement.",
+      heroYieldLabel: "YIELD",
+      heroYieldValue: "12.8% USDC",
       ctaPrimary: "Discover B2B cash flows",
       ctaSecondary: "How it works",
       trustLine: "Regulatory frameworks · KYC/AML · On-chain distributions in USDC",

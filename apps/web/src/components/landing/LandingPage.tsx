@@ -53,10 +53,44 @@ function HeroImageWithBadge({
           sizes="(min-width: 1024px) 50vw, 100vw"
         />
       </div>
-      <div className="absolute bottom-0 right-0 z-10 max-w-[14rem] translate-x-[5mm] translate-y-[2mm] rounded-xl border border-white/20 bg-[#111827]/95 p-2.5 shadow-xl backdrop-blur sm:max-w-[18rem] sm:p-4">
-        <p className="text-[10px] uppercase tracking-wider text-slate-400 sm:text-xs">{badge.heroBadgeTitle}</p>
-        <p className="mt-1 text-xs font-semibold text-blue-200 sm:text-sm">{badge.heroBadgeSubtitle}</p>
-        <p className="mt-1 text-[11px] text-slate-300 sm:text-sm">{badge.heroBadgeDetail}</p>
+      <div className="absolute bottom-0 right-0 z-10 max-w-[18rem] translate-x-[5mm] translate-y-[2mm] rounded-xl border border-white/20 bg-[#111827]/95 p-3 shadow-xl backdrop-blur sm:p-4">
+        <p className="text-xs uppercase tracking-wider text-slate-400">{badge.heroBadgeTitle}</p>
+        <p className="mt-1 text-sm font-semibold text-blue-200">{badge.heroBadgeSubtitle}</p>
+        <p className="mt-1 text-sm text-slate-300">{badge.heroBadgeDetail}</p>
+      </div>
+    </div>
+  );
+}
+
+function HeroImageMobile({
+  imageAlt,
+  yieldLabel,
+  yieldValue,
+  imageClassName
+}: {
+  imageAlt: string;
+  yieldLabel: string;
+  yieldValue: string;
+  imageClassName: string;
+}) {
+  return (
+    <div className="relative">
+      <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
+        <Image
+          src={LANDING_HERO_IMAGE}
+          alt={imageAlt}
+          width={1400}
+          height={933}
+          className={imageClassName}
+          priority
+          sizes="100vw"
+        />
+      </div>
+      <div className="absolute bottom-3 right-3 rounded-lg border border-terminal-border bg-terminal-bg/90 px-3 py-2 text-center backdrop-blur-sm sm:bottom-4 sm:right-4">
+        <p className="text-[10px] text-terminal-muted sm:text-xs">{yieldLabel}</p>
+        <p className="font-mono text-lg font-bold leading-tight text-terminal-success sm:text-xl">
+          {yieldValue}
+        </p>
       </div>
     </div>
   );
@@ -122,22 +156,20 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
               <HeroSubtitle hero={l.hero} />
             </div>
 
-            <div className="mt-3 flex flex-col gap-3 sm:mt-4 sm:gap-4 lg:hidden">
-              <HeroImageWithBadge
-                badge={l.hero}
+            <div className="mt-4 flex flex-col gap-4 sm:mt-5 sm:gap-5 lg:hidden">
+              <HeroSubtitle hero={l.hero} part="lead" className="mt-0 sm:mt-0" />
+              <HeroImageMobile
+                imageAlt={l.hero.heroImageAlt}
+                yieldLabel={l.hero.heroYieldLabel}
+                yieldValue={l.hero.heroYieldValue}
                 imageClassName="landing-hero-mobile-image h-[clamp(8.75rem,26svh,11.5rem)] w-full object-cover object-center"
               />
+              <HeroSubtitle hero={l.hero} part="tail" className="mt-0 sm:mt-0" />
               <HeroActions
                 primary={l.hero.ctaPrimary}
                 secondary={l.hero.ctaSecondary}
                 trustLine={l.hero.trustLine}
-                showTrustLine={false}
               />
-            </div>
-
-            <div className="mt-6 sm:mt-8 lg:hidden">
-              <HeroSubtitle hero={l.hero} className="mt-0 sm:mt-0" />
-              <p className="mt-4 text-sm text-slate-400">{l.hero.trustLine}</p>
             </div>
           </div>
 

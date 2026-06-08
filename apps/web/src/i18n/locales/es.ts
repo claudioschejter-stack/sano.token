@@ -1186,6 +1186,12 @@ export const es = {
       title: 'Posea activos reales en Vaca Muerta.\nReciba rentas on-chain.',
       subtitle:
         'Vaca Muerta no es solo la segunda reserva de gas del planeta; es el epicentro global del shale no convencional. Su acelerado crecimiento ha generado un déficit crítico de infraestructura estratégica. A través de la tokenización de activos (RWA), Sanova Global conecta capital global con desarrollos inmobiliarios y comerciales prime en el corredor estratégico de la cuenca, respaldados por contratos de alquiler B2B con las principales operadoras energéticas. Ofrecemos exposición directa al sector más dinámico de Argentina con rendimientos en moneda dura, cumplimiento regulatorio (KYC) estricto y liquidación automatizada de dividendos.',
+      subtitleLead:
+        'Vaca Muerta no es solo la segunda reserva de gas del planeta; es el epicentro global del shale no convencional. Su acelerado crecimiento ha generado un déficit crítico de infraestructura estratégica.',
+      subtitleTail:
+        'A través de la tokenización de activos (RWA), Sanova Global conecta capital global con desarrollos inmobiliarios y comerciales prime en el corredor estratégico de la cuenca, respaldados por contratos de alquiler B2B con las principales operadoras energéticas. Ofrecemos exposición directa al sector más dinámico de Argentina con rendimientos en moneda dura, cumplimiento regulatorio (KYC) estricto y liquidación automatizada de dividendos.',
+      heroYieldLabel: 'YIELD',
+      heroYieldValue: '12.8% USDC',
       ctaPrimary: 'Descubrir flujos de caja B2B',
       ctaSecondary: 'Cómo funciona',
       trustLine: 'Marcos regulatorios · KYC/AML · Distribuciones on-chain en USDC',

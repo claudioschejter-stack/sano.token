@@ -5,6 +5,19 @@ type HeroCopy = Messages['landing']['hero'];
 const bodyClass =
   'text-base leading-relaxed text-slate-300 md:text-lg lg:mt-4 lg:text-base lg:leading-snug xl:text-lg xl:leading-relaxed';
 
-export function HeroSubtitle({ hero, className = '' }: { hero: HeroCopy; className?: string }) {
-  return <p className={`mt-4 max-w-2xl sm:mt-5 ${bodyClass} ${className}`.trim()}>{hero.subtitle}</p>;
+type HeroSubtitleProps = {
+  hero: HeroCopy;
+  className?: string;
+  part?: 'full' | 'lead' | 'tail';
+};
+
+export function HeroSubtitle({ hero, className = '', part = 'full' }: HeroSubtitleProps) {
+  const text =
+    part === 'lead'
+      ? hero.subtitleLead
+      : part === 'tail'
+        ? hero.subtitleTail
+        : hero.subtitle;
+
+  return <p className={`mt-4 max-w-2xl sm:mt-5 ${bodyClass} ${className}`.trim()}>{text}</p>;
 }
