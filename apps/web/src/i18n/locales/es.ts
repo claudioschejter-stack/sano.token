@@ -1181,6 +1181,7 @@ export const es = {
       menuLabel: 'Menú'
     },
     languageLabel: 'Idioma',
+    languagesMenuLabel: 'Idiomas',
     hero: {
       eyebrow: 'Real estate tokenizado',
       title: 'Posea activos reales en Vaca Muerta.\nReciba rentas USDC on-chain.',

@@ -5,11 +5,8 @@ import { ArrowRight, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { SanovaLogo } from '../brand/SanovaLogo';
-import { LanguageDropdown, LanguageMobileAccordion } from './LanguageDropdown';
+import { LanguageDropdown, LanguageMobilePanel } from './LanguageDropdown';
 import { platformEntryCtaClassName } from './MarketplaceCtaLink';
-
-const navLinkClass =
-  'block w-full rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 lg:inline-block lg:w-auto lg:rounded-none lg:px-0 lg:py-0 lg:text-sm';
 
 const headerSignUpClass =
   'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:min-h-10 sm:px-4 sm:text-sm';
@@ -139,34 +136,8 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
             </button>
           </div>
 
-          <div className="flex flex-1 flex-col gap-1 overflow-y-auto px-4 py-6">
-            {navItems.map((item) =>
-              item.href.startsWith('/#') ? (
-                <a key={item.href} href={item.href} className={navLinkClass} onClick={closeMenu}>
-                  {item.label}
-                </a>
-              ) : (
-                <Link key={item.href} href={item.href} className={navLinkClass} onClick={closeMenu}>
-                  {item.label}
-                </Link>
-              )
-            )}
-            <Link href="/contacto" className={navLinkClass} onClick={closeMenu}>
-              {l.footer.contact}
-            </Link>
-            {showLanguageSelector ? (
-              <LanguageMobileAccordion className="mt-1" menuOpen={menuOpen} />
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-6">
-            <Link href="/acceso/registro" className={headerSignUpClass} onClick={closeMenu}>
-              {l.nav.signUp}
-            </Link>
-            <Link href="/acceso" className={platformEntryCtaClassName} onClick={closeMenu}>
-              {l.nav.signIn}
-              <ArrowRight size={18} aria-hidden />
-            </Link>
+          <div className="flex flex-1 flex-col overflow-visible px-4 py-6">
+            <LanguageMobilePanel menuOpen={menuOpen} onLocaleSelected={closeMenu} />
           </div>
         </nav>
       </div>

@@ -1168,6 +1168,7 @@ export const en = {
       menuLabel: "Menu"
     },
     languageLabel: "Language",
+    languagesMenuLabel: "Languages",
     hero: {
       eyebrow: "Tokenized real estate",
       title: "Own real assets in Vaca Muerta.\nReceive income on-chain.",
