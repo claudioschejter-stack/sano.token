@@ -5,7 +5,7 @@ import { ArrowRight, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { SanovaLogo } from '../brand/SanovaLogo';
-import { LanguageDropdown } from './LanguageDropdown';
+import { LanguageDropdown, LanguageMobileAccordion } from './LanguageDropdown';
 import { platformEntryCtaClassName } from './MarketplaceCtaLink';
 
 const navLinkClass =
@@ -154,10 +154,12 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
             <Link href="/contacto" className={navLinkClass} onClick={closeMenu}>
               {l.footer.contact}
             </Link>
+            {showLanguageSelector ? (
+              <LanguageMobileAccordion className="mt-1" menuOpen={menuOpen} />
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-6">
-            {showLanguageSelector ? <LanguageDropdown className="w-full" /> : null}
             <Link href="/acceso/registro" className={headerSignUpClass} onClick={closeMenu}>
               {l.nav.signUp}
             </Link>

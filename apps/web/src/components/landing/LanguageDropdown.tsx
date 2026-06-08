@@ -1,5 +1,7 @@
 'use client';
 
+import { ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { localeOptions, type Locale } from '../../i18n';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 
@@ -38,5 +40,69 @@ export function LanguageDropdown({ variant = 'light', className = '' }: Language
         ))}
       </select>
     </label>
+  );
+}
+
+type LanguageMobileAccordionProps = {
+  className?: string;
+  menuOpen?: boolean;
+};
+
+export function LanguageMobileAccordion({
+  className = '',
+  menuOpen = false
+}: LanguageMobileAccordionProps) {
+  const [expanded, setExpanded] = useState(false);
+  const { locale, setLocale } = useLocale();
+  const t = useTranslation();
+
+  useEffect(() => {
+    if (!menuOpen) {
+      setExpanded(false);
+    }
+  }, [menuOpen]);
+
+  return (
+    <div className={className}>
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((open) => !open)}
+      >
+        <span>{t.landing.languageLabel}</span>
+        <ChevronDown
+          size={18}
+          aria-hidden
+          className={`shrink-0 text-slate-500 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {expanded ? (
+        <ul className="mt-1 flex flex-col gap-1 border-l-2 border-slate-100 pl-3" role="list">
+          {localeOptions.map((option) => {
+            const isActive = locale === option.value;
+
+            return (
+              <li key={option.value}>
+                <button
+                  type="button"
+                  className={`flex w-full items-center gap-2 rounded-lg px-4 py-2.5 text-left text-sm transition ${
+                    isActive
+                      ? 'bg-blue-50 font-semibold text-blue-700'
+                      : 'text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+                  }`}
+                  aria-current={isActive ? 'true' : undefined}
+                  onClick={() => setLocale(option.value)}
+                >
+                  <span aria-hidden>{option.flag}</span>
+                  <span>{option.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </div>
   );
 }
