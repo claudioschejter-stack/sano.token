@@ -292,6 +292,12 @@
   }
 }
 
+@media (max-width: 1023px) and (max-height: 700px) {
+  .landing-hero-mobile-image {
+    height: clamp(7.5rem, 22svh, 9.5rem) !important;
+  }
+}
+
 @media (max-width: 639px) and (max-height: 700px) {
   .how-it-works-section {
     padding-top: clamp(0.75rem, 2.5svh, 1.25rem);

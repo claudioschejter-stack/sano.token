@@ -26,19 +26,65 @@ type LandingPageProps = {
   initialFeed: MarketplaceFeed;
 };
 
-function HeroActions({ primary, secondary, trustLine }: { primary: string; secondary: string; trustLine: string }) {
+type HeroBadgeCopy = {
+  heroBadgeTitle: string;
+  heroBadgeSubtitle: string;
+  heroBadgeDetail: string;
+  heroImageAlt: string;
+};
+
+function HeroImageWithBadge({
+  badge,
+  imageClassName
+}: {
+  badge: HeroBadgeCopy;
+  imageClassName: string;
+}) {
+  return (
+    <div className="relative">
+      <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
+        <Image
+          src={LANDING_HERO_IMAGE}
+          alt={badge.heroImageAlt}
+          width={1400}
+          height={933}
+          className={imageClassName}
+          priority
+          sizes="(min-width: 1024px) 50vw, 100vw"
+        />
+      </div>
+      <div className="absolute bottom-0 right-0 z-10 max-w-[14rem] translate-x-[5mm] translate-y-[2mm] rounded-xl border border-white/20 bg-[#111827]/95 p-2.5 shadow-xl backdrop-blur sm:max-w-[18rem] sm:p-4">
+        <p className="text-[10px] uppercase tracking-wider text-slate-400 sm:text-xs">{badge.heroBadgeTitle}</p>
+        <p className="mt-1 text-xs font-semibold text-blue-200 sm:text-sm">{badge.heroBadgeSubtitle}</p>
+        <p className="mt-1 text-[11px] text-slate-300 sm:text-sm">{badge.heroBadgeDetail}</p>
+      </div>
+    </div>
+  );
+}
+
+function HeroActions({
+  primary,
+  secondary,
+  trustLine,
+  showTrustLine = true
+}: {
+  primary: string;
+  secondary: string;
+  trustLine: string;
+  showTrustLine?: boolean;
+}) {
   return (
     <div className="w-full translate-y-[2mm]">
-      <div className="flex w-full flex-col gap-3 md:flex-row md:flex-wrap md:gap-4">
+      <div className="flex w-full flex-col gap-2.5 sm:gap-3 md:flex-row md:flex-wrap md:gap-4">
         <MarketplaceCtaLink>{primary}</MarketplaceCtaLink>
         <a
           href="#how-it-works"
-          className="inline-flex min-h-12 w-full items-center justify-center rounded-full border border-white/30 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 md:w-auto md:text-sm"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/30 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 sm:min-h-12 sm:py-3 sm:text-base md:w-auto md:text-sm"
         >
           {secondary}
         </a>
       </div>
-      <p className="mt-4 text-sm text-slate-400">{trustLine}</p>
+      {showTrustLine ? <p className="mt-4 text-sm text-slate-400">{trustLine}</p> : null}
     </div>
   );
 }
@@ -59,47 +105,47 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
               'radial-gradient(circle at 20% 20%, #3B82F6 0%, transparent 40%), radial-gradient(circle at 80% 60%, #F97316 0%, transparent 35%)'
           }}
         />
-        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 pb-12 pt-[0.5cm] sm:gap-10 sm:px-6 sm:pb-14 lg:grid-cols-2 lg:items-start lg:gap-10 lg:pb-16 xl:gap-12">
+        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 px-4 pb-12 pt-3 sm:gap-10 sm:px-6 sm:pb-14 sm:pt-[0.5cm] lg:grid-cols-2 lg:items-start lg:gap-10 lg:pb-16 xl:gap-12">
           <div className="flex w-full flex-col justify-start lg:max-w-xl lg:pr-2 xl:max-w-[34rem]">
             <p className="text-xs font-semibold uppercase tracking-widest text-blue-300 sm:text-sm">
               {l.hero.eyebrow}
             </p>
-            <h1 className="mt-2 text-3xl font-bold leading-tight tracking-tight sm:mt-3 md:text-4xl lg:text-5xl xl:text-6xl">
+            <h1 className="mt-2 text-[clamp(1.5rem,6.5vw,1.875rem)] font-bold leading-[1.15] tracking-tight sm:mt-3 sm:text-3xl md:text-4xl lg:text-5xl lg:leading-tight xl:text-6xl">
               {l.hero.title.split('\n').map((line) => (
                 <span key={line} className="block last:text-blue-200">
                   {line}
                 </span>
               ))}
             </h1>
-            <HeroSubtitle hero={l.hero} />
-            <div className="mt-8 lg:hidden">
+
+            <div className="hidden lg:block">
+              <HeroSubtitle hero={l.hero} />
+            </div>
+
+            <div className="mt-3 flex flex-col gap-3 sm:mt-4 sm:gap-4 lg:hidden">
+              <HeroImageWithBadge
+                badge={l.hero}
+                imageClassName="landing-hero-mobile-image h-[clamp(8.75rem,26svh,11.5rem)] w-full object-cover object-center"
+              />
               <HeroActions
                 primary={l.hero.ctaPrimary}
                 secondary={l.hero.ctaSecondary}
                 trustLine={l.hero.trustLine}
+                showTrustLine={false}
               />
+            </div>
+
+            <div className="mt-6 sm:mt-8 lg:hidden">
+              <HeroSubtitle hero={l.hero} className="mt-0 sm:mt-0" />
+              <p className="mt-4 text-sm text-slate-400">{l.hero.trustLine}</p>
             </div>
           </div>
 
           <div className="relative hidden lg:flex lg:flex-col lg:justify-start">
-            <div className="relative">
-              <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
-                <Image
-                  src={LANDING_HERO_IMAGE}
-                  alt={l.hero.heroImageAlt}
-                  width={1400}
-                  height={933}
-                  className="h-[min(360px,42svh)] w-full object-cover object-center xl:h-[380px]"
-                  priority
-                  sizes="(min-width: 1024px) 50vw, 0px"
-                />
-              </div>
-              <div className="absolute bottom-0 right-0 z-10 max-w-[18rem] translate-x-[5mm] translate-y-[2mm] rounded-xl border border-white/20 bg-[#111827]/95 p-3 shadow-xl backdrop-blur sm:p-4">
-                <p className="text-xs uppercase tracking-wider text-slate-400">{l.hero.heroBadgeTitle}</p>
-                <p className="mt-1 text-sm font-semibold text-blue-200">{l.hero.heroBadgeSubtitle}</p>
-                <p className="mt-1 text-sm text-slate-300">{l.hero.heroBadgeDetail}</p>
-              </div>
-            </div>
+            <HeroImageWithBadge
+              badge={l.hero}
+              imageClassName="h-[min(360px,42svh)] w-full object-cover object-center xl:h-[380px]"
+            />
             <div className="mt-4">
               <HeroActions
                 primary={l.hero.ctaPrimary}
