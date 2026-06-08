@@ -94,7 +94,7 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
                   sizes="(min-width: 1024px) 50vw, 0px"
                 />
               </div>
-              <div className="absolute bottom-0 right-0 z-10 max-w-[18rem] translate-x-[2mm] translate-y-[2mm] rounded-xl border border-white/20 bg-[#111827]/95 p-3 shadow-xl backdrop-blur sm:p-4">
+              <div className="absolute bottom-0 right-0 z-10 max-w-[18rem] translate-x-[5mm] translate-y-[2mm] rounded-xl border border-white/20 bg-[#111827]/95 p-3 shadow-xl backdrop-blur sm:p-4">
                 <p className="text-xs uppercase tracking-wider text-slate-400">{l.hero.heroBadgeTitle}</p>
                 <p className="mt-1 text-sm font-semibold text-blue-200">{l.hero.heroBadgeSubtitle}</p>
                 <p className="mt-1 text-sm text-slate-300">{l.hero.heroBadgeDetail}</p>
