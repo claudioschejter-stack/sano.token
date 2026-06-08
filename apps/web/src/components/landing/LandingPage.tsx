@@ -82,17 +82,19 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
           </div>
 
           <div className="relative hidden lg:flex lg:flex-col lg:justify-start">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
-              <Image
-                src={LANDING_HERO_IMAGE}
-                alt={l.hero.heroImageAlt}
-                width={1400}
-                height={933}
-                className="h-[min(360px,42svh)] w-full object-cover object-center xl:h-[380px]"
-                priority
-                sizes="(min-width: 1024px) 50vw, 0px"
-              />
-              <div className="absolute bottom-4 left-4 z-10 max-w-[calc(100%-2rem)] rounded-xl border border-white/20 bg-[#111827]/95 p-3 shadow-xl backdrop-blur sm:bottom-5 sm:left-5 sm:max-w-[18rem] sm:p-4">
+            <div className="relative">
+              <div className="overflow-hidden rounded-2xl border border-white/10 shadow-2xl ring-1 ring-white/10">
+                <Image
+                  src={LANDING_HERO_IMAGE}
+                  alt={l.hero.heroImageAlt}
+                  width={1400}
+                  height={933}
+                  className="h-[min(360px,42svh)] w-full object-cover object-center xl:h-[380px]"
+                  priority
+                  sizes="(min-width: 1024px) 50vw, 0px"
+                />
+              </div>
+              <div className="absolute bottom-0 right-0 z-10 max-w-[18rem] translate-x-[2mm] translate-y-[2mm] rounded-xl border border-white/20 bg-[#111827]/95 p-3 shadow-xl backdrop-blur sm:p-4">
                 <p className="text-xs uppercase tracking-wider text-slate-400">{l.hero.heroBadgeTitle}</p>
                 <p className="mt-1 text-sm font-semibold text-blue-200">{l.hero.heroBadgeSubtitle}</p>
                 <p className="mt-1 text-sm text-slate-300">{l.hero.heroBadgeDetail}</p>
