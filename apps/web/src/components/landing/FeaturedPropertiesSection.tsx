@@ -100,8 +100,6 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
               purchaseEnabled={capabilities.showPurchaseActions}
               hideFinancialMetrics={hideFinancialMetrics}
               guestYieldPreview={guestYieldPreview}
-              guestProjectedApyPercent={9.8}
-              guestFixedCouponPercent={8.4}
               hideLegalInfo={hideLegalInfo}
               hideMap={hideMap}
               staffPreviewHint={
