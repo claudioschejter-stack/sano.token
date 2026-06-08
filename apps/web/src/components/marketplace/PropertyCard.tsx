@@ -37,6 +37,9 @@ export type PropertyCardProps = {
   purchaseEnabled?: boolean;
   staffPreviewHint?: string;
   hideFinancialMetrics?: boolean;
+  guestYieldPreview?: boolean;
+  guestProjectedApyPercent?: number;
+  guestFixedCouponPercent?: number;
   hideLegalInfo?: boolean;
   hideMap?: boolean;
   variant?: 'terminal' | 'light';
@@ -53,6 +56,8 @@ type MediaSlide = {
 };
 
 const GALLERY_INTERVAL_MS = 5000;
+const DEFAULT_GUEST_PROJECTED_APY_PERCENT = 9.8;
+const DEFAULT_GUEST_FIXED_COUPON_PERCENT = 8.4;
 
 export function PropertyCard({
   id,
@@ -78,6 +83,9 @@ export function PropertyCard({
   purchaseEnabled = true,
   staffPreviewHint,
   hideFinancialMetrics = false,
+  guestYieldPreview = false,
+  guestProjectedApyPercent = DEFAULT_GUEST_PROJECTED_APY_PERCENT,
+  guestFixedCouponPercent = DEFAULT_GUEST_FIXED_COUPON_PERCENT,
   hideLegalInfo = false,
   hideMap = false,
   variant = 'terminal',
@@ -142,6 +150,23 @@ export function PropertyCard({
     ? 'border-slate-200 bg-white shadow-sm hover:border-blue-200 hover:shadow-lg'
     : 'border-terminal-border bg-terminal-card shadow-[0_0_0_1px_rgba(31,41,55,0.5)] hover:border-terminal-primary/50 hover:shadow-[0_0_24px_rgba(59,130,246,0.12)]';
 
+  const guestYieldPanel = guestYieldPreview ? (
+    <div className="grid grid-cols-2 gap-2 text-center">
+      <div>
+        <p className="text-[10px] text-terminal-muted sm:text-xs">{t.common.projectedApy}</p>
+        <p className="font-mono text-sm font-bold leading-tight text-terminal-success sm:text-base">
+          {formatPercent(guestProjectedApyPercent, { minimum: 2, maximum: 2 })}
+        </p>
+      </div>
+      <div>
+        <p className="text-[10px] text-terminal-muted sm:text-xs">{t.propertyCard.fixedCoupon}</p>
+        <p className="font-mono text-sm font-bold leading-tight text-terminal-success sm:text-base">
+          {formatPercent(guestFixedCouponPercent, { minimum: 2, maximum: 2 })}
+        </p>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <article
       className={`group flex h-full flex-col overflow-hidden rounded-xl ${cardShell} transition-all duration-300 ${className}`.trim()}
@@ -202,21 +227,23 @@ export function PropertyCard({
         >
           {isDebt ? t.propertyCard.instrumentDebt : t.propertyCard.instrumentEquity}
         </span>
-        <div className="absolute bottom-3 left-3 rounded-lg border border-terminal-border bg-terminal-bg/90 px-3 py-2 text-center backdrop-blur-sm sm:bottom-4 sm:left-4">
-          {hideFinancialMetrics ? (
-            <>
+        <div className="absolute bottom-3 left-3 rounded-lg border border-terminal-border bg-terminal-bg/90 px-3 py-2 backdrop-blur-sm sm:bottom-4 sm:left-4">
+          {guestYieldPreview ? (
+            guestYieldPanel
+          ) : hideFinancialMetrics ? (
+            <div className="text-center">
               <p className="text-[10px] text-terminal-muted sm:text-xs">{t.propertyCard.restrictedAccessLabel}</p>
               <p className="text-xs font-semibold leading-tight text-terminal-primary sm:text-sm">
                 {t.propertyCard.restrictedAccessHint}
               </p>
-            </>
+            </div>
           ) : (
-            <>
+            <div className="text-center">
               <p className="text-[10px] text-terminal-muted sm:text-xs">{yieldLabel}</p>
               <p className="font-mono text-lg font-bold leading-tight text-terminal-success sm:text-xl">
                 {formatPercent(apyPercent, { minimum: 2, maximum: 2 })}
               </p>
-            </>
+            </div>
           )}
         </div>
         <p className="absolute bottom-20 left-3 right-3 line-clamp-2 min-h-[2.75rem] text-base font-semibold leading-snug text-white sm:bottom-24 sm:left-4 sm:right-4 sm:text-lg">
@@ -229,7 +256,9 @@ export function PropertyCard({
           <p className={`min-h-5 truncate text-xs ${mutedText}`}>{location || '\u00A0'}</p>
 
           <div>
-            {!hideFinancialMetrics ? (
+            {guestYieldPreview ? (
+              <div className={`rounded-lg border px-3 py-2 ${panelBg}`}>{guestYieldPanel}</div>
+            ) : !hideFinancialMetrics ? (
               <>
                 <div className={`mb-1 flex items-center justify-between text-xs ${mutedText}`}>
                   <span>{t.propertyCard.placementProgress}</span>

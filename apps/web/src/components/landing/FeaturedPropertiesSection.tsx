@@ -28,6 +28,8 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
   const { feed } = useMarketplaceFeed(initialFeed);
   const featuredListings = pickFeaturedListings(feed.listings);
   const isGuest = !session?.user;
+  const hideFinancialMetrics = isGuest;
+  const guestYieldPreview = isGuest;
   const hideLegalInfo = isGuest;
   const hideMap = isGuest;
   const [holdings, setHoldings] = useState<SecondaryMarketHolding[]>([]);
@@ -96,6 +98,10 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
               investorHolding={holdingsByProject.get(listing.id) ?? null}
               readyToBorrow={listing.readyToBorrow}
               purchaseEnabled={capabilities.showPurchaseActions}
+              hideFinancialMetrics={hideFinancialMetrics}
+              guestYieldPreview={guestYieldPreview}
+              guestProjectedApyPercent={9.8}
+              guestFixedCouponPercent={8.4}
               hideLegalInfo={hideLegalInfo}
               hideMap={hideMap}
               staffPreviewHint={
