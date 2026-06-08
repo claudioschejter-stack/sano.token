@@ -1177,7 +1177,7 @@ export const en = {
       subtitleTail:
         "Through the tokenization of assets (RWA), Sanova Global connects global capital with prime real estate and commercial developments in the strategic corridor of the basin, supported by B2B rental contracts with the main energy operators. We offer direct exposure to Argentina's most dynamic sector with hard currency yields, strict regulatory compliance (KYC), and automated dividend settlement.",
       heroYieldLabel: "YIELD",
-      heroYieldValue: "12.8% USDC",
+      heroYieldValue: "12.80%",
       ctaPrimary: "Discover B2B cash flows",
       ctaSecondary: "How it works",
       trustLine: "Regulatory frameworks · KYC/AML · On-chain distributions in USDC",
