@@ -37,6 +37,8 @@ export type PropertyCardProps = {
   purchaseEnabled?: boolean;
   staffPreviewHint?: string;
   hideFinancialMetrics?: boolean;
+  hideLegalInfo?: boolean;
+  hideMap?: boolean;
   variant?: 'terminal' | 'light';
   className?: string;
   onBuy?: (propertyId: string) => void;
@@ -76,6 +78,8 @@ export function PropertyCard({
   purchaseEnabled = true,
   staffPreviewHint,
   hideFinancialMetrics = false,
+  hideLegalInfo = false,
+  hideMap = false,
   variant = 'terminal',
   className = '',
   onBuy,
@@ -292,12 +296,12 @@ export function PropertyCard({
                 {tokenSymbol}
               </span>
             ) : null}
-            {!isSoldOut ? (
+            {!isSoldOut && !hideLegalInfo ? (
               <LaunchContractsPanel contracts={contracts} tokenSymbol={tokenSymbol} variant="badge" />
             ) : null}
           </div>
 
-          {!isSoldOut && mapEmbedUrl ? (
+          {!isSoldOut && !hideMap && mapEmbedUrl ? (
             <div className="min-h-9">
               <details className={`overflow-hidden rounded-lg border ${isLight ? 'border-slate-200' : 'border-terminal-border'}`}>
                 <summary className={`cursor-pointer px-3 py-2 text-xs ${mutedText} hover:opacity-80`}>

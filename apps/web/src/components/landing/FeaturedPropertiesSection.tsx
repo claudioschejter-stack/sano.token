@@ -27,7 +27,10 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
   const { checklist } = useAccountStatus();
   const { feed } = useMarketplaceFeed(initialFeed);
   const featuredListings = pickFeaturedListings(feed.listings);
-  const hideFinancialMetrics = !session?.user;
+  const isGuest = !session?.user;
+  const hideFinancialMetrics = isGuest;
+  const hideLegalInfo = isGuest;
+  const hideMap = isGuest;
   const [holdings, setHoldings] = useState<SecondaryMarketHolding[]>([]);
 
   const kycStatus = capabilities.useInvestorKycStatus
@@ -77,7 +80,7 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
               description={listing.description}
               location={listing.location}
               imageUrl={listing.imageUrl}
-              mapEmbedUrl={listing.mapEmbedUrl}
+              mapEmbedUrl={isGuest ? undefined : listing.mapEmbedUrl}
               apyPercent={listing.apyPercent}
               pricePerTokenUsd={listing.pricePerTokenUsd}
               availableTokens={listing.availableTokens}
@@ -95,6 +98,8 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
               readyToBorrow={listing.readyToBorrow}
               purchaseEnabled={capabilities.showPurchaseActions}
               hideFinancialMetrics={hideFinancialMetrics}
+              hideLegalInfo={hideLegalInfo}
+              hideMap={hideMap}
               staffPreviewHint={
                 capabilities.showPurchaseActions ? undefined : t.marketplace.staffPreviewHint
               }
