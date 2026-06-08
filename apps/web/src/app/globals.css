@@ -247,12 +247,12 @@
   }
 
   .how-it-works-section .how-it-works-intro h2 {
-    font-size: clamp(1.25rem, 5vw, 1.5rem);
+    font-size: clamp(1.5625rem, 6.25vw, 1.875rem);
   }
 
   .how-it-works-section .how-it-works-intro p {
     margin-top: clamp(0.375rem, 1.2svh, 0.75rem);
-    font-size: clamp(0.75rem, 3.2vw, 0.875rem);
+    font-size: clamp(0.9375rem, 4vw, 1.09375rem);
     line-height: 1.35;
   }
 
@@ -264,6 +264,10 @@
   .how-it-works-section .how-it-works-card {
     padding: clamp(0.625rem, 2svh, 1rem);
     border-radius: 0.75rem;
+  }
+
+  .how-it-works-section .how-it-works-step-num {
+    font-size: 1.09375rem;
   }
 
   .how-it-works-section .how-it-works-step-num,
@@ -282,12 +286,12 @@
   }
 
   .how-it-works-section .how-it-works-card-title {
-    font-size: clamp(0.75rem, 3.2vw, 0.875rem);
+    font-size: clamp(0.9375rem, 4vw, 1.09375rem);
   }
 
   .how-it-works-section .how-it-works-card-desc {
     margin-top: clamp(0.375rem, 1svh, 0.625rem);
-    font-size: clamp(0.6875rem, 2.9vw, 0.8125rem);
+    font-size: clamp(0.859375rem, 3.625vw, 1.015625rem);
     line-height: 1.4;
   }
 }
