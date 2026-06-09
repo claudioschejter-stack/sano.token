@@ -169,7 +169,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
   return (
     <div className="mx-auto w-full max-w-7xl">
       <header className="mb-6 w-full">
-        <PortalBrandMenu className="mb-4 w-full max-w-xs md:hidden" />
+        <PortalBrandMenu className="mb-4 w-full max-w-xs" />
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold text-terminal-text md:text-3xl">{t.marketplace.title}</h1>
           {role ? (

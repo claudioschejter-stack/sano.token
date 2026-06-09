@@ -813,7 +813,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             <CartVaultDepositPanel
               paymentIntents={vaultDepositIntents}
               linkedWalletAddress={linkedWalletAddress}
-              disabled={status === 'done'}
+              disabled={false}
               onError={(message) => setError(message)}
               onComplete={() => {
                 clearCart();
