@@ -16,7 +16,6 @@ import { useCartStore } from '../../store/useCartStore';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
 import { PropertyCard } from './PropertyCard';
-import { TrustStrip } from './TrustStrip';
 
 type MarketplaceViewProps = {
   initialFeed: MarketplaceFeed;
@@ -191,8 +190,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
         </div>
         <p className="mt-2 text-base text-terminal-muted md:text-lg">{t.marketplace.subtitle}</p>
       </header>
-
-      <TrustStrip />
 
       {capabilities.showAdminToolbar ? (
         <div className="mb-6 flex flex-wrap gap-3">
