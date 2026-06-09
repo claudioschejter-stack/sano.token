@@ -43,22 +43,23 @@ export function PortalBrandFrames({
   );
 }
 
-/** Desktop-proportion brand block scaled for the logged-in mobile header. */
+/** Logo + wordmark frame for the logged-in mobile header (no Portal RWA subtitle). */
 export function PortalBrandFramesMobileHeader({
-  portalSubtitle,
   href = '/',
   onNavigate,
   className = ''
-}: PortalBrandFramesProps) {
+}: Pick<PortalBrandFramesProps, 'href' | 'onNavigate' | 'className'>) {
   return (
     <Link
       href={href}
-      className={`relative block h-14 w-[7.85rem] shrink-0 overflow-hidden transition-opacity hover:opacity-95 ${className}`.trim()}
+      className={`flex h-14 min-w-0 flex-1 items-stretch transition-opacity hover:opacity-95 ${className}`.trim()}
       onClick={onNavigate}
       aria-label="Sanova Global"
     >
-      <div className="absolute left-0 top-1/2 origin-left -translate-y-1/2 scale-[0.58]">
-        <PortalBrandFrames portalSubtitle={portalSubtitle} href={null} className="pointer-events-none" />
+      <div
+        className={`${portalBrandFrameClass} flex h-full w-full items-center justify-center px-[2mm] py-[1.5mm]`}
+      >
+        <SanovaLogo variant="light" showWordmark href={null} className="h-9 max-h-full" />
       </div>
     </Link>
   );

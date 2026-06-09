@@ -270,12 +270,6 @@ export function AppSidebar() {
   ];
   const closeMobile = () => setMobileOpen(false);
 
-  const portalSubtitle = isAdmin
-    ? t.adminDashboard.sidebarSubtitle
-    : isAdvisorStaff
-      ? t.advisorPortal.clientsTitle
-      : t.brand.portalSubtitle;
-
   const signOutButton = (
     <button
       type="button"
@@ -289,8 +283,8 @@ export function AppSidebar() {
 
   return (
     <>
-      <header className="safe-top fixed inset-x-0 top-0 z-40 flex h-14 min-h-14 items-center justify-between gap-2 border-b border-terminal-border bg-terminal-card px-3 md:hidden">
-        <PortalBrandFramesMobileHeader portalSubtitle={portalSubtitle} />
+      <header className="safe-top fixed inset-x-0 top-0 z-40 flex h-14 min-h-14 items-center gap-2 border-b border-terminal-border bg-terminal-card pl-3 pr-3 md:hidden">
+        <PortalBrandFramesMobileHeader />
         <button
           type="button"
           aria-expanded={mobileOpen}
