@@ -3,28 +3,28 @@
 @tailwind utilities;
 
 /* Operator logo marquee — pure CSS infinite scroll */
-@keyframes marketplace-publish-cta-blink {
+@keyframes marketplace-cart-blink {
   0%,
   100% {
     opacity: 1;
-    border-color: rgb(59 130 246 / 0.45);
-    background-color: rgb(59 130 246 / 0.1);
+    border-color: rgb(59 130 246 / 0.55);
+    background-color: rgb(59 130 246 / 0.12);
     box-shadow: 0 0 0 0 rgb(59 130 246 / 0);
   }
   50% {
-    opacity: 0.75;
+    opacity: 0.85;
     border-color: rgb(96 165 250 / 1);
-    background-color: rgb(59 130 246 / 0.28);
-    box-shadow: 0 0 12px 0 rgb(59 130 246 / 0.35);
+    background-color: rgb(59 130 246 / 0.32);
+    box-shadow: 0 0 14px 0 rgb(59 130 246 / 0.45);
   }
 }
 
-.marketplace-publish-cta {
-  animation: marketplace-publish-cta-blink 1.5s ease-in-out infinite;
+.marketplace-cart-blink {
+  animation: marketplace-cart-blink 1.2s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .marketplace-publish-cta {
+  .marketplace-cart-blink {
     animation: none;
   }
 }

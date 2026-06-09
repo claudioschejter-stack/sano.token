@@ -1,7 +1,7 @@
 'use client';
 
-import { CoinbaseConnectButton } from '../wallet/CoinbaseConnectButton';
+import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
 
 export function WalletConnectButton() {
-  return <CoinbaseConnectButton />;
+  return <WalletConnectConnectButton />;
 }

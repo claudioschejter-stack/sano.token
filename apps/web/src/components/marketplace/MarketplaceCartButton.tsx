@@ -23,7 +23,7 @@ export function MarketplaceCartButton({ className = '' }: MarketplaceCartButtonP
     <Link
       href="/marketplace/carrito"
       aria-label={t.cartCheckout.viewCart}
-      className={`relative inline-flex items-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-1.5 text-xs font-semibold text-terminal-primary transition-colors hover:bg-terminal-primary/20 ${className}`.trim()}
+      className={`marketplace-cart-blink relative inline-flex items-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-1.5 text-xs font-semibold text-terminal-primary transition-colors hover:bg-terminal-primary/20 ${className}`.trim()}
     >
       <ShoppingCart size={16} />
       <span>{t.cartCheckout.viewCart}</span>

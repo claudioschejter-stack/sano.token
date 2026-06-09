@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ShieldCheck } from 'lucide-react';
+import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import type { SystemRole } from '../../lib/auth/roles';
@@ -20,6 +21,10 @@ function kycBadgeClass(status: KycStatus): string {
   }
 }
 
+function firstNameFrom(fullName: string): string {
+  return fullName.trim().split(/\s+/)[0] || fullName;
+}
+
 export function SidebarUserStatus() {
   const t = useTranslation();
   const u = t.userRoleHeader;
@@ -34,11 +39,12 @@ export function SidebarUserStatus() {
     return null;
   }
 
-  const displayName =
+  const rawName =
     profile?.fullName?.trim() ||
     session.user.name?.trim() ||
     session.user.email?.split('@')[0] ||
     u.fallbackName;
+  const displayName = formatMessage(u.welcomeGreeting, { name: firstNameFrom(rawName) });
 
   const kycStatus = checklist?.kycStatus ?? 'PENDING';
   const kycLabels = a.kycLabels as Record<KycStatus, string>;
@@ -53,8 +59,8 @@ export function SidebarUserStatus() {
 
   return (
     <div className="space-y-2 px-1 pb-2">
-      <p className="text-sm font-semibold leading-snug text-terminal-text">{displayName}</p>
-      <div className="flex flex-wrap items-center gap-2">
+      <p className="text-center text-sm font-semibold leading-snug text-terminal-text">{displayName}</p>
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <span className="inline-flex rounded-full border border-terminal-primary/40 bg-terminal-bg px-2.5 py-0.5 text-xs font-semibold text-terminal-primary">
           {roleLabels[role] ?? role}
         </span>

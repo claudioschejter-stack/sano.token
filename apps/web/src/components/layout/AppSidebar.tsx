@@ -103,6 +103,9 @@ type SidebarContentProps = {
   renderNavItem: (item: NavItem, onNavigate?: () => void) => ReactNode;
 };
 
+const sidebarBrandFrame =
+  'rounded-xl border border-[#1c2432] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]';
+
 function SidebarContent({
   topNavItem,
   secondaryNavItems,
@@ -113,18 +116,22 @@ function SidebarContent({
 }: SidebarContentProps) {
   const t = useTranslation();
 
+  const portalSubtitle = isAdmin
+    ? t.adminDashboard.sidebarSubtitle
+    : isAdvisorStaff
+      ? t.advisorPortal.clientsTitle
+      : t.brand.portalSubtitle;
+
   return (
     <>
-      <div className="border-b border-terminal-border p-6">
-        <Link href="/" className="block transition-opacity hover:opacity-90" onClick={onNavigate}>
-          <SanovaLogo variant="dark" showWordmark className="h-9" />
-          <p className="mt-2 text-sm text-terminal-muted">
-            {isAdmin
-              ? t.adminDashboard.sidebarSubtitle
-              : isAdvisorStaff
-                ? t.advisorPortal.clientsTitle
-                : t.brand.portalSubtitle}
-          </p>
+      <div className="border-b border-terminal-border bg-terminal-card p-3">
+        <Link href="/" className="block space-y-[7mm] transition-opacity hover:opacity-95" onClick={onNavigate}>
+          <div className={`${sidebarBrandFrame} flex w-full items-center justify-center px-[1mm] py-[2mm]`}>
+            <SanovaLogo variant="light" showWordmark className="h-9" />
+          </div>
+          <div className={`${sidebarBrandFrame} mx-auto w-fit max-w-full px-[2mm] py-[1mm]`}>
+            <p className="text-center text-sm font-semibold leading-tight text-black">{portalSubtitle}</p>
+          </div>
         </Link>
       </div>
 

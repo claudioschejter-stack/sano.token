@@ -19,7 +19,7 @@ import { createLocalRailCheckout } from './localRailAdapter';
 import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
-import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
+import { resolveInvestorLinkedWallet, getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { confirmPaymentIntent, type PublicPaymentIntent } from './paymentService';
 import { assertPaymentProofPresent, assertTokenizedPurchaseReady } from './purchaseGuard';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
@@ -210,10 +210,18 @@ export async function createCartPurchaseCheckout(input: {
       : getStablecoinNetwork(input.stablecoinNetwork);
 
   let payerWallet: string | null = null;
+  const isWalletConnectCheckout = input.paymentOptionId === 'walletconnect_usdc';
   if (input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN') {
-    payerWallet = await resolveInvestorLinkedWallet(input.userId, input.walletAddress);
-    if (!payerWallet) {
-      throw new Error('WALLET_REQUIRED');
+    if (isWalletConnectCheckout) {
+      payerWallet = await getLinkedWalletForUser(input.userId);
+      if (!payerWallet) {
+        throw new Error('INVESTOR_WALLET_REQUIRED');
+      }
+    } else {
+      payerWallet = await resolveInvestorLinkedWallet(input.userId, input.walletAddress);
+      if (!payerWallet) {
+        throw new Error('WALLET_REQUIRED');
+      }
     }
   } else if (input.walletAddress) {
     payerWallet = normalizeAddress(input.walletAddress, network);
@@ -358,7 +366,7 @@ export async function createCartPurchaseCheckout(input: {
     stablecoinNetwork: network.id
   });
 
-  if (gateway?.providerCheckoutUrl || gateway.providerPaymentId) {
+  if (gateway && (gateway.providerCheckoutUrl || gateway.providerPaymentId)) {
     providerCheckoutUrl = gateway.providerCheckoutUrl ?? null;
 
     for (const intentId of paymentIntentIds) {

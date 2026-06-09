@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@sanova/database';
 import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
 import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { verifyUsdcPayment } from '../../../../../lib/payments/paymentService';
@@ -10,6 +11,10 @@ type VerifyBody = {
   txHash?: string;
   walletAddress?: string;
 };
+
+function isWalletConnectPayment(metadata: Record<string, unknown> | null | undefined): boolean {
+  return metadata?.paymentOptionId === 'walletconnect_usdc';
+}
 
 export async function POST(request: Request) {
   const ctx = await requireInvestorSession();
@@ -29,12 +34,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'PAYMENT_INTENT_AND_TX_REQUIRED' }, { status: 400 });
     }
 
-    const linkedWallet = await resolveInvestorLinkedWallet(ctx.userId, body.walletAddress);
+    const intent = await prisma.paymentIntent.findUnique({
+      where: { id: body.paymentIntentId },
+      select: { metadata: true, userId: true }
+    });
+
+    if (!intent || intent.userId !== ctx.userId) {
+      return NextResponse.json({ error: 'PAYMENT_INTENT_NOT_FOUND' }, { status: 404 });
+    }
+
+    const metadata = (intent.metadata as Record<string, unknown>) ?? {};
+    let expectedPayer: string | null = null;
+
+    if (isWalletConnectPayment(metadata)) {
+      if (!body.walletAddress?.trim()) {
+        return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
+      }
+      expectedPayer = body.walletAddress.trim().toLowerCase();
+    } else {
+      expectedPayer = await resolveInvestorLinkedWallet(ctx.userId, body.walletAddress);
+    }
 
     const paymentIntent = await verifyUsdcPayment({
       paymentIntentId: body.paymentIntentId,
       txHash: body.txHash,
-      expectedPayer: linkedWallet
+      expectedPayer
     });
 
     return NextResponse.json({ ok: true, paymentIntent });

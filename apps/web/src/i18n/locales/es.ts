@@ -135,7 +135,7 @@ export const es = {
     availableSectionSubtitle: 'Unidades con tokens disponibles para la venta en marketplace primario.',
     availableSectionEmpty: 'No hay propiedades con tokens disponibles en este momento.',
     publishPropertyCta:
-      'Si querés publicar tu propiedad en este sitio de compra venta de inmuebles, hacé click acá y nos comunicamos contigo',
+      'Si te gustaria publicar tu propiedad en este sitio de compra venta de inmuebles tokenizados, click aqui y nos comunicamos contigo',
     soldSectionTitle: 'Propiedades vendidas',
     soldSectionSubtitle: 'Unidades con colocación primaria agotada. Podés consultar el mercado secundario.',
     soldSectionEmpty: 'No hay propiedades vendidas por el momento.',
@@ -657,6 +657,7 @@ export const es = {
   },
   userRoleHeader: {
     fallbackName: 'Usuario',
+    welcomeGreeting: '¡ Bienvenido {name} !',
     approvedStatus: 'Aprobado',
     kycPrefix: 'KYC',
     identityButton: 'Identidad'
@@ -887,8 +888,10 @@ export const es = {
     purchaseTitle: 'Carrito multi-proyecto',
     purchaseSubtitle: 'Revisá tus activos, elegí un método de pago y confirmá para acreditar tokens automáticamente.',
     paymentMenuTitle: 'Menú de pago',
-    paymentMenuSubtitle: 'Revisá comisiones, gas y elegí cómo pagar tu carrito.',
+    paymentMenuGreeting: 'Hola {name}',
+    paymentMenuSubtitle: 'Revisá comisiones, gas y elige cómo pagar tus tokenes.',
     cartSummaryTitle: 'Tu carrito',
+    addMoreTokens: 'Agregar más tokenes al carro de compras',
     subtotalUsdc: 'Subtotal (USDC)',
     feesSummaryTitle: 'Comisiones y gastos',
     continueShopping: 'Seguir comprando tokens',
@@ -898,7 +901,9 @@ export const es = {
     totalUsdc: 'Total ({currency})',
     totalDepositUsd: 'Monto neto a acreditar (USD)',
     totalToPayLabel: 'Monto total a pagar',
-    selectPaymentMethod: 'Seleccione su forma de Pago:',
+    selectPaymentMethod: 'Elige tu forma de pago',
+    choosePaymentMethod: 'Elegí la forma de pago',
+    checkoutFailed: 'No se pudo completar la compra. Intentá de nuevo.',
     paymentMethodsAvailable: 'Formas de pago aceptadas',
     paymentMethodsUnavailable: 'Formas de pago no disponibles',
     paymentGroups: {
@@ -911,10 +916,29 @@ export const es = {
     },
     electronicWalletLinkedHint:
       'USDC desde tu billetera vinculada ({address}) en Base — se acredita al confirmar la transferencia.',
+    walletConnectReceiveHint:
+      'Pagás USDC desde otra billetera. Los tokens se acreditan en tu Coinbase ({address}).',
+    walletConnectTapIcon: 'Tocá el ícono de WalletConnect para abrir el QR o elegir una billetera.',
+    walletConnectOpenHint: 'Se abre el panel de WalletConnect con QR (desktop) o tus billeteras instaladas (móvil).',
+    walletConnectIconTitle: 'Conectar con WalletConnect',
+    walletConnectReady: 'Conectada',
+    walletConnectConnectFirst: 'Conectá tu billetera con WalletConnect antes de continuar.',
+    walletConnectPayingFromShort: 'Pagás desde {address}',
+    walletConnectModalTitle: 'Conectar billetera de pago',
+    walletConnectModalBody:
+      'Escaneá el código QR o elegí tu billetera para pagar el USDC. Los tokens se acreditarán en tu Coinbase Wallet vinculada al perfil.',
+    walletConnectModalConnect: 'Conectar con WalletConnect',
+    walletConnectModalDone: 'Listo',
+    walletConnectConnectedLabel: 'Billetera de pago conectada',
+    walletConnectVaultSubtitle:
+      'Firmá el depósito USDC desde tu billetera WalletConnect. Las shares del vault van a tu Coinbase vinculada.',
+    walletConnectTokensToCoinbase: 'Tokens a acreditar en Coinbase: {address}',
+    walletConnectPayingFrom: 'Pagando desde',
     depositFromLinkedWalletHint:
       'Enviá USDC desde tu billetera vinculada ({address}) en Base a la dirección de abajo.',
     paymentMethodsTitle: 'Opciones de pago automáticas',
     confirmButton: 'Confirmar',
+    continuePurchase: 'Continuar con la compra',
     continueDeposit: 'Continuar',
     feeIncluded: 'Costos incluidos',
     feeCommission: 'Comisión',
@@ -1026,7 +1050,8 @@ export const es = {
     connecting: 'Conectando…',
     connect: 'Conectar wallet',
     connectCoinbase: 'Conectar Coinbase Wallet',
-    connectWalletConnect: 'Conectar Coinbase Wallet',
+    connectWalletConnect: 'Conectar con WalletConnect',
+    walletConnectUnavailable: 'WalletConnect no está configurado. Contactá soporte.',
     connectFailed: 'No pudimos conectar Coinbase Wallet. Intentá de nuevo.',
     connectRejected: 'Conexión cancelada. Podés volver a intentarlo.',
     connectRetryWalletConnect:
@@ -1545,7 +1570,7 @@ export const es = {
       walletBullet3: 'Red Base mainnet — la dirección queda vinculada a tu cuenta Sanova.',
       createCoinbaseWallet: 'Conectar Coinbase Wallet',
       connectExistingWallet: 'Conectar Coinbase Wallet',
-      walletConnectUnavailable: 'Solo Coinbase Wallet está habilitada en la plataforma.',
+      walletConnectUnavailable: 'WalletConnect no está configurado. Contactá soporte.',
       walletConnect: 'Coinbase Wallet',
       walletSaving: 'Guardando billetera…',
       walletLinked: 'Billetera vinculada',

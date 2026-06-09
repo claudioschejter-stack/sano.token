@@ -3,15 +3,18 @@
 import { CheckCircle2, ExternalLink, Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useAccount } from 'wagmi';
+import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useBuyToken } from '../../hooks/useBuyToken';
 import { BASE_CHAIN_ID, BASE_USDC_ADDRESS } from '../../lib/web3/config';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
 import { CoinbaseConnectButton } from '../wallet/CoinbaseConnectButton';
+import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
 
 type CartVaultDepositPanelProps = {
   paymentIntents: PublicPaymentIntent[];
   linkedWalletAddress: string;
+  paymentOptionId?: string | null;
   disabled?: boolean;
   onComplete: () => void;
   onError: (message: string) => void;
@@ -45,6 +48,7 @@ function parseVaultLines(intents: PublicPaymentIntent[]): VaultDepositLine[] {
 export function CartVaultDepositPanel({
   paymentIntents,
   linkedWalletAddress,
+  paymentOptionId,
   disabled = false,
   onComplete,
   onError
@@ -58,13 +62,18 @@ export function CartVaultDepositPanel({
   const [completedTxHashes, setCompletedTxHashes] = useState<Record<string, string>>({});
   const [isRunning, setIsRunning] = useState(false);
 
+  const isWalletConnectFlow = paymentOptionId === 'walletconnect_usdc';
   const lines = useMemo(() => parseVaultLines(paymentIntents), [paymentIntents]);
   const wrongChain = isConnected && chainId != null && chainId !== BASE_CHAIN_ID;
-  const walletReady =
-    isConnected &&
-    address &&
-    address.toLowerCase() === linkedWalletAddress.toLowerCase() &&
-    !wrongChain;
+  const walletReady = isWalletConnectFlow
+    ? Boolean(isConnected && address && !wrongChain)
+    : Boolean(
+        isConnected &&
+          address &&
+          address.toLowerCase() === linkedWalletAddress.toLowerCase() &&
+          !wrongChain
+      );
+  const shareReceiver = linkedWalletAddress as `0x${string}`;
 
   const runDeposits = useCallback(async () => {
     if (!walletReady || !address || isRunning || lines.length === 0) {
@@ -89,7 +98,7 @@ export function CartVaultDepositPanel({
           usdcAddress: BASE_USDC_ADDRESS,
           amountUsd,
           chainId: line.intent.chainId ?? BASE_CHAIN_ID,
-          receiver: address
+          receiver: shareReceiver
         });
 
         const verifyResponse = await fetch('/api/payments/usdc/verify', {
@@ -119,7 +128,7 @@ export function CartVaultDepositPanel({
     } finally {
       setIsRunning(false);
     }
-  }, [address, buy, completedTxHashes, isRunning, lines, onComplete, onError, walletReady]);
+  }, [address, buy, completedTxHashes, isRunning, lines, onComplete, onError, shareReceiver, walletReady]);
 
   const allDone = lines.length > 0 && lines.every((line) => completedTxHashes[line.intent.id]);
   const isBusy = isRunning || ['checking', 'approving', 'depositing'].includes(buyStatus);
@@ -132,8 +141,18 @@ export function CartVaultDepositPanel({
     <div className="space-y-4 rounded-lg border border-terminal-primary/30 bg-terminal-primary/5 p-4">
       <div>
         <p className="text-sm font-semibold text-terminal-text">{c.vaultDepositTitle}</p>
-        <p className="mt-1 text-xs text-terminal-muted">{c.vaultDepositSubtitle}</p>
-        <p className="mt-2 text-xs text-terminal-muted">{w.investorWalletDepositNote}</p>
+        <p className="mt-1 text-xs text-terminal-muted">
+          {isWalletConnectFlow ? c.walletConnectVaultSubtitle : c.vaultDepositSubtitle}
+        </p>
+        {isWalletConnectFlow && linkedWalletAddress ? (
+          <p className="mt-2 text-xs text-terminal-muted">
+            {formatMessage(c.walletConnectTokensToCoinbase, {
+              address: `${linkedWalletAddress.slice(0, 6)}…${linkedWalletAddress.slice(-4)}`
+            })}
+          </p>
+        ) : (
+          <p className="mt-2 text-xs text-terminal-muted">{w.investorWalletDepositNote}</p>
+        )}
       </div>
 
       <ul className="space-y-2">
@@ -171,7 +190,11 @@ export function CartVaultDepositPanel({
       </ul>
 
       {!isConnected || wrongChain ? (
-        <CoinbaseConnectButton className="w-full" />
+        isWalletConnectFlow ? (
+          <WalletConnectConnectButton className="w-full" />
+        ) : (
+          <CoinbaseConnectButton className="w-full" />
+        )
       ) : (
         <button
           type="button"
@@ -186,6 +209,7 @@ export function CartVaultDepositPanel({
 
       {address ? (
         <p className="text-center text-xs text-terminal-muted">
+          {isWalletConnectFlow ? c.walletConnectPayingFrom : w.investorWalletDepositNote}{' '}
           {address.slice(0, 6)}…{address.slice(-4)} · Base
         </p>
       ) : null}

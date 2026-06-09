@@ -200,7 +200,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               </div>
               <Link
                 href={LEGAL_CONTACT_PATH}
-                className="marketplace-publish-cta inline-flex max-w-xl shrink-0 items-center justify-center rounded-lg border-2 border-terminal-primary bg-terminal-primary/10 px-4 py-3 text-center text-xs font-bold uppercase leading-snug tracking-wide text-terminal-primary transition-colors hover:border-blue-400 hover:bg-terminal-primary/20 md:text-sm"
+                className="inline-flex max-w-xl shrink-0 items-center justify-center rounded-lg border-2 border-terminal-primary bg-terminal-primary px-4 py-3 text-center text-xs font-bold normal-case leading-snug tracking-normal text-white transition-colors hover:border-blue-400 hover:bg-blue-500 md:text-sm"
               >
                 {t.marketplace.publishPropertyCta}
               </Link>

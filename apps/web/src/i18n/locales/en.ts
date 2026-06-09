@@ -130,7 +130,7 @@ export const en = {
     availableSectionSubtitle: "Units with tokens available for sale on the primary marketplace.",
     availableSectionEmpty: "There are no properties with available tokens right now.",
     publishPropertyCta:
-      "If you want to list your property on this real estate marketplace, click here and we will get in touch with you",
+      'If you would like to list your property on this tokenized real estate marketplace, click here and we will get in touch with you',
     soldSectionTitle: "Sold properties",
     soldSectionSubtitle: "Units with primary placement sold out. Check the secondary market.",
     soldSectionEmpty: "There are no sold properties at the moment.",
@@ -646,6 +646,7 @@ export const en = {
   },
   userRoleHeader: {
     fallbackName: "User",
+    welcomeGreeting: "Welcome {name}!",
     approvedStatus: "Approved",
     kycPrefix: "KYC",
     identityButton: "Identity"
@@ -875,8 +876,10 @@ export const en = {
     purchaseTitle: "Multi-project cart",
     purchaseSubtitle: "Review your assets, choose a payment method and confirm to credit tokens automatically.",
     paymentMenuTitle: "Payment menu",
-    paymentMenuSubtitle: "Review fees, gas, and choose how to pay for your cart.",
+    paymentMenuGreeting: "Hello {name}",
+    paymentMenuSubtitle: "Review fees, gas, and choose how to pay for your tokens.",
     cartSummaryTitle: "Your cart",
+    addMoreTokens: "Add more tokens to your cart",
     subtotalUsdc: "Subtotal (USDC)",
     feesSummaryTitle: "Fees and costs",
     continueShopping: "Keep buying tokens",
@@ -887,7 +890,9 @@ export const en = {
     totalUsdc: "Total ({currency})",
     totalDepositUsd: "Net amount to credit (USD)",
     totalToPayLabel: "Total amount to pay",
-    selectPaymentMethod: "Select your payment method:",
+    selectPaymentMethod: "Choose your payment method",
+    choosePaymentMethod: "Choose a payment method",
+    checkoutFailed: "We couldn't complete your purchase. Please try again.",
     paymentMethodsAvailable: "Accepted payment methods",
     paymentMethodsUnavailable: "Unavailable payment methods",
     paymentGroups: {
@@ -900,10 +905,29 @@ export const en = {
     },
     electronicWalletLinkedHint:
       "USDC from your linked wallet ({address}) on Base — credited after transfer confirmation.",
+    walletConnectReceiveHint:
+      'Pay USDC from another wallet. Tokens are credited to your linked Coinbase ({address}).',
+    walletConnectTapIcon: 'Tap the WalletConnect icon to open the QR code or pick a wallet.',
+    walletConnectOpenHint: 'Opens the WalletConnect panel with a QR code (desktop) or installed wallets (mobile).',
+    walletConnectIconTitle: 'Connect with WalletConnect',
+    walletConnectReady: 'Connected',
+    walletConnectConnectFirst: 'Connect your wallet with WalletConnect before continuing.',
+    walletConnectPayingFromShort: 'Paying from {address}',
+    walletConnectModalTitle: 'Connect payment wallet',
+    walletConnectModalBody:
+      'Scan the QR code or choose your wallet to pay USDC. Tokens will be credited to your Coinbase Wallet linked in your profile.',
+    walletConnectModalConnect: 'Connect with WalletConnect',
+    walletConnectModalDone: 'Done',
+    walletConnectConnectedLabel: 'Payment wallet connected',
+    walletConnectVaultSubtitle:
+      'Sign the USDC deposit from your WalletConnect wallet. Vault shares go to your linked Coinbase.',
+    walletConnectTokensToCoinbase: 'Tokens credited to Coinbase: {address}',
+    walletConnectPayingFrom: 'Paying from',
     depositFromLinkedWalletHint:
       "Send USDC from your linked wallet ({address}) on Base to the address below.",
     paymentMethodsTitle: "Automatic payment options",
     confirmButton: "Confirm",
+    continuePurchase: "Continue purchase",
     continueDeposit: "Continue",
     feeIncluded: "Costs included",
     feeCommission: "Commission",
@@ -1015,7 +1039,8 @@ export const en = {
     connecting: "Connecting…",
     connect: "Connect wallet",
     connectCoinbase: "Connect Coinbase Wallet",
-    connectWalletConnect: "Connect Coinbase Wallet",
+    connectWalletConnect: "Connect with WalletConnect",
+    walletConnectUnavailable: "WalletConnect is not configured. Contact support.",
     connectFailed: "We couldn't connect Coinbase Wallet. Try again.",
     connectRejected: "Connection cancelled. You can try again.",
     connectRetryWalletConnect:
@@ -1513,7 +1538,7 @@ export const en = {
       walletBullet3: "Base mainnet — your address is linked to your Sanova account.",
       createCoinbaseWallet: "Connect Coinbase Wallet",
       connectExistingWallet: "Connect Coinbase Wallet",
-      walletConnectUnavailable: "Only Coinbase Wallet is enabled on the platform.",
+      walletConnectUnavailable: "WalletConnect is not configured. Contact support.",
       walletConnect: "Coinbase Wallet",
       walletSaving: "Saving wallet…",
       walletLinked: "Wallet linked",

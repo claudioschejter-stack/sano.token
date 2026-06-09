@@ -1,14 +1,11 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { defineChain } from 'viem';
-import { coinbaseWallet } from '@wagmi/connectors';
-import { walletConnectMetadata } from './walletConnect';
+import { coinbaseWallet, walletConnect } from '@wagmi/connectors';
+import { isWalletConnectConfigured, walletConnectMetadata, walletConnectProjectId } from './walletConnect';
 import { isPlumeWalletEnabled, PLUME_MAINNET_CHAIN_ID } from '../blockchain/supportedChains';
 
-export { walletConnectAllowedOrigins } from './walletConnect';
-
-/** @deprecated Coinbase-only; WalletConnect removed. */
-export const isWalletConnectConfigured = false;
+export { isWalletConnectConfigured, walletConnectAllowedOrigins } from './walletConnect';
 
 const baseRpcUrl =
   process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() ||
@@ -42,7 +39,20 @@ const connectors = [
     appName: walletConnectMetadata.name,
     /** Permite Smart Wallet o EOA para reconectar la dirección ya registrada en el perfil. */
     preference: 'all'
-  })
+  }),
+  ...(isWalletConnectConfigured
+    ? [
+        walletConnect({
+          projectId: walletConnectProjectId,
+          metadata: walletConnectMetadata,
+          showQrModal: true,
+          qrModalOptions: {
+            themeMode: 'light',
+            enableExplorer: true
+          }
+        })
+      ]
+    : [])
 ];
 
 const wagmiStorage = createStorage({
