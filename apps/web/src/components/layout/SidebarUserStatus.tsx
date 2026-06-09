@@ -62,7 +62,9 @@ export function SidebarUserStatus() {
 
   return (
     <div className="w-full space-y-2 pb-2">
-      <p className="text-center text-sm font-semibold leading-snug text-terminal-text">{displayName}</p>
+      <p className="-ml-[2mm] -mt-[2mm] text-left text-sm font-semibold leading-snug text-terminal-text">
+        {displayName}
+      </p>
       <div className="grid w-full grid-cols-2 gap-2">
         <span
           className={`${statusBadgeBase} border-terminal-primary/40 bg-terminal-primary/10 text-terminal-primary`}
