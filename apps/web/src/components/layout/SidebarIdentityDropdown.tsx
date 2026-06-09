@@ -23,7 +23,11 @@ type DropdownPosition = {
   left: number;
 };
 
-export function SidebarIdentityDropdown() {
+type SidebarIdentityDropdownProps = {
+  className?: string;
+};
+
+export function SidebarIdentityDropdown({ className = '' }: SidebarIdentityDropdownProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [position, setPosition] = useState<DropdownPosition>({ top: 0, left: 0 });
@@ -121,7 +125,11 @@ export function SidebarIdentityDropdown() {
             return next;
           });
         }}
-        className="inline-flex items-center gap-1 rounded-full border border-terminal-border bg-terminal-bg px-2.5 py-0.5 text-xs font-semibold text-terminal-text transition-colors hover:border-terminal-primary/40"
+        className={
+          className
+            ? `gap-1 border-terminal-border bg-terminal-bg text-terminal-text transition-colors hover:border-terminal-primary/40 ${className}`
+            : 'inline-flex items-center gap-1 rounded-full border border-terminal-border bg-terminal-bg px-2.5 py-0.5 text-xs font-semibold text-terminal-text transition-colors hover:border-terminal-primary/40'
+        }
       >
         <UserRound size={12} />
         {t.userRoleHeader.identityButton}
