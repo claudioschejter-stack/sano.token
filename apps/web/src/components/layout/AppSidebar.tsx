@@ -27,6 +27,7 @@ import type { SystemRole } from '../../lib/auth/roles';
 import { SidebarUserStatus } from './SidebarUserStatus';
 import { MarketplaceCartButton } from '../marketplace/MarketplaceCartButton';
 import { PortalBrandFrames, PortalBrandFramesMobileHeader } from './PortalBrandFrames';
+import { SidebarLanguageButton } from './SidebarLanguageButton';
 
 type NavItem = {
   href: string;
@@ -121,7 +122,7 @@ function SidebarContent({
 
   return (
     <>
-      <div className="border-b border-terminal-border bg-terminal-card p-3">
+      <div className="hidden border-b border-terminal-border bg-terminal-card p-3 md:block">
         <PortalBrandFrames portalSubtitle={portalSubtitle} onNavigate={onNavigate} />
       </div>
 
@@ -318,7 +319,10 @@ export function AppSidebar() {
           onNavigate={closeMobile}
           renderNavItem={renderNavItem}
         />
-        <div className="mt-auto shrink-0 border-t border-terminal-border p-4">
+        <div className="mt-auto shrink-0 space-y-2 border-t border-terminal-border p-4">
+          <div className="md:hidden">
+            <SidebarLanguageButton onLocaleSelected={closeMobile} />
+          </div>
           {signOutButton}
         </div>
       </aside>
