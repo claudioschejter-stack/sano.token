@@ -25,3 +25,15 @@ export function isPortalRoute(pathname: string): boolean {
     pathname.startsWith('/mercado-secundario')
   );
 }
+
+/** Coarse mobile detection for layout and session locale sync. */
+export function isMobileDevice(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  const narrowViewport = window.matchMedia('(max-width: 767px)').matches;
+
+  return coarsePointer || narrowViewport;
+}

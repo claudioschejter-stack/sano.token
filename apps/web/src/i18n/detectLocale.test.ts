@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { mapBrowserLanguageToLocale, mapCountryToLocaleHint, resolveInitialLocale } from './detectLocale';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  detectDeviceLocale,
+  mapBrowserLanguageToLocale,
+  mapCountryToLocaleHint,
+  resolveInitialLocale
+} from './detectLocale';
 
 describe('detectLocale', () => {
   it('maps browser languages to supported locales', () => {
@@ -31,5 +36,11 @@ describe('detectLocale', () => {
         browserLanguages: ['en-US']
       })
     ).toBe('en');
+  });
+
+  it('detects device locale from browser languages', () => {
+    vi.stubGlobal('navigator', { languages: ['pt-BR'], language: 'pt-BR' });
+    expect(detectDeviceLocale(null)).toBe('pt');
+    vi.unstubAllGlobals();
   });
 });

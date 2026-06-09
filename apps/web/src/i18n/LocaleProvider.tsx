@@ -2,24 +2,24 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { defaultLocale, intlLocaleByCode, messagesByLocale, resolveLocale, rtlLocales, type Locale } from './index';
-import { detectBrowserLocales, mapCountryToLocaleHint, resolveInitialLocale } from './detectLocale';
+import {
+  detectBrowserLocales,
+  detectDeviceLocale,
+  readCountryHint,
+  resolveInitialLocale
+} from './detectLocale';
+import { isMobileDevice } from '../lib/mobile/deviceConfig';
 import type { Messages } from './locales/en';
 
 const STORAGE_KEY = 'sanova.locale';
-const COUNTRY_COOKIE = 'sanova.country';
-
-function readCountryHint(): string | null {
-  if (typeof document === 'undefined') {
-    return null;
-  }
-
-  const match = document.cookie.match(new RegExp(`(?:^|; )${COUNTRY_COOKIE}=([^;]*)`));
-  return match?.[1] ? decodeURIComponent(match[1]) : null;
-}
 
 function readInitialLocale(): Locale {
   if (typeof window === 'undefined') {
     return defaultLocale;
+  }
+
+  if (isMobileDevice()) {
+    return detectDeviceLocale();
   }
 
   const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -59,7 +59,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const resolved = readInitialLocale();
     setLocaleState(resolved);
-    if (!window.localStorage.getItem(STORAGE_KEY)) {
+    if (isMobileDevice() || !window.localStorage.getItem(STORAGE_KEY)) {
       window.localStorage.setItem(STORAGE_KEY, resolved);
     }
     applyDocumentLocale(resolved);

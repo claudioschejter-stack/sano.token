@@ -109,6 +109,33 @@ export function detectBrowserLocales(): Locale[] {
   return resolved;
 }
 
+const COUNTRY_COOKIE = 'sanova.country';
+
+export function readCountryHint(): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const match = document.cookie.match(new RegExp(`(?:^|; )${COUNTRY_COOKIE}=([^;]*)`));
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+/** Best locale from device/browser settings (ignores stored preference). */
+export function detectDeviceLocale(countryHint?: string | null): Locale {
+  const browserLanguageTags =
+    typeof navigator === 'undefined'
+      ? []
+      : [...(navigator.languages ?? []), navigator.language].filter(
+          (value): value is string => typeof value === 'string' && value.length > 0
+        );
+
+  return resolveInitialLocale({
+    stored: null,
+    countryHint: countryHint ?? readCountryHint(),
+    browserLanguages: browserLanguageTags
+  });
+}
+
 export function resolveInitialLocale(options: {
   stored?: string | null;
   countryHint?: string | null;
