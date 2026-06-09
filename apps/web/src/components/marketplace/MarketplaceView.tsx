@@ -15,7 +15,6 @@ import { splitMarketplaceListings } from '../../lib/marketplace/splitMarketplace
 import { useCartStore } from '../../store/useCartStore';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
-import { PortalBrandMenu } from '../brand/PortalBrandMenu';
 import { PropertyCard } from './PropertyCard';
 
 type MarketplaceViewProps = {
@@ -169,7 +168,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
   return (
     <div className="mx-auto w-full max-w-7xl">
       <header className="mb-6 w-full">
-        <PortalBrandMenu className="mb-4 w-full max-w-xs" />
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold text-terminal-text md:text-3xl">{t.marketplace.title}</h1>
           {role ? (
