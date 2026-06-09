@@ -26,6 +26,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { SystemRole } from '../../lib/auth/roles';
 import { SidebarUserStatus } from './SidebarUserStatus';
+import { MarketplaceCartButton } from '../marketplace/MarketplaceCartButton';
 
 type NavItem = {
   href: string;
@@ -129,6 +130,9 @@ function SidebarContent({
 
       <div className="px-4 pt-4">
         <SidebarUserStatus />
+        <div className="mt-3">
+          <MarketplaceCartButton className="w-full justify-center" />
+        </div>
         {topNavItem ? renderNavItem(topNavItem, onNavigate) : null}
       </div>
 

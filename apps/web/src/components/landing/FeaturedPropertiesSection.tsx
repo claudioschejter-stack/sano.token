@@ -108,14 +108,14 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
               onBuy={() => {
                 if (!session?.user) {
                   router.push(
-                    `/acceso?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/checkout`)}`
+                    `/acceso?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/agregar`)}`
                   );
                   return;
                 }
-                router.push(`/marketplace/${listing.id}/checkout`);
+                router.push(`/marketplace/${listing.id}/agregar`);
               }}
               onStartKyc={() =>
-                router.push(`/kyc?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/checkout`)}`)
+                router.push(`/kyc?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/agregar`)}`)
               }
             />
           ))}

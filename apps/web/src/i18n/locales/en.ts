@@ -139,6 +139,15 @@ export const en = {
     error: "Could not load live data.Showing demo listings.",
     lendingBanner: "Aggregated from global DeFi and institutional lenders",
     syncing: "Synchronizing live data…",
+    addToCart: {
+      eyebrow: "Buy tokens",
+      quantity: "Token quantity",
+      priceUsdc: "Price per token (USDC)",
+      lineTotal: "Total (USDC)",
+      tokenSymbol: "Symbol",
+      maxAvailable: "Up to {count} available",
+      addButton: "Add to shopping cart"
+    },
     trustKyc: "Investors with KYC",
     trustRegulation: "Informed tax regime",
     trustOnchain: "On-chain settlement",
@@ -865,6 +874,12 @@ export const en = {
     walletLinkBack: "Back to dashboard",
     purchaseTitle: "Multi-project cart",
     purchaseSubtitle: "Review your assets, choose a payment method and confirm to credit tokens automatically.",
+    paymentMenuTitle: "Payment menu",
+    paymentMenuSubtitle: "Review fees, gas, and choose how to pay for your cart.",
+    cartSummaryTitle: "Your cart",
+    subtotalUsdc: "Subtotal (USDC)",
+    feesSummaryTitle: "Fees and costs",
+    continueShopping: "Keep buying tokens",
     depositTitle: "Deposit funds",
     depositSubtitle:
       "Choose an automatic payment method and confirm your deposit. Amounts include estimated fees.",

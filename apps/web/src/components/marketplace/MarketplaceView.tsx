@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Building2, ShoppingCart, Wallet } from 'lucide-react';
+import { Building2, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
@@ -12,9 +12,9 @@ import type { SystemRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import { LEGAL_CONTACT_PATH } from '../../lib/legal/legalConfig';
 import { splitMarketplaceListings } from '../../lib/marketplace/splitMarketplaceListings';
-import { useCartStore } from '../../store/useCartStore';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
+import { MarketplaceCartButton } from './MarketplaceCartButton';
 import { PropertyCard } from './PropertyCard';
 
 type MarketplaceViewProps = {
@@ -29,7 +29,6 @@ function MarketplaceListingGrid({
   capabilities,
   staffPreviewHint,
   onBuy,
-  onAddToCart,
   onStartKyc
 }: {
   listings: MarketplaceListing[];
@@ -39,7 +38,6 @@ function MarketplaceListingGrid({
   capabilities: ReturnType<typeof getMarketplaceCapabilities>;
   staffPreviewHint?: string;
   onBuy: (listing: MarketplaceListing) => void;
-  onAddToCart: (listing: MarketplaceListing) => void;
   onStartKyc: (listing: MarketplaceListing) => void;
 }) {
   if (listings.length === 0) {
@@ -76,7 +74,6 @@ function MarketplaceListingGrid({
           purchaseEnabled={capabilities.showPurchaseActions}
           staffPreviewHint={staffPreviewHint}
           onBuy={() => onBuy(listing)}
-          onAddToCart={() => onAddToCart(listing)}
           onStartKyc={() => onStartKyc(listing)}
         />
       ))}
@@ -98,9 +95,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
     : 'APPROVED';
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
   const [holdings, setHoldings] = useState<SecondaryMarketHolding[]>([]);
-  const addItem = useCartStore((state) => state.addItem);
-  const cartItemCount = useCartStore((state) => state.itemCount());
-  const cc = t.cartCheckout;
 
   const holdingsByProject = useMemo(
     () => new Map(holdings.map((row) => [row.projectId, row])),
@@ -128,30 +122,14 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
 
   const handleBuy = (listing: MarketplaceListing) => {
     if (!session?.user) {
-      router.push(`/acceso?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/checkout`)}`);
+      router.push(`/acceso?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/agregar`)}`);
       return;
     }
-    router.push(`/marketplace/${listing.id}/checkout`);
-  };
-
-  const handleAddToCart = (listing: MarketplaceListing) => {
-    if (!session?.user) {
-      router.push(`/acceso?returnTo=${encodeURIComponent('/marketplace/carrito')}`);
-      return;
-    }
-    addItem({
-      projectId: listing.id,
-      title: listing.title,
-      location: listing.location,
-      imageUrl: listing.imageUrl,
-      pricePerTokenUsd: listing.pricePerTokenUsd,
-      availableTokens: listing.availableTokens,
-      tokenSymbol: listing.tokenSymbol
-    });
+    router.push(`/marketplace/${listing.id}/agregar`);
   };
 
   const handleStartKyc = (listing: MarketplaceListing) => {
-    router.push(`/kyc?returnTo=/marketplace/${listing.id}/checkout`);
+    router.push(`/kyc?returnTo=/marketplace/${listing.id}/agregar`);
   };
 
   const gridProps = {
@@ -161,7 +139,6 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
     capabilities,
     staffPreviewHint,
     onBuy: handleBuy,
-    onAddToCart: handleAddToCart,
     onStartKyc: handleStartKyc
   };
 
@@ -175,15 +152,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
               {roleLabels[role]}
             </span>
           ) : null}
-          {session?.user && cartItemCount > 0 ? (
-            <Link
-              href="/marketplace/carrito"
-              className="ml-auto inline-flex items-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-1.5 text-xs font-semibold text-terminal-primary hover:bg-terminal-primary/20"
-            >
-              <ShoppingCart size={14} />
-              {cc.viewCart} ({cartItemCount})
-            </Link>
-          ) : null}
+          <MarketplaceCartButton className="ml-auto" />
         </div>
         <p className="mt-2 text-base text-terminal-muted md:text-lg">{t.marketplace.subtitle}</p>
       </header>

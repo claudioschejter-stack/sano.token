@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, ExternalLink, Minus, Plus, ShoppingCart, Trash2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, ShoppingCart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -90,7 +90,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const c = t.cartCheckout;
   const w = t.wallet;
   const { intlLocale } = useLocale();
-  const { formatFromUsd, formatUsd, currency, rates, intlLocale: currencyLocale } = useLocalCurrency();
+  const { formatFromUsd, formatUsd, formatUsdPlain, currency, rates, intlLocale: currencyLocale } = useLocalCurrency();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { address, isConnected } = useAccount();
@@ -107,7 +107,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
   const items = useCartStore((state) => state.items);
   const removeItem = useCartStore((state) => state.removeItem);
-  const setTokenCount = useCartStore((state) => state.setTokenCount);
   const clearCart = useCartStore((state) => state.clearCart);
   const cartTotalUsd = useCartStore((state) => state.totalUsd());
   const cartItemCount = useCartStore((state) => state.itemCount());
@@ -601,10 +600,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       <article className="overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
         <div className="border-b border-terminal-border px-4 py-5 sm:px-8 sm:py-6">
           <p className="text-sm font-medium uppercase tracking-wider text-terminal-primary">
-            {mode === 'deposit' ? c.depositTitle : c.purchaseTitle}
+            {mode === 'deposit' ? c.depositTitle : c.paymentMenuTitle}
           </p>
           <h1 className="mt-2 text-2xl font-bold text-terminal-text">{investorName}</h1>
-          <p className="mt-1 text-sm text-terminal-muted">{mode === 'deposit' ? c.depositSubtitle : c.purchaseSubtitle}</p>
+          <p className="mt-1 text-sm text-terminal-muted">
+            {mode === 'deposit' ? c.depositSubtitle : c.paymentMenuSubtitle}
+          </p>
         </div>
 
         <div className="space-y-6 p-4 sm:p-8">
@@ -615,6 +616,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               </p>
             ) : (
               <div className="space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-terminal-muted">{c.cartSummaryTitle}</p>
                 {items.map((item) => (
                   <div
                     key={item.projectId}
@@ -627,7 +629,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <p className="font-semibold text-terminal-text">{item.title}</p>
-                          <p className="text-xs text-terminal-muted">{item.location}</p>
+                          {item.tokenSymbol ? (
+                            <p className="mt-0.5 font-mono text-xs text-terminal-primary">{item.tokenSymbol}</p>
+                          ) : null}
                         </div>
                         <button
                           type="button"
@@ -638,35 +642,23 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                           <Trash2 size={16} />
                         </button>
                       </div>
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setTokenCount(item.projectId, item.tokenCount - 1)}
-                            className="rounded-lg border border-terminal-border p-1.5 text-terminal-muted hover:text-terminal-text"
-                            aria-label={t.checkout.lessTokens}
-                          >
-                            <Minus size={14} />
-                          </button>
-                          <span className="min-w-[3rem] text-center font-mono text-lg font-bold text-terminal-text">
-                            {item.tokenCount}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setTokenCount(item.projectId, item.tokenCount + 1)}
-                            className="rounded-lg border border-terminal-border p-1.5 text-terminal-muted hover:text-terminal-text"
-                            aria-label={t.checkout.moreTokens}
-                          >
-                            <Plus size={14} />
-                          </button>
-                        </div>
-                        <p className="font-mono text-sm text-terminal-primary">
-                          {formatFromUsd(item.pricePerTokenUsd * item.tokenCount)}
-                        </p>
+                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <span className="text-terminal-muted">
+                          {formatMessage(c.itemsBadge, { count: item.tokenCount })}
+                        </span>
+                        <span className="font-mono font-semibold text-terminal-primary">
+                          USDC {formatUsdPlain(item.pricePerTokenUsd * item.tokenCount, { min: 2, max: 2 })}
+                        </span>
                       </div>
                     </div>
                   </div>
                 ))}
+                <Link
+                  href="/marketplace"
+                  className="inline-flex text-sm font-semibold text-terminal-primary hover:underline"
+                >
+                  {c.continueShopping}
+                </Link>
               </div>
             )
           ) : (
@@ -683,11 +675,34 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           )}
 
           {showPaymentMethods ? (
-            <div className="rounded-lg border border-terminal-border p-4">
-              <div className="flex items-baseline justify-between gap-4 text-base font-semibold text-terminal-text">
-                <span>{mode === 'deposit' ? c.totalDepositUsd : formatMessage(c.totalUsdc, { currency })}</span>
+            <div className="space-y-3 rounded-lg border border-terminal-border p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-terminal-muted">{c.feesSummaryTitle}</p>
+              <div className="flex justify-between text-sm text-terminal-muted">
+                <span>{mode === 'deposit' ? c.totalDepositUsd : c.subtotalUsdc}</span>
+                <span className="font-mono text-terminal-text">
+                  {mode === 'deposit' ? formatUsd(totalUsd) : `USDC ${formatUsdPlain(totalUsd, { min: 2, max: 2 })}`}
+                </span>
+              </div>
+              {mode === 'purchase' && selectedDepositOption ? (
+                <>
+                  <div className="flex justify-between text-sm text-terminal-muted">
+                    <span>{c.feeCommission}</span>
+                    <span className="font-mono text-terminal-text">{formatUsd(selectedDepositOption.platformFeeUsd)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-terminal-muted">
+                    <span>{c.feeGas}</span>
+                    <span className="font-mono text-terminal-text">{formatUsd(selectedDepositOption.gasFeeUsd)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-terminal-muted">
+                    <span>{c.feeOther}</span>
+                    <span className="font-mono text-terminal-text">{formatUsd(selectedDepositOption.networkFeeUsd)}</span>
+                  </div>
+                </>
+              ) : null}
+              <div className="flex items-baseline justify-between gap-4 border-t border-terminal-border pt-3 text-base font-semibold text-terminal-text">
+                <span>{c.totalToPayLabel}</span>
                 <span className="shrink-0 font-mono text-terminal-primary">
-                  {mode === 'deposit' ? formatUsd(totalUsd) : formatFromUsd(totalUsd)}
+                  {formatUsd(selectedDepositOption?.totalUsd ?? totalUsd)}
                 </span>
               </div>
             </div>
@@ -735,15 +750,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               {sortedDepositOptions.length === 0 && totalUsd <= 0 ? (
                 <p className="text-xs text-terminal-warning">{c.invalidAmount}</p>
               ) : null}
-
-              <div className="rounded-lg border border-terminal-border p-4">
-                <div className="flex items-baseline justify-between gap-4 text-base font-semibold text-terminal-text">
-                  <span>{c.totalToPayLabel}</span>
-                  <span className="shrink-0 font-mono text-terminal-primary">
-                    {formatUsd(selectedDepositOption?.totalUsd ?? totalUsd)}
-                  </span>
-                </div>
-              </div>
             </div>
           ) : null}
 
