@@ -925,7 +925,12 @@ export const es = {
     txHashPlaceholder: 'Hash de transacción',
     verifyTx: 'Verificar transacción',
     openGateway: 'Abrir pasarela de pago',
-    purchaseComplete: 'Compra confirmada. Los tokens se acreditaron en tu portfolio.',
+    purchaseComplete: 'Compra confirmada. Tus cuotapartes ERC-4626 ya están en tu wallet vinculada.',
+    vaultDepositTitle: 'Recibir tokens en tu wallet',
+    vaultDepositSubtitle:
+      'Confirmá el depósito on-chain: las shares del vault se acreditan directo en la billetera asociada a tu cuenta.',
+    vaultDepositButton: 'Depositar USDC y recibir tokens',
+    vaultDepositDone: 'Tokens acreditados en tu wallet',
     depositComplete: 'Depósito confirmado. Saldo actualizado en tu billetera Sanova.',
     backToWallet: 'Volver a billetera',
     depositWalletRequired:
@@ -1039,7 +1044,9 @@ export const es = {
     userRejected: 'Transacción cancelada en la wallet.',
     retry: 'Reintentar',
     vaultNotConfigured: 'Vault ERC-4626 no configurado para este activo.',
-    treasuryDepositNote: 'Depósito a treasury de plataforma',
+    treasuryDepositNote: 'Las cuotapartes se acreditan en tu wallet vinculada',
+    investorWalletDepositNote:
+      'Firmás 1–2 transacciones en Base (approve + depósito). El gas en L2 suele ser muy bajo.',
     platformTreasuryMissing:
       'Falta NEXT_PUBLIC_TOKEN_TREASURY_ADDRESS en Vercel. Contactá soporte.'
   },

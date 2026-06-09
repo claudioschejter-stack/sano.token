@@ -269,6 +269,12 @@ export async function createCartPurchaseCheckout(input: {
 
       const idempotencyKey = `${batchId}:${line.projectId}:${line.tokenCount}:${input.method}`;
 
+      const vaultDepositMode =
+        input.method === 'USDC_ONCHAIN' && Boolean(project.vaultAddress?.trim());
+      const linePayToAddress = vaultDepositMode
+        ? project.vaultAddress!.trim()
+        : payToAddress;
+
       const intent = await tx.paymentIntent.create({
         data: {
           userId: input.userId,
@@ -283,7 +289,7 @@ export async function createCartPurchaseCheckout(input: {
             input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? network.symbol : null,
           chainId: input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? network.chainId : null,
           payerWalletAddress: payerWallet,
-          payToAddress,
+          payToAddress: linePayToAddress,
           idempotencyKey,
           expiresAt,
           metadata: {
@@ -291,9 +297,13 @@ export async function createCartPurchaseCheckout(input: {
             cartLineIndex: index,
             projectTitle: project.title,
             pricePerTokenUsd: project.pricePerToken.toString(),
-            purchaseMode: 'CART_TREASURY_TRANSFER',
+            purchaseMode: vaultDepositMode ? 'ERC4626_DEPOSIT' : 'CART_TREASURY_TRANSFER',
             stablecoinNetwork: network.id,
             treasuryAddress: payToAddress,
+            vaultAddress: project.vaultAddress ?? null,
+            usdcTokenAddress: input.method === 'USDC_ONCHAIN' ? network.tokenAddress : null,
+            usdcDecimals: input.method === 'USDC_ONCHAIN' ? network.decimals : null,
+            shareReceiverWallet: payerWallet,
             paymentOptionId: input.paymentOptionId ?? null,
             providerRail: checkoutRow?.providerRail ?? null,
             paymentLabel: checkoutRow?.label ?? null

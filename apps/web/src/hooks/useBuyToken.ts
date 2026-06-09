@@ -39,8 +39,7 @@ export type BuyTokenInput = {
   chainId?: number;
   /**
    * Receiver of vault shares.
-   * Defaults to platform treasury (TOKEN_TREASURY_ADDRESS), not the connected wallet.
-   * Personal wallets only receive shares via admin migration or explicit override.
+   * Defaults to the connected wallet so investors receive ERC-4626 shares directly.
    */
   receiver?: `0x${string}`;
 };
@@ -92,10 +91,10 @@ export function useBuyToken() {
         PLATFORM_TREASURY_ADDRESS && /^0x[a-f0-9]{40}$/.test(PLATFORM_TREASURY_ADDRESS)
           ? (PLATFORM_TREASURY_ADDRESS as `0x${string}`)
           : null;
-      const receiver = input.receiver ?? treasuryReceiver;
+      const receiver = input.receiver ?? address ?? treasuryReceiver;
 
       if (!receiver) {
-        const message = 'PLATFORM_TREASURY_NOT_CONFIGURED';
+        const message = 'WALLET_NOT_CONNECTED';
         setStatus('error');
         setError(message);
         throw new Error(message);

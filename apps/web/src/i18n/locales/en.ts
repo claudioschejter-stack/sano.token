@@ -914,7 +914,12 @@ export const en = {
     txHashPlaceholder: "Transaction hash",
     verifyTx: "Verify transaction",
     openGateway: "Open payment gateway",
-    purchaseComplete: "Purchase confirmed. Tokens were credited to your portfolio.",
+    purchaseComplete: "Purchase confirmed. Your ERC-4626 vault shares are in your linked wallet.",
+    vaultDepositTitle: "Receive tokens in your wallet",
+    vaultDepositSubtitle:
+      "Confirm the on-chain deposit: vault shares are credited directly to the wallet linked to your account.",
+    vaultDepositButton: "Deposit USDC and receive tokens",
+    vaultDepositDone: "Tokens credited to your wallet",
     depositComplete: "Deposit confirmed. Balance updated in your Sanova wallet.",
     backToWallet: "Back to wallet",
     depositWalletRequired:
@@ -1028,7 +1033,9 @@ export const en = {
     userRejected: "Transaction cancelled in wallet.",
     retry: "Retry",
     vaultNotConfigured: "ERC-4626 vault not configured for this asset.",
-    treasuryDepositNote: "Deposit to platform treasury",
+    treasuryDepositNote: "Vault shares are credited to your linked wallet",
+    investorWalletDepositNote:
+      "You sign 1–2 transactions on Base (approve + deposit). L2 gas is typically very low.",
     platformTreasuryMissing:
       "NEXT_PUBLIC_TOKEN_TREASURY_ADDRESS is missing in Vercel. Contact support."
   },
