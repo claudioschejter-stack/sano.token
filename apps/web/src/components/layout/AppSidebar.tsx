@@ -18,7 +18,6 @@ import {
   X
 } from 'lucide-react';
 import Link from 'next/link';
-import { SanovaLogo } from '../brand/SanovaLogo';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useEffect, useState, type ReactNode } from 'react';
@@ -27,6 +26,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import type { SystemRole } from '../../lib/auth/roles';
 import { SidebarUserStatus } from './SidebarUserStatus';
 import { MarketplaceCartButton } from '../marketplace/MarketplaceCartButton';
+import { PortalBrandFrames, PortalBrandFramesMobileHeader } from './PortalBrandFrames';
 
 type NavItem = {
   href: string;
@@ -103,9 +103,6 @@ type SidebarContentProps = {
   renderNavItem: (item: NavItem, onNavigate?: () => void) => ReactNode;
 };
 
-const sidebarBrandFrame =
-  'rounded-xl border border-[#1c2432] bg-white shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04)]';
-
 function SidebarContent({
   topNavItem,
   secondaryNavItems,
@@ -125,14 +122,7 @@ function SidebarContent({
   return (
     <>
       <div className="border-b border-terminal-border bg-terminal-card p-3">
-        <Link href="/" className="block space-y-[7mm] transition-opacity hover:opacity-95" onClick={onNavigate}>
-          <div className={`${sidebarBrandFrame} flex w-full items-center justify-center px-[1mm] py-[2mm]`}>
-            <SanovaLogo variant="light" showWordmark className="h-9" />
-          </div>
-          <div className={`${sidebarBrandFrame} mx-auto w-fit max-w-full px-[2mm] py-[1mm]`}>
-            <p className="text-center text-sm font-semibold leading-tight text-black">{portalSubtitle}</p>
-          </div>
-        </Link>
+        <PortalBrandFrames portalSubtitle={portalSubtitle} onNavigate={onNavigate} />
       </div>
 
       <div className="px-4 pt-4">
@@ -280,6 +270,12 @@ export function AppSidebar() {
   ];
   const closeMobile = () => setMobileOpen(false);
 
+  const portalSubtitle = isAdmin
+    ? t.adminDashboard.sidebarSubtitle
+    : isAdvisorStaff
+      ? t.advisorPortal.clientsTitle
+      : t.brand.portalSubtitle;
+
   const signOutButton = (
     <button
       type="button"
@@ -293,10 +289,8 @@ export function AppSidebar() {
 
   return (
     <>
-      <header className="safe-top fixed inset-x-0 top-0 z-40 flex h-14 min-h-14 items-center justify-between border-b border-terminal-border bg-terminal-card px-4 md:hidden">
-        <Link href="/" className="inline-flex items-center">
-          <SanovaLogo variant="mark" className="h-8 w-8" />
-        </Link>
+      <header className="safe-top fixed inset-x-0 top-0 z-40 flex h-14 min-h-14 items-center justify-between gap-2 border-b border-terminal-border bg-terminal-card px-3 md:hidden">
+        <PortalBrandFramesMobileHeader portalSubtitle={portalSubtitle} />
         <button
           type="button"
           aria-expanded={mobileOpen}
