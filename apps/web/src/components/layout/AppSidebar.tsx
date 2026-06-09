@@ -18,6 +18,7 @@ import {
   X
 } from 'lucide-react';
 import Link from 'next/link';
+import { PortalBrandMenu } from '../brand/PortalBrandMenu';
 import { SanovaLogo } from '../brand/SanovaLogo';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
@@ -114,17 +115,8 @@ function SidebarContent({
 
   return (
     <>
-      <div className="border-b border-terminal-border p-6">
-        <Link href="/" className="block transition-opacity hover:opacity-90" onClick={onNavigate}>
-          <SanovaLogo variant="dark" showWordmark className="h-9" />
-          <p className="mt-2 text-sm text-terminal-muted">
-            {isAdmin
-              ? t.adminDashboard.sidebarSubtitle
-              : isAdvisorStaff
-                ? t.advisorPortal.clientsTitle
-                : t.brand.portalSubtitle}
-          </p>
-        </Link>
+      <div className="border-b border-terminal-border p-4">
+        <PortalBrandMenu onNavigate={onNavigate} />
       </div>
 
       <div className="px-4 pt-4">
