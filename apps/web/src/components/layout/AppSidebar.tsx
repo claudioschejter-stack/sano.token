@@ -284,14 +284,14 @@ export function AppSidebar() {
 
   return (
     <>
-      <header className="safe-top fixed inset-x-0 top-0 z-40 flex h-14 min-h-14 items-center gap-2 border-b border-terminal-border bg-terminal-card pl-3 pr-3 md:hidden">
+      <header className="safe-top fixed inset-x-0 top-0 z-40 box-border flex h-14 items-start justify-between gap-2 border-b border-terminal-border bg-terminal-card p-[2mm] md:hidden">
         <PortalBrandFramesMobileHeader />
         <button
           type="button"
           aria-expanded={mobileOpen}
           aria-label={mobileOpen ? t.landing.nav.closeMenu : t.landing.nav.openMenu}
           onClick={() => setMobileOpen((open) => !open)}
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-terminal-border text-terminal-text"
+          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-start rounded-lg border border-terminal-border text-terminal-text"
         >
           {mobileOpen ? <X size={20} /> : <Menu size={20} />}
         </button>

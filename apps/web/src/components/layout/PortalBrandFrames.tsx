@@ -52,12 +52,12 @@ export function PortalBrandFramesMobileHeader({
   return (
     <Link
       href={href}
-      className={`flex h-14 min-w-0 flex-1 items-stretch transition-opacity hover:opacity-95 ${className}`.trim()}
+      className={`inline-flex shrink-0 items-center justify-start transition-opacity hover:opacity-95 ${className}`.trim()}
       onClick={onNavigate}
       aria-label="Sanova Global"
     >
       <div
-        className={`${portalBrandFrameClass} flex h-full w-full items-center justify-center px-[2mm] py-[1.5mm]`}
+        className={`${portalBrandFrameClass} flex items-center justify-start p-[2mm]`}
       >
         <SanovaLogo variant="light" showWordmark href={null} className="h-9 max-h-full" />
       </div>
