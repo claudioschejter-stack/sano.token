@@ -60,8 +60,15 @@ export function PasskeyRegisterPrompt({ className = '' }: PasskeyRegisterPromptP
       }
 
       setDone(true);
-    } catch {
-      setError(p.registerFailed);
+    } catch (caught) {
+      const code = caught instanceof Error ? caught.message : 'REGISTER_FAILED';
+      setError(
+        code === 'NOT_SUPPORTED'
+          ? p.notSupported
+          : code === 'NotAllowedError' || code === 'AbortError'
+            ? p.registerCancelled
+            : p.registerFailed
+      );
     } finally {
       setLoading(false);
     }

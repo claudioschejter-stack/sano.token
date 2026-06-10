@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createPasskeyLoginOptions } from '../../../../../../lib/auth/passkeyService';
+import { resolvePasskeyWebContext } from '../../../../../../lib/auth/passkeyConfig';
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as { email?: string | null };
 
   try {
-    const options = await createPasskeyLoginOptions(body.email);
+    const options = await createPasskeyLoginOptions(body.email, resolvePasskeyWebContext(request));
     return NextResponse.json({ options });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'PASSKEY_OPTIONS_FAILED';

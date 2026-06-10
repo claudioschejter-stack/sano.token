@@ -89,13 +89,19 @@ export function PasskeyLoginButton({
       router.push(callbackUrl);
     } catch (caught) {
       const code = caught instanceof Error ? caught.message : 'PASSKEY_LOGIN_FAILED';
-      setError(
-        code === 'NOT_SUPPORTED'
-          ? p.notSupported
-          : code === 'PASSKEY_NOT_FOUND'
-            ? p.notRegistered
-            : p.loginFailed
-      );
+      if (code === 'NotAllowedError' || code === 'AbortError') {
+        setError(p.loginCancelled);
+      } else {
+        setError(
+          code === 'NOT_SUPPORTED'
+            ? p.notSupported
+            : code === 'PASSKEY_NOT_FOUND'
+              ? p.notRegistered
+              : code === 'CHALLENGE_EXPIRED'
+                ? p.challengeExpired
+                : p.loginFailed
+        );
+      }
     } finally {
       setLoading(false);
     }

@@ -9,7 +9,12 @@ import {
 } from '@simplewebauthn/server';
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from '@sanova/database';
-import { passkeyOrigin, passkeyRpId, passkeyRpName } from './passkeyConfig';
+import {
+  passkeyRpName,
+  resolvePasskeyWebContext,
+  resolvePasskeyWebContextFromClientOrigin,
+  type PasskeyWebContext
+} from './passkeyConfig';
 import { issueAuthUserById, updateUserRoleIfNeeded } from './issueAuthUser';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -45,7 +50,32 @@ async function storeChallenge(input: {
   });
 }
 
-export async function createPasskeyRegistrationOptions(userId: string) {
+function clientOriginFromAuthResponse(response: AuthenticationResponseJSON): string {
+  const clientData = JSON.parse(
+    Buffer.from(response.response.clientDataJSON, 'base64url').toString('utf8')
+  ) as { origin?: string };
+
+  if (!clientData.origin) {
+    throw new Error('PASSKEY_ORIGIN_MISSING');
+  }
+
+  return clientData.origin;
+}
+
+function clientOriginFromRegistrationResponse(response: RegistrationResponseJSON): string {
+  const clientData = JSON.parse(
+    Buffer.from(response.response.clientDataJSON, 'base64url').toString('utf8')
+  ) as { origin?: string };
+
+  if (!clientData.origin) {
+    throw new Error('PASSKEY_ORIGIN_MISSING');
+  }
+
+  return clientData.origin;
+}
+
+export async function createPasskeyRegistrationOptions(userId: string, webContext?: PasskeyWebContext) {
+  const ctx = webContext ?? resolvePasskeyWebContext();
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -61,7 +91,7 @@ export async function createPasskeyRegistrationOptions(userId: string) {
 
   const options = await generateRegistrationOptions({
     rpName: passkeyRpName(),
-    rpID: passkeyRpId(),
+    rpID: ctx.rpId,
     userName: user.email,
     userDisplayName: user.email,
     userID: new TextEncoder().encode(user.id),
@@ -72,8 +102,7 @@ export async function createPasskeyRegistrationOptions(userId: string) {
     })),
     authenticatorSelection: {
       residentKey: 'preferred',
-      userVerification: 'preferred',
-      authenticatorAttachment: 'platform'
+      userVerification: 'preferred'
     }
   });
 
@@ -90,8 +119,10 @@ export async function createPasskeyRegistrationOptions(userId: string) {
 export async function verifyPasskeyRegistration(
   userId: string,
   response: RegistrationResponseJSON,
-  deviceName?: string | null
+  deviceName?: string | null,
+  webContext?: PasskeyWebContext
 ) {
+  const ctx = webContext ?? resolvePasskeyWebContextFromClientOrigin(clientOriginFromRegistrationResponse(response));
   const latest = await prisma.webAuthnChallenge.findFirst({
     where: { userId, type: 'REGISTER', expiresAt: { gt: new Date() } },
     orderBy: { createdAt: 'desc' }
@@ -105,8 +136,8 @@ export async function verifyPasskeyRegistration(
   const verification = await verifyRegistrationResponse({
     response,
     expectedChallenge,
-    expectedOrigin: passkeyOrigin(),
-    expectedRPID: passkeyRpId(),
+    expectedOrigin: ctx.origin,
+    expectedRPID: ctx.rpId,
     requireUserVerification: false
   });
 
@@ -134,7 +165,8 @@ export async function verifyPasskeyRegistration(
   return { ok: true as const };
 }
 
-export async function createPasskeyLoginOptions(email?: string | null) {
+export async function createPasskeyLoginOptions(email?: string | null, webContext?: PasskeyWebContext) {
+  const ctx = webContext ?? resolvePasskeyWebContext();
   const normalizedEmail = email?.trim().toLowerCase() || null;
   let allowCredentials: Array<{ id: string; transports?: AuthenticatorTransportFuture[] }> | undefined;
 
@@ -149,13 +181,12 @@ export async function createPasskeyLoginOptions(email?: string | null) {
     }
 
     allowCredentials = user.passkeys.map((passkey) => ({
-      id: passkey.credentialId,
-      transports: (passkey.transports as AuthenticatorTransportFuture[] | null) ?? undefined
+      id: passkey.credentialId
     }));
   }
 
   const options = await generateAuthenticationOptions({
-    rpID: passkeyRpId(),
+    rpID: ctx.rpId,
     allowCredentials,
     userVerification: 'preferred'
   });
@@ -169,10 +200,14 @@ export async function createPasskeyLoginOptions(email?: string | null) {
   return options;
 }
 
-export async function verifyPasskeyLogin(response: AuthenticationResponseJSON) {
+export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, webContext?: PasskeyWebContext) {
   const clientData = JSON.parse(
     Buffer.from(response.response.clientDataJSON, 'base64url').toString('utf8')
-  ) as { challenge?: string };
+  ) as { challenge?: string; origin?: string };
+
+  const ctx =
+    webContext ??
+    resolvePasskeyWebContextFromClientOrigin(clientData.origin ?? clientOriginFromAuthResponse(response));
 
   const challengeRecord = clientData.challenge ?
     await prisma.webAuthnChallenge.findUnique({ where: { challenge: clientData.challenge } })
@@ -195,8 +230,8 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON) {
   const verification = await verifyAuthenticationResponse({
     response,
     expectedChallenge,
-    expectedOrigin: passkeyOrigin(),
-    expectedRPID: passkeyRpId(),
+    expectedOrigin: ctx.origin,
+    expectedRPID: ctx.rpId,
     credential: {
       id: passkey.credentialId,
       publicKey: new Uint8Array(passkey.publicKey),

@@ -1620,6 +1620,8 @@ export const es = {
     loginFaceId: 'Ingresar con Face ID',
     signingIn: 'Verificando…',
     loginFailed: 'No se pudo ingresar con biometría. Usá email y contraseña.',
+    loginCancelled: 'Ingreso biométrico cancelado.',
+    challengeExpired: 'La verificación expiró. Intentá de nuevo.',
     notSupported: 'Tu navegador no soporta passkeys. Actualizá el sistema o usá email.',
     notRegistered: 'No hay biometría registrada para esta cuenta. Ingresá con contraseña primero.',
     registerTitle: 'Activar ingreso biométrico',
@@ -1628,7 +1630,8 @@ export const es = {
     registerCta: 'Activar ahora',
     registering: 'Configurando…',
     registerSuccess: 'Biometría activada. Ya podés ingresar con un toque.',
-    registerFailed: 'No se pudo activar la biometría en este dispositivo.'
+    registerFailed: 'No se pudo activar la biometría en este dispositivo.',
+    registerCancelled: 'Activación biométrica cancelada.'
   },
   pwa: {
     installTitle: 'Instalá Sanova en tu celular',

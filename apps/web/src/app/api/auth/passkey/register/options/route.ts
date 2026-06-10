@@ -1,8 +1,9 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { auth } from '../../../../../../auth';
 import { createPasskeyRegistrationOptions } from '../../../../../../lib/auth/passkeyService';
+import { resolvePasskeyWebContext } from '../../../../../../lib/auth/passkeyConfig';
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await auth();
   const userId = session?.user?.id;
 
@@ -11,7 +12,7 @@ export async function POST() {
   }
 
   try {
-    const options = await createPasskeyRegistrationOptions(userId);
+    const options = await createPasskeyRegistrationOptions(userId, resolvePasskeyWebContext(request));
     return NextResponse.json({ options });
   } catch (error) {
     console.error('[passkey/register/options]', error);

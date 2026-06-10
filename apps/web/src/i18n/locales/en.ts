@@ -1587,6 +1587,8 @@ export const en = {
     loginFaceId: "Sign in with Face ID",
     signingIn: "Verifying…",
     loginFailed: "Biometric sign-in failed. Use email and password.",
+    loginCancelled: "Biometric sign-in was cancelled.",
+    challengeExpired: "Verification expired. Please try again.",
     notSupported: "Your browser does not support passkeys. Update the OS or use email.",
     notRegistered: "No biometrics registered for this account. Sign in with password first.",
     registerTitle: "Enable biometric sign-in",
@@ -1595,7 +1597,8 @@ export const en = {
     registerCta: "Enable now",
     registering: "Setting up…",
     registerSuccess: "Biometrics enabled. You can now sign in with one tap.",
-    registerFailed: "Could not enable biometrics on this device."
+    registerFailed: "Could not enable biometrics on this device.",
+    registerCancelled: "Biometric setup was cancelled."
   },
   pwa: {
     installTitle: "Install Sanova on your cell phone",
