@@ -3,7 +3,9 @@
 import { Fingerprint, ScanFace } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { startRegistration, type PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
+import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { saveDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 
 type PasskeyRegisterPromptProps = {
   className?: string;
@@ -19,6 +21,7 @@ function isIosDevice(): boolean {
 export function PasskeyRegisterPrompt({ className = '' }: PasskeyRegisterPromptProps) {
   const t = useTranslation();
   const p = t.passkey;
+  const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +60,11 @@ export function PasskeyRegisterPrompt({ className = '' }: PasskeyRegisterPromptP
 
       if (!verifyResponse.ok) {
         throw new Error('REGISTER_FAILED');
+      }
+
+      const userEmail = session?.user?.email?.trim().toLowerCase();
+      if (userEmail && attestation.id) {
+        saveDevicePasskeyHint({ email: userEmail, credentialId: attestation.id });
       }
 
       setDone(true);

@@ -7,6 +7,7 @@ import { useMemo, useState } from 'react';
 import { startAuthentication, type PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
+import { getDevicePasskeyHint, saveDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 
 type PasskeyLoginButtonProps = {
   email?: string;
@@ -43,10 +44,16 @@ export function PasskeyLoginButton({
         throw new Error('NOT_SUPPORTED');
       }
 
+      const deviceHint = getDevicePasskeyHint();
+      const loginEmail = email.trim() || deviceHint?.email || null;
+
       const optionsResponse = await fetch('/api/auth/passkey/login/options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() || null })
+        body: JSON.stringify({
+          email: loginEmail,
+          deviceCredentialId: deviceHint?.credentialId ?? null
+        })
       });
 
       const optionsData = (await optionsResponse.json()) as {
@@ -59,6 +66,11 @@ export function PasskeyLoginButton({
       }
 
       const assertion = await startAuthentication({ optionsJSON: optionsData.options });
+
+      const resolvedEmail = loginEmail ?? deviceHint?.email ?? null;
+      if (resolvedEmail && assertion.id) {
+        saveDevicePasskeyHint({ email: resolvedEmail, credentialId: assertion.id });
+      }
 
       const verifyResponse = await fetch('/api/auth/passkey/login/verify', {
         method: 'POST',

@@ -165,12 +165,34 @@ export async function verifyPasskeyRegistration(
   return { ok: true as const };
 }
 
-export async function createPasskeyLoginOptions(email?: string | null, webContext?: PasskeyWebContext) {
+export async function createPasskeyLoginOptions(
+  email?: string | null,
+  webContext?: PasskeyWebContext,
+  deviceCredentialId?: string | null
+) {
   const ctx = webContext ?? resolvePasskeyWebContext();
-  const normalizedEmail = email?.trim().toLowerCase() || null;
+  let normalizedEmail = email?.trim().toLowerCase() || null;
   let allowCredentials: Array<{ id: string; transports?: AuthenticatorTransportFuture[] }> | undefined;
 
-  if (normalizedEmail) {
+  const trimmedDeviceCredentialId = deviceCredentialId?.trim() || null;
+
+  if (trimmedDeviceCredentialId) {
+    const passkey = await prisma.userPasskey.findUnique({
+      where: { credentialId: trimmedDeviceCredentialId },
+      include: { user: { select: { email: true } } }
+    });
+
+    if (!passkey) {
+      throw new Error('PASSKEY_NOT_FOUND');
+    }
+
+    if (normalizedEmail && passkey.user.email !== normalizedEmail) {
+      throw new Error('PASSKEY_NOT_FOUND');
+    }
+
+    normalizedEmail = passkey.user.email;
+    allowCredentials = [{ id: passkey.credentialId }];
+  } else if (normalizedEmail) {
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
       include: { passkeys: true }
@@ -180,15 +202,19 @@ export async function createPasskeyLoginOptions(email?: string | null, webContex
       throw new Error('PASSKEY_NOT_FOUND');
     }
 
-    allowCredentials = user.passkeys.map((passkey) => ({
-      id: passkey.credentialId
-    }));
+    allowCredentials =
+      user.passkeys.length === 1
+        ? [{ id: user.passkeys[0].credentialId }]
+        : user.passkeys.map((passkey) => ({
+            id: passkey.credentialId
+          }));
   }
 
   const options = await generateAuthenticationOptions({
     rpID: ctx.rpId,
     allowCredentials,
-    userVerification: 'preferred'
+    userVerification: 'required',
+    hints: ['client-device']
   });
 
   await storeChallenge({

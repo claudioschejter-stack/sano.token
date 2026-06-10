@@ -3,9 +3,10 @@
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
+import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 import { PasswordInput } from './PasswordInput';
 import { PasskeyLoginButton } from './PasskeyLoginButton';
 
@@ -28,6 +29,17 @@ export function LoginForm({
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialEmail.trim()) {
+      return;
+    }
+
+    const hint = getDevicePasskeyHint();
+    if (hint?.email) {
+      setEmail(hint.email);
+    }
+  }, [initialEmail]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

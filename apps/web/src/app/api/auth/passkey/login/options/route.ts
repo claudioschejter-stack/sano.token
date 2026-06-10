@@ -3,10 +3,17 @@ import { createPasskeyLoginOptions } from '../../../../../../lib/auth/passkeySer
 import { resolvePasskeyWebContext } from '../../../../../../lib/auth/passkeyConfig';
 
 export async function POST(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as { email?: string | null };
+  const body = (await request.json().catch(() => ({}))) as {
+    email?: string | null;
+    deviceCredentialId?: string | null;
+  };
 
   try {
-    const options = await createPasskeyLoginOptions(body.email, resolvePasskeyWebContext(request));
+    const options = await createPasskeyLoginOptions(
+      body.email,
+      resolvePasskeyWebContext(request),
+      body.deviceCredentialId
+    );
     return NextResponse.json({ options });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'PASSKEY_OPTIONS_FAILED';
