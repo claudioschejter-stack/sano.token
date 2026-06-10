@@ -213,8 +213,7 @@ export async function createPasskeyLoginOptions(
   const options = await generateAuthenticationOptions({
     rpID: ctx.rpId,
     allowCredentials,
-    userVerification: 'required',
-    hints: ['client-device']
+    userVerification: 'required'
   });
 
   await storeChallenge({
