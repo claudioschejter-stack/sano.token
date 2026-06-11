@@ -24,6 +24,8 @@ function resolveRpcUrl(): string {
 export type MorphoLiquiditySeedResult = {
   txHash: string | null;
   targetUsdc: number;
+  seededUsdc?: number;
+  partial?: boolean;
   skippedReason?: string;
 };
 
@@ -55,10 +57,13 @@ export async function seedMorphoLiquidityIfConfigured(
   const decimals = await usdcContract.decimals();
   const amount = BigInt(Math.floor(usdcAmount * 10 ** Number(decimals)));
   const balance = await usdcContract.balanceOf(wallet.address);
-  if (balance < amount) {
+  if (balance <= 0n) {
     provider.destroy();
     return { txHash: null, targetUsdc: usdcAmount, skippedReason: 'INSUFFICIENT_TREASURY_USDC' };
   }
+
+  const seedAmount = balance < amount ? balance : amount;
+  const seededUsd = Number(seedAmount) / 10 ** Number(decimals);
 
   const approveTx = await usdcContract.approve(morpho, MaxUint256);
   await approveTx.wait();
@@ -70,9 +75,14 @@ export async function seedMorphoLiquidityIfConfigured(
     irm: params.irm,
     lltv: params.lltv
   };
-  await morphoContract.supply.staticCall(marketParams, amount, 0, wallet.address, '0x');
-  const supplyTx = await morphoContract.supply(marketParams, amount, 0, wallet.address, '0x');
+  await morphoContract.supply.staticCall(marketParams, seedAmount, 0, wallet.address, '0x');
+  const supplyTx = await morphoContract.supply(marketParams, seedAmount, 0, wallet.address, '0x');
   const receipt = await supplyTx.wait();
   provider.destroy();
-  return { txHash: receipt?.hash ?? supplyTx.hash, targetUsdc: usdcAmount };
+  return {
+    txHash: receipt?.hash ?? supplyTx.hash,
+    targetUsdc: usdcAmount,
+    seededUsdc: seededUsd,
+    partial: seedAmount < amount
+  };
 }

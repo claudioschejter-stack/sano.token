@@ -471,10 +471,23 @@ export async function executeProjectAutomationRepair(projectId: string) {
     collateral = await registerProjectCollateral(projectId, undefined, { skipLock: true });
   }
 
-  const finalAsset = collateral?.updatedAsset ?? (await getAdminAsset(projectId));
+  let finalAsset = collateral?.updatedAsset ?? (await getAdminAsset(projectId));
+  if (finalAsset?.vaultAddress && finalAsset.contractAddress) {
+    const { repairTreasuryVaultShares } = await import('./repairTreasuryVaultShares');
+    const treasuryRepair = await repairTreasuryVaultShares(finalAsset);
+    await appendDeploymentEvent(projectId, {
+      step: 'VAULT_FUNDING',
+      status: treasuryRepair.ok ? 'SUCCESS' : 'FAILED',
+      message: treasuryRepair.message,
+      txHash: treasuryRepair.txHash ?? null
+    });
+    finalAsset = (await getAdminAsset(projectId)) ?? finalAsset;
+  }
+
   if (finalAsset?.collateralTargets.some((target) => target.protocol === 'MORPHO' && target.status === 'REGISTERED')) {
     const { checkMorphoLiquidity } = await import('../lending/morphoLiquidityCheck');
     await checkMorphoLiquidity(finalAsset);
+    finalAsset = (await getAdminAsset(projectId)) ?? finalAsset;
   }
   await appendDeploymentEvent(projectId, {
     step: 'REPAIR_AUTOMATION',
