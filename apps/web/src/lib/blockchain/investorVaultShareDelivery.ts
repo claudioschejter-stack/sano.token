@@ -52,35 +52,35 @@ export async function deliverVaultSharesForPaymentIntent(paymentIntentId: string
     shareAmount
   });
 
-  let nextMetadata: Record<string, unknown>;
-  if (delivery.ok) {
-    nextMetadata = {
-      ...metadata,
-      vaultShareDeliveryStatus: 'DELIVERED',
-      vaultShareDeliveryTxHash: delivery.txHash,
-      vaultShareDeliveryDetail: delivery.sharesTransferred,
-      vaultShareDeliveryAt: new Date().toISOString()
-    };
-  } else {
-    nextMetadata = {
-      ...metadata,
-      vaultShareDeliveryStatus: delivery.code,
-      vaultShareDeliveryTxHash: null,
-      vaultShareDeliveryDetail: delivery.detail ?? delivery.code,
-      vaultShareDeliveryAt: new Date().toISOString()
-    };
+  if (!delivery.ok) {
+    await prisma.paymentIntent.update({
+      where: { id: paymentIntentId },
+      data: {
+        metadata: {
+          ...metadata,
+          vaultShareDeliveryStatus: delivery.code,
+          vaultShareDeliveryTxHash: null,
+          vaultShareDeliveryDetail: delivery.detail ?? delivery.code,
+          vaultShareDeliveryAt: new Date().toISOString()
+        } as Prisma.InputJsonObject
+      }
+    });
+
+    return { status: 'FAILED' as const, code: delivery.code, detail: delivery.detail };
   }
 
   await prisma.paymentIntent.update({
     where: { id: paymentIntentId },
     data: {
-      metadata: nextMetadata as Prisma.InputJsonObject
+      metadata: {
+        ...metadata,
+        vaultShareDeliveryStatus: 'DELIVERED',
+        vaultShareDeliveryTxHash: delivery.txHash,
+        vaultShareDeliveryDetail: delivery.sharesTransferred,
+        vaultShareDeliveryAt: new Date().toISOString()
+      } as Prisma.InputJsonObject
     }
   });
-
-  if (!delivery.ok) {
-    return { status: 'FAILED' as const, code: delivery.code, detail: delivery.detail };
-  }
 
   return { status: 'DELIVERED' as const, txHash: delivery.txHash, shares: delivery.sharesTransferred };
 }
