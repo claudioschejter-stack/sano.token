@@ -24,6 +24,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { SystemRole } from '../../lib/auth/roles';
+import { resetMobileLocaleOnSignOut } from '../../lib/i18n/mobileLocalePreference';
 import { SidebarUserStatus } from './SidebarUserStatus';
 import { MarketplaceCartButton } from '../marketplace/MarketplaceCartButton';
 import { PortalBrandFrames, PortalBrandFramesMobileHeader } from './PortalBrandFrames';
@@ -126,7 +127,7 @@ function SidebarContent({
         <PortalBrandFrames portalSubtitle={portalSubtitle} onNavigate={onNavigate} />
       </div>
 
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-[4mm] md:pt-4">
         <SidebarUserStatus />
         <div className="mt-3">
           <MarketplaceCartButton className="w-full justify-center" />
@@ -202,6 +203,7 @@ export function AppSidebar() {
 
   async function handleSignOut() {
     window.localStorage.removeItem('sanova.jwt');
+    resetMobileLocaleOnSignOut();
     await signOut({ callbackUrl: '/acceso' });
   }
 
@@ -284,7 +286,7 @@ export function AppSidebar() {
 
   return (
     <>
-      <header className="safe-top fixed inset-x-0 top-0 z-40 box-border flex h-14 items-start justify-between gap-2 border-b border-terminal-border bg-terminal-card p-[2mm] md:hidden">
+      <header className="safe-top fixed inset-x-0 top-0 z-[60] box-border flex h-14 items-start justify-between gap-2 border-b border-terminal-border bg-terminal-card p-[2mm] md:hidden">
         <PortalBrandFramesMobileHeader />
         <button
           type="button"
@@ -301,7 +303,7 @@ export function AppSidebar() {
         <button
           type="button"
           aria-label="Cerrar menú"
-          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          className="fixed inset-x-0 bottom-0 top-14 z-40 bg-black/60 md:hidden"
           onClick={closeMobile}
         />
       ) : null}

@@ -9,9 +9,14 @@ import {
   resolveInitialLocale
 } from './detectLocale';
 import { isMobileDevice } from '../lib/mobile/deviceConfig';
+import {
+  LOCALE_STORAGE_KEY,
+  pinMobileLocale,
+  readPinnedMobileLocale
+} from '../lib/i18n/mobileLocalePreference';
 import type { Messages } from './locales/en';
 
-const STORAGE_KEY = 'sanova.locale';
+const STORAGE_KEY = LOCALE_STORAGE_KEY;
 
 function readInitialLocale(): Locale {
   if (typeof window === 'undefined') {
@@ -19,6 +24,11 @@ function readInitialLocale(): Locale {
   }
 
   if (isMobileDevice()) {
+    const pinned = readPinnedMobileLocale();
+    if (pinned) {
+      return pinned;
+    }
+
     return detectDeviceLocale();
   }
 
@@ -68,7 +78,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
   const setLocale = useCallback((nextLocale: Locale) => {
     setLocaleState(nextLocale);
-    window.localStorage.setItem(STORAGE_KEY, nextLocale);
+    if (isMobileDevice()) {
+      pinMobileLocale(nextLocale);
+    } else {
+      window.localStorage.setItem(STORAGE_KEY, nextLocale);
+    }
     applyDocumentLocale(nextLocale);
 
     void fetch('/api/user/preferences', {

@@ -7,8 +7,10 @@ import {
   SESSION_INACTIVITY_MS,
   SESSION_LOGOUT_BROADCAST_KEY
 } from '../../lib/auth/sessionAutoLogout';
+import { resetMobileLocaleOnSignOut } from '../../lib/i18n/mobileLocalePreference';
+import { isMobileDevice } from '../../lib/mobile/deviceConfig';
 
-type LogoutReason = 'inactivity' | 'pagehide' | 'broadcast';
+type LogoutReason = 'inactivity' | 'pagehide' | 'broadcast' | 'background';
 
 function beaconLogout() {
   if (typeof navigator.sendBeacon === 'function') {
@@ -48,6 +50,7 @@ export function SessionAutoLogout() {
 
       loggingOutRef.current = true;
       clearClientSession();
+      resetMobileLocaleOnSignOut();
 
       if (reason === 'pagehide') {
         beaconLogout();
@@ -97,6 +100,22 @@ export function SessionAutoLogout() {
       void performLogout('pagehide');
     };
 
+    const onVisibilityChange = () => {
+      if (!isMobileDevice()) {
+        if (document.visibilityState === 'visible') {
+          scheduleInactivityLogout();
+        }
+        return;
+      }
+
+      if (document.visibilityState === 'hidden') {
+        void performLogout('background');
+        return;
+      }
+
+      scheduleInactivityLogout();
+    };
+
     const onStorage = (event: StorageEvent) => {
       if (event.key === SESSION_LOGOUT_BROADCAST_KEY && event.newValue) {
         void performLogout('broadcast');
@@ -116,11 +135,7 @@ export function SessionAutoLogout() {
       window.addEventListener(eventName, onActivity, { passive: true });
     }
 
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        scheduleInactivityLogout();
-      }
-    });
+    document.addEventListener('visibilitychange', onVisibilityChange);
 
     window.addEventListener('pagehide', onPageHide);
     window.addEventListener('storage', onStorage);
@@ -138,6 +153,7 @@ export function SessionAutoLogout() {
       }
 
       window.removeEventListener('pagehide', onPageHide);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('storage', onStorage);
     };
   }, [performLogout, status]);

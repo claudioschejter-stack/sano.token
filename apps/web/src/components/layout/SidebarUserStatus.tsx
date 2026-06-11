@@ -62,7 +62,7 @@ export function SidebarUserStatus() {
 
   return (
     <div className="w-full space-y-2 pb-2">
-      <p className="-ml-[2mm] -mt-[4mm] text-left text-sm font-semibold leading-snug text-terminal-text">
+      <p className="-ml-[2mm] max-md:mt-0 md:-mt-[4mm] text-left text-sm font-semibold leading-snug text-terminal-text">
         {displayName}
       </p>
       <div className="grid w-full grid-cols-2 gap-2">
