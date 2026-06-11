@@ -27,7 +27,8 @@ import type { SystemRole } from '../../lib/auth/roles';
 import { resetMobileLocaleOnSignOut } from '../../lib/i18n/mobileLocalePreference';
 import { SidebarUserStatus } from './SidebarUserStatus';
 import { MarketplaceCartButton } from '../marketplace/MarketplaceCartButton';
-import { PortalBrandFrames, PortalBrandFramesMobileHeader } from './PortalBrandFrames';
+import { PortalBrandFrames } from './PortalBrandFrames';
+import { SanovaLogo } from '../brand/SanovaLogo';
 import { SidebarLanguageButton } from './SidebarLanguageButton';
 
 type NavItem = {
@@ -286,30 +287,32 @@ export function AppSidebar() {
 
   return (
     <>
-      <header className="safe-top fixed inset-x-0 top-0 z-[60] box-border flex h-14 items-start justify-between gap-2 border-b border-terminal-border bg-terminal-card p-[2mm] md:hidden">
-        <PortalBrandFramesMobileHeader />
-        <button
-          type="button"
-          aria-expanded={mobileOpen}
-          aria-label={mobileOpen ? t.landing.nav.closeMenu : t.landing.nav.openMenu}
-          onClick={() => setMobileOpen((open) => !open)}
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-start rounded-lg border border-terminal-border text-terminal-text"
-        >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+      <header className="safe-top fixed inset-x-0 top-0 z-[60] border-b border-slate-200/80 bg-white/90 backdrop-blur-md md:hidden">
+        <div className="flex w-full items-center justify-between gap-2 px-4 py-3">
+          <SanovaLogo variant="light" href="/" className="min-w-0 shrink" />
+          <button
+            type="button"
+            aria-expanded={mobileOpen}
+            aria-label={mobileOpen ? t.landing.nav.closeMenu : t.landing.nav.openMenu}
+            onClick={() => setMobileOpen((open) => !open)}
+            className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
       </header>
 
       {mobileOpen ? (
         <button
           type="button"
           aria-label="Cerrar menú"
-          className="fixed inset-x-0 bottom-0 top-14 z-40 bg-black/60 md:hidden"
+          className="fixed inset-x-0 bottom-0 top-16 z-40 bg-black/60 md:hidden"
           onClick={closeMobile}
         />
       ) : null}
 
       <aside
-        className={`fixed inset-x-auto bottom-0 left-0 top-14 z-50 flex w-72 max-w-[85vw] flex-col border-r border-terminal-border bg-terminal-card text-terminal-text transition-transform duration-200 md:static md:inset-auto md:top-auto md:z-auto md:h-full md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 ${
+        className={`fixed inset-x-auto bottom-0 left-0 top-16 z-50 flex w-72 max-w-[85vw] flex-col border-r border-terminal-border bg-terminal-card text-terminal-text transition-transform duration-200 md:static md:inset-auto md:top-auto md:z-auto md:h-full md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
