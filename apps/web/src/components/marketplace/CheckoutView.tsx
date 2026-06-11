@@ -11,9 +11,7 @@ import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { findListingById } from '../../lib/findListing';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
-import { BASE_USDC_ADDRESS } from '../../lib/web3/config';
 import type { MarketplaceListing } from '../../types/marketplace';
-import { BuyButton } from './BuyButton';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 import { StickyActionBar } from '../mobile/StickyActionBar';
 
@@ -65,10 +63,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
   const maxTokens = listing?.availableTokens ?? 1;
   const pricePerToken = listing?.pricePerTokenUsd ?? 0;
   const totalUsd = useMemo(() => pricePerToken * tokenQty, [pricePerToken, tokenQty]);
-  const vaultCheckout =
-    paymentMethod === 'USDC_ONCHAIN' &&
-    stablecoinNetwork === 'BASE' &&
-    Boolean(listing?.vaultAddress);
+  const hasVaultSharesDelivery = Boolean(listing?.vaultAddress);
 
   const createPaymentIntent = async (): Promise<PaymentIntentResponse> => {
     const response = await fetch(`/api/marketplace/${projectId}/payment-intents`, {
@@ -124,13 +119,9 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
     try {
       const intent = await createPaymentIntent();
 
-      if (paymentMethod === 'USDC_ONCHAIN' && vaultCheckout) {
-        setStatus('idle');
-        return intent;
-      }
-
       if (paymentMethod === 'USDC_ONCHAIN') {
-        await payWithUsdcTransfer(intent);
+        setPaymentIntent(intent);
+        setStatus('manual');
         return;
       }
 
@@ -360,57 +351,6 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                 onError={(message) => setPurchaseError(message)}
               />
             ) : null}
-            {vaultCheckout ? (
-              <BuyButton
-                vaultAddress={listing.vaultAddress}
-                usdcAddress={BASE_USDC_ADDRESS}
-                amountUsd={totalUsd.toFixed(6).replace(/\.?0+$/, '') || '0'}
-                chainId={8453}
-                disabled={status === 'done' || status === 'verifying'}
-                onPrepare={async () => {
-                  setPurchaseError(null);
-                  setStatus('creating');
-                  try {
-                    const intent = await createPaymentIntent();
-                    setStatus('idle');
-                    return { paymentIntentId: intent.id };
-                  } catch (error) {
-                    setPurchaseError(error instanceof Error ? error.message : 'PURCHASE_FAILED');
-                    setStatus('idle');
-                    throw error;
-                  }
-                }}
-                onSuccess={async ({ depositTxHash, paymentIntentId }) => {
-                  if (!paymentIntentId || !address) return;
-                  setStatus('verifying');
-                  setPurchaseError(null);
-
-                  const response = await fetch('/api/payments/usdc/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      paymentIntentId,
-                      txHash: depositTxHash,
-                      walletAddress: address
-                    })
-                  });
-
-                  const data = (await response.json()) as { error?: string; paymentIntent?: PaymentIntentResponse };
-                  if (!response.ok || !data.paymentIntent) {
-                    setPurchaseError(data.error ?? 'USDC_VERIFY_FAILED');
-                    setStatus('idle');
-                    return;
-                  }
-
-                  setPaymentIntent(data.paymentIntent);
-                  setListing((current) =>
-                    current ? { ...current, availableTokens: Math.max(0, current.availableTokens - tokenQty) } : current
-                  );
-                  setStatus('done');
-                  void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
-                }}
-              />
-            ) : null}
             {status === 'done' ? (
               <div className="space-y-3 rounded-lg border border-terminal-success/30 bg-terminal-success/10 px-4 py-3 text-sm text-terminal-success">
                 <p className="font-semibold">{t.checkout.purchaseComplete}</p>
@@ -443,6 +383,9 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                 {status === 'manual' && paymentIntent.payToAddress ? (
                   <div className="space-y-2 rounded-lg border border-terminal-warning/30 bg-terminal-warning/10 p-3">
                     <p>{t.checkout.sendToCompartment}</p>
+                    {hasVaultSharesDelivery ? (
+                      <p className="text-terminal-text">{w.investorWalletDepositNote}</p>
+                    ) : null}
                     <p className="break-all font-mono text-terminal-text">{paymentIntent.payToAddress}</p>
                     <input
                       value={manualTxHash}
@@ -466,7 +409,6 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                 {purchaseError}
               </p>
             ) : null}
-            {!vaultCheckout ? (
             <button
               type="button"
               disabled={payDisabled}
@@ -475,12 +417,11 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
             >
               {payButtonLabel}
             </button>
-            ) : null}
           </div>
         </div>
       </article>
 
-      {!vaultCheckout && status !== 'done' ? (
+      {status !== 'done' ? (
         <StickyActionBar
           summary={
             <div className="flex items-center justify-between text-sm">

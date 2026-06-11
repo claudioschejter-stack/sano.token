@@ -32,6 +32,21 @@ export async function distributeUsdcToProjectVault(batchId: string) {
     idempotencyPrefix: `yield-batch:${batch.id}`
   });
 
+  if (allocation.status === 'PARTIAL') {
+    await prisma.projectYieldBatch.update({
+      where: { id: batchId },
+      data: {
+        status: 'FAILED',
+        error: 'PARTIAL_RENT_DISTRIBUTION',
+        metadata: {
+          ...(batch.metadata as object),
+          allocation
+        } as Prisma.InputJsonObject
+      }
+    });
+    throw new Error('PARTIAL_RENT_DISTRIBUTION');
+  }
+
   const completed = await prisma.$transaction(async (txClient) => {
     const updated = await txClient.projectYieldBatch.update({
       where: { id: batchId },

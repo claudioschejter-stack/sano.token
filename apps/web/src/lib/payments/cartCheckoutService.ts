@@ -320,16 +320,13 @@ export async function createCartPurchaseCheckout(input: {
 
       const idempotencyKey = `${batchId}:${line.projectId}:${line.tokenCount}:${input.method}`;
 
-      const vaultDepositMode =
+      const vaultShareDeliveryMode =
         input.method === 'USDC_ONCHAIN' && Boolean(project.vaultAddress?.trim());
-      if (vaultDepositMode) {
+      if (vaultShareDeliveryMode) {
         hasVaultDepositMode = true;
       } else if (input.method === 'USDC_ONCHAIN') {
         hasTreasuryTransferMode = true;
       }
-      const linePayToAddress = vaultDepositMode
-        ? project.vaultAddress!.trim()
-        : payToAddress;
 
       const intent = await tx.paymentIntent.create({
         data: {
@@ -345,7 +342,7 @@ export async function createCartPurchaseCheckout(input: {
             input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? network.symbol : null,
           chainId: input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? network.chainId : null,
           payerWalletAddress: payerWallet,
-          payToAddress: linePayToAddress,
+          payToAddress,
           idempotencyKey,
           expiresAt,
           metadata: {
@@ -353,10 +350,12 @@ export async function createCartPurchaseCheckout(input: {
             cartLineIndex: index,
             projectTitle: project.title,
             pricePerTokenUsd: project.pricePerToken.toString(),
-            purchaseMode: vaultDepositMode ? 'ERC4626_DEPOSIT' : 'CART_TREASURY_TRANSFER',
+            purchaseMode: vaultShareDeliveryMode ? 'ERC4626_DEPOSIT' : 'CART_TREASURY_TRANSFER',
             stablecoinNetwork: network.id,
             treasuryAddress: payToAddress,
             vaultAddress: project.vaultAddress ?? null,
+            underlyingTokenAddress: project.contractAddress ?? null,
+            expectedAssetAmountWei: String(BigInt(line.tokenCount) * 10n ** 18n),
             usdcTokenAddress: input.method === 'USDC_ONCHAIN' ? network.tokenAddress : null,
             usdcDecimals: input.method === 'USDC_ONCHAIN' ? network.decimals : null,
             shareReceiverWallet: payerWallet,
@@ -567,6 +566,18 @@ export async function confirmCartPurchaseBatch(input: {
     // non-blocking
   }
 
+  for (const row of confirmedRows) {
+    const rowMetadata = (row.metadata as Record<string, unknown>) ?? {};
+    if (rowMetadata.purchaseMode === 'ERC4626_DEPOSIT') {
+      try {
+        const { deliverVaultSharesForPaymentIntent } = await import('../blockchain/investorVaultShareDelivery');
+        await deliverVaultSharesForPaymentIntent(row.id);
+      } catch (error) {
+        console.error('[confirmCartPurchaseBatch] vault share delivery failed', row.id, error);
+      }
+    }
+  }
+
   return confirmedRows.map(serializeIntent);
 }
 
@@ -582,15 +593,6 @@ export async function verifyCartUsdcPayment(input: {
   }
   if (intents.some((row) => row.method !== 'USDC_ONCHAIN')) {
     throw new Error('INVALID_PAYMENT_METHOD');
-  }
-
-  if (
-    intents.some((row) => {
-      const metadata = (row.metadata as Record<string, unknown>) ?? {};
-      return metadata.purchaseMode === 'ERC4626_DEPOSIT';
-    })
-  ) {
-    throw new Error('CART_VAULT_DEPOSIT_REQUIRED');
   }
 
   const first = intents[0];

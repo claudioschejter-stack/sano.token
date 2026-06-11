@@ -244,10 +244,16 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
     await prisma.webAuthnChallenge.findUnique({ where: { challenge: clientData.challenge } })
   : null;
 
-  const expectedChallenge = challengeRecord?.challenge;
-  if (!expectedChallenge || challengeRecord.expiresAt < new Date()) {
+  if (
+    !challengeRecord ||
+    !challengeRecord.challenge ||
+    challengeRecord.type !== 'LOGIN' ||
+    challengeRecord.expiresAt < new Date()
+  ) {
     throw new Error('CHALLENGE_EXPIRED');
   }
+
+  const expectedChallenge = challengeRecord.challenge;
 
   const passkey = await prisma.userPasskey.findUnique({
     where: { credentialId: response.id },

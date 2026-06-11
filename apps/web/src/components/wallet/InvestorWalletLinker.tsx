@@ -143,6 +143,7 @@ export function InvestorWalletLinker({
           error?: string;
           message?: string;
           issuedAt?: number;
+          chainId?: number;
         };
 
         if (!challengeResponse.ok || !challengeData.message || challengeData.issuedAt == null) {
@@ -163,7 +164,8 @@ export function InvestorWalletLinker({
             walletAddress: normalized,
             walletProvider,
             signature,
-            issuedAt: challengeData.issuedAt
+            issuedAt: challengeData.issuedAt,
+            chainId: challengeData.chainId ?? BASE_CHAIN_ID
           })
         });
 

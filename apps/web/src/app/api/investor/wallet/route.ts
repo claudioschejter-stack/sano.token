@@ -19,6 +19,7 @@ export async function PATCH(request: Request) {
       walletProvider?: string | null;
       signature?: string;
       issuedAt?: number;
+      chainId?: number;
     };
 
     if (!body.walletAddress?.trim()) {
@@ -33,7 +34,8 @@ export async function PATCH(request: Request) {
       userId: ctx.userId,
       walletAddress: body.walletAddress.trim(),
       issuedAt: body.issuedAt,
-      signature: body.signature.trim()
+      signature: body.signature.trim(),
+      chainId: body.chainId ?? 8453
     });
 
     if (!signatureValid) {

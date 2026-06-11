@@ -273,6 +273,9 @@ export async function createPaymentIntent(input: {
           usdcDecimals: input.method === 'USDC_ONCHAIN' ? network.decimals : null,
           treasuryAddress: input.method === 'USDC_ONCHAIN' ? network.treasuryAddress : null,
           vaultAddress: project.vaultAddress ?? null,
+          underlyingTokenAddress: project.contractAddress ?? null,
+          shareReceiverWallet: payerWallet,
+          expectedAssetAmountWei: String(BigInt(input.tokenCount) * 10n ** 18n),
           purchaseMode:
             input.method === 'USDC_ONCHAIN' && project.vaultAddress ? 'ERC4626_DEPOSIT' : 'TREASURY_TRANSFER',
           autoTransferSupported: network.kind === 'EVM'
@@ -584,13 +587,23 @@ export async function confirmPaymentIntent(input: ConfirmPaymentIntentInput) {
     payload: input.payload ?? {}
   });
 
+  const metadata = (result.metadata as Record<string, unknown>) ?? {};
+  if (metadata.purchaseMode === 'ERC4626_DEPOSIT' && result.status === 'CONFIRMED') {
+    try {
+      const { deliverVaultSharesForPaymentIntent } = await import('../blockchain/investorVaultShareDelivery');
+      await deliverVaultSharesForPaymentIntent(result.id);
+    } catch (error) {
+      console.error('[confirmPaymentIntent] vault share delivery failed', error);
+    }
+  }
+
   try {
     await recordPortfolioSnapshot(result.userId);
   } catch (error) {
     console.error('[confirmPaymentIntent] snapshot failed', error);
   }
 
-  return serializePaymentIntent(result);
+  return serializePaymentIntent(await prisma.paymentIntent.findUniqueOrThrow({ where: { id: result.id } }));
 }
 
 export async function verifyUsdcPayment(input: {
@@ -652,9 +665,7 @@ export async function verifyUsdcPayment(input: {
   }
 
   const iface = new ethers.Interface(ERC20_TRANSFER_ABI);
-  const expectedTo = ethers.getAddress(
-    purchaseMode === 'ERC4626_DEPOSIT' && vaultAddress ? vaultAddress : treasuryAddress
-  );
+  const expectedTo = ethers.getAddress(treasuryAddress);
   const expectedFrom = normalizeAddress(input.expectedPayer ?? intent.payerWalletAddress);
   const expectedAmount = ethers.parseUnits(intent.amountUsd.toString(), network.decimals ?? usdcDecimals());
 

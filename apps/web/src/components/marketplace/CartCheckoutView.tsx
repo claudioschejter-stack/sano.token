@@ -22,7 +22,6 @@ import { isLocalRailManualResult } from '../../lib/payments/stripeCheckoutOption
 import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
-import { CartVaultDepositPanel } from './CartVaultDepositPanel';
 import { StickyActionBar } from '../mobile/StickyActionBar';
 import { PaymentMethodLogosButton } from './PaymentMethodLogosButton';
 import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
@@ -40,15 +39,6 @@ type CartCheckoutResult = {
   stablecoinNetwork: string | null;
   paymentIntents?: PublicPaymentIntent[];
 };
-
-function hasVaultDepositIntents(intents: PublicPaymentIntent[] | undefined): boolean {
-  return (
-    intents?.some((intent) => {
-      const metadata = (intent.metadata as Record<string, unknown>) ?? {};
-      return metadata.purchaseMode === 'ERC4626_DEPOSIT' && typeof metadata.vaultAddress === 'string';
-    }) ?? false
-  );
-}
 
 type DepositResponse = {
   id: string;
@@ -158,7 +148,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [checkout, setCheckout] = useState<CartCheckoutResult | null>(null);
   const [deposit, setDeposit] = useState<DepositResponse | null>(null);
   const [status, setStatus] = useState<
-    'idle' | 'processing' | 'manual' | 'vault_deposit' | 'pending_gateway' | 'verifying' | 'done'
+    'idle' | 'processing' | 'manual' | 'pending_gateway' | 'verifying' | 'done'
   >('idle');
   const [pendingReference, setPendingReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -518,11 +508,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         return;
       }
 
-      if (paymentMethod === 'USDC_ONCHAIN' && hasVaultDepositIntents(data.checkout.paymentIntents)) {
-        setStatus('vault_deposit');
-        return;
-      }
-
       if (paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') {
         setStatus('manual');
         return;
@@ -711,10 +696,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const feesUseUsdc = feePreviewOption ? optionUsesUsdc(feePreviewOption) : true;
   const greetingName = investorFirstName(investorName);
 
-  const vaultDepositIntents = checkout?.paymentIntents ?? [];
-
   const confirmDisabled =
-    (status !== 'idle' && status !== 'manual' && status !== 'vault_deposit') ||
+    (status !== 'idle' && status !== 'manual') ||
     (mode === 'purchase' && items.length === 0) ||
     (showPaymentMethods && paymentQuoteExpired) ||
     (requiresWallet &&
@@ -997,24 +980,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           ) : null}
 
-          {status === 'vault_deposit' && linkedWalletAddress && vaultDepositIntents.length > 0 ? (
-            <CartVaultDepositPanel
-              paymentIntents={vaultDepositIntents}
-              linkedWalletAddress={linkedWalletAddress}
-              paymentOptionId={selectedDepositOptionId}
-              disabled={false}
-              onError={(message) => setError(message)}
-              onComplete={() => {
-                clearCart();
-                setStatus('done');
-                void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
-                if (isWalletConnectUsdc) {
-                  void reconnectCoinbaseWallet();
-                }
-              }}
-            />
-          ) : null}
-
           {status === 'manual' && payToAddress ? (
             <div className="space-y-2 rounded-lg border border-terminal-warning/30 bg-terminal-warning/10 p-4 text-xs text-terminal-muted">
               <p>{t.checkout.sendToCompartment}</p>
@@ -1052,7 +1017,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </p>
           ) : null}
 
-          {status !== 'done' && status !== 'vault_deposit' ? (
+          {status !== 'done' ? (
             <div className={`${showPaymentMethods ? 'space-y-1' : ''} hidden md:block`}>
               <button
                 type="button"
@@ -1085,7 +1050,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         </div>
       </article>
 
-      {status !== 'done' && status !== 'vault_deposit' ? (
+      {status !== 'done' ? (
         <StickyActionBar
           summary={
             <div className="flex items-center justify-between text-sm">

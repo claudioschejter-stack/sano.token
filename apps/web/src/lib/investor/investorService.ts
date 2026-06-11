@@ -173,6 +173,20 @@ export async function purchaseProjectTokens(input: {
     const purchasePriceUsd = pricePerToken * input.tokenCount;
     const txHash = `offchain-${Date.now().toString(36)}-${input.projectId}`;
 
+    const supplyUpdate = await tx.project.updateMany({
+      where: {
+        id: project.id,
+        availableTokens: { gte: input.tokenCount }
+      },
+      data: {
+        availableTokens: { decrement: input.tokenCount }
+      }
+    });
+
+    if (supplyUpdate.count === 0) {
+      throw new Error('INSUFFICIENT_SUPPLY');
+    }
+
     const investment = await tx.investment.create({
       data: {
         investorId,
@@ -181,13 +195,6 @@ export async function purchaseProjectTokens(input: {
         purchasePriceUsd,
         status: 'ACTIVE',
         txHash
-      }
-    });
-
-    await tx.project.update({
-      where: { id: project.id },
-      data: {
-        availableTokens: project.availableTokens - input.tokenCount
       }
     });
 

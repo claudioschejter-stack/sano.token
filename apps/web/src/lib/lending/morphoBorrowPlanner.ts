@@ -39,7 +39,7 @@ function resolveRpcUrl(chainId: number): string {
 function lltvRatio(): number {
   const lltvBps = Number(process.env.MORPHO_DEFAULT_LLTV_BPS ?? '6000');
   const safeBps = borrowSafetyBps();
-  return (lltvBps * safeBps) / 1_000_000_000;
+  return (lltvBps * safeBps) / 100_000_000;
 }
 
 export type MorphoBorrowPreview = {
