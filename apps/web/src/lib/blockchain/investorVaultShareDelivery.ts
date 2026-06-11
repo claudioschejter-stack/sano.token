@@ -52,13 +52,21 @@ export async function deliverVaultSharesForPaymentIntent(paymentIntentId: string
     shareAmount
   });
 
-  const nextMetadata = {
-    ...metadata,
-    vaultShareDeliveryStatus: delivery.ok ? 'DELIVERED' : delivery.code,
-    vaultShareDeliveryTxHash: delivery.ok ? delivery.txHash : null,
-    vaultShareDeliveryDetail: delivery.ok ? delivery.sharesTransferred : delivery.detail ?? delivery.code,
-    vaultShareDeliveryAt: new Date().toISOString()
-  };
+  const nextMetadata = delivery.ok
+    ? {
+        ...metadata,
+        vaultShareDeliveryStatus: 'DELIVERED',
+        vaultShareDeliveryTxHash: delivery.txHash,
+        vaultShareDeliveryDetail: delivery.sharesTransferred,
+        vaultShareDeliveryAt: new Date().toISOString()
+      }
+    : {
+        ...metadata,
+        vaultShareDeliveryStatus: delivery.code,
+        vaultShareDeliveryTxHash: null,
+        vaultShareDeliveryDetail: delivery.detail ?? delivery.code,
+        vaultShareDeliveryAt: new Date().toISOString()
+      };
 
   await prisma.paymentIntent.update({
     where: { id: paymentIntentId },
