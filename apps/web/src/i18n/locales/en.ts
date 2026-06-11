@@ -357,7 +357,57 @@ export const en = {
     sectionDebt: "Debt properties",
     sectionEquity: "Equity properties",
     emptyDebt: "No debt properties match this filter.",
-    emptyEquity: "No equity properties match this filter."
+    emptyEquity: "No equity properties match this filter.",
+    manageRent: "Rent payouts"
+  },
+  adminOperating: {
+    title: "Rent collection & distribution",
+    subtitle:
+      "Credit bank deposits to the project operating account, then distribute in one click to all token holders (FIAT or USDC per investor preference).",
+    backToAssets: "Back to assets",
+    refresh: "Refresh",
+    loading: "Loading operating balance…",
+    errorLoad: "Could not load project or operating balance.",
+    validationAmount: "Enter a valid amount greater than zero.",
+    noBalance: "No operating balance to distribute in that currency.",
+    creditTitle: "1. Credit rent (bank deposit)",
+    creditDesc:
+      "When the tenant pays into the project/compartment bank account, record the amount here in the operating ledger.",
+    creditButton: "Credit rent",
+    creditSuccess: "Rent credited to the project operating balance.",
+    creditError: "Could not credit rent.",
+    distributeTitle: "2. Distribute to holders",
+    distributeDesc:
+      "Split the amount across active KYC investors by token count. FIAT → Sanova wallet; USDC → on-chain wallet.",
+    distributeButton: "Distribute to holders",
+    distributeAllHint: "Leave empty to distribute the full available balance for the selected currency.",
+    distributeSuccess: "Distribution completed ({usd} net allocated).",
+    distributeError: "Distribution failed.",
+    confirmDistribute: "Distribute {amount} {currency} to all eligible holders?",
+    convertButton: "Convert to USDC (vault)",
+    convertSuccess: "Conversion batch created ({id}).",
+    convertError: "Could not start conversion.",
+    fieldCurrency: "Deposit currency",
+    fieldAmount: "Amount received",
+    fieldPeriod: "Period (optional)",
+    fieldBankRef: "Bank reference (optional)",
+    fieldBankRefPlaceholder: "CBU / receipt / transfer id",
+    fieldDistributeAmount: "Amount to distribute (optional)",
+    kpiTotalUsd: "Operating balance (USD est.)",
+    kpiBalance: "{currency} balance",
+    allocationsTitle: "Last distribution",
+    ledgerTitle: "Recent ledger",
+    colInvestor: "Investor",
+    colTokens: "Tokens",
+    colAmount: "USD amount",
+    colMode: "Mode",
+    colDate: "Date",
+    colType: "Type",
+    colBalance: "Balance after",
+    ledgerTypes: {
+      RENT_CREDIT: "Rent credit",
+      CONVERSION_DEBIT: "Distribution / conversion"
+    }
   },
   adminLoans: {
     eyebrow: "RWA lending",

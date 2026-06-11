@@ -20,8 +20,8 @@ import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './payme
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
 import { resolveInvestorLinkedWallet, getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
-import { confirmPaymentIntent, type PublicPaymentIntent } from './paymentService';
-import { assertPaymentProofPresent, assertTokenizedPurchaseReady } from './purchaseGuard';
+import { confirmPaymentIntentInTx, type PublicPaymentIntent } from './paymentService';
+import { assertPaymentProofPresent } from './purchaseGuard';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 
@@ -96,6 +96,47 @@ export async function loadCartBatchIntents(userId: string, batchId: string) {
     const metadata = (intent.metadata as Record<string, unknown>) ?? {};
     return metadata.cartBatchId === batchId;
   });
+}
+
+export type CartBatchStatus = {
+  found: boolean;
+  batchId: string;
+  allConfirmed: boolean;
+  confirmedCount: number;
+  totalCount: number;
+  paymentIntents: PublicPaymentIntent[];
+};
+
+export async function getCartBatchStatus(userId: string, batchId: string): Promise<CartBatchStatus> {
+  const intents = await loadCartBatchIntentsAnyStatus(userId, batchId);
+  if (!intents.length) {
+    return {
+      found: false,
+      batchId,
+      allConfirmed: false,
+      confirmedCount: 0,
+      totalCount: 0,
+      paymentIntents: []
+    };
+  }
+
+  const confirmedCount = intents.filter((row) => row.status === 'CONFIRMED').length;
+
+  return {
+    found: true,
+    batchId,
+    allConfirmed: confirmedCount === intents.length,
+    confirmedCount,
+    totalCount: intents.length,
+    paymentIntents: intents.map(serializeIntent)
+  };
+}
+
+function investmentTxHashForBatchLine(onChainTxHash: string | null | undefined, intentId: string): string {
+  if (onChainTxHash?.trim()) {
+    return `${onChainTxHash.trim()}#${intentId}`;
+  }
+  return `payment-${intentId}`;
 }
 
 export async function loadCartBatchIntentsAnyStatus(userId: string, batchId: string) {
@@ -244,6 +285,8 @@ export async function createCartPurchaseCheckout(input: {
 
   const createdIntents = await prisma.$transaction(async (tx) => {
     const rows = [];
+    let hasVaultDepositMode = false;
+    let hasTreasuryTransferMode = false;
 
     for (const [index, line] of input.items.entries()) {
       await assertPaymentCircuitOpen(line.projectId);
@@ -279,6 +322,11 @@ export async function createCartPurchaseCheckout(input: {
 
       const vaultDepositMode =
         input.method === 'USDC_ONCHAIN' && Boolean(project.vaultAddress?.trim());
+      if (vaultDepositMode) {
+        hasVaultDepositMode = true;
+      } else if (input.method === 'USDC_ONCHAIN') {
+        hasTreasuryTransferMode = true;
+      }
       const linePayToAddress = vaultDepositMode
         ? project.vaultAddress!.trim()
         : payToAddress;
@@ -320,6 +368,10 @@ export async function createCartPurchaseCheckout(input: {
       });
 
       rows.push(intent);
+    }
+
+    if (hasVaultDepositMode && hasTreasuryTransferMode) {
+      throw new Error('CART_MIXED_PAYMENT_MODE');
     }
 
     return rows;
@@ -418,6 +470,10 @@ export async function confirmCartPurchaseBatch(input: {
     throw new Error('CART_BATCH_NOT_FOUND');
   }
 
+  if (intents.some((row) => row.status === 'MANUAL_REVIEW')) {
+    throw new Error('CART_MANUAL_REVIEW_REQUIRED');
+  }
+
   if (intents[0].method === 'INTERNAL_BALANCE') {
     const account = await prisma.platformWalletAccount.findUnique({
       where: { userId_currency: { userId: input.userId, currency: 'USD' } }
@@ -428,33 +484,81 @@ export async function confirmCartPurchaseBatch(input: {
     }
   }
 
-  const results = [];
-  for (const intent of intents) {
-    const project = await prisma.project.findUnique({ where: { id: intent.projectId } });
-    if (project) {
-      await assertTokenizedPurchaseReady({
-        project,
-        projectId: intent.projectId,
-        walletAddress: intent.payerWalletAddress
+  const batchPayload = {
+    ...(typeof input.payload === 'object' && input.payload !== null ? input.payload : {}),
+    cartBatchId: input.batchId
+  } as Prisma.InputJsonValue;
+
+  const confirmedRows = await prisma.$transaction(async (tx) => {
+    const results = [];
+    const capitalDeltaByInvestor = new Map<string, number>();
+
+    for (const intent of intents) {
+      assertPaymentProofPresent(intent, {
+        txHash: input.txHash,
+        providerPaymentId: input.providerPaymentId
+      });
+
+      const investmentTxHash =
+        intents.length > 1
+          ? investmentTxHashForBatchLine(input.txHash, intent.id)
+          : input.txHash?.trim() ||
+            input.providerPaymentId?.trim() ||
+            `payment-${intent.id}`;
+
+      const confirmed = await confirmPaymentIntentInTx(tx, {
+        paymentIntentId: intent.id,
+        txHash: input.txHash,
+        provider: input.provider ?? intent.provider,
+        providerPaymentId: input.providerPaymentId ?? intent.providerPaymentId,
+        payload: batchPayload,
+        investmentTxHash,
+        updateCapitalTotals: false
+      });
+
+      if (confirmed.status !== 'CONFIRMED') {
+        throw new Error('PAYMENT_INTENT_NOT_PAYABLE');
+      }
+
+      if (confirmed.investorId) {
+        const prior = capitalDeltaByInvestor.get(confirmed.investorId) ?? 0;
+        capitalDeltaByInvestor.set(confirmed.investorId, prior + confirmed.amountUsd.toNumber());
+      }
+
+      results.push(confirmed);
+    }
+
+    for (const [investorId, deltaUsd] of capitalDeltaByInvestor.entries()) {
+      const investor = await tx.investor.findUniqueOrThrow({
+        where: { id: investorId },
+        select: { totalCapital: true }
+      });
+      const totalCapital = investor.totalCapital.toNumber() + deltaUsd;
+
+      await tx.investor.update({
+        where: { id: investorId },
+        data: { totalCapital }
+      });
+
+      await tx.portfolio.updateMany({
+        where: { userId: input.userId },
+        data: { totalCapital }
       });
     }
 
-    assertPaymentProofPresent(intent, {
-      txHash: input.txHash,
-      providerPaymentId: input.providerPaymentId
-    });
+    return results;
+  });
 
-    const confirmed = await confirmPaymentIntent({
-      paymentIntentId: intent.id,
-      txHash: input.txHash,
-      provider: input.provider ?? intent.provider,
-      providerPaymentId: input.providerPaymentId ?? intent.providerPaymentId,
-      payload: {
-        ...(typeof input.payload === 'object' && input.payload !== null ? input.payload : {}),
-        cartBatchId: input.batchId
-      } as Prisma.InputJsonValue
+  for (const row of confirmedRows) {
+    await prisma.paymentEvent.create({
+      data: {
+        paymentIntentId: row.id,
+        type: 'PAYMENT_CONFIRMED',
+        provider: input.provider ?? row.provider,
+        txHash: input.txHash ?? row.txHash,
+        payload: batchPayload
+      }
     });
-    results.push(confirmed);
   }
 
   try {
@@ -463,7 +567,7 @@ export async function confirmCartPurchaseBatch(input: {
     // non-blocking
   }
 
-  return results;
+  return confirmedRows.map(serializeIntent);
 }
 
 export async function verifyCartUsdcPayment(input: {
@@ -478,6 +582,15 @@ export async function verifyCartUsdcPayment(input: {
   }
   if (intents.some((row) => row.method !== 'USDC_ONCHAIN')) {
     throw new Error('INVALID_PAYMENT_METHOD');
+  }
+
+  if (
+    intents.some((row) => {
+      const metadata = (row.metadata as Record<string, unknown>) ?? {};
+      return metadata.purchaseMode === 'ERC4626_DEPOSIT';
+    })
+  ) {
+    throw new Error('CART_VAULT_DEPOSIT_REQUIRED');
   }
 
   const first = intents[0];
@@ -557,15 +670,27 @@ export async function confirmCartBatchByProvider(input: {
   providerPaymentId?: string | null;
   payload?: Prisma.InputJsonValue;
 }) {
+  if (!input.providerPaymentId?.trim()) {
+    throw new Error('PAYMENT_CONFIRMATION_REQUIRED');
+  }
+
   const sample = await prisma.paymentIntent.findFirst({
     where: {
-      providerPaymentId: input.providerPaymentId ?? undefined
+      providerPaymentId: input.providerPaymentId.trim()
     }
   });
 
-  const intents = sample
-    ? await loadCartBatchIntentsAnyStatus(sample.userId, input.batchId)
-    : [];
+  if (!sample) {
+    return [];
+  }
+
+  const sampleMetadata = (sample.metadata as Record<string, unknown>) ?? {};
+  const sampleBatchId = typeof sampleMetadata.cartBatchId === 'string' ? sampleMetadata.cartBatchId : null;
+  if (!sampleBatchId || sampleBatchId !== input.batchId) {
+    throw new Error('CART_BATCH_MISMATCH');
+  }
+
+  const intents = await loadCartBatchIntentsAnyStatus(sample.userId, input.batchId);
 
   const pending = intents.filter((row) => row.status !== 'CONFIRMED');
   if (!pending.length) {

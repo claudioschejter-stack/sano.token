@@ -303,15 +303,76 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   }, [selectedDepositOption]);
 
   useEffect(() => {
-    if (returnStatus === 'success' && batchFromQuery) {
-      setBatchId(batchFromQuery);
-      setStatus('done');
-      if (mode === 'purchase') {
-        clearCart();
-        void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
-      }
+    if (returnStatus !== 'success' || !batchFromQuery || mode !== 'purchase') {
+      return;
     }
-  }, [batchFromQuery, clearCart, mode, returnStatus]);
+
+    setBatchId(batchFromQuery);
+    setStatus('verifying');
+    setError(null);
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const pollBatchStatus = async () => {
+      while (!cancelled && attempts < maxAttempts) {
+        attempts += 1;
+
+        try {
+          const response = await fetch(
+            `/api/marketplace/cart/status?batchId=${encodeURIComponent(batchFromQuery)}`,
+            { cache: 'no-store' }
+          );
+          const data = (await response.json()) as {
+            status?: {
+              found: boolean;
+              allConfirmed: boolean;
+              paymentIntents?: PublicPaymentIntent[];
+            };
+          };
+
+          if (response.ok && data.status?.allConfirmed) {
+            clearCart();
+            setCheckout({
+              batchId: batchFromQuery,
+              totalUsd: '0',
+              totalTokens: 0,
+              method: paymentMethod,
+              confirmed: true,
+              providerCheckoutUrl: null,
+              payToAddress: null,
+              stablecoinNetwork: null,
+              paymentIntents: data.status.paymentIntents
+            });
+            setStatus('done');
+            void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
+            return;
+          }
+
+          if (response.ok && data.status?.found && !data.status.allConfirmed) {
+            await new Promise((resolve) => window.setTimeout(resolve, 2000));
+            continue;
+          }
+        } catch {
+          // retry
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      }
+
+      if (!cancelled) {
+        setStatus('idle');
+        setError(c.localRailPendingBody.replace('{method}', 'pasarela').replace('{reference}', batchFromQuery));
+      }
+    };
+
+    void pollBatchStatus();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [batchFromQuery, c.localRailPendingBody, clearCart, mode, paymentMethod, returnStatus]);
 
   const handleConfirm = async () => {
     if (mode === 'purchase' && items.length === 0) {

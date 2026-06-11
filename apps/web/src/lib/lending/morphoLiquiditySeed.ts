@@ -1,6 +1,7 @@
 import { Contract, JsonRpcProvider, Wallet, MaxUint256 } from 'ethers';
 import type { MorphoMarketParams } from './protocols/morphoBorrow';
 import { getLendingChainConfig } from './baseContracts';
+import { resolveMorphoSeedUsdcForProject } from './morphoSeedLiquidity';
 
 const ERC20_ABI = [
   'function approve(address spender, uint256 amount) returns (bool)',
@@ -20,16 +21,31 @@ function resolveRpcUrl(): string {
   );
 }
 
-/** Optionally seed Morpho USDC liquidity when operator wallet has balance. */
-export async function seedMorphoLiquidityIfConfigured(params: MorphoMarketParams): Promise<string | null> {
-  const usdcAmount = Number(process.env.MORPHO_SEED_LIQUIDITY_USDC ?? '0');
+export type MorphoLiquiditySeedResult = {
+  txHash: string | null;
+  targetUsdc: number;
+  skippedReason?: string;
+};
+
+/** Seed Morpho USDC liquidity from treasury when wallet balance allows. */
+export async function seedMorphoLiquidityIfConfigured(
+  params: MorphoMarketParams,
+  project?: { totalTokens: number; pricePerToken: number }
+): Promise<MorphoLiquiditySeedResult> {
+  const usdcAmount = project
+    ? resolveMorphoSeedUsdcForProject({
+        totalTokens: project.totalTokens,
+        pricePerToken: project.pricePerToken
+      })
+    : Number(process.env.MORPHO_SEED_LIQUIDITY_USDC ?? '0');
+
   if (!Number.isFinite(usdcAmount) || usdcAmount <= 0) {
-    return null;
+    return { txHash: null, targetUsdc: 0, skippedReason: 'ZERO_SEED_TARGET' };
   }
 
   const privateKey = process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim();
   if (!privateKey) {
-    return null;
+    return { txHash: null, targetUsdc: usdcAmount, skippedReason: 'TREASURY_KEY_NOT_CONFIGURED' };
   }
 
   const provider = new JsonRpcProvider(resolveRpcUrl());
@@ -41,7 +57,7 @@ export async function seedMorphoLiquidityIfConfigured(params: MorphoMarketParams
   const balance = await usdcContract.balanceOf(wallet.address);
   if (balance < amount) {
     provider.destroy();
-    return null;
+    return { txHash: null, targetUsdc: usdcAmount, skippedReason: 'INSUFFICIENT_TREASURY_USDC' };
   }
 
   const approveTx = await usdcContract.approve(morpho, MaxUint256);
@@ -58,5 +74,5 @@ export async function seedMorphoLiquidityIfConfigured(params: MorphoMarketParams
   const supplyTx = await morphoContract.supply(marketParams, amount, 0, wallet.address, '0x');
   const receipt = await supplyTx.wait();
   provider.destroy();
-  return receipt?.hash ?? supplyTx.hash;
+  return { txHash: receipt?.hash ?? supplyTx.hash, targetUsdc: usdcAmount };
 }

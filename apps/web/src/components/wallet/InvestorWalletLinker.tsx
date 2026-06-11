@@ -2,7 +2,7 @@
 
 import { Loader2, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAccount, useConnect, useDisconnect, useSwitchChain, type Connector } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useSignMessage, useSwitchChain, type Connector } from 'wagmi';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import { formatMessage } from '../../i18n';
@@ -63,6 +63,7 @@ export function InvestorWalletLinker({
   const { connectors, connectAsync, isPending, error: connectError, reset: resetConnect } = useConnect();
   const { disconnectAsync } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
+  const { signMessageAsync } = useSignMessage();
   const [saving, setSaving] = useState(false);
   const [walletChangeMode, setWalletChangeMode] = useState(false);
   const linkedRef = useRef<string | null>(walletGuard.linkedWallet);
@@ -131,11 +132,39 @@ export function InvestorWalletLinker({
       setSaving(true);
 
       try {
+        const challengeResponse = await fetch('/api/investor/wallet/challenge', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ walletAddress: normalized })
+        });
+
+        const challengeData = (await challengeResponse.json()) as {
+          error?: string;
+          message?: string;
+          issuedAt?: number;
+        };
+
+        if (!challengeResponse.ok || !challengeData.message || challengeData.issuedAt == null) {
+          reportError(t.onboarding.errors.GENERIC);
+          return;
+        }
+
+        const signature = await signMessageAsync({
+          message: challengeData.message,
+          account: normalized as `0x${string}`
+        });
+
         const response = await fetch('/api/investor/wallet', {
           method: 'PATCH',
           credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ walletAddress: normalized, walletProvider })
+          body: JSON.stringify({
+            walletAddress: normalized,
+            walletProvider,
+            signature,
+            issuedAt: challengeData.issuedAt
+          })
         });
 
         const data = (await response.json()) as {
@@ -166,6 +195,7 @@ export function InvestorWalletLinker({
       allowReplace,
       notifyLinked,
       reportError,
+      signMessageAsync,
       t.onboarding.errors,
       walletGuard.isWalletLinked,
       walletGuard.linkedWallet,

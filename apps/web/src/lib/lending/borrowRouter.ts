@@ -13,16 +13,12 @@ import {
   usdcToBaseUnits,
   type PreparedTransaction
 } from './protocols/aaveBorrow';
-import {
-  buildDefaultMorphoMarketParams,
-  prepareMorphoBorrowUsdc
-} from './protocols/morphoBorrow';
 import { prepareCompoundWethCollateralBorrow } from './protocols/compoundBorrow';
 import { prepareMoonwellWethCollateralBorrow } from './protocols/moonwellBorrow';
 import { prepareSparkBorrowUsdc, prepareSparkSupplyWeth } from './protocols/sparkBorrow';
 import { planMorphoBorrowTransactions, previewMorphoBorrow } from './morphoBorrowPlanner';
 import { getAdminAsset } from '../admin/assetsService';
-import { allowedExternalContracts, borrowSafetyBps, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
+import { borrowSafetyBps, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
 
 export type BorrowQuoteRequest = {
   amountUsd: number;
@@ -196,34 +192,7 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
       };
     }
 
-    const marketParams = buildDefaultMorphoMarketParams(vault, oracleAddress);
-    if (!marketParams) {
-      return null;
-    }
-    const allowedContracts = new Set(allowedExternalContracts());
-    const requiredContracts = [
-      marketParams.loanToken,
-      marketParams.oracle,
-      marketParams.irm,
-      chainConfig.morpho
-    ].map((address) => address.toLowerCase());
-    if (requiredContracts.some((address) => !allowedContracts.has(address))) {
-      return null;
-    }
-
-    const tx = prepareMorphoBorrowUsdc(
-      marketParams,
-      amountBaseUnits,
-      request.walletAddress,
-      request.walletAddress
-    );
-
-    return {
-      protocol: 'morpho',
-      chainId,
-      transactions: [tx],
-      marketId: tx.marketId
-    };
+    return null;
   }
 
   if (isWethCollateralProtocol(quote.protocol)) {

@@ -55,13 +55,18 @@ export const EMISSION_PROFILES: Record<Exclude<EmissionProfileId, 'CUSTOM'>, Emi
   }
 };
 
+/** Profiles offered in admin launch UI (Base + Morpho only). */
 export const AUTOMATIC_EMISSION_PROFILE_IDS: Array<Exclude<EmissionProfileId, 'CUSTOM'>> = [
-  'BASE_MORPHO_4626',
+  'BASE_MORPHO_4626'
+];
+
+/** Legacy profiles kept for inferring existing assets — not shown as defaults. */
+export const LEGACY_EMISSION_PROFILE_IDS: Array<Exclude<EmissionProfileId, 'CUSTOM'>> = [
   'BASE_FULL_4626',
   'PLUME_RWA_7540'
 ];
 
-export const DEFAULT_EMISSION_PROFILE_ID: Exclude<EmissionProfileId, 'CUSTOM'> = 'PLUME_RWA_7540';
+export const DEFAULT_EMISSION_PROFILE_ID: Exclude<EmissionProfileId, 'CUSTOM'> = 'BASE_MORPHO_4626';
 
 export function getEmissionProfile(
   profileId: EmissionProfileId
@@ -126,7 +131,7 @@ export function autoCollateralProtocolsForAsset(asset: AdminAssetRecord): Collat
 
   return asset.collateralTargets
     .map((target) => target.protocol)
-    .filter((protocol): protocol is CollateralProtocol => protocol === 'MORPHO' || protocol === 'CENTRIFUGE');
+    .filter((protocol): protocol is CollateralProtocol => protocol === 'MORPHO');
 }
 
 export function ensureVaultCollateralProtocols(

@@ -20,7 +20,9 @@ const ERC20_ABI = [
 const VAULT_ABI = [
   'function deposit(uint256 assets, address receiver) returns (uint256 shares)',
   'function convertToAssets(uint256 shares) view returns (uint256)',
-  'function asset() view returns (address)'
+  'function convertToShares(uint256 assets) view returns (uint256)',
+  'function asset() view returns (address)',
+  'function decimals() view returns (uint8)'
 ];
 
 function resolveRpcUrl(chainId: number): string {
@@ -57,13 +59,13 @@ function usdcToBaseUnits(amountUsd: number): bigint {
   return BigInt(Math.round(amountUsd * 1_000_000));
 }
 
-function sharesForBorrowUsd(amountUsd: number, pricePerToken: number): bigint {
-  if (amountUsd <= 0 || pricePerToken <= 0) return 0n;
+function sharesForBorrowUsd(amountUsd: number, pricePerToken: number, shareScale: number): bigint {
+  if (amountUsd <= 0 || pricePerToken <= 0 || shareScale <= 0) return 0n;
   const ratio = lltvRatio();
   if (ratio <= 0) return 0n;
   const collateralUsd = amountUsd / ratio;
   const shares = collateralUsd / pricePerToken;
-  return BigInt(Math.max(1, Math.ceil(shares * 1_000_000)));
+  return BigInt(Math.max(1, Math.ceil(shares * shareScale)));
 }
 
 export async function previewMorphoBorrow(input: {
@@ -88,19 +90,26 @@ export async function previewMorphoBorrow(input: {
   try {
     const vaultContract = new Contract(vault, [...ERC20_ABI, ...VAULT_ABI], provider);
     const vaultShareBalance = (await vaultContract.balanceOf(input.walletAddress)) as bigint;
+    const shareDecimals = Number(await vaultContract.decimals());
+    const shareScale = 10 ** shareDecimals;
 
     let underlyingAssetBalance = 0n;
+    let underlyingDecimals = 6;
     const assetToken = input.asset.contractAddress?.trim();
     if (assetToken) {
       const token = new Contract(assetToken, ERC20_ABI, provider);
       underlyingAssetBalance = (await token.balanceOf(input.walletAddress)) as bigint;
+      underlyingDecimals = Number(await token.decimals());
     }
 
-    const decimals = 6n;
-    const collateralUsdFromShares =
-      (Number(vaultShareBalance) / Number(10n ** decimals)) * input.asset.pricePerToken;
+    const assetsFromShares = (await vaultContract.convertToAssets(vaultShareBalance)) as bigint;
+    const underlyingAddress = (await vaultContract.asset()) as string;
+    const underlyingContract = new Contract(underlyingAddress, ERC20_ABI, provider);
+    const vaultAssetDecimals = Number(await underlyingContract.decimals());
+
+    const collateralUsdFromShares = Number(assetsFromShares) / 10 ** vaultAssetDecimals;
     const collateralUsdFromUnderlying =
-      (Number(underlyingAssetBalance) / Number(10n ** decimals)) * input.asset.pricePerToken;
+      (Number(underlyingAssetBalance) / 10 ** underlyingDecimals) * input.asset.pricePerToken;
     const totalCollateralUsd = collateralUsdFromShares + collateralUsdFromUnderlying;
     const maxByCollateral = totalCollateralUsd * lltvRatio();
     const maxByAsset = maxBorrowUsdPerProject();
@@ -110,7 +119,11 @@ export async function previewMorphoBorrow(input: {
 
     const requested = input.amountUsd && input.amountUsd > 0 ? input.amountUsd : maxBorrowUsd;
     const suggestedBorrowUsd = Math.min(requested, maxBorrowUsd);
-    const collateralSharesRequired = sharesForBorrowUsd(suggestedBorrowUsd, input.asset.pricePerToken);
+    const collateralSharesRequired = sharesForBorrowUsd(
+      suggestedBorrowUsd,
+      input.asset.pricePerToken,
+      shareScale
+    );
 
     return {
       chainId,
@@ -204,7 +217,6 @@ export async function planMorphoBorrowTransactions(input: {
 
   const borrowUsd = Math.min(input.amountUsd, preview.suggestedBorrowUsd);
   const borrowAmount = usdcToBaseUnits(borrowUsd);
-  let sharesNeeded = sharesForBorrowUsd(borrowUsd, input.asset.pricePerToken);
 
   const chainId = resolveMorphoChainId();
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
@@ -212,22 +224,26 @@ export async function planMorphoBorrowTransactions(input: {
 
   try {
     const vaultContract = new Contract(vault, [...ERC20_ABI, ...VAULT_ABI], provider);
+    const shareDecimals = Number(await vaultContract.decimals());
+    const shareScale = 10 ** shareDecimals;
+    let sharesNeeded = sharesForBorrowUsd(borrowUsd, input.asset.pricePerToken, shareScale);
     let vaultShareBalance = (await vaultContract.balanceOf(input.walletAddress)) as bigint;
 
     if (vaultShareBalance < sharesNeeded && input.asset.contractAddress) {
       const assetToken = input.asset.contractAddress.trim();
       const token = new Contract(assetToken, ERC20_ABI, provider);
       const underlyingBalance = (await token.balanceOf(input.walletAddress)) as bigint;
-      const deficit = sharesNeeded - vaultShareBalance;
-      const depositAssets = deficit > underlyingBalance ? underlyingBalance : deficit;
+      const shareDeficit = sharesNeeded - vaultShareBalance;
+      const depositAssets = (await vaultContract.convertToAssets(shareDeficit)) as bigint;
+      const depositAmount = depositAssets > underlyingBalance ? underlyingBalance : depositAssets;
 
-      if (depositAssets > 0n) {
+      if (depositAmount > 0n) {
         const allowance = (await token.allowance(input.walletAddress, vault)) as bigint;
-        if (allowance < depositAssets) {
+        if (allowance < depositAmount) {
           transactions.push(encodeApprove(assetToken, vault, MaxUint256));
         }
-        transactions.push(encodeVaultDeposit(vault, depositAssets, input.walletAddress));
-        vaultShareBalance += depositAssets;
+        transactions.push(encodeVaultDeposit(vault, depositAmount, input.walletAddress));
+        vaultShareBalance += (await vaultContract.convertToShares(depositAmount)) as bigint;
       }
     }
 

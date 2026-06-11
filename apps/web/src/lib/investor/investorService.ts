@@ -200,19 +200,12 @@ export async function purchaseProjectTokens(input: {
 
     await tx.investor.update({
       where: { id: investorId },
-      data: {
-        totalCapital,
-        ltv: 0
-      }
+      data: { totalCapital }
     });
 
     await tx.portfolio.updateMany({
       where: { userId: input.userId },
-      data: {
-        totalCapital,
-        activeMarginDebt: 0,
-        ltv: 0
-      }
+      data: { totalCapital }
     });
 
     return {

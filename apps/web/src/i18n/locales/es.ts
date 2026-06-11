@@ -364,7 +364,57 @@ export const es = {
     sectionDebt: 'Propiedades de deuda',
     sectionEquity: 'Propiedades de capital',
     emptyDebt: 'No hay propiedades de deuda con este filtro.',
-    emptyEquity: 'No hay propiedades de capital con este filtro.'
+    emptyEquity: 'No hay propiedades de capital con este filtro.',
+    manageRent: 'Rentas'
+  },
+  adminOperating: {
+    title: 'Alquileres y distribución',
+    subtitle:
+      'Acreditá lo que ingresa al banco del proyecto y distribuí en un click a todos los tenedores de tokens (FIAT o USDC según su preferencia).',
+    backToAssets: 'Volver a activos',
+    refresh: 'Actualizar',
+    loading: 'Cargando saldo operativo…',
+    errorLoad: 'No se pudo cargar el proyecto o el saldo operativo.',
+    validationAmount: 'Ingresá un monto válido mayor a cero.',
+    noBalance: 'No hay saldo operativo para distribuir en esa moneda.',
+    creditTitle: '1. Acreditar alquiler (entrada bancaria)',
+    creditDesc:
+      'Cuando el inquilino deposita en la cuenta bancaria del fideicomiso/proyecto, registrá el monto acá para que quede en el compartimento operativo.',
+    creditButton: 'Acreditar alquiler',
+    creditSuccess: 'Alquiler acreditado en el saldo operativo del proyecto.',
+    creditError: 'No se pudo acreditar el alquiler.',
+    distributeTitle: '2. Distribuir a tenedores',
+    distributeDesc:
+      'Reparte el monto entre inversores con tokens activos y KYC, proporcional a su participación. FIAT → billetera Sanova; USDC → wallet on-chain.',
+    distributeButton: 'Distribuir a tenedores',
+    distributeAllHint: 'Dejá vacío para distribuir todo el saldo disponible de la moneda seleccionada.',
+    distributeSuccess: 'Distribución completada ({usd} netos repartidos).',
+    distributeError: 'No se pudo completar la distribución.',
+    confirmDistribute: '¿Distribuir {amount} {currency} a todos los tenedores elegibles?',
+    convertButton: 'Convertir a USDC (vault)',
+    convertSuccess: 'Batch de conversión creado ({id}).',
+    convertError: 'No se pudo iniciar la conversión.',
+    fieldCurrency: 'Moneda del depósito',
+    fieldAmount: 'Monto recibido',
+    fieldPeriod: 'Período (opcional)',
+    fieldBankRef: 'Referencia bancaria (opcional)',
+    fieldBankRefPlaceholder: 'CBU / comprobante / transferencia',
+    fieldDistributeAmount: 'Monto a distribuir (opcional)',
+    kpiTotalUsd: 'Saldo operativo (USD est.)',
+    kpiBalance: 'Saldo {currency}',
+    allocationsTitle: 'Última distribución',
+    ledgerTitle: 'Movimientos recientes',
+    colInvestor: 'Inversor',
+    colTokens: 'Tokens',
+    colAmount: 'Monto USD',
+    colMode: 'Modo',
+    colDate: 'Fecha',
+    colType: 'Tipo',
+    colBalance: 'Saldo después',
+    ledgerTypes: {
+      RENT_CREDIT: 'Crédito alquiler',
+      CONVERSION_DEBIT: 'Distribución / conversión'
+    }
   },
   adminLoans: {
     eyebrow: 'Préstamos RWA',

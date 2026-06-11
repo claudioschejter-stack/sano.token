@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { linkUserWallet } from '../../../../lib/investor/walletService';
+import { verifyWalletLinkSignature } from '../../../../lib/investor/walletLinkProof';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,10 +14,30 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as { walletAddress?: string; walletProvider?: string | null };
+    const body = (await request.json()) as {
+      walletAddress?: string;
+      walletProvider?: string | null;
+      signature?: string;
+      issuedAt?: number;
+    };
 
     if (!body.walletAddress?.trim()) {
       return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
+    }
+
+    if (!body.signature?.trim() || body.issuedAt == null) {
+      return NextResponse.json({ error: 'WALLET_SIGNATURE_REQUIRED' }, { status: 400 });
+    }
+
+    const signatureValid = await verifyWalletLinkSignature({
+      userId: ctx.userId,
+      walletAddress: body.walletAddress.trim(),
+      issuedAt: body.issuedAt,
+      signature: body.signature.trim()
+    });
+
+    if (!signatureValid) {
+      return NextResponse.json({ error: 'WALLET_SIGNATURE_INVALID' }, { status: 400 });
     }
 
     const result = await linkUserWallet(ctx.userId, body.walletAddress, body.walletProvider);

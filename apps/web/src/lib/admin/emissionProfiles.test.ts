@@ -60,9 +60,9 @@ function minimalAsset(overrides: Partial<AdminAssetRecord> = {}): AdminAssetReco
 }
 
 describe('emissionProfiles', () => {
-  it('exposes three automatic profiles', () => {
-    expect(AUTOMATIC_EMISSION_PROFILE_IDS).toHaveLength(3);
-    expect(DEFAULT_EMISSION_PROFILE_ID).toBe('PLUME_RWA_7540');
+  it('exposes Base Morpho as the only automatic profile', () => {
+    expect(AUTOMATIC_EMISSION_PROFILE_IDS).toEqual(['BASE_MORPHO_4626']);
+    expect(DEFAULT_EMISSION_PROFILE_ID).toBe('BASE_MORPHO_4626');
   });
 
   it('maps Plume ERC-7540 asset to PLUME_RWA_7540', () => {

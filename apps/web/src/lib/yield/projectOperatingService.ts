@@ -128,6 +128,62 @@ export async function creditProjectOperatingRent(input: {
   });
 }
 
+/** Debit operating balance after a successful investor rent payout (idempotent). */
+export async function debitProjectOperatingForDistribution(input: {
+  accountId: string;
+  projectId: string;
+  amount: number;
+  currency: string;
+  idempotencyKey: string;
+  metadata?: Prisma.InputJsonValue;
+}) {
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new Error('INVALID_AMOUNT');
+  }
+
+  const currency = normalizeOperatingCurrency(input.currency);
+
+  return prisma.$transaction(async (tx) => {
+    const existing = await tx.projectOperatingLedgerEntry.findUnique({
+      where: { idempotencyKey: input.idempotencyKey }
+    });
+    if (existing) {
+      return { entry: existing, created: false };
+    }
+
+    const fresh = await tx.projectOperatingAccount.findUniqueOrThrow({ where: { id: input.accountId } });
+    if (fresh.balance.toNumber() < input.amount) {
+      throw new Error('INSUFFICIENT_OPERATING_BALANCE');
+    }
+
+    const amount = new Prisma.Decimal(input.amount);
+    const nextBalance = fresh.balance.minus(amount);
+
+    await tx.projectOperatingAccount.update({
+      where: { id: input.accountId },
+      data: { balance: nextBalance }
+    });
+
+    const entry = await tx.projectOperatingLedgerEntry.create({
+      data: {
+        accountId: input.accountId,
+        projectId: input.projectId,
+        type: 'CONVERSION_DEBIT',
+        amount,
+        currency,
+        balanceAfter: nextBalance,
+        idempotencyKey: input.idempotencyKey,
+        metadata: {
+          reason: 'investor_rent_distribution',
+          ...(input.metadata as object)
+        } as Prisma.InputJsonObject
+      }
+    });
+
+    return { entry, created: true };
+  });
+}
+
 export async function createYieldBatchFromOperatingBalance(input: {
   projectId: string;
   currency: string;

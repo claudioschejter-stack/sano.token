@@ -2,6 +2,7 @@ import { prisma, Prisma, type RentPayoutPreference } from '@sanova/database';
 import { Contract, JsonRpcProvider, Wallet } from 'ethers';
 import { getOrCreatePlatformWalletAccount } from '../payments/platformWalletService';
 import { calculateRentCommissionSplit } from '../commission/commissionService';
+import { debitProjectOperatingForDistribution } from '../yield/projectOperatingService';
 
 const LIQUIDATED_CASH_STATUS = 'LIQUIDATED_CASH';
 const LIQUIDATED_FIAT_STATUS = 'LIQUIDATED_FIAT';
@@ -209,6 +210,10 @@ export async function payRentShareToInvestor(input: {
     chainId: input.chainId
   });
 
+  if (transfer.status === 'SKIPPED') {
+    throw new Error(transfer.reason ?? 'USDC_RENT_TRANSFER_SKIPPED');
+  }
+
   const distribution = await prisma.dividendDistribution.create({
     data: {
       assetId: input.projectId,
@@ -246,6 +251,12 @@ export async function allocateProjectRentByPreference(input: {
   chainId?: number;
   sourceCurrency?: string | null;
   idempotencyPrefix: string;
+  /** When set, debits operating balance per successful payout (not upfront). */
+  operatingSource?: {
+    accountId: string;
+    totalSourceAmount: number;
+    sourceCurrency: string;
+  };
 }) {
   if (!Number.isFinite(input.totalAmountUsd) || input.totalAmountUsd <= 0) {
     throw new Error('INVALID_RENT_AMOUNT');
@@ -303,6 +314,8 @@ export async function allocateProjectRentByPreference(input: {
   const totalMicro = BigInt(Math.round(input.totalAmountUsd * 1_000_000));
   let distributedMicro = 0n;
   const allocations = [];
+  let distributedSourceAmount = 0;
+  let failures = 0;
 
   for (let index = 0; index < holders.length; index += 1) {
     const holder = holders[index]!;
@@ -315,32 +328,71 @@ export async function allocateProjectRentByPreference(input: {
     const shareUsd = Number(shareMicro) / 1_000_000;
     const idempotencyKey = `${input.idempotencyPrefix}:${holder.investorId}:${input.batchId ?? 'direct'}`;
 
-    const result = await payRentShareToInvestor({
-      userId: holder.userId,
-      investorId: holder.investorId,
-      walletAddress: holder.walletAddress,
-      preference: holder.preference,
-      projectId: input.projectId,
-      amountUsd: shareUsd,
-      idempotencyKey,
-      batchId: input.batchId,
-      chainId: input.chainId,
-      sourceCurrency: input.sourceCurrency
-    });
+    try {
+      const result = await payRentShareToInvestor({
+        userId: holder.userId,
+        investorId: holder.investorId,
+        walletAddress: holder.walletAddress,
+        preference: holder.preference,
+        projectId: input.projectId,
+        amountUsd: shareUsd,
+        idempotencyKey,
+        batchId: input.batchId,
+        chainId: input.chainId,
+        sourceCurrency: input.sourceCurrency
+      });
 
-    allocations.push({
-      investorId: holder.investorId,
-      tokenCount: holder.tokenCount,
-      amountUsd: shareUsd,
-      preference: holder.preference,
-      result
-    });
+      if (input.operatingSource && shareUsd > 0) {
+        const shareSourceAmount =
+          isLast && index === holders.length - 1
+            ? input.operatingSource.totalSourceAmount - distributedSourceAmount
+            : (input.operatingSource.totalSourceAmount * shareUsd) / input.totalAmountUsd;
+
+        await debitProjectOperatingForDistribution({
+          accountId: input.operatingSource.accountId,
+          projectId: input.projectId,
+          amount: shareSourceAmount,
+          currency: input.operatingSource.sourceCurrency,
+          idempotencyKey: `${idempotencyKey}:operating-debit`,
+          metadata: { investorId: holder.investorId, shareUsd }
+        });
+
+        distributedSourceAmount += shareSourceAmount;
+      }
+
+      allocations.push({
+        investorId: holder.investorId,
+        tokenCount: holder.tokenCount,
+        amountUsd: shareUsd,
+        preference: holder.preference,
+        result
+      });
+    } catch (error) {
+      failures += 1;
+      allocations.push({
+        investorId: holder.investorId,
+        tokenCount: holder.tokenCount,
+        amountUsd: shareUsd,
+        preference: holder.preference,
+        error: error instanceof Error ? error.message : 'PAYOUT_FAILED'
+      });
+      break;
+    }
   }
+
+  const distributedUsd = allocations
+    .filter((row) => !('error' in row))
+    .reduce((sum, row) => sum + row.amountUsd, 0);
 
   return {
     projectId: input.projectId,
-    status: 'ALLOCATED' as const,
+    status:
+      failures > 0
+        ? ('PARTIAL' as const)
+        : ('ALLOCATED' as const),
     totalAmountUsd: input.totalAmountUsd,
+    distributedAmountUsd: distributedUsd,
+    distributedSourceAmount,
     allocations
   };
 }

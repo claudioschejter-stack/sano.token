@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Pencil, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Banknote, ExternalLink, Pencil, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, Fragment, type Dispatch, type SetStateAction } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
@@ -173,6 +173,13 @@ function AdminAssetsTable({
                             >
                               <Pencil size={14} />
                               {t.adminAssets.editLaunch}
+                            </Link>
+                            <Link
+                              href={`/dashboard/assets/${asset.id}`}
+                              className="inline-flex items-center gap-1 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-2.5 py-1.5 text-xs font-semibold text-terminal-primary transition-colors hover:bg-terminal-primary/20"
+                            >
+                              <Banknote size={14} />
+                              {t.adminAssets.manageRent}
                             </Link>
                             {asset.tokenStandard === 'ERC4626' ? (
                               <Link

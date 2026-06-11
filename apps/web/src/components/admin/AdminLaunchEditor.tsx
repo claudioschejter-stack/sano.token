@@ -123,6 +123,9 @@ function formPatchFromEmissionProfile(profileId: Exclude<EmissionProfileId, 'CUS
   };
 }
 
+const DEFAULT_PROFILE = getEmissionProfile(DEFAULT_EMISSION_PROFILE_ID)!;
+const DEFAULT_FORM_PATCH = formPatchFromEmissionProfile(DEFAULT_EMISSION_PROFILE_ID);
+
 const EMPTY_FORM: FormState = {
   title: '',
   description: '',
@@ -138,9 +141,9 @@ const EMPTY_FORM: FormState = {
   equitySharePercent: '100',
   tokenName: '',
   tokenSymbol: '',
-  tokenStandard: 'ERC7540',
+  tokenStandard: DEFAULT_PROFILE.tokenStandard,
   emissionProfile: DEFAULT_EMISSION_PROFILE_ID,
-  chainId: String(getEmissionProfile(DEFAULT_EMISSION_PROFILE_ID)!.chainId),
+  chainId: String(DEFAULT_PROFILE.chainId),
   spvEntityName: '',
   navOracleUrl: '',
   centrifugeChecklist: { ...EMPTY_CENTRIFUGE_CHECKLIST },
@@ -149,7 +152,7 @@ const EMPTY_FORM: FormState = {
   contractAddress: '',
   isActive: false,
   deployToken: true,
-  collateralCentrifuge: true,
+  collateralCentrifuge: false,
   collateralSky: false,
   collateralMorpho: true,
   collateralAaveHorizon: false,
@@ -158,7 +161,8 @@ const EMPTY_FORM: FormState = {
   collateralFigure: false,
   contracts: { trust: '', purchase: '', lease: '', smartContract: '' },
   mediaGallery: [],
-  reelUrl: ''
+  reelUrl: '',
+  ...DEFAULT_FORM_PATCH
 };
 
 function protocolFlagsFromTargets(targets: CollateralTarget[]) {

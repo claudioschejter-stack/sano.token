@@ -409,89 +409,107 @@ export async function markPaymentIntentFailed(input: {
   return serializePaymentIntent(updated);
 }
 
-export async function confirmPaymentIntent(input: {
+export type ConfirmPaymentIntentInput = {
   paymentIntentId: string;
   txHash?: string | null;
   provider?: string | null;
   providerPaymentId?: string | null;
   payload?: Prisma.InputJsonValue;
-}) {
-  const result = await prisma.$transaction(async (tx) => {
-    const intent = await tx.paymentIntent.findUnique({
-      where: { id: input.paymentIntentId }
+  /** Distinct investment row id when several intents share one on-chain payment proof. */
+  investmentTxHash?: string | null;
+  /** When false, skip updating investor/portfolio totalCapital (batch confirms aggregate once). */
+  updateCapitalTotals?: boolean;
+};
+
+export async function confirmPaymentIntentInTx(
+  tx: Prisma.TransactionClient,
+  input: ConfirmPaymentIntentInput
+) {
+  const intent = await tx.paymentIntent.findUnique({
+    where: { id: input.paymentIntentId }
+  });
+
+  if (!intent) {
+    throw new Error('PAYMENT_INTENT_NOT_FOUND');
+  }
+
+  if (intent.status === 'CONFIRMED') {
+    return intent;
+  }
+
+  if (!['PENDING', 'REQUIRES_PAYMENT'].includes(intent.status)) {
+    throw new Error('PAYMENT_INTENT_NOT_PAYABLE');
+  }
+
+  if (intent.expiresAt <= new Date()) {
+    return tx.paymentIntent.update({
+      where: { id: intent.id },
+      data: { status: 'EXPIRED' }
     });
+  }
 
-    if (!intent) {
-      throw new Error('PAYMENT_INTENT_NOT_FOUND');
+  const project = await tx.project.findUnique({
+    where: { id: intent.projectId }
+  });
+
+  if (!project || !project.isActive) {
+    throw new Error('PROJECT_NOT_AVAILABLE');
+  }
+
+  const supplyUpdate = await tx.project.updateMany({
+    where: {
+      id: intent.projectId,
+      availableTokens: { gte: intent.tokenCount }
+    },
+    data: {
+      availableTokens: { decrement: intent.tokenCount }
     }
+  });
 
-    if (intent.status === 'CONFIRMED') {
-      return intent;
-    }
+  if (supplyUpdate.count === 0) {
+    throw new Error('INSUFFICIENT_SUPPLY');
+  }
 
-    if (!['PENDING', 'REQUIRES_PAYMENT'].includes(intent.status)) {
-      throw new Error('PAYMENT_INTENT_NOT_PAYABLE');
-    }
+  if (!intent.investorId) {
+    throw new Error('INVESTOR_WALLET_REQUIRED');
+  }
 
-    if (intent.expiresAt <= new Date()) {
-      return tx.paymentIntent.update({
-        where: { id: intent.id },
-        data: { status: 'EXPIRED' }
-      });
-    }
-
-    const project = await tx.project.findUnique({
-      where: { id: intent.projectId }
+  if (intent.method === 'INTERNAL_BALANCE') {
+    const account = await tx.platformWalletAccount.findUnique({
+      where: { userId_currency: { userId: intent.userId, currency: 'USD' } }
     });
-
-    if (!project || !project.isActive) {
-      throw new Error('PROJECT_NOT_AVAILABLE');
+    if (!account || account.balance.minus(account.reserved).lessThan(intent.amountUsd)) {
+      throw new Error('INSUFFICIENT_PLATFORM_BALANCE');
     }
+  }
 
-    if (project.availableTokens < intent.tokenCount) {
-      throw new Error('INSUFFICIENT_SUPPLY');
-    }
+  assertPaymentProofPresent(intent, input);
 
-    if (!intent.investorId) {
-      throw new Error('INVESTOR_WALLET_REQUIRED');
-    }
+  await assertTokenizedPurchaseReady({
+    project,
+    projectId: intent.projectId,
+    walletAddress: intent.payerWalletAddress,
+    tx
+  });
 
-    if (intent.method === 'INTERNAL_BALANCE') {
-      const account = await tx.platformWalletAccount.findUnique({
-        where: { userId_currency: { userId: intent.userId, currency: 'USD' } }
-      });
-      if (!account || account.balance.minus(account.reserved).lessThan(intent.amountUsd)) {
-        throw new Error('INSUFFICIENT_PLATFORM_BALANCE');
-      }
-    }
+  const investmentTxHash =
+    input.investmentTxHash?.trim() ||
+    input.txHash?.trim() ||
+    input.providerPaymentId?.trim() ||
+    `payment-${intent.id}`;
 
-    assertPaymentProofPresent(intent, input);
-
-    await assertTokenizedPurchaseReady({
-      project,
+  const investment = await tx.investment.create({
+    data: {
+      investorId: intent.investorId,
       projectId: intent.projectId,
-      walletAddress: intent.payerWalletAddress,
-      tx
-    });
+      tokenCount: intent.tokenCount,
+      purchasePriceUsd: intent.amountUsd,
+      status: 'ACTIVE',
+      txHash: investmentTxHash
+    }
+  });
 
-    const investment = await tx.investment.create({
-      data: {
-        investorId: intent.investorId,
-        projectId: intent.projectId,
-        tokenCount: intent.tokenCount,
-        purchasePriceUsd: intent.amountUsd,
-        status: 'ACTIVE',
-        txHash: input.txHash || input.providerPaymentId || `payment-${intent.id}`
-      }
-    });
-
-    await tx.project.update({
-      where: { id: intent.projectId },
-      data: {
-        availableTokens: project.availableTokens - intent.tokenCount
-      }
-    });
-
+  if (input.updateCapitalTotals !== false) {
     const investor = await tx.investor.findUniqueOrThrow({
       where: { id: intent.investorId },
       select: { totalCapital: true }
@@ -501,63 +519,62 @@ export async function confirmPaymentIntent(input: {
 
     await tx.investor.update({
       where: { id: intent.investorId },
-      data: {
-        totalCapital,
-        ltv: 0
-      }
+      data: { totalCapital }
     });
 
     await tx.portfolio.updateMany({
       where: { userId: intent.userId },
-      data: {
-        totalCapital,
-        activeMarginDebt: 0,
-        ltv: 0
-      }
+      data: { totalCapital }
     });
+  }
 
-    if (intent.method === 'INTERNAL_BALANCE') {
-      const account = await tx.platformWalletAccount.findUniqueOrThrow({
-        where: { userId_currency: { userId: intent.userId, currency: 'USD' } }
-      });
-      const nextBalance = account.balance.minus(intent.amountUsd);
-      await tx.platformWalletAccount.update({
-        where: { id: account.id },
-        data: { balance: nextBalance }
-      });
-      await tx.platformWalletLedgerEntry.create({
-        data: {
-          accountId: account.id,
-          userId: intent.userId,
-          investorId: intent.investorId,
-          type: 'TOKEN_PURCHASE_DEBIT',
-          amount: intent.amountUsd.negated(),
-          currency: 'USD',
-          balanceAfter: nextBalance,
-          idempotencyKey: `token-purchase:${intent.id}`,
-          paymentIntentId: intent.id,
-          investmentId: investment.id,
-          metadata: { projectId: intent.projectId, tokenCount: intent.tokenCount }
-        }
-      });
-    }
-
-    return tx.paymentIntent.update({
-      where: { id: intent.id },
+  if (intent.method === 'INTERNAL_BALANCE') {
+    const account = await tx.platformWalletAccount.findUniqueOrThrow({
+      where: { userId_currency: { userId: intent.userId, currency: 'USD' } }
+    });
+    const nextBalance = account.balance.minus(intent.amountUsd);
+    await tx.platformWalletAccount.update({
+      where: { id: account.id },
+      data: { balance: nextBalance }
+    });
+    await tx.platformWalletLedgerEntry.create({
       data: {
-        status: 'CONFIRMED',
+        accountId: account.id,
+        userId: intent.userId,
+        investorId: intent.investorId,
+        type: 'TOKEN_PURCHASE_DEBIT',
+        amount: intent.amountUsd.negated(),
+        currency: 'USD',
+        balanceAfter: nextBalance,
+        idempotencyKey: `token-purchase:${intent.id}`,
+        paymentIntentId: intent.id,
         investmentId: investment.id,
-        txHash: input.txHash ?? intent.txHash,
-        provider: input.provider ?? intent.provider,
-        providerPaymentId: input.providerPaymentId ?? intent.providerPaymentId,
-        confirmedAt: new Date(),
-        metadata: {
-          ...((intent.metadata as Record<string, unknown>) ?? {}),
-          confirmation: input.payload ?? {}
-        }
+        metadata: { projectId: intent.projectId, tokenCount: intent.tokenCount }
       }
     });
+  }
+
+  return tx.paymentIntent.update({
+    where: { id: intent.id },
+    data: {
+      status: 'CONFIRMED',
+      investmentId: investment.id,
+      txHash: input.txHash ?? intent.txHash,
+      provider: input.provider ?? intent.provider,
+      providerPaymentId: input.providerPaymentId ?? intent.providerPaymentId,
+      confirmedAt: new Date(),
+      metadata: {
+        ...((intent.metadata as Record<string, unknown>) ?? {}),
+        confirmation: input.payload ?? {},
+        onChainTxHash: input.txHash ?? null,
+        investmentTxHash
+      }
+    }
   });
+}
+
+export async function confirmPaymentIntent(input: ConfirmPaymentIntentInput) {
+  const result = await prisma.$transaction(async (tx) => confirmPaymentIntentInTx(tx, input));
 
   await recordPaymentEvent({
     paymentIntentId: result.id,

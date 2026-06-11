@@ -122,14 +122,22 @@ export async function verifyPasskeyRegistration(
   deviceName?: string | null,
   webContext?: PasskeyWebContext
 ) {
-  const ctx = webContext ?? resolvePasskeyWebContextFromClientOrigin(clientOriginFromRegistrationResponse(response));
-  const latest = await prisma.webAuthnChallenge.findFirst({
-    where: { userId, type: 'REGISTER', expiresAt: { gt: new Date() } },
-    orderBy: { createdAt: 'desc' }
-  });
+  const clientData = JSON.parse(
+    Buffer.from(response.response.clientDataJSON, 'base64url').toString('utf8')
+  ) as { challenge?: string; origin?: string };
 
-  const expectedChallenge = latest?.challenge;
-  if (!expectedChallenge) {
+  const ctx = webContext ?? resolvePasskeyWebContextFromClientOrigin(clientData.origin ?? clientOriginFromRegistrationResponse(response));
+
+  const challengeRecord = clientData.challenge
+    ? await prisma.webAuthnChallenge.findUnique({ where: { challenge: clientData.challenge } })
+    : null;
+
+  const expectedChallenge = challengeRecord?.challenge;
+  if (!expectedChallenge || !challengeRecord || challengeRecord.expiresAt < new Date()) {
+    throw new Error('CHALLENGE_EXPIRED');
+  }
+
+  if (challengeRecord.userId !== userId || challengeRecord.type !== 'REGISTER') {
     throw new Error('CHALLENGE_EXPIRED');
   }
 
@@ -138,7 +146,7 @@ export async function verifyPasskeyRegistration(
     expectedChallenge,
     expectedOrigin: ctx.origin,
     expectedRPID: ctx.rpId,
-    requireUserVerification: false
+    requireUserVerification: true
   });
 
   if (!verification.verified || !verification.registrationInfo) {
@@ -158,9 +166,7 @@ export async function verifyPasskeyRegistration(
     }
   });
 
-  if (latest) {
-    await prisma.webAuthnChallenge.delete({ where: { id: latest.id } }).catch(() => undefined);
-  }
+  await prisma.webAuthnChallenge.delete({ where: { id: challengeRecord.id } }).catch(() => undefined);
 
   return { ok: true as const };
 }
@@ -263,7 +269,7 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
       counter: Number(passkey.counter),
       transports: (passkey.transports as AuthenticatorTransportFuture[] | null) ?? undefined
     },
-    requireUserVerification: false
+    requireUserVerification: true
   });
 
   if (!verification.verified) {

@@ -37,7 +37,10 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
   try {
     const { seedMorphoLiquidityIfConfigured } = await import('./morphoLiquiditySeed');
-    await seedMorphoLiquidityIfConfigured(params).catch(() => null);
+    const seedResult = await seedMorphoLiquidityIfConfigured(params, {
+      totalTokens: asset.totalTokens,
+      pricePerToken: asset.pricePerToken
+    }).catch(() => ({ txHash: null, targetUsdc: 0, skippedReason: 'SEED_FAILED' }));
 
     const morpho = new Contract(
       getLendingChainConfig().morpho,
@@ -57,7 +60,7 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
     await appendDeploymentEvent(asset.id, {
       step: 'MORPHO_LIQUIDITY',
       status: status === 'LIQUID' ? 'SUCCESS' : 'FAILED',
-      message: `Liquidez Morpho disponible: ${availableAssets.toString()} unidades base.`,
+      message: `Liquidez Morpho disponible: ${availableAssets.toString()} unidades base. Seed objetivo: ${seedResult.targetUsdc} USDC${seedResult.txHash ? ` (tx ${seedResult.txHash})` : seedResult.skippedReason ? ` (${seedResult.skippedReason})` : ''}.`,
       externalId: morphoTarget.externalId ?? null
     });
     if (status !== 'LIQUID') {
