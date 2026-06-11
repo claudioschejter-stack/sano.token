@@ -53,20 +53,23 @@ export async function deliverVaultSharesForPaymentIntent(paymentIntentId: string
   });
 
   if (!delivery.ok) {
+    const failureCode = 'code' in delivery ? delivery.code : 'TRANSFER_FAILED';
+    const failureDetail = 'detail' in delivery ? delivery.detail : undefined;
+
     await prisma.paymentIntent.update({
       where: { id: paymentIntentId },
       data: {
         metadata: {
           ...metadata,
-          vaultShareDeliveryStatus: delivery.code,
+          vaultShareDeliveryStatus: failureCode,
           vaultShareDeliveryTxHash: null,
-          vaultShareDeliveryDetail: delivery.detail ?? delivery.code,
+          vaultShareDeliveryDetail: failureDetail ?? failureCode,
           vaultShareDeliveryAt: new Date().toISOString()
         } as Prisma.InputJsonObject
       }
     });
 
-    return { status: 'FAILED' as const, code: delivery.code, detail: delivery.detail };
+    return { status: 'FAILED' as const, code: failureCode, detail: failureDetail };
   }
 
   await prisma.paymentIntent.update({
