@@ -57,7 +57,7 @@ export function PortalBrandFramesMobileHeader({
       aria-label="Sanova Global"
     >
       <div
-        className={`${portalBrandFrameClass} flex items-center justify-start p-[2mm]`}
+        className={`${portalBrandFrameClass} flex items-center justify-start px-[2mm] py-[1mm]`}
       >
         <SanovaLogo variant="light" showWordmark href={null} className="h-9 max-h-full" />
       </div>

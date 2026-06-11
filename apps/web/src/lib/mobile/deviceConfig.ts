@@ -2,7 +2,7 @@
 
 export const MOBILE_TOUCH_TARGET_PX = 44;
 
-export const PORTAL_MOBILE_HEADER_HEIGHT = '4rem';
+export const PORTAL_MOBILE_HEADER_HEIGHT = '3.5rem';
 
 export const PORTAL_MOBILE_BOTTOM_NAV_HEIGHT = '4.5rem';
 
