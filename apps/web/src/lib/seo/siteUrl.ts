@@ -1,4 +1,7 @@
+import { locales, type Locale } from '../../i18n';
+import { withLocalePrefix } from '../i18n/localeRouting';
 import { LEGAL_SITE_URL } from '../legal/legalConfig';
+import { BLOG_SLUGS } from '../../content/blog/articles';
 
 /** Canonical production origin (no trailing slash). */
 export function getSiteUrl(): string {
@@ -15,5 +18,24 @@ export const PUBLIC_MARKETING_PATHS = [
   '/acceso/registro',
   '/contacto',
   '/privacidad',
-  '/terminos'
+  '/terminos',
+  '/blog',
+  ...BLOG_SLUGS.map((slug) => `/blog/${slug}`)
 ] as const;
+
+export function buildPublicSitemapUrls(): string[] {
+  const siteUrl = getSiteUrl();
+  const urls: string[] = [];
+
+  for (const path of PUBLIC_MARKETING_PATHS) {
+    urls.push(path === '/' ? siteUrl : `${siteUrl}${path}`);
+    for (const locale of locales) {
+      if (locale === 'es') {
+        continue;
+      }
+      urls.push(`${siteUrl}${withLocalePrefix(locale, path)}`);
+    }
+  }
+
+  return urls;
+}

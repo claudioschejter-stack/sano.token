@@ -1118,6 +1118,22 @@ export const ja = mergeLocale({
       mendozaQuarterly: "四半期の現金業績分布"
     }
   },
+  blog: {
+
+    title: "Blog — Vaca Muerta Investment & RWA",
+
+    subtitle: "Guides on tokenization, Neuquén real estate, RWA tokens and private placement in Argentina.",
+
+    readMore: "Read article",
+
+    backToBlog: "← Back to blog",
+
+    ctaDisclaimer: "KYC private placement. Not a public offering. See Legal Terms and Privacy Policy.",
+
+    ctaButton: "Access the platform"
+
+  },
+
   error: {
     eyebrow: "何か問題が発生しました",
     title: "このビューをロードできませんでした",

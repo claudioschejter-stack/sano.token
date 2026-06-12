@@ -1397,7 +1397,10 @@ export const es = {
       rights: '© 2026 Sanova Global SAS. Todos los derechos reservados.',
       contact: 'Contacto',
       privacy: 'Privacidad',
-      terms: 'Términos'
+      terms: 'Términos',
+      blog: 'Blog',
+      linkedin: 'LinkedIn',
+      youtube: 'YouTube'
     }
   },
   contact: {
@@ -1877,6 +1880,16 @@ export const es = {
       tolhuinDividend: 'Dividendo operativo RWA liquidado en cash',
       mendozaQuarterly: 'Distribución trimestral de rendimiento en efectivo'
     }
+  },
+  blog: {
+    title: 'Blog — Inversión Vaca Muerta y RWA',
+    subtitle:
+      'Guías sobre tokenización, inmuebles Neuquén, tokens RWA y colocación privada en Argentina.',
+    readMore: 'Leer artículo',
+    backToBlog: '← Volver al blog',
+    ctaDisclaimer:
+      'Colocación privada con KYC. No es oferta pública. Consulte Términos y Privacidad.',
+    ctaButton: 'Acceder a la plataforma'
   },
   error: {
     eyebrow: 'Algo salió mal',

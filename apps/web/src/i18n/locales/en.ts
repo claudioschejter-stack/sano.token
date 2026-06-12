@@ -1376,7 +1376,10 @@ export const en = {
       rights: "© 2026 Sanova Global SAS.All rights reserved.",
       contact: "Contact",
       privacy: "Privacy",
-      terms: "Terms"
+      terms: "Terms",
+      blog: "Blog",
+      linkedin: "LinkedIn",
+      youtube: "YouTube"
     }
   },
   contact: {
@@ -1842,6 +1845,16 @@ export const en = {
       tolhuinDividend: "RWA operating dividend settled in cash",
       mendozaQuarterly: "Quarterly cash performance distribution"
     }
+  },
+  blog: {
+    title: "Blog — Vaca Muerta Investment & RWA",
+    subtitle:
+      "Guides on tokenization, Neuquén real estate, RWA tokens and private placement in Argentina.",
+    readMore: "Read article",
+    backToBlog: "← Back to blog",
+    ctaDisclaimer:
+      "KYC private placement. Not a public offering. See Legal Terms and Privacy Policy.",
+    ctaButton: "Access the platform"
   },
   error: {
     eyebrow: "something went wrong",

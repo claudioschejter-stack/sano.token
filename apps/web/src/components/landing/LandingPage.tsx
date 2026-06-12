@@ -11,6 +11,8 @@ import {
   UserCheck,
   Wallet
 } from 'lucide-react';
+import { getLinkedInUrl, getYouTubeUrl } from '../../config/social';
+import { useLocalePath } from '../../hooks/useLocalePath';
 import { useTranslation } from '../../i18n/LocaleProvider';
 
 const LANDING_HERO_IMAGE = '/images/landing-hero-energy-yields.webp';
@@ -126,6 +128,7 @@ function HeroActions({
 export function LandingPage({ initialFeed }: LandingPageProps) {
   const t = useTranslation();
   const l = t.landing;
+  const localePath = useLocalePath();
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
@@ -274,21 +277,40 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
             className="mt-8 flex flex-col gap-2 text-sm text-slate-300 sm:mt-10 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-x-5"
             aria-label={l.footer.navAria}
           >
-            <Link href="/acceso?returnTo=/marketplace" className="hover:text-white">
+            <Link href={localePath('/acceso?returnTo=/marketplace')} className="hover:text-white">
               {l.nav.marketplace}
             </Link>
-            <Link href="/acceso" className="hover:text-white">
+            <Link href={localePath('/acceso')} className="hover:text-white">
               {l.nav.platformAccess}
             </Link>
-            <Link href="/privacidad" className="hover:text-white">
+            <Link href={localePath('/blog')} className="hover:text-white">
+              {l.footer.blog}
+            </Link>
+            <Link href={localePath('/privacidad')} className="hover:text-white">
               {l.footer.privacy}
             </Link>
-            <Link href="/terminos" className="hover:text-white">
+            <Link href={localePath('/terminos')} className="hover:text-white">
               {l.footer.terms}
             </Link>
-            <Link href="/contacto" className="hover:text-white">
+            <Link href={localePath('/contacto')} className="hover:text-white">
               {l.footer.contact}
             </Link>
+            <a
+              href={getLinkedInUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white"
+            >
+              {l.footer.linkedin}
+            </a>
+            <a
+              href={getYouTubeUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white"
+            >
+              {l.footer.youtube}
+            </a>
           </nav>
 
           <div className="mt-8 w-full md:mt-10">

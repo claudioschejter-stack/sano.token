@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { LOCALE_HEADER } from '../lib/i18n/localeRouting';
 import { LOCALE_STORAGE_KEY } from '../lib/i18n/mobileLocalePreference';
 import {
   mapBrowserLanguageToLocale,
@@ -27,6 +28,15 @@ export async function resolveServerLocale(): Promise<Locale> {
   const countryHint = cookieStore.get(COUNTRY_COOKIE)?.value;
 
   const headerStore = await headers();
+  const pathLocale = headerStore.get(LOCALE_HEADER)?.trim();
+  if (pathLocale) {
+    return resolveInitialLocale({
+      stored: pathLocale,
+      countryHint,
+      browserLanguages: []
+    });
+  }
+
   const browserLanguages = parseAcceptLanguage(headerStore.get('accept-language'));
 
   return resolveInitialLocale({

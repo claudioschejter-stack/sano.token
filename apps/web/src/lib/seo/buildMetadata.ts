@@ -5,6 +5,8 @@ import {
   rtlLocales,
   type Locale
 } from '../../i18n';
+import { withLocalePrefix } from '../i18n/localeRouting';
+import { locales } from '../../i18n';
 import { getSiteUrl } from './siteUrl';
 
 const OG_LOCALE_MAP: Record<Locale, string> = {
@@ -51,7 +53,13 @@ export function buildSiteMetadata(locale: Locale, path = '/'): Metadata {
     publisher: 'Sanova Global',
     category: 'finance',
     alternates: {
-      canonical
+      canonical,
+      languages: {
+        ...Object.fromEntries(
+          locales.map((code) => [code, `${siteUrl}${withLocalePrefix(code, canonicalPath || '/')}`])
+        ),
+        'x-default': `${siteUrl}${canonicalPath || '/'}`
+      }
     },
     openGraph: {
       type: 'website',

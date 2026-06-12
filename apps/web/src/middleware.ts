@@ -5,6 +5,11 @@ import { canAccessPath, redirectPathForRole } from './lib/auth/routeAccess';
 import type { SystemRole } from './lib/auth/roles';
 import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
 import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
+import {
+  isLocalePrefixablePath,
+  LOCALE_HEADER,
+  parseLocalePath
+} from './lib/i18n/localeRouting';
 
 const { auth } = NextAuth(authConfig);
 
@@ -12,7 +17,8 @@ const LOGIN_GATE_PATHS = new Set(['/marketplace', '/mercado-secundario']);
 
 function withLocaleAndCountryHints(
   response: NextResponse,
-  request: { cookies: { get: (name: string) => { value: string } | undefined }; headers: Headers }
+  request: { cookies: { get: (name: string) => { value: string } | undefined }; headers: Headers },
+  forcedLocale?: string
 ) {
   const country = request.headers.get('x-vercel-ip-country');
 
@@ -22,6 +28,15 @@ function withLocaleAndCountryHints(
       path: '/',
       sameSite: 'lax'
     });
+  }
+
+  if (forcedLocale) {
+    response.cookies.set(LOCALE_STORAGE_KEY, forcedLocale, {
+      maxAge: 60 * 60 * 24 * 365,
+      path: '/',
+      sameSite: 'lax'
+    });
+    return response;
   }
 
   const storedLocale = request.cookies.get(LOCALE_STORAGE_KEY)?.value;
@@ -41,9 +56,41 @@ function withLocaleAndCountryHints(
   return response;
 }
 
+function maybeRewriteLocalePrefix(request: {
+  nextUrl: URL;
+  headers: Headers;
+  cookies: { get: (name: string) => { value: string } | undefined };
+}): NextResponse | null {
+  const parsed = parseLocalePath(request.nextUrl.pathname);
+  if (!parsed.locale) {
+    return null;
+  }
+
+  if (!isLocalePrefixablePath(parsed.pathname)) {
+    const redirectUrl = new URL(parsed.pathname, request.nextUrl);
+    return withLocaleAndCountryHints(NextResponse.redirect(redirectUrl), request, parsed.locale);
+  }
+
+  const rewriteUrl = new URL(parsed.pathname, request.nextUrl);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(LOCALE_HEADER, parsed.locale);
+
+  const response = NextResponse.rewrite(rewriteUrl, {
+    request: { headers: requestHeaders }
+  });
+
+  return withLocaleAndCountryHints(response, request, parsed.locale);
+}
+
 export default auth((request) => {
+  const localeRewrite = maybeRewriteLocalePrefix(request);
+  if (localeRewrite) {
+    return localeRewrite;
+  }
+
   const { pathname } = request.nextUrl;
   const isAuthenticated = Boolean(request.auth?.user?.accessToken);
+
   if (LOGIN_GATE_PATHS.has(pathname) && !isAuthenticated) {
     const returnTo = encodeURIComponent(pathname);
     return withLocaleAndCountryHints(
@@ -83,17 +130,6 @@ export default auth((request) => {
 
 export const config = {
   matcher: [
-    '/',
-    '/marketplace',
-    '/mercado-secundario',
-    '/mercado-secundario/checkout',
-    '/acceso',
-    '/acceso/:path*',
-    '/contacto',
-    '/privacidad',
-    '/terminos',
-    '/dashboard/:path*',
-    '/marketplace/:path*/checkout',
-    '/marketplace/carrito'
+    '/((?!_next/static|_next/image|favicon.ico|icons/|images/|brand/|logos/|maps/|uploads/|sw.js|manifest.json|api/).*)'
   ]
 };

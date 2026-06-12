@@ -1118,6 +1118,22 @@ export const sw = mergeLocale({
       mendozaQuarterly: "Usambazaji wa utendaji wa kila robo ya fedha"
     }
   },
+  blog: {
+
+    title: "Blog — Vaca Muerta Investment & RWA",
+
+    subtitle: "Guides on tokenization, Neuquén real estate, RWA tokens and private placement in Argentina.",
+
+    readMore: "Read article",
+
+    backToBlog: "← Back to blog",
+
+    ctaDisclaimer: "KYC private placement. Not a public offering. See Legal Terms and Privacy Policy.",
+
+    ctaButton: "Access the platform"
+
+  },
+
   error: {
     eyebrow: "kuna kitu kilienda vibaya",
     title: "Hatukuweza kupakia mwonekano huu",
