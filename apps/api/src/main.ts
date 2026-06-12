@@ -29,13 +29,13 @@ async function bootstrap() {
 
   app.enableCors({
     origin(origin, callback) {
-      // Permitir peticiones sin origen (como Postman o herramientas de desarrollo) solo fuera de producción
-      if (!origin && nodeEnv !== 'production') {
+      // Sin Origin: healthchecks (Railway), curl, server-to-server — CORS no aplica a navegadores
+      if (!origin) {
         callback(null, true);
         return;
       }
 
-      if (origin && allowedOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
       }
