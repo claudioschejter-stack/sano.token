@@ -32,11 +32,19 @@ const env = {
   ...parseEnvFile(join(root, 'apps/web/.env.local'))
 };
 
+const RAILWAY_PRODUCTION_API = 'https://sanovaapi-production.up.railway.app';
+
+function pickApiUrl(value) {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed.includes('localhost')) return '';
+  return trimmed;
+}
+
 const apiUrl =
-  env.NEXT_PUBLIC_API_URL?.trim() ||
-  env.NEST_PUBLIC_API_URL?.trim() ||
-  env.NEST_API_URL?.trim() ||
-  '';
+  pickApiUrl(env.NEST_PUBLIC_API_URL) ||
+  pickApiUrl(env.NEST_API_URL) ||
+  pickApiUrl(env.NEXT_PUBLIC_API_URL) ||
+  RAILWAY_PRODUCTION_API;
 
 function addEnv(name, value, environments = ['production', 'development']) {
   if (!value) {

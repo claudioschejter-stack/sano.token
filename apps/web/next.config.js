@@ -67,5 +67,6 @@ const nextConfig = {
   }
 };
 
-const wrapWithAnalyzer = require('./next.config.analyze.js');
-module.exports = wrapWithAnalyzer(nextConfig);
+/** Bundle analyzer is dev-only; Vercel production installs omit devDependencies. */
+module.exports =
+  process.env.ANALYZE === 'true' ? require('./next.config.analyze.js')(nextConfig) : nextConfig;
