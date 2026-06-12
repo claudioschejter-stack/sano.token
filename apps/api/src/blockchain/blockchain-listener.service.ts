@@ -85,7 +85,7 @@ export class BlockchainListenerService implements OnModuleInit, OnModuleDestroy 
       );
       return;
     }
-    await this.connectListeners();
+    void this.connectListeners();
   }
 
   private async connectListeners() {
