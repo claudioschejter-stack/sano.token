@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import {
+  investorSessionForbiddenResponse,
+  requireInvestorSession
+} from '../../../../../lib/onboarding/requireInvestorSession';
 import { getCartBatchStatus } from '../../../../../lib/payments/cartCheckoutService';
 
 export const dynamic = 'force-dynamic';
@@ -10,7 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
   if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    return investorSessionForbiddenResponse(ctx);
   }
 
   const batchId = new URL(request.url).searchParams.get('batchId')?.trim();
@@ -18,6 +21,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'BATCH_ID_REQUIRED' }, { status: 400 });
   }
 
-  const status = await getCartBatchStatus(ctx.userId, batchId);
+  const status = await getCartBatchStatus(ctx.userId, batchId, {
+    sync: new URL(request.url).searchParams.get('sync') === '1'
+  });
   return NextResponse.json({ status });
 }

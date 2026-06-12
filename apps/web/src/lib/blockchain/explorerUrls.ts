@@ -3,7 +3,7 @@ import { chainExplorerAddressUrl, resolveChainRpcUrl } from './supportedChains';
 export { resolveChainRpcUrl };
 
 export function resolveChainId(): number {
-  const raw = process.env.TOKEN_DEPLOY_CHAIN_ID ?? process.env.NEXT_PUBLIC_CHAIN_ID ?? '84532';
+  const raw = process.env.TOKEN_DEPLOY_CHAIN_ID ?? process.env.NEXT_PUBLIC_CHAIN_ID ?? '8453';
   return Number.parseInt(raw, 10);
 }
 

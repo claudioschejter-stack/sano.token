@@ -19,9 +19,16 @@ import { createLocalRailCheckout } from './localRailAdapter';
 import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
+import {
+  releaseSupplyForIntent,
+  reserveProjectTokens
+} from './paymentSupplyReservation';
+import { deliverVaultSharesAfterPayment } from './vaultShareDeliveryStatus';
 import { resolveInvestorLinkedWallet, getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
-import { confirmPaymentIntentInTx, type PublicPaymentIntent } from './paymentService';
+import { confirmPaymentIntentInTx, markPaymentIntentFailed, type PublicPaymentIntent } from './paymentService';
 import { assertPaymentProofPresent } from './purchaseGuard';
+import { buildPurchaseIntentMetadata } from './purchaseIntentMetadata';
+import { readBatchTotalUsdcBaseUnits, sumDecimalUsdBaseUnits } from './paymentAmountUtils';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 
@@ -44,6 +51,7 @@ export type CartCheckoutResult = {
   payToAddress: string | null;
   stablecoinNetwork: string | null;
   confirmed: boolean;
+  manualReview?: boolean;
 };
 
 function normalizeAddress(address?: string | null, network?: StablecoinNetwork): string | null {
@@ -69,6 +77,7 @@ function serializeIntent(intent: {
   payToAddress: string | null;
   txHash: string | null;
   provider: string | null;
+  providerPaymentId: string | null;
   providerCheckoutUrl: string | null;
   expiresAt: Date;
   confirmedAt: Date | null;
@@ -107,7 +116,16 @@ export type CartBatchStatus = {
   paymentIntents: PublicPaymentIntent[];
 };
 
-export async function getCartBatchStatus(userId: string, batchId: string): Promise<CartBatchStatus> {
+export async function getCartBatchStatus(
+  userId: string,
+  batchId: string,
+  options?: { sync?: boolean }
+): Promise<CartBatchStatus> {
+  if (options?.sync) {
+    const { syncCartBatchFromProvider } = await import('./paymentProviderSync');
+    await syncCartBatchFromProvider({ userId, batchId });
+  }
+
   const intents = await loadCartBatchIntentsAnyStatus(userId, batchId);
   if (!intents.length) {
     return {
@@ -220,6 +238,65 @@ async function attachCartGatewayCheckout(input: {
   return null;
 }
 
+const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
+  'STRIPE',
+  'MERCADO_PAGO',
+  'COINBASE',
+  'TRANSAK',
+  'BRIDGE',
+  'RAMP'
+]);
+
+export async function markCartBatchPaymentFailed(input: {
+  userId?: string;
+  batchId?: string;
+  paymentIntentId?: string;
+  provider?: string | null;
+  providerPaymentId?: string | null;
+  payload?: Prisma.InputJsonValue;
+}) {
+  let userId = input.userId;
+  let batchId = input.batchId;
+
+  if (input.paymentIntentId) {
+    const primary = await prisma.paymentIntent.findUnique({ where: { id: input.paymentIntentId } });
+    if (primary) {
+      userId = userId ?? primary.userId;
+      const metadata = (primary.metadata as Record<string, unknown>) ?? {};
+      batchId = batchId ?? (typeof metadata.cartBatchId === 'string' ? metadata.cartBatchId : undefined);
+    }
+  }
+
+  if (!userId || !batchId) {
+    return [];
+  }
+
+  const intents = await loadCartBatchIntentsAnyStatus(userId, batchId);
+  const results: PublicPaymentIntent[] = [];
+
+  for (const intent of intents) {
+    if (intent.status === 'CONFIRMED') {
+      continue;
+    }
+
+    const failed = await markPaymentIntentFailed({
+      paymentIntentId: intent.id,
+      provider: input.provider ?? intent.provider,
+      providerPaymentId: input.providerPaymentId ?? intent.providerPaymentId,
+      payload: {
+        ...(typeof input.payload === 'object' && input.payload !== null ? input.payload : {}),
+        cartBatchId: batchId
+      }
+    });
+
+    if (failed) {
+      results.push(failed);
+    }
+  }
+
+  return results;
+}
+
 export async function createCartPurchaseCheckout(input: {
   userId: string;
   userEmail?: string | null;
@@ -284,7 +361,15 @@ export async function createCartPurchaseCheckout(input: {
         : null;
 
   const createdIntents = await prisma.$transaction(async (tx) => {
-    const rows = [];
+    type PlannedLine = {
+      index: number;
+      line: CartLineInput;
+      project: NonNullable<Awaited<ReturnType<typeof tx.project.findUnique>>>;
+      amountUsd: Prisma.Decimal;
+      risk: Awaited<ReturnType<typeof scorePaymentRisk>>;
+    };
+
+    const plannedLines: PlannedLine[] = [];
     let hasVaultDepositMode = false;
     let hasTreasuryTransferMode = false;
 
@@ -302,23 +387,21 @@ export async function createCartPurchaseCheckout(input: {
         throw new Error('INSUFFICIENT_SUPPLY');
       }
 
-      const amountUsd = project.pricePerToken.toNumber() * line.tokenCount;
+      const amountUsd = project.pricePerToken.mul(line.tokenCount);
       await assertPaymentLimits({
         userId: input.userId,
         projectId: line.projectId,
         walletAddress: payerWallet,
-        amountUsd
+        amountUsd: amountUsd.toNumber()
       });
 
       const risk = await scorePaymentRisk({
         userId: input.userId,
         projectId: line.projectId,
-        amountUsd,
+        amountUsd: amountUsd.toNumber(),
         walletAddress: payerWallet,
         method: input.method
       });
-
-      const idempotencyKey = `${batchId}:${line.projectId}:${line.tokenCount}:${input.method}`;
 
       const vaultShareDeliveryMode =
         input.method === 'USDC_ONCHAIN' && Boolean(project.vaultAddress?.trim());
@@ -327,6 +410,27 @@ export async function createCartPurchaseCheckout(input: {
       } else if (input.method === 'USDC_ONCHAIN') {
         hasTreasuryTransferMode = true;
       }
+
+      plannedLines.push({ index, line, project, amountUsd, risk });
+    }
+
+    if (hasVaultDepositMode && hasTreasuryTransferMode) {
+      throw new Error('CART_MIXED_PAYMENT_MODE');
+    }
+
+    const batchTotalUsdcBaseUnits = sumDecimalUsdBaseUnits(
+      plannedLines.map((row) => ({ amountUsd: row.amountUsd }))
+    ).toString();
+
+    const rows = [];
+    for (const planned of plannedLines) {
+      const { index, line, project, amountUsd, risk } = planned;
+      const reserved = await reserveProjectTokens(tx, line.projectId, line.tokenCount);
+      if (!reserved) {
+        throw new Error('INSUFFICIENT_SUPPLY');
+      }
+
+      const idempotencyKey = `${batchId}:${line.projectId}:${line.tokenCount}:${input.method}`;
 
       const intent = await tx.paymentIntent.create({
         data: {
@@ -345,44 +449,53 @@ export async function createCartPurchaseCheckout(input: {
           payToAddress,
           idempotencyKey,
           expiresAt,
-          metadata: {
+          metadata: buildPurchaseIntentMetadata({
+            method: input.method,
+            tokenCount: line.tokenCount,
+            project,
+            network,
+            payerWallet,
+            payToAddress,
+            risk: risk as Record<string, unknown>,
+            paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null,
+            providerRail: checkoutRow?.providerRail ?? null,
+            paymentLabel: checkoutRow?.label ?? null,
             cartBatchId: batchId,
             cartLineIndex: index,
-            projectTitle: project.title,
-            pricePerTokenUsd: project.pricePerToken.toString(),
-            purchaseMode: vaultShareDeliveryMode ? 'ERC4626_DEPOSIT' : 'CART_TREASURY_TRANSFER',
-            stablecoinNetwork: network.id,
-            treasuryAddress: payToAddress,
-            vaultAddress: project.vaultAddress ?? null,
-            underlyingTokenAddress: project.contractAddress ?? null,
-            expectedAssetAmountWei: String(BigInt(line.tokenCount) * 10n ** 18n),
-            usdcTokenAddress: input.method === 'USDC_ONCHAIN' ? network.tokenAddress : null,
-            usdcDecimals: input.method === 'USDC_ONCHAIN' ? network.decimals : null,
-            shareReceiverWallet: payerWallet,
-            paymentOptionId: input.paymentOptionId ?? null,
-            providerRail: checkoutRow?.providerRail ?? null,
-            paymentLabel: checkoutRow?.label ?? null
-          } as Prisma.InputJsonObject
+            batchTotalUsdcBaseUnits
+          })
         }
       });
 
       rows.push(intent);
     }
 
-    if (hasVaultDepositMode && hasTreasuryTransferMode) {
-      throw new Error('CART_MIXED_PAYMENT_MODE');
-    }
-
     return rows;
   });
 
-  const totalUsd = createdIntents.reduce((sum, row) => sum + row.amountUsd.toNumber(), 0);
+  const totalUsdNumber = createdIntents.reduce((sum, row) => sum + row.amountUsd.toNumber(), 0);
   const totalTokens = createdIntents.reduce((sum, row) => sum + row.tokenCount, 0);
   const paymentIntentIds = createdIntents.map((row) => row.id);
 
   let providerCheckoutUrl: string | null = null;
 
   if (input.method === 'INTERNAL_BALANCE') {
+    if (createdIntents.some((row) => row.status === 'MANUAL_REVIEW')) {
+      return {
+        batchId,
+        mode: 'purchase',
+        totalUsd: totalUsdNumber.toFixed(6),
+        totalTokens,
+        method: input.method,
+        paymentIntents: createdIntents.map(serializeIntent),
+        providerCheckoutUrl: null,
+        payToAddress,
+        stablecoinNetwork: network.id,
+        confirmed: false,
+        manualReview: true
+      };
+    }
+
     await confirmCartPurchaseBatch({
       userId: input.userId,
       batchId,
@@ -394,7 +507,7 @@ export async function createCartPurchaseCheckout(input: {
     return {
       batchId,
       mode: 'purchase',
-      totalUsd: totalUsd.toFixed(6),
+      totalUsd: totalUsdNumber.toFixed(6),
       totalTokens,
       method: input.method,
       paymentIntents: confirmed.map(serializeIntent),
@@ -405,11 +518,27 @@ export async function createCartPurchaseCheckout(input: {
     };
   }
 
+  if (createdIntents.some((row) => row.status === 'MANUAL_REVIEW')) {
+    return {
+      batchId,
+      mode: 'purchase',
+      totalUsd: totalUsdNumber.toFixed(6),
+      totalTokens,
+      method: input.method,
+      paymentIntents: createdIntents.map(serializeIntent),
+      providerCheckoutUrl: null,
+      payToAddress,
+      stablecoinNetwork: network.id,
+      confirmed: false,
+      manualReview: true
+    };
+  }
+
   const gateway = await attachCartGatewayCheckout({
     batchId,
     method: input.method,
     paymentOptionId: input.paymentOptionId ?? checkoutRow?.id,
-    totalUsd,
+    totalUsd: totalUsdNumber,
     totalTokens,
     primaryProjectId: input.items[0].projectId,
     paymentIntentIds,
@@ -438,6 +567,18 @@ export async function createCartPurchaseCheckout(input: {
         }
       });
     }
+  } else if (GATEWAY_CHECKOUT_METHODS.has(input.method)) {
+    await markCartBatchPaymentFailed({
+      userId: input.userId,
+      batchId,
+      paymentIntentId: paymentIntentIds[0],
+      provider: gateway?.provider ?? input.method.toLowerCase(),
+      payload: {
+        reason: 'GATEWAY_UNAVAILABLE',
+        gateway: (gateway?.metadata ?? null) as Prisma.InputJsonValue
+      }
+    });
+    throw new Error('PAYMENT_GATEWAY_NOT_CONFIGURED');
   }
 
   const fresh = await loadCartBatchIntents(input.userId, batchId);
@@ -445,7 +586,7 @@ export async function createCartPurchaseCheckout(input: {
   return {
     batchId,
     mode: 'purchase',
-    totalUsd: totalUsd.toFixed(6),
+    totalUsd: totalUsdNumber.toFixed(6),
     totalTokens,
     method: input.method,
     paymentIntents: fresh.map(serializeIntent),
@@ -549,10 +690,17 @@ export async function confirmCartPurchaseBatch(input: {
   });
 
   for (const row of confirmedRows) {
+    const eventType =
+      row.status === 'CONFIRMED'
+        ? 'PAYMENT_CONFIRMED'
+        : row.status === 'EXPIRED'
+          ? 'PAYMENT_INTENT_EXPIRED'
+          : 'PAYMENT_CONFIRMATION_SKIPPED';
+
     await prisma.paymentEvent.create({
       data: {
         paymentIntentId: row.id,
-        type: 'PAYMENT_CONFIRMED',
+        type: eventType,
         provider: input.provider ?? row.provider,
         txHash: input.txHash ?? row.txHash,
         payload: batchPayload
@@ -568,17 +716,17 @@ export async function confirmCartPurchaseBatch(input: {
 
   for (const row of confirmedRows) {
     const rowMetadata = (row.metadata as Record<string, unknown>) ?? {};
-    if (rowMetadata.purchaseMode === 'ERC4626_DEPOSIT') {
+    if (rowMetadata.purchaseMode === 'ERC4626_DEPOSIT' && row.status === 'CONFIRMED') {
       try {
-        const { deliverVaultSharesForPaymentIntent } = await import('../blockchain/investorVaultShareDelivery');
-        await deliverVaultSharesForPaymentIntent(row.id);
+        await deliverVaultSharesAfterPayment(row.id);
       } catch (error) {
         console.error('[confirmCartPurchaseBatch] vault share delivery failed', row.id, error);
       }
     }
   }
 
-  return confirmedRows.map(serializeIntent);
+  const refreshed = await loadCartBatchIntentsAnyStatus(input.userId, input.batchId);
+  return refreshed.map(serializeIntent);
 }
 
 export async function verifyCartUsdcPayment(input: {
@@ -591,7 +739,8 @@ export async function verifyCartUsdcPayment(input: {
   if (!intents.length) {
     throw new Error('CART_BATCH_NOT_FOUND');
   }
-  if (intents.some((row) => row.method !== 'USDC_ONCHAIN')) {
+  const allowedMethods = new Set(['USDC_ONCHAIN', 'CUSTODIAL_STABLECOIN']);
+  if (intents.some((row) => !allowedMethods.has(row.method))) {
     throw new Error('INVALID_PAYMENT_METHOD');
   }
 
@@ -602,6 +751,8 @@ export async function verifyCartUsdcPayment(input: {
   const usdcAddress = network.tokenAddress;
   const treasuryAddress = network.treasuryAddress;
   const totalUsd = intents.reduce((sum, row) => sum + row.amountUsd.toNumber(), 0);
+  const tokenDecimals = network.decimals ?? usdcDecimals();
+  const expectedAmount = readBatchTotalUsdcBaseUnits(intents, tokenDecimals);
 
   if (!rpcUrl || !usdcAddress || !treasuryAddress) {
     throw new Error('USDC_PAYMENT_NOT_CONFIGURED');
@@ -629,7 +780,6 @@ export async function verifyCartUsdcPayment(input: {
   const iface = new ethers.Interface(ERC20_TRANSFER_ABI);
   const expectedTo = ethers.getAddress(treasuryAddress);
   const expectedFrom = normalizeAddress(input.expectedPayer ?? first.payerWalletAddress);
-  const expectedAmount = ethers.parseUnits(totalUsd.toFixed(6), network.decimals ?? usdcDecimals());
 
   const matchingLog = receipt.logs
     .filter((log) => log.address.toLowerCase() === usdcAddress.toLowerCase())
@@ -644,7 +794,7 @@ export async function verifyCartUsdcPayment(input: {
       const from = ethers.getAddress(parsed.args.from as string).toLowerCase();
       const to = ethers.getAddress(parsed.args.to as string);
       const value = parsed.args.value as bigint;
-      return to === expectedTo && value === expectedAmount && (!expectedFrom || from === expectedFrom);
+      return to === expectedTo && value >= expectedAmount && (!expectedFrom || from === expectedFrom);
     });
 
   provider.destroy();
@@ -661,6 +811,7 @@ export async function verifyCartUsdcPayment(input: {
     payload: {
       txHash: input.txHash,
       totalUsd: totalUsd.toFixed(6),
+      expectedUsdcBaseUnits: expectedAmount.toString(),
       treasuryAddress: expectedTo
     }
   });

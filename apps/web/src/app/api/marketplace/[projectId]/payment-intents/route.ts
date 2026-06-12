@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { PaymentMethod } from '@sanova/database';
-import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import {
   createPaymentIntent,
   expirePaymentIntent,
   getPaymentIntentForUser
 } from '../../../../../lib/payments/paymentService';
+import { syncPaymentIntentFromProvider } from '../../../../../lib/payments/paymentProviderSync';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ export async function POST(
   }
 
   if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    return investorSessionForbiddenResponse(ctx);
   }
 
   const { projectId } = await context.params;
@@ -100,12 +101,25 @@ export async function GET(request: Request) {
   }
 
   if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    return investorSessionForbiddenResponse(ctx);
   }
 
   const paymentIntentId = new URL(request.url).searchParams.get('id');
   if (!paymentIntentId) {
     return NextResponse.json({ error: 'PAYMENT_INTENT_ID_REQUIRED' }, { status: 400 });
+  }
+
+  const sync = new URL(request.url).searchParams.get('sync') === '1';
+
+  if (sync) {
+    const synced = await syncPaymentIntentFromProvider({
+      userId: ctx.userId,
+      paymentIntentId
+    });
+    if (synced) {
+      return NextResponse.json({ ok: true, paymentIntent: synced });
+    }
+    return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
   }
 
   const expired = await expirePaymentIntent(paymentIntentId);

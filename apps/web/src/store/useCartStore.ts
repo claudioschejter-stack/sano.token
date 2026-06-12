@@ -20,6 +20,9 @@ type CartState = {
   removeItem: (projectId: string) => void;
   setTokenCount: (projectId: string, tokenCount: number) => void;
   clearCart: () => void;
+  reconcileInventory: (
+    rows: Array<{ projectId: string; availableTokens: number; pricePerTokenUsd: number }>
+  ) => void;
   totalUsd: () => number;
   itemCount: () => number;
 };
@@ -60,6 +63,29 @@ export const useCartStore = create<CartState>()(
         }));
       },
       clearCart: () => set({ items: [] }),
+      reconcileInventory: (rows) => {
+        const byProject = new Map(rows.map((row) => [row.projectId, row]));
+        set((state) => {
+          const nextItems = state.items
+            .map((item) => {
+              const fresh = byProject.get(item.projectId);
+              if (!fresh) {
+                return item;
+              }
+              const availableTokens = Math.max(0, fresh.availableTokens);
+              const tokenCount = Math.min(item.tokenCount, Math.max(1, availableTokens));
+              return {
+                ...item,
+                availableTokens,
+                pricePerTokenUsd: fresh.pricePerTokenUsd,
+                tokenCount: availableTokens > 0 ? tokenCount : 0
+              };
+            })
+            .filter((item) => item.availableTokens > 0 && item.tokenCount > 0);
+
+          return { items: nextItems };
+        });
+      },
       totalUsd: () =>
         get().items.reduce((sum, row) => sum + row.pricePerTokenUsd * row.tokenCount, 0),
       itemCount: () => get().items.reduce((sum, row) => sum + row.tokenCount, 0)

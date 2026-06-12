@@ -19,6 +19,7 @@ import {
 } from '../../lib/payments/depositPaymentOptions';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
 import { isLocalRailManualResult } from '../../lib/payments/stripeCheckoutOptions';
+import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
@@ -27,6 +28,7 @@ import { PaymentMethodLogosButton } from './PaymentMethodLogosButton';
 import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
 import { BASE_CHAIN_ID } from '../../lib/web3/config';
 import { pickCoinbaseConnector } from '../../lib/web3/walletConnectors';
+import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -34,6 +36,7 @@ type CartCheckoutResult = {
   totalTokens: number;
   method: PaymentMethod;
   confirmed: boolean;
+  manualReview?: boolean;
   providerCheckoutUrl: string | null;
   payToAddress: string | null;
   stablecoinNetwork: string | null;
@@ -134,6 +137,35 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const clearCart = useCartStore((state) => state.clearCart);
   const cartTotalUsd = useCartStore((state) => state.totalUsd());
   const cartItemCount = useCartStore((state) => state.itemCount());
+  const reconcileInventory = useCartStore((state) => state.reconcileInventory);
+
+  useEffect(() => {
+    if (mode !== 'purchase' || items.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    void fetchMarketplaceFeedClient()
+      .then((feed) => {
+        if (cancelled) {
+          return;
+        }
+        reconcileInventory(
+          feed.listings.map((listing) => ({
+            projectId: listing.id,
+            availableTokens: listing.availableTokens,
+            pricePerTokenUsd: listing.pricePerTokenUsd
+          }))
+        );
+      })
+      .catch(() => {
+        // keep cached cart if feed unavailable
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [items.length, mode, reconcileInventory]);
 
   const [depositOptions, setDepositOptions] = useState<DepositPaymentOption[]>([]);
   const [depositOptionGroups, setDepositOptionGroups] = useState<DepositPaymentOptionGroup[]>([]);
@@ -148,7 +180,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [checkout, setCheckout] = useState<CartCheckoutResult | null>(null);
   const [deposit, setDeposit] = useState<DepositResponse | null>(null);
   const [status, setStatus] = useState<
-    'idle' | 'processing' | 'manual' | 'pending_gateway' | 'verifying' | 'done'
+    'idle' | 'processing' | 'manual' | 'pending_gateway' | 'verifying' | 'done' | 'share_pending' | 'share_failed'
   >('idle');
   const [pendingReference, setPendingReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -311,7 +343,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
         try {
           const response = await fetch(
-            `/api/marketplace/cart/status?batchId=${encodeURIComponent(batchFromQuery)}`,
+            `/api/marketplace/cart/status?batchId=${encodeURIComponent(batchFromQuery)}&sync=1`,
             { cache: 'no-store' }
           );
           const data = (await response.json()) as {
@@ -324,19 +356,15 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
           if (response.ok && data.status?.allConfirmed) {
             clearCart();
-            setCheckout({
-              batchId: batchFromQuery,
-              totalUsd: '0',
-              totalTokens: 0,
-              method: paymentMethod,
-              confirmed: true,
-              providerCheckoutUrl: null,
-              payToAddress: null,
-              stablecoinNetwork: null,
-              paymentIntents: data.status.paymentIntents
-            });
-            setStatus('done');
+            applyCartPostPurchaseStatus(data.status.paymentIntents ?? []);
             void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
+            return;
+          }
+
+          const hasFailed = data.status?.paymentIntents?.some((row) => row.status === 'FAILED');
+          if (response.ok && hasFailed) {
+            setStatus('idle');
+            setError(c.checkoutFailed);
             return;
           }
 
@@ -464,7 +492,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           return;
         }
 
-        setStatus('done');
+        setError('PAYMENT_GATEWAY_NOT_CONFIGURED');
+        setStatus('idle');
         return;
       }
 
@@ -490,21 +519,43 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           window.location.href = `/kyc?returnTo=/marketplace/carrito`;
           return;
         }
+        if (data.error === 'CART_MANUAL_REVIEW_REQUIRED') {
+          setError('CART_MANUAL_REVIEW_REQUIRED');
+          setStatus('idle');
+          return;
+        }
         throw new Error(data.error ?? 'CART_CHECKOUT_FAILED');
       }
 
       setCheckout(data.checkout);
       setBatchId(data.checkout.batchId);
 
+      if (data.checkout.manualReview) {
+        setError('CART_MANUAL_REVIEW_REQUIRED');
+        setStatus('idle');
+        return;
+      }
+
       if (data.checkout.confirmed) {
         clearCart();
-        setStatus('done');
+        applyCartPostPurchaseStatus(data.checkout.paymentIntents ?? []);
         void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
         return;
       }
 
       if (data.checkout.providerCheckoutUrl) {
         window.location.href = data.checkout.providerCheckoutUrl;
+        return;
+      }
+
+      if (
+        paymentMethod !== 'USDC_ONCHAIN' &&
+        paymentMethod !== 'CUSTODIAL_STABLECOIN' &&
+        paymentMethod !== 'LOCAL_RAIL' &&
+        !data.checkout.payToAddress
+      ) {
+        setError('PAYMENT_GATEWAY_NOT_CONFIGURED');
+        setStatus('idle');
         return;
       }
 
@@ -527,6 +578,32 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }
   };
 
+  const applyCartPostPurchaseStatus = (intents: PublicPaymentIntent[]) => {
+    const vaultIntents = intents.filter(
+      (row) => (row.metadata as Record<string, unknown> | null)?.purchaseMode === 'ERC4626_DEPOSIT'
+    );
+    if (!vaultIntents.length) {
+      setStatus('done');
+      return;
+    }
+
+    const deliveryFailed = vaultIntents.some(
+      (row) => vaultShareDeliveryUiState((row.metadata ?? {}) as Record<string, unknown>) === 'failed'
+    );
+    const deliveryPending = vaultIntents.some(
+      (row) => vaultShareDeliveryUiState((row.metadata ?? {}) as Record<string, unknown>) === 'pending'
+    );
+
+    if (deliveryFailed) {
+      setError('VAULT_SHARE_DELIVERY_FAILED');
+      setStatus('share_failed');
+    } else if (deliveryPending) {
+      setStatus('share_pending');
+    } else {
+      setStatus('done');
+    }
+  };
+
   const verifyUsdcPayment = async () => {
     if (!batchId || !manualTxHash.trim()) {
       return;
@@ -545,15 +622,19 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       })
     });
 
-    const data = (await response.json()) as { error?: string };
+    const data = (await response.json()) as {
+      error?: string;
+      paymentIntents?: PublicPaymentIntent[];
+    };
     if (!response.ok) {
       setError(data.error ?? 'STABLECOIN_VERIFY_FAILED');
       setStatus('manual');
       return;
     }
 
+    const intents = data.paymentIntents ?? [];
     clearCart();
-    setStatus('done');
+    applyCartPostPurchaseStatus(intents);
     void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
   };
 
@@ -959,30 +1040,45 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           ) : null}
 
-          {status === 'done' ? (
-            <div className="space-y-3 rounded-lg border border-terminal-success/30 bg-terminal-success/10 px-4 py-3 text-sm text-terminal-success">
-              <p className="font-semibold">{mode === 'deposit' ? c.depositComplete : c.purchaseComplete}</p>
-              {mode === 'purchase' ? (
+          {status === 'done' || status === 'share_pending' || status === 'share_failed' ? (
+            <div
+              className={`space-y-3 rounded-lg border px-4 py-3 text-sm ${
+                status === 'share_failed'
+                  ? 'border-terminal-warning/30 bg-terminal-warning/10 text-terminal-warning'
+                  : status === 'share_pending'
+                    ? 'border-terminal-primary/30 bg-terminal-primary/10 text-terminal-text'
+                    : 'border-terminal-success/30 bg-terminal-success/10 text-terminal-success'
+              }`}
+            >
+              <p className="font-semibold">
+                {status === 'share_failed'
+                  ? t.checkout.purchaseSharesFailed
+                  : status === 'share_pending'
+                    ? t.checkout.purchaseSharesPending
+                    : mode === 'deposit'
+                      ? c.depositComplete
+                      : c.purchaseComplete}
+              </p>
+              {status === 'share_failed' ? (
+                <p className="text-xs">{t.checkout.purchaseSharesFailedHint}</p>
+              ) : null}
+              {status !== 'share_failed' ? (
                 <Link
                   href="/dashboard/portfolio"
                   className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
                 >
-                  {t.checkout.viewPortfolio}
+                  {mode === 'deposit' ? c.backToWallet : t.checkout.viewPortfolio}
                 </Link>
-              ) : (
-                <Link
-                  href="/dashboard/portfolio"
-                  className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
-                >
-                  {c.backToWallet}
-                </Link>
-              )}
+              ) : null}
             </div>
           ) : null}
 
           {status === 'manual' && payToAddress ? (
             <div className="space-y-2 rounded-lg border border-terminal-warning/30 bg-terminal-warning/10 p-4 text-xs text-terminal-muted">
               <p>{t.checkout.sendToCompartment}</p>
+              {mode === 'purchase' ? (
+                <p className="text-terminal-text">{t.checkout.investorTreasuryUsdcNote}</p>
+              ) : null}
               <p className="break-all font-mono text-terminal-text">{payToAddress}</p>
               <input
                 value={manualTxHash}
@@ -1000,7 +1096,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           ) : null}
 
-          {checkout?.providerCheckoutUrl && status !== 'done' ? (
+          {checkout?.providerCheckoutUrl &&
+          status !== 'done' &&
+          status !== 'share_pending' &&
+          status !== 'share_failed' ? (
             <a
               href={checkout.providerCheckoutUrl}
               className="inline-flex items-center gap-1 text-sm text-terminal-primary"
@@ -1017,7 +1116,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </p>
           ) : null}
 
-          {status !== 'done' ? (
+          {status !== 'done' && status !== 'share_pending' && status !== 'share_failed' ? (
             <div className={`${showPaymentMethods ? 'space-y-1' : ''} hidden md:block`}>
               <button
                 type="button"
@@ -1050,7 +1149,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         </div>
       </article>
 
-      {status !== 'done' ? (
+      {status !== 'done' && status !== 'share_pending' && status !== 'share_failed' ? (
         <StickyActionBar
           summary={
             <div className="flex items-center justify-between text-sm">

@@ -3,6 +3,7 @@ import { Prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { linkUserWallet } from '../../../../lib/investor/walletService';
 import { verifyWalletLinkSignature } from '../../../../lib/investor/walletLinkProof';
+import { assertWalletLinkChainId, WALLET_LINK_CHAIN_ID } from '../../../../lib/investor/walletLinkChain';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,12 +31,18 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'WALLET_SIGNATURE_REQUIRED' }, { status: 400 });
     }
 
+    try {
+      assertWalletLinkChainId(body.chainId);
+    } catch {
+      return NextResponse.json({ error: 'CHAIN_MISMATCH' }, { status: 400 });
+    }
+
     const signatureValid = await verifyWalletLinkSignature({
       userId: ctx.userId,
       walletAddress: body.walletAddress.trim(),
       issuedAt: body.issuedAt,
       signature: body.signature.trim(),
-      chainId: body.chainId ?? 8453
+      chainId: WALLET_LINK_CHAIN_ID
     });
 
     if (!signatureValid) {

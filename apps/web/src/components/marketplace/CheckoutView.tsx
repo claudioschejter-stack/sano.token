@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink, Minus, Plus, ShieldCheck } from 'lucide-react'
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAccount } from 'wagmi';
 import { formatMessage } from '../../i18n';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
@@ -14,6 +15,7 @@ import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import type { MarketplaceListing } from '../../types/marketplace';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 import { StickyActionBar } from '../mobile/StickyActionBar';
+import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
 
 type CheckoutViewProps = {
   projectId: string;
@@ -34,9 +36,12 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('USDC_ONCHAIN');
   const [stablecoinNetwork, setStablecoinNetwork] = useState<StablecoinNetworkId>('BASE');
   const [manualTxHash, setManualTxHash] = useState('');
-  const [status, setStatus] = useState<'idle' | 'creating' | 'paying' | 'manual' | 'verifying' | 'done'>('idle');
+  const [status, setStatus] = useState<'idle' | 'creating' | 'paying' | 'manual' | 'verifying' | 'done' | 'share_pending' | 'share_failed'>('idle');
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [paymentIntent, setPaymentIntent] = useState<PaymentIntentResponse | null>(null);
+  const searchParams = useSearchParams();
+  const returnPaymentIntentId = searchParams.get('payment_intent')?.trim() || null;
+  const returnStatus = searchParams.get('status')?.trim() || null;
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +64,64 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
       cancelled = true;
     };
   }, [projectId]);
+
+  useEffect(() => {
+    if (returnStatus !== 'success' || !returnPaymentIntentId) {
+      return;
+    }
+
+    setStatus('verifying');
+    setPurchaseError(null);
+
+    let cancelled = false;
+    let attempts = 0;
+    const maxAttempts = 30;
+
+    const pollPaymentIntent = async () => {
+      while (!cancelled && attempts < maxAttempts) {
+        attempts += 1;
+
+        try {
+          const response = await fetch(
+            `/api/marketplace/${projectId}/payment-intents?id=${encodeURIComponent(returnPaymentIntentId)}&sync=1`,
+            { cache: 'no-store' }
+          );
+          const data = (await response.json()) as {
+            paymentIntent?: PaymentIntentResponse;
+          };
+
+          if (response.ok && data.paymentIntent?.status === 'CONFIRMED') {
+            setPaymentIntent(data.paymentIntent);
+            applyPostPurchaseStatus(data.paymentIntent);
+            void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
+            return;
+          }
+
+          if (response.ok && data.paymentIntent?.status === 'FAILED') {
+            setPaymentIntent(data.paymentIntent);
+            setPurchaseError('PAYMENT_FAILED');
+            setStatus('idle');
+            return;
+          }
+        } catch {
+          // retry
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      }
+
+      if (!cancelled) {
+        setStatus('idle');
+        setPurchaseError('PAYMENT_CONFIRMATION_PENDING');
+      }
+    };
+
+    void pollPaymentIntent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId, returnPaymentIntentId, returnStatus]);
 
   const maxTokens = listing?.availableTokens ?? 1;
   const pricePerToken = listing?.pricePerTokenUsd ?? 0;
@@ -119,6 +182,12 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
     try {
       const intent = await createPaymentIntent();
 
+      if (intent.status === 'CONFIRMED') {
+        setPaymentIntent(intent);
+        applyPostPurchaseStatus(intent);
+        return;
+      }
+
       if (paymentMethod === 'USDC_ONCHAIN') {
         setPaymentIntent(intent);
         setStatus('manual');
@@ -130,35 +199,27 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
         return;
       }
 
-      setStatus('done');
-    } catch {
-      setPurchaseError('PURCHASE_FAILED');
+      setPurchaseError('PAYMENT_GATEWAY_NOT_CONFIGURED');
+      setStatus('idle');
+      return;
+    } catch (error) {
+      setPurchaseError(error instanceof Error ? error.message : 'PURCHASE_FAILED');
       setStatus('idle');
     }
   };
 
-  const payWithUsdcTransfer = async (intent: PaymentIntentResponse) => {
-    if (!address) {
+  const applyPostPurchaseStatus = (intent: PaymentIntentResponse) => {
+    const delivery = vaultShareDeliveryUiState((intent.metadata ?? {}) as Record<string, unknown>);
+    if (delivery === 'failed') {
+      setStatus('share_failed');
+      setPurchaseError('VAULT_SHARE_DELIVERY_FAILED');
       return;
     }
-
-    const metadata = (intent.metadata ?? {}) as { usdcTokenAddress?: string; usdcDecimals?: number; autoTransferSupported?: boolean };
-    const tokenAddress = metadata.usdcTokenAddress;
-    const decimals = Number(metadata.usdcDecimals ?? 6);
-
-    if (!metadata.autoTransferSupported) {
-      setStatus('manual');
+    if (delivery === 'pending') {
+      setStatus('share_pending');
       return;
     }
-
-    if (!tokenAddress || !intent.payToAddress || !intent.chainId) {
-      setPurchaseError('USDC_PAYMENT_NOT_CONFIGURED');
-      setStatus('idle');
-      return;
-    }
-
-    setPurchaseError('LEGACY_TREASURY_TRANSFER_USE_WALLET');
-    setStatus('manual');
+    setStatus('done');
   };
 
   const verifyManualStablecoinTx = async () => {
@@ -190,7 +251,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
     setListing((current) =>
       current ? { ...current, availableTokens: Math.max(0, current.availableTokens - tokenQty) } : current
     );
-    setStatus('done');
+    applyPostPurchaseStatus(data.paymentIntent);
   };
 
   if (!listing) {
@@ -351,15 +412,34 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                 onError={(message) => setPurchaseError(message)}
               />
             ) : null}
-            {status === 'done' ? (
-              <div className="space-y-3 rounded-lg border border-terminal-success/30 bg-terminal-success/10 px-4 py-3 text-sm text-terminal-success">
-                <p className="font-semibold">{t.checkout.purchaseComplete}</p>
-                <Link
-                  href="/dashboard/portfolio"
-                  className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
-                >
-                  {t.checkout.viewPortfolio}
-                </Link>
+            {status === 'done' || status === 'share_pending' || status === 'share_failed' ? (
+              <div
+                className={`space-y-3 rounded-lg border px-4 py-3 text-sm ${
+                  status === 'share_failed'
+                    ? 'border-terminal-warning/30 bg-terminal-warning/10 text-terminal-warning'
+                    : status === 'share_pending'
+                      ? 'border-terminal-primary/30 bg-terminal-primary/10 text-terminal-text'
+                      : 'border-terminal-success/30 bg-terminal-success/10 text-terminal-success'
+                }`}
+              >
+                <p className="font-semibold">
+                  {status === 'share_failed'
+                    ? t.checkout.purchaseSharesFailed
+                    : status === 'share_pending'
+                      ? t.checkout.purchaseSharesPending
+                      : t.checkout.purchaseComplete}
+                </p>
+                {status === 'share_failed' ? (
+                  <p className="text-xs">{t.checkout.purchaseSharesFailedHint}</p>
+                ) : null}
+                {status !== 'share_failed' ? (
+                  <Link
+                    href="/dashboard/portfolio"
+                    className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+                  >
+                    {t.checkout.viewPortfolio}
+                  </Link>
+                ) : null}
               </div>
             ) : null}
             {paymentIntent ? (
@@ -384,7 +464,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                   <div className="space-y-2 rounded-lg border border-terminal-warning/30 bg-terminal-warning/10 p-3">
                     <p>{t.checkout.sendToCompartment}</p>
                     {hasVaultSharesDelivery ? (
-                      <p className="text-terminal-text">{w.investorWalletDepositNote}</p>
+                      <p className="text-terminal-text">{t.checkout.investorTreasuryUsdcNote}</p>
                     ) : null}
                     <p className="break-all font-mono text-terminal-text">{paymentIntent.payToAddress}</p>
                     <input
@@ -421,7 +501,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
         </div>
       </article>
 
-      {status !== 'done' ? (
+      {status !== 'done' && status !== 'share_pending' && status !== 'share_failed' ? (
         <StickyActionBar
           summary={
             <div className="flex items-center justify-between text-sm">

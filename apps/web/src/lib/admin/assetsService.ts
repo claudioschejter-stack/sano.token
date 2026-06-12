@@ -315,8 +315,7 @@ function deriveReadyToBorrow(input: {
 }): boolean {
   const morpho = input.collateralTargets.find((target) => target.protocol === 'MORPHO');
   return Boolean(
-    input.readiness.status === 'READY' &&
-      isVaultTokenStandard(input.tokenStandard) &&
+    isVaultTokenStandard(input.tokenStandard) &&
       input.tokenDeployStatus === 'DEPLOYED' &&
       input.contractAddress &&
       input.vaultAddress &&

@@ -920,6 +920,13 @@ export const es = {
     subscriptionNotice:
       'Esta suscripción adquiere cuotapartes del Compartimento indicado, bajo colocación privada y Contrato Matriz del Fideicomiso Sanova Global RWA.',
     sendToCompartment: 'Enviá el pago a la wallet del Compartimento y pegá el tx hash para verificar:',
+    investorTreasuryUsdcNote:
+      'Enviá USDC a la treasury del Compartimento (no deposites directo al vault). Las cuotapartes ERC-4626 se acreditan en tu wallet vinculada tras confirmar el pago.',
+    purchaseSharesPending:
+      'Pago confirmado. Estamos acreditando tus cuotapartes on-chain — puede tardar unos segundos.',
+    purchaseSharesFailed: 'Pago recibido, pero falló la entrega de cuotapartes.',
+    purchaseSharesFailedHint:
+      'Contactá soporte con el tx hash del pago. Tu inversión quedó registrada y el equipo puede completar la entrega manualmente.',
     walletSectionTitle: 'Billetera para pagar en Base',
     walletSectionDesc:
       'Conectá tu Coinbase Wallet en Base para firmar el pago. Las cuotapartes se acreditan en la treasury de la plataforma.',

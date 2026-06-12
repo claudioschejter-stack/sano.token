@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import {
   getUserPurchaseContext,
   purchaseProjectTokens
@@ -21,7 +21,7 @@ export async function POST(
   }
 
   if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    return investorSessionForbiddenResponse(ctx);
   }
 
   const { projectId } = await context.params;

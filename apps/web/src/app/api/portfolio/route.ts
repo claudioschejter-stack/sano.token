@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireInvestorSession } from '../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../lib/onboarding/requireInvestorSession';
 import {
   getPortfolioForUser,
   getPortfolioSummaryForUser
@@ -15,7 +15,7 @@ export async function GET() {
   }
 
   if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    return investorSessionForbiddenResponse(ctx);
   }
 
   try {

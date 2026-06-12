@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { PlatformWithdrawalMethod } from '@sanova/database';
-import { requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
 import { createPlatformWithdrawal } from '../../../../lib/payments/platformWithdrawalService';
 
 export const dynamic = 'force-dynamic';
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
   if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    return investorSessionForbiddenResponse(ctx);
   }
 
   try {

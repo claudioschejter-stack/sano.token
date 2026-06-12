@@ -9,7 +9,7 @@ Vercel web **no** ejecuta el listener RPC ni SSE de dividendos. Eso vive en `app
 ```bash
 # Desde la raíz del monorepo
 docker compose up postgres redis api -d
-curl http://localhost:3001/health
+curl http://localhost:3001/api/v1/health
 ```
 
 Variables mínimas en `.env` o exportadas:
@@ -38,7 +38,7 @@ npm run vercel:sync-nest-api-url
 
 ## Verificación
 
-- `GET https://<nest-host>/health` → 200
+- `GET https://<nest-host>/api/v1/health` → 200
 - `GET https://<nest-host>/api/v1/finance/stream` → SSE (desde admin con sesión si aplica)
 - En web prod: DevTools → Network → `EventSource` a `/api/v1/finance/stream` sin error permanente
 - Tabla `BlockchainEvent` recibe filas tras transfers on-chain

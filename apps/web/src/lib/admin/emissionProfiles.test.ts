@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   AUTOMATIC_EMISSION_PROFILE_IDS,
+  autoCollateralProtocolsForAsset,
   collateralFlagsFromProtocols,
   DEFAULT_EMISSION_PROFILE_ID,
   getEmissionProfile,
@@ -104,6 +105,19 @@ describe('emissionProfiles', () => {
     expect(flags.collateralMorpho).toBe(true);
     expect(flags.collateralCentrifuge).toBe(true);
     expect(flags.collateralMaple).toBe(false);
+  });
+
+  it('legacy inferred profiles only auto-run Morpho in pipeline', () => {
+    const asset = minimalAsset({
+      tokenStandard: 'ERC4626',
+      chainId: 8453,
+      collateralTargets: [
+        { protocol: 'MORPHO', status: 'REGISTERED', oracleAddress: '0x1' },
+        { protocol: 'CENTRIFUGE', status: 'REGISTERED' }
+      ] as AdminAssetRecord['collateralTargets']
+    });
+    expect(inferEmissionProfileFromAsset(asset)).toBe('BASE_FULL_4626');
+    expect(autoCollateralProtocolsForAsset(asset)).toEqual(['MORPHO']);
   });
 
   it('resolves profile metadata for each automatic id', () => {

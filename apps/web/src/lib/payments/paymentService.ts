@@ -23,6 +23,15 @@ import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
 import { assertPaymentProofPresent, assertTokenizedPurchaseReady } from './purchaseGuard';
+import {
+  intentHasSupplyReserved,
+  releaseProjectTokens,
+  releaseSupplyForIntent,
+  reserveProjectTokens,
+  supplyReservedMetadata
+} from './paymentSupplyReservation';
+import { deliverVaultSharesAfterPayment } from './vaultShareDeliveryStatus';
+import { buildPurchaseIntentMetadata } from './purchaseIntentMetadata';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = [
@@ -43,6 +52,7 @@ export type PublicPaymentIntent = {
   payToAddress: string | null;
   txHash: string | null;
   provider: string | null;
+  providerPaymentId: string | null;
   providerCheckoutUrl: string | null;
   expiresAt: string;
   confirmedAt: string | null;
@@ -59,7 +69,7 @@ function normalizeAddress(address?: string | null, network?: StablecoinNetwork):
   return ethers.getAddress(address.trim()).toLowerCase();
 }
 
-function serializePaymentIntent(intent: {
+export function serializePaymentIntent(intent: {
   id: string;
   method: PaymentMethod;
   status: PaymentIntentStatus;
@@ -72,6 +82,7 @@ function serializePaymentIntent(intent: {
   payToAddress: string | null;
   txHash: string | null;
   provider: string | null;
+  providerPaymentId: string | null;
   providerCheckoutUrl: string | null;
   expiresAt: Date;
   confirmedAt: Date | null;
@@ -153,6 +164,15 @@ async function attachProviderCheckout(input: {
 
   return null;
 }
+
+const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
+  'STRIPE',
+  'MERCADO_PAGO',
+  'COINBASE',
+  'TRANSAK',
+  'BRIDGE',
+  'RAMP'
+]);
 
 export async function createPaymentIntent(input: {
   userId: string;
@@ -236,12 +256,66 @@ export async function createPaymentIntent(input: {
       where: { idempotencyKey }
     });
 
-    if (existing && ['PENDING', 'REQUIRES_PAYMENT'].includes(existing.status) && existing.expiresAt > new Date()) {
+    if (existing && ['PENDING', 'REQUIRES_PAYMENT', 'MANUAL_REVIEW'].includes(existing.status) && existing.expiresAt > new Date()) {
       return existing;
     }
 
     if (existing && existing.status === 'CONFIRMED') {
       return existing;
+    }
+
+    const retryExisting =
+      existing &&
+      (existing.status === 'EXPIRED' ||
+        existing.status === 'FAILED' ||
+        (['PENDING', 'REQUIRES_PAYMENT', 'MANUAL_REVIEW'].includes(existing.status) && existing.expiresAt <= new Date()));
+
+    if (retryExisting) {
+      if (existing.status !== 'EXPIRED' && existing.status !== 'FAILED') {
+        await releaseSupplyForIntent(tx, existing);
+      }
+
+      const amountUsd = project.pricePerToken.toNumber() * input.tokenCount;
+      const reserved = await reserveProjectTokens(tx, input.projectId, input.tokenCount);
+      if (!reserved) {
+        throw new Error('INSUFFICIENT_SUPPLY');
+      }
+
+      return tx.paymentIntent.update({
+        where: { id: existing.id },
+        data: {
+          status: risk.requiresManualReview ? 'MANUAL_REVIEW' : 'REQUIRES_PAYMENT',
+          tokenCount: input.tokenCount,
+          amountUsd,
+          expiresAt,
+          payToAddress,
+          payerWalletAddress: payerWallet,
+          provider: null,
+          providerPaymentId: null,
+          providerCheckoutUrl: null,
+          txHash: null,
+          confirmedAt: null,
+          investmentId: null,
+          metadata: {
+            ...((existing.metadata as Record<string, unknown>) ?? {}),
+            ...buildPurchaseIntentMetadata({
+              method: input.method,
+              tokenCount: input.tokenCount,
+              project,
+              network,
+              payerWallet,
+              payToAddress,
+              risk: risk as Record<string, unknown>
+            }),
+            paymentRetryAt: new Date().toISOString()
+          } as Prisma.InputJsonObject
+        }
+      });
+    }
+
+    const reserved = await reserveProjectTokens(tx, input.projectId, input.tokenCount);
+    if (!reserved) {
+      throw new Error('INSUFFICIENT_SUPPLY');
     }
 
     return tx.paymentIntent.create({
@@ -260,26 +334,15 @@ export async function createPaymentIntent(input: {
         payToAddress,
         idempotencyKey,
         expiresAt,
-        metadata: {
-          reservedTokens: input.tokenCount,
-          pricePerTokenUsd: project.pricePerToken.toString(),
-          configured: paymentGatewayConfigured(input.method),
-          risk,
-          stablecoinNetwork: network.id,
-          stablecoinNetworkLabel: network.label,
-          stablecoinNetworkKind: network.kind,
-          cheapestRecommendedMethod: 'USDC_ONCHAIN_BASE',
-          usdcTokenAddress: input.method === 'USDC_ONCHAIN' ? network.tokenAddress : null,
-          usdcDecimals: input.method === 'USDC_ONCHAIN' ? network.decimals : null,
-          treasuryAddress: input.method === 'USDC_ONCHAIN' ? network.treasuryAddress : null,
-          vaultAddress: project.vaultAddress ?? null,
-          underlyingTokenAddress: project.contractAddress ?? null,
-          shareReceiverWallet: payerWallet,
-          expectedAssetAmountWei: String(BigInt(input.tokenCount) * 10n ** 18n),
-          purchaseMode:
-            input.method === 'USDC_ONCHAIN' && project.vaultAddress ? 'ERC4626_DEPOSIT' : 'TREASURY_TRANSFER',
-          autoTransferSupported: network.kind === 'EVM'
-        } as Prisma.InputJsonObject
+        metadata: buildPurchaseIntentMetadata({
+          method: input.method,
+          tokenCount: input.tokenCount,
+          project,
+          network,
+          payerWallet,
+          payToAddress,
+          risk: risk as Record<string, unknown>
+        })
       }
     });
   });
@@ -330,6 +393,24 @@ export async function createPaymentIntent(input: {
         })
       : intent;
 
+  if (
+    GATEWAY_CHECKOUT_METHODS.has(input.method) &&
+    !updated.providerCheckoutUrl &&
+    !updated.providerPaymentId
+  ) {
+    const failed = await markPaymentIntentFailed({
+      paymentIntentId: updated.id,
+      provider: providerCheckout?.provider ?? input.method.toLowerCase(),
+      payload: {
+        reason: 'GATEWAY_UNAVAILABLE',
+        gateway: (providerCheckout?.metadata ?? null) as Prisma.InputJsonValue
+      }
+    });
+    if (failed) {
+      return failed;
+    }
+  }
+
   await recordPaymentEvent({
     paymentIntentId: updated.id,
     type: 'PAYMENT_INTENT_CREATED',
@@ -361,9 +442,12 @@ export async function expirePaymentIntent(paymentIntentId: string) {
     return intent ? serializePaymentIntent(intent) : null;
   }
 
-  const updated = await prisma.paymentIntent.update({
-    where: { id: paymentIntentId },
-    data: { status: 'EXPIRED' }
+  const updated = await prisma.$transaction(async (tx) => {
+    await releaseSupplyForIntent(tx, intent);
+    return tx.paymentIntent.update({
+      where: { id: paymentIntentId },
+      data: { status: 'EXPIRED' }
+    });
   });
 
   await recordPaymentEvent({
@@ -389,17 +473,20 @@ export async function markPaymentIntentFailed(input: {
     return intent ? serializePaymentIntent(intent) : null;
   }
 
-  const updated = await prisma.paymentIntent.update({
-    where: { id: input.paymentIntentId },
-    data: {
-      status: 'FAILED',
-      provider: input.provider ?? intent.provider,
-      providerPaymentId: input.providerPaymentId ?? intent.providerPaymentId,
-      metadata: {
-        ...((intent.metadata as Record<string, unknown>) ?? {}),
-        failure: input.payload ?? {}
+  const updated = await prisma.$transaction(async (tx) => {
+    await releaseSupplyForIntent(tx, intent);
+    return tx.paymentIntent.update({
+      where: { id: input.paymentIntentId },
+      data: {
+        status: 'FAILED',
+        provider: input.provider ?? intent.provider,
+        providerPaymentId: input.providerPaymentId ?? intent.providerPaymentId,
+        metadata: {
+          ...((intent.metadata as Record<string, unknown>) ?? {}),
+          failure: input.payload ?? {}
+        }
       }
-    }
+    });
   });
 
   await recordPaymentEvent({
@@ -440,11 +527,21 @@ export async function confirmPaymentIntentInTx(
     return intent;
   }
 
-  if (!['PENDING', 'REQUIRES_PAYMENT'].includes(intent.status)) {
+  const hasPaymentProof = Boolean(
+    input.txHash?.trim() || input.providerPaymentId?.trim() || input.investmentTxHash?.trim()
+  );
+
+  if (!['PENDING', 'REQUIRES_PAYMENT', 'EXPIRED'].includes(intent.status)) {
     throw new Error('PAYMENT_INTENT_NOT_PAYABLE');
   }
 
-  if (intent.expiresAt <= new Date()) {
+  if (intent.status === 'EXPIRED' && !hasPaymentProof) {
+    throw new Error('PAYMENT_INTENT_NOT_PAYABLE');
+  }
+
+  const expiredWithoutGrace = intent.expiresAt <= new Date() && !hasPaymentProof;
+  if (expiredWithoutGrace) {
+    await releaseSupplyForIntent(tx, intent);
     return tx.paymentIntent.update({
       where: { id: intent.id },
       data: { status: 'EXPIRED' }
@@ -459,18 +556,23 @@ export async function confirmPaymentIntentInTx(
     throw new Error('PROJECT_NOT_AVAILABLE');
   }
 
-  const supplyUpdate = await tx.project.updateMany({
-    where: {
-      id: intent.projectId,
-      availableTokens: { gte: intent.tokenCount }
-    },
-    data: {
-      availableTokens: { decrement: intent.tokenCount }
-    }
-  });
+  const metadata = (intent.metadata as Record<string, unknown>) ?? {};
+  const alreadyReserved = intentHasSupplyReserved(metadata);
 
-  if (supplyUpdate.count === 0) {
-    throw new Error('INSUFFICIENT_SUPPLY');
+  if (!alreadyReserved) {
+    const supplyUpdate = await tx.project.updateMany({
+      where: {
+        id: intent.projectId,
+        availableTokens: { gte: intent.tokenCount }
+      },
+      data: {
+        availableTokens: { decrement: intent.tokenCount }
+      }
+    });
+
+    if (supplyUpdate.count === 0) {
+      throw new Error('INSUFFICIENT_SUPPLY');
+    }
   }
 
   if (!intent.investorId) {
@@ -567,7 +669,9 @@ export async function confirmPaymentIntentInTx(
       providerPaymentId: input.providerPaymentId ?? intent.providerPaymentId,
       confirmedAt: new Date(),
       metadata: {
-        ...((intent.metadata as Record<string, unknown>) ?? {}),
+        ...metadata,
+        supplyReserved: false,
+        supplyCommitted: true,
         confirmation: input.payload ?? {},
         onChainTxHash: input.txHash ?? null,
         investmentTxHash
@@ -579,9 +683,16 @@ export async function confirmPaymentIntentInTx(
 export async function confirmPaymentIntent(input: ConfirmPaymentIntentInput) {
   const result = await prisma.$transaction(async (tx) => confirmPaymentIntentInTx(tx, input));
 
+  const eventType =
+    result.status === 'CONFIRMED'
+      ? 'PAYMENT_CONFIRMED'
+      : result.status === 'EXPIRED'
+        ? 'PAYMENT_INTENT_EXPIRED'
+        : 'PAYMENT_CONFIRMATION_SKIPPED';
+
   await recordPaymentEvent({
     paymentIntentId: result.id,
-    type: 'PAYMENT_CONFIRMED',
+    type: eventType,
     provider: input.provider ?? result.provider,
     txHash: input.txHash ?? result.txHash,
     payload: input.payload ?? {}
@@ -590,8 +701,7 @@ export async function confirmPaymentIntent(input: ConfirmPaymentIntentInput) {
   const metadata = (result.metadata as Record<string, unknown>) ?? {};
   if (metadata.purchaseMode === 'ERC4626_DEPOSIT' && result.status === 'CONFIRMED') {
     try {
-      const { deliverVaultSharesForPaymentIntent } = await import('../blockchain/investorVaultShareDelivery');
-      await deliverVaultSharesForPaymentIntent(result.id);
+      await deliverVaultSharesAfterPayment(result.id);
     } catch (error) {
       console.error('[confirmPaymentIntent] vault share delivery failed', error);
     }

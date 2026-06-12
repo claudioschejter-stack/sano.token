@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
-import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { buildDepositPaymentOptions } from '../../../../../lib/payments/depositPaymentOptions';
 
 export const dynamic = 'force-dynamic';

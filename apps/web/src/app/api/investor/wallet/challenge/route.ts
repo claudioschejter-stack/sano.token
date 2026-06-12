@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuthenticatedSession } from '../../../../../lib/onboarding/requireAuthenticatedSession';
 import { createWalletLinkChallenge } from '../../../../../lib/investor/walletLinkProof';
+import { WALLET_LINK_CHAIN_ID } from '../../../../../lib/investor/walletLinkChain';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
     }
 
-    const challenge = createWalletLinkChallenge(ctx.userId, body.walletAddress.trim());
+    const challenge = createWalletLinkChallenge(ctx.userId, body.walletAddress.trim(), WALLET_LINK_CHAIN_ID);
     return NextResponse.json(challenge);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN';

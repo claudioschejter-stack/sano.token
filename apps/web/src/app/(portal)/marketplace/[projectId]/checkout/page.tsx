@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { auth } from '../../../../../auth';
 import { CheckoutView } from '../../../../../components/marketplace/CheckoutView';
 import { canAccessMarketplaceCheckout } from '../../../../../lib/onboarding/accountStatus';
@@ -36,10 +37,12 @@ export default async function MarketplaceCheckoutPage({ params }: CheckoutPagePr
   }
 
   return (
-    <CheckoutView
-      projectId={params.projectId}
-      investorName={user.kycFullName ?? user.name ?? user.email}
-      kycApproved={user.kycStatus === 'APPROVED'}
-    />
+    <Suspense fallback={null}>
+      <CheckoutView
+        projectId={params.projectId}
+        investorName={user.kycFullName ?? user.name ?? user.email}
+        kycApproved={user.kycStatus === 'APPROVED'}
+      />
+    </Suspense>
   );
 }

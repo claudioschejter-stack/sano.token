@@ -908,6 +908,13 @@ export const en = {
     subscriptionNotice:
       "This subscription acquires shares of the indicated Compartment under private placement and the Sanova Global RWA Master Trust.",
     sendToCompartment: "Send payment to the Compartment wallet and paste the tx hash to verify:",
+    investorTreasuryUsdcNote:
+      "Send USDC to the Compartment treasury (do not deposit directly into the vault). ERC-4626 shares are credited to your linked wallet after payment confirmation.",
+    purchaseSharesPending:
+      "Payment confirmed. We are crediting your on-chain shares — this may take a few seconds.",
+    purchaseSharesFailed: "Payment received, but vault share delivery failed.",
+    purchaseSharesFailedHint:
+      "Contact support with your payment tx hash. Your investment is recorded and the team can complete delivery manually.",
     walletSectionTitle: "Wallet to pay on Base",
     walletSectionDesc:
       "Connect your Coinbase Wallet on Base to sign the payment. Shares are credited to the platform treasury.",

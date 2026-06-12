@@ -58,8 +58,8 @@ const BASE_MAINNET: LendingChainConfig = {
 
 const BASE_SEPOLIA: LendingChainConfig = {
   chainId: 84532,
-  aavePool: '0x07eA79F6680653E51e0DDC7141a7f7d658a5f8c4',
-  usdc: '0x036CbD53842c797964cc9E7920680AA85945E435',
+  aavePool: getAddress('0x07ea79f6680653e51e0ddc7141a7f7d658a5f8c4'),
+  usdc: getAddress('0x036CbD53842c5426634e7929541eC2318f3dCF7e'),
   weth: '0x4200000000000000000000000000000000000006',
   morpho: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
   morphoIrm: getAddress('0x870ac11d48b15db9f1382786706e8e7a239d8928')

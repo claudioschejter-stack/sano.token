@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { RentPayoutPreference } from '@sanova/database';
-import { requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
 import {
   getRentPayoutPreferenceForUser,
   updateRentPayoutPreferenceForUser
@@ -12,6 +12,9 @@ export async function GET() {
   const ctx = await requireInvestorSession();
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+  }
+  if ('forbidden' in ctx) {
+    return investorSessionForbiddenResponse(ctx);
   }
 
   const preference = await getRentPayoutPreferenceForUser(ctx.userId);
@@ -26,6 +29,9 @@ export async function PATCH(request: Request) {
   const ctx = await requireInvestorSession();
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+  }
+  if ('forbidden' in ctx) {
+    return investorSessionForbiddenResponse(ctx);
   }
 
   const body = (await request.json().catch(() => ({}))) as {

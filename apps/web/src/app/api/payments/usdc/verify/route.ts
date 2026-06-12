@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
-import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { verifyUsdcPayment } from '../../../../../lib/payments/paymentService';
 
 export const dynamic = 'force-dynamic';

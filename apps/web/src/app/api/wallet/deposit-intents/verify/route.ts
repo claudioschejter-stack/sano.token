@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
-import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { verifyPlatformStablecoinDeposit } from '../../../../../lib/payments/platformWalletService';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
   if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    return investorSessionForbiddenResponse(ctx);
   }
 
   try {

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
-import { requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import {
+  investorSessionForbiddenResponse,
+  requireInvestorSession
+} from '../../../../../lib/onboarding/requireInvestorSession';
 import { parsePaymentMethod } from '../../../../../lib/payments/checkoutMethods';
 import { createCartPurchaseCheckout, type CartLineInput } from '../../../../../lib/payments/cartCheckoutService';
 import { getPaymentCheckoutRowById } from '../../../../../lib/payments/depositPaymentOptions';
@@ -42,7 +45,10 @@ const CHECKOUT_ERRORS = [
   'WALLET_REQUIRED_FOR_TOKENIZED_PURCHASE',
   'PAYMENT_TX_REQUIRED',
   'PAYMENT_CONFIRMATION_REQUIRED',
-  'CART_BATCH_NOT_FOUND'
+  'CART_BATCH_NOT_FOUND',
+  'CART_MIXED_PAYMENT_MODE',
+  'PAYMENT_GATEWAY_NOT_CONFIGURED',
+  'CART_MANUAL_REVIEW_REQUIRED'
 ] as const;
 
 export async function POST(request: Request) {
@@ -51,7 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
   if ('forbidden' in ctx) {
-    return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    return investorSessionForbiddenResponse(ctx);
   }
 
   try {

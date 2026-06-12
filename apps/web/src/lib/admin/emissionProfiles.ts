@@ -124,8 +124,20 @@ export function inferEmissionProfileFromAsset(asset: AdminAssetRecord): Emission
 
 export function autoCollateralProtocolsForAsset(asset: AdminAssetRecord): CollateralProtocol[] {
   const profileId = inferEmissionProfileFromAsset(asset);
+
+  if (
+    profileId !== 'CUSTOM' &&
+    LEGACY_EMISSION_PROFILE_IDS.includes(profileId as (typeof LEGACY_EMISSION_PROFILE_IDS)[number])
+  ) {
+    return ['MORPHO'];
+  }
+
   const profile = getEmissionProfile(profileId);
-  if (profile?.autoCollateral) {
+  if (
+    profile &&
+    profile.id !== 'CUSTOM' &&
+    AUTOMATIC_EMISSION_PROFILE_IDS.includes(profile.id)
+  ) {
     return profile.collateralProtocols;
   }
 
