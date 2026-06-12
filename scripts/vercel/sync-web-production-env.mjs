@@ -7,6 +7,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
+const npxCmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
 
 const RAILWAY_API = 'https://sanovaapi-production.up.railway.app';
 const PRODUCTION_SITE = 'https://www.sanovacapital.com';
@@ -23,7 +24,7 @@ const entries = {
 function addEnv(name, value, environments = ['production', 'development']) {
   for (const target of environments) {
     const result = spawnSync(
-      'npx',
+      npxCmd,
       ['vercel', 'env', 'add', name, target, '--value', value, '--force', '--yes'],
       { cwd: root, encoding: 'utf8' }
     );
