@@ -2,9 +2,12 @@ import type { Messages } from './en';
 
 export const es = {
   meta: {
-    title: 'Sanova Global — Real Estate Tokenizado',
+    title: 'Sanova Global — Inversión Vaca Muerta | Tokens RWA e Inmuebles Tokenizados',
     description:
-      'Colocación privada de activos reales tokenizados. Acceso restringido, KYC y cumplimiento fiduciario. No constituye oferta pública CNV.',
+      'Invierte en Vaca Muerta: inmuebles y activos reales tokenizados (RWA). Colocación privada con rentas en USDC, KYC y cumplimiento fiduciario. Real estate, tokens y tokenización en Neuquén, Argentina.',
+    keywords:
+      'vaca muerta, inversión, inmuebles, real estate, token, tokens RWA, RWA, tokenización, activos reales, Neuquén, petróleo shale, rentas USDC, inversión Argentina',
+    ogImageAlt: 'Sanova Global — inversión en activos reales tokenizados en Vaca Muerta',
     pwaTitle: 'Sanova RWA'
   },
   brand: {

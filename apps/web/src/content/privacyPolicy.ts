@@ -185,6 +185,7 @@ Personal data is processed in compliance with **Law No. 25,326 on Personal Data 
   contactFormPath: LEGAL_CONTACT_PATH
 };
 
+/** Spanish is the authoritative legal text; English for all other locales until localized counsel review. */
 export function getPrivacyPolicy(locale: string): PrivacyDocument {
-  return locale === 'en' ? privacyEn : privacyEs;
+  return locale === 'es' ? privacyEs : privacyEn;
 }

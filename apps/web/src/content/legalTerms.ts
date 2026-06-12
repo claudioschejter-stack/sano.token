@@ -330,6 +330,7 @@ By registering, connecting a digital wallet, completing KYC/AML, subscribing to 
   contactFormPath: LEGAL_CONTACT_PATH
 };
 
+/** Spanish is the authoritative legal text; English for international readers. */
 export function getLegalTerms(locale: string): LegalTermsDocument {
-  return locale === 'en' ? legalTermsEn : legalTermsEs;
+  return locale === 'es' ? legalTermsEs : legalTermsEn;
 }

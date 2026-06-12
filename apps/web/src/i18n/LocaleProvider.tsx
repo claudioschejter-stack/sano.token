@@ -67,6 +67,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
+    const cookieLocale = document.cookie.match(/(?:^|; )sanova\.locale=([^;]*)/)?.[1];
+    const decodedCookie = cookieLocale ? decodeURIComponent(cookieLocale) : null;
+    if (decodedCookie && !window.localStorage.getItem(STORAGE_KEY)) {
+      window.localStorage.setItem(STORAGE_KEY, resolveLocale(decodedCookie));
+    }
+
     const resolved = readInitialLocale();
     setLocaleState(resolved);
     if (isMobileDevice() || !window.localStorage.getItem(STORAGE_KEY)) {

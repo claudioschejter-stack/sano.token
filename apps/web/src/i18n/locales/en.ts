@@ -1,8 +1,11 @@
 export const en = {
   meta: {
-    title: "Sanova Global — Tokenized Real Estate",
+    title: "Sanova Global — Vaca Muerta Investment | RWA Tokens & Tokenized Real Estate",
     description:
-      "Private placement of tokenized real-world assets. Restricted access, KYC and fiduciary compliance. Not a CNV public offering.",
+      "Invest in Vaca Muerta tokenized real estate and RWA assets. Private placement with USDC income, KYC and fiduciary compliance. Real estate, tokens, shale infrastructure in Neuquén, Argentina.",
+    keywords:
+      "Vaca Muerta, investment, real estate, RWA tokens, tokenized assets, token, RWA, Argentina shale, Neuquén, USDC dividends, private placement",
+    ogImageAlt: "Sanova Global — Vaca Muerta tokenized real estate investment",
     pwaTitle: "Sanova RWA"
   },
   brand: {

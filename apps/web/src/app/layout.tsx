@@ -3,31 +3,14 @@ import './globals.css';
 import { PwaRegister } from '../components/PwaRegister';
 import { WhatsAppFloat } from '../components/WhatsAppFloat';
 import { AppProviders } from '../components/providers/AppProviders';
-import { es } from '../i18n/locales/es';
+import { SiteJsonLd } from '../components/seo/SiteJsonLd';
+import { resolveServerLocale } from '../i18n/detectLocaleServer';
+import { buildSiteMetadata, htmlDirForLocale, htmlLangForLocale } from '../lib/seo/buildMetadata';
 
-export const metadata: Metadata = {
-  title: es.meta.title,
-  description: es.meta.description,
-  manifest: '/manifest.json',
-  icons: {
-    icon: [
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-      { url: '/icons/favicon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
-      { url: '/icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png' }
-    ],
-    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }]
-  },
-  appleWebApp: {
-    capable: true,
-    title: es.meta.pwaTitle,
-    statusBarStyle: 'default'
-  },
-  formatDetection: {
-    telephone: false
-  }
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveServerLocale();
+  return buildSiteMetadata(locale);
+}
 
 export const viewport = {
   width: 'device-width',
@@ -36,9 +19,20 @@ export const viewport = {
   themeColor: '#0B2240'
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await resolveServerLocale();
   return (
-    <html lang="es" dir="ltr" suppressHydrationWarning>
+    <html
+      lang={htmlLangForLocale(locale)}
+      dir={htmlDirForLocale(locale)}
+      suppressHydrationWarning
+    >
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <SiteJsonLd locale={locale} />
+      </head>
       <body className="min-h-dvh antialiased touch-manipulation">
         <AppProviders>
           <PwaRegister />

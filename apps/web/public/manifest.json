@@ -1,13 +1,14 @@
 {
-  "name": "Sanova Global RWA",
+  "name": "Sanova Global — RWA & Vaca Muerta Investment",
   "short_name": "Sanova",
-  "description": "Invertí en activos reales tokenizados desde tu celular",
+  "description": "Tokenized real estate and RWA investment in Vaca Muerta. USDC income, KYC-compliant private placement.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#06101F",
   "theme_color": "#0B2240",
+  "lang": "es",
   "categories": ["finance", "business"],
   "icons": [
     {

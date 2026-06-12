@@ -17,7 +17,11 @@ export function LocaleHtmlSync() {
     if (description) {
       description.setAttribute('content', t.meta.description);
     }
-  }, [locale, t.meta.description, t.meta.title]);
+    const keywords = document.querySelector('meta[name="keywords"]');
+    if (keywords && t.meta.keywords) {
+      keywords.setAttribute('content', t.meta.keywords);
+    }
+  }, [locale, t.meta.description, t.meta.keywords, t.meta.title]);
 
   return null;
 }
