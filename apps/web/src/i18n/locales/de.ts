@@ -4,7 +4,7 @@ export const de = {
   meta: {
     title: "Sanova Global – Vaca Muerta Investment | RWA-Tokens und tokenisierte Immobilien",
     description: "Investieren Sie in Vaca Muerta: Immobilien und tokenisierte Real Assets (RWA). Privatplatzierung mit Erträgen in USDC, KYC und Treuhand-Compliance. Immobilien, Token und Tokenisierung in Neuquén, Argentinien.",
-    keywords: "tote Kuh, Investition, Immobilien, Immobilien, Token, RWA-Token, RWA, Tokenisierung, Sachwerte, Neuquén, Schieferöl, USDC-Einkommen, argentinische Investition",
+    keywords: "Vaca Muerta-Tokenisierung, Neuquén-Immobilien, RWA Argentinien, Schieferinvestition Argentinien, Vaca Muerte-Investition, RWA-Tokens, tokenisierte Immobilien, USDC-Vermietungen, Privatplatzierung",
     ogImageAlt: "Sanova Global – Investition in tokenisierte Sachwerte in Vaca Muerta",
     pwaTitle: "Sanova RWA"
   },
@@ -1319,16 +1319,6 @@ export const de = {
       youtube: "YouTube"
     }
   },
-  blog: {
-    title: "Blog — Vaca Muerta Investition & RWA",
-    subtitle:
-      "Leitfäden zu Tokenisierung, Neuquén-Immobilien, RWA-Tokens und Private Placement in Argentinien.",
-    readMore: "Artikel lesen",
-    backToBlog: "← Zurück zum Blog",
-    ctaDisclaimer:
-      "KYC Private Placement. Keine öffentliche Angebot. Siehe Rechtliche Hinweise und Datenschutz.",
-    ctaButton: "Zugang zur Plattform"
-  },
   contact: {
     title: "Kontakt",
     subtitle: "Senden Sie uns Ihre Anfrage und unser Team wird Ihnen so schnell wie möglich antworten.",
@@ -1769,6 +1759,14 @@ export const de = {
       tolhuinDividend: "RWA-Betriebsdividende in bar beglichen",
       mendozaQuarterly: "Vierteljährliche Barleistungsverteilung"
     }
+  },
+  blog: {
+    title: "Blog – Vaca Muerta Investment und RWA",
+    subtitle: "Leitfäden zur Tokenisierung von Vaca Muerta, Immobilien in Neuquén, RWA Argentinien und Schieferinvestitionen in Argentinien.",
+    readMore: "Artikel lesen",
+    backToBlog: "← Zurück zum Blog",
+    ctaDisclaimer: "Privatplatzierung bei KYC. Es handelt sich nicht um ein öffentliches Angebot. Siehe Nutzungsbedingungen und Datenschutz.",
+    ctaButton: "Greifen Sie auf die Plattform zu"
   },
   error: {
     eyebrow: "etwas ist schief gelaufen",

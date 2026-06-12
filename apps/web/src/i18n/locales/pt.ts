@@ -4,7 +4,7 @@ export const pt = {
   meta: {
     title: "Sanova Global — Investimento em Vaca Muerta | Tokens RWA e imóveis tokenizados",
     description: "Invista em Vaca Muerta: imóveis e ativos reais tokenizados (RWA). Colocação privada com rendimento em USDC, KYC e conformidade fiduciária. Imobiliário, tokens e tokenização em Neuquén, Argentina.",
-    keywords: "vaca morta, investimento, imobiliário, imobiliário, token, tokens RWA, RWA, tokenização, ativos reais, Neuquén, óleo de xisto, renda USDC, investimento argentino",
+    keywords: "Tokenização de Vaca Muerta, imóveis em Neuquén, RWA Argentina, investimento em xisto Argentina, investimento em vaca muerte, tokens RWA, imóveis tokenizados, aluguéis em USDC, colocação privada",
     ogImageAlt: "Sanova Global — investimento em ativos reais tokenizados em Vaca Muerta",
     pwaTitle: "Sanova RWA"
   },
@@ -1314,20 +1314,10 @@ export const pt = {
       contact: "Contato",
       privacy: "Privacidade",
       terms: "Termos",
-      blog: "Blog",
+      blog: "blog",
       linkedin: "LinkedIn",
       youtube: "YouTube"
     }
-  },
-  blog: {
-    title: "Blog — Investimento Vaca Muerta e RWA",
-    subtitle:
-      "Guias sobre tokenização, imóveis Neuquén, tokens RWA e colocação privada na Argentina.",
-    readMore: "Ler artigo",
-    backToBlog: "← Voltar ao blog",
-    ctaDisclaimer:
-      "Colocação privada com KYC. Não é oferta pública. Consulte Termos e Privacidade.",
-    ctaButton: "Acessar a plataforma"
   },
   contact: {
     title: "Contato",
@@ -1769,6 +1759,14 @@ export const pt = {
       tolhuinDividend: "Dividendo operacional RWA liquidado em dinheiro",
       mendozaQuarterly: "Distribuição trimestral do desempenho de caixa"
     }
+  },
+  blog: {
+    title: "Blog - Vaca Muerta Investimento e RWA",
+    subtitle: "Guias sobre tokenização de Vaca Muerta, imóveis em Neuquén, RWA Argentina e investimento em xisto na Argentina.",
+    readMore: "Leia o artigo",
+    backToBlog: "← Voltar ao blog",
+    ctaDisclaimer: "Colocação privada com KYC. Não é uma oferta pública. Consulte Termos e Privacidade.",
+    ctaButton: "Acesse a plataforma"
   },
   error: {
     eyebrow: "algo deu errado",

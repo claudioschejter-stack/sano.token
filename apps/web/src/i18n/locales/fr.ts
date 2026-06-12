@@ -4,7 +4,7 @@ export const fr = {
   meta: {
     title: "Sanova Global — Investissement Vaca Muerta | Jetons RWA et biens immobiliers tokenisés",
     description: "Investissez dans Vaca Muerta : immobilier et actifs réels tokenisés (RWA). Placement privé avec revenus en USDC, KYC et conformité fiduciaire. Immobilier, jetons et tokenisation à Neuquén, Argentine.",
-    keywords: "vache morte, investissement, immobilier, immobilier, jeton, jetons RWA, RWA, tokenisation, actifs réels, Neuquén, pétrole de schiste, revenus USDC, investissement argentin",
+    keywords: "Tokenisation Vaca Muerta, immobilier Neuquén, RWA Argentine, investissement dans le schiste Argentine, investissement vaca muerte, jetons RWA, immobilier tokenisé, locations USDC, placement privé",
     ogImageAlt: "Sanova Global – investissement dans des actifs réels tokenisés à Vaca Muerta",
     pwaTitle: "Sanova RWA"
   },
@@ -1314,20 +1314,10 @@ export const fr = {
       contact: "Contact",
       privacy: "Confidentialité",
       terms: "Termes",
-      blog: "Blog",
+      blog: "bloguer",
       linkedin: "LinkedIn",
       youtube: "YouTube"
     }
-  },
-  blog: {
-    title: "Blog — Investissement Vaca Muerta et RWA",
-    subtitle:
-      "Guides sur la tokenisation, l'immobilier Neuquén, les tokens RWA et la placement privé en Argentine.",
-    readMore: "Lire l'article",
-    backToBlog: "← Retour au blog",
-    ctaDisclaimer:
-      "Placement privé avec KYC. Pas une offre publique. Consultez les Conditions et la Confidentialité.",
-    ctaButton: "Accéder à la plateforme"
   },
   contact: {
     title: "Contact",
@@ -1769,6 +1759,14 @@ export const fr = {
       tolhuinDividend: "Dividende d'exploitation RWA réglé en numéraire",
       mendozaQuarterly: "Distribution trimestrielle de performance en espèces"
     }
+  },
+  blog: {
+    title: "Blog — Investissement Vaca Muerta et RWA",
+    subtitle: "Guides sur la tokenisation Vaca Muerta, l'immobilier Neuquén, l'investissement RWA Argentine et le schiste argentin.",
+    readMore: "Lire l'article",
+    backToBlog: "← Retour au blog",
+    ctaDisclaimer: "Placement privé avec KYC. Il ne s'agit pas d'une offre publique. Voir Conditions et confidentialité.",
+    ctaButton: "Accéder à la plateforme"
   },
   error: {
     eyebrow: "quelque chose s'est mal passé",
