@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BlogArticlePage } from '../../../../components/blog/BlogArticlePage';
 import { BLOG_SLUGS, getBlogArticle } from '../../../../content/blog/articles';
+import { locales } from '../../../../i18n';
 import { resolveServerLocale } from '../../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../../lib/seo/buildMetadata';
 import { withLocalePrefix } from '../../../../lib/i18n/localeRouting';
@@ -34,10 +35,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     alternates: {
       canonical: `${siteUrl}${withLocalePrefix(locale, path)}`,
       languages: {
-        es: `${siteUrl}/blog/${article.slug}`,
-        en: `${siteUrl}/en/blog/${article.slug}`,
-        pt: `${siteUrl}/pt/blog/${article.slug}`,
-        'x-default': `${siteUrl}/blog/${article.slug}`
+        ...Object.fromEntries(
+          locales.map((code) => [code, `${siteUrl}${withLocalePrefix(code, path)}`])
+        ),
+        'x-default': `${siteUrl}${path}`
       }
     },
     openGraph: {

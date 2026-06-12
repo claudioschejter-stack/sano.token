@@ -58,6 +58,7 @@
     "i18n:translate": "tsx scripts/i18n/translate-from-es.mjs",
     "i18n:verify": "tsx scripts/i18n/verify-locales.mjs",
     "i18n:translate:fix": "tsx scripts/i18n/translate-from-es.mjs",
+    "blog:translate": "tsx scripts/i18n/translate-blog-from-es.mjs",
     "test:rwa-launch-flow": "tsx scripts/test-rwa-launch-flow.ts"
   },
   "devDependencies": {
