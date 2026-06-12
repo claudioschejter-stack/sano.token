@@ -40,6 +40,7 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
 COPY --from=builder /app/packages/database/prisma ./packages/database/prisma
 COPY --from=builder /app/packages/blockchain/dist ./packages/blockchain/dist
+COPY --from=builder /app/packages/contracts/package.json ./packages/contracts/package.json
 COPY --from=builder /app/packages/contracts/abi ./packages/contracts/abi
 RUN node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync('packages/contracts/package.json','utf8'));j.main='abi/index.js';j.exports={'.':'./abi/index.js','./abi/sanova-asset-token':'./abi/sanova-asset-token.abi.js','./abi/escrow-lending-pool':'./abi/escrow-lending-pool.abi.js'};fs.writeFileSync('packages/contracts/package.json',JSON.stringify(j,null,2));"
 

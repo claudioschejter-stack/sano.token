@@ -1,0 +1,12 @@
+# Keep package-lock.json — Railway needs it for monorepo installs.
+.git/
+.turbo/
+**/.turbo/
+**/.next/
+**/node_modules/
+
+packages/contracts/artifacts/
+packages/contracts/cache/
+packages/contracts/typechain-types/
+
+docs/legal/
