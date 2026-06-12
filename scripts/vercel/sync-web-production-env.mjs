@@ -18,7 +18,9 @@ const entries = {
   WEBAUTHN_RP_ID: 'sanovacapital.com',
   WEBAUTHN_ORIGIN: PRODUCTION_SITE,
   FRONTEND_ORIGINS:
-    'https://www.sanovacapital.com,https://sanovacapital.com,https://sano-token-web.vercel.app'
+    'https://www.sanovacapital.com,https://sanovacapital.com,https://sano-token-web.vercel.app',
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: 'sanovacapital.com',
+  NEXT_PUBLIC_TOKEN_TREASURY_ADDRESS: '0x5e7480c43f99cBCc90550a16356C90793c300d52'
 };
 
 function addEnv(name, value, environments = ['production', 'development']) {
