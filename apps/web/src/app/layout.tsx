@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { SiteAnalytics } from '../components/analytics/SiteAnalytics';
 import { PwaRegister } from '../components/PwaRegister';
 import { WhatsAppFloat } from '../components/WhatsAppFloat';
 import { AppProviders } from '../components/providers/AppProviders';
@@ -34,6 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <SiteJsonLd locale={locale} />
       </head>
       <body className="min-h-dvh antialiased touch-manipulation">
+        <SiteAnalytics />
         <AppProviders>
           <PwaRegister />
           {children}
