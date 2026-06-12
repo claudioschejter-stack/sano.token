@@ -45,7 +45,8 @@ function parseEnvFile(path) {
 const dbEnv = parseEnvFile(join(root, 'packages/database/.env'));
 
 const staticVars = {
-  FRONTEND_ORIGINS: 'https://sano-token-web.vercel.app',
+  FRONTEND_ORIGINS:
+    'https://www.sanovacapital.com,https://sanovacapital.com,https://sano-token-web.vercel.app',
   BLOCKCHAIN_LISTENER_ENABLED: 'true',
   BLOCKCHAIN_WRITES_ENABLED: 'false',
   BULL_ENABLED: 'false',

@@ -25,7 +25,7 @@ function addEnv(name, value, environments = ['production', 'development']) {
     const result = spawnSync(
       'npx',
       ['vercel', 'env', 'add', name, target, '--value', value, '--force', '--yes'],
-      { cwd: root, encoding: 'utf8', shell: true }
+      { cwd: root, encoding: 'utf8' }
     );
     if (result.status !== 0) {
       console.error(`failed ${name}@${target}:`, (result.stderr || result.stdout || '').slice(0, 300));
