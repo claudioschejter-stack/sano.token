@@ -4,7 +4,7 @@ export const en = {
     description:
       "Invest in Vaca Muerta tokenized real estate and RWA assets. Private placement with USDC income, KYC and fiduciary compliance. Real estate, tokens, shale infrastructure in Neuquén, Argentina.",
     keywords:
-      "Vaca Muerta, investment, real estate, RWA tokens, tokenized assets, token, RWA, Argentina shale, Neuquén, USDC dividends, private placement",
+      "Vaca Muerta tokenization, Neuquén real estate, RWA Argentina, Argentina shale investment, Vaca Muerta investment, RWA tokens, tokenized real estate, USDC dividends, private placement",
     ogImageAlt: "Sanova Global — Vaca Muerta tokenized real estate investment",
     pwaTitle: "Sanova RWA"
   },
@@ -1849,7 +1849,7 @@ export const en = {
   blog: {
     title: "Blog — Vaca Muerta Investment & RWA",
     subtitle:
-      "Guides on tokenization, Neuquén real estate, RWA tokens and private placement in Argentina.",
+      "Guides on Vaca Muerta tokenization, Neuquén real estate, RWA Argentina and Argentina shale investment.",
     readMore: "Read article",
     backToBlog: "← Back to blog",
     ctaDisclaimer:
