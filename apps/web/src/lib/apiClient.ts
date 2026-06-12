@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+import { resolveBrowserApiBase } from './resolvePublicApiUrl';
+
+const API_URL = resolveBrowserApiBase();
 const API_BASE_PATH = '/api/v1';
 const TOKEN_STORAGE_KEY = 'sanova.jwt';
 

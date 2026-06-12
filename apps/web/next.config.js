@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const path = require('path');
 
-const apiOrigin = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+const RAILWAY_PRODUCTION_API = 'https://sanovaapi-production.up.railway.app';
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+const apiOrigin =
+  configuredApiUrl ||
+  (process.env.VERCEL === '1' ? RAILWAY_PRODUCTION_API : 'http://localhost:4000');
 const monorepoRoot = path.join(__dirname, '../..');
 
 const nextConfig = {
