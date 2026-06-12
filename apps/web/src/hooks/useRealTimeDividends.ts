@@ -5,6 +5,8 @@ import { useDividendStore, type LiveDistributionEvent } from '../store/useDivide
 
 const FINANCE_STREAM_PATH = '/api/v1/finance/stream';
 const MAX_RECONNECT_DELAY_MS = 30_000;
+const POLL_INTERVAL_MS = 30_000;
+const SSE_FAILURES_BEFORE_POLL = 2;
 
 type FinanceStreamMessage = Readonly<{
   type: 'DIVIDEND_PROCESSED';
@@ -31,6 +33,7 @@ function parseStreamPayload(raw: string): LiveDistributionEvent | null {
 
 export function useRealTimeDividends(): void {
   const addLiveDistribution = useDividendStore((state) => state.addLiveDistribution);
+  const fetchDividends = useDividendStore((state) => state.fetchDividends);
   const reconnectAttemptRef = useRef(0);
   const disposedRef = useRef(false);
 
@@ -38,6 +41,24 @@ export function useRealTimeDividends(): void {
     disposedRef.current = false;
     let eventSource: EventSource | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollTimer: ReturnType<typeof setInterval> | null = null;
+
+    const stopPolling = () => {
+      if (pollTimer) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    };
+
+    const startPolling = () => {
+      if (pollTimer || disposedRef.current) {
+        return;
+      }
+
+      pollTimer = setInterval(() => {
+        void fetchDividends();
+      }, POLL_INTERVAL_MS);
+    };
 
     const connect = () => {
       if (disposedRef.current) return;
@@ -47,6 +68,7 @@ export function useRealTimeDividends(): void {
 
       eventSource.onopen = () => {
         reconnectAttemptRef.current = 0;
+        stopPolling();
       };
 
       eventSource.onmessage = (messageEvent) => {
@@ -64,8 +86,12 @@ export function useRealTimeDividends(): void {
 
         const attempt = reconnectAttemptRef.current + 1;
         reconnectAttemptRef.current = attempt;
-        const delay = Math.min(MAX_RECONNECT_DELAY_MS, 1_000 * 2 ** Math.min(attempt, 5));
 
+        if (attempt >= SSE_FAILURES_BEFORE_POLL) {
+          startPolling();
+        }
+
+        const delay = Math.min(MAX_RECONNECT_DELAY_MS, 1_000 * 2 ** Math.min(attempt, 5));
         reconnectTimer = setTimeout(connect, delay);
       };
     };
@@ -77,7 +103,8 @@ export function useRealTimeDividends(): void {
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
       }
+      stopPolling();
       eventSource?.close();
     };
-  }, [addLiveDistribution]);
+  }, [addLiveDistribution, fetchDividends]);
 }

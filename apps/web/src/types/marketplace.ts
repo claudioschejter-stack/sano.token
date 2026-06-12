@@ -56,6 +56,6 @@ export type MarketplaceFeed = {
   listings: MarketplaceListing[];
   borrowRate: BestBorrowRateResponse | null;
   cachedAt: string;
-  dataSource: 'live' | 'empty' | 'fallback';
+  dataSource: 'live' | 'empty' | 'fallback' | 'error';
   usedFallback?: boolean;
 };

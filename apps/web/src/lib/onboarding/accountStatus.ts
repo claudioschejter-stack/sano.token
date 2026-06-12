@@ -1,4 +1,5 @@
 import type { AccountStatus, KycStatus } from '@sanova/database';
+import { allowDemoKyc } from '../runtime/environment';
 
 export type OnboardingChecklist = {
   emailVerified: boolean;
@@ -14,6 +15,7 @@ export type OnboardingChecklist = {
   phone: string | null;
   email: string;
   diditEnabled: boolean;
+  allowDemoKyc: boolean;
   walletLinked: boolean;
   walletAddress: string | null;
   walletProvider: string | null;
@@ -98,6 +100,7 @@ export function buildOnboardingChecklist(
     phone: user.phone,
     email: user.email,
     diditEnabled: diditEnabled && kycEnabled,
+    allowDemoKyc: allowDemoKyc(),
     walletLinked,
     walletAddress,
     walletProvider: user.walletProvider?.trim() || null

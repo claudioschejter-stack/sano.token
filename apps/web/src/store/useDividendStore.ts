@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { allowDemoContent } from '../lib/runtime/environment';
 
 export type LiquidatedDistribution = {
   id: string;
@@ -194,17 +195,25 @@ export const useDividendStore = create<DividendState>((set) => ({
 
       const distributions = (cashFlowData.records ?? []).map(mapApiRecord);
       const marginDebtUsd = portfolioData?.summary?.marginDebt ?? 0;
-      const availableCashUsd = portfolioData?.summary?.availableCash ?? DEMO_AVAILABLE_CASH_USD;
+      const availableCashUsd =
+        portfolioData?.summary?.availableCash ?? (allowDemoContent() ? DEMO_AVAILABLE_CASH_USD : 0);
 
       set({
         ...deriveStateFromDistributions(distributions, marginDebtUsd, availableCashUsd),
         isLoading: false
       });
     } catch {
-      set({
-        ...deriveStateFromDistributions(DEMO_DISTRIBUTIONS, 0, DEMO_AVAILABLE_CASH_USD),
-        isLoading: false
-      });
+      if (allowDemoContent()) {
+        set({
+          ...deriveStateFromDistributions(DEMO_DISTRIBUTIONS, 0, DEMO_AVAILABLE_CASH_USD),
+          isLoading: false
+        });
+      } else {
+        set({
+          ...deriveStateFromDistributions([], 0, 0),
+          isLoading: false
+        });
+      }
     }
   },
   addLiveDistribution: (event) =>
@@ -226,7 +235,7 @@ export const useDividendStore = create<DividendState>((set) => ({
       const distributions = [liveRow, ...state.distributions];
 
       return {
-        ...deriveStateFromDistributions(distributions, 0, DEMO_AVAILABLE_CASH_USD),
+        ...deriveStateFromDistributions(distributions, 0, 0),
         lastLiveAt: event.receivedAt
       };
     })

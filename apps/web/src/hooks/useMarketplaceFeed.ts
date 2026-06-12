@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { allowDemoContent } from '../lib/runtime/environment';
 import { fetchMarketplaceFeedClient } from '../lib/marketplaceApi';
 import type { MarketplaceFeed } from '../types/marketplace';
 
@@ -28,6 +29,15 @@ export function useMarketplaceFeed(initialFeed: MarketplaceFeed) {
       } catch {
         if (!cancelled) {
           setFeed((current) => {
+            if (!allowDemoContent()) {
+              return {
+                ...current,
+                listings: current.dataSource === 'live' ? current.listings : [],
+                usedFallback: false,
+                dataSource: 'error'
+              };
+            }
+
             if (current.dataSource === 'live' && current.listings.length > 0) {
               return current;
             }

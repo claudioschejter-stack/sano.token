@@ -136,7 +136,7 @@ export const en = {
     soldSectionEmpty: "There are no sold properties at the moment.",
     loading: "Loading opportunities…",
     empty: "There are no active listings at the moment.",
-    error: "Could not load live data.Showing demo listings.",
+    error: "Could not load live listings. Please refresh the page.",
     lendingBanner: "Aggregated from global DeFi and institutional lenders",
     syncing: "Synchronizing live data…",
     addToCart: {
@@ -1588,6 +1588,8 @@ export const en = {
       identityWalletNote:
         "After KYC you will create or connect a Base wallet (USDC) automatically linked to your account.",
       demoKyc: "Simulate verification (demo only)",
+      kycProviderUnavailable:
+        "Identity verification is not available right now. Contact support or try again later.",
       walletTitle: "Activate your wallet",
       walletDesc: "Required to become an approved investor: receive USDC, buy RWA tokens and operate on Base.",
       walletBullet1: "Coinbase Wallet: connect or create your Smart Wallet on Base.",

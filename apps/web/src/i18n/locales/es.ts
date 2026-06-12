@@ -141,7 +141,7 @@ export const es = {
     soldSectionEmpty: 'No hay propiedades vendidas por el momento.',
     loading: 'Cargando oportunidades…',
     empty: 'No hay listados activos por el momento.',
-    error: 'No se pudieron cargar datos en vivo. Mostrando listados demo.',
+    error: 'No se pudieron cargar los activos en vivo. Intentá recargar la página.',
     lendingBanner: 'Agregado desde prestamistas DeFi e institucionales globales',
     syncing: 'Sincronizando datos en vivo…',
     addToCart: {
@@ -1619,6 +1619,8 @@ export const es = {
       identityWalletNote:
         'Después del KYC vas a crear o conectar una billetera en Base (USDC) vinculada automáticamente a tu cuenta.',
       demoKyc: 'Simular verificación (solo demo)',
+      kycProviderUnavailable:
+        'La verificación de identidad no está disponible en este momento. Contactá a soporte o intentá más tarde.',
       walletTitle: 'Activá tu billetera',
       walletDesc:
         'Es obligatorio para quedar como inversor aprobado: recibir USDC, comprar tokens RWA y operar en Base.',

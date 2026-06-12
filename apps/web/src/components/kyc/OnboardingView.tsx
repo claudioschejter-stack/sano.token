@@ -539,7 +539,7 @@ function OnboardingContent() {
                   {requireWallet ? o.steps.identityWalletNote : o.steps.identityOperationalNote}
                 </p>
               </>
-            ) : (
+            ) : checklist?.allowDemoKyc ? (
               <button
                 type="button"
                 disabled={busy || !checklist?.kycEnabled}
@@ -548,6 +548,10 @@ function OnboardingContent() {
               >
                 {o.steps.demoKyc}
               </button>
+            ) : (
+              <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                {o.steps.kycProviderUnavailable}
+              </p>
             )}
           </section>
         ) : null}

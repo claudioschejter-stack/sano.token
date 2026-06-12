@@ -1,4 +1,5 @@
 import { MARKETPLACE_FALLBACK_LISTINGS } from '../data/marketplaceFallback';
+import { allowDemoContent } from './runtime/environment';
 import type { MarketplaceFeed } from '../types/marketplace';
 
 const FEED_PATH = '/api/marketplace/feed';
@@ -15,7 +16,21 @@ function feedUrl() {
   return `${origin}${FEED_PATH}`;
 }
 
+export function buildEmptyMarketplaceFeed(): MarketplaceFeed {
+  return {
+    listings: [],
+    borrowRate: null,
+    cachedAt: new Date().toISOString(),
+    dataSource: 'empty',
+    usedFallback: false
+  };
+}
+
 export function buildFallbackFeed(): MarketplaceFeed {
+  if (!allowDemoContent()) {
+    return buildEmptyMarketplaceFeed();
+  }
+
   return {
     listings: MARKETPLACE_FALLBACK_LISTINGS.map((listing) => ({
       ...listing,
