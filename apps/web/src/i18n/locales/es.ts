@@ -1552,6 +1552,8 @@ export const es = {
           'Debés aceptar los Términos Legales y la Política de Privacidad para continuar.',
         INVALID_INVITE_CODE:
           'El código de invitación no es válido. Contactá a Sanova para acceder a la colocación privada.',
+        STAFF_INVITE_REQUIRED:
+          'Este correo debe registrarse mediante la invitación de equipo enviada por Sanova.',
         VERIFICATION_DELIVERY_FAILED:
           'No pudimos enviar los códigos de email y WhatsApp. La cuenta no fue dada de alta; intentá de nuevo en unos minutos.',
         SIGN_IN_FAILED: 'Cuenta creada, pero no pudimos iniciar sesión automáticamente.'

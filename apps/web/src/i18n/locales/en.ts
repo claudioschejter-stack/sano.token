@@ -1524,6 +1524,8 @@ export const en = {
         TERMS_NOT_ACCEPTED: "You must accept the Legal Terms and Privacy Policy to continue.",
         INVALID_INVITE_CODE:
           "The invitation code is not valid. Contact Sanova to access the private placement.",
+        STAFF_INVITE_REQUIRED:
+          "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "We were unable to send the email and SMS codes.The account was not registered;Try again in a few minutes.",
         SIGN_IN_FAILED: "Account created, but we couldn't log in automatically."
       }

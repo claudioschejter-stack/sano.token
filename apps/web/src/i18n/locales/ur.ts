@@ -1454,6 +1454,7 @@ export const ur = {
         INVALID_PHONE: "ملک کے کوڈ کے ساتھ ایک درست موبائل فون نمبر درج کریں۔",
         TERMS_NOT_ACCEPTED: "جاری رکھنے کے لیے آپ کو قانونی شرائط اور رازداری کی پالیسی کو قبول کرنا ہوگا۔",
         INVALID_INVITE_CODE: "دعوتی کوڈ غلط ہے۔ پرائیویٹ پلیسمنٹ تک رسائی کے لیے Sanova سے رابطہ کریں۔",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "ہم ای میل اور واٹس ایپ کوڈ نہیں بھیج سکے۔ اکاؤنٹ رجسٹرڈ نہیں تھا۔ چند منٹوں میں دوبارہ کوشش کریں۔",
         SIGN_IN_FAILED: "اکاؤنٹ بنایا گیا، لیکن ہم خود بخود لاگ ان نہیں ہو سکے۔"
       }

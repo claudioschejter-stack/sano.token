@@ -1454,6 +1454,7 @@ export const ar = {
         INVALID_PHONE: "أدخل رقم هاتف محمول صالحًا مع رمز البلد.",
         TERMS_NOT_ACCEPTED: "يجب عليك قبول الشروط القانونية وسياسة الخصوصية للمتابعة.",
         INVALID_INVITE_CODE: "رمز الدعوة غير صالح. اتصل بـ Sanova للوصول إلى الطرح الخاص.",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "لم نتمكن من إرسال رموز البريد الإلكتروني وWhatsApp. لم يتم تسجيل الحساب؛ حاول مرة أخرى خلال بضع دقائق.",
         SIGN_IN_FAILED: "تم إنشاء الحساب، لكن لم نتمكن من تسجيل الدخول تلقائيًا."
       }

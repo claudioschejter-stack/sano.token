@@ -103,7 +103,9 @@ export default auth((request) => {
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/mercado-secundario/checkout') ||
     (pathname.startsWith('/marketplace') &&
-      (pathname.includes('/checkout') || pathname === '/marketplace/carrito'));
+      (pathname.includes('/checkout') ||
+        pathname.includes('/agregar') ||
+        pathname === '/marketplace/carrito'));
 
   if (!isProtected) {
     return withLocaleAndCountryHints(NextResponse.next(), request);

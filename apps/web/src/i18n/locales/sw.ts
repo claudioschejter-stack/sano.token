@@ -1454,6 +1454,7 @@ export const sw = {
         INVALID_PHONE: "Weka nambari halali ya simu ya mkononi iliyo na msimbo wa nchi.",
         TERMS_NOT_ACCEPTED: "Ni lazima ukubali Sheria na Masharti na Sera ya Faragha ili kuendelea.",
         INVALID_INVITE_CODE: "Msimbo wa mwaliko ni batili. Wasiliana na Sanova ili kupata uwekaji wa kibinafsi.",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "Hatukuweza kutuma barua pepe na misimbo ya WhatsApp. Akaunti haikusajiliwa; Jaribu tena baada ya dakika chache.",
         SIGN_IN_FAILED: "Akaunti imeundwa, lakini hatukuweza kuingia kiotomatiki."
       }

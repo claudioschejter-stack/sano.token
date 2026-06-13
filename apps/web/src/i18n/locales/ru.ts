@@ -1454,6 +1454,7 @@ export const ru = {
         INVALID_PHONE: "Введите действительный номер мобильного телефона с кодом страны.",
         TERMS_NOT_ACCEPTED: "Чтобы продолжить, вам необходимо принять Юридические условия и Политику конфиденциальности.",
         INVALID_INVITE_CODE: "Код приглашения недействителен. Свяжитесь с Sanova, чтобы получить доступ к частному размещению.",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "Мы не смогли отправить электронное письмо и коды WhatsApp. Аккаунт не был зарегистрирован; Повторите попытку через несколько минут.",
         SIGN_IN_FAILED: "Аккаунт создан, но мы не смогли войти в систему автоматически."
       }

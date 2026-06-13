@@ -8,7 +8,10 @@ const MIN_PASSWORD_LENGTH = 8;
 const TOKEN_TTL = '1h';
 
 function resetSecret(): Uint8Array {
-  const secret = process.env.AUTH_INTERNAL_SECRET?.trim() || process.env.JWT_SECRET?.trim();
+  const secret =
+    process.env.AUTH_INTERNAL_SECRET?.trim() ||
+    process.env.JWT_SECRET?.trim() ||
+    process.env.AUTH_SECRET?.trim();
   if (!secret || secret.length < 32) {
     throw new Error('AUTH_SECRET_NOT_CONFIGURED');
   }

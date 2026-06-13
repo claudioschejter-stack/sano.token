@@ -1454,6 +1454,7 @@ export const mr = {
         INVALID_PHONE: "देश कोडसह वैध मोबाइल फोन नंबर प्रविष्ट करा.",
         TERMS_NOT_ACCEPTED: "सुरू ठेवण्यासाठी तुम्ही कायदेशीर अटी आणि गोपनीयता धोरण स्वीकारले पाहिजे.",
         INVALID_INVITE_CODE: "आमंत्रण कोड अवैध आहे. खाजगी प्लेसमेंटमध्ये प्रवेश करण्यासाठी Sanova शी संपर्क साधा.",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "आम्हाला ईमेल आणि WhatsApp कोड पाठवता आले नाहीत. खाते नोंदणीकृत नव्हते; काही मिनिटांनी पुन्हा प्रयत्न करा.",
         SIGN_IN_FAILED: "खाते तयार केले, परंतु आम्ही स्वयंचलितपणे लॉग इन करू शकलो नाही."
       }

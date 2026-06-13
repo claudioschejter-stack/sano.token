@@ -7,7 +7,7 @@ import { Suspense, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { RegisterForm } from '../auth/RegisterForm';
-import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
+import { DEFAULT_POST_ONBOARDING_PATH, buildKycUrl } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { LandingHeader } from './LandingHeader';
@@ -61,7 +61,7 @@ function RegisterPageContent() {
     }
 
     if (!isOperational) {
-      router.replace(loginHref);
+      router.replace(buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH));
       return;
     }
 

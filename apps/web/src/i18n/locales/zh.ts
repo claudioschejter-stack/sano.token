@@ -1454,6 +1454,7 @@ export const zh = {
         INVALID_PHONE: "输入有效的手机号码和国家/地区代码。",
         TERMS_NOT_ACCEPTED: "您必须接受法律条款和隐私政策才能继续。",
         INVALID_INVITE_CODE: "邀请码无效。联系 Sanova 以获取私募机会。",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "我们无法发送电子邮件和 WhatsApp 代码。该账户未注册；几分钟后重试。",
         SIGN_IN_FAILED: "帐户已创建，但无法自动登录。"
       }

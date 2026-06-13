@@ -1454,6 +1454,7 @@ export const fr = {
         INVALID_PHONE: "Entrez un numéro de téléphone mobile valide avec l'indicatif du pays.",
         TERMS_NOT_ACCEPTED: "Vous devez accepter les conditions juridiques et la politique de confidentialité pour continuer.",
         INVALID_INVITE_CODE: "Le code d'invitation n'est pas valide. Contactez Sanova pour accéder au placement privé.",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "Nous n'avons pas pu envoyer l'e-mail et les codes WhatsApp. Le compte n'était pas enregistré ; Réessayez dans quelques minutes.",
         SIGN_IN_FAILED: "Compte créé, mais nous n'avons pas pu nous connecter automatiquement."
       }

@@ -50,9 +50,22 @@ export async function registerInvestor(input: RegisterInput) {
 
   const existing = await prisma.user.findUnique({ where: { email } });
   const allowlistRole = resolveRoleFromAllowlist(email);
+
+  if (
+    !existing &&
+    (allowlistRole === 'ADVISOR' || allowlistRole === 'ADVISOR_MANAGER')
+  ) {
+    throw new Error('STAFF_INVITE_REQUIRED');
+  }
+
+  const selfRegisterStaffRole =
+    allowlistRole === 'ADMIN' ||
+    allowlistRole === 'TREASURY' ||
+    allowlistRole === 'OPERATOR';
+
   const staffOnboarding =
-    (allowlistRole && allowlistRole !== 'INVESTOR') ||
-    (existing && isStaffRole(existing.systemRole as SystemRole) && !existing.passwordHash);
+    (existing && isStaffRole(existing.systemRole as SystemRole) && !existing.passwordHash) ||
+    selfRegisterStaffRole;
 
   const investorAccessEnabled =
     staffOnboarding ||
@@ -82,35 +95,36 @@ export async function registerInvestor(input: RegisterInput) {
     ? (existing.systemRole as PrismaSystemRole)
     : (resolveRoleForEmail(email, defaultRole) as PrismaSystemRole);
 
+  const sharedProfile = {
+    passwordHash,
+    phone: phoneE164,
+    name: fullName ?? email.split('@')[0],
+    kycFullName: fullName,
+    kycDocumentId: taxId,
+    systemRole,
+    termsAcceptedAt
+  };
+
   const user = await prisma.user.upsert({
     where: { email },
     create: {
       email,
-      passwordHash,
-      phone: phoneE164,
-      name: fullName ?? email.split('@')[0],
-      kycFullName: fullName,
-      kycDocumentId: taxId,
-      systemRole,
-      termsAcceptedAt,
+      ...sharedProfile,
       investorAccessEnabled
     },
-    update: {
-      passwordHash,
-      phone: phoneE164,
-      name: fullName ?? email.split('@')[0],
-      kycFullName: fullName,
-      kycDocumentId: taxId,
-      systemRole,
-      emailVerifiedAt: null,
-      phoneVerifiedAt: null,
-      accountStatus: 'ONBOARDING',
-      kycStatus: 'PENDING',
-      termsAcceptedAt,
-      investorAccessEnabled: preserveStaffRole
-        ? existing.investorAccessEnabled
-        : existing.investorAccessEnabled || investorAccessEnabled
-    }
+    update: preserveStaffRole
+      ? {
+          ...sharedProfile,
+          investorAccessEnabled: existing.investorAccessEnabled
+        }
+      : {
+          ...sharedProfile,
+          emailVerifiedAt: null,
+          phoneVerifiedAt: null,
+          accountStatus: 'ONBOARDING',
+          kycStatus: 'PENDING',
+          investorAccessEnabled: existing.investorAccessEnabled || investorAccessEnabled
+        }
   });
 
   return {

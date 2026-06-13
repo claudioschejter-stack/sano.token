@@ -40,7 +40,8 @@ export async function POST(request: Request) {
             code === 'INVALID_EMAIL' ||
             code === 'INVALID_INPUT' ||
             code === 'TERMS_NOT_ACCEPTED' ||
-            code === 'INVALID_INVITE_CODE'
+            code === 'INVALID_INVITE_CODE' ||
+            code === 'STAFF_INVITE_REQUIRED'
           ? 400
           : code === 'RATE_LIMIT'
             ? 429

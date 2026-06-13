@@ -1454,6 +1454,7 @@ export const ja = {
         INVALID_PHONE: "有効な携帯電話番号を国コードとともに入力してください。",
         TERMS_NOT_ACCEPTED: "続行するには、法的条件とプライバシー ポリシーに同意する必要があります。",
         INVALID_INVITE_CODE: "招待コードが無効です。 私募にアクセスするには、Sanova にお問い合わせください。",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "電子メールと WhatsApp コードを送信できませんでした。 アカウントが登録されていませんでした。 数分後にもう一度試してください。",
         SIGN_IN_FAILED: "アカウントは作成されましたが、自動的にログインできませんでした。"
       }

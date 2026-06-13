@@ -1454,6 +1454,7 @@ export const id = {
         INVALID_PHONE: "Masukkan nomor ponsel yang valid dengan kode negara.",
         TERMS_NOT_ACCEPTED: "Anda harus menerima Ketentuan Hukum dan Kebijakan Privasi untuk melanjutkan.",
         INVALID_INVITE_CODE: "Kode undangan tidak valid. Hubungi Sanova untuk mengakses penempatan pribadi.",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "Kami tidak dapat mengirim email dan kode WhatsApp. Akun tersebut tidak terdaftar; Coba lagi dalam beberapa menit.",
         SIGN_IN_FAILED: "Akun telah dibuat, tetapi kami tidak dapat masuk secara otomatis."
       }

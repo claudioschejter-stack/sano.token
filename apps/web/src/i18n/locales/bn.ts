@@ -1454,6 +1454,7 @@ export const bn = {
         INVALID_PHONE: "দেশের কোড সহ একটি বৈধ মোবাইল ফোন নম্বর লিখুন।",
         TERMS_NOT_ACCEPTED: "চালিয়ে যেতে আপনাকে অবশ্যই আইনি শর্তাবলী এবং গোপনীয়তা নীতি গ্রহণ করতে হবে।",
         INVALID_INVITE_CODE: "আমন্ত্রণ কোডটি অবৈধ৷ প্রাইভেট প্লেসমেন্ট অ্যাক্সেস করতে Sanova-এর সাথে যোগাযোগ করুন।",
+        STAFF_INVITE_REQUIRED: "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "আমরা ইমেল এবং হোয়াটসঅ্যাপ কোড পাঠাতে পারিনি। অ্যাকাউন্ট নিবন্ধিত ছিল না; কয়েক মিনিটের মধ্যে আবার চেষ্টা করুন।",
         SIGN_IN_FAILED: "অ্যাকাউন্ট তৈরি করা হয়েছে, কিন্তু আমরা স্বয়ংক্রিয়ভাবে লগ ইন করতে পারিনি।"
       }
