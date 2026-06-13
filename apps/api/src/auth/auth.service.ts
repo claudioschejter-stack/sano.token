@@ -161,6 +161,8 @@ export class AuthService {
       { envKey: 'AUTH_ADMIN_EMAILS', role: 'ADMIN' },
       { envKey: 'AUTH_ADVISOR_MANAGER_EMAILS', role: 'ADVISOR_MANAGER' },
       { envKey: 'AUTH_ADVISOR_EMAILS', role: 'ADVISOR' },
+      { envKey: 'AUTH_TREASURY_EMAILS', role: 'TREASURY' },
+      { envKey: 'AUTH_OPERATOR_EMAILS', role: 'OPERATOR' },
       { envKey: 'AUTH_INVESTOR_EMAILS', role: 'INVESTOR' }
     ];
 

@@ -2,6 +2,12 @@ import bcrypt from 'bcryptjs';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from './contactValidation';
 import { resolveInvestorAccessOnRegister } from './investorAccess';
+import {
+  isPreApprovedInvestorEmail,
+  resolveRoleForEmail,
+  resolveRoleFromAllowlist
+} from './roleAllowlist';
+import { isStaffRole, type SystemRole } from './roles';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -42,28 +48,39 @@ export async function registerInvestor(input: RegisterInput) {
     throw new Error('TERMS_NOT_ACCEPTED');
   }
 
-  const investorAccessEnabled = resolveInvestorAccessOnRegister(input.inviteCode);
-  if (input.inviteCode?.trim() && !investorAccessEnabled && process.env.INVESTOR_OPEN_REGISTRATION !== 'true') {
+  const existing = await prisma.user.findUnique({ where: { email } });
+  const allowlistRole = resolveRoleFromAllowlist(email);
+  const staffOnboarding =
+    (allowlistRole && allowlistRole !== 'INVESTOR') ||
+    (existing && isStaffRole(existing.systemRole as SystemRole) && !existing.passwordHash);
+
+  const investorAccessEnabled =
+    staffOnboarding ||
+    isPreApprovedInvestorEmail(email) ||
+    resolveInvestorAccessOnRegister(input.inviteCode);
+
+  if (
+    !staffOnboarding &&
+    process.env.INVESTOR_OPEN_REGISTRATION !== 'true' &&
+    !investorAccessEnabled
+  ) {
     throw new Error('INVALID_INVITE_CODE');
   }
 
   const termsAcceptedAt = new Date();
-
-  const existing = await prisma.user.findUnique({ where: { email } });
 
   if (existing?.passwordHash) {
     throw new Error('EMAIL_IN_USE');
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const defaultRole = (process.env.AUTH_DEFAULT_ROLE ?? 'INVESTOR') as PrismaSystemRole;
+  const defaultRole = (process.env.AUTH_DEFAULT_ROLE ?? 'INVESTOR') as SystemRole;
   const preserveStaffRole =
-    existing &&
-    (existing.systemRole === 'ADVISOR' ||
-      existing.systemRole === 'ADVISOR_MANAGER' ||
-      existing.systemRole === 'ADMIN' ||
-      existing.systemRole === 'TREASURY' ||
-      existing.systemRole === 'OPERATOR');
+    existing && isStaffRole(existing.systemRole as SystemRole);
+
+  const systemRole = preserveStaffRole
+    ? (existing.systemRole as PrismaSystemRole)
+    : (resolveRoleForEmail(email, defaultRole) as PrismaSystemRole);
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -74,7 +91,7 @@ export async function registerInvestor(input: RegisterInput) {
       name: fullName ?? email.split('@')[0],
       kycFullName: fullName,
       kycDocumentId: taxId,
-      systemRole: defaultRole,
+      systemRole,
       termsAcceptedAt,
       investorAccessEnabled
     },
@@ -84,7 +101,7 @@ export async function registerInvestor(input: RegisterInput) {
       name: fullName ?? email.split('@')[0],
       kycFullName: fullName,
       kycDocumentId: taxId,
-      systemRole: preserveStaffRole ? existing.systemRole : defaultRole,
+      systemRole,
       emailVerifiedAt: null,
       phoneVerifiedAt: null,
       accountStatus: 'ONBOARDING',

@@ -195,7 +195,7 @@ export async function acceptTeamInvite(token: string): Promise<{ redirectUrl: st
   });
 
   const kycPath = buildKycUrl(postOnboardingPath(role));
-  const redirectUrl = `/acceso?returnTo=${encodeURIComponent(kycPath)}&email=${encodeURIComponent(invite.email)}&staffInvite=1`;
+  const redirectUrl = `/acceso/registro?returnTo=${encodeURIComponent(kycPath)}&email=${encodeURIComponent(invite.email)}&staffInvite=1`;
 
   return { redirectUrl };
 }

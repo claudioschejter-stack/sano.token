@@ -1,6 +1,10 @@
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { SignJWT } from 'jose';
 import type { SystemRole } from './roles';
+import {
+  resolveRoleForEmail,
+  resolveRoleForExistingUser
+} from './roleAllowlist';
 
 type OAuthLoginInput = {
   email: string;
@@ -10,18 +14,16 @@ type OAuthLoginInput = {
   providerAccountId: string;
 };
 
-const ALL_ROLES = new Set<SystemRole>([
-  'ADMIN',
-  'ADVISOR_MANAGER',
-  'ADVISOR',
-  'INVESTOR',
-  'TREASURY',
-  'OPERATOR'
-]);
-
 export async function handleOAuthLogin(input: OAuthLoginInput) {
   const email = input.email.trim().toLowerCase();
-  const role = await resolveRolesForEmail(email);
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { systemRole: true }
+  });
+
+  const role = existingUser
+    ? resolveRoleForExistingUser(email, existingUser.systemRole as SystemRole)
+    : resolveRoleForEmail(email);
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -66,58 +68,4 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
     roles,
     role: roles[0]
   };
-}
-
-async function resolveRolesForEmail(email: string): Promise<SystemRole> {
-  const roleFromAllowlist = resolveRoleFromAllowlist(email);
-  if (roleFromAllowlist) {
-    return roleFromAllowlist;
-  }
-
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
-    select: { systemRole: true }
-  });
-
-  if (existingUser?.systemRole) {
-    return existingUser.systemRole as SystemRole;
-  }
-
-  const defaultRole = (process.env.AUTH_DEFAULT_ROLE ?? 'INVESTOR') as SystemRole;
-  return ALL_ROLES.has(defaultRole) ? defaultRole : 'INVESTOR';
-}
-
-function resolveRoleFromAllowlist(email: string): SystemRole | null {
-  const roleMaps: Array<{ envKey: string; role: SystemRole }> = [
-    { envKey: 'AUTH_ADMIN_EMAILS', role: 'ADMIN' },
-    { envKey: 'AUTH_ADVISOR_MANAGER_EMAILS', role: 'ADVISOR_MANAGER' },
-    { envKey: 'AUTH_ADVISOR_EMAILS', role: 'ADVISOR' },
-    { envKey: 'AUTH_INVESTOR_EMAILS', role: 'INVESTOR' }
-  ];
-
-  for (const { envKey, role } of roleMaps) {
-    if (parseEmailList(process.env[envKey]).has(email)) {
-      return role;
-    }
-  }
-
-  const legacyAdminEmail = process.env.AUTH_ADMIN_EMAIL;
-  if (legacyAdminEmail && legacyAdminEmail.toLowerCase() === email) {
-    return 'ADMIN';
-  }
-
-  return null;
-}
-
-function parseEmailList(raw?: string | null): Set<string> {
-  if (!raw) {
-    return new Set();
-  }
-
-  return new Set(
-    raw
-      .split(',')
-      .map((entry) => entry.trim().toLowerCase())
-      .filter(Boolean)
-  );
 }

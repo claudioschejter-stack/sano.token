@@ -1,6 +1,7 @@
 import { SignJWT } from 'jose';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import type { SystemRole } from './roles';
+import { ALL_SYSTEM_ROLES, resolveRoleFromAllowlist } from './roleAllowlist';
 
 export type AuthUser = {
   id: string;
@@ -9,15 +10,6 @@ export type AuthUser = {
   roles: SystemRole[];
   accessToken: string;
 };
-
-const ALL_ROLES = new Set<SystemRole>([
-  'ADMIN',
-  'ADVISOR_MANAGER',
-  'ADVISOR',
-  'INVESTOR',
-  'TREASURY',
-  'OPERATOR'
-]);
 
 export async function issueAuthUserById(userId: string): Promise<AuthUser | null> {
   const user = await prisma.user.findUnique({
@@ -29,7 +21,7 @@ export async function issueAuthUserById(userId: string): Promise<AuthUser | null
     return null;
   }
 
-  const role = ALL_ROLES.has(user.systemRole as SystemRole) ? (user.systemRole as SystemRole) : 'INVESTOR';
+  const role = ALL_SYSTEM_ROLES.has(user.systemRole as SystemRole) ? (user.systemRole as SystemRole) : 'INVESTOR';
   return issueAuthUser(user.id, user.email, role);
 }
 
@@ -72,34 +64,4 @@ export async function updateUserRoleIfNeeded(userId: string, email: string, curr
   });
 
   return roleFromAllowlist;
-}
-
-function resolveRoleFromAllowlist(email: string): SystemRole | null {
-  const roleMaps: Array<{ envKey: string; role: SystemRole }> = [
-    { envKey: 'AUTH_ADMIN_EMAILS', role: 'ADMIN' },
-    { envKey: 'AUTH_ADVISOR_MANAGER_EMAILS', role: 'ADVISOR_MANAGER' },
-    { envKey: 'AUTH_ADVISOR_EMAILS', role: 'ADVISOR' },
-    { envKey: 'AUTH_INVESTOR_EMAILS', role: 'INVESTOR' }
-  ];
-
-  for (const { envKey, role } of roleMaps) {
-    if (parseEmailList(process.env[envKey]).has(email)) {
-      return role;
-    }
-  }
-
-  return null;
-}
-
-function parseEmailList(raw?: string | null): Set<string> {
-  if (!raw) {
-    return new Set();
-  }
-
-  return new Set(
-    raw
-      .split(',')
-      .map((entry) => entry.trim().toLowerCase())
-      .filter(Boolean)
-  );
 }
