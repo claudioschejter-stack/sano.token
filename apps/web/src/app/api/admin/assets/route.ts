@@ -81,7 +81,7 @@ export async function POST(request: Request) {
 
     if (body.deployToken !== false && !asset.contractAddress) {
       const { executeProjectTokenDeploy } = await import('../../../../lib/blockchain/projectTokenDeploy');
-      const deploy = await executeProjectTokenDeploy(asset.id);
+      const deploy = await executeProjectTokenDeploy(asset.id, { adminAuthorized: true });
       const finalAsset =
         deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED' ? deploy.asset : asset;
       return NextResponse.json({ asset: finalAsset, deploy }, { status: 201 });

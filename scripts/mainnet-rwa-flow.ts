@@ -99,8 +99,12 @@ async function main() {
   }
 
   if (REPAIR) {
+    const adminAuthorized = process.argv.includes('--admin-authorized');
+    if (!adminAuthorized) {
+      console.warn('[repair] Token emission skipped: pass --admin-authorized to allow administrator token deploy.');
+    }
     console.log('[repair] before', JSON.stringify(summarize(await getAdminAsset(PROJECT_ID)), null, 2));
-    const result = await executeProjectAutomationRepair(PROJECT_ID);
+    const result = await executeProjectAutomationRepair(PROJECT_ID, { adminAuthorized });
     console.log('[repair] deploy', result.deploy);
     let asset = result.asset ?? (await getAdminAsset(PROJECT_ID));
     if (asset && asset.explorerVerificationStatus !== 'VERIFIED') {

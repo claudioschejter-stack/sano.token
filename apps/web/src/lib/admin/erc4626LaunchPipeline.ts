@@ -36,7 +36,8 @@ export async function enqueueErc4626DeployPipeline(
 
   const payload = {
     pipeline: ERC4626_LAUNCH_PIPELINE,
-    requestedPublish: options.requestedPublish
+    requestedPublish: options.requestedPublish,
+    adminAuthorized: true
   };
 
   const tokenJob = await enqueueAutomationJob({

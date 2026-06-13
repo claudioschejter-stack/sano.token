@@ -18,7 +18,7 @@ export async function POST(_request: Request, context: RouteContext) {
   const { projectId } = await context.params;
 
   try {
-    const result = await executeProjectAutomationRepair(projectId);
+    const result = await executeProjectAutomationRepair(projectId, { adminAuthorized: true });
     if (!result.asset) {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });
     }

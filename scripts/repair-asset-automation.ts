@@ -57,7 +57,12 @@ async function main() {
   const before = await getAdminAsset(projectId);
   console.log('[repair] Before:', JSON.stringify(summarizeAsset(before), null, 2));
 
-  const result = await executeProjectAutomationRepair(projectId);
+  const adminAuthorized = process.argv.includes('--admin-authorized');
+  if (!adminAuthorized) {
+    console.warn('[repair] Token emission skipped: pass --admin-authorized to allow administrator token deploy.');
+  }
+
+  const result = await executeProjectAutomationRepair(projectId, { adminAuthorized });
   const after = result.asset ?? (await getAdminAsset(projectId));
   console.log('[repair] Deploy:', result.deploy);
   console.log('[repair] Collateral:', result.collateral ? 'executed' : 'skipped');

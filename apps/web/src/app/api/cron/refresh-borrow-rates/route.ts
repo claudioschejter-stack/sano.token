@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { refreshBorrowRatesCache } from '../../../../lib/lending/fetchLiveBorrowRates';
-import { listAdminAssets, listAutomationRepairCandidates } from '../../../../lib/admin/assetsService';
+import { listAdminAssets, listInfrastructureRepairCandidates } from '../../../../lib/admin/assetsService';
 import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
-import { executeProjectAutomationRepair } from '../../../../lib/blockchain/projectTokenDeploy';
+import { executeProjectInfrastructureRepair } from '../../../../lib/blockchain/projectTokenDeploy';
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
 import { enqueueAutomationJob } from '../../../../lib/admin/automationJobs';
 import { recordRwaSecurityReport } from '../../../../lib/blockchain/rwaSecurityReport';
@@ -13,7 +13,7 @@ import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronReque
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-/** Vercel Cron — daily maintenance: rates cache + limited RWA automation repair. */
+/** Vercel Cron — daily maintenance: rates cache + infrastructure repair (no token emission). */
 export async function GET(request: Request) {
   if (!isCronRequestAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     const borrowRate = await refreshBorrowRatesCache();
     const paymentReconciliation = await reconcilePayments();
     const portfolioSnapshots = await recordPortfolioSnapshotsForActiveInvestors(100);
-    const candidates = await listAutomationRepairCandidates(3);
+    const candidates = await listInfrastructureRepairCandidates(3);
     const activeAssets = await listAdminAssets('ACTIVE');
     const repairs = [];
     const queued = [];
@@ -44,21 +44,14 @@ export async function GET(request: Request) {
       try {
         const job = await enqueueAutomationJob({
           projectId: asset.id,
-          step: 'TOKEN_DEPLOY',
-          payload: { source: 'daily-cron-repair' }
+          step: 'VAULT_DEPLOY',
+          payload: { source: 'daily-cron-infrastructure-repair' }
         });
         if (job) {
-          queued.push({ projectId: asset.id, jobId: job.id, step: 'TOKEN_DEPLOY' });
+          queued.push({ projectId: asset.id, jobId: job.id, step: 'VAULT_DEPLOY' });
         } else {
-          const repair = await executeProjectAutomationRepair(asset.id);
-          repairs.push({ projectId: asset.id, status: repair.deploy.status });
-          if (repair.deploy.status === 'FAILED' || repair.deploy.status === 'SKIPPED') {
-            await notifyAutomationIssue({
-              projectId: asset.id,
-              title: asset.title,
-              message: `La reparación automática terminó con estado ${repair.deploy.status}.`
-            });
-          }
+          const repair = await executeProjectInfrastructureRepair(asset.id);
+          repairs.push({ projectId: asset.id, status: 'INFRASTRUCTURE_REPAIRED', asset: repair.asset?.id });
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown repair error';
@@ -90,6 +83,7 @@ export async function GET(request: Request) {
         step: 'SYNTHETIC_RWA_FLOW',
         payload: {
           source: 'daily-cron',
+          adminAuthorized: false,
           allowedChainIds: process.env.RWA_SYNTHETIC_ALLOWED_CHAIN_IDS ?? '84532,80002,11155111'
         },
         maxAttempts: 1

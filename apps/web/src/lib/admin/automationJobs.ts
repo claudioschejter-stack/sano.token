@@ -226,7 +226,11 @@ export async function cancelAutomationJob(jobId: string) {
 async function executeAutomationJob(job: AutomationJobRow) {
   if (job.step === 'SYNTHETIC_RWA_FLOW') {
     const { runSyntheticRwaFlow } = await import('./syntheticRwaFlow');
-    return runSyntheticRwaFlow({ projectId: job.projectId ?? undefined, createDemo: !job.projectId });
+    return runSyntheticRwaFlow({
+      projectId: job.projectId ?? undefined,
+      createDemo: !job.projectId,
+      adminAuthorized: job.payload?.adminAuthorized === true
+    });
   }
 
   if (!job.projectId) {
@@ -242,7 +246,10 @@ async function executeAutomationJob(job: AutomationJobRow) {
 
   if (job.step === 'TOKEN_DEPLOY') {
     const { executeProjectTokenDeploy } = await import('../blockchain/projectTokenDeploy');
-    return executeProjectTokenDeploy(job.projectId, { skipLock: true });
+    const { ERC4626_LAUNCH_PIPELINE } = await import('./erc4626LaunchPipeline');
+    const adminAuthorized =
+      job.payload?.adminAuthorized === true || job.payload?.pipeline === ERC4626_LAUNCH_PIPELINE;
+    return executeProjectTokenDeploy(job.projectId, { skipLock: true, adminAuthorized });
   }
 
   if (job.step === 'VAULT_DEPLOY') {

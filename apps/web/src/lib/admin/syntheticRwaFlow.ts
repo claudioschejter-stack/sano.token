@@ -15,7 +15,9 @@ function allowedChainIds(): number[] {
     .filter(Number.isFinite);
 }
 
-export async function runSyntheticRwaFlow(input: { projectId?: string; createDemo?: boolean } = {}) {
+export async function runSyntheticRwaFlow(
+  input: { projectId?: string; createDemo?: boolean; adminAuthorized?: boolean } = {}
+) {
   if (!syntheticEnabled()) {
     logAutomationEvent({
       event: 'synthetic.skipped',
@@ -79,7 +81,9 @@ export async function runSyntheticRwaFlow(input: { projectId?: string; createDem
     throw new Error('Synthetic RWA flow requires projectId or createDemo.');
   }
 
-  const result = await executeProjectAutomationRepair(projectId);
+  const result = await executeProjectAutomationRepair(projectId, {
+    adminAuthorized: input.adminAuthorized === true
+  });
   const asset = result.asset ?? (await getAdminAsset(projectId));
   if (!asset) {
     throw new Error('Asset not found after synthetic repair.');

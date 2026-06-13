@@ -208,7 +208,16 @@ export type ProjectTokenDeployResult =
   | { status: 'NOT_FOUND' }
   | { status: 'FAILED'; reason: string };
 
-async function executeProjectTokenDeployUnlocked(projectId: string): Promise<ProjectTokenDeployResult> {
+export type ProjectTokenDeployOptions = {
+  skipLock?: boolean;
+  /** Required for first on-chain token emission (deploy/mint). Cron and background jobs must not pass this. */
+  adminAuthorized?: boolean;
+};
+
+async function executeProjectTokenDeployUnlocked(
+  projectId: string,
+  options: ProjectTokenDeployOptions = {}
+): Promise<ProjectTokenDeployResult> {
   logAutomationEvent({ event: 'token_deploy.start', projectId, step: 'TOKEN_DEPLOY', status: 'RUNNING' });
   const asset = await getAdminAsset(projectId);
   if (!asset) {
@@ -256,6 +265,14 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
       vaultExplorerUrl: asset.vaultAddress
         ? buildSmartContractDocUrl(asset.chainId, asset.vaultAddress)
         : null
+    };
+  }
+
+  if (!options.adminAuthorized) {
+    return {
+      status: 'SKIPPED',
+      asset,
+      reason: 'La emisión de tokens requiere autorización explícita del administrador.'
     };
   }
 
@@ -420,10 +437,10 @@ async function executeProjectTokenDeployUnlocked(projectId: string): Promise<Pro
 
 export async function executeProjectTokenDeploy(
   projectId: string,
-  options: { skipLock?: boolean } = {}
+  options: ProjectTokenDeployOptions = {}
 ): Promise<ProjectTokenDeployResult> {
   const run = async () => {
-    const result = await executeProjectTokenDeployUnlocked(projectId);
+    const result = await executeProjectTokenDeployUnlocked(projectId, options);
     logAutomationEvent({
       level: result.status === 'FAILED' ? 'error' : result.status === 'SKIPPED' ? 'warn' : 'info',
       event: 'token_deploy.completed',
@@ -451,7 +468,10 @@ export async function executeProjectTokenDeploy(
   }
 }
 
-export async function executeProjectAutomationRepair(projectId: string) {
+export async function executeProjectAutomationRepair(
+  projectId: string,
+  options: { adminAuthorized?: boolean } = {}
+) {
   return withProjectAutomationLock(projectId, 'REPAIR_AUTOMATION', async () => {
   await appendDeploymentEvent(projectId, {
     step: 'REPAIR_AUTOMATION',
@@ -459,7 +479,10 @@ export async function executeProjectAutomationRepair(projectId: string) {
     message: 'Reparación automática solicitada.'
   });
 
-  const deploy = await executeProjectTokenDeploy(projectId, { skipLock: true });
+  const deploy = await executeProjectTokenDeploy(projectId, {
+    skipLock: true,
+    adminAuthorized: options.adminAuthorized ?? false
+  });
   const asset =
     deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED'
       ? deploy.asset
@@ -508,5 +531,85 @@ export async function executeProjectAutomationRepair(projectId: string) {
   }
 
   return { deploy, collateral, asset: finalAsset };
+  });
+}
+
+/** Repairs vault, collateral and treasury for assets that already have a token — no new token emission. */
+export async function executeProjectInfrastructureRepair(projectId: string) {
+  return withProjectAutomationLock(projectId, 'REPAIR_AUTOMATION', async () => {
+    const asset = await getAdminAsset(projectId);
+    if (!asset) {
+      return { asset: null, deploy: { status: 'NOT_FOUND' as const } };
+    }
+
+    if (!asset.contractAddress) {
+      return {
+        asset,
+        deploy: {
+          status: 'SKIPPED' as const,
+          reason: 'Infrastructure repair requires an existing token contract.'
+        }
+      };
+    }
+
+    await appendDeploymentEvent(projectId, {
+      step: 'REPAIR_AUTOMATION',
+      status: 'PENDING',
+      message: 'Reparación de infraestructura (vault/collateral/treasury) solicitada por cron.'
+    });
+
+    let finalAsset = asset;
+
+    if (
+      isVaultTokenStandard(asset.tokenStandard) &&
+      (!asset.vaultAddress || asset.vaultFundingStatus !== 'FUNDED')
+    ) {
+      const vaultResult = await executeProjectVaultDeploy(projectId, { skipLock: true });
+      if (vaultResult.status === 'DEPLOYED') {
+        finalAsset = vaultResult.asset;
+      }
+    }
+
+    let collateral = null;
+    if (
+      finalAsset.collateralTargets.length &&
+      finalAsset.contractAddress &&
+      (!isVaultTokenStandard(finalAsset.tokenStandard) || finalAsset.vaultAddress)
+    ) {
+      const { registerProjectCollateral } = await import('../collateral/collateralOrchestrator');
+      collateral = await registerProjectCollateral(projectId, undefined, { skipLock: true });
+      finalAsset = collateral?.updatedAsset ?? (await getAdminAsset(projectId)) ?? finalAsset;
+    }
+
+    if (finalAsset.vaultAddress && finalAsset.contractAddress) {
+      const { repairTreasuryVaultShares } = await import('./repairTreasuryVaultShares');
+      const treasuryRepair = await repairTreasuryVaultShares(finalAsset);
+      await appendDeploymentEvent(projectId, {
+        step: 'VAULT_FUNDING',
+        status: treasuryRepair.ok ? 'SUCCESS' : 'FAILED',
+        message: treasuryRepair.message,
+        txHash: treasuryRepair.txHash ?? null
+      });
+      finalAsset = (await getAdminAsset(projectId)) ?? finalAsset;
+    }
+
+    if (
+      finalAsset.collateralTargets.some(
+        (target) => target.protocol === 'MORPHO' && target.status === 'REGISTERED'
+      )
+    ) {
+      const { checkMorphoLiquidity } = await import('../lending/morphoLiquidityCheck');
+      await checkMorphoLiquidity(finalAsset);
+      finalAsset = (await getAdminAsset(projectId)) ?? finalAsset;
+    }
+
+    await appendDeploymentEvent(projectId, {
+      step: 'REPAIR_AUTOMATION',
+      status: 'SUCCESS',
+      message: 'Reparación de infraestructura finalizada (sin emisión de token).'
+    });
+    await clearAutomationFailures(projectId);
+
+    return { deploy: { status: 'SKIPPED' as const, reason: 'Infrastructure-only repair' }, collateral, asset: finalAsset };
   });
 }

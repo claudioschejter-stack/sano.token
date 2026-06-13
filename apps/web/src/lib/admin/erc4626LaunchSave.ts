@@ -116,7 +116,7 @@ export async function finalizeErc4626AfterPersist(
       return { ok: true, asset, async: true, jobIds: queued.jobIds };
     }
 
-    deploy = await executeProjectTokenDeploy(projectId);
+    deploy = await executeProjectTokenDeploy(projectId, { adminAuthorized: true });
     asset =
       deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED'
         ? (deploy.asset ?? (await getAdminAsset(projectId))!)

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { markAdminTokenEmitAuthorized } from '../../../../../../lib/admin/assetsService';
 import { requireAdminSession } from '../../../../../../lib/admin/requireAdmin';
 import { executeProjectTokenDeploy } from '../../../../../../lib/blockchain/projectTokenDeploy';
 
@@ -18,7 +19,8 @@ export async function POST(_request: Request, context: RouteContext) {
   const { projectId } = await context.params;
 
   try {
-    const result = await executeProjectTokenDeploy(projectId);
+    await markAdminTokenEmitAuthorized(projectId);
+    const result = await executeProjectTokenDeploy(projectId, { adminAuthorized: true });
 
     if (result.status === 'NOT_FOUND') {
       return NextResponse.json({ error: 'Asset not found' }, { status: 404 });

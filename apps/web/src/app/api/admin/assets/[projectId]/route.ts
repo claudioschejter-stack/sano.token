@@ -140,7 +140,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     if (shouldDeployOrRepair) {
       const { executeProjectTokenDeploy } = await import('../../../../../lib/blockchain/projectTokenDeploy');
-      const deploy = await executeProjectTokenDeploy(projectId);
+      const deploy = await executeProjectTokenDeploy(projectId, { adminAuthorized: true });
       const finalAsset =
         deploy.status === 'DEPLOYED' || deploy.status === 'ALREADY_DEPLOYED' ? deploy.asset : updated;
       return NextResponse.json({ asset: finalAsset, deploy });

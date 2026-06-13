@@ -647,6 +647,38 @@ export async function listAutomationRepairCandidates(limit = 3): Promise<AdminAs
     .slice(0, limit);
 }
 
+/** Cron-safe repairs: vault, collateral and treasury only — never initial token emission. */
+export async function listInfrastructureRepairCandidates(limit = 3): Promise<AdminAssetRecord[]> {
+  const assets = await listAdminAssets('ALL');
+  return assets
+    .filter((asset) => {
+      if (!asset.contractAddress) {
+        return false;
+      }
+
+      const morpho = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
+      return (
+        (isVaultTokenStandard(asset.tokenStandard) &&
+          (!asset.vaultAddress || asset.vaultFundingStatus !== 'FUNDED')) ||
+        Boolean(morpho && morpho.status !== 'REGISTERED')
+      );
+    })
+    .slice(0, limit);
+}
+
+export async function markAdminTokenEmitAuthorized(projectId: string): Promise<void> {
+  const asset = await getAdminAsset(projectId);
+  if (!asset || asset.contractAddress) {
+    return;
+  }
+
+  if (asset.tokenDeployStatus === 'DEPLOYED') {
+    return;
+  }
+
+  await updateAdminAsset(projectId, { tokenDeployStatus: 'PENDING' });
+}
+
 export async function listAllowlistableAssets(): Promise<Array<{ id: string; title: string; contractAddress: string }>> {
   const assets = await listAdminAssets('ALL');
   return assets
