@@ -6,14 +6,28 @@ import { notifyAutomationIssue } from '../admin/automationAlerts';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import { resolveChainId } from './explorerUrls';
-import { allowedExternalContracts, operatorCustodianPolicy, resolveDailyWithdrawalLimit } from './securityPolicy';
+import { resolveChainRpcUrl } from './supportedChains';
+import {
+  allowedExternalContractsForChain,
+  operatorCustodianPolicy,
+  resolveDailyWithdrawalLimit
+} from './securityPolicy';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 
-function resolveRpcUrl(chainId: number): string {
-  if (chainId === 84532 || chainId === 8453) {
-    return process.env.BASE_RPC_URL?.trim() || (chainId === 84532 ? 'https://sepolia.base.org' : 'https://mainnet.base.org');
-  }
-  return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
+function looksLikeRpcDegraded(report: {
+  checks: Array<{ label: string; ok: boolean; detail: string }>;
+  balances: Record<string, string | null>;
+}): boolean {
+  const ownerFails = report.checks.some(
+    (check) =>
+      check.label.includes('owner treasury') &&
+      !check.ok &&
+      check.detail.includes('owner() no disponible')
+  );
+  const allowlistChecks = report.checks.filter((check) => check.label.includes('allowlist'));
+  const allAllowFail = allowlistChecks.length > 0 && allowlistChecks.every((check) => !check.ok);
+  const zeroAssets = report.balances.totalAssets === '0' || report.balances.totalAssets === null;
+  return ownerFails && allAllowFail && zeroAssets;
 }
 
 function ok(label: string, okValue: boolean, detail: string) {
@@ -22,7 +36,7 @@ function ok(label: string, okValue: boolean, detail: string) {
 
 export async function generateRwaSecurityReport(asset: AdminAssetRecord) {
   const chainId = asset.chainId ?? resolveChainId();
-  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
+  const provider = new JsonRpcProvider(resolveChainRpcUrl(chainId));
   const treasury = resolveTreasuryAddress();
   const checks: Array<{ label: string; ok: boolean; detail: string }> = [];
   const balances: Record<string, string | null> = {
@@ -46,7 +60,7 @@ export async function generateRwaSecurityReport(asset: AdminAssetRecord) {
     checks.push(ok('Token owner treasury', Boolean(treasury && tokenOwner.toLowerCase() === treasury.toLowerCase()), tokenOwner || 'owner() no disponible'));
     checks.push(ok('Token no pausado', !tokenPaused, tokenPaused ? 'Token pausado.' : 'Activo.'));
 
-    for (const address of allowedExternalContracts()) {
+    for (const address of allowedExternalContractsForChain(chainId)) {
       const allowed = Boolean(await token.externalContractAllowed(address).catch(() => false));
       checks.push(ok(`Token allowlist ${address.slice(0, 8)}...`, allowed, allowed ? 'Permitido.' : 'No permitido.'));
     }
@@ -69,7 +83,7 @@ export async function generateRwaSecurityReport(asset: AdminAssetRecord) {
       checks.push(ok('Treasury mantiene shares', treasuryShares > 0n, `${treasuryShares.toString()} shares`));
       checks.push(ok('Límite diario configurado', dailyWithdrawalLimit > 0n && dailyWithdrawalLimit <= expectedLimit, `limit=${dailyWithdrawalLimit.toString()} expectedMax=${expectedLimit.toString()}`));
 
-      for (const address of allowedExternalContracts()) {
+      for (const address of allowedExternalContractsForChain(chainId)) {
         const allowed = Boolean(await vault.externalContractAllowed(address).catch(() => false));
         checks.push(ok(`Vault allowlist ${address.slice(0, 8)}...`, allowed, allowed ? 'Permitido.' : 'No permitido.'));
       }
@@ -105,13 +119,16 @@ export async function recordRwaSecurityReport(asset: AdminAssetRecord, options: 
   });
 
   if (!report.ok) {
+    const rpcDegraded = looksLikeRpcDegraded(report);
     await notifyAutomationIssue({
       projectId: asset.id,
       title: asset.title,
-      message: failures.map((entry) => `${entry.label}: ${entry.detail}`).join('\n'),
-      severity: 'critical'
+      message: rpcDegraded
+        ? `Security report degradado (posible límite RPC): ${failures.map((entry) => `${entry.label}: ${entry.detail}`).join('\n')}`
+        : failures.map((entry) => `${entry.label}: ${entry.detail}`).join('\n'),
+      severity: rpcDegraded ? 'warning' : 'critical'
     });
-    if (options.activateBreaker) {
+    if (options.activateBreaker && !rpcDegraded) {
       await activateCircuitBreaker(asset.id, 'Anomalías on-chain detectadas por security report.');
     }
   }

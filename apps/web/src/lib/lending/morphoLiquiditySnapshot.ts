@@ -107,7 +107,7 @@ export async function readMorphoMarketLiquidity(asset: AdminAssetRecord): Promis
 export async function buildMorphoLiquiditySnapshot(assets: AdminAssetRecord[]): Promise<MorphoLiquiditySnapshot> {
   const morphoAssets = assets.filter(
     (asset) =>
-      (asset.tokenStandard === 'ERC4626' || asset.tokenStandard === 'ERC7540') &&
+      (asset.tokenStandard === 'ERC4626') &&
       asset.collateralTargets.some((target) => target.protocol === 'MORPHO')
   );
 

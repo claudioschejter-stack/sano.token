@@ -20,10 +20,7 @@ type IntegrationId =
   | 'thirdweb'
   | 'supabaseStorage'
   | 'collateralWebhook'
-  | 'centrifuge'
-  | 'morpho'
-  | 'maple'
-  | 'figure';
+  | 'morpho';
 
 const INTEGRATION_IDS: IntegrationId[] = [
   'email',
@@ -35,10 +32,7 @@ const INTEGRATION_IDS: IntegrationId[] = [
   'thirdweb',
   'supabaseStorage',
   'collateralWebhook',
-  'centrifuge',
   'morpho',
-  'maple',
-  'figure',
   'redis'
 ];
 

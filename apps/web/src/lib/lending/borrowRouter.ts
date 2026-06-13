@@ -1,32 +1,14 @@
 import { fetchLiveBorrowRates } from './fetchLiveBorrowRates';
-import {
-  getLendingChainConfig,
-  isExecutableBorrowProtocol,
-  isWethCollateralProtocol,
-  listExecutableProtocolsForChain,
-  type WethCollateralProtocol
-} from './baseContracts';
-import {
-  ethToWei,
-  prepareAaveBorrowUsdc,
-  prepareAaveSupplyWeth,
-  usdcToBaseUnits,
-  type PreparedTransaction
-} from './protocols/aaveBorrow';
-import { prepareCompoundWethCollateralBorrow } from './protocols/compoundBorrow';
-import { prepareMoonwellWethCollateralBorrow } from './protocols/moonwellBorrow';
-import { prepareSparkBorrowUsdc, prepareSparkSupplyWeth } from './protocols/sparkBorrow';
+import { getLendingChainConfig } from './baseContracts';
 import { planMorphoBorrowTransactions, previewMorphoBorrow } from './morphoBorrowPlanner';
 import { getAdminAsset } from '../admin/assetsService';
 import { borrowSafetyBps, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
 
 export type BorrowQuoteRequest = {
   amountUsd: number;
-  collateralEth?: number;
   walletAddress: string;
   projectId?: string;
   vaultAddress?: string;
-  preferProtocol?: string;
 };
 
 export type BorrowQuoteResponse = {
@@ -41,11 +23,14 @@ export type BorrowQuoteResponse = {
 export type PrepareBorrowResponse = {
   protocol: string;
   chainId: number;
-  transactions: PreparedTransaction[];
+  transactions: Array<{
+    to: string;
+    data: string;
+    value?: string;
+    description?: string;
+  }>;
   marketId?: string;
 };
-
-const DEFAULT_COLLATERAL_ETH = 0.1;
 
 function maxSafeBorrowUsd(asset: NonNullable<Awaited<ReturnType<typeof getAdminAsset>>>): number {
   const navUsd = asset.totalTokens * asset.pricePerToken;
@@ -67,46 +52,6 @@ async function resolveMorphoOracleAddress(projectId?: string): Promise<string | 
   return morphoTarget?.oracleAddress ?? null;
 }
 
-function resolveCollateralEth(collateralEth?: number): number {
-  if (collateralEth != null && Number.isFinite(collateralEth) && collateralEth > 0) {
-    return collateralEth;
-  }
-  return DEFAULT_COLLATERAL_ETH;
-}
-
-function prepareWethCollateralBorrow(
-  protocol: WethCollateralProtocol,
-  amountUsd: number,
-  collateralEth: number,
-  walletAddress: string
-): PreparedTransaction[] | null {
-  const amountBaseUnits = usdcToBaseUnits(amountUsd);
-  const collateralWei = ethToWei(collateralEth);
-
-  switch (protocol) {
-    case 'aave': {
-      const transactions: PreparedTransaction[] = [];
-      transactions.push(prepareAaveSupplyWeth(collateralWei, walletAddress));
-      transactions.push(prepareAaveBorrowUsdc(amountBaseUnits, walletAddress));
-      return transactions;
-    }
-    case 'spark': {
-      const supply = prepareSparkSupplyWeth(collateralWei, walletAddress);
-      const borrow = prepareSparkBorrowUsdc(amountBaseUnits, walletAddress);
-      if (!supply || !borrow) {
-        return null;
-      }
-      return [supply, borrow];
-    }
-    case 'moonwell':
-      return prepareMoonwellWethCollateralBorrow(collateralWei, amountBaseUnits);
-    case 'compound':
-      return prepareCompoundWethCollateralBorrow(collateralWei, amountBaseUnits);
-    default:
-      return null;
-  }
-}
-
 export async function quoteBorrow(request: BorrowQuoteRequest): Promise<BorrowQuoteResponse | null> {
   if (!Number.isFinite(request.amountUsd) || request.amountUsd <= 0) {
     return null;
@@ -114,33 +59,19 @@ export async function quoteBorrow(request: BorrowQuoteRequest): Promise<BorrowQu
 
   const chainConfig = getLendingChainConfig();
   const rates = await fetchLiveBorrowRates();
-  const executable = rates.quotes.filter((quote) => isExecutableBorrowProtocol(quote.id, chainConfig));
+  const morpho = rates.quotes.find((quote) => quote.id === 'morpho');
 
-  if (executable.length === 0) {
+  if (!morpho) {
     return null;
   }
 
-  let selected = executable[0];
-
-  if (request.preferProtocol && isExecutableBorrowProtocol(request.preferProtocol, chainConfig)) {
-    const preferred = executable.find((quote) => quote.id === request.preferProtocol);
-    if (preferred) {
-      selected = preferred;
-    }
-  } else if (request.vaultAddress && executable.some((q) => q.id === 'morpho')) {
-    const morpho = executable.find((q) => q.id === 'morpho');
-    if (morpho) {
-      selected = morpho;
-    }
-  }
-
   return {
-    protocol: selected.id,
-    protocolName: selected.name,
-    borrowApyBps: selected.borrowApyBps,
+    protocol: 'morpho',
+    protocolName: morpho.name,
+    borrowApyBps: morpho.borrowApyBps,
     amountUsd: request.amountUsd,
     chainId: chainConfig.chainId,
-    source: selected.source ?? 'borrow-router'
+    source: morpho.source ?? 'morpho-base'
   };
 }
 
@@ -150,76 +81,45 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
     return null;
   }
 
-  const amountBaseUnits = usdcToBaseUnits(request.amountUsd);
   const chainConfig = getLendingChainConfig();
-  const { chainId } = chainConfig;
-
-  if (quote.protocol === 'morpho') {
-    const vault = request.vaultAddress?.trim();
-    if (!vault) {
-      return null;
-    }
-
-    if (!request.projectId) {
-      return null;
-    }
-
-    const asset = await getAdminAsset(request.projectId);
-    if (!asset?.readyToBorrow || asset.vaultAddress?.toLowerCase() !== vault.toLowerCase()) {
-      return null;
-    }
-
-    const maxDaily = maxBorrowUsdPerProject();
-    const maxByLtv = maxSafeBorrowUsd(asset);
-    if (request.amountUsd > Math.min(maxDaily, maxByLtv)) {
-      return null;
-    }
-
-    const oracleAddress = await resolveMorphoOracleAddress(request.projectId);
-    const planned = await planMorphoBorrowTransactions({
-      asset,
-      walletAddress: request.walletAddress,
-      amountUsd: request.amountUsd,
-      oracleAddress
-    });
-
-    if (planned) {
-      return {
-        protocol: 'morpho',
-        chainId,
-        transactions: planned.transactions,
-        marketId: planned.marketId
-      };
-    }
-
+  const vault = request.vaultAddress?.trim();
+  if (!vault || !request.projectId) {
     return null;
   }
 
-  if (isWethCollateralProtocol(quote.protocol)) {
-    const collateralEth = resolveCollateralEth(request.collateralEth);
-    const transactions = prepareWethCollateralBorrow(
-      quote.protocol,
-      request.amountUsd,
-      collateralEth,
-      request.walletAddress
-    );
-
-    if (!transactions || transactions.length === 0) {
-      return null;
-    }
-
-    return {
-      protocol: quote.protocol,
-      chainId,
-      transactions
-    };
+  const asset = await getAdminAsset(request.projectId);
+  if (!asset?.readyToBorrow || asset.vaultAddress?.toLowerCase() !== vault.toLowerCase()) {
+    return null;
   }
 
-  return null;
+  const maxDaily = maxBorrowUsdPerProject();
+  const maxByLtv = maxSafeBorrowUsd(asset);
+  if (request.amountUsd > Math.min(maxDaily, maxByLtv)) {
+    return null;
+  }
+
+  const oracleAddress = await resolveMorphoOracleAddress(request.projectId);
+  const planned = await planMorphoBorrowTransactions({
+    asset,
+    walletAddress: request.walletAddress,
+    amountUsd: request.amountUsd,
+    oracleAddress
+  });
+
+  if (!planned) {
+    return null;
+  }
+
+  return {
+    protocol: 'morpho',
+    chainId: chainConfig.chainId,
+    transactions: planned.transactions,
+    marketId: planned.marketId
+  };
 }
 
 export function listExecutableProtocols(): string[] {
-  return [...listExecutableProtocolsForChain()];
+  return ['morpho'];
 }
 
 export async function previewMorphoBorrowForProject(input: {

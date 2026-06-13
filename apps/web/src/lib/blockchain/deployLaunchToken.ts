@@ -2,7 +2,6 @@ import { Contract, ContractFactory, JsonRpcProvider, Wallet, type ContractRunner
 import type { TokenStandard, TokenInstrumentType, VaultFundingStatus } from '../admin/launchTypes';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
-import SanovaAsyncVaultArtifact from './artifacts/SanovaAsyncVault.json';
 import { deployAssetToken as deployThirdwebDemo } from './deployAssetToken';
 import { resolveProjectDeployChainId } from './projectDeployChain';
 import { isVaultTokenStandard } from '../admin/vaultStandards';
@@ -277,9 +276,8 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const vaultName = `${tokenName} Vault`.slice(0, 64);
     const vaultSymbol = `v${symbol}`.slice(0, 8);
 
-    const vaultArtifact =
-      input.tokenStandard === 'ERC7540' ? SanovaAsyncVaultArtifact : SanovaRwaVaultArtifact;
-    const vaultContractName = input.tokenStandard === 'ERC7540' ? 'SanovaAsyncVault' : 'SanovaRwaVault';
+    const vaultArtifact = SanovaRwaVaultArtifact;
+    const vaultContractName = 'SanovaRwaVault';
     const vaultFactory = new ContractFactory(vaultArtifact.abi, vaultArtifact.bytecode, wallet);
 
     deploymentStep = 'vault_deploy';

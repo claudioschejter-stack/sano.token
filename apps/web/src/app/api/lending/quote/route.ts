@@ -20,11 +20,9 @@ export async function POST(request: Request) {
 
     const quote = await quoteBorrow({
       amountUsd: Number(body.amountUsd),
-      collateralEth: body.collateralEth != null ? Number(body.collateralEth) : undefined,
       walletAddress: body.walletAddress.trim(),
       projectId: body.projectId,
-      vaultAddress: body.vaultAddress,
-      preferProtocol: body.preferProtocol
+      vaultAddress: body.vaultAddress
     });
 
     if (!quote) {

@@ -66,57 +66,25 @@ describe('emissionProfiles', () => {
     expect(DEFAULT_EMISSION_PROFILE_ID).toBe('BASE_MORPHO_4626');
   });
 
-  it('maps Plume ERC-7540 asset to PLUME_RWA_7540', () => {
-    const asset = minimalAsset({
-      tokenStandard: 'ERC7540',
-      chainId: 98866,
-      collateralTargets: [
-        { protocol: 'MORPHO', status: 'READY', readinessScore: 100, missingRequirements: [] },
-        { protocol: 'CENTRIFUGE', status: 'READY', readinessScore: 100, missingRequirements: [] }
-      ]
-    });
-    expect(inferEmissionProfileFromAsset(asset)).toBe('PLUME_RWA_7540');
-  });
-
-  it('maps Base ERC-4626 + Morpho + Centrifuge to BASE_FULL_4626', () => {
-    const asset = minimalAsset({
-      collateralTargets: [
-        { protocol: 'MORPHO', status: 'READY', readinessScore: 100, missingRequirements: [] },
-        { protocol: 'CENTRIFUGE', status: 'READY', readinessScore: 100, missingRequirements: [] }
-      ]
-    });
-    expect(inferEmissionProfileFromAsset(asset)).toBe('BASE_FULL_4626');
-  });
-
-  it('maps Base ERC-4626 + Morpho only to BASE_MORPHO_4626', () => {
+  it('maps Base ERC-4626 + Morpho to BASE_MORPHO_4626', () => {
     const asset = minimalAsset();
     expect(inferEmissionProfileFromAsset(asset)).toBe('BASE_MORPHO_4626');
   });
 
   it('returns CUSTOM for non-vault standards', () => {
-    const asset = minimalAsset({ tokenStandard: 'SANOVA_KYC' });
+    const asset = minimalAsset({ tokenStandard: 'THIRDWEB_DEMO' });
     expect(inferEmissionProfileFromAsset(asset)).toBe('CUSTOM');
   });
 
   it('builds collateral flags from profile protocols', () => {
-    const profile = getEmissionProfile('PLUME_RWA_7540');
+    const profile = getEmissionProfile('BASE_MORPHO_4626');
     expect(profile).not.toBeNull();
     const flags = collateralFlagsFromProtocols(profile!.collateralProtocols);
     expect(flags.collateralMorpho).toBe(true);
-    expect(flags.collateralCentrifuge).toBe(true);
-    expect(flags.collateralMaple).toBe(false);
   });
 
-  it('legacy inferred profiles only auto-run Morpho in pipeline', () => {
-    const asset = minimalAsset({
-      tokenStandard: 'ERC4626',
-      chainId: 8453,
-      collateralTargets: [
-        { protocol: 'MORPHO', status: 'REGISTERED', oracleAddress: '0x1' },
-        { protocol: 'CENTRIFUGE', status: 'REGISTERED' }
-      ] as AdminAssetRecord['collateralTargets']
-    });
-    expect(inferEmissionProfileFromAsset(asset)).toBe('BASE_FULL_4626');
+  it('auto collateral is Morpho only', () => {
+    const asset = minimalAsset();
     expect(autoCollateralProtocolsForAsset(asset)).toEqual(['MORPHO']);
   });
 
@@ -125,7 +93,7 @@ describe('emissionProfiles', () => {
       const profile = getEmissionProfile(id as EmissionProfileId);
       expect(profile?.id).toBe(id);
       expect(profile?.autoCollateral).toBe(true);
-      expect(profile?.collateralProtocols.length).toBeGreaterThan(0);
+      expect(profile?.collateralProtocols).toEqual(['MORPHO']);
     }
   });
 });

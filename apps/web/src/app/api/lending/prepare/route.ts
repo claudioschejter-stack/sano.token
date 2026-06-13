@@ -41,11 +41,9 @@ export async function POST(request: Request) {
 
     const prepared = await prepareBorrow({
       amountUsd: Number(body.amountUsd),
-      collateralEth: body.collateralEth != null ? Number(body.collateralEth) : undefined,
       walletAddress: linkedWallet,
       projectId: body.projectId,
-      vaultAddress: body.vaultAddress,
-      preferProtocol: body.preferProtocol
+      vaultAddress: body.vaultAddress
     });
 
     if (!prepared) {

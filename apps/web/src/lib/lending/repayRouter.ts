@@ -3,7 +3,7 @@ import { getLinkedWalletForUser, resolveInvestorLinkedWallet } from '../investor
 import { resolveMorphoDebtPositionsForUser } from '../portfolio/morphoDebtForUser';
 import { getLendingChainConfig } from './baseContracts';
 import { planMorphoRepayTransactions, previewMorphoRepay } from './morphoRepayPlanner';
-import type { PreparedTransaction } from './protocols/aaveBorrow';
+import type { PreparedTransaction } from './preparedTransaction';
 
 export type MorphoRepayPositionSummary = {
   projectId: string | null;

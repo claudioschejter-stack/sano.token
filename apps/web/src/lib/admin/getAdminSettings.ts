@@ -101,20 +101,8 @@ export async function getAdminSettings(): Promise<AdminSettings> {
         configured: isConfigured(process.env.COLLATERAL_SUBMISSION_WEBHOOK_URL)
       },
       {
-        id: 'centrifuge',
-        configured: isConfigured(process.env.CENTRIFUGE_API_KEY)
-      },
-      {
         id: 'morpho',
         configured: isConfigured(process.env.MORPHO_API_KEY, process.env.MORPHO_CURATOR_ADDRESS)
-      },
-      {
-        id: 'maple',
-        configured: isConfigured(process.env.MAPLE_API_KEY)
-      },
-      {
-        id: 'figure',
-        configured: isConfigured(process.env.FIGURE_API_KEY, process.env.FIGURE_ORG_ID)
       }
     ],
     access: {

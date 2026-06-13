@@ -1,4 +1,4 @@
-export type TokenStandard = 'SANOVA_KYC' | 'ERC4626' | 'ERC7540' | 'THIRDWEB_DEMO';
+export type TokenStandard = 'SANOVA_KYC' | 'ERC4626' | 'THIRDWEB_DEMO';
 
 export type TokenInstrumentType = 'DEBT' | 'EQUITY';
 
@@ -64,14 +64,7 @@ export type LaunchMediaItem = {
   caption?: string;
 };
 
-export type CollateralProtocol =
-  | 'CENTRIFUGE'
-  | 'SKY'
-  | 'MORPHO'
-  | 'AAVE_HORIZON'
-  | 'MAPLE'
-  | 'CLEARPOOL'
-  | 'FIGURE';
+export type CollateralProtocol = 'MORPHO';
 
 export type CollateralRegistrationStatus =
   | 'NOT_SELECTED'
@@ -156,13 +149,13 @@ export function instrumentTypeDefaults(type: TokenInstrumentType): {
   if (type === 'DEBT') {
     return {
       tokenStandard: 'ERC4626',
-      collateralProtocols: ['MAPLE', 'CLEARPOOL', 'CENTRIFUGE']
+      collateralProtocols: ['MORPHO']
     };
   }
 
   return {
-    tokenStandard: 'SANOVA_KYC',
-    collateralProtocols: ['CENTRIFUGE', 'MORPHO']
+    tokenStandard: 'ERC4626',
+    collateralProtocols: ['MORPHO']
   };
 }
 

@@ -7,7 +7,7 @@ import {
   morphoMarketId,
   type MorphoMarketParams
 } from './protocols/morphoBorrow';
-import type { PreparedTransaction } from './protocols/aaveBorrow';
+import type { PreparedTransaction } from './preparedTransaction';
 import { borrowSafetyBps, maxBorrowUsdPerProject } from '../blockchain/securityPolicy';
 
 const ERC20_ABI = [

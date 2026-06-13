@@ -1,6 +1,6 @@
 import type { Contract } from 'ethers';
 import { sendAutomationTx, waitForAutomationTx } from './automationTx';
-import { getLendingChainConfig } from '../lending/baseContracts';
+import { getLendingChainConfig, getLendingChainConfigForChain } from '../lending/baseContracts';
 
 function parseAddressList(value?: string): string[] {
   return (value ?? '')
@@ -9,16 +9,20 @@ function parseAddressList(value?: string): string[] {
     .filter((entry) => /^0x[a-fA-F0-9]{40}$/.test(entry));
 }
 
+export function allowedExternalContractsForChain(chainId: number): string[] {
+  const lending = getLendingChainConfigForChain(chainId);
+  const addresses = [lending.morpho, lending.morphoIrm, ...parseAddressList(process.env.RWA_ALLOWED_EXTERNAL_CONTRACTS)];
+  if (lending.usdc) {
+    addresses.push(lending.usdc);
+  }
+  if (lending.weth) {
+    addresses.push(lending.weth);
+  }
+  return Array.from(new Set(addresses.map((address) => address.toLowerCase())));
+}
+
 export function allowedExternalContracts(): string[] {
-  const lending = getLendingChainConfig();
-  return Array.from(
-    new Set([
-      lending.morpho,
-      lending.usdc,
-      lending.morphoIrm,
-      ...parseAddressList(process.env.RWA_ALLOWED_EXTERNAL_CONTRACTS)
-    ].map((address) => address.toLowerCase()))
-  );
+  return allowedExternalContractsForChain(getLendingChainConfig().chainId);
 }
 
 export function resolveDailyWithdrawalLimit(totalAssets: bigint): bigint {

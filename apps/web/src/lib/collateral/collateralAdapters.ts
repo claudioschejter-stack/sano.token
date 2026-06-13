@@ -63,45 +63,6 @@ async function postInstitutionalSubmission(
   };
 }
 
-async function registerCentrifuge(
-  project: CollateralProjectContext
-): Promise<CollateralAdapterResult> {
-  const payload = buildCollateralSubmissionPayload(project, 'CENTRIFUGE');
-  const apiKey = process.env.CENTRIFUGE_API_KEY?.trim();
-  const hubUrl = process.env.CENTRIFUGE_POOL_ADMIN_URL?.trim();
-
-  if (apiKey && hubUrl) {
-    try {
-      const response = await fetch(`${hubUrl.replace(/\/$/, '')}/pools/propose`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        const data = (await response.json()) as { poolId?: string; url?: string };
-        return {
-          status: 'SUBMITTED',
-          externalId: data.poolId ?? null,
-          poolUrl: data.url ?? null,
-          notes: 'Propuesta de pool enviada a Centrifuge Hub.'
-        };
-      }
-    } catch {
-      // fall through to institutional submission
-    }
-  }
-
-  return postInstitutionalSubmission('CENTRIFUGE', payload);
-}
-
-async function registerSky(project: CollateralProjectContext): Promise<CollateralAdapterResult> {
-  return postInstitutionalSubmission('SKY', buildCollateralSubmissionPayload(project, 'SKY'));
-}
-
 async function registerMorpho(project: CollateralProjectContext): Promise<CollateralAdapterResult> {
   const payload = buildCollateralSubmissionPayload(project, 'MORPHO');
 
@@ -161,55 +122,11 @@ function canCreateMorphoMarketDirectly(project: CollateralProjectContext): boole
   return Boolean(project.vaultAddress && privateKey && project.pricePerToken > 0);
 }
 
-async function registerAaveHorizon(
-  project: CollateralProjectContext
-): Promise<CollateralAdapterResult> {
-  return postInstitutionalSubmission(
-    'AAVE_HORIZON',
-    buildCollateralSubmissionPayload(project, 'AAVE_HORIZON')
-  );
-}
-
-async function registerMaple(project: CollateralProjectContext): Promise<CollateralAdapterResult> {
-  return postInstitutionalSubmission('MAPLE', buildCollateralSubmissionPayload(project, 'MAPLE'));
-}
-
-async function registerClearpool(
-  project: CollateralProjectContext
-): Promise<CollateralAdapterResult> {
-  return postInstitutionalSubmission(
-    'CLEARPOOL',
-    buildCollateralSubmissionPayload(project, 'CLEARPOOL')
-  );
-}
-
-async function registerFigure(project: CollateralProjectContext): Promise<CollateralAdapterResult> {
-  const apiKey = process.env.FIGURE_API_KEY?.trim();
-  const orgId = process.env.FIGURE_ORG_ID?.trim();
-  const payload = buildCollateralSubmissionPayload(project, 'FIGURE');
-
-  if (apiKey && orgId) {
-    return {
-      status: 'SUBMITTED',
-      externalId: `FIGURE-${orgId}-${project.id}`,
-      notes: 'Activo tokenizado enviado a Figure Markets para revisión de elegibilidad como colateral.'
-    };
-  }
-
-  return postInstitutionalSubmission('FIGURE', payload);
-}
-
 const ADAPTERS: Record<
   CollateralProtocol,
   (project: CollateralProjectContext) => Promise<CollateralAdapterResult>
 > = {
-  CENTRIFUGE: registerCentrifuge,
-  SKY: registerSky,
-  MORPHO: registerMorpho,
-  AAVE_HORIZON: registerAaveHorizon,
-  MAPLE: registerMaple,
-  CLEARPOOL: registerClearpool,
-  FIGURE: registerFigure
+  MORPHO: registerMorpho
 };
 
 export async function runCollateralAdapter(

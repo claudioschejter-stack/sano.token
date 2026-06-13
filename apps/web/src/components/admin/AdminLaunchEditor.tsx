@@ -92,13 +92,7 @@ type FormState = {
   contractAddress: string;
   isActive: boolean;
   deployToken: boolean;
-  collateralCentrifuge: boolean;
-  collateralSky: boolean;
   collateralMorpho: boolean;
-  collateralAaveHorizon: boolean;
-  collateralMaple: boolean;
-  collateralClearpool: boolean;
-  collateralFigure: boolean;
   contracts: {
     trust: string;
     purchase: string;
@@ -152,13 +146,7 @@ const EMPTY_FORM: FormState = {
   contractAddress: '',
   isActive: false,
   deployToken: true,
-  collateralCentrifuge: false,
-  collateralSky: false,
   collateralMorpho: true,
-  collateralAaveHorizon: false,
-  collateralMaple: false,
-  collateralClearpool: false,
-  collateralFigure: false,
   contracts: { trust: '', purchase: '', lease: '', smartContract: '' },
   mediaGallery: [],
   reelUrl: '',
@@ -168,13 +156,7 @@ const EMPTY_FORM: FormState = {
 function protocolFlagsFromTargets(targets: CollateralTarget[]) {
   const set = new Set(targets.map((t) => t.protocol));
   return {
-    collateralCentrifuge: set.has('CENTRIFUGE'),
-    collateralSky: set.has('SKY'),
-    collateralMorpho: set.has('MORPHO'),
-    collateralAaveHorizon: set.has('AAVE_HORIZON'),
-    collateralMaple: set.has('MAPLE'),
-    collateralClearpool: set.has('CLEARPOOL'),
-    collateralFigure: set.has('FIGURE')
+    collateralMorpho: set.has('MORPHO')
   };
 }
 
@@ -218,25 +200,14 @@ function assetToForm(asset: AdminAssetRecord): FormState {
 }
 
 function selectedCollateral(form: FormState): CollateralProtocol[] {
-  const protocols: CollateralProtocol[] = [];
-  if (form.collateralCentrifuge) protocols.push('CENTRIFUGE');
-  if (form.collateralSky) protocols.push('SKY');
-  if (form.collateralMorpho || isVaultTokenStandard(form.tokenStandard)) protocols.push('MORPHO');
-  if (form.collateralAaveHorizon) protocols.push('AAVE_HORIZON');
-  if (form.collateralMaple) protocols.push('MAPLE');
-  if (form.collateralClearpool) protocols.push('CLEARPOOL');
-  if (form.collateralFigure) protocols.push('FIGURE');
-  return protocols;
+  if (form.collateralMorpho || isVaultTokenStandard(form.tokenStandard)) {
+    return ['MORPHO'];
+  }
+  return [];
 }
 
 const COLLATERAL_FORM_KEYS: Array<{ key: keyof FormState; protocol: CollateralProtocol; label: string }> = [
-  { key: 'collateralCentrifuge', protocol: 'CENTRIFUGE', label: 'Centrifuge' },
-  { key: 'collateralSky', protocol: 'SKY', label: 'Sky Protocol (MakerDAO)' },
-  { key: 'collateralMorpho', protocol: 'MORPHO', label: 'Morpho' },
-  { key: 'collateralAaveHorizon', protocol: 'AAVE_HORIZON', label: 'Aave Horizon (RWA)' },
-  { key: 'collateralMaple', protocol: 'MAPLE', label: 'Maple Finance' },
-  { key: 'collateralClearpool', protocol: 'CLEARPOOL', label: 'Clearpool' },
-  { key: 'collateralFigure', protocol: 'FIGURE', label: 'Figure Markets' }
+  { key: 'collateralMorpho', protocol: 'MORPHO', label: 'Morpho (Base)' }
 ];
 
 export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: AdminLaunchEditorProps) {
@@ -1386,15 +1357,11 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                       }}
                       className={inputClass}
                     >
-                      <option value="SANOVA_KYC">{l.tokenStandardSanova}</option>
                       <option value="ERC4626">{l.tokenStandardErc4626}</option>
-                      <option value="ERC7540">{l.tokenStandardErc7540}</option>
                       <option value="THIRDWEB_DEMO">{l.tokenStandardThirdweb}</option>
                     </select>
                     <p className="mt-1 text-xs text-terminal-muted">
-                      {form.tokenStandard === 'SANOVA_KYC' && l.tokenStandardSanovaDesc}
                       {form.tokenStandard === 'ERC4626' && l.tokenStandardErc4626Desc}
-                      {form.tokenStandard === 'ERC7540' && l.tokenStandardErc7540Desc}
                       {form.tokenStandard === 'THIRDWEB_DEMO' && l.tokenStandardThirdwebDesc}
                     </p>
                   </label>

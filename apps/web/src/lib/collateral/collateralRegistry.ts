@@ -1,7 +1,7 @@
 import type { AdminAssetRecord } from '../admin/assetsService';
 import type { CollateralProtocol, TokenStandard } from '../admin/launchTypes';
 import { isVaultTokenStandard } from '../admin/vaultStandards';
-import { PLUME_MAINNET_CHAIN_ID, PLUME_TESTNET_CHAIN_ID } from '../blockchain/supportedChains';
+import { BASE_MAINNET_CHAIN_ID } from '../blockchain/supportedChains';
 
 export type CollateralRequirementId =
   | 'tokenDeployed'
@@ -32,7 +32,7 @@ export type CollateralRequirement = {
 export type CollateralProtocolDefinition = {
   id: CollateralProtocol;
   name: string;
-  category: 'rwa_pool' | 'money_market' | 'credit_pool' | 'provenance';
+  category: 'money_market';
   envCredentialKeys: string[];
   docsUrl: string;
   minTokenSupply: number;
@@ -91,124 +91,19 @@ const BASE_REQUIREMENTS: CollateralRequirement[] = [
 
 export const COLLATERAL_PROTOCOLS: CollateralProtocolDefinition[] = [
   {
-    id: 'CENTRIFUGE',
-    name: 'Centrifuge',
-    category: 'rwa_pool',
-    envCredentialKeys: ['CENTRIFUGE_API_KEY', 'CENTRIFUGE_POOL_ADMIN_URL'],
-    docsUrl: 'https://docs.centrifuge.io',
-    minTokenSupply: 1000,
-    supportedChainIds: [1, 8453, 84532, 137, PLUME_MAINNET_CHAIN_ID, PLUME_TESTNET_CHAIN_ID],
-    requiresErc4626: true,
-    requiresSanovaToken: true,
-    institutionalReview: true,
-    requirements: [
-      ...BASE_REQUIREMENTS,
-      { id: 'erc4626Vault', labelKey: 'erc4626Vault', weight: 10 }
-    ]
-  },
-  {
-    id: 'SKY',
-    name: 'Sky Protocol (MakerDAO)',
-    category: 'money_market',
-    envCredentialKeys: ['SKY_INSTITUTIONAL_CONTACT', 'CHAINLINK_ORACLE_KEY'],
-    docsUrl: 'https://docs.sky.money',
-    minTokenSupply: 10000,
-    supportedChainIds: [1, 8453],
-    requiresErc4626: false,
-    requiresSanovaToken: true,
-    institutionalReview: true,
-    requirements: [
-      ...BASE_REQUIREMENTS,
-      { id: 'purchaseContractUploaded', labelKey: 'purchaseContractUploaded', weight: 8 },
-      { id: 'promoterEntitySet', labelKey: 'promoterEntitySet', weight: 5 }
-    ]
-  },
-  {
     id: 'MORPHO',
     name: 'Morpho',
     category: 'money_market',
     envCredentialKeys: ['MORPHO_API_KEY', 'MORPHO_CURATOR_ADDRESS'],
     docsUrl: 'https://docs.morpho.org',
     minTokenSupply: 5000,
-    supportedChainIds: [1, 8453, 84532, 137, PLUME_MAINNET_CHAIN_ID, PLUME_TESTNET_CHAIN_ID],
+    supportedChainIds: [BASE_MAINNET_CHAIN_ID],
     requiresErc4626: true,
     requiresSanovaToken: true,
     institutionalReview: true,
     requirements: [
       ...BASE_REQUIREMENTS,
       { id: 'erc4626Vault', labelKey: 'erc4626Vault', weight: 12 }
-    ]
-  },
-  {
-    id: 'AAVE_HORIZON',
-    name: 'Aave Horizon (RWA)',
-    category: 'money_market',
-    envCredentialKeys: ['AAVE_HORIZON_API_KEY', 'AAVE_HORIZON_RISK_ADMIN'],
-    docsUrl: 'https://aave.com/docs/developers/aave-v3',
-    minTokenSupply: 5000,
-    supportedChainIds: [1, 8453],
-    requiresErc4626: true,
-    requiresSanovaToken: true,
-    institutionalReview: true,
-    requirements: [
-      ...BASE_REQUIREMENTS,
-      { id: 'erc4626Vault', labelKey: 'erc4626Vault', weight: 10 },
-      { id: 'leaseContractUploaded', labelKey: 'leaseContractUploaded', weight: 6 }
-    ]
-  },
-  {
-    id: 'MAPLE',
-    name: 'Maple Finance',
-    category: 'credit_pool',
-    envCredentialKeys: ['MAPLE_API_KEY', 'MAPLE_POOL_DELEGATE'],
-    docsUrl: 'https://docs.maple.finance',
-    minTokenSupply: 25000,
-    supportedChainIds: [1, 8453, 84532],
-    requiresErc4626: false,
-    requiresSanovaToken: true,
-    institutionalReview: true,
-    requirements: [
-      ...BASE_REQUIREMENTS,
-      { id: 'purchaseContractUploaded', labelKey: 'purchaseContractUploaded', weight: 10 },
-      { id: 'liquidityPlanDocumented', labelKey: 'liquidityPlanDocumented', weight: 10 },
-      { id: 'debtInstrumentType', labelKey: 'debtInstrumentType', weight: 10 },
-      { id: 'maturityDateSet', labelKey: 'maturityDateSet', weight: 8 }
-    ]
-  },
-  {
-    id: 'CLEARPOOL',
-    name: 'Clearpool',
-    category: 'credit_pool',
-    envCredentialKeys: ['CLEARPOOL_API_KEY', 'CLEARPOOL_BORROWER_ID'],
-    docsUrl: 'https://docs.clearpool.finance',
-    minTokenSupply: 10000,
-    supportedChainIds: [1, 8453, 137],
-    requiresErc4626: false,
-    requiresSanovaToken: true,
-    institutionalReview: true,
-    requirements: [
-      ...BASE_REQUIREMENTS,
-      { id: 'legalAuditDone', labelKey: 'legalAuditDone', weight: 12 },
-      { id: 'promoterEntitySet', labelKey: 'promoterEntitySet', weight: 8 },
-      { id: 'debtInstrumentType', labelKey: 'debtInstrumentType', weight: 10 },
-      { id: 'maturityDateSet', labelKey: 'maturityDateSet', weight: 8 }
-    ]
-  },
-  {
-    id: 'FIGURE',
-    name: 'Figure Markets',
-    category: 'provenance',
-    envCredentialKeys: ['FIGURE_API_KEY', 'FIGURE_ORG_ID'],
-    docsUrl: 'https://figure.com/markets',
-    minTokenSupply: 5000,
-    supportedChainIds: [1],
-    requiresErc4626: false,
-    requiresSanovaToken: true,
-    institutionalReview: true,
-    requirements: [
-      ...BASE_REQUIREMENTS,
-      { id: 'purchaseContractUploaded', labelKey: 'purchaseContractUploaded', weight: 10 },
-      { id: 'leaseContractUploaded', labelKey: 'leaseContractUploaded', weight: 8 }
     ]
   }
 ];
