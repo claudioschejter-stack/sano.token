@@ -1,4 +1,4 @@
-import type { SystemRole } from './roles';
+import { isStaffRole, type SystemRole } from './roles';
 
 export const ALL_SYSTEM_ROLES = new Set<SystemRole>([
   'ADMIN',
@@ -66,7 +66,16 @@ export function resolveRoleForEmail(email: string, fallbackRole?: SystemRole): S
 }
 
 export function resolveRoleForExistingUser(email: string, currentRole: SystemRole): SystemRole {
-  return resolveRoleForEmail(email, currentRole);
+  const fromAllowlist = resolveRoleFromAllowlist(email);
+  if (!fromAllowlist) {
+    return currentRole;
+  }
+
+  if (fromAllowlist === 'INVESTOR' && isStaffRole(currentRole)) {
+    return currentRole;
+  }
+
+  return fromAllowlist;
 }
 
 export function isPreApprovedInvestorEmail(email: string): boolean {

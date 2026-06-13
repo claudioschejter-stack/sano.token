@@ -1,4 +1,5 @@
 import type { AccountStatus, KycStatus } from '@sanova/database';
+import { isPendingInvestorWallet } from '../investor/provisionInvestorProfile';
 import { allowDemoKyc } from '../runtime/environment';
 
 export type OnboardingChecklist = {
@@ -33,6 +34,15 @@ type UserOnboardingFields = {
   systemRole?: string | null;
 };
 
+function resolveLinkedWallet(walletAddress?: string | null): string | null {
+  const trimmed = walletAddress?.trim();
+  if (!trimmed || isPendingInvestorWallet(trimmed)) {
+    return null;
+  }
+
+  return trimmed;
+}
+
 export function isAccountOperational(user: UserOnboardingFields): boolean {
   const identityVerified =
     Boolean(user.emailVerifiedAt) &&
@@ -41,7 +51,7 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
     user.accountStatus !== 'SUSPENDED';
 
   if (user.systemRole === 'INVESTOR') {
-    return identityVerified && Boolean(user.walletAddress?.trim());
+    return identityVerified && Boolean(resolveLinkedWallet(user.walletAddress));
   }
 
   return identityVerified;
@@ -60,7 +70,7 @@ export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolea
   }
 
   if (user.systemRole === 'INVESTOR') {
-    return Boolean(user.walletAddress?.trim());
+    return Boolean(resolveLinkedWallet(user.walletAddress));
   }
 
   return true;
@@ -79,11 +89,11 @@ export function buildOnboardingChecklist(
   diditEnabled: boolean
 ): OnboardingChecklist {
   const emailVerified = Boolean(user.emailVerifiedAt);
-  const phoneVerified = Boolean(user.phone?.trim());
+  const phoneVerified = Boolean(user.phoneVerifiedAt ?? user.phone?.trim());
   const contactVerified = phoneVerified && emailVerified;
   const kycEnabled = contactVerified;
   const kycApproved = user.kycStatus === 'APPROVED';
-  const walletAddress = user.walletAddress?.trim() || null;
+  const walletAddress = resolveLinkedWallet(user.walletAddress);
   const walletLinked = Boolean(walletAddress);
   const operational = isAccountOperational({ ...user, walletAddress });
   const accountStatus = deriveAccountStatus({ ...user, walletAddress });

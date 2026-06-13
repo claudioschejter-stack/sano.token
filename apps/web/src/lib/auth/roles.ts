@@ -14,6 +14,16 @@ export const CORE_PLATFORM_ROLES = [
   'INVESTOR'
 ] as const satisfies readonly SystemRole[];
 
+/** Roles assignable from the admin team panel. */
+export const ADMIN_ASSIGNABLE_ROLES = [
+  'ADMIN',
+  'ADVISOR_MANAGER',
+  'ADVISOR',
+  'INVESTOR',
+  'TREASURY',
+  'OPERATOR'
+] as const satisfies readonly SystemRole[];
+
 export type CorePlatformRole = (typeof CORE_PLATFORM_ROLES)[number];
 
 export const ROLE_HOME_PATH: Record<SystemRole, string> = {

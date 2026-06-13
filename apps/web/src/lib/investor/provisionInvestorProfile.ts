@@ -10,6 +10,21 @@ export function isPendingInvestorWallet(walletAddress: string | null | undefined
   return Boolean(walletAddress?.toLowerCase().startsWith(PENDING_INVESTOR_WALLET_PREFIX));
 }
 
+/** User-linked wallet for operational checks; ignores investor `pending:*` placeholders. */
+export function resolveOperationalWalletAddress(
+  userWallet: string | null | undefined,
+  investorWallet: string | null | undefined
+): string | null {
+  for (const candidate of [userWallet, investorWallet]) {
+    const trimmed = candidate?.trim();
+    if (trimmed && !isPendingInvestorWallet(trimmed)) {
+      return trimmed;
+    }
+  }
+
+  return null;
+}
+
 /**
  * Creates Investor + Portfolio when KYC is approved for an INVESTOR user.
  * Uses a deterministic pending wallet until the user links an on-chain address.

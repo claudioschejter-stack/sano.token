@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { auth } from '../../../../../auth';
 import { CheckoutView } from '../../../../../components/marketplace/CheckoutView';
 import { canAccessMarketplaceCheckout } from '../../../../../lib/onboarding/accountStatus';
+import { resolveOperationalWalletAddress } from '../../../../../lib/investor/provisionInvestorProfile';
 import { prisma } from '@sanova/database';
 
 type CheckoutPageProps = {
@@ -28,11 +29,16 @@ export default async function MarketplaceCheckoutPage({ params }: CheckoutPagePr
       kycStatus: true,
       accountStatus: true,
       walletAddress: true,
-      systemRole: true
+      systemRole: true,
+      investor: { select: { walletAddress: true } }
     }
   });
 
-  if (!user || !canAccessMarketplaceCheckout(user)) {
+  const walletAddress = user
+    ? resolveOperationalWalletAddress(user.walletAddress, user.investor?.walletAddress)
+    : null;
+
+  if (!user || !canAccessMarketplaceCheckout({ ...user, walletAddress })) {
     redirect(`/kyc?returnTo=/marketplace/${params.projectId}/checkout`);
   }
 

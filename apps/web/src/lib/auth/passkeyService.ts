@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -15,17 +16,24 @@ import {
   resolvePasskeyWebContextFromClientOrigin,
   type PasskeyWebContext
 } from './passkeyConfig';
-import { issueAuthUserById, updateUserRoleIfNeeded } from './issueAuthUser';
+import { issueAuthUser, updateUserRoleIfNeeded } from './issueAuthUser';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const LOGIN_TOKEN_TTL = '2m';
 
 function passkeyLoginSecret(): Uint8Array {
-  const secret = process.env.AUTH_INTERNAL_SECRET?.trim() || process.env.JWT_SECRET?.trim();
+  const secret =
+    process.env.AUTH_INTERNAL_SECRET?.trim() ||
+    process.env.JWT_SECRET?.trim() ||
+    process.env.AUTH_SECRET?.trim();
   if (!secret || secret.length < 32) {
     throw new Error('AUTH_SECRET_NOT_CONFIGURED');
   }
   return new TextEncoder().encode(secret);
+}
+
+function hashLoginToken(loginToken: string): string {
+  return createHash('sha256').update(loginToken).digest('hex');
 }
 
 async function storeChallenge(input: {
@@ -102,7 +110,7 @@ export async function createPasskeyRegistrationOptions(userId: string, webContex
     })),
     authenticatorSelection: {
       residentKey: 'preferred',
-      userVerification: 'preferred'
+      userVerification: 'required'
     }
   });
 
@@ -292,24 +300,23 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
 
   await prisma.webAuthnChallenge.delete({ where: { id: challengeRecord.id } }).catch(() => undefined);
 
-  const role = await updateUserRoleIfNeeded(
-    passkey.user.id,
-    passkey.user.email,
-    passkey.user.systemRole as import('./roles').SystemRole
-  );
-
-  const authUser = await issueAuthUserById(passkey.user.id);
-  if (!authUser) {
-    throw new Error('USER_NOT_FOUND');
-  }
-
   const loginToken = await new SignJWT({ sub: passkey.user.id, purpose: 'passkey-login' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(LOGIN_TOKEN_TTL)
     .sign(passkeyLoginSecret());
 
-  return { loginToken, authUser: { ...authUser, role } };
+  await prisma.webAuthnChallenge.create({
+    data: {
+      challenge: hashLoginToken(loginToken),
+      type: 'LOGIN_TOKEN',
+      userId: passkey.user.id,
+      email: passkey.user.email,
+      expiresAt: new Date(Date.now() + 2 * 60 * 1000)
+    }
+  });
+
+  return { loginToken, email: passkey.user.email };
 }
 
 export async function verifyPasskeyLoginToken(loginToken: string) {
@@ -318,7 +325,38 @@ export async function verifyPasskeyLoginToken(loginToken: string) {
     return null;
   }
 
-  return issueAuthUserById(payload.sub);
+  const tokenHash = hashLoginToken(loginToken);
+  const tokenRecord = await prisma.webAuthnChallenge.findUnique({
+    where: { challenge: tokenHash }
+  });
+
+  if (
+    !tokenRecord ||
+    tokenRecord.type !== 'LOGIN_TOKEN' ||
+    tokenRecord.expiresAt < new Date() ||
+    tokenRecord.userId !== payload.sub
+  ) {
+    return null;
+  }
+
+  await prisma.webAuthnChallenge.delete({ where: { id: tokenRecord.id } }).catch(() => undefined);
+
+  const user = await prisma.user.findUnique({
+    where: { id: payload.sub },
+    select: { id: true, email: true, systemRole: true }
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  const role = await updateUserRoleIfNeeded(
+    user.id,
+    user.email,
+    user.systemRole as import('./roles').SystemRole
+  );
+
+  return issueAuthUser(user.id, user.email, role);
 }
 
 export async function userHasPasskeys(userId: string): Promise<boolean> {

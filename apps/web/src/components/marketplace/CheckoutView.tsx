@@ -203,7 +203,12 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
       setStatus('idle');
       return;
     } catch (error) {
-      setPurchaseError(error instanceof Error ? error.message : 'PURCHASE_FAILED');
+      const message = error instanceof Error ? error.message : 'PURCHASE_FAILED';
+      if (message === 'INVESTOR_ACCESS_NOT_ENABLED') {
+        setPurchaseError(t.access.register.errors.INVALID_INVITE_CODE);
+      } else {
+        setPurchaseError(message);
+      }
       setStatus('idle');
     }
   };

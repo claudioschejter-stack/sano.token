@@ -104,6 +104,28 @@ export function AdminInvestorsView() {
     }
   }
 
+  async function handleAccessToggle(userId: string, enabled: boolean) {
+    setUpdatingId(userId);
+
+    try {
+      const response = await fetch(`/api/admin/investors/${userId}/access`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled })
+      });
+
+      if (!response.ok) {
+        throw new Error('access update failed');
+      }
+
+      await loadInvestors(filter);
+    } catch {
+      setError(true);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   async function handleKycUpdate(userId: string, status: 'APPROVED' | 'REJECTED') {
     setUpdatingId(userId);
 
@@ -246,6 +268,7 @@ export function AdminInvestorsView() {
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colEmail}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colWallet}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colKyc}</th>
+                  <th className="px-6 py-3 font-semibold">{t.adminInvestors.colAccess}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colIdentity}</th>
                   <th className="px-6 py-3 font-semibold">{t.advisorPortal.colAdvisor}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colRegistered}</th>
@@ -255,19 +278,19 @@ export function AdminInvestorsView() {
               <tbody className="divide-y divide-terminal-border">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={9} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminInvestors.loading}
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-red-400">
+                    <td colSpan={9} className="px-6 py-10 text-center text-red-400">
                       {t.adminInvestors.error}
                     </td>
                   </tr>
                 ) : investors.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={9} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminInvestors.empty}
                     </td>
                   </tr>
@@ -302,6 +325,24 @@ export function AdminInvestorsView() {
                           >
                             {statusLabels[row.kycStatus] ?? row.kycStatus}
                           </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            type="button"
+                            disabled={isUpdating}
+                            onClick={() =>
+                              void handleAccessToggle(row.id, !row.investorAccessEnabled)
+                            }
+                            className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                              row.investorAccessEnabled
+                                ? 'border-terminal-success/30 text-terminal-success hover:bg-terminal-success/10'
+                                : 'border-terminal-warning/30 text-terminal-warning hover:bg-terminal-warning/10'
+                            }`}
+                          >
+                            {row.investorAccessEnabled
+                              ? t.adminInvestors.accessEnabled
+                              : t.adminInvestors.accessDisabled}
+                          </button>
                         </td>
                         <td className="px-6 py-4">
                           {hasIdentity ? (
@@ -375,7 +416,7 @@ export function AdminInvestorsView() {
                       </tr>
                       {isExpanded ? (
                         <tr key={`${row.id}-identity`} className="bg-terminal-bg/40">
-                          <td colSpan={8} className="px-6 py-4">
+                          <td colSpan={9} className="px-6 py-4">
                             <KycIdentityDetails
                               identity={row.kycIdentity}
                               labels={identityLabels}

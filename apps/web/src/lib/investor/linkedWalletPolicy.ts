@@ -1,5 +1,6 @@
 import { prisma } from '@sanova/database';
 import { getAddress, isAddress } from 'ethers';
+import { isPendingInvestorWallet } from './provisionInvestorProfile';
 import { BASE_CHAIN_ID } from '../web3/config';
 
 export function normalizeLinkedWalletAddress(walletAddress: string): string {
@@ -19,8 +20,17 @@ export async function getLinkedWalletForUser(userId: string): Promise<string | n
     }
   });
 
-  const linked = user?.walletAddress?.trim() || user?.investor?.walletAddress?.trim() || null;
-  return linked ? normalizeLinkedWalletAddress(linked) : null;
+  const candidates = [user?.walletAddress, user?.investor?.walletAddress];
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (!trimmed || isPendingInvestorWallet(trimmed)) {
+      continue;
+    }
+
+    return normalizeLinkedWalletAddress(trimmed);
+  }
+
+  return null;
 }
 
 export async function assertWalletAvailableForUser(userId: string, walletAddress: string): Promise<void> {

@@ -89,7 +89,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
   const capabilities = getMarketplaceCapabilities(role);
   const { checklist } = useAccountStatus();
   const kycStatus = capabilities.useInvestorKycStatus
-    ? checklist?.operational
+    ? checklist?.kycApproved
       ? 'APPROVED'
       : checklist?.kycStatus ?? 'PENDING'
     : 'APPROVED';

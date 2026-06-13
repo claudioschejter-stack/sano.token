@@ -1,10 +1,7 @@
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { SignJWT } from 'jose';
 import type { SystemRole } from './roles';
-import {
-  resolveRoleForEmail,
-  resolveRoleForExistingUser
-} from './roleAllowlist';
+import { isPreApprovedInvestorEmail, resolveRoleForEmail, resolveRoleForExistingUser } from './roleAllowlist';
 
 type OAuthLoginInput = {
   email: string;
@@ -14,11 +11,17 @@ type OAuthLoginInput = {
   providerAccountId: string;
 };
 
+function resolveInvestorAccessForOAuth(email: string): boolean {
+  return (
+    process.env.INVESTOR_OPEN_REGISTRATION === 'true' || isPreApprovedInvestorEmail(email)
+  );
+}
+
 export async function handleOAuthLogin(input: OAuthLoginInput) {
   const email = input.email.trim().toLowerCase();
   const existingUser = await prisma.user.findUnique({
     where: { email },
-    select: { systemRole: true }
+    select: { systemRole: true, investorAccessEnabled: true }
   });
 
   const role = existingUser
@@ -33,14 +36,20 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
       image: input.image ?? undefined,
       oauthProvider: input.provider,
       oauthProviderId: input.providerAccountId,
-      systemRole: role as PrismaSystemRole
+      systemRole: role as PrismaSystemRole,
+      investorAccessEnabled: role === 'INVESTOR' ? resolveInvestorAccessForOAuth(email) : false
     },
     update: {
       name: input.name ?? undefined,
       image: input.image ?? undefined,
       oauthProvider: input.provider,
       oauthProviderId: input.providerAccountId,
-      systemRole: role as PrismaSystemRole
+      systemRole: role as PrismaSystemRole,
+      ...(role === 'INVESTOR' &&
+      !existingUser?.investorAccessEnabled &&
+      resolveInvestorAccessForOAuth(email)
+        ? { investorAccessEnabled: true }
+        : {})
     }
   });
 

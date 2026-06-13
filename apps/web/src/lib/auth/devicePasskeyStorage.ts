@@ -44,3 +44,15 @@ export function saveDevicePasskeyHint(hint: DevicePasskeyHint): void {
     /* ignore quota / private mode */
   }
 }
+
+export function clearDevicePasskeyHint(): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}

@@ -13,7 +13,13 @@ import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { LandingHeader } from './LandingHeader';
 import { TrustBadges } from './TrustBadges';
 
-function buildLoginHref(returnTo: string, email: string, staffInvite: boolean, inviteError: string | null) {
+function buildLoginHref(
+  returnTo: string,
+  email: string,
+  staffInvite: boolean,
+  inviteError: string | null,
+  investorInvite: string
+) {
   const params = new URLSearchParams();
   params.set('returnTo', returnTo);
   if (email) {
@@ -24,6 +30,9 @@ function buildLoginHref(returnTo: string, email: string, staffInvite: boolean, i
   }
   if (inviteError) {
     params.set('inviteError', inviteError);
+  }
+  if (investorInvite) {
+    params.set('invite', investorInvite);
   }
   return `/acceso?${params.toString()}`;
 }
@@ -40,7 +49,7 @@ function RegisterPageContent() {
   const inviteError = searchParams.get('inviteError');
   const investorInvite = searchParams.get('invite')?.trim() ?? '';
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
-  const loginHref = buildLoginHref(returnTo, inviteEmail, staffInvite, inviteError);
+  const loginHref = buildLoginHref(returnTo, inviteEmail, staffInvite, inviteError, investorInvite);
 
   const { isOperational, loading: accountLoading } = useAccountStatus();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;

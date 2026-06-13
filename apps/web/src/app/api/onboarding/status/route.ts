@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
+import { resolveOperationalWalletAddress } from '../../../../lib/investor/provisionInvestorProfile';
 import { buildOnboardingChecklist } from '../../../../lib/onboarding/accountStatus';
 import { buildOnboardingProfile } from '../../../../lib/onboarding/profile';
 import { getOnboardingIntegrations } from '../../../../lib/onboarding/integrationStatus';
@@ -44,7 +45,10 @@ export async function GET() {
     return NextResponse.json({ error: 'NOT_FOUND' }, { status: 404 });
   }
 
-  const walletAddress = user.walletAddress ?? user.investor?.walletAddress ?? null;
+  const walletAddress = resolveOperationalWalletAddress(
+    user.walletAddress,
+    user.investor?.walletAddress
+  );
 
   return NextResponse.json({
     checklist: buildOnboardingChecklist(

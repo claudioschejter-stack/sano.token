@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { RegistrationResponseJSON } from '@simplewebauthn/server';
 import { auth } from '../../../../../../auth';
+import { resolvePasskeyWebContext } from '../../../../../../lib/auth/passkeyConfig';
 import { verifyPasskeyRegistration } from '../../../../../../lib/auth/passkeyService';
 
 export async function POST(request: Request) {
@@ -21,7 +22,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    await verifyPasskeyRegistration(userId, body.response, body.deviceName);
+    const webContext = resolvePasskeyWebContext(request);
+    await verifyPasskeyRegistration(userId, body.response, body.deviceName, webContext);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[passkey/register/verify]', error);

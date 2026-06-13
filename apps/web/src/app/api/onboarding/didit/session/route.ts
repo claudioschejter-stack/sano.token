@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
+import { safeReturnTo } from '../../../../../lib/auth/redirects';
+import { DEFAULT_POST_ONBOARDING_PATH } from '../../../../../lib/auth/kycPaths';
 import { createDiditSession, isDiditConfigured } from '../../../../../lib/onboarding/diditService';
 import { requireContactVerifiedUser } from '../../../../../lib/onboarding/contactVerification';
 
@@ -18,8 +20,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'DIDIT_NOT_CONFIGURED' }, { status: 503 });
   }
 
+  let returnTo = DEFAULT_POST_ONBOARDING_PATH;
+  try {
+    const body = (await request.json()) as { returnTo?: string };
+    returnTo = safeReturnTo(body.returnTo, DEFAULT_POST_ONBOARDING_PATH);
+  } catch {
+    /* optional body */
+  }
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
-  const callbackUrl = `${siteUrl}/acceso/callback`;
+  const callbackUrl = `${siteUrl}/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
 
   try {
     const session = await createDiditSession({

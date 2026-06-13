@@ -7,7 +7,11 @@ import { useMemo, useState } from 'react';
 import { startAuthentication, type PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
-import { getDevicePasskeyHint, saveDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
+import {
+  clearDevicePasskeyHint,
+  getDevicePasskeyHint,
+  saveDevicePasskeyHint
+} from '../../lib/auth/devicePasskeyStorage';
 
 type PasskeyLoginButtonProps = {
   email?: string;
@@ -62,15 +66,14 @@ export function PasskeyLoginButton({
       };
 
       if (!optionsResponse.ok || !optionsData.options) {
-        throw new Error(optionsData.error ?? 'OPTIONS_FAILED');
+        const code = optionsData.error ?? 'OPTIONS_FAILED';
+        if (code === 'PASSKEY_NOT_FOUND') {
+          clearDevicePasskeyHint();
+        }
+        throw new Error(code);
       }
 
       const assertion = await startAuthentication({ optionsJSON: optionsData.options });
-
-      const resolvedEmail = loginEmail ?? deviceHint?.email ?? null;
-      if (resolvedEmail && assertion.id) {
-        saveDevicePasskeyHint({ email: resolvedEmail, credentialId: assertion.id });
-      }
 
       const verifyResponse = await fetch('/api/auth/passkey/login/verify', {
         method: 'POST',
@@ -78,9 +81,22 @@ export function PasskeyLoginButton({
         body: JSON.stringify({ response: assertion })
       });
 
-      const verifyData = (await verifyResponse.json()) as { loginToken?: string; error?: string };
+      const verifyData = (await verifyResponse.json()) as {
+        loginToken?: string;
+        email?: string;
+        error?: string;
+      };
       if (!verifyResponse.ok || !verifyData.loginToken) {
-        throw new Error(verifyData.error ?? 'VERIFY_FAILED');
+        const code = verifyData.error ?? 'VERIFY_FAILED';
+        if (code === 'PASSKEY_NOT_FOUND') {
+          clearDevicePasskeyHint();
+        }
+        throw new Error(code);
+      }
+
+      const hintEmail = verifyData.email?.trim().toLowerCase() || loginEmail;
+      if (hintEmail && assertion.id) {
+        saveDevicePasskeyHint({ email: hintEmail, credentialId: assertion.id });
       }
 
       const result = await signIn('passkey', {

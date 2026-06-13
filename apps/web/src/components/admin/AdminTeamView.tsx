@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { PlatformTeamMember, AdvisorTeamMember } from '../../lib/admin/teamService';
-import { CORE_PLATFORM_ROLES, type SystemRole } from '../../lib/auth/roles';
+import { ADMIN_ASSIGNABLE_ROLES, type SystemRole } from '../../lib/auth/roles';
 import { AdminGate } from './AdminGate';
 
 function VerificationCell({
@@ -66,7 +66,7 @@ export function AdminTeamView() {
 
   const selectedCount = selectedUserIds.length;
   const allMembersSelected = members.length > 0 && selectedCount === members.length;
-  const roleOptions: SystemRole[] = [...CORE_PLATFORM_ROLES];
+  const roleOptions: SystemRole[] = [...ADMIN_ASSIGNABLE_ROLES];
   const managerOptions = managers.filter((row) => row.systemRole === 'ADVISOR_MANAGER');
 
   const loadData = useCallback(async () => {
@@ -261,6 +261,7 @@ export function AdminTeamView() {
           ? t.adminTeam.inviteEmailNotSent
           : t.adminTeam.inviteSuccess
       );
+      await loadData();
     } catch {
       setActionMessage(t.adminTeam.inviteError);
     } finally {

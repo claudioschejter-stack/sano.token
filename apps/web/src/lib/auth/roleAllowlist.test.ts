@@ -43,14 +43,16 @@ describe('roleAllowlist', () => {
     expect(resolveRoleFromAllowlist('operator@test.com')).toBe('OPERATOR');
   });
 
-  it('preserves existing staff role when email is not on allowlist', () => {
-    expect(resolveRoleForExistingUser('advisor@test.com', 'ADVISOR')).toBe('ADVISOR');
-  });
-
-  it('overrides existing role when allowlist matches', () => {
+  it('promotes existing user when allowlist matches', () => {
     process.env.AUTH_ADMIN_EMAILS = 'promoted@test.com';
 
     expect(resolveRoleForExistingUser('promoted@test.com', 'INVESTOR')).toBe('ADMIN');
+  });
+
+  it('does not downgrade staff via investor allowlist', () => {
+    process.env.AUTH_INVESTOR_EMAILS = 'advisor@test.com';
+
+    expect(resolveRoleForExistingUser('advisor@test.com', 'ADVISOR')).toBe('ADVISOR');
   });
 
   it('falls back to default role for new emails', () => {

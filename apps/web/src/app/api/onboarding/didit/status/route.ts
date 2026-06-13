@@ -30,7 +30,7 @@ export async function POST() {
     const status = (decision.status as string | undefined) ?? (decision.decision as string | undefined);
     const kycStatus = mapDiditStatusToKyc(status);
 
-    if (kycStatus !== user.kycStatus || kycStatus !== 'PENDING') {
+    if (kycStatus !== user.kycStatus && kycStatus !== 'PENDING') {
       const identity = extractDiditIdentity(decision);
 
       await prisma.user.update({

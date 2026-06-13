@@ -80,6 +80,10 @@ export async function inviteTeamMember(input: {
     throw new Error('INVITE_ALREADY_PENDING');
   }
 
+  if (input.role === 'ADVISOR_MANAGER' && input.uplineAdvisorId) {
+    throw new Error('MANAGER_CANNOT_HAVE_UPLINE');
+  }
+
   if (input.uplineAdvisorId) {
     const upline = await prisma.advisor.findUnique({
       where: { id: input.uplineAdvisorId },
@@ -88,10 +92,6 @@ export async function inviteTeamMember(input: {
 
     if (!upline) {
       throw new Error('UPLINE_NOT_FOUND');
-    }
-
-    if (input.role === 'ADVISOR_MANAGER' && upline.user.systemRole !== 'ADVISOR_MANAGER') {
-      throw new Error('MANAGER_CANNOT_HAVE_UPLINE');
     }
   }
 
@@ -194,8 +194,14 @@ export async function acceptTeamInvite(token: string): Promise<{ redirectUrl: st
     }
   });
 
+  const onboardedUser = await prisma.user.findUnique({
+    where: { email: invite.email },
+    select: { passwordHash: true }
+  });
+
   const kycPath = buildKycUrl(postOnboardingPath(role));
-  const redirectUrl = `/acceso/registro?returnTo=${encodeURIComponent(kycPath)}&email=${encodeURIComponent(invite.email)}&staffInvite=1`;
+  const accessPath = onboardedUser?.passwordHash ? '/acceso' : '/acceso/registro';
+  const redirectUrl = `${accessPath}?returnTo=${encodeURIComponent(kycPath)}&email=${encodeURIComponent(invite.email)}&staffInvite=1`;
 
   return { redirectUrl };
 }

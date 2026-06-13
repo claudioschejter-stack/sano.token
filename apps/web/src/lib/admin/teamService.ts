@@ -6,7 +6,7 @@ import {
 } from '@sanova/database';
 import type { AccountStatus, KycStatus } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from '../auth/contactValidation';
-import { CORE_PLATFORM_ROLES, type SystemRole } from '../auth/roles';
+import { ADMIN_ASSIGNABLE_ROLES, type SystemRole } from '../auth/roles';
 
 export type PlatformTeamMember = {
   userId: string;
@@ -64,7 +64,8 @@ export type UpdatePlatformTeamMemberInput = {
   systemRole: SystemRole;
 };
 
-const EDITABLE_SYSTEM_ROLES = new Set<SystemRole>(CORE_PLATFORM_ROLES);
+const EDITABLE_SYSTEM_ROLES = new Set<SystemRole>(ADMIN_ASSIGNABLE_ROLES);
+const STAFF_SYSTEM_ROLES = ADMIN_ASSIGNABLE_ROLES.filter((role) => role !== 'INVESTOR');
 
 async function ensureAdvisorRecord(
   userId: string,
@@ -80,6 +81,9 @@ async function ensureAdvisorRecord(
 
 export async function listPlatformTeamMembers(): Promise<PlatformTeamMember[]> {
   const users = await prisma.user.findMany({
+    where: {
+      systemRole: { in: STAFF_SYSTEM_ROLES as PrismaSystemRole[] }
+    },
     include: {
       investor: { select: { fullName: true, cuit: true } },
       advisor: {
@@ -101,7 +105,7 @@ export async function listPlatformTeamMembers(): Promise<PlatformTeamMember[]> {
     phone: row.phone,
     emailVerified: Boolean(row.emailVerifiedAt),
     emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
-    phoneVerified: Boolean(row.phone?.trim()),
+    phoneVerified: Boolean(row.phoneVerifiedAt),
     phoneVerifiedAt: row.phoneVerifiedAt?.toISOString() ?? null,
     kycStatus: row.kycStatus,
     accountStatus: row.accountStatus,
@@ -224,9 +228,31 @@ export async function designateAdvisor(input: {
   uplineAdvisorId?: string | null;
   tier?: AdvisorTier;
 }): Promise<AdvisorTeamMember> {
-  const normalizedEmail = input.email.trim().toLowerCase();
+  const normalizedEmail = normalizeEmail(input.email);
   if (!normalizedEmail) {
     throw new Error('INVALID_EMAIL');
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    select: { systemRole: true }
+  });
+
+  if (
+    existingUser &&
+    existingUser.systemRole !== 'INVESTOR' &&
+    existingUser.systemRole !== 'ADVISOR' &&
+    existingUser.systemRole !== 'ADVISOR_MANAGER'
+  ) {
+    throw new Error('EMAIL_ALREADY_STAFF');
+  }
+
+  if (existingUser?.systemRole === 'ADVISOR' || existingUser?.systemRole === 'ADVISOR_MANAGER') {
+    throw new Error('EMAIL_ALREADY_ADVISOR');
+  }
+
+  if (input.role === 'ADVISOR_MANAGER' && input.uplineAdvisorId) {
+    throw new Error('MANAGER_CANNOT_HAVE_UPLINE');
   }
 
   if (input.uplineAdvisorId) {
@@ -237,10 +263,6 @@ export async function designateAdvisor(input: {
 
     if (!upline) {
       throw new Error('UPLINE_NOT_FOUND');
-    }
-
-    if (input.role === 'ADVISOR_MANAGER' && upline.user.systemRole !== 'ADVISOR_MANAGER') {
-      throw new Error('MANAGER_CANNOT_HAVE_UPLINE');
     }
   } else if (input.role === 'ADVISOR') {
     throw new Error('ADVISOR_REQUIRES_UPLINE');

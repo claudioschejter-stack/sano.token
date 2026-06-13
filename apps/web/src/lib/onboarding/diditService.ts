@@ -110,13 +110,16 @@ export function verifyDiditWebhookSignature(
 }
 
 export function mapDiditStatusToKyc(status: string | undefined): 'APPROVED' | 'REJECTED' | 'PENDING' {
-  const normalized = (status ?? '').toLowerCase();
+  const normalized = (status ?? '').toLowerCase().trim();
 
-  if (['approved', 'verified', 'success', 'completed'].some((s) => normalized.includes(s))) {
+  const approvedStatuses = new Set(['approved', 'verified', 'success', 'completed', 'passed', 'accept']);
+  const rejectedStatuses = new Set(['rejected', 'declined', 'failed', 'expired', 'denied', 'abandoned']);
+
+  if (approvedStatuses.has(normalized)) {
     return 'APPROVED';
   }
 
-  if (['rejected', 'declined', 'failed', 'expired'].some((s) => normalized.includes(s))) {
+  if (rejectedStatuses.has(normalized)) {
     return 'REJECTED';
   }
 
