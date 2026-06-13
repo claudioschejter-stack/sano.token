@@ -311,7 +311,8 @@ export const de = {
     filters: {
       ALL: "Alle",
       ACTIVE: "Veröffentlicht",
-      INACTIVE: "Nicht veröffentlicht"
+      INACTIVE: "Nicht veröffentlicht",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "Veröffentlicht",
@@ -353,7 +354,12 @@ export const de = {
     sectionEquity: "Kapitalimmobilien",
     emptyDebt: "Bei diesem Filter gibt es keine Schuldeneigenschaften.",
     emptyEquity: "Mit diesem Filter gibt es keine Kapitalimmobilien.",
-    manageRent: "Einkommen"
+    manageRent: "Einkommen",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "Vermietung und Vertrieb",
@@ -407,7 +413,8 @@ export const de = {
     filters: {
       ALL: "Alle",
       ACTIVE: "Veröffentlicht",
-      INACTIVE: "Nicht veröffentlicht"
+      INACTIVE: "Nicht veröffentlicht",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "Aktualisieren",
     configureLoan: "Darlehen einrichten",
@@ -416,6 +423,12 @@ export const de = {
     configureTitle: "Krediteinrichtung",
     configureSubtitle: "Stellen Sie den ERC-4626-Tresor aus, registrieren Sie Sicherheiten und aktivieren Sie den Vermögenswert als automatische Sicherheit.",
     loadingRates: "Schuldenzinsen werden geladen…",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "KYC-Zulassungsliste in der Kette",
       description: "Wählen Sie den Token aus und genehmigen oder widerrufen Sie Anleger-Wallets direkt im SanovaAssetToken-Vertrag.",

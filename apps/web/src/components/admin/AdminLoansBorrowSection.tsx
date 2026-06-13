@@ -1,22 +1,35 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { BorrowPanel } from '../marketplace/BorrowPanel';
 import { BorrowRatesTable } from '../marketplace/BorrowRatesTable';
 import type { BestBorrowRateResponse } from '../../types/marketplace';
 
-type AdminLoansBorrowSectionProps = {
-  borrowReadyProject?: {
-    id: string;
-    vaultAddress: string;
-  } | null;
+export type BorrowReadyProject = {
+  id: string;
+  vaultAddress: string;
+  title: string;
 };
 
-export function AdminLoansBorrowSection({ borrowReadyProject }: AdminLoansBorrowSectionProps) {
+type AdminLoansBorrowSectionProps = {
+  borrowReadyProjects?: BorrowReadyProject[];
+};
+
+export function AdminLoansBorrowSection({ borrowReadyProjects = [] }: AdminLoansBorrowSectionProps) {
   const t = useTranslation();
   const [borrowRate, setBorrowRate] = useState<BestBorrowRateResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+
+  const selectedProject = useMemo(
+    () => borrowReadyProjects.find((project) => project.id === selectedProjectId) ?? null,
+    [borrowReadyProjects, selectedProjectId]
+  );
+
+  useEffect(() => {
+    setSelectedProjectId(borrowReadyProjects[0]?.id ?? null);
+  }, [borrowReadyProjects]);
 
   useEffect(() => {
     setLoading(true);
@@ -34,17 +47,52 @@ export function AdminLoansBorrowSection({ borrowReadyProject }: AdminLoansBorrow
   }
 
   if (!borrowRate) {
-    return null;
+    return (
+      <p className="rounded-lg border border-terminal-warning/30 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">
+        {t.adminLoans.noBorrowRates}
+      </p>
+    );
   }
 
   return (
     <div className="space-y-6">
+      <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-terminal-primary">
+          {t.adminLoans.borrowRequestTitle}
+        </p>
+        <h2 className="mt-1 text-lg font-bold text-terminal-text">{t.adminLoans.borrowRequestSubtitle}</h2>
+
+        {borrowReadyProjects.length === 0 ? (
+          <p className="mt-3 text-sm text-terminal-muted">{t.adminLoans.noBorrowReadyProjects}</p>
+        ) : borrowReadyProjects.length === 1 ? (
+          <p className="mt-3 text-sm text-terminal-muted">
+            {t.adminLoans.selectedBorrowProject}:{' '}
+            <span className="font-medium text-terminal-text">{borrowReadyProjects[0].title}</span>
+          </p>
+        ) : (
+          <label className="mt-3 block text-sm">
+            <span className="text-terminal-muted">{t.adminLoans.selectBorrowProject}</span>
+            <select
+              value={selectedProjectId ?? ''}
+              onChange={(event) => setSelectedProjectId(event.target.value)}
+              className="mt-1.5 w-full max-w-xl rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text outline-none focus:border-terminal-primary"
+            >
+              {borrowReadyProjects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.title}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </section>
+
       <BorrowRatesTable borrowRate={borrowRate} />
       <BorrowPanel
         borrowRate={borrowRate}
-        projectId={borrowReadyProject?.id}
-        vaultAddress={borrowReadyProject?.vaultAddress}
-        readyToBorrow={Boolean(borrowReadyProject)}
+        projectId={selectedProject?.id}
+        vaultAddress={selectedProject?.vaultAddress}
+        readyToBorrow={Boolean(selectedProject)}
       />
     </div>
   );

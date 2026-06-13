@@ -311,7 +311,8 @@ export const ur = {
     filters: {
       ALL: "تمام",
       ACTIVE: "شائع شدہ",
-      INACTIVE: "شائع نہیں ہوا۔"
+      INACTIVE: "شائع نہیں ہوا۔",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "شائع شدہ",
@@ -353,7 +354,12 @@ export const ur = {
     sectionEquity: "کیپٹل پراپرٹیز",
     emptyDebt: "اس فلٹر کے ساتھ قرض کی کوئی خاصیت نہیں ہے۔",
     emptyEquity: "اس فلٹر کے ساتھ کوئی کیپیٹل پراپرٹیز نہیں ہیں۔",
-    manageRent: "آمدنی"
+    manageRent: "آمدنی",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "کرایہ اور تقسیم",
@@ -407,7 +413,8 @@ export const ur = {
     filters: {
       ALL: "تمام",
       ACTIVE: "شائع شدہ",
-      INACTIVE: "شائع نہیں ہوا۔"
+      INACTIVE: "شائع نہیں ہوا۔",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "اپ ڈیٹ کریں۔",
     configureLoan: "قرض قائم کریں۔",
@@ -416,6 +423,12 @@ export const ur = {
     configureTitle: "قرض کی ترتیب",
     configureSubtitle: "ERC-4626 والٹ جاری کریں، کولیٹرل رجسٹر کریں اور اثاثے کو خودکار کولیٹرل کے طور پر فعال کریں۔",
     loadingRates: "قرض کی شرحیں لوڈ ہو رہی ہیں…",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "KYC کی اجازت کی فہرست آن چین",
       description: "ٹوکن کا انتخاب کریں اور سرمایہ کاروں کے بٹوے کو براہ راست SanovaAssetToken معاہدے میں منظور یا منسوخ کریں۔",

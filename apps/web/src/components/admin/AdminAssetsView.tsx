@@ -7,11 +7,15 @@ import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { Messages } from '../../i18n/locales/en';
 import type { AdminAssetRecord } from '../../lib/admin/assetsService';
+import {
+  isMorphoBorrowReadyAsset,
+  isMorphoCollateralAsset
+} from '../../lib/admin/assetsService';
 import { AdminGate } from './AdminGate';
 
-type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
+type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MORPHO_READY';
 
-const FILTER_OPTIONS: AssetFilter[] = ['ALL', 'ACTIVE', 'INACTIVE'];
+const FILTER_OPTIONS: AssetFilter[] = ['ALL', 'ACTIVE', 'INACTIVE', 'MORPHO_READY'];
 
 type EditDraft = {
   availableTokens: string;
@@ -147,6 +151,19 @@ function AdminAssetsTable({
                           >
                             {statusLabels[statusKey]}
                           </span>
+                          {isMorphoCollateralAsset(asset) ? (
+                            <p
+                              className={`mt-2 text-xs font-semibold ${
+                                isMorphoBorrowReadyAsset(asset)
+                                  ? 'text-terminal-success'
+                                  : 'text-terminal-warning'
+                              }`}
+                            >
+                              {isMorphoBorrowReadyAsset(asset)
+                                ? t.adminAssets.morphoReadyBadge
+                                : t.adminAssets.morphoPendingBadge}
+                            </p>
+                          ) : null}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-2">
@@ -181,7 +198,7 @@ function AdminAssetsTable({
                               <Banknote size={14} />
                               {t.adminAssets.manageRent}
                             </Link>
-                            {asset.tokenStandard === 'ERC4626' ? (
+                            {isMorphoCollateralAsset(asset) ? (
                               <Link
                                 href={`/dashboard/loans/${asset.id}`}
                                 className="inline-flex items-center gap-1 rounded-lg border border-terminal-border px-2.5 py-1.5 text-xs font-semibold text-terminal-muted transition-colors hover:text-terminal-primary"
@@ -315,13 +332,16 @@ export function AdminAssetsView() {
 
   const filterLabels = t.adminAssets.filters as Record<AssetFilter, string>;
 
-  const { debtAssets, equityAssets } = useMemo(
-    () => ({
-      debtAssets: assets.filter((asset) => asset.tokenInstrumentType === 'DEBT'),
-      equityAssets: assets.filter((asset) => asset.tokenInstrumentType !== 'DEBT')
-    }),
-    [assets]
-  );
+  const { debtAssets, equityAssets, morphoReadyAssets } = useMemo(() => {
+    const filtered =
+      filter === 'MORPHO_READY' ? assets.filter((asset) => isMorphoBorrowReadyAsset(asset)) : assets;
+
+    return {
+      debtAssets: filtered.filter((asset) => asset.tokenInstrumentType === 'DEBT'),
+      equityAssets: filtered.filter((asset) => asset.tokenInstrumentType !== 'DEBT'),
+      morphoReadyAssets: assets.filter((asset) => isMorphoBorrowReadyAsset(asset))
+    };
+  }, [assets, filter]);
 
   const loadAssets = useCallback(async (nextFilter: AssetFilter) => {
     setLoading(true);
@@ -510,6 +530,49 @@ export function AdminAssetsView() {
         {saveError ? (
           <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">{saveError}</p>
         ) : null}
+
+        <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-terminal-primary">
+                {t.adminAssets.sectionMorphoReady}
+              </p>
+              <p className="mt-1 text-sm text-terminal-muted">{t.adminAssets.sectionMorphoReadyHint}</p>
+            </div>
+            <p className="text-sm text-terminal-muted">
+              <span className="font-mono text-terminal-success">{morphoReadyAssets.length}</span>
+              / {assets.length}
+            </p>
+          </div>
+          {morphoReadyAssets.length > 0 ? (
+            <ul className="mt-4 space-y-2">
+              {morphoReadyAssets.map((asset) => (
+                <li
+                  key={asset.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm"
+                >
+                  <span className="font-medium text-terminal-text">{asset.title}</span>
+                  <div className="flex flex-wrap gap-2">
+                    <Link
+                      href={`/dashboard/loans/${asset.id}`}
+                      className="text-xs font-semibold text-terminal-primary hover:underline"
+                    >
+                      {t.adminAssets.configureLoan}
+                    </Link>
+                    <Link
+                      href="/dashboard/loans"
+                      className="text-xs font-semibold text-terminal-muted hover:text-terminal-primary"
+                    >
+                      {t.adminNav.loans}
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-4 text-sm text-terminal-muted">{t.adminAssets.emptyMorphoReady}</p>
+          )}
+        </section>
 
         <div className="space-y-8">
           <AdminAssetsTable

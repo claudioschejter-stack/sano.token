@@ -23,7 +23,7 @@ type BorrowPreview = {
   message?: string;
 };
 
-export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow = true }: BorrowPanelProps) {
+export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow = false }: BorrowPanelProps) {
   const t = useTranslation();
   const m = t.marketplace.borrow;
   const w = t.wallet;

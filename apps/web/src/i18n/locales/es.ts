@@ -329,7 +329,8 @@ export const es = {
     filters: {
       ALL: 'Todos',
       ACTIVE: 'Publicados',
-      INACTIVE: 'No publicados'
+      INACTIVE: 'No publicados',
+      MORPHO_READY: 'Listos Morpho'
     },
     status: {
       ACTIVE: 'Publicado',
@@ -371,7 +372,12 @@ export const es = {
     sectionEquity: 'Propiedades de capital',
     emptyDebt: 'No hay propiedades de deuda con este filtro.',
     emptyEquity: 'No hay propiedades de capital con este filtro.',
-    manageRent: 'Rentas'
+    manageRent: 'Rentas',
+    morphoReadyBadge: 'Listo para Morpho',
+    morphoPendingBadge: 'Morpho pendiente',
+    sectionMorphoReady: 'Listos para préstamos Morpho',
+    sectionMorphoReadyHint: 'Activos con token, vault, mercado Morpho y liquidez verificada.',
+    emptyMorphoReady: 'Aún no hay activos listos para préstamos Morpho. Completá emisión y reparación desde Préstamos.'
   },
   adminOperating: {
     title: 'Alquileres y distribución',
@@ -428,7 +434,8 @@ export const es = {
     filters: {
       ALL: 'Todos',
       ACTIVE: 'Publicados',
-      INACTIVE: 'No publicados'
+      INACTIVE: 'No publicados',
+      MORPHO_READY: 'Listos Morpho'
     },
     refresh: 'Actualizar',
     configureLoan: 'Configurar préstamo',
@@ -437,6 +444,13 @@ export const es = {
     configureTitle: 'Configuración de préstamo',
     configureSubtitle: 'Emití el vault ERC-4626, registrá colateral y habilitá el activo como colateral automático.',
     loadingRates: 'Cargando tasas de endeudamiento…',
+    borrowRequestTitle: 'Solicitud de crédito Morpho',
+    borrowRequestSubtitle: 'Pedí un préstamo contra un vault listo como colateral Morpho.',
+    selectBorrowProject: 'Activo colateral',
+    selectedBorrowProject: 'Activo seleccionado',
+    noBorrowRates: 'No se pudieron cargar las tasas. Intentá más tarde.',
+    noBorrowReadyProjects:
+      'Aún no hay activos listos para préstamos Morpho. Completá emisión, vault, registro Morpho y liquidez.',
     allowlist: {
       title: 'KYC allowlist on-chain',
       description:

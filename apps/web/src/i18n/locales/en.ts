@@ -322,7 +322,8 @@ export const en = {
     filters: {
       ALL: "All",
       ACTIVE: "Published",
-      INACTIVE: "Not published"
+      INACTIVE: "Not published",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "Published",
@@ -364,7 +365,12 @@ export const en = {
     sectionEquity: "Equity properties",
     emptyDebt: "No debt properties match this filter.",
     emptyEquity: "No equity properties match this filter.",
-    manageRent: "Rent payouts"
+    manageRent: "Rent payouts",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet. Complete emission and repair from Loans."
   },
   adminOperating: {
     title: "Rent collection & distribution",
@@ -421,7 +427,8 @@ export const en = {
     filters: {
       ALL: "All",
       ACTIVE: "Published",
-      INACTIVE: "Not published"
+      INACTIVE: "Not published",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "Refresh",
     configureLoan: "Configure loan",
@@ -430,6 +437,13 @@ export const en = {
     configureTitle: "Loan configuration",
     configureSubtitle: "Deploy the ERC-4626 vault, register collateral, and enable automatic borrowing.",
     loadingRates: "Loading borrowing rates…",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault that is ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded. Try again later.",
+    noBorrowReadyProjects:
+      "No asset is ready for Morpho loans yet. Complete token emission, vault, Morpho registration and liquidity first.",
     allowlist: {
       title: "KYC allowlist on-chain",
       description:

@@ -311,7 +311,8 @@ export const fr = {
     filters: {
       ALL: "Tous",
       ACTIVE: "Publié",
-      INACTIVE: "Non publié"
+      INACTIVE: "Non publié",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "Publié",
@@ -353,7 +354,12 @@ export const fr = {
     sectionEquity: "Immobilisations",
     emptyDebt: "Il n’y a aucune propriété de dette avec ce filtre.",
     emptyEquity: "Il n'y a aucune propriété en capital avec ce filtre.",
-    manageRent: "Revenu"
+    manageRent: "Revenu",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "Locations et distribution",
@@ -407,7 +413,8 @@ export const fr = {
     filters: {
       ALL: "Tous",
       ACTIVE: "Publié",
-      INACTIVE: "Non publié"
+      INACTIVE: "Non publié",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "Mise à jour",
     configureLoan: "Mettre en place un prêt",
@@ -416,6 +423,12 @@ export const fr = {
     configureTitle: "Configuration du prêt",
     configureSubtitle: "Émettez le coffre-fort ERC-4626, enregistrez la garantie et activez l'actif comme garantie automatique.",
     loadingRates: "Chargement des taux d’endettement…",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "Liste blanche KYC en chaîne",
       description: "Choisissez le token et approuvez ou révoquez les portefeuilles des investisseurs directement dans le contrat SanovaAssetToken.",

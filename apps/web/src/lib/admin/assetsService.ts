@@ -648,6 +648,22 @@ export async function listAutomationRepairCandidates(limit = 3): Promise<AdminAs
 }
 
 /** Cron-safe repairs: vault, collateral and treasury only — never initial token emission. */
+export function isMorphoCollateralAsset(asset: AdminAssetRecord): boolean {
+  if (!isVaultTokenStandard(asset.tokenStandard)) {
+    return false;
+  }
+
+  return asset.collateralTargets.some((target) => target.protocol === 'MORPHO');
+}
+
+export function isMorphoBorrowReadyAsset(asset: AdminAssetRecord): boolean {
+  return Boolean(
+    asset.readyToBorrow &&
+      asset.vaultAddress &&
+      asset.collateralTargets.some((target) => target.protocol === 'MORPHO')
+  );
+}
+
 export async function listInfrastructureRepairCandidates(limit = 3): Promise<AdminAssetRecord[]> {
   const assets = await listAdminAssets('ALL');
   return assets

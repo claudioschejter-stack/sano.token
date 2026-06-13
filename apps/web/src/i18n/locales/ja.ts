@@ -311,7 +311,8 @@ export const ja = {
     filters: {
       ALL: "全て",
       ACTIVE: "発行済み",
-      INACTIVE: "非公開"
+      INACTIVE: "非公開",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "発行済み",
@@ -353,7 +354,12 @@ export const ja = {
     sectionEquity: "資本財産",
     emptyDebt: "このフィルターには負債のプロパティはありません。",
     emptyEquity: "このフィルターには資本プロパティはありません。",
-    manageRent: "所得"
+    manageRent: "所得",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "レンタルと配布",
@@ -407,7 +413,8 @@ export const ja = {
     filters: {
       ALL: "全て",
       ACTIVE: "発行済み",
-      INACTIVE: "非公開"
+      INACTIVE: "非公開",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "アップデート",
     configureLoan: "ローンを設定する",
@@ -416,6 +423,12 @@ export const ja = {
     configureTitle: "ローンの設定",
     configureSubtitle: "ERC-4626 ボールトを発行し、担保を登録し、資産を自動担保として有効にします。",
     loadingRates: "債務金利を読み込んでいます…",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "オンチェーンのKYC許可リスト",
       description: "トークンを選択し、SanovaAssetToken コントラクトで直接投資家のウォレットを承認または取り消します。",

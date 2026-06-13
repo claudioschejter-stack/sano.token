@@ -311,7 +311,8 @@ export const ru = {
     filters: {
       ALL: "Все",
       ACTIVE: "Опубликовано",
-      INACTIVE: "Не опубликовано"
+      INACTIVE: "Не опубликовано",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "Опубликовано",
@@ -353,7 +354,12 @@ export const ru = {
     sectionEquity: "Капитальная недвижимость",
     emptyDebt: "С этим фильтром нет долговых свойств.",
     emptyEquity: "Для этого фильтра нет капитальных объектов недвижимости.",
-    manageRent: "Доход"
+    manageRent: "Доход",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "Аренда и распространение",
@@ -407,7 +413,8 @@ export const ru = {
     filters: {
       ALL: "Все",
       ACTIVE: "Опубликовано",
-      INACTIVE: "Не опубликовано"
+      INACTIVE: "Не опубликовано",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "Обновлять",
     configureLoan: "Оформить кредит",
@@ -416,6 +423,12 @@ export const ru = {
     configureTitle: "Настройка кредита",
     configureSubtitle: "Выпустите хранилище ERC-4626, зарегистрируйте обеспечение и включите актив в качестве автоматического обеспечения.",
     loadingRates: "Загрузка ставок по долгу…",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "Белый список KYC в сети",
       description: "Выберите токен и одобрите или отзовите кошельки инвесторов непосредственно в контракте SanovaAssetToken.",

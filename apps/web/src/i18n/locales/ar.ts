@@ -311,7 +311,8 @@ export const ar = {
     filters: {
       ALL: "الجميع",
       ACTIVE: "تم النشر",
-      INACTIVE: "لم يتم نشره"
+      INACTIVE: "لم يتم نشره",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "تم النشر",
@@ -353,7 +354,12 @@ export const ar = {
     sectionEquity: "خصائص رأس المال",
     emptyDebt: "لا توجد خصائص الديون مع هذا الفلتر.",
     emptyEquity: "لا توجد خصائص رأس المال مع هذا الفلتر.",
-    manageRent: "دخل"
+    manageRent: "دخل",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "الإيجار والتوزيع",
@@ -407,7 +413,8 @@ export const ar = {
     filters: {
       ALL: "الجميع",
       ACTIVE: "تم النشر",
-      INACTIVE: "لم يتم نشره"
+      INACTIVE: "لم يتم نشره",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "تحديث",
     configureLoan: "إعداد القرض",
@@ -416,6 +423,12 @@ export const ar = {
     configureTitle: "إعداد القرض",
     configureSubtitle: "قم بإصدار قبو ERC-4626، وتسجيل الضمانات وتمكين الأصل كضمان تلقائي.",
     loadingRates: "جارٍ تحميل معدلات الديون…",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "القائمة المسموح بها لـ KYC على السلسلة",
       description: "اختر الرمز المميز وقم بالموافقة على محافظ المستثمرين أو إلغائها مباشرةً في عقد SanovaAssetToken.",

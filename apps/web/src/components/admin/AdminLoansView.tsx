@@ -6,13 +6,14 @@ import { useCallback, useEffect, useMemo, useState, Fragment } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { AdminAssetRecord } from '../../lib/admin/assetsService';
+import { isMorphoBorrowReadyAsset } from '../../lib/admin/assetsService';
 import { AdminGate } from './AdminGate';
 import { AdminKycAllowlistSection } from './AdminKycAllowlistSection';
 import { AdminLoansBorrowSection } from './AdminLoansBorrowSection';
 
-type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
+type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MORPHO_READY';
 
-const FILTER_OPTIONS: AssetFilter[] = ['ALL', 'ACTIVE', 'INACTIVE'];
+const FILTER_OPTIONS: AssetFilter[] = ['ALL', 'ACTIVE', 'INACTIVE', 'MORPHO_READY'];
 
 type EditDraft = {
   availableTokens: string;
@@ -65,11 +66,24 @@ export function AdminLoansView() {
   const filterLabels = t.adminLoans.filters as Record<AssetFilter, string>;
   const statusLabels = t.adminAssets.status as Record<'ACTIVE' | 'INACTIVE', string>;
 
-  const borrowReadyProject = useMemo(() => {
-    const asset = assets.find((row) => row.readyToBorrow && row.vaultAddress);
-    if (!asset?.vaultAddress) return null;
-    return { id: asset.id, vaultAddress: asset.vaultAddress };
-  }, [assets]);
+  const borrowReadyProjects = useMemo(
+    () =>
+      assets
+        .filter((row) => isMorphoBorrowReadyAsset(row))
+        .map((row) => ({
+          id: row.id,
+          vaultAddress: row.vaultAddress!,
+          title: row.title
+        })),
+    [assets]
+  );
+
+  const visibleAssets = useMemo(() => {
+    if (filter === 'MORPHO_READY') {
+      return assets.filter((asset) => isMorphoBorrowReadyAsset(asset));
+    }
+    return assets;
+  }, [assets, filter]);
 
   const loadAssets = useCallback(async (nextFilter: AssetFilter) => {
     setLoading(true);
@@ -285,7 +299,7 @@ export function AdminLoansView() {
           </div>
         </div>
 
-        <AdminLoansBorrowSection borrowReadyProject={borrowReadyProject} />
+        <AdminLoansBorrowSection borrowReadyProjects={borrowReadyProjects} />
 
         <AdminKycAllowlistSection />
 
@@ -301,7 +315,7 @@ export function AdminLoansView() {
             <p className="text-sm text-terminal-muted">
               Listos para préstamo:{' '}
               <span className="font-mono text-terminal-success">
-                {assets.filter((asset) => asset.readyToBorrow).length}/{assets.length}
+                {assets.filter((asset) => isMorphoBorrowReadyAsset(asset)).length}/{assets.length}
               </span>
             </p>
           </div>
@@ -506,14 +520,14 @@ export function AdminLoansView() {
                       {t.adminAssets.error}
                     </td>
                   </tr>
-                ) : assets.length === 0 ? (
+                ) : visibleAssets.length === 0 ? (
                   <tr>
                     <td colSpan={11} className="px-6 py-10 text-center text-terminal-muted">
-                      {t.adminAssets.empty}
+                      {filter === 'MORPHO_READY' ? t.adminAssets.emptyMorphoReady : t.adminAssets.empty}
                     </td>
                   </tr>
                 ) : (
-                  assets.map((asset) => {
+                  visibleAssets.map((asset) => {
                     const isUpdating = updatingId === asset.id;
                     const isEditing = editingId === asset.id;
                     const statusKey = asset.isActive ? 'ACTIVE' : 'INACTIVE';
@@ -558,12 +572,12 @@ export function AdminLoansView() {
                           <td className="px-6 py-4">
                             <span
                               className={`inline-flex rounded border px-2.5 py-1 text-xs font-semibold ${
-                                asset.readyToBorrow
+                                isMorphoBorrowReadyAsset(asset)
                                   ? 'border-terminal-success/30 text-terminal-success'
                                   : 'border-terminal-warning/30 text-terminal-warning'
                               }`}
                             >
-                              {asset.readyToBorrow ? 'READY' : asset.automationReadiness.status}
+                              {isMorphoBorrowReadyAsset(asset) ? 'MORPHO READY' : asset.automationReadiness.status}
                             </span>
                             <p className="mt-1 text-xs text-terminal-muted">{asset.automationReadiness.score}%</p>
                           </td>

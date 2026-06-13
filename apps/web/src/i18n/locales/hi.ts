@@ -311,7 +311,8 @@ export const hi = {
     filters: {
       ALL: "सभी",
       ACTIVE: "प्रकाशित",
-      INACTIVE: "प्रकाशित नहीं है"
+      INACTIVE: "प्रकाशित नहीं है",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "प्रकाशित",
@@ -353,7 +354,12 @@ export const hi = {
     sectionEquity: "पूंजीगत संपत्तियां",
     emptyDebt: "इस फ़िल्टर के साथ कोई ऋण गुण नहीं हैं.",
     emptyEquity: "इस फ़िल्टर के साथ कोई पूंजीगत गुण नहीं हैं.",
-    manageRent: "आय"
+    manageRent: "आय",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "किराये और वितरण",
@@ -407,7 +413,8 @@ export const hi = {
     filters: {
       ALL: "सभी",
       ACTIVE: "प्रकाशित",
-      INACTIVE: "प्रकाशित नहीं है"
+      INACTIVE: "प्रकाशित नहीं है",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "अद्यतन",
     configureLoan: "ऋण स्थापित करें",
@@ -416,6 +423,12 @@ export const hi = {
     configureTitle: "ऋण सेटअप",
     configureSubtitle: "ईआरसी-4626 वॉल्ट जारी करें, संपार्श्विक पंजीकृत करें और परिसंपत्ति को स्वचालित संपार्श्विक के रूप में सक्षम करें।",
     loadingRates: "ऋण दरें लोड हो रही हैं...",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "ऑन-चेन केवाईसी अनुमति सूची",
       description: "टोकन चुनें और सीधे सनोवाएसेटटोकन अनुबंध में निवेशक वॉलेट को स्वीकृत या निरस्त करें।",

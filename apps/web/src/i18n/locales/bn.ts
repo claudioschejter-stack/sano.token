@@ -311,7 +311,8 @@ export const bn = {
     filters: {
       ALL: "সব",
       ACTIVE: "প্রকাশিত হয়েছে",
-      INACTIVE: "প্রকাশিত হয়নি"
+      INACTIVE: "প্রকাশিত হয়নি",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "প্রকাশিত হয়েছে",
@@ -353,7 +354,12 @@ export const bn = {
     sectionEquity: "মূলধন বৈশিষ্ট্য",
     emptyDebt: "এই ফিল্টার সঙ্গে কোন ঋণ বৈশিষ্ট্য আছে.",
     emptyEquity: "এই ফিল্টারের সাথে কোন মূলধন বৈশিষ্ট্য নেই।",
-    manageRent: "আয়"
+    manageRent: "আয়",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "ভাড়া এবং বিতরণ",
@@ -407,7 +413,8 @@ export const bn = {
     filters: {
       ALL: "সব",
       ACTIVE: "প্রকাশিত হয়েছে",
-      INACTIVE: "প্রকাশিত হয়নি"
+      INACTIVE: "প্রকাশিত হয়নি",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "আপডেট",
     configureLoan: "ঋণ সেট আপ করুন",
@@ -416,6 +423,12 @@ export const bn = {
     configureTitle: "ঋণ সেটআপ",
     configureSubtitle: "ERC-4626 ভল্ট ইস্যু করুন, জামানত নিবন্ধন করুন এবং সম্পদটিকে স্বয়ংক্রিয় সমান্তরাল হিসাবে সক্ষম করুন।",
     loadingRates: "ঋণের হার লোড হচ্ছে...",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "KYC অন-চেইন অনুমোদিত তালিকা",
       description: "টোকেন চয়ন করুন এবং সরাসরি SanovaAssetToken চুক্তিতে বিনিয়োগকারীর ওয়ালেটগুলিকে অনুমোদন বা প্রত্যাহার করুন৷",

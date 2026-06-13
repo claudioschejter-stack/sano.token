@@ -311,7 +311,8 @@ export const sw = {
     filters: {
       ALL: "Wote",
       ACTIVE: "Imechapishwa",
-      INACTIVE: "Haijachapishwa"
+      INACTIVE: "Haijachapishwa",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "Imechapishwa",
@@ -353,7 +354,12 @@ export const sw = {
     sectionEquity: "Mali ya mtaji",
     emptyDebt: "Hakuna sifa za deni na kichujio hiki.",
     emptyEquity: "Hakuna sifa kuu zilizo na kichujio hiki.",
-    manageRent: "Mapato"
+    manageRent: "Mapato",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "Kukodisha na usambazaji",
@@ -407,7 +413,8 @@ export const sw = {
     filters: {
       ALL: "Wote",
       ACTIVE: "Imechapishwa",
-      INACTIVE: "Haijachapishwa"
+      INACTIVE: "Haijachapishwa",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "Sasisha",
     configureLoan: "Weka mkopo",
@@ -416,6 +423,12 @@ export const sw = {
     configureTitle: "Mpangilio wa mkopo",
     configureSubtitle: "Toa vault ya ERC-4626, sajili dhamana na uwashe kipengee kama dhamana ya kiotomatiki.",
     loadingRates: "Inapakia viwango vya deni...",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "Orodha ya ruhusa ya KYC kwenye mnyororo",
       description: "Chagua tokeni na uidhinishe au ubatilishe pochi za wawekezaji moja kwa moja kwenye mkataba wa SanovaAssetToken.",

@@ -311,7 +311,8 @@ export const id = {
     filters: {
       ALL: "Semua",
       ACTIVE: "Diterbitkan",
-      INACTIVE: "Tidak dipublikasikan"
+      INACTIVE: "Tidak dipublikasikan",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "Diterbitkan",
@@ -353,7 +354,12 @@ export const id = {
     sectionEquity: "Properti modal",
     emptyDebt: "Tidak ada properti utang dengan filter ini.",
     emptyEquity: "Tidak ada properti modal dengan filter ini.",
-    manageRent: "Penghasilan"
+    manageRent: "Penghasilan",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "Penyewaan dan distribusi",
@@ -407,7 +413,8 @@ export const id = {
     filters: {
       ALL: "Semua",
       ACTIVE: "Diterbitkan",
-      INACTIVE: "Tidak dipublikasikan"
+      INACTIVE: "Tidak dipublikasikan",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "Memperbarui",
     configureLoan: "Siapkan pinjaman",
@@ -416,6 +423,12 @@ export const id = {
     configureTitle: "Pengaturan pinjaman",
     configureSubtitle: "Terbitkan brankas ERC-4626, daftarkan agunan, dan aktifkan aset sebagai agunan otomatis.",
     loadingRates: "Memuat tingkat utang…",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "Daftar yang diizinkan KYC secara on-chain",
       description: "Pilih token dan setujui atau cabut dompet investor langsung di kontrak SanovaAssetToken.",

@@ -311,7 +311,8 @@ export const zh = {
     filters: {
       ALL: "全部",
       ACTIVE: "已发表",
-      INACTIVE: "未发表"
+      INACTIVE: "未发表",
+      MORPHO_READY: "Morpho ready"
     },
     status: {
       ACTIVE: "已发表",
@@ -353,7 +354,12 @@ export const zh = {
     sectionEquity: "资本属性",
     emptyDebt: "此过滤器没有债务属性。",
     emptyEquity: "此过滤器没有资本属性。",
-    manageRent: "收入"
+    manageRent: "收入",
+    morphoReadyBadge: "Morpho loan ready",
+    morphoPendingBadge: "Morpho pending",
+    sectionMorphoReady: "Ready for Morpho loans",
+    sectionMorphoReadyHint: "Assets with token, vault, Morpho market and liquidity verified.",
+    emptyMorphoReady: "No assets are ready for Morpho loans yet."
   },
   adminOperating: {
     title: "租赁和分配",
@@ -407,7 +413,8 @@ export const zh = {
     filters: {
       ALL: "全部",
       ACTIVE: "已发表",
-      INACTIVE: "未发表"
+      INACTIVE: "未发表",
+      MORPHO_READY: "Morpho ready"
     },
     refresh: "更新",
     configureLoan: "设立贷款",
@@ -416,6 +423,12 @@ export const zh = {
     configureTitle: "贷款设置",
     configureSubtitle: "发行ERC-4626金库，注册抵押品并启用资产作为自动抵押品。",
     loadingRates: "加载债务利率...",
+    borrowRequestTitle: "Morpho credit request",
+    borrowRequestSubtitle: "Request a loan against a vault ready for Morpho collateral.",
+    selectBorrowProject: "Collateral asset",
+    selectedBorrowProject: "Selected asset",
+    noBorrowRates: "Borrow rates could not be loaded.",
+    noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     allowlist: {
       title: "链上 KYC 许可名单",
       description: "直接在 SanovaAssetToken 合约中选择代币并批准或撤销投资者钱包。",
