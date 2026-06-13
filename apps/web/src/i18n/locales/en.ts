@@ -444,6 +444,8 @@ export const en = {
     noBorrowRates: "Borrow rates could not be loaded. Try again later.",
     noBorrowReadyProjects:
       "No asset is ready for Morpho loans yet. Complete token emission, vault, Morpho registration and liquidity first.",
+    adminBorrowWalletHint:
+      "Use the wallet linked to your admin account (Settings / issuer wallet). The connected wallet must match the linked address.",
     allowlist: {
       title: "KYC allowlist on-chain",
       description:

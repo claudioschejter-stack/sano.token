@@ -13,7 +13,7 @@ import {
 } from '../../../../lib/admin/erc4626LaunchSave';
 import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
 
-const VALID_FILTERS = new Set<AssetListFilter>(['ALL', 'ACTIVE', 'INACTIVE']);
+const VALID_FILTERS = new Set<AssetListFilter>(['ALL', 'ACTIVE', 'INACTIVE', 'MORPHO_READY']);
 
 export const maxDuration = 300;
 

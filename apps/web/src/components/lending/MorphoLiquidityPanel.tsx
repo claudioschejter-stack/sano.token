@@ -9,9 +9,13 @@ import type { MorphoLiquiditySnapshot } from '../../lib/lending/morphoLiquidityS
 
 type MorphoLiquidityPanelProps = {
   loansHref?: string;
+  showLoansLink?: boolean;
 };
 
-export function MorphoLiquidityPanel({ loansHref = '/dashboard/loans' }: MorphoLiquidityPanelProps) {
+export function MorphoLiquidityPanel({
+  loansHref = '/dashboard/loans',
+  showLoansLink = true
+}: MorphoLiquidityPanelProps) {
   const t = useTranslation();
   const m = t.morphoLiquidityPanel;
   const { intlLocale } = useLocale();
@@ -144,12 +148,14 @@ export function MorphoLiquidityPanel({ loansHref = '/dashboard/loans' }: MorphoL
           )}
 
           <p className="mt-4 text-xs text-terminal-muted">{m.footnote}</p>
-          <Link
-            href={loansHref}
-            className="mt-3 inline-flex text-sm font-medium text-terminal-primary hover:underline"
-          >
-            {m.loansLink}
-          </Link>
+          {showLoansLink ? (
+            <Link
+              href={loansHref}
+              className="mt-3 inline-flex text-sm font-medium text-terminal-primary hover:underline"
+            >
+              {m.loansLink}
+            </Link>
+          ) : null}
         </>
       ) : null}
     </section>

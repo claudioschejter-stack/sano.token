@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { resolveInvestorLinkedWallet } from '../../../../lib/investor/linkedWalletPolicy';
 import { prepareBorrow } from '../../../../lib/lending/borrowRouter';
-import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireMorphoBorrowSession } from '../../../../lib/onboarding/requireInvestorSession';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +13,7 @@ const WALLET_ERRORS = new Set([
 ]);
 
 export async function POST(request: Request) {
-  const ctx = await requireInvestorSession({ operational: true });
+  const ctx = await requireMorphoBorrowSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });

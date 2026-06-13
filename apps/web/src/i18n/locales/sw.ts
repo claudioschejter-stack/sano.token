@@ -429,6 +429,7 @@ export const sw = {
     selectedBorrowProject: "Selected asset",
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
+    adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
     allowlist: {
       title: "Orodha ya ruhusa ya KYC kwenye mnyororo",
       description: "Chagua tokeni na uidhinishe au ubatilishe pochi za wawekezaji moja kwa moja kwenye mkataba wa SanovaAssetToken.",

@@ -429,6 +429,7 @@ export const zh = {
     selectedBorrowProject: "Selected asset",
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
+    adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
     allowlist: {
       title: "链上 KYC 许可名单",
       description: "直接在 SanovaAssetToken 合约中选择代币并批准或撤销投资者钱包。",

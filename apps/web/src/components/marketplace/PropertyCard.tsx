@@ -330,6 +330,9 @@ export function PropertyCard({
             projectId={id}
             availableTokens={availableTokens}
             kycStatus={kycStatus}
+            role={role}
+            readyToBorrow={readyToBorrow}
+            purchaseEnabled={purchaseEnabled}
             onBuy={onBuy}
             onStartKyc={onStartKyc}
           />

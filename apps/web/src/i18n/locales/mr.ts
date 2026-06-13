@@ -429,6 +429,7 @@ export const mr = {
     selectedBorrowProject: "Selected asset",
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
+    adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
     allowlist: {
       title: "केवायसी अनुमत सूची ऑन-चेन",
       description: "टोकन निवडा आणि थेट SanovaAssetToken करारामध्ये गुंतवणूकदारांचे पाकीट मंजूर करा किंवा रद्द करा.",

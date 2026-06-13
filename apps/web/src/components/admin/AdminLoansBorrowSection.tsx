@@ -85,15 +85,18 @@ export function AdminLoansBorrowSection({ borrowReadyProjects = [] }: AdminLoans
             </select>
           </label>
         )}
+        <p className="mt-3 text-xs text-terminal-muted">{t.adminLoans.adminBorrowWalletHint}</p>
       </section>
 
       <BorrowRatesTable borrowRate={borrowRate} />
-      <BorrowPanel
-        borrowRate={borrowRate}
-        projectId={selectedProject?.id}
-        vaultAddress={selectedProject?.vaultAddress}
-        readyToBorrow={Boolean(selectedProject)}
-      />
+      {borrowReadyProjects.length > 0 ? (
+        <BorrowPanel
+          borrowRate={borrowRate}
+          projectId={selectedProject?.id}
+          vaultAddress={selectedProject?.vaultAddress}
+          readyToBorrow={Boolean(selectedProject)}
+        />
+      ) : null}
     </div>
   );
 }

@@ -105,6 +105,7 @@ export default auth((request) => {
     (pathname.startsWith('/marketplace') &&
       (pathname.includes('/checkout') ||
         pathname.includes('/agregar') ||
+        pathname.includes('/prestamo') ||
         pathname === '/marketplace/carrito'));
 
   if (!isProtected) {

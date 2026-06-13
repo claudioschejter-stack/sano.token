@@ -429,6 +429,7 @@ export const hi = {
     selectedBorrowProject: "Selected asset",
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
+    adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
     allowlist: {
       title: "ऑन-चेन केवाईसी अनुमति सूची",
       description: "टोकन चुनें और सीधे सनोवाएसेटटोकन अनुबंध में निवेशक वॉलेट को स्वीकृत या निरस्त करें।",

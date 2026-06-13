@@ -31,6 +31,7 @@ import {
   Cell
 } from 'recharts';
 
+import { useSession } from 'next-auth/react';
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
 import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
 import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
@@ -42,6 +43,8 @@ export function FinancialOverview() {
   const [weightedTargetYield, setWeightedTargetYield] = useState<number | null>(null);
   const t = useTranslation();
   const d = t.dashboard;
+  const { data: session } = useSession();
+  const canRequestMorphoLoan = session?.user?.role === 'INVESTOR';
   const { intlLocale } = useLocale();
   const { formatUsd: formatUsdc, formatPercent, formatDateTime, formatMonthLabel } = useMemo(
     () => createIntlFormatters(intlLocale),
@@ -116,7 +119,7 @@ export function FinancialOverview() {
         <InvestorCollectionWalletPanel />
       </Suspense>
 
-      <MorphoLiquidityPanel loansHref="/marketplace" />
+      <MorphoLiquidityPanel loansHref="/marketplace" showLoansLink={canRequestMorphoLoan} />
 
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>article]:h-full">
         <InvestorKpiCard

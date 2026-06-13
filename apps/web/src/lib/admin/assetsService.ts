@@ -80,7 +80,7 @@ export type AdminAssetRecord = {
   activeInvestments: number;
 };
 
-export type AssetListFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';
+export type AssetListFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MORPHO_READY';
 
 export type CreateAdminAssetInput = {
   title: string;
@@ -619,7 +619,7 @@ const projectInclude = {
 export async function listAdminAssets(filter: AssetListFilter = 'ALL'): Promise<AdminAssetRecord[]> {
   const projects = await prisma.project.findMany({
     where:
-      filter === 'ALL'
+      filter === 'ALL' || filter === 'MORPHO_READY'
         ? undefined
         : {
             isActive: filter === 'ACTIVE'
@@ -628,7 +628,12 @@ export async function listAdminAssets(filter: AssetListFilter = 'ALL'): Promise<
     orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }]
   });
 
-  return projects.map(mapProject);
+  const assets = projects.map(mapProject);
+  if (filter === 'MORPHO_READY') {
+    return assets.filter((asset) => isMorphoBorrowReadyAsset(asset));
+  }
+
+  return assets;
 }
 
 export async function listAutomationRepairCandidates(limit = 3): Promise<AdminAssetRecord[]> {

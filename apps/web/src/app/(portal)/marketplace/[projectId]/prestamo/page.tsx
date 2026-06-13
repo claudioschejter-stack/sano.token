@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation';
 import { auth } from '../../../../../auth';
 import { ProjectBorrowView } from '../../../../../components/marketplace/ProjectBorrowView';
 
+const MORPHO_BORROW_PAGE_ROLES = new Set(['INVESTOR', 'TREASURY']);
+
 type ProjectBorrowPageProps = {
   params: { projectId: string };
 };
@@ -13,7 +15,8 @@ export default async function MarketplaceProjectBorrowPage({ params }: ProjectBo
     redirect(`/acceso?returnTo=/marketplace/${params.projectId}/prestamo`);
   }
 
-  if (session.user.role !== 'INVESTOR') {
+  const role = session.user.role;
+  if (!role || !MORPHO_BORROW_PAGE_ROLES.has(role)) {
     redirect('/marketplace');
   }
 

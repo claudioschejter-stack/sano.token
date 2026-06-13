@@ -429,6 +429,7 @@ export const de = {
     selectedBorrowProject: "Selected asset",
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
+    adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
     allowlist: {
       title: "KYC-Zulassungsliste in der Kette",
       description: "Wählen Sie den Token aus und genehmigen oder widerrufen Sie Anleger-Wallets direkt im SanovaAssetToken-Vertrag.",

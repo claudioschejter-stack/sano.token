@@ -429,6 +429,7 @@ export const ur = {
     selectedBorrowProject: "Selected asset",
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
+    adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
     allowlist: {
       title: "KYC کی اجازت کی فہرست آن چین",
       description: "ٹوکن کا انتخاب کریں اور سرمایہ کاروں کے بٹوے کو براہ راست SanovaAssetToken معاہدے میں منظور یا منسوخ کریں۔",

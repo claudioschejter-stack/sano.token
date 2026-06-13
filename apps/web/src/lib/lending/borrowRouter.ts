@@ -132,6 +132,10 @@ export async function previewMorphoBorrowForProject(input: {
     return null;
   }
 
+  if (!asset.readyToBorrow) {
+    return null;
+  }
+
   const morphoTarget = asset.collateralTargets.find(
     (target) => target.protocol === 'MORPHO' && target.status === 'REGISTERED'
   );

@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
+import { auth } from '../../../../auth';
 import { quoteBorrow } from '../../../../lib/lending/borrowRouter';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user?.accessToken) {
+    return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
   try {
     const body = (await request.json()) as {
       amountUsd?: number;

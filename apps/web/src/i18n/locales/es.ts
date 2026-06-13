@@ -451,6 +451,8 @@ export const es = {
     noBorrowRates: 'No se pudieron cargar las tasas. Intentá más tarde.',
     noBorrowReadyProjects:
       'Aún no hay activos listos para préstamos Morpho. Completá emisión, vault, registro Morpho y liquidez.',
+    adminBorrowWalletHint:
+      'Usá la wallet vinculada a tu cuenta admin (Configuración / wallet emisor). La wallet conectada debe coincidir con la vinculada.',
     allowlist: {
       title: 'KYC allowlist on-chain',
       description:
