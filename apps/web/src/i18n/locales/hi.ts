@@ -1798,4 +1798,4 @@ export const hi = {
     globalTitle: "अप्रत्याशित त्रुटि",
     globalHint: "एप्लिकेशन में कोई क्रैश हो गया. आपका सत्र और डेटा सुरक्षित है."
   }
-} satisfies Messages;
+};

@@ -312,7 +312,18 @@ export const es = {
     loading: 'Cargando inversores…',
     error: 'No se pudieron cargar los inversores. Intentá de nuevo.',
     empty: 'No hay inversores con este filtro.',
-    contactPendingHint: 'El inversor debe verificar email y cargar teléfono antes de aprobar KYC.'
+    contactPendingHint: 'El inversor debe verificar email y cargar teléfono antes de aprobar KYC.',
+    inviteTitle: 'Invitar inversor',
+    inviteDesc: 'Envía una invitación por email para que el inversor registre con acceso a la plataforma habilitado.',
+    inviteEmail: 'Email',
+    inviteName: 'Nombre (opcional)',
+    inviteAdvisor: 'Asesor (opcional)',
+    inviteAdvisorPlaceholder: 'Sin asesor',
+    inviteSubmit: 'Enviar invitación',
+    inviteSubmitting: 'Enviando invitación…',
+    inviteSuccess: 'Invitación enviada.',
+    inviteError: 'No se pudo enviar la invitación. Intentá de nuevo.',
+    inviteEmailNotSent: 'Invitación creada pero no se envió el email (revisá RESEND_API_KEY).'
   },
   identityProfile: {
     title: 'Datos de identidad',
@@ -428,6 +439,46 @@ export const es = {
     ledgerTypes: {
       RENT_CREDIT: 'Crédito alquiler',
       CONVERSION_DEBIT: 'Distribución / conversión'
+    },
+    creditAndDistributeTitle: 'Acreditar y distribuir (un paso)',
+    creditAndDistributeDesc:
+      'Registrá el depósito bancario y distribuí a todos los tenedores elegibles. Si hay inversores USDC y el depósito es ARS, se crea un batch de cambio para confirmar manualmente.',
+    creditAndDistributeButton: 'Acreditar y distribuir',
+    creditAndDistributeSuccessDistributed: 'Acreditado y distribuido ({usd} netos).',
+    creditAndDistributeSuccessConversion:
+      'Acreditado. Batch de conversión {id} en cola — confirmá el USDC abajo cuando esté listo.',
+    creditAndDistributeSuccessCreditOnly: 'Alquiler acreditado. No hay tenedores elegibles para distribuir.',
+    creditAndDistributeError: 'No se pudo acreditar y distribuir.',
+    confirmCreditAndDistribute: '¿Acreditar {amount} {currency} y distribuir a todos los tenedores elegibles?',
+    paymentStatusTitle: 'Estado de pagos',
+    paymentStatusDesc: 'Batches de conversión de yield y pagos recientes a inversores.',
+    recentPaymentsTitle: 'Pagos recientes a inversores',
+    confirmConversionTitle: 'Confirmar conversión ARS→USDC',
+    confirmConversionDesc:
+      'Después de convertir fuera de la plataforma, ingresá el USDC recibido y opcionalmente el hash on-chain para disparar la distribución.',
+    fieldUsdcAmount: 'USDC recibido',
+    fieldConversionTxHash: 'Hash de conversión (opcional)',
+    confirmConversionButton: 'Confirmar y distribuir',
+    confirmConversionSuccess: 'Conversión confirmada. Distribución en cola.',
+    confirmConversionError: 'No se pudo confirmar la conversión.',
+    colBatchStatus: 'Estado',
+    colBatchSource: 'Origen',
+    colBatchUsdc: 'USDC',
+    colBatchRail: 'Rail',
+    colPaymentStatus: 'Estado',
+    colTxHash: 'Tx hash',
+    batchStatus: {
+      QUEUED: 'En cola',
+      CONVERTING: 'Convirtiendo',
+      USDC_READY: 'USDC listo',
+      DISTRIBUTING: 'Distribuyendo',
+      COMPLETED: 'Completado',
+      FAILED: 'Fallido'
+    },
+    paymentStatus: {
+      PENDING: 'Pendiente',
+      COMPLETED: 'Completado',
+      FAILED: 'Fallido'
     }
   },
   adminLoans: {
@@ -1926,4 +1977,4 @@ export const es = {
     globalTitle: 'Error inesperado',
     globalHint: 'Ocurrió un fallo en la aplicación. Tu sesión y datos están protegidos.'
   }
-} satisfies Messages;
+};

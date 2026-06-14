@@ -32,6 +32,21 @@ export async function getProjectOperatingSummary(projectId: string) {
     orderBy: { createdAt: 'desc' },
     take: 10
   });
+  const recentPayments = await prisma.dividendDistribution.findMany({
+    where: { assetId: projectId },
+    orderBy: { distributedAt: 'desc' },
+    take: 20,
+    select: {
+      id: true,
+      userId: true,
+      amount: true,
+      currency: true,
+      status: true,
+      txHash: true,
+      distributedAt: true,
+      platformUserId: true
+    }
+  });
   const asset = await getAdminAsset(projectId);
 
   return {
@@ -61,10 +76,21 @@ export async function getProjectOperatingSummary(projectId: string) {
       usdcAmount: batch.usdcAmount?.toString() ?? null,
       conversionRail: batch.conversionRail,
       conversionRef: batch.conversionRef,
+      conversionTxHash: batch.conversionTxHash,
       distributionTxHash: batch.distributionTxHash,
       error: batch.error,
       createdAt: batch.createdAt.toISOString(),
       completedAt: batch.completedAt?.toISOString() ?? null
+    })),
+    recentPayments: recentPayments.map((row) => ({
+      id: row.id,
+      investorId: row.userId,
+      platformUserId: row.platformUserId,
+      amountUsd: row.amount.toString(),
+      currency: row.currency,
+      status: row.status,
+      txHash: row.txHash,
+      distributedAt: row.distributedAt.toISOString()
     }))
   };
 }

@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from './contactValidation';
 import { resolveInvestorAccessOnRegister } from './investorAccess';
+import { hasValidInvestorInviteForEmail, markInvestorInviteAcceptedForEmail } from '../admin/investorInviteService';
 import {
   isPreApprovedInvestorEmail,
   resolveRoleForEmail,
@@ -70,7 +71,8 @@ export async function registerInvestor(input: RegisterInput) {
   const investorAccessEnabled =
     staffOnboarding ||
     isPreApprovedInvestorEmail(email) ||
-    resolveInvestorAccessOnRegister(input.inviteCode);
+    resolveInvestorAccessOnRegister(input.inviteCode) ||
+    (await hasValidInvestorInviteForEmail(email));
 
   if (
     !staffOnboarding &&
@@ -126,6 +128,8 @@ export async function registerInvestor(input: RegisterInput) {
           investorAccessEnabled: existing.investorAccessEnabled || investorAccessEnabled
         }
   });
+
+  await markInvestorInviteAcceptedForEmail(email);
 
   return {
     userId: user.id,

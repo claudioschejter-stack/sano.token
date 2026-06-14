@@ -1798,4 +1798,4 @@ export const bn = {
     globalTitle: "অপ্রত্যাশিত ত্রুটি",
     globalHint: "অ্যাপ্লিকেশনটিতে একটি ক্র্যাশ ঘটেছে৷ আপনার সেশন এবং ডেটা সুরক্ষিত।"
   }
-} satisfies Messages;
+};

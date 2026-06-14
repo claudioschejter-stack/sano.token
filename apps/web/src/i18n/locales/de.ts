@@ -1798,4 +1798,4 @@ export const de = {
     globalTitle: "Unerwarteter Fehler",
     globalHint: "In der Anwendung ist ein Absturz aufgetreten. Ihre Sitzung und Daten sind geschützt."
   }
-} satisfies Messages;
+};

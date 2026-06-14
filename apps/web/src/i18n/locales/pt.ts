@@ -1798,4 +1798,4 @@ export const pt = {
     globalTitle: "Erro inesperado",
     globalHint: "Ocorreu uma falha no aplicativo. Sua sessão e dados estão protegidos."
   }
-} satisfies Messages;
+};

@@ -305,7 +305,18 @@ export const en = {
     loading: "Loading investors…",
     error: "The inverters could not be loaded.Try again.",
     empty: "There are no inverters with this filter.",
-    contactPendingHint: "The investor must verify email and charge phone before approving KYC."
+    contactPendingHint: "The investor must verify email and charge phone before approving KYC.",
+    inviteTitle: "Invite investor",
+    inviteDesc: "Send an email invitation so the investor can register with platform access enabled.",
+    inviteEmail: "Email",
+    inviteName: "Name (optional)",
+    inviteAdvisor: "Advisor (optional)",
+    inviteAdvisorPlaceholder: "No advisor",
+    inviteSubmit: "Send invitation",
+    inviteSubmitting: "Sending invitation…",
+    inviteSuccess: "Invitation sent.",
+    inviteError: "Could not send the invitation. Try again.",
+    inviteEmailNotSent: "Invite created but email was not sent (check RESEND_API_KEY)."
   },
   identityProfile: {
     title: "Identity data",
@@ -421,6 +432,44 @@ export const en = {
     ledgerTypes: {
       RENT_CREDIT: "Rent credit",
       CONVERSION_DEBIT: "Distribution / conversion"
+    },
+    creditAndDistributeTitle: "Credit & distribute (one step)",
+    creditAndDistributeDesc:
+      "Record the bank deposit and distribute to all eligible token holders. ARS with USDC-preference holders queues an exchange batch for manual confirmation.",
+    creditAndDistributeButton: "Credit & distribute",
+    creditAndDistributeSuccessDistributed: "Credited and distributed ({usd} net).",
+    creditAndDistributeSuccessConversion: "Credited. Conversion batch {id} queued — confirm USDC below when ready.",
+    creditAndDistributeSuccessCreditOnly: "Rent credited. No eligible holders to distribute.",
+    creditAndDistributeError: "Credit and distribute failed.",
+    confirmCreditAndDistribute: "Credit {amount} {currency} and distribute to all eligible holders?",
+    paymentStatusTitle: "Payment status",
+    paymentStatusDesc: "Yield conversion batches and recent investor payouts.",
+    recentPaymentsTitle: "Recent investor payments",
+    confirmConversionTitle: "Confirm ARS→USDC conversion",
+    confirmConversionDesc: "After converting off-platform, enter USDC received and optional on-chain tx hash to trigger distribution.",
+    fieldUsdcAmount: "USDC received",
+    fieldConversionTxHash: "Conversion tx hash (optional)",
+    confirmConversionButton: "Confirm & distribute",
+    confirmConversionSuccess: "Conversion confirmed. Distribution queued.",
+    confirmConversionError: "Could not confirm conversion.",
+    colBatchStatus: "Status",
+    colBatchSource: "Source",
+    colBatchUsdc: "USDC",
+    colBatchRail: "Rail",
+    colPaymentStatus: "Status",
+    colTxHash: "Tx hash",
+    batchStatus: {
+      QUEUED: "Queued",
+      CONVERTING: "Converting",
+      USDC_READY: "USDC ready",
+      DISTRIBUTING: "Distributing",
+      COMPLETED: "Completed",
+      FAILED: "Failed"
+    },
+    paymentStatus: {
+      PENDING: "Pending",
+      COMPLETED: "Completed",
+      FAILED: "Failed"
     }
   },
   adminLoans: {

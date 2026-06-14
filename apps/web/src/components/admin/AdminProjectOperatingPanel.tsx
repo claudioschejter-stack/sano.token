@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Banknote, Loader2, RefreshCw, Send, Wallet } from 'lucide-react';
+import { ArrowLeft, Banknote, Loader2, RefreshCw, Send, Wallet, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
@@ -27,8 +27,24 @@ type OperatingSummary = {
     status: string;
     sourceCurrency: string;
     sourceAmount: string;
+    usdcAmount: string | null;
     conversionRail: string | null;
+    conversionRef: string | null;
+    conversionTxHash: string | null;
+    distributionTxHash: string | null;
+    error: string | null;
     createdAt: string;
+    completedAt: string | null;
+  }>;
+  recentPayments: Array<{
+    id: string;
+    investorId: string;
+    platformUserId: string | null;
+    amountUsd: string;
+    currency: string;
+    status: string;
+    txHash: string | null;
+    distributedAt: string;
   }>;
 };
 
@@ -59,7 +75,7 @@ export function AdminProjectOperatingPanel({ projectId }: AdminProjectOperatingP
   const [asset, setAsset] = useState<AdminAssetRecord | null>(null);
   const [summary, setSummary] = useState<OperatingSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<'credit' | 'distribute' | 'convert' | null>(null);
+  const [busy, setBusy] = useState<'credit' | 'distribute' | 'convert' | 'creditAndDistribute' | 'confirmBatch' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [lastAllocations, setLastAllocations] = useState<AllocationRow[]>([]);
@@ -69,6 +85,9 @@ export function AdminProjectOperatingPanel({ projectId }: AdminProjectOperatingP
   const [bankRef, setBankRef] = useState('');
   const [period, setPeriod] = useState('');
   const [distributeAmount, setDistributeAmount] = useState('');
+  const [confirmBatchId, setConfirmBatchId] = useState<string | null>(null);
+  const [confirmUsdcAmount, setConfirmUsdcAmount] = useState('');
+  const [confirmTxHash, setConfirmTxHash] = useState('');
 
   const totalUsdEstimate = useMemo(
     () => summary?.accounts.reduce((sum, row) => sum + row.balanceUsdEstimate, 0) ?? 0,
@@ -228,6 +247,160 @@ export function AdminProjectOperatingPanel({ projectId }: AdminProjectOperatingP
     }
   }
 
+  async function handleCreditAndDistribute() {
+    const amount = Number.parseFloat(creditAmount.replace(',', '.'));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setError(o.validationAmount);
+      return;
+    }
+
+    const parsedDistribute = distributeAmount.trim()
+      ? Number.parseFloat(distributeAmount.replace(',', '.'))
+      : undefined;
+
+    if (parsedDistribute != null && (!Number.isFinite(parsedDistribute) || parsedDistribute <= 0)) {
+      setError(o.validationAmount);
+      return;
+    }
+
+    if (
+      !window.confirm(
+        o.confirmCreditAndDistribute.replace('{amount}', String(amount)).replace('{currency}', creditCurrency)
+      )
+    ) {
+      return;
+    }
+
+    setBusy('creditAndDistribute');
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const idempotencyKey = `rent-cad:${projectId}:${creditCurrency}:${period.trim() || bankRef.trim() || Date.now()}`;
+      const body: {
+        amount: number;
+        currency: string;
+        idempotencyKey: string;
+        metadata: { bankRef: string | null; period: string | null };
+        autoConvertIfNeeded: boolean;
+        distributeAmount?: number;
+      } = {
+        amount,
+        currency: creditCurrency,
+        idempotencyKey,
+        metadata: {
+          bankRef: bankRef.trim() || null,
+          period: period.trim() || null
+        },
+        autoConvertIfNeeded: true
+      };
+
+      if (parsedDistribute != null) {
+        body.distributeAmount = parsedDistribute;
+      }
+
+      const response = await fetch(`/api/admin/projects/${projectId}/operating/credit-and-distribute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      const data = (await response.json()) as {
+        error?: string;
+        result?: {
+          mode: 'DISTRIBUTED' | 'CONVERSION_QUEUED' | 'CREDIT_ONLY';
+          totalAmountUsd?: number;
+          allocation?: { allocations?: AllocationRow[] };
+          conversionBatch?: { id: string };
+        };
+      };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'CREDIT_AND_DISTRIBUTE_FAILED');
+      }
+
+      const result = data.result;
+      if (result?.mode === 'DISTRIBUTED') {
+        setLastAllocations(result.allocation?.allocations ?? []);
+        setSuccess(
+          o.creditAndDistributeSuccessDistributed.replace(
+            '{usd}',
+            formatUsd(result.totalAmountUsd ?? 0)
+          )
+        );
+      } else if (result?.mode === 'CONVERSION_QUEUED') {
+        setLastAllocations([]);
+        setSuccess(
+          o.creditAndDistributeSuccessConversion.replace('{id}', result.conversionBatch?.id ?? '—')
+        );
+      } else {
+        setLastAllocations([]);
+        setSuccess(o.creditAndDistributeSuccessCreditOnly);
+      }
+
+      setCreditAmount('');
+      setBankRef('');
+      setDistributeAmount('');
+      await load();
+    } catch (cadError) {
+      setError(cadError instanceof Error ? cadError.message : o.creditAndDistributeError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleConfirmBatch(batchId: string) {
+    const usdcAmount = Number.parseFloat(confirmUsdcAmount.replace(',', '.'));
+    if (!Number.isFinite(usdcAmount) || usdcAmount <= 0) {
+      setError(o.validationAmount);
+      return;
+    }
+
+    setBusy('confirmBatch');
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(
+        `/api/admin/projects/${projectId}/operating/batches/${batchId}/confirm`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usdcAmount,
+            conversionTxHash: confirmTxHash.trim() || undefined
+          })
+        }
+      );
+
+      const data = (await response.json()) as { error?: string };
+      if (!response.ok) {
+        throw new Error(data.error ?? 'CONFIRM_FAILED');
+      }
+
+      setSuccess(o.confirmConversionSuccess);
+      setConfirmBatchId(null);
+      setConfirmUsdcAmount('');
+      setConfirmTxHash('');
+      await load();
+    } catch (confirmError) {
+      setError(confirmError instanceof Error ? confirmError.message : o.confirmConversionError);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const batchStatusLabels = o.batchStatus as Record<string, string>;
+  const paymentStatusLabels = o.paymentStatus as Record<string, string>;
+
+  const pendingBatches = useMemo(
+    () =>
+      summary?.batches.filter(
+        (batch) => batch.status === 'QUEUED' || batch.status === 'CONVERTING' || batch.status === 'FAILED'
+      ) ?? [],
+    [summary]
+  );
+
   async function handleConvert() {
     setBusy('convert');
     setError(null);
@@ -328,6 +501,30 @@ export function AdminProjectOperatingPanel({ projectId }: AdminProjectOperatingP
                 </article>
               ))}
             </div>
+
+            <section className="rounded-xl border border-terminal-success/30 bg-terminal-success/5 p-6">
+              <div className="flex items-center gap-2">
+                <Zap size={18} className="text-terminal-success" />
+                <h2 className="text-lg font-semibold text-terminal-text">{o.creditAndDistributeTitle}</h2>
+              </div>
+              <p className="mt-2 text-sm text-terminal-muted">{o.creditAndDistributeDesc}</p>
+              <p className="mt-2 text-xs text-terminal-muted">
+                {o.fieldCurrency}: {creditCurrency} · {o.fieldAmount}: {creditAmount || '—'}
+              </p>
+              <button
+                type="button"
+                disabled={busy !== null || !creditAmount.trim()}
+                onClick={() => void handleCreditAndDistribute()}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-terminal-success px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+              >
+                {busy === 'creditAndDistribute' ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Zap size={16} />
+                )}
+                {o.creditAndDistributeButton}
+              </button>
+            </section>
 
             <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
               <div className="flex items-center gap-2">
@@ -464,6 +661,183 @@ export function AdminProjectOperatingPanel({ projectId }: AdminProjectOperatingP
                     </tbody>
                   </table>
                 </div>
+              </section>
+            ) : null}
+
+            {(summary.batches.length > 0 || summary.recentPayments.length > 0) ? (
+              <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+                <h2 className="text-lg font-semibold text-terminal-text">{o.paymentStatusTitle}</h2>
+                <p className="mt-2 text-sm text-terminal-muted">{o.paymentStatusDesc}</p>
+
+                {summary.batches.length > 0 ? (
+                  <div className="mt-4 overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                      <thead className="text-xs uppercase text-terminal-muted">
+                        <tr>
+                          <th className="py-2 pr-4">{o.colDate}</th>
+                          <th className="py-2 pr-4">{o.colBatchStatus}</th>
+                          <th className="py-2 pr-4">{o.colBatchSource}</th>
+                          <th className="py-2 pr-4">{o.colBatchUsdc}</th>
+                          <th className="py-2 pr-4">{o.colBatchRail}</th>
+                          <th className="py-2">{t.adminInvestors.colActions}</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-terminal-border">
+                        {summary.batches.map((batch) => {
+                          const canConfirm =
+                            batch.status === 'QUEUED' ||
+                            batch.status === 'CONVERTING' ||
+                            batch.status === 'FAILED';
+                          const isConfirming = confirmBatchId === batch.id;
+
+                          return (
+                            <tr key={batch.id}>
+                              <td className="py-2 pr-4 text-terminal-muted">
+                                {formatDateTime(batch.createdAt)}
+                              </td>
+                              <td className="py-2 pr-4">
+                                <span className="rounded border border-terminal-border px-2 py-0.5 text-xs">
+                                  {batchStatusLabels[batch.status] ?? batch.status}
+                                </span>
+                                {batch.error ? (
+                                  <p className="mt-1 text-xs text-red-400">{batch.error}</p>
+                                ) : null}
+                              </td>
+                              <td className="py-2 pr-4 font-mono text-xs">
+                                {Number.parseFloat(batch.sourceAmount).toLocaleString(intlLocale)}{' '}
+                                {batch.sourceCurrency}
+                              </td>
+                              <td className="py-2 pr-4 font-mono text-xs">
+                                {batch.usdcAmount
+                                  ? `${Number.parseFloat(batch.usdcAmount).toLocaleString(intlLocale)} USDC`
+                                  : '—'}
+                              </td>
+                              <td className="py-2 pr-4 text-xs text-terminal-muted">
+                                {batch.conversionRail ?? '—'}
+                              </td>
+                              <td className="py-2">
+                                {canConfirm ? (
+                                  isConfirming ? (
+                                    <div className="space-y-2 max-w-xs">
+                                      <p className="text-xs font-medium text-terminal-text">
+                                        {o.confirmConversionTitle}
+                                      </p>
+                                      <input
+                                        type="text"
+                                        inputMode="decimal"
+                                        value={confirmUsdcAmount}
+                                        onChange={(event) => setConfirmUsdcAmount(event.target.value)}
+                                        placeholder={o.fieldUsdcAmount}
+                                        className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-2 py-1.5 text-xs font-mono text-terminal-text"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={confirmTxHash}
+                                        onChange={(event) => setConfirmTxHash(event.target.value)}
+                                        placeholder={o.fieldConversionTxHash}
+                                        className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-2 py-1.5 text-xs font-mono text-terminal-text"
+                                      />
+                                      <div className="flex gap-2">
+                                        <button
+                                          type="button"
+                                          disabled={busy !== null}
+                                          onClick={() => void handleConfirmBatch(batch.id)}
+                                          className="rounded-lg bg-terminal-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                                        >
+                                          {busy === 'confirmBatch' ? (
+                                            <Loader2 size={12} className="animate-spin" />
+                                          ) : null}
+                                          {o.confirmConversionButton}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          disabled={busy !== null}
+                                          onClick={() => {
+                                            setConfirmBatchId(null);
+                                            setConfirmUsdcAmount('');
+                                            setConfirmTxHash('');
+                                          }}
+                                          className="rounded-lg border border-terminal-border px-3 py-1.5 text-xs text-terminal-muted"
+                                        >
+                                          {t.adminAssets.cancel}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      disabled={busy !== null}
+                                      onClick={() => {
+                                        setConfirmBatchId(batch.id);
+                                        setConfirmUsdcAmount(batch.usdcAmount ?? batch.sourceAmount);
+                                        setConfirmTxHash(batch.conversionTxHash ?? '');
+                                      }}
+                                      className="rounded-lg border border-terminal-primary/40 px-3 py-1.5 text-xs font-semibold text-terminal-primary"
+                                    >
+                                      {o.confirmConversionButton}
+                                    </button>
+                                  )
+                                ) : (
+                                  <span className="text-xs text-terminal-muted">
+                                    {batch.distributionTxHash
+                                      ? `${batch.distributionTxHash.slice(0, 8)}…`
+                                      : '—'}
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+
+                {summary.recentPayments.length > 0 ? (
+                  <div className="mt-6">
+                    <h3 className="text-sm font-semibold text-terminal-text">{o.recentPaymentsTitle}</h3>
+                    <div className="mt-3 overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="text-xs uppercase text-terminal-muted">
+                          <tr>
+                            <th className="py-2 pr-4">{o.colDate}</th>
+                            <th className="py-2 pr-4">{o.colInvestor}</th>
+                            <th className="py-2 pr-4">{o.colAmount}</th>
+                            <th className="py-2 pr-4">{o.colPaymentStatus}</th>
+                            <th className="py-2">{o.colTxHash}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-terminal-border">
+                          {summary.recentPayments.map((payment) => (
+                            <tr key={payment.id}>
+                              <td className="py-2 pr-4 text-terminal-muted">
+                                {formatDateTime(payment.distributedAt)}
+                              </td>
+                              <td className="py-2 pr-4 font-mono text-xs">
+                                {payment.investorId.slice(0, 10)}…
+                              </td>
+                              <td className="py-2 pr-4 font-mono">
+                                {formatUsd(Number.parseFloat(payment.amountUsd))} {payment.currency}
+                              </td>
+                              <td className="py-2 pr-4 text-xs">
+                                {paymentStatusLabels[payment.status] ?? payment.status}
+                              </td>
+                              <td className="py-2 font-mono text-xs text-terminal-muted">
+                                {payment.txHash ? `${payment.txHash.slice(0, 10)}…` : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
+
+                {pendingBatches.length > 0 && confirmBatchId === null ? (
+                  <p className="mt-4 text-xs text-terminal-warning">
+                    {pendingBatches.length} batch(es) pendiente(s) de confirmación manual.
+                  </p>
+                ) : null}
               </section>
             ) : null}
 

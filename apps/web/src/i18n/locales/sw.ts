@@ -1798,4 +1798,4 @@ export const sw = {
     globalTitle: "Hitilafu isiyotarajiwa",
     globalHint: "Kulikuwa na hitilafu katika programu. Kipindi chako na data zinalindwa."
   }
-} satisfies Messages;
+};

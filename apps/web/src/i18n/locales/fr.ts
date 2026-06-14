@@ -1798,4 +1798,4 @@ export const fr = {
     globalTitle: "Erreur inattendue",
     globalHint: "Un crash s'est produit dans l'application. Votre session et vos données sont protégées."
   }
-} satisfies Messages;
+};

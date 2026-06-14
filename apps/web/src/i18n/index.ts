@@ -13,6 +13,7 @@ import { ru } from './locales/ru';
 import { sw } from './locales/sw';
 import { ur } from './locales/ur';
 import { zh } from './locales/zh';
+import { mergeLocale } from './locales/mergeLocale';
 
 /** Fifteen most widely spoken languages worldwide (by total speakers). */
 export type Locale =
@@ -102,20 +103,20 @@ export const rtlLocales: Locale[] = ['ar', 'ur'];
 
 export const messagesByLocale: Record<Locale, Messages> = {
   en,
-  zh,
-  hi,
-  es,
-  fr,
-  ar,
-  bn,
-  pt,
-  ru,
-  ur,
-  id,
-  de,
-  ja,
-  sw,
-  mr
+  zh: mergeLocale(zh),
+  hi: mergeLocale(hi),
+  es: mergeLocale(es),
+  fr: mergeLocale(fr),
+  ar: mergeLocale(ar),
+  bn: mergeLocale(bn),
+  pt: mergeLocale(pt),
+  ru: mergeLocale(ru),
+  ur: mergeLocale(ur),
+  id: mergeLocale(id),
+  de: mergeLocale(de),
+  ja: mergeLocale(ja),
+  sw: mergeLocale(sw),
+  mr: mergeLocale(mr)
 };
 
 export function resolveLocale(input?: string | null): Locale {

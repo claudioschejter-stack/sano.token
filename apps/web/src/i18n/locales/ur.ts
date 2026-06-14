@@ -1798,4 +1798,4 @@ export const ur = {
     globalTitle: "غیر متوقع غلطی",
     globalHint: "ایپلیکیشن میں کریش ہو گیا۔ آپ کا سیشن اور ڈیٹا محفوظ ہے۔"
   }
-} satisfies Messages;
+};

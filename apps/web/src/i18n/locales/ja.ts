@@ -1798,4 +1798,4 @@ export const ja = {
     globalTitle: "予期しないエラー",
     globalHint: "アプリケーションでクラッシュが発生しました。 セッションとデータは保護されています。"
   }
-} satisfies Messages;
+};

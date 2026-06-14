@@ -1798,4 +1798,4 @@ export const mr = {
     globalTitle: "अनपेक्षित त्रुटी",
     globalHint: "अनुप्रयोगामध्ये क्रॅश झाला. तुमचे सत्र आणि डेटा संरक्षित आहे."
   }
-} satisfies Messages;
+};

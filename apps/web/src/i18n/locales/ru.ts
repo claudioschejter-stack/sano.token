@@ -1798,4 +1798,4 @@ export const ru = {
     globalTitle: "Неожиданная ошибка",
     globalHint: "В приложении произошел сбой. Ваша сессия и данные защищены."
   }
-} satisfies Messages;
+};

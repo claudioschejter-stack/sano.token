@@ -1798,4 +1798,4 @@ export const ar = {
     globalTitle: "خطأ غير متوقع",
     globalHint: "حدث عطل في التطبيق. جلسة العمل الخاصة بك والبيانات محمية."
   }
-} satisfies Messages;
+};

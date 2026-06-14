@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Check, ChevronDown, ChevronUp, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Mail, RefreshCw, X } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
@@ -40,10 +40,57 @@ export function AdminInvestorsView() {
   const [advisors, setAdvisors] = useState<AdvisorTeamMember[]>([]);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [inviteAdvisorId, setInviteAdvisorId] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
 
-  const statusLabels = t.adminInvestors.status as Record<string, string>;
-  const filterLabels = t.adminInvestors.filters as Record<KycFilter, string>;
+  const ai = t.adminInvestors;
+  const statusLabels = ai.status as Record<string, string>;
+  const filterLabels = ai.filters as Record<KycFilter, string>;
+
   const identityLabels = t.identityProfile;
+
+  async function submitInvestorInvite() {
+    if (!inviteEmail.trim()) {
+      setInviteMessage(ai.inviteError);
+      return;
+    }
+
+    setInviteLoading(true);
+    setInviteMessage(null);
+
+    try {
+      const response = await fetch('/api/admin/investors/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          name: inviteName.trim() || undefined,
+          incorporatedByAdvisorId: inviteAdvisorId || null
+        })
+      });
+
+      const data = (await response.json()) as { error?: string; warning?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'invite failed');
+      }
+
+      setInviteEmail('');
+      setInviteName('');
+      setInviteAdvisorId('');
+      setInviteMessage(
+        data.warning === 'INVITE_CREATED_EMAIL_NOT_SENT' ? ai.inviteEmailNotSent : ai.inviteSuccess
+      );
+      await loadInvestors(filter);
+    } catch {
+      setInviteMessage(ai.inviteError);
+    } finally {
+      setInviteLoading(false);
+    }
+  }
 
   const loadInvestors = useCallback(async (nextFilter: KycFilter) => {
     setLoading(true);
@@ -166,6 +213,65 @@ export function AdminInvestorsView() {
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-terminal-text">{t.adminNav.investors}</h1>
           <p className="mt-3 max-w-3xl text-terminal-muted">{t.adminDashboard.investorsDesc}</p>
         </header>
+
+        <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-6">
+          <div className="flex items-center gap-2">
+            <Mail size={18} className="text-terminal-primary" />
+            <h2 className="text-lg font-semibold text-terminal-text">{ai.inviteTitle}</h2>
+          </div>
+          <p className="text-sm text-terminal-muted">{ai.inviteDesc}</p>
+
+          {inviteMessage ? (
+            <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm text-terminal-text">
+              {inviteMessage}
+            </p>
+          ) : null}
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <label className="block text-sm">
+              <span className="text-terminal-muted">{ai.inviteEmail}</span>
+              <input
+                type="email"
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="text-terminal-muted">{ai.inviteName}</span>
+              <input
+                type="text"
+                value={inviteName}
+                onChange={(event) => setInviteName(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="text-terminal-muted">{ai.inviteAdvisor}</span>
+              <select
+                value={inviteAdvisorId}
+                onChange={(event) => setInviteAdvisorId(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              >
+                <option value="">{ai.inviteAdvisorPlaceholder}</option>
+                {advisors.map((advisor) => (
+                  <option key={advisor.advisorId} value={advisor.advisorId}>
+                    {advisor.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <button
+            type="button"
+            disabled={inviteLoading || !inviteEmail.trim()}
+            onClick={() => void submitInvestorInvite()}
+            className="inline-flex items-center gap-2 rounded-lg bg-terminal-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50"
+          >
+            {inviteLoading ? ai.inviteSubmitting : ai.inviteSubmit}
+          </button>
+        </section>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">

@@ -1798,4 +1798,4 @@ export const zh = {
     globalTitle: "意外错误",
     globalHint: "应用程序发生崩溃。您的会话和数据受到保护。"
   }
-} satisfies Messages;
+};

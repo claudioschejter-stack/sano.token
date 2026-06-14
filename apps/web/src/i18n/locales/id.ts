@@ -1798,4 +1798,4 @@ export const id = {
     globalTitle: "Kesalahan yang tidak terduga",
     globalHint: "Terjadi kerusakan pada aplikasi. Sesi dan data Anda dilindungi."
   }
-} satisfies Messages;
+};
