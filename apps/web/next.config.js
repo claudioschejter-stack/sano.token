@@ -10,6 +10,8 @@ const monorepoRoot = path.join(__dirname, '../..');
 
 const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
+  productionBrowserSourceMaps: false,
+  poweredByHeader: false,
   experimental: {
     serverComponentsExternalPackages: ['thirdweb', 'ethers']
   },
@@ -67,6 +69,19 @@ const nextConfig = {
         source: '/api/v1/:path*',
         destination: `${apiOrigin}/api/v1/:path*`
       }
+    ];
+  },
+  async headers() {
+    const shared = [
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      { key: 'X-DNS-Prefetch-Control', value: 'off' }
+    ];
+
+    return [
+      { source: '/api/:path*', headers: shared },
+      { source: '/:path*', headers: shared }
     ];
   }
 };

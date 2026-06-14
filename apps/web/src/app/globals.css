@@ -347,4 +347,26 @@
   textarea {
     -webkit-tap-highlight-color: transparent;
   }
+
+  body.client-hardened {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  body.client-hardened img,
+  body.client-hardened a {
+    -webkit-user-drag: none;
+    user-drag: none;
+  }
+
+  body.client-hardened input,
+  body.client-hardened textarea,
+  body.client-hardened select,
+  body.client-hardened [contenteditable='true'],
+  body.client-hardened .allow-select,
+  body.client-hardened .allow-context-menu {
+    -webkit-user-select: text;
+    user-select: text;
+  }
 }

@@ -5,6 +5,7 @@ import { canAccessPath, redirectPathForRole } from './lib/auth/routeAccess';
 import type { SystemRole } from './lib/auth/roles';
 import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
 import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
+import { applySecurityHeaders } from './lib/security/securityHeaders';
 import {
   isLocalePrefixablePath,
   LOCALE_HEADER,
@@ -36,7 +37,7 @@ function withLocaleAndCountryHints(
       path: '/',
       sameSite: 'lax'
     });
-    return response;
+    return applySecurityHeaders(response);
   }
 
   const storedLocale = request.cookies.get(LOCALE_STORAGE_KEY)?.value;
@@ -53,7 +54,7 @@ function withLocaleAndCountryHints(
     });
   }
 
-  return response;
+  return applySecurityHeaders(response);
 }
 
 function maybeRewriteLocalePrefix(request: {
