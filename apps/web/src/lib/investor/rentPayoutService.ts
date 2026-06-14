@@ -204,6 +204,35 @@ export async function payRentShareToInvestor(input: {
     throw new Error('WALLET_REQUIRED_FOR_USDC_RENT');
   }
 
+  if (input.batchId) {
+    const existingUsdcPayout = await prisma.dividendDistribution.findFirst({
+      where: {
+        assetId: input.projectId,
+        userId: input.investorId,
+        status: LIQUIDATED_CASH_STATUS,
+        txHash: { not: null }
+      },
+      orderBy: { distributedAt: 'desc' }
+    });
+
+    if (
+      existingUsdcPayout &&
+      Math.abs(existingUsdcPayout.amount.toNumber() - netRentUsd) < 0.000001
+    ) {
+      return {
+        mode: 'USDC' as const,
+        distributionId: existingUsdcPayout.id,
+        transfer: {
+          status: 'SUBMITTED' as const,
+          txHash: existingUsdcPayout.txHash ?? undefined
+        },
+        fee: rentFee,
+        netRentUsd,
+        alreadyPaid: true as const
+      };
+    }
+  }
+
   const transfer = await sendUsdcRentToInvestorWallet({
     walletAddress: input.walletAddress.trim(),
     amountUsd: netRentUsd,
@@ -327,6 +356,23 @@ export async function allocateProjectRentByPreference(input: {
 
     const shareUsd = Number(shareMicro) / 1_000_000;
     const idempotencyKey = `${input.idempotencyPrefix}:${holder.investorId}:${input.batchId ?? 'direct'}`;
+    const operatingDebitKey = `${idempotencyKey}:operating-debit`;
+
+    if (input.operatingSource) {
+      const existingDebit = await prisma.projectOperatingLedgerEntry.findUnique({
+        where: { idempotencyKey: operatingDebitKey }
+      });
+      if (existingDebit) {
+        allocations.push({
+          investorId: holder.investorId,
+          tokenCount: holder.tokenCount,
+          amountUsd: shareUsd,
+          preference: holder.preference,
+          result: { mode: holder.preference, skipped: true, alreadyPaid: true }
+        });
+        continue;
+      }
+    }
 
     try {
       const result = await payRentShareToInvestor({

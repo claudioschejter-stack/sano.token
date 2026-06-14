@@ -308,7 +308,7 @@ export function AdminProjectOperatingPanel({ projectId }: AdminProjectOperatingP
       const data = (await response.json()) as {
         error?: string;
         result?: {
-          mode: 'DISTRIBUTED' | 'CONVERSION_QUEUED' | 'CREDIT_ONLY';
+          mode: 'DISTRIBUTED' | 'CONVERSION_QUEUED' | 'CREDIT_ONLY' | 'NO_ELIGIBLE_HOLDERS';
           totalAmountUsd?: number;
           allocation?: { allocations?: AllocationRow[] };
           conversionBatch?: { id: string };
@@ -333,6 +333,9 @@ export function AdminProjectOperatingPanel({ projectId }: AdminProjectOperatingP
         setSuccess(
           o.creditAndDistributeSuccessConversion.replace('{id}', result.conversionBatch?.id ?? '—')
         );
+      } else if (result?.mode === 'NO_ELIGIBLE_HOLDERS') {
+        setLastAllocations([]);
+        setSuccess(o.creditAndDistributeSuccessNoHolders);
       } else {
         setLastAllocations([]);
         setSuccess(o.creditAndDistributeSuccessCreditOnly);
@@ -835,7 +838,7 @@ export function AdminProjectOperatingPanel({ projectId }: AdminProjectOperatingP
 
                 {pendingBatches.length > 0 && confirmBatchId === null ? (
                   <p className="mt-4 text-xs text-terminal-warning">
-                    {pendingBatches.length} batch(es) pendiente(s) de confirmación manual.
+                    {o.pendingBatchesHint.replace('{count}', String(pendingBatches.length))}
                   </p>
                 ) : null}
               </section>

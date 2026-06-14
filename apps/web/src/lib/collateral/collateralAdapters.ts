@@ -85,6 +85,7 @@ async function registerMorpho(project: CollateralProjectContext): Promise<Collat
         return {
           status: 'REGISTERED',
           externalId: `MORPHO-${project.id}`,
+          oracleAddress: process.env.MORPHO_ORACLE_ADDRESS?.trim() || null,
           notes: 'Mercado Morpho ya existía o fue registrado previamente.'
         };
       }

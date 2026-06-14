@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { refreshBorrowRatesCache } from '../../../../lib/lending/fetchLiveBorrowRates';
-import { listAdminAssets, listInfrastructureRepairCandidates, listMorphoLiquidityProbeCandidates } from '../../../../lib/admin/assetsService';
+import { listAdminAssets, listInfrastructureRepairCandidates, listMorphoLiquidityProbeCandidates, resolveInfrastructureRepairStep } from '../../../../lib/admin/assetsService';
 import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
 import { executeProjectInfrastructureRepair } from '../../../../lib/blockchain/projectTokenDeploy';
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
@@ -44,13 +44,19 @@ export async function GET(request: Request) {
       }
 
       try {
+        const step = resolveInfrastructureRepairStep(asset);
+        if (!step) {
+          repairs.push({ projectId: asset.id, status: 'SKIPPED', message: 'NO_REPAIR_STEP' });
+          continue;
+        }
+
         const job = await enqueueAutomationJob({
           projectId: asset.id,
-          step: 'VAULT_DEPLOY',
+          step,
           payload: { source: 'daily-cron-infrastructure-repair' }
         });
         if (job) {
-          queued.push({ projectId: asset.id, jobId: job.id, step: 'VAULT_DEPLOY' });
+          queued.push({ projectId: asset.id, jobId: job.id, step });
         } else {
           const repair = await executeProjectInfrastructureRepair(asset.id);
           repairs.push({ projectId: asset.id, status: 'INFRASTRUCTURE_REPAIRED', asset: repair.asset?.id });

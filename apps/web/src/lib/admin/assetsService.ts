@@ -672,19 +672,32 @@ export function isMorphoBorrowReadyAsset(asset: AdminAssetRecord): boolean {
 export async function listInfrastructureRepairCandidates(limit = 3): Promise<AdminAssetRecord[]> {
   const assets = await listAdminAssets('ALL');
   return assets
-    .filter((asset) => {
-      if (!asset.contractAddress) {
-        return false;
-      }
-
-      const morpho = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
-      return (
-        (isVaultTokenStandard(asset.tokenStandard) &&
-          (!asset.vaultAddress || asset.vaultFundingStatus !== 'FUNDED')) ||
-        Boolean(morpho && morpho.status !== 'REGISTERED')
-      );
-    })
+    .filter((asset) => resolveInfrastructureRepairStep(asset) !== null)
     .slice(0, limit);
+}
+
+/** Pick automation job step for infrastructure repair (vault before Morpho collateral). */
+export function resolveInfrastructureRepairStep(
+  asset: AdminAssetRecord
+): 'VAULT_DEPLOY' | 'COLLATERAL_REGISTER' | null {
+  if (!asset.contractAddress) {
+    return null;
+  }
+
+  const morpho = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
+  const vaultIncomplete =
+    isVaultTokenStandard(asset.tokenStandard) &&
+    (!asset.vaultAddress || asset.vaultFundingStatus !== 'FUNDED');
+
+  if (vaultIncomplete) {
+    return 'VAULT_DEPLOY';
+  }
+
+  if (morpho && morpho.status !== 'REGISTERED') {
+    return 'COLLATERAL_REGISTER';
+  }
+
+  return null;
 }
 
 /** Active Morpho-registered assets for daily liquidity readiness probes. */

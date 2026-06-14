@@ -52,7 +52,9 @@ export async function POST(request: Request) {
           ? 400
           : code === 'MANAGER_CANNOT_HAVE_UPLINE'
             ? 400
-            : 500;
+            : code === 'EMAIL_ALREADY_STAFF' || code === 'EMAIL_ALREADY_ADVISOR'
+              ? 400
+              : 500;
 
     console.error('[admin/team/advisors POST]', error);
     return NextResponse.json({ error: code }, { status });

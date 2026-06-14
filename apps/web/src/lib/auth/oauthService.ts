@@ -1,6 +1,7 @@
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { SignJWT } from 'jose';
 import type { SystemRole } from './roles';
+import { hasValidInvestorInviteForEmail } from '../admin/investorInviteService';
 import { isPreApprovedInvestorEmail, resolveRoleForEmail, resolveRoleForExistingUser } from './roleAllowlist';
 
 type OAuthLoginInput = {
@@ -11,9 +12,11 @@ type OAuthLoginInput = {
   providerAccountId: string;
 };
 
-function resolveInvestorAccessForOAuth(email: string): boolean {
+async function resolveInvestorAccessForOAuth(email: string): Promise<boolean> {
   return (
-    process.env.INVESTOR_OPEN_REGISTRATION === 'true' || isPreApprovedInvestorEmail(email)
+    process.env.INVESTOR_OPEN_REGISTRATION === 'true' ||
+    isPreApprovedInvestorEmail(email) ||
+    (await hasValidInvestorInviteForEmail(email))
   );
 }
 
@@ -28,6 +31,8 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
     ? resolveRoleForExistingUser(email, existingUser.systemRole as SystemRole)
     : resolveRoleForEmail(email);
 
+  const investorAccessForOAuth = await resolveInvestorAccessForOAuth(email);
+
   const user = await prisma.user.upsert({
     where: { email },
     create: {
@@ -37,7 +42,7 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
       oauthProvider: input.provider,
       oauthProviderId: input.providerAccountId,
       systemRole: role as PrismaSystemRole,
-      investorAccessEnabled: role === 'INVESTOR' ? resolveInvestorAccessForOAuth(email) : false
+      investorAccessEnabled: role === 'INVESTOR' ? investorAccessForOAuth : false
     },
     update: {
       name: input.name ?? undefined,
@@ -45,9 +50,7 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
       oauthProvider: input.provider,
       oauthProviderId: input.providerAccountId,
       systemRole: role as PrismaSystemRole,
-      ...(role === 'INVESTOR' &&
-      !existingUser?.investorAccessEnabled &&
-      resolveInvestorAccessForOAuth(email)
+      ...(role === 'INVESTOR' && !existingUser?.investorAccessEnabled && investorAccessForOAuth
         ? { investorAccessEnabled: true }
         : {})
     }

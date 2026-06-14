@@ -3,7 +3,8 @@ import { allocateProjectRentByPreference } from '../investor/rentPayoutService';
 import {
   creditProjectOperatingRent,
   createYieldBatchFromOperatingBalance,
-  getOrCreateProjectOperatingAccount
+  getOrCreateProjectOperatingAccount,
+  assertYieldBatchConversionEligible
 } from './projectOperatingService';
 import {
   normalizeOperatingCurrency,
@@ -18,7 +19,7 @@ export type CreditAndDistributeResult = {
   sourceCurrency: string;
   allocation: Awaited<ReturnType<typeof allocateProjectRentByPreference>>;
   conversionBatch?: { id: string; status: string; conversionRail: string | null };
-  mode: 'DISTRIBUTED' | 'CONVERSION_QUEUED' | 'CREDIT_ONLY';
+  mode: 'DISTRIBUTED' | 'CONVERSION_QUEUED' | 'CREDIT_ONLY' | 'NO_ELIGIBLE_HOLDERS';
 };
 
 async function countUsdcPreferenceHolders(projectId: string): Promise<number> {
@@ -53,6 +54,19 @@ export async function creditAndDistributeOperatingRent(input: {
   const creditKey =
     input.idempotencyKey?.trim() ||
     `rent-credit-and-distribute:${input.projectId}:${currency}:${input.amount}:${Date.now()}`;
+
+  const accountBefore = await getOrCreateProjectOperatingAccount(input.projectId, currency);
+  const projectedDistribute = input.distributeAmount ?? accountBefore.balance.toNumber() + input.amount;
+  const usdcHolders = await countUsdcPreferenceHolders(input.projectId);
+  const needsConversion = currency === 'ARS' && usdcHolders > 0 && input.autoConvertIfNeeded;
+
+  if (needsConversion) {
+    await assertYieldBatchConversionEligible({
+      projectId: input.projectId,
+      currency,
+      amount: projectedDistribute
+    });
+  }
 
   const credit = await creditProjectOperatingRent({
     projectId: input.projectId,
@@ -91,9 +105,6 @@ export async function creditAndDistributeOperatingRent(input: {
     throw new Error('INSUFFICIENT_OPERATING_BALANCE');
   }
 
-  const usdcHolders = await countUsdcPreferenceHolders(input.projectId);
-  const needsConversion = currency === 'ARS' && usdcHolders > 0 && input.autoConvertIfNeeded;
-
   if (needsConversion) {
     const batch = await createYieldBatchFromOperatingBalance({
       projectId: input.projectId,
@@ -109,7 +120,7 @@ export async function creditAndDistributeOperatingRent(input: {
       sourceCurrency: currency,
       allocation: {
         projectId: input.projectId,
-        status: 'NO_ELIGIBLE_INVESTORS',
+        status: 'NO_ELIGIBLE_INVESTORS' as const,
         allocations: []
       },
       conversionBatch: {
@@ -138,6 +149,18 @@ export async function creditAndDistributeOperatingRent(input: {
 
   if (allocation.status === 'PARTIAL') {
     throw new Error('PARTIAL_RENT_DISTRIBUTION');
+  }
+
+  if (allocation.status === 'NO_ELIGIBLE_INVESTORS') {
+    return {
+      credited: credit.created,
+      creditEntryId: credit.entry.id,
+      totalAmountUsd,
+      sourceAmount: amountToDistribute,
+      sourceCurrency: currency,
+      allocation,
+      mode: 'NO_ELIGIBLE_HOLDERS'
+    };
   }
 
   return {

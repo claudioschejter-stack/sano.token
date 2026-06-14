@@ -3,20 +3,14 @@ import { prisma, type SystemRole as PrismaSystemRole } from '@sanova/database';
 import { buildKycUrl } from '../auth/kycPaths';
 import { normalizeEmail } from '../auth/contactValidation';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { resolveSiteUrl } from '../invite/resolveSiteUrl';
+import { buildTeamInviteWhatsAppMessage } from '../invite/whatsappInvite';
 import { designateAdvisor } from './teamService';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
-}
-
-function resolveSiteUrl(): string {
-  return (
-    process.env.NEXTAUTH_URL?.trim() ||
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    'https://sano-token-web.vercel.app'
-  ).replace(/\/$/, '');
 }
 
 function roleLabel(role: 'ADVISOR' | 'ADVISOR_MANAGER'): string {
@@ -36,6 +30,8 @@ export type TeamInviteRecord = {
   expiresAt: string;
   createdAt: string;
   emailSent: boolean;
+  acceptUrl: string;
+  whatsappMessage: string;
 };
 
 export async function inviteTeamMember(input: {
@@ -73,7 +69,12 @@ export async function inviteTeamMember(input: {
   }
 
   const pending = await prisma.teamInvite.findFirst({
-    where: { email, status: 'PENDING', expiresAt: { gt: new Date() } }
+    where: {
+      email,
+      role: { in: ['ADVISOR', 'ADVISOR_MANAGER'] },
+      status: 'PENDING',
+      expiresAt: { gt: new Date() }
+    }
   });
 
   if (pending) {
@@ -151,7 +152,13 @@ export async function inviteTeamMember(input: {
     status: invite.status,
     expiresAt: invite.expiresAt.toISOString(),
     createdAt: invite.createdAt.toISOString(),
-    emailSent: emailResult.ok
+    emailSent: emailResult.ok,
+    acceptUrl,
+    whatsappMessage: buildTeamInviteWhatsAppMessage({
+      acceptUrl,
+      roleLabel: roleText,
+      name: input.name
+    })
   };
 }
 
@@ -175,6 +182,10 @@ export async function acceptTeamInvite(token: string): Promise<{ redirectUrl: st
       data: { status: 'EXPIRED' }
     });
     throw new Error('INVITE_EXPIRED');
+  }
+
+  if (invite.role !== 'ADVISOR' && invite.role !== 'ADVISOR_MANAGER') {
+    throw new Error('INVITE_ROLE_MISMATCH');
   }
 
   const role = invite.role as 'ADVISOR' | 'ADVISOR_MANAGER';

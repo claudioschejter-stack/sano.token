@@ -3,6 +3,7 @@ import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from './contactValidation';
 import { resolveInvestorAccessOnRegister } from './investorAccess';
 import { hasValidInvestorInviteForEmail, markInvestorInviteAcceptedForEmail } from '../admin/investorInviteService';
+import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 import {
   isPreApprovedInvestorEmail,
   resolveRoleForEmail,
@@ -130,6 +131,7 @@ export async function registerInvestor(input: RegisterInput) {
   });
 
   await markInvestorInviteAcceptedForEmail(email);
+  await applyInvestorInviteAdvisorForUser(user.id, email);
 
   return {
     userId: user.id,

@@ -1,4 +1,5 @@
 import { prisma } from '@sanova/database';
+import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 
 export const PENDING_INVESTOR_WALLET_PREFIX = 'pending:';
 
@@ -87,6 +88,8 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     where: { id: user.id },
     data: { investorId: investor.id }
   });
+
+  await applyInvestorInviteAdvisorForUser(user.id, user.email);
 
   await prisma.portfolio.upsert({
     where: { userId: user.id },

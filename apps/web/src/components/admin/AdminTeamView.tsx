@@ -8,6 +8,7 @@ import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { PlatformTeamMember, AdvisorTeamMember } from '../../lib/admin/teamService';
 import { ADMIN_ASSIGNABLE_ROLES, type SystemRole } from '../../lib/auth/roles';
 import { AdminGate } from './AdminGate';
+import { WhatsAppContactInvitePanel } from './WhatsAppContactInvitePanel';
 
 function VerificationCell({
   verified,
@@ -417,6 +418,13 @@ export function AdminTeamView() {
               </button>
             </div>
           </form>
+
+          <WhatsAppContactInvitePanel
+            kind="team"
+            teamRole={designateForm.role}
+            teamUplineId={designateForm.uplineAdvisorId || undefined}
+            onInviteCreated={() => void loadData()}
+          />
         </section>
 
         <section className="space-y-4">

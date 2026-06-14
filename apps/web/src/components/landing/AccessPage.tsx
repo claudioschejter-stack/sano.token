@@ -43,6 +43,7 @@ function AccessPageContent() {
   const authError = searchParams.get('error');
   const inviteEmail = searchParams.get('email')?.trim() ?? '';
   const staffInvite = searchParams.get('staffInvite') === '1';
+  const investorInviteAccepted = searchParams.get('investorInvite') === '1';
   const inviteError = searchParams.get('inviteError');
   const investorInvite = searchParams.get('invite')?.trim() ?? '';
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
@@ -143,6 +144,12 @@ function AccessPageContent() {
         {staffInvite ? (
           <p className="mx-auto mt-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
             {a.staffInviteAccepted}
+          </p>
+        ) : null}
+
+        {investorInviteAccepted ? (
+          <p className="mx-auto mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {a.investorInviteAccepted}
           </p>
         ) : null}
 

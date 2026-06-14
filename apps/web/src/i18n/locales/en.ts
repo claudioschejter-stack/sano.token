@@ -318,6 +318,27 @@ export const en = {
     inviteError: "Could not send the invitation. Try again.",
     inviteEmailNotSent: "Invite created but email was not sent (check RESEND_API_KEY)."
   },
+  adminInviteWhatsApp: {
+    title: "Invite via WhatsApp contacts",
+    desc: "Pick contacts from your phone (Chrome Android) or add them manually, create invites, then send the link through WhatsApp.",
+    pickContacts: "Pick phone contacts",
+    pickContactsManual: "Pick contacts (limited browser)",
+    pickError: "Could not read contacts. Add them manually.",
+    pickerUnavailable: "Contact picker not available on this device.",
+    pickerHint: "On mobile Chrome you can pick contacts from your phone. On desktop, add rows manually and enter phone + email.",
+    addManual: "Add contact manually",
+    createAll: "Create all invites",
+    createInvite: "Create invite",
+    sendWhatsApp: "Open WhatsApp",
+    sent: "Sent",
+    emailRequired: "Email required",
+    createError: "Could not create invite",
+    colName: "Name",
+    colPhone: "Phone",
+    colEmail: "Email",
+    colActions: "Actions",
+    emailPlaceholder: "email@example.com"
+  },
   identityProfile: {
     title: "Identity data",
     empty: "No identity data yet. It is filled automatically when you verify your identity.",
@@ -374,6 +395,7 @@ export const en = {
     deleteError: "Could not delete asset.",
     deleteBlockedInvestments: "Cannot delete an asset with active investments.",
     deleteBlockedPublished: "Unpublish the asset before deleting it.",
+    asyncDeployQueued: "Deploy queued in background. Refresh in a few minutes.",
     sectionDebt: "Debt properties",
     sectionEquity: "Equity properties",
     emptyDebt: "No debt properties match this filter.",
@@ -470,7 +492,9 @@ export const en = {
       PENDING: "Pending",
       COMPLETED: "Completed",
       FAILED: "Failed"
-    }
+    },
+    creditAndDistributeSuccessNoHolders: "Rent credited. No eligible token holders to pay yet.",
+    pendingBatchesHint: "{count} batch(es) pending manual conversion confirmation."
   },
   adminLoans: {
     eyebrow: "RWA lending",
@@ -1534,6 +1558,8 @@ export const en = {
     authError: "We could not complete the entry.Please check your OAuth configuration or try again.",
     staffInviteAccepted:
       "Invitation accepted. Sign in or register with the same email to continue with KYC verification.",
+    investorInviteAccepted:
+      "Investor invitation accepted. Register or sign in with the invited email to continue with KYC.",
     inviteInvalid: "The invitation is invalid or has expired. Ask an administrator to send a new one.",
     rolesTitle: "Platform roles",
     rolesDesc: "All roles (Administrator, Manager, Advisor and Investor) must verify email, phone and complete KYC before trading.",

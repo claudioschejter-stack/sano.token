@@ -378,8 +378,30 @@ export function AdminAssetsView() {
         body: JSON.stringify(body)
       });
 
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        code?: string;
+        issues?: string[];
+        async?: boolean;
+        jobIds?: string[];
+      };
+
+      if (response.status === 202 && data.async) {
+        await loadAssets(filter);
+        setEditingId(null);
+        setSaveError(t.adminAssets.asyncDeployQueued);
+        return;
+      }
+
       if (!response.ok) {
-        throw new Error('Failed to update asset');
+        if (response.status === 422 && data.issues?.length) {
+          setSaveError(data.issues.join(' · '));
+        } else if (data.code === 'LAUNCH_NOT_READY') {
+          setSaveError(data.issues?.join(' · ') ?? t.adminAssets.saveError);
+        } else {
+          setSaveError(data.error ?? t.adminAssets.saveError);
+        }
+        return;
       }
 
       await loadAssets(filter);

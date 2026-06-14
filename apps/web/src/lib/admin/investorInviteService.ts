@@ -3,19 +3,13 @@ import { prisma } from '@sanova/database';
 import { buildKycUrl } from '../auth/kycPaths';
 import { normalizeEmail } from '../auth/contactValidation';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { resolveSiteUrl } from '../invite/resolveSiteUrl';
+import { buildInvestorInviteWhatsAppMessage } from '../invite/whatsappInvite';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
-}
-
-function resolveSiteUrl(): string {
-  return (
-    process.env.NEXTAUTH_URL?.trim() ||
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    'https://www.sanovacapital.com'
-  ).replace(/\/$/, '');
 }
 
 export type InvestorInviteRecord = {
@@ -26,6 +20,8 @@ export type InvestorInviteRecord = {
   expiresAt: string;
   createdAt: string;
   emailSent: boolean;
+  acceptUrl: string;
+  whatsappMessage: string;
 };
 
 export async function hasValidInvestorInviteForEmail(email: string): Promise<boolean> {
@@ -167,7 +163,9 @@ export async function inviteInvestor(input: {
     status: invite.status,
     expiresAt: invite.expiresAt.toISOString(),
     createdAt: invite.createdAt.toISOString(),
-    emailSent: emailResult.ok
+    emailSent: emailResult.ok,
+    acceptUrl,
+    whatsappMessage: buildInvestorInviteWhatsAppMessage({ acceptUrl, name: input.name })
   };
 }
 

@@ -210,6 +210,29 @@ export async function debitProjectOperatingForDistribution(input: {
   });
 }
 
+/** Validate vault and minimum amount before locking operating balance into a yield batch. */
+export async function assertYieldBatchConversionEligible(input: {
+  projectId: string;
+  currency: string;
+  amount: number;
+}) {
+  const currency = normalizeOperatingCurrency(input.currency);
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new Error('INVALID_BATCH_AMOUNT');
+  }
+
+  const minUsd = yieldConversionMinUsd(currency);
+  const amountUsd = operatingAmountToUsd(input.amount, currency);
+  if (amountUsd < minUsd) {
+    throw new Error(`BELOW_CONVERSION_MINIMUM:${minUsd}`);
+  }
+
+  const asset = await getAdminAsset(input.projectId);
+  if (!asset?.vaultAddress) {
+    throw new Error('VAULT_NOT_CONFIGURED');
+  }
+}
+
 export async function createYieldBatchFromOperatingBalance(input: {
   projectId: string;
   currency: string;

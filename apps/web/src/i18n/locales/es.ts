@@ -325,6 +325,27 @@ export const es = {
     inviteError: 'No se pudo enviar la invitación. Intentá de nuevo.',
     inviteEmailNotSent: 'Invitación creada pero no se envió el email (revisá RESEND_API_KEY).'
   },
+  adminInviteWhatsApp: {
+    title: 'Invitar desde contactos / WhatsApp',
+    desc: 'Seleccioná contactos del teléfono (Chrome en Android) o agregalos manualmente, creá invitaciones y enviá el enlace por WhatsApp.',
+    pickContacts: 'Elegir contactos del teléfono',
+    pickContactsManual: 'Elegir contactos (navegador limitado)',
+    pickError: 'No se pudieron leer los contactos. Agregalos manualmente.',
+    pickerUnavailable: 'Selector de contactos no disponible en este dispositivo.',
+    pickerHint: 'En Chrome móvil podés elegir contactos del teléfono. En desktop, agregá filas manualmente con teléfono y email.',
+    addManual: 'Agregar contacto manual',
+    createAll: 'Crear todas las invitaciones',
+    createInvite: 'Crear invitación',
+    sendWhatsApp: 'Abrir WhatsApp',
+    sent: 'Enviado',
+    emailRequired: 'Email requerido',
+    createError: 'No se pudo crear la invitación',
+    colName: 'Nombre',
+    colPhone: 'Teléfono',
+    colEmail: 'Email',
+    colActions: 'Acciones',
+    emailPlaceholder: 'email@ejemplo.com'
+  },
   identityProfile: {
     title: 'Datos de identidad',
     empty: 'Sin datos de identidad. Se completan automáticamente al verificar tu identidad.',
@@ -381,6 +402,7 @@ export const es = {
     deleteError: 'No se pudo eliminar el activo.',
     deleteBlockedInvestments: 'No podés eliminar un activo con inversiones activas.',
     deleteBlockedPublished: 'Despublicá el activo antes de eliminarlo.',
+    asyncDeployQueued: 'Emisión en cola en segundo plano. Actualizá en unos minutos.',
     sectionDebt: 'Propiedades de deuda',
     sectionEquity: 'Propiedades de capital',
     emptyDebt: 'No hay propiedades de deuda con este filtro.',
@@ -479,7 +501,10 @@ export const es = {
       PENDING: 'Pendiente',
       COMPLETED: 'Completado',
       FAILED: 'Fallido'
-    }
+    },
+    creditAndDistributeSuccessNoHolders:
+      'Alquiler acreditado. Aún no hay tenedores elegibles para cobrar.',
+    pendingBatchesHint: '{count} batch(es) pendiente(s) de confirmación manual.'
   },
   adminLoans: {
     eyebrow: 'Préstamos RWA',
@@ -1560,6 +1585,8 @@ export const es = {
     authError: 'No pudimos completar el ingreso. Verificá la configuración OAuth o intentá de nuevo.',
     staffInviteAccepted:
       'Invitación aceptada. Iniciá sesión o registrate con el mismo correo para continuar con la verificación KYC.',
+    investorInviteAccepted:
+      'Invitación de inversor aceptada. Registrate o accedé con el email invitado para continuar con KYC.',
     inviteInvalid: 'La invitación no es válida o ya venció. Pedile a un administrador que te envíe una nueva.',
     rolesTitle: 'Roles de la plataforma',
     rolesDesc:
