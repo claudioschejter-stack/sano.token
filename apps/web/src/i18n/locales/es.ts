@@ -89,7 +89,7 @@ export const es = {
     borrow: {
       title: 'Pedir préstamo en DeFi (Base)',
       subtitle:
-        'Conectá tu wallet y pedí USDC en la mejor tasa entre Aave, Moonwell, Compound y Morpho (Base). Spark está disponible en Ethereum.',
+        'Conectá tu wallet y pedí USDC contra tu colateral RWA en vault vía Morpho en Base. Sanova no enruta préstamos a otros protocolos.',
       subtitleMorpho:
         'Usá las shares del vault en tu Coinbase vinculado. Sanova arma colateral Morpho y borrow USDC con la menor cantidad de firmas.',
       protocolLabel: 'Prestamista',

@@ -82,6 +82,25 @@ export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolea
   return true;
 }
 
+/** Cash-flow dashboard: trading roles need wallet; treasury staff need verified identity only. */
+export function canAccessCashFlowDashboard(user: UserOnboardingFields): boolean {
+  const identityReady =
+    Boolean(user.emailVerifiedAt) &&
+    Boolean(user.phoneVerifiedAt) &&
+    user.kycStatus === 'APPROVED' &&
+    user.accountStatus !== 'SUSPENDED';
+
+  if (!identityReady) {
+    return false;
+  }
+
+  if (user.systemRole === 'TREASURY') {
+    return true;
+  }
+
+  return canAccessMarketplaceCheckout(user);
+}
+
 export function deriveAccountStatus(user: UserOnboardingFields): AccountStatus {
   if (user.accountStatus === 'SUSPENDED') {
     return 'SUSPENDED';

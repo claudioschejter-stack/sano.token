@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
-import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireMarketplacePurchaseSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { buildDepositPaymentOptions } from '../../../../../lib/payments/depositPaymentOptions';
 import { resolveOperationalWalletAddress } from '../../../../../lib/investor/provisionInvestorProfile';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireMarketplacePurchaseSession();
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }

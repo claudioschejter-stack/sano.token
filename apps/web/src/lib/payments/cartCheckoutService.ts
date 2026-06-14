@@ -226,13 +226,10 @@ async function attachCartGatewayCheckout(input: {
     });
   }
   if (input.method === 'RAMP') {
-    return createTransakOnRampCheckout({
-      depositId: input.batchId,
-      amountUsd: input.totalUsd,
-      stablecoinNetwork: input.stablecoinNetwork,
-      userEmail: input.userEmail,
-      redirectPath
-    });
+    return {
+      provider: 'ramp',
+      metadata: { configured: false, reason: 'RAMP_NOT_INTEGRATED' }
+    };
   }
 
   return null;

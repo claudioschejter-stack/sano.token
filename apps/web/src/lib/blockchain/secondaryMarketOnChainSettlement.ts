@@ -195,3 +195,81 @@ export async function settleSecondaryP2pOnChain(
     provider.destroy();
   }
 }
+
+export type PlatformBuybackSettlementResult = {
+  vaultTxHash: string;
+  sellerWallet: string;
+  treasuryAddress: string;
+};
+
+/**
+ * Platform buyback: move vault shares from seller to treasury on-chain (Sanova-only exit).
+ * USDC payment is credited to the seller's platform wallet after shares are transferred.
+ */
+export async function settlePlatformBuybackOnChain(input: {
+  sellerUserId: string;
+  projectId: string;
+  tokenCount: number;
+}): Promise<PlatformBuybackSettlementResult> {
+  const sellerWallet = await getLinkedWalletForUser(input.sellerUserId);
+
+  if (!sellerWallet || !isAddress(sellerWallet)) {
+    throw new Error('INVESTOR_WALLET_REQUIRED');
+  }
+
+  const asset = await getAdminAsset(input.projectId);
+  const vault = asset?.vaultAddress?.trim();
+  const token = asset?.contractAddress?.trim();
+
+  if (!vault || !token) {
+    throw new Error('ON_CHAIN_SETTLEMENT_UNAVAILABLE');
+  }
+
+  const treasury = resolveTreasuryAddress();
+  const operatorKey = resolveOperatorSignerKey();
+
+  if (!treasury || !isAddress(treasury) || !operatorKey) {
+    throw new Error('ON_CHAIN_SETTLEMENT_OPERATOR_MISSING');
+  }
+
+  const shareAmount = vaultSharesForTokenCount(input.tokenCount);
+  if (shareAmount <= 0n) {
+    throw new Error('INVALID_TOKEN_COUNT');
+  }
+
+  const chainId = asset.chainId ?? 8453;
+  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
+  const operator = new Wallet(operatorKey, provider);
+  const operatorAddress = operator.address;
+
+  try {
+    const vaultContract = new Contract(vault, VAULT_ABI, provider);
+    const assetContract = new Contract(token, TOKEN_ABI, operator);
+
+    const sellerShareBalance = (await vaultContract.balanceOf(sellerWallet)) as bigint;
+    if (sellerShareBalance < shareAmount) {
+      throw new Error('INSUFFICIENT_SELLER_ON_CHAIN_SHARES');
+    }
+
+    const sellerVaultAllowance = (await vaultContract.allowance(sellerWallet, operatorAddress)) as bigint;
+    if (sellerVaultAllowance < shareAmount) {
+      throw new Error('SELLER_VAULT_ALLOWANCE_REQUIRED');
+    }
+
+    await ensureRecipientKyc(assetContract, treasury, operator, treasury);
+
+    const vaultContractWithSigner = new Contract(vault, VAULT_ABI, operator);
+    const vaultTx = await vaultContractWithSigner.transferFrom(sellerWallet, treasury, shareAmount);
+    const vaultReceipt = await waitForAutomationTx(vaultTx);
+    const vaultTxHash = vaultReceipt?.hash ?? vaultTx.hash;
+
+    const treasuryShares = (await vaultContract.balanceOf(treasury)) as bigint;
+    if (treasuryShares < shareAmount) {
+      throw new Error('ON_CHAIN_SETTLEMENT_VERIFY_FAILED');
+    }
+
+    return { vaultTxHash, sellerWallet, treasuryAddress: treasury };
+  } finally {
+    provider.destroy();
+  }
+}

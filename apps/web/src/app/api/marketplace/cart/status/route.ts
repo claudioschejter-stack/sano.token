@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import {
   investorSessionForbiddenResponse,
-  requireInvestorSession
+  requireMarketplacePurchaseSession
 } from '../../../../../lib/onboarding/requireInvestorSession';
 import { getCartBatchStatus } from '../../../../../lib/payments/cartCheckoutService';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireMarketplacePurchaseSession();
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }

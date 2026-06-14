@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { PaymentMethod } from '@sanova/database';
-import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireMarketplacePurchaseSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import {
   createPaymentIntent,
   expirePaymentIntent,
@@ -30,7 +30,7 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ projectId: string }> }
 ) {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireMarketplacePurchaseSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
@@ -94,7 +94,7 @@ export async function POST(
 }
 
 export async function GET(request: Request) {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireMarketplacePurchaseSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });

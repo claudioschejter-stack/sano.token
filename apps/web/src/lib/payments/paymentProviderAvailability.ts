@@ -49,7 +49,7 @@ export function isPaymentProviderConfigured(provider: PaymentProviderId): boolea
     case 'transak':
       return paymentGatewayConfigured('TRANSAK');
     case 'ramp':
-      return paymentGatewayConfigured('RAMP');
+      return false;
     case 'binance':
       return isBinancePayConfigured() || paymentGatewayConfigured('USDC_ONCHAIN');
     case 'custodial':

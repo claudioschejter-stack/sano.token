@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
-import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
+import { investorSessionForbiddenResponse, requireMarketplacePurchaseSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { verifyCartUsdcPayment } from '../../../../../lib/payments/cartCheckoutService';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +42,7 @@ const CONFIRM_ERRORS = [
 ] as const;
 
 export async function POST(request: Request) {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireMarketplacePurchaseSession();
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }

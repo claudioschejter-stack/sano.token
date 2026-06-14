@@ -6,7 +6,12 @@ import {
   assertOperationalInvestor,
   getUserPurchaseContext
 } from '../investor/investorService';
-const INVESTOR_API_ROLES = new Set(['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER', 'TREASURY']);
+/** Marketplace purchase, cart checkout, payment intents. */
+export const MARKETPLACE_API_ROLES = new Set(['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER']);
+
+/** Portfolio, wallet, deposits — treasury can view balances but not trade. */
+export const PORTFOLIO_API_ROLES = new Set(['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER', 'TREASURY']);
+
 const MORPHO_BORROW_API_ROLES = new Set(['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER']);
 
 export type InvestorSessionContext = {
@@ -45,7 +50,7 @@ export async function requireInvestorSession(
     return null;
   }
 
-  const allowedRoles = options.allowedRoles ?? INVESTOR_API_ROLES;
+  const allowedRoles = options.allowedRoles ?? PORTFOLIO_API_ROLES;
   const role = session.user.role;
   if (!role || !allowedRoles.has(role)) {
     return { forbidden: true, error: 'INVESTOR_ROLE_REQUIRED' };
@@ -79,7 +84,12 @@ export function investorSessionForbiddenResponse(ctx: InvestorSessionForbidden) 
   return NextResponse.json({ error: ctx.error ?? 'FORBIDDEN' }, { status: 403 });
 }
 
-/** Morpho borrow preview/prepare: operational INVESTOR only (linked Coinbase wallet). */
+/** Morpho borrow preview/prepare/quote: operational trading roles only. */
 export async function requireMorphoBorrowSession(): Promise<InvestorSessionResult> {
   return requireInvestorSession({ operational: true, allowedRoles: MORPHO_BORROW_API_ROLES });
+}
+
+/** Cart checkout and token purchases — trading roles only (no treasury/admin). */
+export async function requireMarketplacePurchaseSession(): Promise<InvestorSessionResult> {
+  return requireInvestorSession({ allowedRoles: MARKETPLACE_API_ROLES });
 }

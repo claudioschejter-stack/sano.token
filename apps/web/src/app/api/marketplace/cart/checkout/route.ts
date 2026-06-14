@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import {
   investorSessionForbiddenResponse,
-  requireInvestorSession
+  requireMarketplacePurchaseSession
 } from '../../../../../lib/onboarding/requireInvestorSession';
 import { parsePaymentMethod } from '../../../../../lib/payments/checkoutMethods';
 import { createCartPurchaseCheckout, type CartLineInput } from '../../../../../lib/payments/cartCheckoutService';
@@ -53,7 +53,7 @@ const CHECKOUT_ERRORS = [
 ] as const;
 
 export async function POST(request: Request) {
-  const ctx = await requireInvestorSession();
+  const ctx = await requireMarketplacePurchaseSession();
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }

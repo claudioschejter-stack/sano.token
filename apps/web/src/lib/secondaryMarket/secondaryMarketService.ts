@@ -2,7 +2,8 @@ import { prisma, Prisma } from '@sanova/database';
 import { listMarketplaceListings } from '../admin/assetsService';
 import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
 import { creditPlatformWallet } from '../payments/platformWalletService';
-import { settleSecondaryP2pOnChain } from '../blockchain/secondaryMarketOnChainSettlement';
+import { settleSecondaryP2pOnChain, settlePlatformBuybackOnChain } from '../blockchain/secondaryMarketOnChainSettlement';
+import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import type {
   SecondaryMarketFeed,
   SecondaryMarketHolding,
@@ -253,9 +254,10 @@ export async function buySecondaryListing(input: { buyerUserId: string; listingI
     throw new Error('SELLER_HAS_NO_INVESTOR');
   }
 
-  const buyerWallet =
-    buyerContext.walletAddress?.trim() ||
-    `secondary-buyer-${input.buyerUserId.slice(0, 8)}`;
+  const buyerWallet = await getLinkedWalletForUser(input.buyerUserId);
+  if (!buyerWallet) {
+    throw new Error('INVESTOR_WALLET_REQUIRED');
+  }
 
   const buyerInvestorId = await ensureInvestorForUser(buyerContext, buyerWallet);
 
@@ -461,6 +463,12 @@ export async function executePlatformBuyback(input: {
   const totalUsd = pricePerTokenUsd * input.tokenCount;
   const idempotencyKey = `platform-buyback:${input.userId}:${input.projectId}:${Date.now()}`;
 
+  const buybackSettlement = await settlePlatformBuybackOnChain({
+    sellerUserId: input.userId,
+    projectId: input.projectId,
+    tokenCount: input.tokenCount
+  });
+
   await prisma.$transaction(async (tx) => {
     const user = await tx.user.findUniqueOrThrow({
       where: { id: input.userId },
@@ -505,7 +513,10 @@ export async function executePlatformBuyback(input: {
       projectId: input.projectId,
       tokenCount: input.tokenCount,
       pricePerTokenUsd,
-      referencePriceUsd
+      referencePriceUsd,
+      vaultTxHash: buybackSettlement.vaultTxHash,
+      sellerWallet: buybackSettlement.sellerWallet,
+      treasuryAddress: buybackSettlement.treasuryAddress
     }
   });
 
@@ -515,6 +526,7 @@ export async function executePlatformBuyback(input: {
     tokenSymbol: project.tokenSymbol ?? 'RWA',
     tokenCount: input.tokenCount,
     pricePerTokenUsd,
-    totalUsd
+    totalUsd,
+    txHash: buybackSettlement.vaultTxHash
   };
 }

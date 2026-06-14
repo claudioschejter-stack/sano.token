@@ -32,9 +32,13 @@ function tradingCapabilities(
 export function getMarketplaceCapabilities(role: SystemRole | undefined): MarketplaceCapabilities {
   switch (role) {
     case 'ADMIN':
-      return tradingCapabilities('admin', {
-        showAdminToolbar: true
-      });
+      return {
+        showBorrowRates: false,
+        showPurchaseActions: false,
+        useInvestorKycStatus: false,
+        showAdminToolbar: true,
+        subtitleKey: 'admin'
+      };
     case 'ADVISOR':
       return tradingCapabilities('advisor', { showBorrowRates: true });
     case 'ADVISOR_MANAGER':
