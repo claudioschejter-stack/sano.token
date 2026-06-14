@@ -30,7 +30,9 @@ import { assertPaymentProofPresent } from './purchaseGuard';
 import { buildPurchaseIntentMetadata } from './purchaseIntentMetadata';
 import { readBatchTotalUsdcBaseUnits, sumDecimalUsdBaseUnits } from './paymentAmountUtils';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
+import { resolvePaymentCountryForUser } from './paymentCountry';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
+import { isLocalRailManualResult } from './stripeCheckoutOptions';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = ['event Transfer(address indexed from,address indexed to,uint256 value)'];
@@ -179,19 +181,37 @@ async function attachCartGatewayCheckout(input: {
   paymentIntentIds: string[];
   userEmail?: string | null;
   stablecoinNetwork?: string | null;
+  country?: string | null;
 }) {
   const redirectPath = `/marketplace/carrito?batch=${encodeURIComponent(input.batchId)}&status=success`;
+  const checkoutRow = input.paymentOptionId ? getPaymentCheckoutRowById(input.paymentOptionId) : null;
 
-  if (input.method === 'LOCAL_RAIL' && input.paymentOptionId) {
-    const row = getPaymentCheckoutRowById(input.paymentOptionId);
-    if (!row) {
-      return null;
-    }
+  if (input.method === 'LOCAL_RAIL' && input.paymentOptionId && checkoutRow) {
     return createLocalRailCheckout({
       depositId: input.batchId,
       amountUsd: input.totalUsd,
-      row,
+      row: checkoutRow,
       userEmail: input.userEmail,
+      redirectPath,
+      country: input.country
+    });
+  }
+
+  if (input.method === 'BRIDGE') {
+    if (checkoutRow?.provider === 'wise') {
+      return createLocalRailCheckout({
+        depositId: input.batchId,
+        amountUsd: input.totalUsd,
+        row: checkoutRow,
+        userEmail: input.userEmail,
+        redirectPath,
+        country: input.country
+      });
+    }
+    return createBridgeOnRampCheckout({
+      depositId: input.batchId,
+      amountUsd: input.totalUsd,
+      stablecoinNetwork: input.stablecoinNetwork,
       redirectPath
     });
   }
@@ -214,14 +234,6 @@ async function attachCartGatewayCheckout(input: {
       amountUsd: input.totalUsd,
       stablecoinNetwork: input.stablecoinNetwork,
       userEmail: input.userEmail,
-      redirectPath
-    });
-  }
-  if (input.method === 'BRIDGE') {
-    return createBridgeOnRampCheckout({
-      depositId: input.batchId,
-      amountUsd: input.totalUsd,
-      stablecoinNetwork: input.stablecoinNetwork,
       redirectPath
     });
   }
@@ -531,6 +543,8 @@ export async function createCartPurchaseCheckout(input: {
     };
   }
 
+  const paymentCountry = await resolvePaymentCountryForUser(input.userId);
+
   const gateway = await attachCartGatewayCheckout({
     batchId,
     method: input.method,
@@ -540,8 +554,46 @@ export async function createCartPurchaseCheckout(input: {
     primaryProjectId: input.items[0].projectId,
     paymentIntentIds,
     userEmail: input.userEmail,
-    stablecoinNetwork: network.id
+    stablecoinNetwork: network.id,
+    country: paymentCountry
   });
+
+  const gatewayManual = gateway?.metadata && isLocalRailManualResult(gateway.metadata);
+
+  if (gatewayManual) {
+    for (const intentId of paymentIntentIds) {
+      const intent = await prisma.paymentIntent.findUnique({ where: { id: intentId } });
+      const prior = (intent?.metadata as Record<string, unknown>) ?? {};
+      await prisma.paymentIntent.update({
+        where: { id: intentId },
+        data: {
+          status: 'MANUAL_REVIEW',
+          provider: gateway?.provider ?? checkoutRow?.provider,
+          providerPaymentId: gateway?.providerPaymentId ?? batchId,
+          metadata: {
+            ...prior,
+            paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null,
+            gateway: gateway?.metadata ?? {}
+          } as Prisma.InputJsonObject
+        }
+      });
+    }
+
+    const manualIntents = await loadCartBatchIntents(input.userId, batchId);
+    return {
+      batchId,
+      mode: 'purchase',
+      totalUsd: totalUsdNumber.toFixed(6),
+      totalTokens,
+      method: input.method,
+      paymentIntents: manualIntents.map(serializeIntent),
+      providerCheckoutUrl: null,
+      payToAddress,
+      stablecoinNetwork: network.id,
+      confirmed: false,
+      manualReview: true
+    };
+  }
 
   if (gateway && (gateway.providerCheckoutUrl || gateway.providerPaymentId)) {
     providerCheckoutUrl = gateway.providerCheckoutUrl ?? null;

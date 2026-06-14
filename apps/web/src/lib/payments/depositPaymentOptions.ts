@@ -7,7 +7,9 @@ import {
   type PaymentCheckoutRow,
   paymentRowsForCountry
 } from './paymentCheckoutCatalog';
+import { isPaymentCountrySanctioned, normalizePaymentCountry } from './paymentCountry';
 import { isDepositCheckoutRowConfigured } from './paymentProviderAvailability';
+import { enabledStablecoinNetworks } from './stablecoinNetworks';
 
 export const DEPOSIT_QUOTE_TTL_SECONDS = 40;
 
@@ -86,6 +88,13 @@ export type DepositQuoteBundle = {
   baseCurrency: 'USD';
   localCurrency: string;
   fxRateUsdToLocal: number;
+  recommendedOptionId: string | null;
+  stablecoinNetworks: Array<{
+    id: string;
+    label: string;
+    symbol: string;
+    cheapestRank: number;
+  }>;
 };
 
 const COUNTRY_LOCAL_CURRENCY: Record<string, string> = {
@@ -163,15 +172,36 @@ export function buildDepositPaymentOptions(
   fxRateUsdToLocal?: number,
   context?: BuildDepositPaymentOptionsContext
 ): DepositQuoteBundle {
+  const normalizedCountry = normalizePaymentCountry(country);
+  if (isPaymentCountrySanctioned(normalizedCountry)) {
+    const networks = enabledStablecoinNetworks().map((network) => ({
+      id: network.id,
+      label: network.label,
+      symbol: network.symbol,
+      cheapestRank: network.cheapestRank
+    }));
+    return {
+      options: [],
+      groups: [],
+      quoteExpiresAt: new Date(Date.now() + DEPOSIT_QUOTE_TTL_SECONDS * 1000).toISOString(),
+      quoteTtlSeconds: DEPOSIT_QUOTE_TTL_SECONDS,
+      baseCurrency: 'USD',
+      localCurrency: 'USD',
+      fxRateUsdToLocal: 1,
+      recommendedOptionId: null,
+      stablecoinNetworks: networks
+    };
+  }
+
   const normalizedAmount = Number.isFinite(amountUsd) && amountUsd > 0 ? amountUsd : 0;
-  const localCurrency = COUNTRY_LOCAL_CURRENCY[country] ?? 'USD';
+  const localCurrency = COUNTRY_LOCAL_CURRENCY[normalizedCountry] ?? 'USD';
   const fxRate = fxRateUsdToLocal ?? FALLBACK_FX_USD_TO_LOCAL[localCurrency] ?? 1;
   const quoteExpiresAt = new Date(Date.now() + DEPOSIT_QUOTE_TTL_SECONDS * 1000).toISOString();
 
-  const options = paymentRowsForCountry(country).map((row) => {
+  const options = paymentRowsForCountry(normalizedCountry).map((row) => {
     const configured = isDepositCheckoutRowConfigured(row, context);
 
-    const quotedPlatform = lowestPlatformFeeUsd(row.method, normalizedAmount, country);
+    const quotedPlatform = lowestPlatformFeeUsd(row.method, normalizedAmount, normalizedCountry);
     const platformFeeUsd =
       quotedPlatform ??
       (row.id === 'credit_card'
@@ -213,6 +243,14 @@ export function buildDepositPaymentOptions(
   });
 
   const sorted = sortDepositPaymentOptions(options);
+  const recommended =
+    sorted.find((row) => row.configured && row.groupId === 'linked_wallet') ?? sorted.find((row) => row.configured) ?? null;
+  const networks = enabledStablecoinNetworks().map((network) => ({
+    id: network.id,
+    label: network.label,
+    symbol: network.symbol,
+    cheapestRank: network.cheapestRank
+  }));
 
   return {
     options: sorted,
@@ -221,6 +259,8 @@ export function buildDepositPaymentOptions(
     quoteTtlSeconds: DEPOSIT_QUOTE_TTL_SECONDS,
     baseCurrency: 'USD',
     localCurrency,
-    fxRateUsdToLocal: fxRate
+    fxRateUsdToLocal: fxRate,
+    recommendedOptionId: recommended?.id ?? null,
+    stablecoinNetworks: networks
   };
 }

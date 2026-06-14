@@ -6,6 +6,7 @@ type CheckoutRequest = {
   projectId: string;
   amountUsd: number;
   tokenCount: number;
+  paymentOptionId?: string | null;
 };
 
 type CheckoutResult = {
@@ -38,6 +39,12 @@ export async function createStripeCheckout(input: CheckoutRequest): Promise<Chec
     'metadata[paymentIntentId]': input.paymentIntentId,
     'metadata[projectId]': input.projectId
   });
+
+  if (input.paymentOptionId) {
+    params.set('metadata[paymentOptionId]', input.paymentOptionId);
+  }
+
+  appendStripePaymentMethodTypes(params, input.paymentOptionId);
 
   const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',

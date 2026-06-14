@@ -388,6 +388,20 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     sortOrder: 360
   },
   {
+    id: 'spei',
+    groupId: 'latam',
+    method: 'LOCAL_RAIL',
+    label: 'SPEI (México)',
+    provider: 'dlocal',
+    providerRail: 'spei',
+    fallbackFeeBps: 45,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.02,
+    usesLocalCurrency: true,
+    countries: ['MX'],
+    sortOrder: 365
+  },
+  {
     id: 'alipay',
     groupId: 'asia',
     method: 'LOCAL_RAIL',

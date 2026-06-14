@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { verifyHmacSignature } from '../../../../lib/payments/webhookSecurity';
+import { dispatchPaymentWebhook } from '../../../../lib/payments/paymentWebhookDispatch';
 import { handleYieldConversionWebhook } from '../../../../lib/yield/yieldWebhookHandler';
 
 export const dynamic = 'force-dynamic';
 
-/** Bridge.xyz on-ramp completion for project yield batches (USD → USDC Base). */
+/** Bridge.xyz webhooks: investor on-ramp + project yield conversion batches. */
 export async function POST(request: Request) {
   const payload = await request.text();
   const signature =
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
       reference?: string;
       conversion_ref?: string;
       batch_id?: string;
+      external_id?: string;
       amount_usdc?: number | string;
       usdc_amount?: number | string;
       tx_hash?: string;
@@ -39,8 +41,25 @@ export async function POST(request: Request) {
 
   const data = event.data ?? {};
   const eventType = (event.type ?? event.event ?? event.status ?? '').toLowerCase();
+  const paymentReference = data.external_id ?? data.reference ?? null;
   const conversionRef = data.reference ?? data.conversion_ref ?? null;
   const batchId = data.batch_id ?? null;
+
+  if (paymentReference && !batchId) {
+    const paid = eventType.includes('complete') || eventType.includes('success') || eventType.includes('paid');
+    const failed = eventType.includes('fail') || eventType.includes('cancel');
+    const paymentResult = await dispatchPaymentWebhook({
+      externalReference: paymentReference,
+      provider: 'bridge',
+      providerPaymentId: paymentReference,
+      paid,
+      failed,
+      payload: { ...event, provider: 'bridge' }
+    });
+    if (paymentResult.ok && !('ignored' in paymentResult)) {
+      return NextResponse.json(paymentResult);
+    }
+  }
 
   if (!conversionRef && !batchId) {
     return NextResponse.json({ ok: true, ignored: 'missing_batch_reference' });

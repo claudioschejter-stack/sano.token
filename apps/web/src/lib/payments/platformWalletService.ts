@@ -5,7 +5,9 @@ import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentCo
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createDepositProviderCheckout } from './paymentOnRampAdapters';
 import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
-import { getStablecoinNetwork, requireBaseStablecoinNetwork } from './stablecoinNetworks';
+import { getStablecoinNetwork } from './stablecoinNetworks';
+import { resolvePaymentCountryForUser } from './paymentCountry';
+import { isLocalRailManualResult } from './stripeCheckoutOptions';
 import type { PaymentRouteQuote } from './cheapestPaymentRouter';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
@@ -212,10 +214,7 @@ export async function createPlatformDeposit(input: {
     throw new Error('INVALID_DEPOSIT_AMOUNT');
   }
 
-  const network =
-    input.method === 'USDC_ONCHAIN'
-      ? requireBaseStablecoinNetwork(input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork)
-      : getStablecoinNetwork(input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork);
+  const network = getStablecoinNetwork(input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork);
 
   let payerWallet: string | null = input.walletAddress ?? null;
   if (input.method === 'USDC_ONCHAIN') {
@@ -275,13 +274,16 @@ export async function createPlatformDeposit(input: {
     stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork,
     userEmail: user.email,
     walletAddress: payerWallet,
-    redirectPath: `/marketplace/carrito?mode=deposit&deposit=${deposit.id}&status=success`
+    redirectPath: `/marketplace/carrito?mode=deposit&deposit=${deposit.id}&status=success`,
+    country: await resolvePaymentCountryForUser(input.userId)
   });
 
   if (checkout.providerCheckoutUrl || checkout.providerPaymentId) {
+    const manualReview = isLocalRailManualResult(checkout.metadata);
     const updated = await prisma.platformDeposit.update({
       where: { id: deposit.id },
       data: {
+        status: manualReview ? 'MANUAL_REVIEW' : deposit.status,
         provider: checkout.provider,
         providerPaymentId: checkout.providerPaymentId,
         providerCheckoutUrl: checkout.providerCheckoutUrl,

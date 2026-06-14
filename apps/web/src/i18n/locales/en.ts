@@ -1252,6 +1252,16 @@ export const en = {
       "Your {method} order was created (reference {reference}). Once the aggregator is connected, payment will complete automatically. For now our team will reconcile manually.",
     localRailPendingPurchase:
       "Your purchase via {method} is pending (batch {reference}). We will notify you when tokens are credited.",
+    recommendedBadge: "Best value",
+    usdcEducationTitle: "Lowest fees: pay with USDC",
+    usdcEducationBody:
+      "USDC on Base costs a few cents in gas. Link your wallet or use WalletConnect — ideal for investors worldwide.",
+    usdcNetworkDepositHint: "Deposits on alternate networks are converted to your Sanova balance after on-chain confirmation.",
+    globalCardsHint: "convenient, higher fees",
+    wisePendingTitle: "Wise transfer — include reference",
+    wisePendingBody:
+      "Send your transfer via Wise using the bank details below. You must include reference {reference} so treasury can credit your account.",
+    wiseReferenceLabel: "Mandatory reference: {reference}",
     walletRequiredForCheckout: "Link your USDC wallet before paying.",
     linkWalletCta: "Link wallet"
   },

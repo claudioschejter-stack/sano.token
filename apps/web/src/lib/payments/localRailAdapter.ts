@@ -1,5 +1,8 @@
 import { checkoutBaseUrl } from './paymentConfig';
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
+import { createDLocalPayment } from './dlocalAdapter';
+import { createEbanxPayment } from './ebanxAdapter';
+import { createWiseManualCheckout } from './wiseManualCheckout';
 
 type LocalRailRequest = {
   depositId: string;
@@ -7,6 +10,7 @@ type LocalRailRequest = {
   row: Pick<PaymentCheckoutRow, 'id' | 'label' | 'provider' | 'providerRail'>;
   userEmail?: string | null;
   redirectPath?: string | null;
+  country?: string | null;
 };
 
 type LocalRailResult = {
@@ -20,6 +24,12 @@ function redirectUrl(input: LocalRailRequest): string {
   return input.redirectPath
     ? `${checkoutBaseUrl()}${input.redirectPath}`
     : `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`;
+}
+
+function backUrl(input: LocalRailRequest): string {
+  return input.redirectPath
+    ? `${checkoutBaseUrl()}${input.redirectPath.replace('status=success', 'status=cancelled')}`
+    : `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=cancelled`;
 }
 
 export function createAstroPayCheckout(input: LocalRailRequest): LocalRailResult {
@@ -39,11 +49,39 @@ export function createAstroPayCheckout(input: LocalRailRequest): LocalRailResult
     provider: 'astropay',
     providerPaymentId: input.depositId,
     providerCheckoutUrl: `https://onetouch-api.astropay.com/MerchantTools/MerchantTools.svc/CreatePayment?${params.toString()}`,
-    metadata: { configured: true, rail: input.row.providerRail, optionId: input.row.id }
+    metadata: { configured: true, rail: input.row.providerRail, optionId: input.row.id, mode: 'redirect' }
   };
 }
 
-export function createDLocalCheckout(input: LocalRailRequest): LocalRailResult {
+export async function createDLocalCheckout(input: LocalRailRequest): Promise<LocalRailResult> {
+  const country = input.country?.trim().toUpperCase() || process.env.DLOCAL_DEFAULT_COUNTRY?.trim().toUpperCase() || 'AR';
+
+  const apiResult = await createDLocalPayment({
+    externalId: input.depositId,
+    amountUsd: input.amountUsd,
+    country,
+    paymentMethodId: input.row.providerRail,
+    userEmail: input.userEmail,
+    successUrl: redirectUrl(input),
+    backUrl: backUrl(input),
+    description: input.row.label
+  });
+
+  if (apiResult.providerCheckoutUrl || apiResult.metadata.configured) {
+    return {
+      provider: 'dlocal',
+      providerPaymentId: apiResult.providerPaymentId,
+      providerCheckoutUrl: apiResult.providerCheckoutUrl,
+      metadata: {
+        ...apiResult.metadata,
+        rail: input.row.providerRail,
+        optionId: input.row.id,
+        label: input.row.label,
+        country
+      }
+    };
+  }
+
   const apiKey = process.env.DLOCAL_API_KEY?.trim();
   if (!apiKey) {
     return {
@@ -58,9 +96,9 @@ export function createDLocalCheckout(input: LocalRailRequest): LocalRailResult {
     currency: 'USD',
     external_id: input.depositId,
     payment_method_id: input.row.providerRail,
-    country: process.env.DLOCAL_DEFAULT_COUNTRY ?? 'AR',
+    country,
     success_url: redirectUrl(input),
-    back_url: `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=cancelled`
+    back_url: backUrl(input)
   });
 
   if (input.userEmail) {
@@ -75,12 +113,27 @@ export function createDLocalCheckout(input: LocalRailRequest): LocalRailResult {
       configured: true,
       rail: input.row.providerRail,
       optionId: input.row.id,
-      label: input.row.label
+      label: input.row.label,
+      country,
+      mode: 'redirect_fallback'
     }
   };
 }
 
-export function createLocalRailCheckout(input: LocalRailRequest): LocalRailResult {
+export async function createLocalRailCheckout(input: LocalRailRequest): Promise<LocalRailResult> {
+  if (input.row.provider === 'wise') {
+    const wise = createWiseManualCheckout({
+      referenceId: input.depositId,
+      amountUsd: input.amountUsd,
+      label: input.row.label
+    });
+    return {
+      provider: 'wise',
+      providerPaymentId: wise.providerPaymentId,
+      metadata: wise.metadata
+    };
+  }
+
   if (input.row.provider === 'astropay') {
     const astro = createAstroPayCheckout(input);
     if (astro.metadata?.configured) {
@@ -88,8 +141,34 @@ export function createLocalRailCheckout(input: LocalRailRequest): LocalRailResul
     }
   }
 
-  if (input.row.provider === 'dlocal' || input.row.provider === 'ebanx') {
-    const dlocal = createDLocalCheckout(input);
+  if (input.row.provider === 'ebanx') {
+    const ebanx = await createEbanxPayment({
+      externalId: input.depositId,
+      amountUsd: input.amountUsd,
+      country: input.country ?? 'BR',
+      paymentTypeCode: input.row.providerRail,
+      userEmail: input.userEmail,
+      successUrl: redirectUrl(input),
+      backUrl: backUrl(input),
+      name: input.row.label
+    });
+    if (ebanx.metadata?.configured && ebanx.providerCheckoutUrl) {
+      return {
+        provider: 'ebanx',
+        providerPaymentId: ebanx.providerPaymentId,
+        providerCheckoutUrl: ebanx.providerCheckoutUrl,
+        metadata: {
+          ...ebanx.metadata,
+          rail: input.row.providerRail,
+          optionId: input.row.id,
+          label: input.row.label
+        }
+      };
+    }
+  }
+
+  if (input.row.provider === 'dlocal') {
+    const dlocal = await createDLocalCheckout(input);
     if (dlocal.metadata?.configured) {
       return dlocal;
     }
@@ -105,7 +184,7 @@ export function createLocalRailCheckout(input: LocalRailRequest): LocalRailResul
         optionId: input.row.id,
         label: input.row.label,
         mode: 'manual_reconciliation',
-        instructions: `Pago ${input.row.label} pendiente de conciliación automática.`
+        instructions: `Pago ${input.row.label} pendiente de conciliación automática. Referencia: ${input.depositId}`
       }
     };
   }

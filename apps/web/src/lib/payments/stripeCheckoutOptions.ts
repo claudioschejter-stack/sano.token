@@ -3,7 +3,7 @@ import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 /** Stripe Checkout session payment_method_types from catalog option id. */
 export function stripePaymentMethodTypes(paymentOptionId?: string | null): string[] {
   if (!paymentOptionId) {
-    return ['card'];
+    return ['card', 'link'];
   }
 
   switch (paymentOptionId) {
@@ -11,11 +11,13 @@ export function stripePaymentMethodTypes(paymentOptionId?: string | null): strin
     case 'google_pay':
     case 'credit_card':
     case 'debit_card':
-      return ['card'];
+      return ['card', 'link'];
     case 'paypal':
-      return process.env.PAYPAL_CLIENT_ID?.trim() ? ['paypal'] : ['card'];
+      return process.env.PAYPAL_CLIENT_ID?.trim() || process.env.STRIPE_PAYPAL_ENABLED === 'true'
+        ? ['paypal']
+        : ['card', 'link'];
     default:
-      return ['card'];
+      return ['card', 'link'];
   }
 }
 
@@ -34,4 +36,8 @@ export function checkoutRowLabel(paymentOptionId?: string | null): string | null
 
 export function isLocalRailManualResult(metadata?: Record<string, unknown> | null): boolean {
   return metadata?.mode === 'manual_reconciliation';
+}
+
+export function isWiseManualResult(metadata?: Record<string, unknown> | null): boolean {
+  return metadata?.mode === 'manual_reconciliation' && metadata?.provider === 'wise';
 }

@@ -17,6 +17,7 @@ type OnRampRequest = {
   userEmail?: string | null;
   walletAddress?: string | null;
   redirectPath?: string | null;
+  country?: string | null;
 };
 
 type OnRampResult = {
@@ -173,7 +174,8 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
       amountUsd: input.amountUsd,
       row: checkoutRow,
       userEmail: input.userEmail,
-      redirectPath: input.redirectPath
+      redirectPath: input.redirectPath,
+      country: input.country
     });
   }
 
@@ -219,6 +221,15 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
     case 'TRANSAK':
       return createTransakOnRampCheckout(input);
     case 'BRIDGE':
+      if (checkoutRow?.provider === 'wise') {
+        return createLocalRailCheckout({
+          depositId: input.depositId,
+          amountUsd: input.amountUsd,
+          row: checkoutRow,
+          userEmail: input.userEmail,
+          redirectPath: input.redirectPath
+        });
+      }
       return createBridgeOnRampCheckout(input);
     case 'USDC_ONCHAIN':
       return { provider: 'stablecoin_onchain', metadata: { configured: true } };

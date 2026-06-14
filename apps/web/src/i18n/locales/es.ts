@@ -1267,6 +1267,16 @@ export const es = {
       'Tu orden con {method} fue creada (referencia {reference}). Cuando conectemos el agregador, el cobro se completará automáticamente. Por ahora el equipo conciliará manualmente.',
     localRailPendingPurchase:
       'Tu compra con {method} quedó pendiente (lote {reference}). Te avisaremos al acreditarse los tokens.',
+    recommendedBadge: 'Más económico',
+    usdcEducationTitle: 'Menor costo: pagar con USDC',
+    usdcEducationBody:
+      'USDC en Base cuesta centavos de gas. Vinculá tu billetera o usa WalletConnect — ideal para inversores en todo el mundo.',
+    usdcNetworkDepositHint: 'Depósitos en otras redes se acreditan en tu saldo Sanova tras confirmación on-chain.',
+    globalCardsHint: 'más cómodo, comisión mayor',
+    wisePendingTitle: 'Transferencia Wise — incluye la referencia',
+    wisePendingBody:
+      'Envía la transferencia por Wise con los datos abajo. Debes incluir la referencia {reference} para que tesorería acredite tu cuenta.',
+    wiseReferenceLabel: 'Referencia obligatoria: {reference}',
     walletRequiredForCheckout: 'Vinculá tu billetera USDC antes de pagar.',
     linkWalletCta: 'Vincular billetera'
   },

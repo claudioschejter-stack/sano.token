@@ -13,7 +13,10 @@ export const WEBHOOK_PATHS = {
   mercadopago: '/api/webhooks/mercadopago',
   coinbase: '/api/webhooks/coinbase',
   transak: '/api/webhooks/transak',
-  bridge: '/api/webhooks/bridge'
+  bridge: '/api/webhooks/bridge',
+  dlocal: '/api/webhooks/dlocal',
+  ebanx: '/api/webhooks/ebanx',
+  astropay: '/api/webhooks/astropay'
 } as const;
 
 export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {

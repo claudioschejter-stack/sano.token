@@ -18,7 +18,7 @@ import {
   type DepositPaymentOptionGroup
 } from '../../lib/payments/depositPaymentOptions';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
-import { isLocalRailManualResult } from '../../lib/payments/stripeCheckoutOptions';
+import { isLocalRailManualResult, isWiseManualResult } from '../../lib/payments/stripeCheckoutOptions';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
@@ -58,6 +58,8 @@ type DepositQuoteResponse = {
   groups?: DepositPaymentOptionGroup[];
   quoteExpiresAt?: string;
   quoteTtlSeconds?: number;
+  recommendedOptionId?: string | null;
+  stablecoinNetworks?: Array<{ id: string; label: string; symbol: string; cheapestRank: number }>;
 };
 
 function formatUsdc2(amount: number, locale: string): string {
@@ -169,6 +171,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
   const [depositOptions, setDepositOptions] = useState<DepositPaymentOption[]>([]);
   const [depositOptionGroups, setDepositOptionGroups] = useState<DepositPaymentOptionGroup[]>([]);
+  const [recommendedOptionId, setRecommendedOptionId] = useState<string | null>(null);
+  const [stablecoinNetworkOptions, setStablecoinNetworkOptions] = useState<
+    Array<{ id: string; label: string; symbol: string; cheapestRank: number }>
+  >([]);
   const [selectedDepositOptionId, setSelectedDepositOptionId] = useState<string | null>(null);
   const [quoteExpiresAt, setQuoteExpiresAt] = useState<string | null>(null);
   const [quoteSecondsLeft, setQuoteSecondsLeft] = useState(0);
@@ -246,6 +252,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         const next = sortDepositPaymentOptions(data?.options ?? []);
         setDepositOptions(next);
         setDepositOptionGroups(data?.groups ?? groupDepositPaymentOptions(next));
+        setRecommendedOptionId(data?.recommendedOptionId ?? null);
+        setStablecoinNetworkOptions(data?.stablecoinNetworks ?? []);
         setQuoteExpiresAt(data?.quoteExpiresAt ?? null);
         const expiresMs = data?.quoteExpiresAt ? new Date(data.quoteExpiresAt).getTime() - Date.now() : 0;
         setQuoteSecondsLeft(Math.max(0, Math.ceil(expiresMs / 1000)));
@@ -254,7 +262,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           if (current && next.some((row) => row.id === current && row.configured)) {
             return current;
           }
-          return null;
+          const recommended = data?.recommendedOptionId;
+          if (recommended && next.some((row) => row.id === recommended && row.configured)) {
+            return recommended;
+          }
+          return next.find((row) => row.configured)?.id ?? null;
         });
       })
       .catch(() => {
@@ -319,7 +331,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }
 
     setPaymentMethod(selectedDepositOption.method);
-    if (selectedDepositOption.stablecoinNetwork) {
+    if (selectedDepositOption.stablecoinNetwork && mode === 'purchase') {
       setStablecoinNetwork(selectedDepositOption.stablecoinNetwork);
     }
   }, [selectedDepositOption]);
@@ -486,7 +498,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         }
 
         const providerMeta = (data.deposit.metadata?.provider as Record<string, unknown> | undefined) ?? data.deposit.metadata;
-        if (paymentMethod === 'LOCAL_RAIL' || isLocalRailManualResult(providerMeta)) {
+        if (paymentMethod === 'LOCAL_RAIL' || paymentMethod === 'BRIDGE' || isLocalRailManualResult(providerMeta)) {
           setPendingReference(data.deposit.id);
           setStatus('pending_gateway');
           return;
@@ -531,8 +543,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       setBatchId(data.checkout.batchId);
 
       if (data.checkout.manualReview) {
-        setError('CART_MANUAL_REVIEW_REQUIRED');
-        setStatus('idle');
+        setCheckout(data.checkout);
+        setPendingReference(data.checkout.batchId);
+        setStatus('pending_gateway');
         return;
       }
 
@@ -668,6 +681,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   };
 
   const payToAddress = mode === 'deposit' ? deposit?.payToAddress : checkout?.payToAddress;
+  const pendingManualMeta =
+    mode === 'deposit'
+      ? ((deposit?.metadata?.provider as Record<string, unknown> | undefined) ?? deposit?.metadata ?? null)
+      : ((checkout?.paymentIntents?.[0]?.metadata as Record<string, unknown> | undefined)?.gateway as
+          Record<string, unknown> | undefined) ?? null;
+  const isWisePending = isWiseManualResult(pendingManualMeta);
 
   const renderDepositOption = (option: DepositPaymentOption) => {
     const selected = selectedDepositOptionId === option.id;
@@ -698,6 +717,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               className={`block font-semibold text-slate-900 text-[120%] leading-tight ${selected ? '' : ''}`}
             >
               {option.label}
+              {option.id === recommendedOptionId && option.configured ? (
+                <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-800">
+                  {c.recommendedBadge}
+                </span>
+              ) : null}
             </span>
             {!option.configured ? (
               <span className="mt-0.5 block text-[10px] font-medium uppercase text-amber-700">
@@ -964,10 +988,19 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               {paymentQuoteExpired ? (
                 <p className="text-xs text-terminal-warning">{c.quoteExpired}</p>
               ) : null}
+              {sortedDepositOptions.some((row) => row.groupId === 'linked_wallet' && row.configured) ? (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-900">
+                  <p className="font-semibold">{c.usdcEducationTitle}</p>
+                  <p className="mt-1 text-emerald-800">{c.usdcEducationBody}</p>
+                </div>
+              ) : null}
               {paymentGroups.map((group) => (
                 <div key={group.id}>
                   <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
                     {c.paymentGroups[group.id]}
+                    {group.id === 'global_cards' ? (
+                      <span className="ml-1 normal-case text-terminal-muted/80">— {c.globalCardsHint}</span>
+                    ) : null}
                   </p>
                   {group.available.length > 0 ? (
                     <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
@@ -994,6 +1027,30 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               {sortedDepositOptions.length === 0 && totalUsd <= 0 ? (
                 <p className="text-xs text-terminal-warning">{c.invalidAmount}</p>
               ) : null}
+            </div>
+          ) : null}
+
+          {mode === 'deposit' &&
+          requiresWallet &&
+          stablecoinNetworkOptions.length > 1 &&
+          status !== 'pending_gateway' ? (
+            <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3">
+              <label className="text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                {c.networkLabel}
+              </label>
+              <select
+                value={stablecoinNetwork}
+                onChange={(event) => setStablecoinNetwork(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-terminal-border bg-white px-3 py-2 text-sm text-terminal-text"
+              >
+                {stablecoinNetworkOptions.map((network) => (
+                  <option key={network.id} value={network.id}>
+                    {network.label}
+                    {network.cheapestRank === 1 ? ` (${c.recommendedBadge})` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[10px] text-terminal-muted">{c.usdcNetworkDepositHint}</p>
             </div>
           ) : null}
 
@@ -1024,13 +1081,27 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
           {status === 'pending_gateway' && pendingReference ? (
             <div className="space-y-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
-              <p className="font-semibold text-terminal-primary">{c.localRailPendingTitle}</p>
-              <p className="text-xs text-terminal-muted">
-                {formatMessage(mode === 'deposit' ? c.localRailPendingBody : c.localRailPendingPurchase, {
-                  method: selectedDepositOption?.label ?? paymentMethod,
-                  reference: pendingReference
-                })}
+              <p className="font-semibold text-terminal-primary">
+                {isWisePending ? c.wisePendingTitle : c.localRailPendingTitle}
               </p>
+              <p className="text-xs text-terminal-muted">
+                {isWisePending
+                  ? formatMessage(c.wisePendingBody, { reference: pendingReference })
+                  : formatMessage(mode === 'deposit' ? c.localRailPendingBody : c.localRailPendingPurchase, {
+                      method: selectedDepositOption?.label ?? paymentMethod,
+                      reference: pendingReference
+                    })}
+              </p>
+              {isWisePending && pendingManualMeta?.instructions ? (
+                <pre className="whitespace-pre-wrap rounded border border-terminal-border bg-white p-3 text-[11px] font-mono text-terminal-text">
+                  {String(pendingManualMeta.instructions)}
+                </pre>
+              ) : null}
+              {isWisePending ? (
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-primary">
+                  {formatMessage(c.wiseReferenceLabel, { reference: pendingReference })}
+                </p>
+              ) : null}
               <Link
                 href={mode === 'deposit' ? '/dashboard/portfolio' : '/dashboard/portfolio'}
                 className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
