@@ -8,6 +8,7 @@ import { parsePaymentMethod } from '../../../../../lib/payments/checkoutMethods'
 import { createCartPurchaseCheckout, type CartLineInput } from '../../../../../lib/payments/cartCheckoutService';
 import { getPaymentCheckoutRowById } from '../../../../../lib/payments/depositPaymentOptions';
 import { isDepositCheckoutRowConfigured } from '../../../../../lib/payments/paymentProviderAvailability';
+import { resolveOperationalWalletAddress } from '../../../../../lib/investor/provisionInvestorProfile';
 
 export const dynamic = 'force-dynamic';
 
@@ -67,7 +68,10 @@ export async function POST(request: Request) {
       where: { id: ctx.userId },
       select: { walletAddress: true, investor: { select: { walletAddress: true } } }
     });
-    const linkedWalletAddress = user?.walletAddress ?? user?.investor?.walletAddress ?? body.walletAddress ?? null;
+    const linkedWalletAddress = user
+      ? resolveOperationalWalletAddress(user.walletAddress, user.investor?.walletAddress) ??
+        (body.walletAddress?.trim() ? body.walletAddress.trim() : null)
+      : body.walletAddress ?? null;
 
     if (checkoutRow && !isDepositCheckoutRowConfigured(checkoutRow, { linkedWalletAddress })) {
       return NextResponse.json({ error: 'PAYMENT_OPTION_NOT_CONFIGURED' }, { status: 400 });

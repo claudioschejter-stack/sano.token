@@ -13,8 +13,10 @@ type CheckoutPageProps = {
 export default async function MarketplaceCheckoutPage({ params }: CheckoutPageProps) {
   const session = await auth();
 
+  const returnTo = `/marketplace/${params.projectId}/checkout`;
+
   if (!session?.user?.accessToken || !session.user.id) {
-    redirect('/acceso');
+    redirect(`/acceso?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
   const user = await prisma.user.findUnique({
@@ -39,7 +41,7 @@ export default async function MarketplaceCheckoutPage({ params }: CheckoutPagePr
     : null;
 
   if (!user || !canAccessMarketplaceCheckout({ ...user, walletAddress })) {
-    redirect(`/kyc?returnTo=/marketplace/${params.projectId}/checkout`);
+    redirect(`/kyc?returnTo=${encodeURIComponent(returnTo)}`);
   }
 
   return (

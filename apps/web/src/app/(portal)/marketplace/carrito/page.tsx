@@ -4,6 +4,7 @@ import { CartCheckoutView } from '../../../../components/marketplace/CartCheckou
 import { canAccessMarketplaceCheckout } from '../../../../lib/onboarding/accountStatus';
 import { prisma } from '@sanova/database';
 
+import { resolveOperationalWalletAddress } from '../../../../lib/investor/provisionInvestorProfile';
 import { collectionWalletHref } from '../../../../lib/navigation/collectionWalletPath';
 
 type CartPageProps = {
@@ -29,9 +30,14 @@ export default async function MarketplaceCartPage({ searchParams }: CartPageProp
       kycStatus: true,
       accountStatus: true,
       walletAddress: true,
-      systemRole: true
+      systemRole: true,
+      investor: { select: { walletAddress: true } }
     }
   });
+
+  const walletAddress = user
+    ? resolveOperationalWalletAddress(user.walletAddress, user.investor?.walletAddress)
+    : null;
 
   if (searchParams.mode === 'wallet') {
     redirect(
@@ -46,7 +52,7 @@ export default async function MarketplaceCartPage({ searchParams }: CartPageProp
   const returnPath =
     mode === 'deposit' ? '/marketplace/carrito?mode=deposit' : '/marketplace/carrito';
 
-  if (!user || !canAccessMarketplaceCheckout(user)) {
+  if (!user || !canAccessMarketplaceCheckout({ ...user, walletAddress })) {
     redirect(`/kyc?returnTo=${encodeURIComponent(returnPath)}`);
   }
 

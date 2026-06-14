@@ -125,11 +125,15 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       router.push(`/acceso?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/agregar`)}`);
       return;
     }
+    if (role === 'INVESTOR' && !checklist?.operational) {
+      router.push(`/kyc?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/agregar`)}`);
+      return;
+    }
     router.push(`/marketplace/${listing.id}/agregar`);
   };
 
   const handleStartKyc = (listing: MarketplaceListing) => {
-    router.push(`/kyc?returnTo=/marketplace/${listing.id}/agregar`);
+    router.push(`/kyc?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/agregar`)}`);
   };
 
   const gridProps = {

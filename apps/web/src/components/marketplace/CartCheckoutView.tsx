@@ -516,7 +516,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           return;
         }
         if (data.error === 'ACCOUNT_NOT_OPERATIONAL' || data.error === 'KYC_NOT_APPROVED') {
-          window.location.href = `/kyc?returnTo=/marketplace/carrito`;
+          window.location.href = `/kyc?returnTo=${encodeURIComponent('/marketplace/carrito')}`;
           return;
         }
         if (data.error === 'CART_MANUAL_REVIEW_REQUIRED') {
@@ -618,7 +618,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       body: JSON.stringify({
         batchId,
         txHash: manualTxHash.trim(),
-        walletAddress: address
+        walletAddress: isWalletConnectUsdc ? address : linkedWalletAddress ?? address
       })
     });
 

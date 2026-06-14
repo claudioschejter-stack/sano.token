@@ -132,14 +132,14 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
     const response = await fetch(`/api/marketplace/${projectId}/payment-intents`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ tokenCount: tokenQty, walletAddress: address, method: paymentMethod, stablecoinNetwork })
+      body: JSON.stringify({ tokenCount: tokenQty, walletAddress: walletGuard.linkedWallet ?? address, method: paymentMethod, stablecoinNetwork })
     });
 
     const data = (await response.json()) as { error?: string; paymentIntent?: PaymentIntentResponse };
 
       if (!response.ok) {
         if (data.error === 'ACCOUNT_NOT_OPERATIONAL' || data.error === 'KYC_NOT_APPROVED') {
-          window.location.href = `/kyc?returnTo=/marketplace/${projectId}/checkout`;
+          window.location.href = `/kyc?returnTo=${encodeURIComponent('/marketplace/' + projectId + '/checkout')}`;
           throw new Error('KYC_REQUIRED');
         }
         if (data.error === 'INVESTOR_ACCESS_NOT_ENABLED') {
@@ -241,7 +241,10 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
       body: JSON.stringify({
         paymentIntentId: paymentIntent.id,
         txHash: manualTxHash.trim(),
-        walletAddress: stablecoinNetwork === 'BASE' || stablecoinNetwork === 'POLYGON' ? address : undefined
+        walletAddress:
+          stablecoinNetwork === 'BASE' || stablecoinNetwork === 'POLYGON'
+            ? walletGuard.linkedWallet ?? address
+            : undefined
       })
     });
 

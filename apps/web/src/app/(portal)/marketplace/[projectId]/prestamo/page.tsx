@@ -39,7 +39,7 @@ export default async function MarketplaceProjectBorrowPage({ params }: ProjectBo
   } catch (error) {
     const message = error instanceof Error ? error.message : '';
     if (message === 'KYC_NOT_APPROVED') {
-      redirect('/acceso/onboarding');
+      redirect(`/kyc?returnTo=${encodeURIComponent(returnTo)}`);
     }
     redirect(collectionWalletHref({ returnTo }));
   }

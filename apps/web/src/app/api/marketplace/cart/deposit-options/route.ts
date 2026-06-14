@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { buildDepositPaymentOptions } from '../../../../../lib/payments/depositPaymentOptions';
+import { resolveOperationalWalletAddress } from '../../../../../lib/investor/provisionInvestorProfile';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,9 @@ export async function GET(request: Request) {
     where: { id: ctx.userId },
     select: { walletAddress: true, investor: { select: { walletAddress: true } } }
   });
-  const linkedWalletAddress = user?.walletAddress ?? user?.investor?.walletAddress ?? null;
+  const linkedWalletAddress = user
+    ? resolveOperationalWalletAddress(user.walletAddress, user.investor?.walletAddress)
+    : null;
 
   const quote = buildDepositPaymentOptions(
     amountUsd,

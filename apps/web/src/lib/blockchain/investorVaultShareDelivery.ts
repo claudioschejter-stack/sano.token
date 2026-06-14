@@ -1,5 +1,6 @@
 import { prisma, Prisma } from '@sanova/database';
 import { getAdminAsset } from '../admin/assetsService';
+import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { migrateTreasuryVaultSharesToWallet } from './migrateTreasuryVaultShares';
 
 const SHARE_DECIMALS = 18;
@@ -87,10 +88,12 @@ export async function deliverVaultSharesForPaymentIntent(paymentIntentId: string
   const intent = claim.intent;
   const metadata = claim.metadata;
 
-  const recipient =
-    (typeof metadata.shareReceiverWallet === 'string' ? metadata.shareReceiverWallet.trim() : '') ||
-    intent.payerWalletAddress?.trim() ||
-    '';
+  const linkedRecipient = await getLinkedWalletForUser(intent.userId);
+  const metadataRecipient =
+    typeof metadata.shareReceiverWallet === 'string' ? metadata.shareReceiverWallet.trim() : '';
+  const payerRecipient = intent.payerWalletAddress?.trim() ?? '';
+
+  const recipient = linkedRecipient || metadataRecipient || payerRecipient;
 
   if (!recipient) {
     await prisma.paymentIntent.update({
@@ -167,6 +170,7 @@ export async function deliverVaultSharesForPaymentIntent(paymentIntentId: string
     data: {
       metadata: {
         ...metadata,
+        shareReceiverWallet: recipient,
         vaultShareDeliveryStatus: 'DELIVERED',
         vaultShareDeliveryTxHash: delivery.txHash,
         vaultShareDeliveryDetail: delivery.sharesTransferred,
