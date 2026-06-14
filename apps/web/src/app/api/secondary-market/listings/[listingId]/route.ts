@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireOperationalSession } from '../../../../../lib/onboarding/requireOperationalSession';
+import { requireInvestorOperationalSession } from '../../../../../lib/onboarding/requireOperationalSession';
 import {
   buySecondaryListing,
   cancelSecondaryListing
@@ -9,7 +9,7 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ listingId: string }> }
 ) {
-  const ctx = await requireOperationalSession();
+  const ctx = await requireInvestorOperationalSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
@@ -17,6 +17,10 @@ export async function POST(
 
   if ('kycRequired' in ctx) {
     return NextResponse.json({ error: 'KYC_REQUIRED' }, { status: 403 });
+  }
+
+  if ('investorRequired' in ctx) {
+    return NextResponse.json({ error: 'INVESTOR_REQUIRED' }, { status: 403 });
   }
 
   const { listingId } = await context.params;
@@ -47,7 +51,7 @@ export async function DELETE(
   _request: Request,
   context: { params: Promise<{ listingId: string }> }
 ) {
-  const ctx = await requireOperationalSession();
+  const ctx = await requireInvestorOperationalSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
@@ -55,6 +59,10 @@ export async function DELETE(
 
   if ('kycRequired' in ctx) {
     return NextResponse.json({ error: 'KYC_REQUIRED' }, { status: 403 });
+  }
+
+  if ('investorRequired' in ctx) {
+    return NextResponse.json({ error: 'INVESTOR_REQUIRED' }, { status: 403 });
   }
 
   const { listingId } = await context.params;

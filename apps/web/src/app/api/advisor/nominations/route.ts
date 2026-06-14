@@ -28,7 +28,10 @@ export async function POST(request: Request) {
   } catch (error) {
     const code = error instanceof Error ? error.message : 'UNKNOWN';
     const status =
-      code === 'INVALID_EMAIL' || code === 'EMAIL_ALREADY_STAFF' || code === 'NOMINATION_ALREADY_PENDING'
+      code === 'INVALID_EMAIL' ||
+      code === 'EMAIL_ALREADY_STAFF' ||
+      code === 'NOMINATION_ALREADY_PENDING' ||
+      code === 'INVESTOR_HAS_ACTIVE_HOLDINGS'
         ? 400
         : 500;
 

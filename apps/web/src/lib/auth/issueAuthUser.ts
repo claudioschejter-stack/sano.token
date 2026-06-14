@@ -2,6 +2,7 @@ import { SignJWT } from 'jose';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import type { SystemRole } from './roles';
 import { ALL_SYSTEM_ROLES, resolveRoleFromAllowlist } from './roleAllowlist';
+import { provisionAdvisorRecordOnRolePromotion } from '../advisor/provisionAdvisorOnRolePromotion';
 
 export type AuthUser = {
   id: string;
@@ -22,6 +23,11 @@ export async function issueAuthUserById(userId: string): Promise<AuthUser | null
   }
 
   const role = ALL_SYSTEM_ROLES.has(user.systemRole as SystemRole) ? (user.systemRole as SystemRole) : 'INVESTOR';
+
+  if (role === 'ADVISOR' || role === 'ADVISOR_MANAGER') {
+    await provisionAdvisorRecordOnRolePromotion(user.id, user.email, role);
+  }
+
   return issueAuthUser(user.id, user.email, role);
 }
 
@@ -62,6 +68,8 @@ export async function updateUserRoleIfNeeded(userId: string, email: string, curr
     where: { id: userId },
     data: { systemRole: roleFromAllowlist as PrismaSystemRole }
   });
+
+  await provisionAdvisorRecordOnRolePromotion(userId, email, roleFromAllowlist);
 
   return roleFromAllowlist;
 }

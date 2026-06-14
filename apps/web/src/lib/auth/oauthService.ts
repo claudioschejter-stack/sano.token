@@ -6,6 +6,7 @@ import {
   markInvestorInviteAcceptedForEmail
 } from '../admin/investorInviteService';
 import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
+import { provisionAdvisorRecordOnRolePromotion } from '../advisor/provisionAdvisorOnRolePromotion';
 import { isPreApprovedInvestorEmail, resolveRoleForEmail, resolveRoleForExistingUser } from './roleAllowlist';
 
 type OAuthLoginInput = {
@@ -64,6 +65,11 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
   if (user.systemRole === 'INVESTOR' && hadValidInvestorInvite) {
     await markInvestorInviteAcceptedForEmail(email);
     await applyInvestorInviteAdvisorForUser(user.id, email);
+  }
+
+  const advisorRole = user.systemRole as SystemRole;
+  if (advisorRole === 'ADVISOR' || advisorRole === 'ADVISOR_MANAGER') {
+    await provisionAdvisorRecordOnRolePromotion(user.id, email, advisorRole);
   }
 
   const roles = [user.systemRole as SystemRole];

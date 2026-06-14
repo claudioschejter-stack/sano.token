@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { requireOperationalSession } from '../../../../lib/onboarding/requireOperationalSession';
+import { requireInvestorOperationalSession } from '../../../../lib/onboarding/requireOperationalSession';
 import { createSecondaryListing } from '../../../../lib/secondaryMarket/secondaryMarketService';
 
 export async function POST(request: Request) {
-  const ctx = await requireOperationalSession();
+  const ctx = await requireInvestorOperationalSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
@@ -11,6 +11,10 @@ export async function POST(request: Request) {
 
   if ('kycRequired' in ctx) {
     return NextResponse.json({ error: 'KYC_REQUIRED' }, { status: 403 });
+  }
+
+  if ('investorRequired' in ctx) {
+    return NextResponse.json({ error: 'INVESTOR_REQUIRED' }, { status: 403 });
   }
 
   try {

@@ -839,6 +839,7 @@ export const en = {
     clientsCardDesc: "Investors incorporated by your network of advisors.",
     commissionsCard: "Commissions",
     commissionsCardDesc: "You receive 30% of the commission when an advisor in your network incorporates an investor.",
+    commissionsComingSoon: "Coming soon",
     teamCard: "Advisor network",
     teamCardDesc: "See the equipment and clients assigned to your network."
   },
@@ -985,7 +986,14 @@ export const en = {
     loading: "Loading clients…",
     error: "Clients could not be loaded.",
     empty: "You still do not have clients incorporated into your portfolio.",
-    emptyHint: "Inverters appear when the administrator assigns them to your network."
+    emptyHint: "Inverters appear when the administrator assigns them to your network.",
+    nominationErrors: {
+      generic: "The request could not be sent.",
+      alreadyPending: "There is already a pending request for this email.",
+      alreadyStaff: "This email belongs to an internal account.",
+      investorHasHoldings: "Cannot nominate an investor with active holdings.",
+      invalidEmail: "Enter a valid email address."
+    }
   },
   checkout: {
     notFound: "Project not found.",
@@ -1311,7 +1319,8 @@ export const en = {
     errorDepositCreate: "Could not create deposit.",
     errorDepositVerify: "Could not verify deposit.",
     errorWithdrawal: "Could not request withdrawal.",
-    errorNoBalance: "No available balance to withdraw."
+    errorNoBalance: "No available balance to withdraw.",
+    loadError: "Could not load wallet. Check your account permissions."
   },
   dashboard: {
     eyebrow: "Capital and Coverage",

@@ -26,5 +26,9 @@ export default async function WalletPage({ searchParams }: WalletPageProps) {
     redirect(query ? `/dashboard/portfolio?${query}` : '/dashboard/portfolio');
   }
 
+  if (role === 'ADVISOR' || role === 'ADVISOR_MANAGER') {
+    redirect('/dashboard');
+  }
+
   return <PlatformWalletView />;
 }

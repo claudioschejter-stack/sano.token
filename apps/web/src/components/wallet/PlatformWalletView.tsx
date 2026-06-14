@@ -79,10 +79,21 @@ export function PlatformWalletView({
 
   const loadWallet = async () => {
     setIsLoadingWallet(true);
+    setError(null);
     try {
       const response = await fetch('/api/wallet', { cache: 'no-store' });
-      const data = (await response.json()) as { wallet?: WalletSummary };
+      const data = (await response.json()) as { wallet?: WalletSummary; error?: string };
+
+      if (!response.ok) {
+        setWallet(null);
+        setError(data.error ?? w.loadError);
+        return;
+      }
+
       setWallet(data.wallet ?? null);
+    } catch {
+      setWallet(null);
+      setError(w.loadError);
     } finally {
       setIsLoadingWallet(false);
     }

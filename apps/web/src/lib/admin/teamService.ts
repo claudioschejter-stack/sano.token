@@ -67,6 +67,28 @@ export type UpdatePlatformTeamMemberInput = {
 const EDITABLE_SYSTEM_ROLES = new Set<SystemRole>(ADMIN_ASSIGNABLE_ROLES);
 const STAFF_SYSTEM_ROLES = ADMIN_ASSIGNABLE_ROLES.filter((role) => role !== 'INVESTOR');
 
+async function assertInvestorEligibleForAdvisorConversion(email: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { investorId: true, systemRole: true }
+  });
+
+  if (!user?.investorId || user.systemRole !== 'INVESTOR') {
+    return;
+  }
+
+  const activeInvestments = await prisma.investment.count({
+    where: {
+      investorId: user.investorId,
+      status: { in: ['ACTIVE', 'PENDING'] }
+    }
+  });
+
+  if (activeInvestments > 0) {
+    throw new Error('INVESTOR_HAS_ACTIVE_HOLDINGS');
+  }
+}
+
 async function ensureAdvisorRecord(
   userId: string,
   uplineId: string | null | undefined,
@@ -251,6 +273,8 @@ export async function designateAdvisor(input: {
     throw new Error('EMAIL_ALREADY_ADVISOR');
   }
 
+  await assertInvestorEligibleForAdvisorConversion(normalizedEmail);
+
   if (input.role === 'ADVISOR_MANAGER' && input.uplineAdvisorId) {
     throw new Error('MANAGER_CANNOT_HAVE_UPLINE');
   }
@@ -411,6 +435,8 @@ export async function suggestAdvisor(input: {
   if (existingUser && existingUser.systemRole !== 'INVESTOR') {
     throw new Error('EMAIL_ALREADY_STAFF');
   }
+
+  await assertInvestorEligibleForAdvisorConversion(normalizedEmail);
 
   const pending = await prisma.advisorNomination.findFirst({
     where: { email: normalizedEmail, status: 'PENDING' }

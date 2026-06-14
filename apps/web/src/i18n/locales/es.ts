@@ -853,6 +853,7 @@ export const es = {
     clientsCardDesc: 'Inversores incorporados por tu red de asesores.',
     commissionsCard: 'Comisiones',
     commissionsCardDesc: 'Recibís el 30% de la comisión cuando un asesor de tu red incorpora un inversor.',
+    commissionsComingSoon: 'Próximamente',
     teamCard: 'Red de asesores',
     teamCardDesc: 'Consultá el equipo y los clientes asignados a tu red.'
   },
@@ -1000,7 +1001,14 @@ export const es = {
     loading: 'Cargando clientes…',
     error: 'No se pudieron cargar los clientes.',
     empty: 'Aún no tenés clientes incorporados en tu cartera.',
-    emptyHint: 'Los inversores aparecen cuando el administrador los asigna a tu red.'
+    emptyHint: 'Los inversores aparecen cuando el administrador los asigna a tu red.',
+    nominationErrors: {
+      generic: 'No se pudo enviar la solicitud.',
+      alreadyPending: 'Ya hay una solicitud pendiente para ese correo.',
+      alreadyStaff: 'Ese correo pertenece a una cuenta interna.',
+      investorHasHoldings: 'No se puede nominar un inversor con inversiones activas.',
+      invalidEmail: 'Ingresá un email válido.'
+    }
   },
   checkout: {
     notFound: 'Proyecto no encontrado.',
@@ -1326,7 +1334,8 @@ export const es = {
     errorDepositCreate: 'No se pudo crear el depósito.',
     errorDepositVerify: 'No se pudo verificar el depósito.',
     errorWithdrawal: 'No se pudo solicitar el retiro.',
-    errorNoBalance: 'No hay saldo disponible para retirar.'
+    errorNoBalance: 'No hay saldo disponible para retirar.',
+    loadError: 'No se pudo cargar la wallet. Verificá los permisos de tu cuenta.'
   },
   dashboard: {
     eyebrow: 'Capital y Cobertura',

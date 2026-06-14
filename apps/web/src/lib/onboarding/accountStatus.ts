@@ -1,5 +1,7 @@
 import type { AccountStatus, KycStatus } from '@sanova/database';
 import { isPendingInvestorWallet } from '../investor/provisionInvestorProfile';
+import type { SystemRole } from '../auth/roles';
+import { isStaffRole } from '../auth/roles';
 import { allowDemoKyc } from '../runtime/environment';
 
 export type OnboardingChecklist = {
@@ -66,6 +68,10 @@ export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolea
     user.accountStatus !== 'SUSPENDED';
 
   if (!identityReady) {
+    return false;
+  }
+
+  if (user.systemRole && isStaffRole(user.systemRole as SystemRole) && user.systemRole !== 'INVESTOR') {
     return false;
   }
 

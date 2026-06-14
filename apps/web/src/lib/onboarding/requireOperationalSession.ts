@@ -31,3 +31,22 @@ export async function requireOperationalSession() {
 
   return { ...ctx, user };
 }
+
+/** Operational session restricted to INVESTOR role (marketplace purchases, secondary market). */
+export async function requireInvestorOperationalSession() {
+  const ctx = await requireOperationalSession();
+
+  if (!ctx) {
+    return null;
+  }
+
+  if ('kycRequired' in ctx) {
+    return ctx;
+  }
+
+  if (ctx.user.systemRole !== 'INVESTOR') {
+    return { investorRequired: true as const, userId: ctx.userId, session: ctx.session };
+  }
+
+  return ctx;
+}

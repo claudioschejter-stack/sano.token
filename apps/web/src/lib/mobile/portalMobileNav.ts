@@ -34,8 +34,7 @@ const investorItems: PortalMobileNavItem[] = [
 const advisorItems: PortalMobileNavItem[] = [
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
-  { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace', matchPrefixes: ['/marketplace'] },
-  { href: '/dashboard/wallet', icon: Wallet, labelKey: 'myWallet', matchPrefixes: ['/dashboard/wallet'] }
+  { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace', matchPrefixes: ['/marketplace'] }
 ];
 
 export function getPortalMobileNavItems(role: SystemRole | undefined): PortalMobileNavItem[] {

@@ -7,6 +7,7 @@ import {
   resolveRoleForExistingUser
 } from './roleAllowlist';
 import { issueAuthUser, type AuthUser } from './issueAuthUser';
+import { provisionAdvisorRecordOnRolePromotion } from '../advisor/provisionAdvisorOnRolePromotion';
 
 export type { AuthUser };
 
@@ -35,6 +36,8 @@ export async function verifyCredentials(email: string, password: string): Promis
             data: { systemRole: role as PrismaSystemRole }
           });
 
+    await provisionAdvisorRecordOnRolePromotion(updatedUser.id, updatedUser.email, role);
+
     return issueAuthUser(updatedUser.id, updatedUser.email, role);
   }
 
@@ -56,6 +59,8 @@ export async function verifyCredentials(email: string, password: string): Promis
       systemRole: role as PrismaSystemRole
     }
   });
+
+  await provisionAdvisorRecordOnRolePromotion(user.id, user.email, role);
 
   return issueAuthUser(user.id, user.email, role);
 }

@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { AdvisorClientRecord } from '../../lib/advisor/clientsService';
+import { resolveNominationError } from '../../lib/advisor/resolveNominationError';
 import { AdvisorGate } from './AdvisorGate';
 
 type KycFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -79,8 +80,11 @@ export function AdvisorClientsView() {
         body: JSON.stringify({ email: suggestEmail, name: suggestName || undefined })
       });
 
+      const data = (await response.json().catch(() => ({}))) as { error?: string };
+
       if (!response.ok) {
-        throw new Error('suggest failed');
+        setSuggestMessage(resolveNominationError(data.error, t.advisorPortal.nominationErrors));
+        return;
       }
 
       setSuggestEmail('');

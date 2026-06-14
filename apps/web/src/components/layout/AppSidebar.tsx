@@ -72,7 +72,6 @@ const advisorNavItems: AdvisorNavConfig[] = [
   { href: '/', icon: Home, labelKey: 'home' },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
-  { href: '/dashboard/wallet', icon: CircleDollarSign, labelKey: 'myWallet' },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' },
   { href: '/mercado-secundario', icon: ArrowLeftRight, labelKey: 'secondaryMarket' }
 ];
