@@ -8,6 +8,10 @@ import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import type { BestBorrowRateResponse } from '../../types/marketplace';
 import { BASE_CHAIN_ID, wagmiConfig } from '../../lib/web3/config';
 import { pickCoinbaseConnector } from '../../lib/web3/walletConnectors';
+import {
+  resolveBorrowPreviewErrorMessage,
+  resolveLendingApiErrorMessage
+} from '../../lib/lending/lendingApiErrors';
 import { executePreparedTransactions } from '../../lib/web3/executePreparedTransactions';
 
 const MORPHO_PROTOCOL_ID = 'morpho';
@@ -58,6 +62,19 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
   const linkedAddress = walletGuard.linkedWallet;
   const connectedAddress = address?.trim().toLowerCase() ?? null;
 
+  const lendingMessages = useMemo(
+    () => ({
+      walletNotLinked: w.walletNotLinked,
+      walletMismatch: w.walletMismatch,
+      wrongNetwork: w.wrongNetwork,
+      prepareFailed: m.prepareFailed,
+      previewFailed: m.prepareFailed,
+      kycRequired: t.secondaryMarket.kycRequired,
+      accountNotOperational: m.notReady
+    }),
+    [m.notReady, m.prepareFailed, t.secondaryMarket.kycRequired, w.walletMismatch, w.walletNotLinked, w.wrongNetwork]
+  );
+
   useEffect(() => {
     if (!executableQuotes.some((quote) => quote.id === selectedProtocol)) {
       setSelectedProtocol(defaultProtocol);
@@ -80,35 +97,43 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
     }
   }, [connectAsync, connectors, m.connectFirst, m.noWallet]);
 
-  const loadPreview = useCallback(
-    async (wallet: string) => {
+  const refreshPreview = useCallback(
+    async (wallet: string, options?: { amountUsd?: number; syncSuggestedAmount?: boolean }) => {
       if (!isMorphoRwa || !projectId) {
         setPreview(null);
         return;
       }
 
+      const parsedAmount = options?.amountUsd ?? Number(amountUsd);
       const response = await fetch('/api/lending/borrow-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId,
           walletAddress: wallet,
-          amountUsd: Number(amountUsd) > 0 ? Number(amountUsd) : undefined
+          amountUsd: Number.isFinite(parsedAmount) && parsedAmount > 0 ? parsedAmount : undefined
         })
       });
 
+      const payload = (await response.json()) as { preview?: BorrowPreview; error?: string };
+
       if (!response.ok) {
+        setPreview(null);
+        setStatus(resolveBorrowPreviewErrorMessage(payload.error, lendingMessages));
+        return;
+      }
+
+      if (!payload.preview) {
         setPreview(null);
         return;
       }
 
-      const payload = (await response.json()) as { preview: BorrowPreview };
       setPreview(payload.preview);
-      if (payload.preview.suggestedBorrowUsd > 0) {
+      if (options?.syncSuggestedAmount && payload.preview.suggestedBorrowUsd > 0) {
         setAmountUsd(String(Math.floor(payload.preview.suggestedBorrowUsd)));
       }
     },
-    [amountUsd, isMorphoRwa, projectId]
+    [amountUsd, isMorphoRwa, lendingMessages, projectId]
   );
 
   useEffect(() => {
@@ -117,9 +142,30 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
     }
 
     if (connectedAddress && connectedAddress === linkedAddress) {
-      void loadPreview(linkedAddress);
+      void refreshPreview(linkedAddress, { syncSuggestedAmount: true });
     }
-  }, [connectedAddress, isMorphoRwa, linkedAddress, loadPreview]);
+  }, [connectedAddress, isMorphoRwa, linkedAddress, refreshPreview]);
+
+  useEffect(() => {
+    if (!isMorphoRwa || !linkedAddress) {
+      return;
+    }
+
+    if (!connectedAddress || connectedAddress !== linkedAddress) {
+      return;
+    }
+
+    const parsed = Number(amountUsd);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void refreshPreview(linkedAddress, { amountUsd: parsed });
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [amountUsd, connectedAddress, isMorphoRwa, linkedAddress, refreshPreview]);
 
   async function executeBorrow() {
     setBusy(true);
@@ -181,7 +227,7 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
       };
 
       if (!response.ok || !payload.prepared) {
-        setStatus(payload.error ?? m.prepareFailed);
+        setStatus(resolveLendingApiErrorMessage(payload.error, lendingMessages));
         return;
       }
 
@@ -197,7 +243,7 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
       );
 
       setStatus(executionMode === 'batch' ? m.successBatch : m.success);
-      await loadPreview(activeAddress);
+      await refreshPreview(activeAddress, { amountUsd: Number(amountUsd) });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : m.prepareFailed);
     } finally {

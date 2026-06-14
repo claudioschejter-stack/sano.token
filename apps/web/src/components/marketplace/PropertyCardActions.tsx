@@ -29,8 +29,8 @@ export function PropertyCardActions({
   const t = useTranslation();
   const isSoldOut = availableTokens <= 0;
   const isVerified = kycStatus === 'APPROVED';
-  const canRequestLoan =
-    readyToBorrow && role === 'INVESTOR' && isVerified && purchaseEnabled && !isSoldOut;
+  const canRequestLoan = readyToBorrow && role === 'INVESTOR' && isVerified;
+  const canPurchase = !isSoldOut && purchaseEnabled;
 
   const handlePrimaryAction = () => {
     if (isVerified) {
@@ -41,7 +41,7 @@ export function PropertyCardActions({
     onStartKyc?.(projectId);
   };
 
-  if (isSoldOut) {
+  if (isSoldOut && !canRequestLoan) {
     return (
       <PropertyActionButton variant="soldOut">{t.propertyCard.fullySoldOut}</PropertyActionButton>
     );
@@ -49,9 +49,13 @@ export function PropertyCardActions({
 
   return (
     <div className="flex flex-col gap-2">
-      <PropertyActionButton variant="rent" onClick={handlePrimaryAction}>
-        {t.propertyCard.generatesUsdcIncome}
-      </PropertyActionButton>
+      {canPurchase ? (
+        <PropertyActionButton variant="rent" onClick={handlePrimaryAction}>
+          {t.propertyCard.generatesUsdcIncome}
+        </PropertyActionButton>
+      ) : isSoldOut ? (
+        <PropertyActionButton variant="soldOut">{t.propertyCard.fullySoldOut}</PropertyActionButton>
+      ) : null}
       {canRequestLoan ? (
         <Link
           href={`/marketplace/${projectId}/prestamo`}

@@ -687,6 +687,18 @@ export async function listInfrastructureRepairCandidates(limit = 3): Promise<Adm
     .slice(0, limit);
 }
 
+/** Active Morpho-registered assets for daily liquidity readiness probes. */
+export async function listMorphoLiquidityProbeCandidates(limit = 12): Promise<AdminAssetRecord[]> {
+  const assets = await listAdminAssets('ACTIVE');
+  return assets
+    .filter(
+      (asset) =>
+        Boolean(asset.vaultAddress) &&
+        asset.collateralTargets.some((target) => target.protocol === 'MORPHO' && target.status === 'REGISTERED')
+    )
+    .slice(0, limit);
+}
+
 export async function markAdminTokenEmitAuthorized(projectId: string): Promise<void> {
   const asset = await getAdminAsset(projectId);
   if (!asset || asset.contractAddress) {

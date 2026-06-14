@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { refreshBorrowRatesCache } from '../../../../lib/lending/fetchLiveBorrowRates';
-import { listAdminAssets, listInfrastructureRepairCandidates } from '../../../../lib/admin/assetsService';
+import { listAdminAssets, listInfrastructureRepairCandidates, listMorphoLiquidityProbeCandidates } from '../../../../lib/admin/assetsService';
 import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
 import { executeProjectInfrastructureRepair } from '../../../../lib/blockchain/projectTokenDeploy';
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
@@ -24,10 +24,12 @@ export async function GET(request: Request) {
     const paymentReconciliation = await reconcilePayments();
     const portfolioSnapshots = await recordPortfolioSnapshotsForActiveInvestors(100);
     const candidates = await listInfrastructureRepairCandidates(3);
+    const liquidityCandidates = await listMorphoLiquidityProbeCandidates(12);
     const activeAssets = await listAdminAssets('ACTIVE');
     const repairs = [];
     const queued = [];
     const securityReports = [];
+    const liquidityProbes = [];
 
     for (const asset of candidates) {
       const blockReason = shouldBlockAutomation(asset);
@@ -60,6 +62,20 @@ export async function GET(request: Request) {
           projectId: asset.id,
           title: asset.title,
           message
+        });
+      }
+    }
+
+    const { probeMorphoLiquidityStatus } = await import('../../../../lib/lending/morphoLiquidityCheck');
+    for (const asset of liquidityCandidates) {
+      try {
+        const probe = await probeMorphoLiquidityStatus(asset);
+        liquidityProbes.push({ projectId: asset.id, status: probe.status });
+      } catch (error) {
+        liquidityProbes.push({
+          projectId: asset.id,
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'probe failed'
         });
       }
     }
@@ -102,7 +118,8 @@ export async function GET(request: Request) {
       repairs,
       securityReports,
       paymentReconciliation,
-      portfolioSnapshots: portfolioSnapshots.length
+      portfolioSnapshots: portfolioSnapshots.length,
+      liquidityProbes
     });
   } catch (error) {
     console.error('[cron/refresh-borrow-rates]', error);

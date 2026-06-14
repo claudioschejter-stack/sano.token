@@ -97,3 +97,46 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
     provider.destroy();
   }
 }
+
+/** Read-only Morpho market liquidity probe (no USDC seeding). */
+export async function probeMorphoLiquidityStatus(asset: AdminAssetRecord) {
+  const morphoTarget = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
+  if (!morphoTarget || !asset.vaultAddress || !morphoTarget.oracleAddress) {
+    await updateAdminAsset(asset.id, { morphoLiquidityStatus: 'NO_MARKET' });
+    return { status: 'NO_MARKET' as const, availableAssets: '0' };
+  }
+
+  const params = buildDefaultMorphoMarketParams(asset.vaultAddress, morphoTarget.oracleAddress);
+  if (!params) {
+    await updateAdminAsset(asset.id, { morphoLiquidityStatus: 'NO_MARKET' });
+    return { status: 'NO_MARKET' as const, availableAssets: '0' };
+  }
+
+  const chainId = resolveMorphoChainId();
+  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
+  try {
+    const morpho = new Contract(
+      getLendingChainConfig().morpho,
+      [
+        'function market(bytes32 id) view returns (uint128 totalSupplyAssets, uint128 totalSupplyShares, uint128 totalBorrowAssets, uint128 totalBorrowShares, uint128 lastUpdate, uint128 fee)'
+      ],
+      provider
+    );
+    const marketId = morphoMarketId(params);
+    const market = await morpho.market(marketId);
+    const totalSupplyAssets = BigInt(market.totalSupplyAssets ?? market[0] ?? 0);
+    const totalBorrowAssets = BigInt(market.totalBorrowAssets ?? market[2] ?? 0);
+    const availableAssets = totalSupplyAssets > totalBorrowAssets ? totalSupplyAssets - totalBorrowAssets : 0n;
+    const status = availableAssets > 0n ? 'LIQUID' : 'NO_LIQUIDITY';
+
+    await updateAdminAsset(asset.id, { morphoLiquidityStatus: status });
+
+    return { status, availableAssets: availableAssets.toString() };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Morpho liquidity probe failed';
+    await updateAdminAsset(asset.id, { morphoLiquidityStatus: 'FAILED' });
+    return { status: 'FAILED' as const, availableAssets: '0', error: message };
+  } finally {
+    provider.destroy();
+  }
+}

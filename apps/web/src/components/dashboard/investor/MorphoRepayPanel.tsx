@@ -3,11 +3,15 @@
 import { ArrowDownToLine, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BrowserProvider } from 'ethers';
+import { useAccount, useConnect, useConfig, useSwitchChain } from 'wagmi';
 import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
 import { createIntlFormatters } from '../../../i18n/formatters';
 import { useLinkedWalletGuard } from '../../../hooks/useLinkedWalletGuard';
+import { resolveLendingApiErrorMessage } from '../../../lib/lending/lendingApiErrors';
 import { collectionWalletHref } from '../../../lib/navigation/collectionWalletPath';
+import { BASE_CHAIN_ID, wagmiConfig } from '../../../lib/web3/config';
+import { executePreparedTransactions } from '../../../lib/web3/executePreparedTransactions';
+import { pickCoinbaseConnector } from '../../../lib/web3/walletConnectors';
 
 type RepayPosition = {
   projectId: string | null;
@@ -36,16 +40,40 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
   const w = t.wallet;
   const walletGuard = useLinkedWalletGuard();
   const router = useRouter();
+  const config = useConfig();
+  const { address, isConnected, chainId } = useAccount();
+  const { connectors, connectAsync } = useConnect();
+  const { switchChainAsync } = useSwitchChain();
 
   const [preview, setPreview] = useState<RepayPreview | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState('');
   const [amountUsd, setAmountUsd] = useState('');
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const selectedPosition = preview?.positions.find((row) => row.projectId === selectedProjectId) ?? null;
+  const linkedAddress = walletGuard.linkedWallet;
+  const connectedAddress = address?.trim().toLowerCase() ?? null;
+
+  const lendingMessages = useMemo(
+    () => ({
+      walletNotLinked: w.walletNotLinked,
+      walletMismatch: w.walletMismatch,
+      wrongNetwork: w.wrongNetwork,
+      prepareFailed: mr.prepareFailed,
+      previewFailed: mr.prepareFailed,
+      kycRequired: t.secondaryMarket.kycRequired,
+      accountNotOperational: mr.prepareFailed
+    }),
+    [
+      mr.prepareFailed,
+      t.secondaryMarket.kycRequired,
+      w.walletMismatch,
+      w.walletNotLinked,
+      w.wrongNetwork
+    ]
+  );
 
   const loadPreview = useCallback(async () => {
     setLoading(true);
@@ -81,32 +109,21 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
     }
   }, [selectedPosition?.projectId, selectedPosition?.debtUsd]);
 
-  const connectWallet = useCallback(async (): Promise<string | null> => {
-    if (!window.ethereum) {
+  const connectCoinbaseWallet = useCallback(async (): Promise<string | null> => {
+    const coinbase = pickCoinbaseConnector(connectors);
+    if (!coinbase) {
       setStatus(mr.noWallet);
       return null;
     }
 
-    const provider = new BrowserProvider(window.ethereum);
-    const accounts = (await provider.send('eth_requestAccounts', [])) as string[];
-    const address = accounts[0] ?? null;
-    setWalletAddress(address);
-    return address;
-  }, [mr.noWallet]);
-
-  useEffect(() => {
-    if (!window.ethereum) {
-      return;
+    try {
+      const result = await connectAsync({ connector: coinbase, chainId: BASE_CHAIN_ID });
+      return result.accounts[0]?.toLowerCase() ?? null;
+    } catch {
+      setStatus(mr.connectFirst);
+      return null;
     }
-
-    void (async () => {
-      const provider = new BrowserProvider(window.ethereum);
-      const accounts = (await provider.send('eth_accounts', [])) as string[];
-      if (accounts[0]) {
-        setWalletAddress(accounts[0]);
-      }
-    })();
-  }, []);
+  }, [connectAsync, connectors, mr.connectFirst, mr.noWallet]);
 
   async function executeRepay() {
     if (!selectedProjectId || !selectedPosition) {
@@ -118,11 +135,13 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
     setStatus(mr.preparing);
 
     try {
-      let address = walletAddress;
-      if (!address) {
-        address = await connectWallet();
+      let activeAddress = connectedAddress;
+
+      if (!isConnected || !activeAddress) {
+        activeAddress = (await connectCoinbaseWallet()) ?? null;
       }
-      if (!address) {
+
+      if (!activeAddress) {
         setStatus(mr.connectFirst);
         return;
       }
@@ -137,7 +156,9 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
         return;
       }
 
-      if (walletGuard.isWrongNetwork) {
+      if (chainId != null && chainId !== BASE_CHAIN_ID) {
+        await switchChainAsync({ chainId: BASE_CHAIN_ID });
+      } else if (walletGuard.isWrongNetwork) {
         setStatus(w.wrongNetwork);
         return;
       }
@@ -153,7 +174,7 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId: selectedProjectId,
-          walletAddress: address,
+          walletAddress: activeAddress,
           amountUsd: amount
         })
       });
@@ -167,37 +188,24 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
       };
 
       if (!response.ok || !payload.prepared) {
-        setStatus(payload.error ?? mr.prepareFailed);
+        setStatus(resolveLendingApiErrorMessage(payload.error, lendingMessages));
         return;
       }
 
-      const provider = new BrowserProvider(window.ethereum!);
-      const signer = await provider.getSigner();
-      const network = await provider.getNetwork();
+      const txCount = payload.prepared.transactions.length;
+      setStatus(
+        txCount === 1
+          ? mr.signingSingle
+          : mr.signingBatch.replace('{current}', '1').replace('{total}', String(txCount))
+      );
 
-      if (Number(network.chainId) !== payload.prepared.chainId) {
-        await window.ethereum!.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${payload.prepared.chainId.toString(16)}` }]
-        });
-      }
+      const executionMode = await executePreparedTransactions(
+        config ?? wagmiConfig,
+        payload.prepared.chainId,
+        payload.prepared.transactions
+      );
 
-      const total = payload.prepared.transactions.length;
-      for (const [index, tx] of payload.prepared.transactions.entries()) {
-        setStatus(
-          total === 1
-            ? mr.signingSingle
-            : mr.signingBatch.replace('{current}', String(index + 1)).replace('{total}', String(total))
-        );
-        const sent = await signer.sendTransaction({
-          to: tx.to,
-          data: tx.data,
-          value: BigInt(tx.value)
-        });
-        await sent.wait();
-      }
-
-      setStatus(mr.success);
+      setStatus(executionMode === 'batch' ? mr.success : mr.success);
       await loadPreview();
       onRepaid?.();
     } catch (error) {
@@ -206,6 +214,8 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
       setBusy(false);
     }
   }
+
+  const displayWallet = connectedAddress ?? linkedAddress;
 
   if (loading) {
     return (
@@ -292,9 +302,9 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
         {busy ? mr.repaying : mr.repayButton}
       </button>
 
-      {walletAddress ? (
+      {displayWallet ? (
         <p className="mt-3 text-xs font-mono text-terminal-muted">
-          {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
+          {displayWallet.slice(0, 6)}…{displayWallet.slice(-4)}
         </p>
       ) : null}
 
