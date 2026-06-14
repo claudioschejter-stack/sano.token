@@ -7,6 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
+import { resolveInvestorApiErrorMessage } from '../../lib/i18n/resolveInvestorApiError';
 
 type CheckoutMode = 'buy' | 'platform-buyback';
 
@@ -139,7 +140,11 @@ export function SecondaryMarketCheckoutView() {
         }, 1200);
       } catch (checkoutError) {
         setStatus('error');
-        setError(checkoutError instanceof Error ? checkoutError.message : sm.checkoutError);
+        const code = checkoutError instanceof Error ? checkoutError.message : '';
+        setError(
+          resolveInvestorApiErrorMessage(code, t) ||
+            (checkoutError instanceof Error ? checkoutError.message : sm.checkoutError)
+        );
       }
     })();
   }, [

@@ -2,6 +2,7 @@ import { createHash, randomInt } from 'crypto';
 import { prisma, VerificationChannel } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
 import { normalizePhoneE164 } from '../auth/contactValidation';
+import { checkTwilioVerifyCode, sendTwilioVerifyCode, twilioVerifyConfigured } from '../twilio/twilioVerify';
 
 export { normalizePhoneE164 };
 
@@ -33,6 +34,35 @@ export async function issueVerificationCode(
   channel: VerificationChannel,
   target: string
 ): Promise<{ devCode?: string; delivered: boolean; deliveryError?: string }> {
+  if (channel === 'PHONE') {
+    await assertRateLimit(userId, channel);
+    const phone = normalizePhoneE164(target);
+    if (!phone) {
+      throw new Error('INVALID_PHONE');
+    }
+
+    if (!twilioVerifyConfigured()) {
+      throw new Error('TWILIO_WHATSAPP_NOT_CONFIGURED');
+    }
+
+    const result = await sendTwilioVerifyCode(phone);
+    if (!result.ok) {
+      return { delivered: false, deliveryError: result.ok === false ? result.error : 'WHATSAPP_DELIVERY_FAILED' };
+    }
+
+    await prisma.verificationCode.create({
+      data: {
+        userId,
+        channel,
+        target: phone,
+        codeHash: 'twilio-verify',
+        expiresAt: new Date(Date.now() + CODE_TTL_MS)
+      }
+    });
+
+    return { delivered: true };
+  }
+
   if (channel !== 'EMAIL') {
     throw new Error('PHONE_VERIFICATION_DISABLED');
   }
@@ -98,6 +128,33 @@ export async function consumeVerificationCode(
   channel: VerificationChannel,
   code: string
 ): Promise<boolean> {
+  if (channel === 'PHONE') {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone: true }
+    });
+    const phone = normalizePhoneE164(user?.phone ?? '');
+    if (!phone) {
+      return false;
+    }
+
+    if (!twilioVerifyConfigured()) {
+      return false;
+    }
+
+    const result = await checkTwilioVerifyCode(phone, code);
+    if (!result.ok) {
+      return false;
+    }
+
+    await prisma.verificationCode.updateMany({
+      where: { userId, channel, consumedAt: null },
+      data: { consumedAt: new Date() }
+    });
+
+    return true;
+  }
+
   if (channel !== 'EMAIL') {
     return false;
   }

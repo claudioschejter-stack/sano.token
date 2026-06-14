@@ -7,10 +7,21 @@ import { resolveMorphoDebtForUser } from '../portfolio/morphoDebtForUser';
 import { getInvestorIdForPlatformUser } from './projectYieldService';
 
 const DEFAULT_MAX_LTV = 0.6;
-const CASH_FLOW_STATUS = 'Liquidado en Efectivo';
 const LIQUIDATED_CASH_STATUS = 'LIQUIDATED_CASH';
 const LIQUIDATED_FIAT_STATUS = 'LIQUIDATED_FIAT';
 const APPLIED_TO_MARGIN_STATUS = 'APPLIED_TO_MARGIN';
+
+const CASH_FLOW_STATUS_CODES = {
+  LIQUIDATED_CASH: 'LIQUIDATED_CASH',
+  LIQUIDATED_FIAT: 'LIQUIDATED_FIAT',
+  APPLIED_TO_MARGIN: 'APPLIED_TO_MARGIN'
+} as const;
+
+const CASH_FLOW_CONCEPT_CODES = {
+  OPERATING_DIVIDEND_USDC: 'OPERATING_DIVIDEND_USDC',
+  OPERATING_DIVIDEND_FIAT: 'OPERATING_DIVIDEND_FIAT',
+  DIVIDEND_APPLIED_TO_MARGIN: 'DIVIDEND_APPLIED_TO_MARGIN'
+} as const;
 
 type UserPurchaseContext = {
   id: string;
@@ -399,26 +410,32 @@ export async function getCashFlowForUser(platformUserId: string) {
     orderBy: { distributedAt: 'desc' }
   });
 
-  return distributions.map((distribution) => ({
-    id: distribution.id,
-    date: distribution.distributedAt.toISOString(),
-    assetId: distribution.assetId,
-    liquidatedAmountUsd: distribution.amount.toString(),
-    currency: distribution.currency,
-    status:
+  return distributions.map((distribution) => {
+    const statusCode =
       distribution.status === APPLIED_TO_MARGIN_STATUS
-        ? 'Aplicado a margen'
+        ? CASH_FLOW_STATUS_CODES.APPLIED_TO_MARGIN
         : distribution.status === LIQUIDATED_FIAT_STATUS
-          ? 'Acreditado en billetera Sanova'
-          : CASH_FLOW_STATUS,
-    concept:
+          ? CASH_FLOW_STATUS_CODES.LIQUIDATED_FIAT
+          : CASH_FLOW_STATUS_CODES.LIQUIDATED_CASH;
+
+    const conceptCode =
       distribution.status === APPLIED_TO_MARGIN_STATUS
-        ? 'Dividendo aplicado a repago de margen'
+        ? CASH_FLOW_CONCEPT_CODES.DIVIDEND_APPLIED_TO_MARGIN
         : distribution.status === LIQUIDATED_FIAT_STATUS
-          ? 'Renta operativa acreditada en billetera Sanova (fiat)'
-          : 'Dividendo operativo liquidado en USDC para repago de pasivos',
-    txHash: distribution.txHash
-  }));
+          ? CASH_FLOW_CONCEPT_CODES.OPERATING_DIVIDEND_FIAT
+          : CASH_FLOW_CONCEPT_CODES.OPERATING_DIVIDEND_USDC;
+
+    return {
+      id: distribution.id,
+      date: distribution.distributedAt.toISOString(),
+      assetId: distribution.assetId,
+      liquidatedAmountUsd: distribution.amount.toString(),
+      currency: distribution.currency,
+      statusCode,
+      conceptCode,
+      txHash: distribution.txHash
+    };
+  });
 }
 
 export async function getPortfolioSummaryForUser(userId: string) {

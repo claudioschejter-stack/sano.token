@@ -43,7 +43,14 @@ export async function POST(
       message === 'INVESTOR_ACCESS_NOT_ENABLED' ||
       message === 'INVESTOR_WALLET_REQUIRED' ||
       message === 'ACCOUNT_NOT_OPERATIONAL' ||
-      message === 'KYC_NOT_APPROVED'
+      message === 'KYC_NOT_APPROVED' ||
+      message === 'BUYER_USDC_ALLOWANCE_REQUIRED' ||
+      message === 'SELLER_VAULT_ALLOWANCE_REQUIRED' ||
+      message === 'INSUFFICIENT_BUYER_USDC' ||
+      message === 'INSUFFICIENT_SELLER_ON_CHAIN_SHARES' ||
+      message === 'ON_CHAIN_SETTLEMENT_UNAVAILABLE' ||
+      message === 'ON_CHAIN_SETTLEMENT_OPERATOR_MISSING' ||
+      message === 'SELLER_WALLET_REQUIRED'
         ? 400
         : 500;
 

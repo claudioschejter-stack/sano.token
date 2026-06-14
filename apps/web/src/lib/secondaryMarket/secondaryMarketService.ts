@@ -1,7 +1,8 @@
 import { prisma, Prisma } from '@sanova/database';
 import { listMarketplaceListings } from '../admin/assetsService';
 import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
-import { creditPlatformWallet, debitPlatformWalletForPurchase } from '../payments/platformWalletService';
+import { creditPlatformWallet } from '../payments/platformWalletService';
+import { settleSecondaryP2pOnChain } from '../blockchain/secondaryMarketOnChainSettlement';
 import type {
   SecondaryMarketFeed,
   SecondaryMarketHolding,
@@ -260,36 +261,17 @@ export async function buySecondaryListing(input: { buyerUserId: string; listingI
 
   const pricePerTokenUsd = listing.pricePerTokenUsd.toNumber();
   const totalUsd = pricePerTokenUsd * listing.tokenCount;
-  const txHash = `secondary-${Date.now().toString(36)}-${listing.id}`;
+
+  const settlement = await settleSecondaryP2pOnChain({
+    buyerUserId: input.buyerUserId,
+    sellerUserId: listing.sellerUserId,
+    projectId: listing.projectId,
+    tokenCount: listing.tokenCount,
+    totalUsd
+  });
+
+  const txHash = settlement.vaultTxHash;
   const idempotencyKey = `secondary-p2p:${listing.id}:${input.buyerUserId}`;
-
-  await debitPlatformWalletForPurchase({
-    userId: input.buyerUserId,
-    investorId: buyerInvestorId,
-    amountUsd: totalUsd,
-    idempotencyKey,
-    metadata: {
-      source: 'SECONDARY_P2P_BUY',
-      listingId: listing.id,
-      projectId: listing.projectId,
-      tokenCount: listing.tokenCount,
-      sellerUserId: listing.sellerUserId
-    }
-  });
-
-  await creditPlatformWallet({
-    userId: listing.sellerUserId,
-    investorId: sellerContext.investorId,
-    amountUsd: totalUsd,
-    idempotencyKey: `${idempotencyKey}:seller`,
-    metadata: {
-      source: 'SECONDARY_P2P_SELL',
-      listingId: listing.id,
-      projectId: listing.projectId,
-      tokenCount: listing.tokenCount,
-      buyerUserId: input.buyerUserId
-    }
-  });
 
   await prisma.$transaction(async (tx) => {
     const current = await tx.secondaryMarketListing.findUniqueOrThrow({
@@ -368,7 +350,8 @@ export async function buySecondaryListing(input: { buyerUserId: string; listingI
     projectId: listing.projectId,
     tokenCount: listing.tokenCount,
     totalUsd,
-    txHash
+    txHash,
+    usdcTxHash: settlement.usdcTxHash
   };
 }
 

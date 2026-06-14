@@ -48,7 +48,7 @@ function resolveLinkedWallet(walletAddress?: string | null): string | null {
 export function isAccountOperational(user: UserOnboardingFields): boolean {
   const identityVerified =
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phone?.trim()) &&
+    Boolean(user.phoneVerifiedAt) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
@@ -63,7 +63,7 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
 export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolean {
   const identityReady =
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phone?.trim()) &&
+    Boolean(user.phoneVerifiedAt) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
@@ -95,7 +95,7 @@ export function buildOnboardingChecklist(
   diditEnabled: boolean
 ): OnboardingChecklist {
   const emailVerified = Boolean(user.emailVerifiedAt);
-  const phoneVerified = Boolean(user.phoneVerifiedAt ?? user.phone?.trim());
+  const phoneVerified = Boolean(user.phoneVerifiedAt);
   const contactVerified = phoneVerified && emailVerified;
   const kycEnabled = contactVerified;
   const kycApproved = user.kycStatus === 'APPROVED';

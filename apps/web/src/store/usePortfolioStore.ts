@@ -4,8 +4,10 @@ export type CashFlowRecord = {
   id: string;
   date: string;
   assetId: string;
+  conceptCode: string;
   concept: string;
   amountUsd: number;
+  statusCode: string;
   status: string;
 };
 
@@ -92,9 +94,11 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
             id: string;
             date: string;
             assetId: string;
-            concept: string;
+            conceptCode?: string;
+            concept?: string;
+            statusCode?: string;
+            status?: string;
             liquidatedAmountUsd: string;
-            status: string;
           }>;
         };
 
@@ -102,9 +106,11 @@ export const usePortfolioStore = create<PortfolioState>((set, get) => ({
           id: record.id,
           date: record.date,
           assetId: record.assetId,
-          concept: record.concept,
+          conceptCode: record.conceptCode ?? record.concept ?? '',
+          concept: record.concept ?? record.conceptCode ?? '',
           amountUsd: Number(record.liquidatedAmountUsd),
-          status: record.status
+          statusCode: record.statusCode ?? record.status ?? '',
+          status: record.status ?? record.statusCode ?? ''
         }));
       }
 

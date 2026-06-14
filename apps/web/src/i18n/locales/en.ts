@@ -2010,7 +2010,29 @@ export const en = {
   },
   status: {
     liquidatedCash: "settled in USDC",
-    liquidatedFiat: "credited to Sanova wallet"
+    liquidatedFiat: "credited to Sanova wallet",
+    appliedToMargin: "applied to margin debt"
+  },
+  apiErrors: {
+    generic: "We could not complete this action. Try again or contact support.",
+    INVESTOR_ACCESS_NOT_ENABLED: "Investor access is not enabled for your account.",
+    INVESTOR_WALLET_REQUIRED: "Link your Coinbase wallet before trading or investing.",
+    INVESTOR_ROLE_REQUIRED: "This action requires an investor account.",
+    ACCOUNT_NOT_OPERATIONAL: "Complete email, phone verification, KYC and wallet linking first.",
+    KYC_NOT_APPROVED: "Complete identity verification (KYC) before continuing.",
+    KYC_REQUIRED: "Complete identity verification (KYC) before continuing.",
+    WALLET_REQUIRED: "Connect your wallet to continue.",
+    WALLET_MISMATCH: "The connected wallet does not match your linked account.",
+    FORBIDDEN: "You do not have permission for this action.",
+    UNAUTHORIZED: "Sign in to continue.",
+    BUYER_USDC_ALLOWANCE_REQUIRED:
+      "Approve USDC spending for the Sanova operator wallet before buying on the secondary market.",
+    SELLER_VAULT_ALLOWANCE_REQUIRED:
+      "The seller must approve vault share transfers for the Sanova operator before this listing can settle.",
+    INSUFFICIENT_BUYER_USDC: "Your wallet does not have enough USDC for this purchase.",
+    INSUFFICIENT_SELLER_ON_CHAIN_SHARES: "The seller does not hold enough on-chain vault shares.",
+    ON_CHAIN_SETTLEMENT_UNAVAILABLE: "On-chain settlement is not available for this asset yet.",
+    ON_CHAIN_SETTLEMENT_OPERATOR_MISSING: "On-chain settlement operator is not configured on the server."
   },
   rentPayout: {
     title: "Rent payout preference",
@@ -2068,7 +2090,10 @@ export const en = {
     },
     cashFlowConcepts: {
       tolhuinDividend: "RWA operating dividend settled in cash",
-      mendozaQuarterly: "Quarterly cash performance distribution"
+      mendozaQuarterly: "Quarterly cash performance distribution",
+      operatingDividendUsdc: "Operating dividend settled in USDC for liability repayment",
+      operatingDividendFiat: "Operating rent credited to Sanova wallet (fiat)",
+      dividendAppliedToMargin: "Dividend applied to margin debt repayment"
     }
   },
   blog: {

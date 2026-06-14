@@ -369,7 +369,7 @@ export function FinancialOverview() {
                 </p>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className="inline-flex rounded border border-terminal-success/30 bg-terminal-card px-2 py-0.5 text-xs font-semibold text-terminal-success">
-                    {translateLiquidatedStatus(row.status, t)}
+                    {translateLiquidatedStatus(row.status, row.status, t)}
                   </span>
                   {row.txHash ? (
                     <span className="font-mono text-[10px] text-terminal-muted">{row.txHash.slice(0, 14)}…</span>
@@ -422,7 +422,7 @@ export function FinancialOverview() {
                     </td>
                     <td className="px-4 py-4 lg:px-6">
                       <span className="inline-flex rounded border border-terminal-success/30 bg-terminal-bg px-3 py-1 text-xs font-semibold text-terminal-success">
-                        {translateLiquidatedStatus(row.status, t)}
+                        {translateLiquidatedStatus(row.status, row.status, t)}
                       </span>
                     </td>
                     <td className="px-4 py-4 font-mono text-xs text-terminal-muted lg:px-6">{row.txHash ?? '—'}</td>

@@ -14,25 +14,45 @@ const ASSET_ID_KEYS: Record<string, keyof Messages['demo']['assets']> = {
   Mendoza: 'mendoza'
 };
 
-const CASH_FLOW_CONCEPT_BY_ID: Record<string, keyof Messages['demo']['cashFlowConcepts']> = {
-  'cf-tolhuin-001': 'tolhuinDividend',
-  'cf-mendoza-001': 'mendozaQuarterly'
+const CASH_FLOW_CONCEPT_BY_CODE: Record<string, keyof Messages['demo']['cashFlowConcepts']> = {
+  OPERATING_DIVIDEND_USDC: 'operatingDividendUsdc',
+  OPERATING_DIVIDEND_FIAT: 'operatingDividendFiat',
+  DIVIDEND_APPLIED_TO_MARGIN: 'dividendAppliedToMargin'
 };
 
-export function translateLiquidatedStatus(status: string, t: Messages): string {
+const CASH_FLOW_STATUS_BY_CODE: Record<string, keyof Messages['status']> = {
+  LIQUIDATED_CASH: 'liquidatedCash',
+  LIQUIDATED_FIAT: 'liquidatedFiat',
+  APPLIED_TO_MARGIN: 'appliedToMargin'
+};
+
+export function translateLiquidatedStatus(
+  statusCode: string,
+  fallback: string,
+  t: Messages
+): string {
+  const key = CASH_FLOW_STATUS_BY_CODE[statusCode];
+  if (key) {
+    return t.status[key];
+  }
+
   if (
-    status === 'Liquidado en Efectivo' ||
-    status === 'Liquidated in cash' ||
-    status === 'LIQUIDATED_CASH'
+    fallback === 'Liquidado en Efectivo' ||
+    fallback === 'Liquidated in cash' ||
+    fallback === 'LIQUIDATED_CASH'
   ) {
     return t.status.liquidatedCash;
   }
 
-  if (status === 'LIQUIDATED_FIAT') {
+  if (fallback === 'LIQUIDATED_FIAT' || fallback === 'Acreditado en billetera Sanova') {
     return t.status.liquidatedFiat;
   }
 
-  return status;
+  if (fallback === 'APPLIED_TO_MARGIN' || fallback === 'Aplicado a margen') {
+    return t.status.appliedToMargin;
+  }
+
+  return fallback;
 }
 
 export function translateDistributionConcept(id: string, fallback: string, t: Messages): string {
@@ -49,7 +69,15 @@ export function translateAssetLabel(assetId: string, t: Messages): string {
   return key ? t.demo.assets[key] : assetId;
 }
 
-export function translateCashFlowConcept(id: string, fallback: string, t: Messages): string {
-  const key = CASH_FLOW_CONCEPT_BY_ID[id];
-  return key ? t.demo.cashFlowConcepts[key] : fallback;
+export function translateCashFlowConcept(
+  conceptCode: string,
+  fallback: string,
+  t: Messages
+): string {
+  const key = CASH_FLOW_CONCEPT_BY_CODE[conceptCode];
+  if (key) {
+    return t.demo.cashFlowConcepts[key];
+  }
+
+  return fallback;
 }

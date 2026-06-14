@@ -2048,7 +2048,29 @@ export const es = {
   },
   status: {
     liquidatedCash: 'Liquidado en USDC',
-    liquidatedFiat: 'Acreditado en billetera Sanova'
+    liquidatedFiat: 'Acreditado en billetera Sanova',
+    appliedToMargin: 'Aplicado a deuda de margen'
+  },
+  apiErrors: {
+    generic: 'No pudimos completar esta acción. Intentá de nuevo o contactá soporte.',
+    INVESTOR_ACCESS_NOT_ENABLED: 'El acceso de inversor no está habilitado para tu cuenta.',
+    INVESTOR_WALLET_REQUIRED: 'Vinculá tu wallet Coinbase antes de operar o invertir.',
+    INVESTOR_ROLE_REQUIRED: 'Esta acción requiere una cuenta de inversor.',
+    ACCOUNT_NOT_OPERATIONAL: 'Completá verificación de email, teléfono, KYC y vinculación de wallet primero.',
+    KYC_NOT_APPROVED: 'Completá la verificación de identidad (KYC) antes de continuar.',
+    KYC_REQUIRED: 'Completá la verificación de identidad (KYC) antes de continuar.',
+    WALLET_REQUIRED: 'Conectá tu wallet para continuar.',
+    WALLET_MISMATCH: 'La wallet conectada no coincide con tu cuenta vinculada.',
+    FORBIDDEN: 'No tenés permiso para esta acción.',
+    UNAUTHORIZED: 'Iniciá sesión para continuar.',
+    BUYER_USDC_ALLOWANCE_REQUIRED:
+      'Aprobá el gasto de USDC para la wallet operadora de Sanova antes de comprar en el mercado secundario.',
+    SELLER_VAULT_ALLOWANCE_REQUIRED:
+      'El vendedor debe aprobar transferencias de shares del vault para el operador Sanova antes de que el listing pueda liquidarse.',
+    INSUFFICIENT_BUYER_USDC: 'Tu wallet no tiene suficiente USDC para esta compra.',
+    INSUFFICIENT_SELLER_ON_CHAIN_SHARES: 'El vendedor no tiene suficientes shares on-chain del vault.',
+    ON_CHAIN_SETTLEMENT_UNAVAILABLE: 'La liquidación on-chain aún no está disponible para este activo.',
+    ON_CHAIN_SETTLEMENT_OPERATOR_MISSING: 'El operador de liquidación on-chain no está configurado en el servidor.'
   },
   rentPayout: {
     title: 'Preferencia de cobro de rentas',
@@ -2107,7 +2129,10 @@ export const es = {
     },
     cashFlowConcepts: {
       tolhuinDividend: 'Dividendo operativo RWA liquidado en cash',
-      mendozaQuarterly: 'Distribución trimestral de rendimiento en efectivo'
+      mendozaQuarterly: 'Distribución trimestral de rendimiento en efectivo',
+      operatingDividendUsdc: 'Dividendo operativo liquidado en USDC para repago de pasivos',
+      operatingDividendFiat: 'Renta operativa acreditada en billetera Sanova (fiat)',
+      dividendAppliedToMargin: 'Dividendo aplicado a repago de margen'
     }
   },
   blog: {

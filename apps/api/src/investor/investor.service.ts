@@ -3,9 +3,21 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 const DEFAULT_MAX_LTV = 0.6;
-const CASH_FLOW_STATUS = 'Liquidado en Efectivo';
 const LIQUIDATED_CASH_STATUS = 'LIQUIDATED_CASH';
+const LIQUIDATED_FIAT_STATUS = 'LIQUIDATED_FIAT';
 const APPLIED_TO_MARGIN_STATUS = 'APPLIED_TO_MARGIN';
+
+const CASH_FLOW_STATUS_CODES = {
+  LIQUIDATED_CASH: 'LIQUIDATED_CASH',
+  LIQUIDATED_FIAT: 'LIQUIDATED_FIAT',
+  APPLIED_TO_MARGIN: 'APPLIED_TO_MARGIN'
+} as const;
+
+const CASH_FLOW_CONCEPT_CODES = {
+  OPERATING_DIVIDEND_USDC: 'OPERATING_DIVIDEND_USDC',
+  OPERATING_DIVIDEND_FIAT: 'OPERATING_DIVIDEND_FIAT',
+  DIVIDEND_APPLIED_TO_MARGIN: 'DIVIDEND_APPLIED_TO_MARGIN'
+} as const;
 
 @Injectable()
 export class InvestorService {
@@ -122,7 +134,7 @@ export class InvestorService {
   async getCashFlowHistory() {
     const distributions = await this.prisma.dividendDistribution.findMany({
       where: {
-        status: LIQUIDATED_CASH_STATUS
+        status: { in: [LIQUIDATED_CASH_STATUS, LIQUIDATED_FIAT_STATUS, APPLIED_TO_MARGIN_STATUS] }
       },
       select: {
         id: true,
@@ -130,22 +142,80 @@ export class InvestorService {
         amount: true,
         currency: true,
         distributedAt: true,
-        status: true
+        status: true,
+        txHash: true
       },
       orderBy: {
         distributedAt: 'desc'
       }
     });
 
-    return distributions.map((distribution) => ({
+    return distributions.map((distribution) => this.mapCashFlowRecord(distribution));
+  }
+
+  async getCashFlowHistoryForUser(platformUserId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: platformUserId },
+      select: { investorId: true }
+    });
+
+    if (!user?.investorId) {
+      return [];
+    }
+
+    const distributions = await this.prisma.dividendDistribution.findMany({
+      where: {
+        userId: user.investorId,
+        status: { in: [LIQUIDATED_CASH_STATUS, LIQUIDATED_FIAT_STATUS, APPLIED_TO_MARGIN_STATUS] }
+      },
+      select: {
+        id: true,
+        assetId: true,
+        amount: true,
+        currency: true,
+        distributedAt: true,
+        status: true,
+        txHash: true
+      },
+      orderBy: { distributedAt: 'desc' }
+    });
+
+    return distributions.map((distribution) => this.mapCashFlowRecord(distribution));
+  }
+
+  private mapCashFlowRecord(distribution: {
+    id: string;
+    assetId: string;
+    amount: Prisma.Decimal;
+    currency: string;
+    distributedAt: Date;
+    status: string;
+    txHash: string | null;
+  }) {
+    const statusCode =
+      distribution.status === APPLIED_TO_MARGIN_STATUS
+        ? CASH_FLOW_STATUS_CODES.APPLIED_TO_MARGIN
+        : distribution.status === LIQUIDATED_FIAT_STATUS
+          ? CASH_FLOW_STATUS_CODES.LIQUIDATED_FIAT
+          : CASH_FLOW_STATUS_CODES.LIQUIDATED_CASH;
+
+    const conceptCode =
+      distribution.status === APPLIED_TO_MARGIN_STATUS
+        ? CASH_FLOW_CONCEPT_CODES.DIVIDEND_APPLIED_TO_MARGIN
+        : distribution.status === LIQUIDATED_FIAT_STATUS
+          ? CASH_FLOW_CONCEPT_CODES.OPERATING_DIVIDEND_FIAT
+          : CASH_FLOW_CONCEPT_CODES.OPERATING_DIVIDEND_USDC;
+
+    return {
       id: distribution.id,
       date: distribution.distributedAt.toISOString(),
       assetId: distribution.assetId,
       liquidatedAmountUsd: distribution.amount.toString(),
       currency: distribution.currency,
-      status: CASH_FLOW_STATUS,
-      concept: 'Dividendo operativo liquidado estrictamente en cash para repago de pasivos'
-    }));
+      statusCode,
+      conceptCode,
+      txHash: distribution.txHash
+    };
   }
 
   async getPortfolioByWallet(wallet: string) {
