@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { prisma } from '@sanova/database';
+import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
 import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { verifyCartUsdcPayment } from '../../../../../lib/payments/cartCheckoutService';
 
@@ -9,6 +11,10 @@ type ConfirmBody = {
   txHash?: string;
   walletAddress?: string;
 };
+
+function isWalletConnectCart(metadata: Record<string, unknown>): boolean {
+  return metadata.paymentOptionId === 'walletconnect_usdc';
+}
 
 const CONFIRM_ERRORS = [
   'CART_BATCH_NOT_FOUND',
@@ -28,7 +34,11 @@ const CONFIRM_ERRORS = [
   'ONCHAIN_ALLOWLIST_NOT_APPROVED',
   'WALLET_REQUIRED_FOR_TOKENIZED_PURCHASE',
   'INSUFFICIENT_SUPPLY',
-  'PROJECT_NOT_AVAILABLE'
+  'PROJECT_NOT_AVAILABLE',
+  'WALLET_REQUIRED',
+  'WALLET_MISMATCH',
+  'INVESTOR_WALLET_REQUIRED',
+  'INVALID_WALLET'
 ] as const;
 
 export async function POST(request: Request) {
@@ -46,11 +56,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'BATCH_AND_TX_REQUIRED' }, { status: 400 });
     }
 
+    const sample = await prisma.paymentIntent.findFirst({
+      where: { userId: ctx.userId, metadata: { path: ['cartBatchId'], equals: body.batchId.trim() } },
+      select: { metadata: true }
+    });
+
+    const sampleMetadata = (sample?.metadata as Record<string, unknown>) ?? {};
+    let expectedPayer: string | null = null;
+
+    if (isWalletConnectCart(sampleMetadata)) {
+      if (!body.walletAddress?.trim()) {
+        return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
+      }
+      expectedPayer = body.walletAddress.trim().toLowerCase();
+    } else {
+      expectedPayer = await resolveInvestorLinkedWallet(ctx.userId, body.walletAddress);
+    }
+
     const paymentIntents = await verifyCartUsdcPayment({
       userId: ctx.userId,
       batchId: body.batchId.trim(),
       txHash: body.txHash.trim(),
-      expectedPayer: body.walletAddress
+      expectedPayer
     });
 
     return NextResponse.json({ ok: true, paymentIntents });

@@ -246,10 +246,11 @@ async function executeAutomationJob(job: AutomationJobRow) {
 
   if (job.step === 'TOKEN_DEPLOY') {
     const { executeProjectTokenDeploy } = await import('../blockchain/projectTokenDeploy');
-    const { ERC4626_LAUNCH_PIPELINE } = await import('./erc4626LaunchPipeline');
-    const adminAuthorized =
-      job.payload?.adminAuthorized === true || job.payload?.pipeline === ERC4626_LAUNCH_PIPELINE;
-    return executeProjectTokenDeploy(job.projectId, { skipLock: true, adminAuthorized });
+    const adminAuthorized = job.payload?.adminAuthorized === true;
+    if (!adminAuthorized) {
+      throw new Error('TOKEN_DEPLOY_REQUIRES_ADMIN_AUTHORIZATION');
+    }
+    return executeProjectTokenDeploy(job.projectId, { skipLock: true, adminAuthorized: true });
   }
 
   if (job.step === 'VAULT_DEPLOY') {
@@ -312,6 +313,24 @@ async function executeAutomationJob(job: AutomationJobRow) {
   throw new Error(`Unsupported automation job: ${job.step}`);
 }
 
+function isSuccessfulTokenDeployResult(result: unknown): boolean {
+  if (!result || typeof result !== 'object') {
+    return false;
+  }
+  const status = (result as { status?: string }).status;
+  return status === 'DEPLOYED' || status === 'ALREADY_DEPLOYED';
+}
+
+function tokenDeployFailureReason(result: unknown): string {
+  if (result && typeof result === 'object' && 'reason' in result) {
+    const reason = (result as { reason?: string }).reason;
+    if (reason?.trim()) {
+      return reason.trim();
+    }
+  }
+  return 'TOKEN_DEPLOY_NOT_COMPLETED';
+}
+
 export async function processAutomationJobs(limit = 5) {
   const delegate = jobDelegate();
   if (!delegate) {
@@ -348,6 +367,11 @@ export async function processAutomationJobs(limit = 5) {
 
     try {
       const result = await executeAutomationJob(job);
+
+      if (job.step === 'TOKEN_DEPLOY' && !isSuccessfulTokenDeployResult(result)) {
+        throw new Error(tokenDeployFailureReason(result));
+      }
+
       await delegate.update({
         where: { id: job.id },
         data: {
@@ -367,7 +391,7 @@ export async function processAutomationJobs(limit = 5) {
         }).catch(() => undefined);
       }
 
-      if (job.step === 'TOKEN_DEPLOY' && job.projectId) {
+      if (job.step === 'TOKEN_DEPLOY' && job.projectId && isSuccessfulTokenDeployResult(result)) {
         const { chainErc4626PipelineAfterTokenDeploy } = await import('./erc4626LaunchPipeline');
         await chainErc4626PipelineAfterTokenDeploy(job.projectId, job.payload).catch((error) => {
           console.warn('[automationJobs] pipeline chain failed:', error);
