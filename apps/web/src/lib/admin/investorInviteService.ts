@@ -5,6 +5,7 @@ import { normalizeEmail } from '../auth/contactValidation';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
 import { resolveSiteUrl } from '../invite/resolveSiteUrl';
 import { buildInvestorInviteWhatsAppMessage } from '../invite/whatsappInvite';
+import { sendInviteWhatsAppMessage } from '../whatsapp/sendWhatsAppMessage';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -20,6 +21,7 @@ export type InvestorInviteRecord = {
   expiresAt: string;
   createdAt: string;
   emailSent: boolean;
+  whatsappSent: boolean;
   acceptUrl: string;
   whatsappMessage: string;
 };
@@ -65,6 +67,7 @@ export async function markInvestorInviteAcceptedForEmail(email: string): Promise
 export async function inviteInvestor(input: {
   email: string;
   name?: string | null;
+  phone?: string | null;
   incorporatedByAdvisorId?: string | null;
   invitedByUserId: string;
 }): Promise<InvestorInviteRecord> {
@@ -156,6 +159,14 @@ export async function inviteInvestor(input: {
     });
   }
 
+  const whatsappMessage = buildInvestorInviteWhatsAppMessage({ acceptUrl, name: input.name });
+  const whatsappResult = await sendInviteWhatsAppMessage({
+    phone: input.phone,
+    message: whatsappMessage,
+    acceptUrl,
+    recipientName: input.name
+  });
+
   return {
     id: invite.id,
     email: invite.email,
@@ -164,8 +175,9 @@ export async function inviteInvestor(input: {
     expiresAt: invite.expiresAt.toISOString(),
     createdAt: invite.createdAt.toISOString(),
     emailSent: emailResult.ok,
+    whatsappSent: whatsappResult.sent,
     acceptUrl,
-    whatsappMessage: buildInvestorInviteWhatsAppMessage({ acceptUrl, name: input.name })
+    whatsappMessage
   };
 }
 
@@ -328,6 +340,7 @@ export async function resendInvestorInvite(inviteId: string): Promise<InvestorIn
     expiresAt: expiresAt.toISOString(),
     createdAt: invite.createdAt.toISOString(),
     emailSent: emailResult.ok,
+    whatsappSent: false,
     acceptUrl,
     whatsappMessage: buildInvestorInviteWhatsAppMessage({ acceptUrl, name: invite.name })
   };

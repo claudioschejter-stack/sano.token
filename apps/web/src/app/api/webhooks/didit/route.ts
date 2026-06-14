@@ -74,6 +74,10 @@ export async function POST(request: Request) {
 
   if (kycStatus === 'APPROVED') {
     await provisionInvestorProfileOnKycApproval(vendorData);
+    const { notifyAdvisorOfClientKycApproved } = await import(
+      '../../../../lib/advisor/advisorNotificationService'
+    );
+    void notifyAdvisorOfClientKycApproved(vendorData);
   }
 
   return NextResponse.json({ ok: true });

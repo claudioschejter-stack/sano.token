@@ -5,6 +5,7 @@ import { normalizeEmail } from '../auth/contactValidation';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
 import { resolveSiteUrl } from '../invite/resolveSiteUrl';
 import { buildTeamInviteWhatsAppMessage } from '../invite/whatsappInvite';
+import { sendInviteWhatsAppMessage } from '../whatsapp/sendWhatsAppMessage';
 import { designateAdvisor } from './teamService';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -30,6 +31,7 @@ export type TeamInviteRecord = {
   expiresAt: string;
   createdAt: string;
   emailSent: boolean;
+  whatsappSent: boolean;
   acceptUrl: string;
   whatsappMessage: string;
 };
@@ -37,6 +39,7 @@ export type TeamInviteRecord = {
 export async function inviteTeamMember(input: {
   email: string;
   name?: string | null;
+  phone?: string | null;
   role: 'ADVISOR' | 'ADVISOR_MANAGER';
   uplineAdvisorId?: string | null;
   invitedByUserId: string;
@@ -144,6 +147,18 @@ export async function inviteTeamMember(input: {
     `
   });
 
+  const whatsappMessage = buildTeamInviteWhatsAppMessage({
+    acceptUrl,
+    roleLabel: roleText,
+    name: input.name
+  });
+  const whatsappResult = await sendInviteWhatsAppMessage({
+    phone: input.phone,
+    message: whatsappMessage,
+    acceptUrl,
+    recipientName: input.name
+  });
+
   return {
     id: invite.id,
     email: invite.email,
@@ -153,12 +168,9 @@ export async function inviteTeamMember(input: {
     expiresAt: invite.expiresAt.toISOString(),
     createdAt: invite.createdAt.toISOString(),
     emailSent: emailResult.ok,
+    whatsappSent: whatsappResult.sent,
     acceptUrl,
-    whatsappMessage: buildTeamInviteWhatsAppMessage({
-      acceptUrl,
-      roleLabel: roleText,
-      name: input.name
-    })
+    whatsappMessage
   };
 }
 
@@ -331,6 +343,7 @@ export async function resendTeamInvite(inviteId: string): Promise<TeamInviteReco
     expiresAt: expiresAt.toISOString(),
     createdAt: invite.createdAt.toISOString(),
     emailSent: emailResult.ok,
+    whatsappSent: false,
     acceptUrl,
     whatsappMessage: buildTeamInviteWhatsAppMessage({
       acceptUrl,

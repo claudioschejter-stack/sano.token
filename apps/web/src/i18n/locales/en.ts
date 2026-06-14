@@ -320,7 +320,7 @@ export const en = {
   },
   adminInviteWhatsApp: {
     title: "Invite via WhatsApp contacts",
-    desc: "Pick contacts from your phone (Chrome Android) or add them manually, create invites, then send the link through WhatsApp.",
+    desc: "Pick contacts or add them manually. Invites are emailed and WhatsApp is sent automatically via Twilio when a phone number is provided.",
     pickContacts: "Pick phone contacts",
     pickContactsManual: "Pick contacts (limited browser)",
     pickError: "Could not read contacts. Add them manually.",
@@ -329,7 +329,8 @@ export const en = {
     addManual: "Add contact manually",
     createAll: "Create all invites",
     createInvite: "Create invite",
-    sendWhatsApp: "Open WhatsApp",
+    sendWhatsApp: "Open WhatsApp (manual)",
+    sentAuto: "WhatsApp sent (Twilio)",
     sent: "Sent",
     emailRequired: "Email required",
     createError: "Could not create invite",
@@ -880,7 +881,6 @@ export const en = {
     clientsCardDesc: "Investors incorporated by your network of advisors.",
     commissionsCard: "Commissions",
     commissionsCardDesc: "You receive 30% of the commission when an advisor in your network incorporates an investor.",
-    commissionsComingSoon: "Coming soon",
     teamCard: "Advisor network",
     teamCardDesc: "See the equipment and clients assigned to your network."
   },
@@ -1013,7 +1013,10 @@ export const en = {
   },
   advisorPortal: {
     navClients: "my clients",
+    navCommissions: "Commissions",
+    navTeam: "Advisor network",
     navSuggest: "Suggest advisor",
+    exportCsv: "Export CSV",
     clientsTitle: "my clients",
     clientsDescManager: "Read-only view of investors incorporated by you and your network of advisors.",
     clientsDescAdvisor: "Read-only view of investors you added to the platform.",
@@ -1034,6 +1037,72 @@ export const en = {
       alreadyStaff: "This email belongs to an internal account.",
       investorHasHoldings: "Cannot nominate an investor with active holdings.",
       invalidEmail: "Enter a valid email address."
+    },
+    invite: {
+      title: "Invite investor",
+      desc: "Send an invitation with you as the incorporating advisor. The investor will complete registration and KYC.",
+      submit: "Send invitation",
+      success: "Invitation sent by email.",
+      emailNotSent: "Invitation created but email was not sent (check RESEND_API_KEY).",
+      whatsappNotSent: "Invitation created; WhatsApp could not be sent via Twilio (check template or sandbox).",
+      deliveryNotSent: "Invitation created but neither email nor WhatsApp could be delivered.",
+      error: "Could not send invitation.",
+      phone: "WhatsApp phone (optional)",
+      assignAdvisor: "Assign to advisor in your network",
+      assignSelf: "Assign to me (default)"
+    },
+    kpis: {
+      loading: "Loading KPIs…",
+      totalClients: "Total clients",
+      incorporationsMonth: "Incorporations this month",
+      accruedCommission: "Accrued commissions",
+      paidCommission: "Paid commissions",
+      downlineAdvisors: "Advisors in network",
+      kycBreakdown: "Clients by KYC status"
+    },
+    commissions: {
+      eyebrow: "Commissions",
+      title: "Your commission accruals",
+      desc: "Purchase and rent fees accumulated under the active platform policy. Export the distribution sheet for reconciliation.",
+      refresh: "Refresh",
+      loading: "Loading commissions…",
+      error: "Could not load commissions.",
+      empty: "No commission accruals yet.",
+      exportCsv: "Export distribution CSV",
+      accruedTotal: "Accrued (pending payout)",
+      paidTotal: "Paid",
+      purchaseAccrued: "From purchases (accrued)",
+      rentAccrued: "From rent (accrued)",
+      colDate: "Date",
+      colEvent: "Event",
+      colAmount: "Your share",
+      colStatus: "Status",
+      colSourceAdvisor: "Source advisor",
+      eventTypes: {
+        TOKEN_PURCHASE: "Token purchase",
+        RENT_DISTRIBUTION: "Rent distribution"
+      },
+      statuses: {
+        ACCRUED: "Accrued",
+        PAID: "Paid",
+        CANCELLED: "Cancelled"
+      }
+    },
+    team: {
+      eyebrow: "Network",
+      title: "Advisors in your downline",
+      desc: "Embedded advisors under your commercial line and their client counts.",
+      refresh: "Refresh",
+      loading: "Loading network…",
+      error: "Could not load advisor network.",
+      empty: "No embedded advisors in your network yet.",
+      colEmail: "Email",
+      colName: "Name",
+      colCategory: "Category",
+      colUpline: "Upline",
+      colClients: "Clients",
+      colDownline: "Sub-advisors",
+      colJoined: "Joined"
     }
   },
   checkout: {

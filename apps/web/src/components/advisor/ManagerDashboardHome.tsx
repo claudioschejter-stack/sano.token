@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Users, UserCog, TrendingUp } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { AdvisorDashboardKpis } from './AdvisorDashboardKpis';
 
 export function ManagerDashboardHome() {
   const t = useTranslation();
@@ -17,6 +18,8 @@ export function ManagerDashboardHome() {
         <p className="max-w-2xl text-terminal-muted">{t.managerPortal.desc}</p>
       </div>
 
+      <AdvisorDashboardKpis showDownline />
+
       <div className="grid gap-4 md:grid-cols-2">
         <Link
           href="/dashboard/clients"
@@ -27,19 +30,17 @@ export function ManagerDashboardHome() {
           <p className="mt-2 text-sm text-terminal-muted">{t.managerPortal.clientsCardDesc}</p>
         </Link>
 
-        <article className="rounded-xl border border-terminal-border bg-terminal-card p-6 opacity-90">
+        <Link
+          href="/dashboard/commissions"
+          className="rounded-xl border border-terminal-border bg-terminal-card p-6 transition-colors hover:border-terminal-primary/40"
+        >
           <TrendingUp className="text-terminal-primary" size={24} />
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold text-terminal-text">{t.managerPortal.commissionsCard}</h2>
-            <span className="rounded-full border border-terminal-border px-2 py-0.5 text-xs text-terminal-muted">
-              {t.managerPortal.commissionsComingSoon}
-            </span>
-          </div>
+          <h2 className="mt-4 text-lg font-semibold text-terminal-text">{t.managerPortal.commissionsCard}</h2>
           <p className="mt-2 text-sm text-terminal-muted">{t.managerPortal.commissionsCardDesc}</p>
-        </article>
+        </Link>
 
         <Link
-          href="/dashboard/clients"
+          href="/dashboard/team"
           className="rounded-xl border border-terminal-border bg-terminal-card p-6 transition-colors hover:border-terminal-primary/40 md:col-span-2"
         >
           <UserCog className="text-terminal-primary" size={24} />

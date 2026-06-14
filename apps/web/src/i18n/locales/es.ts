@@ -327,7 +327,7 @@ export const es = {
   },
   adminInviteWhatsApp: {
     title: 'Invitar desde contactos / WhatsApp',
-    desc: 'Seleccioná contactos del teléfono (Chrome en Android) o agregalos manualmente, creá invitaciones y enviá el enlace por WhatsApp.',
+    desc: 'Seleccioná contactos o agregalos manualmente. Se envía email y WhatsApp automático vía Twilio si hay teléfono.',
     pickContacts: 'Elegir contactos del teléfono',
     pickContactsManual: 'Elegir contactos (navegador limitado)',
     pickError: 'No se pudieron leer los contactos. Agregalos manualmente.',
@@ -336,7 +336,8 @@ export const es = {
     addManual: 'Agregar contacto manual',
     createAll: 'Crear todas las invitaciones',
     createInvite: 'Crear invitación',
-    sendWhatsApp: 'Abrir WhatsApp',
+    sendWhatsApp: 'Abrir WhatsApp (manual)',
+    sentAuto: 'WhatsApp enviado (Twilio)',
     sent: 'Enviado',
     emailRequired: 'Email requerido',
     createError: 'No se pudo crear la invitación',
@@ -857,7 +858,6 @@ export const es = {
     clientsCardDesc: 'Inversores incorporados por tu red de asesores.',
     commissionsCard: 'Comisiones',
     commissionsCardDesc: 'Recibís el 30% de la comisión cuando un asesor de tu red incorpora un inversor.',
-    commissionsComingSoon: 'Próximamente',
     teamCard: 'Red de asesores',
     teamCardDesc: 'Consultá el equipo y los clientes asignados a tu red.'
   },
@@ -1027,7 +1027,10 @@ export const es = {
   },
   advisorPortal: {
     navClients: 'Mis clientes',
+    navCommissions: 'Comisiones',
+    navTeam: 'Red de asesores',
     navSuggest: 'Sugerir asesor',
+    exportCsv: 'Exportar CSV',
     clientsTitle: 'Mis clientes',
     clientsDescManager:
       'Vista de solo lectura de inversores incorporados por vos y por tu red de asesores.',
@@ -1049,6 +1052,73 @@ export const es = {
       alreadyStaff: 'Ese correo pertenece a una cuenta interna.',
       investorHasHoldings: 'No se puede nominar un inversor con inversiones activas.',
       invalidEmail: 'Ingresá un email válido.'
+    },
+    invite: {
+      title: 'Invitar inversor',
+      desc: 'Envía una invitación con vos como asesor incorporador. El inversor completará registro y KYC.',
+      submit: 'Enviar invitación',
+      success: 'Invitación enviada por email.',
+      emailNotSent: 'Invitación creada pero el email no se envió (revisá RESEND_API_KEY).',
+      whatsappNotSent:
+        'Invitación creada; WhatsApp no se envió vía Twilio (revisá plantilla o sandbox).',
+      deliveryNotSent: 'Invitación creada pero no se pudo enviar email ni WhatsApp.',
+      error: 'No se pudo enviar la invitación.',
+      phone: 'Teléfono WhatsApp (opcional)',
+      assignAdvisor: 'Asignar a asesor de tu red',
+      assignSelf: 'Asignar a mi cuenta (predeterminado)'
+    },
+    kpis: {
+      loading: 'Cargando KPIs…',
+      totalClients: 'Total clientes',
+      incorporationsMonth: 'Incorporaciones del mes',
+      accruedCommission: 'Comisiones acumuladas',
+      paidCommission: 'Comisiones pagadas',
+      downlineAdvisors: 'Asesores en la red',
+      kycBreakdown: 'Clientes por estado KYC'
+    },
+    commissions: {
+      eyebrow: 'Comisiones',
+      title: 'Tus comisiones acumuladas',
+      desc: 'Fees de compra y renta según la política vigente. Exportá la planilla de reparto para conciliación.',
+      refresh: 'Actualizar',
+      loading: 'Cargando comisiones…',
+      error: 'No se pudieron cargar las comisiones.',
+      empty: 'Aún no hay comisiones acumuladas.',
+      exportCsv: 'Exportar planilla CSV',
+      accruedTotal: 'Acumuladas (pendiente de pago)',
+      paidTotal: 'Pagadas',
+      purchaseAccrued: 'Por compras (acumuladas)',
+      rentAccrued: 'Por renta (acumuladas)',
+      colDate: 'Fecha',
+      colEvent: 'Evento',
+      colAmount: 'Tu parte',
+      colStatus: 'Estado',
+      colSourceAdvisor: 'Asesor origen',
+      eventTypes: {
+        TOKEN_PURCHASE: 'Compra de tokens',
+        RENT_DISTRIBUTION: 'Distribución de renta'
+      },
+      statuses: {
+        ACCRUED: 'Acumulada',
+        PAID: 'Pagada',
+        CANCELLED: 'Cancelada'
+      }
+    },
+    team: {
+      eyebrow: 'Red',
+      title: 'Asesores en tu downline',
+      desc: 'Asesores embebidos bajo tu línea comercial y cantidad de clientes.',
+      refresh: 'Actualizar',
+      loading: 'Cargando red…',
+      error: 'No se pudo cargar la red de asesores.',
+      empty: 'Aún no hay asesores embebidos en tu red.',
+      colEmail: 'Email',
+      colName: 'Nombre',
+      colCategory: 'Categoría',
+      colUpline: 'Upline',
+      colClients: 'Clientes',
+      colDownline: 'Sub-asesores',
+      colJoined: 'Alta'
     }
   },
   checkout: {

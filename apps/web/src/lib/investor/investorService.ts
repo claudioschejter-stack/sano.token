@@ -233,6 +233,17 @@ export async function purchaseProjectTokens(input: {
     idempotencyPrefix: `purchase:${result.investmentId}`
   });
 
+  const projectMeta = await prisma.project.findUnique({
+    where: { id: result.projectId },
+    select: { title: true }
+  });
+  const { notifyAdvisorOfClientPurchase } = await import('../advisor/advisorNotificationService');
+  void notifyAdvisorOfClientPurchase(
+    input.userId,
+    projectMeta?.title ?? 'Asset',
+    result.purchasePriceUsd
+  );
+
   return { ...result, commissionSplit };
 }
 

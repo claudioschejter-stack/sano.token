@@ -1,5 +1,6 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { IsString, MinLength } from 'class-validator';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -11,26 +12,34 @@ class RepayMarginDto {
   userId!: string;
 }
 
+type AuthRequest = Request & { user?: { userId?: string; role?: string } };
+
 @Controller('portfolio')
 export class InvestorController {
   constructor(private readonly investorService: InvestorService) {}
 
   @Post('repay-margin')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'ADVISOR_MANAGER', 'ADVISOR', 'TREASURY', 'OPERATOR', 'INVESTOR')
+  @Roles('ADMIN', 'TREASURY', 'OPERATOR', 'INVESTOR')
   repayMargin(@Body() body: RepayMarginDto) {
     return this.investorService.repayMarginWithAvailableCash(body.userId);
   }
 
   @Get('cash-flow')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'ADVISOR_MANAGER', 'ADVISOR', 'TREASURY', 'OPERATOR', 'INVESTOR')
+  @Roles('ADMIN', 'TREASURY', 'OPERATOR', 'INVESTOR')
   getCashFlowHistory() {
     return this.investorService.getCashFlowHistory();
   }
 
   @Get(':wallet')
-  getPortfolio(@Param('wallet') wallet: string) {
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN', 'TREASURY', 'OPERATOR', 'INVESTOR')
+  getPortfolio(@Param('wallet') wallet: string, @Req() req: AuthRequest) {
+    const role = req.user?.role;
+    if (role === 'INVESTOR' && req.user?.userId) {
+      return this.investorService.getPortfolioForAuthenticatedUser(req.user.userId, wallet);
+    }
     return this.investorService.getPortfolioByWallet(wallet);
   }
 }

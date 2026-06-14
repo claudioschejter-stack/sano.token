@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { AdvisorClientRecord } from '../../lib/advisor/clientsService';
+import type { DownlineAdvisorRecord } from '../../lib/advisor/downlineService';
 import { resolveNominationError } from '../../lib/advisor/resolveNominationError';
 import { AdvisorGate } from './AdvisorGate';
 
@@ -41,6 +42,14 @@ export function AdvisorClientsView() {
   const [suggesting, setSuggesting] = useState(false);
   const [suggestMessage, setSuggestMessage] = useState<string | null>(null);
 
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
+  const [invitePhone, setInvitePhone] = useState('');
+  const [inviteAdvisorId, setInviteAdvisorId] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState<string | null>(null);
+  const [downlineAdvisors, setDownlineAdvisors] = useState<DownlineAdvisorRecord[]>([]);
+
   const statusLabels = t.adminInvestors.status as Record<string, string>;
   const filterLabels = t.adminInvestors.filters as Record<KycFilter, string>;
 
@@ -67,6 +76,19 @@ export function AdvisorClientsView() {
   useEffect(() => {
     void loadClients(filter);
   }, [filter, loadClients]);
+
+  useEffect(() => {
+    if (!isManager) {
+      return;
+    }
+    void fetch('/api/advisor/downline')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { advisors?: DownlineAdvisorRecord[] } | null) => {
+        if (data?.advisors) {
+          setDownlineAdvisors(data.advisors);
+        }
+      });
+  }, [isManager]);
 
   async function handleSuggest(event: React.FormEvent) {
     event.preventDefault();
@@ -97,6 +119,53 @@ export function AdvisorClientsView() {
     }
   }
 
+  async function handleInvite(event: React.FormEvent) {
+    event.preventDefault();
+    setInviting(true);
+    setInviteMessage(null);
+
+    try {
+      const response = await fetch('/api/advisor/investors/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteEmail,
+          name: inviteName || undefined,
+          phone: invitePhone.trim() || undefined,
+          incorporatedByAdvisorId: inviteAdvisorId || undefined
+        })
+      });
+
+      const data = (await response.json().catch(() => ({}))) as { error?: string; warning?: string };
+
+      if (!response.ok) {
+        setInviteMessage(data.error ?? t.advisorPortal.invite.error);
+        return;
+      }
+
+      setInviteEmail('');
+      setInviteName('');
+      setInvitePhone('');
+      setInviteMessage(
+        data.warning === 'INVITE_CREATED_WHATSAPP_NOT_SENT'
+          ? t.advisorPortal.invite.whatsappNotSent
+          : data.warning === 'INVITE_CREATED_EMAIL_NOT_SENT'
+            ? t.advisorPortal.invite.emailNotSent
+            : data.warning === 'INVITE_CREATED_DELIVERY_NOT_SENT'
+              ? t.advisorPortal.invite.deliveryNotSent
+              : t.advisorPortal.invite.success
+      );
+    } catch {
+      setInviteMessage(t.advisorPortal.invite.error);
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  function handleExportCsv() {
+    window.location.href = '/api/advisor/clients/export';
+  }
+
   return (
     <AdvisorGate>
       <div className="mx-auto max-w-7xl space-y-6">
@@ -125,7 +194,7 @@ export function AdvisorClientsView() {
           </p>
         </header>
 
-        {role === 'ADVISOR' ? (
+        {role === 'ADVISOR' || role === 'ADVISOR_MANAGER' ? (
           <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
             <h2 className="text-lg font-semibold text-terminal-text">{t.advisorPortal.suggestTitle}</h2>
             <p className="mt-1 text-sm text-terminal-muted">{t.advisorPortal.suggestDesc}</p>
@@ -163,6 +232,69 @@ export function AdvisorClientsView() {
           </section>
         ) : null}
 
+        <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+          <h2 className="text-lg font-semibold text-terminal-text">{t.advisorPortal.invite.title}</h2>
+          <p className="mt-1 text-sm text-terminal-muted">{t.advisorPortal.invite.desc}</p>
+          <form onSubmit={(event) => void handleInvite(event)} className="mt-4 grid gap-4 md:grid-cols-2">
+            <label className="block text-sm">
+              <span className="text-terminal-muted">{t.adminTeam.email}</span>
+              <input
+                type="email"
+                required
+                value={inviteEmail}
+                onChange={(event) => setInviteEmail(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="text-terminal-muted">{t.adminTeam.name}</span>
+              <input
+                type="text"
+                value={inviteName}
+                onChange={(event) => setInviteName(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              />
+            </label>
+            <label className="block text-sm">
+              <span className="text-terminal-muted">{t.advisorPortal.invite.phone}</span>
+              <input
+                type="tel"
+                value={invitePhone}
+                onChange={(event) => setInvitePhone(event.target.value)}
+                placeholder="+54911..."
+                className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+              />
+            </label>
+            {isManager ? (
+              <label className="block text-sm md:col-span-2">
+                <span className="text-terminal-muted">{t.advisorPortal.invite.assignAdvisor}</span>
+                <select
+                  value={inviteAdvisorId}
+                  onChange={(event) => setInviteAdvisorId(event.target.value)}
+                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-terminal-text"
+                >
+                  <option value="">{t.advisorPortal.invite.assignSelf}</option>
+                  {downlineAdvisors.map((advisor) => (
+                    <option key={advisor.advisorId} value={advisor.advisorId}>
+                      {advisor.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            <div className="md:col-span-2 flex flex-wrap items-center gap-3">
+              <button
+                type="submit"
+                disabled={inviting}
+                className="rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary disabled:opacity-50"
+              >
+                {t.advisorPortal.invite.submit}
+              </button>
+              {inviteMessage ? <p className="text-sm text-terminal-muted">{inviteMessage}</p> : null}
+            </div>
+          </form>
+        </section>
+
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">
             {FILTER_OPTIONS.map((option) => (
@@ -188,6 +320,14 @@ export function AdvisorClientsView() {
           >
             <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             {t.adminTeam.refresh}
+          </button>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            className="inline-flex items-center gap-2 rounded-lg border border-terminal-border px-3 py-2 text-sm text-terminal-muted"
+          >
+            <Download size={16} />
+            {t.advisorPortal.exportCsv}
           </button>
         </div>
 

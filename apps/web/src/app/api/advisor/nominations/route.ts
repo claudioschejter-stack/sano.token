@@ -8,8 +8,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  if (ctx.advisor.role !== 'ADVISOR') {
-    return NextResponse.json({ error: 'Only advisors can suggest new advisors' }, { status: 403 });
+  if (ctx.advisor.role !== 'ADVISOR' && ctx.advisor.role !== 'ADVISOR_MANAGER') {
+    return NextResponse.json({ error: 'Only advisors or managers can suggest new advisors' }, { status: 403 });
   }
 
   try {

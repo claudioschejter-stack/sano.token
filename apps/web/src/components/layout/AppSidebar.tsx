@@ -65,13 +65,29 @@ const adminNavItems = [
 type AdvisorNavConfig = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'home' | 'panel' | 'clients' | 'marketplace' | 'secondaryMarket' | 'myWallet';
+  labelKey:
+    | 'home'
+    | 'panel'
+    | 'clients'
+    | 'commissions'
+    | 'team'
+    | 'marketplace'
+    | 'secondaryMarket'
+    | 'myWallet';
+  roles?: SystemRole[];
 };
 
 const advisorNavItems: AdvisorNavConfig[] = [
   { href: '/', icon: Home, labelKey: 'home' },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
+  { href: '/dashboard/commissions', icon: CircleDollarSign, labelKey: 'commissions' },
+  {
+    href: '/dashboard/team',
+    icon: UserCog,
+    labelKey: 'team',
+    roles: ['ADVISOR_MANAGER']
+  },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace' },
   { href: '/mercado-secundario', icon: ArrowLeftRight, labelKey: 'secondaryMarket' }
 ];
@@ -200,6 +216,14 @@ export function AppSidebar() {
     return item.roles.includes(role);
   });
 
+  const visibleAdvisorItems = advisorNavItems.filter((item) => {
+    if (!item.roles || !role) {
+      return true;
+    }
+
+    return item.roles.includes(role);
+  });
+
   async function handleSignOut() {
     window.localStorage.removeItem('sanova.jwt');
     resetMobileLocaleOnSignOut();
@@ -245,7 +269,7 @@ export function AppSidebar() {
         : t.nav[item.labelKey as Exclude<InvestorNavConfig['labelKey'], 'panel'>]
   }));
 
-  const advisorItems: NavItem[] = advisorNavItems.map((item) => ({
+  const advisorItems: NavItem[] = visibleAdvisorItems.map((item) => ({
     href: item.href,
     icon: item.icon,
     label:
@@ -253,13 +277,17 @@ export function AppSidebar() {
         ? t.nav.home
         : item.labelKey === 'clients'
           ? t.advisorPortal.navClients
-          : item.labelKey === 'marketplace'
-            ? t.nav.marketplace
-            : item.labelKey === 'secondaryMarket'
-              ? t.nav.secondaryMarket
-              : item.labelKey === 'myWallet'
-                ? t.nav.myWallet
-                : t.adminNav.panel
+          : item.labelKey === 'commissions'
+            ? t.advisorPortal.navCommissions
+            : item.labelKey === 'team'
+              ? t.advisorPortal.navTeam
+              : item.labelKey === 'marketplace'
+                ? t.nav.marketplace
+                : item.labelKey === 'secondaryMarket'
+                  ? t.nav.secondaryMarket
+                  : item.labelKey === 'myWallet'
+                    ? t.nav.myWallet
+                    : t.adminNav.panel
   }));
 
   const primaryNavItems = isAdmin ? adminItems : isAdvisorStaff ? advisorItems : investorItems;

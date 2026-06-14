@@ -18,6 +18,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       email?: string;
       name?: string;
+      phone?: string;
       role?: 'ADVISOR' | 'ADVISOR_MANAGER';
       uplineAdvisorId?: string | null;
     };
@@ -29,14 +30,29 @@ export async function POST(request: Request) {
     const invite = await inviteTeamMember({
       email: body.email,
       name: body.name,
+      phone: body.phone,
       role: body.role,
       uplineAdvisorId: body.uplineAdvisorId,
       invitedByUserId: adminUserId
     });
 
+    if (!invite.emailSent && !invite.whatsappSent) {
+      return NextResponse.json(
+        { invite, warning: 'INVITE_CREATED_DELIVERY_NOT_SENT' },
+        { status: 201 }
+      );
+    }
+
     if (!invite.emailSent) {
       return NextResponse.json(
         { invite, warning: 'INVITE_CREATED_EMAIL_NOT_SENT' },
+        { status: 201 }
+      );
+    }
+
+    if (body.phone?.trim() && !invite.whatsappSent) {
+      return NextResponse.json(
+        { invite, warning: 'INVITE_CREATED_WHATSAPP_NOT_SENT' },
         { status: 201 }
       );
     }

@@ -219,4 +219,21 @@ export class InvestorService {
     };
   }
 
+  async getPortfolioForAuthenticatedUser(userId: string, wallet: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        walletAddress: true,
+        investor: { select: { walletAddress: true } }
+      }
+    });
+
+    const linkedWallet = user?.investor?.walletAddress ?? user?.walletAddress;
+    if (!linkedWallet || linkedWallet.toLowerCase() !== wallet.trim().toLowerCase()) {
+      throw new NotFoundException('Portfolio not available for this wallet.');
+    }
+
+    return this.getPortfolioByWallet(wallet);
+  }
+
 }

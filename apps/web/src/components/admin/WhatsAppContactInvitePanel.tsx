@@ -96,11 +96,13 @@ export function WhatsAppContactInvitePanel({
           ? {
               email,
               name: row.name || undefined,
+              phone: row.tel?.trim() || undefined,
               incorporatedByAdvisorId: advisorId || null
             }
           : {
               email,
               name: row.name || undefined,
+              phone: row.tel?.trim() || undefined,
               role: teamRole,
               uplineAdvisorId: teamRole === 'ADVISOR' ? teamUplineId : null
             };
@@ -113,7 +115,7 @@ export function WhatsAppContactInvitePanel({
 
       const data = (await response.json()) as {
         error?: string;
-        invite?: { whatsappMessage?: string };
+        invite?: { whatsappMessage?: string; whatsappSent?: boolean };
         whatsappMessage?: string;
       };
 
@@ -122,9 +124,17 @@ export function WhatsAppContactInvitePanel({
       }
 
       const message = data.invite?.whatsappMessage ?? data.whatsappMessage ?? '';
+      const whatsappSent = Boolean(data.invite?.whatsappSent);
       setRows((current) =>
         current.map((item, i) =>
-          i === index ? { ...item, status: 'created', message, error: undefined } : item
+          i === index
+            ? {
+                ...item,
+                status: whatsappSent ? 'whatsapp_sent' : 'created',
+                message,
+                error: undefined
+              }
+            : item
         )
       );
       onInviteCreated?.();
@@ -268,13 +278,17 @@ export function WhatsAppContactInvitePanel({
                   <td className="py-2">
                     <div className="flex flex-wrap gap-2">
                       {row.status === 'created' || row.status === 'whatsapp_sent' ? (
-                        <button
-                          type="button"
-                          onClick={() => sendWhatsApp(index)}
-                          className="rounded border border-terminal-success/40 px-2 py-1 font-semibold text-terminal-success"
-                        >
-                          {labels.sendWhatsApp}
-                        </button>
+                        row.status === 'whatsapp_sent' ? (
+                          <span className="text-terminal-success">{labels.sentAuto}</span>
+                        ) : row.tel?.trim() ? (
+                          <button
+                            type="button"
+                            onClick={() => sendWhatsApp(index)}
+                            className="rounded border border-terminal-success/40 px-2 py-1 font-semibold text-terminal-success"
+                          >
+                            {labels.sendWhatsApp}
+                          </button>
+                        ) : null
                       ) : (
                         <button
                           type="button"
@@ -286,8 +300,14 @@ export function WhatsAppContactInvitePanel({
                         </button>
                       )}
                       {row.error ? <span className="text-red-400">{row.error}</span> : null}
-                      {row.status === 'whatsapp_sent' ? (
-                        <span className="text-terminal-success">{labels.sent}</span>
+                      {row.status === 'whatsapp_sent' && row.tel?.trim() ? (
+                        <button
+                          type="button"
+                          onClick={() => sendWhatsApp(index)}
+                          className="rounded border border-terminal-border px-2 py-1 text-terminal-muted"
+                        >
+                          {labels.sendWhatsApp}
+                        </button>
                       ) : null}
                     </div>
                   </td>

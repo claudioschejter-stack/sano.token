@@ -6,12 +6,16 @@ const ADMIN_ROUTE_PREFIXES = [
   '/dashboard/assets',
   '/dashboard/loans',
   '/dashboard/treasury',
-  '/dashboard/team',
-  '/dashboard/commissions',
   '/dashboard/settings'
 ] as const;
 
-const ADVISOR_ROUTE_PREFIXES = ['/dashboard/clients'] as const;
+const ADMIN_ONLY_ROUTE_PREFIXES = [] as const;
+
+const ADVISOR_STAFF_ROUTE_PREFIXES = ['/dashboard/clients'] as const;
+
+const ADVISOR_COMMISSIONS_PREFIX = '/dashboard/commissions';
+
+const MANAGER_TEAM_PREFIX = '/dashboard/team';
 
 const INVESTOR_ROUTE_PREFIXES = ['/dashboard/portfolio'] as const;
 
@@ -31,7 +35,19 @@ export function getRequiredRolesForPath(pathname: string): SystemRole[] | null {
     return ['ADMIN'];
   }
 
-  if (matchesAnyPrefix(pathname, ADVISOR_ROUTE_PREFIXES)) {
+  if (matchesAnyPrefix(pathname, ADMIN_ONLY_ROUTE_PREFIXES)) {
+    return ['ADMIN'];
+  }
+
+  if (matchesPrefix(pathname, MANAGER_TEAM_PREFIX)) {
+    return ['ADMIN', 'ADVISOR_MANAGER'];
+  }
+
+  if (matchesPrefix(pathname, ADVISOR_COMMISSIONS_PREFIX)) {
+    return ['ADMIN', 'ADVISOR', 'ADVISOR_MANAGER'];
+  }
+
+  if (matchesAnyPrefix(pathname, ADVISOR_STAFF_ROUTE_PREFIXES)) {
     return ['ADVISOR', 'ADVISOR_MANAGER'];
   }
 
