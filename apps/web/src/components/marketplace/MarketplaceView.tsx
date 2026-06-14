@@ -9,6 +9,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
 import type { SystemRole } from '../../lib/auth/roles';
+import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import { LEGAL_CONTACT_PATH } from '../../lib/legal/legalConfig';
 import { splitMarketplaceListings } from '../../lib/marketplace/splitMarketplaceListings';
@@ -102,7 +103,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
   );
 
   useEffect(() => {
-    if (role !== 'INVESTOR' || !checklist?.operational) {
+    if (!isMarketplaceTradingRole(role) || !checklist?.operational) {
       setHoldings([]);
       return;
     }
@@ -125,7 +126,7 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
       router.push(`/acceso?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/agregar`)}`);
       return;
     }
-    if (role === 'INVESTOR' && !checklist?.operational) {
+    if (isMarketplaceTradingRole(role) && !checklist?.operational) {
       router.push(`/kyc?returnTo=${encodeURIComponent(`/marketplace/${listing.id}/agregar`)}`);
       return;
     }

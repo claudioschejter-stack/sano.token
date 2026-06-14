@@ -45,7 +45,12 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     }
   });
 
-  if (!user || user.kycStatus !== 'APPROVED' || user.systemRole !== 'INVESTOR') {
+  if (!user || user.kycStatus !== 'APPROVED') {
+    return null;
+  }
+
+  const tradingRoles = new Set(['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER']);
+  if (!tradingRoles.has(user.systemRole)) {
     return null;
   }
 
@@ -64,7 +69,9 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
       update: {}
     });
 
-    await applyInvestorInviteAdvisorForUser(user.id, user.email);
+    if (user.systemRole === 'INVESTOR') {
+      await applyInvestorInviteAdvisorForUser(user.id, user.email);
+    }
 
     return user.investorId;
   }
@@ -91,7 +98,9 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     data: { investorId: investor.id }
   });
 
-  await applyInvestorInviteAdvisorForUser(user.id, user.email);
+  if (user.systemRole === 'INVESTOR') {
+    await applyInvestorInviteAdvisorForUser(user.id, user.email);
+  }
 
   await prisma.portfolio.upsert({
     where: { userId: user.id },

@@ -6,8 +6,8 @@ import {
   assertOperationalInvestor,
   getUserPurchaseContext
 } from '../investor/investorService';
-const INVESTOR_API_ROLES = new Set(['INVESTOR', 'TREASURY']);
-const MORPHO_BORROW_API_ROLES = new Set(['INVESTOR']);
+const INVESTOR_API_ROLES = new Set(['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER', 'TREASURY']);
+const MORPHO_BORROW_API_ROLES = new Set(['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER']);
 
 export type InvestorSessionContext = {
   userId: string;

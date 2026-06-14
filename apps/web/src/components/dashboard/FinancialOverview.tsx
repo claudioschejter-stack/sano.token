@@ -32,6 +32,7 @@ import {
 } from 'recharts';
 
 import { useSession } from 'next-auth/react';
+import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
 import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
 import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
@@ -44,7 +45,7 @@ export function FinancialOverview() {
   const t = useTranslation();
   const d = t.dashboard;
   const { data: session } = useSession();
-  const canRequestMorphoLoan = session?.user?.role === 'INVESTOR';
+  const canRequestMorphoLoan = isMarketplaceTradingRole(session?.user?.role);
   const { intlLocale } = useLocale();
   const { formatUsd: formatUsdc, formatPercent, formatDateTime, formatMonthLabel } = useMemo(
     () => createIntlFormatters(intlLocale),

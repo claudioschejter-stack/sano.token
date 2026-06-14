@@ -50,3 +50,14 @@ export function isStaffRole(role: SystemRole): boolean {
 export function isCorePlatformRole(role: SystemRole): role is CorePlatformRole {
   return (CORE_PLATFORM_ROLES as readonly SystemRole[]).includes(role);
 }
+
+/** Roles that can purchase tokens and request Morpho loans on the marketplace. */
+export const MARKETPLACE_TRADING_ROLES: readonly SystemRole[] = [
+  'INVESTOR',
+  'ADVISOR',
+  'ADVISOR_MANAGER'
+];
+
+export function isMarketplaceTradingRole(role: SystemRole | undefined): boolean {
+  return Boolean(role && MARKETPLACE_TRADING_ROLES.includes(role));
+}

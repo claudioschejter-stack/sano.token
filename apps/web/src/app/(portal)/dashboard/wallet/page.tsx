@@ -10,7 +10,7 @@ export default async function WalletPage({ searchParams }: WalletPageProps) {
   const session = await auth();
   const role = session?.user?.role;
 
-  if (role === 'INVESTOR') {
+  if (role === 'INVESTOR' || role === 'ADVISOR' || role === 'ADVISOR_MANAGER') {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(searchParams ?? {})) {
       if (typeof value === 'string') {
@@ -24,10 +24,6 @@ export default async function WalletPage({ searchParams }: WalletPageProps) {
 
     const query = params.toString();
     redirect(query ? `/dashboard/portfolio?${query}` : '/dashboard/portfolio');
-  }
-
-  if (role === 'ADVISOR' || role === 'ADVISOR_MANAGER') {
-    redirect('/dashboard');
   }
 
   return <PlatformWalletView />;

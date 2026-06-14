@@ -34,6 +34,12 @@ const investorItems: PortalMobileNavItem[] = [
 const advisorItems: PortalMobileNavItem[] = [
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
+  {
+    href: '/dashboard/portfolio',
+    icon: Building2,
+    labelKey: 'myAssets',
+    matchPrefixes: ['/dashboard/portfolio']
+  },
   { href: '/marketplace', icon: ShoppingBag, labelKey: 'marketplace', matchPrefixes: ['/marketplace'] }
 ];
 

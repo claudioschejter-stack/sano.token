@@ -36,9 +36,9 @@ export function getMarketplaceCapabilities(role: SystemRole | undefined): Market
         showAdminToolbar: true
       });
     case 'ADVISOR':
-      return tradingCapabilities('advisor', { showPurchaseActions: false });
+      return tradingCapabilities('advisor', { showBorrowRates: true });
     case 'ADVISOR_MANAGER':
-      return tradingCapabilities('advisorManager', { showPurchaseActions: false });
+      return tradingCapabilities('advisorManager', { showBorrowRates: true });
     case 'INVESTOR':
       return tradingCapabilities('investor');
     case 'TREASURY':

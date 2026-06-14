@@ -1,7 +1,7 @@
 import type { AccountStatus, KycStatus } from '@sanova/database';
 import { isPendingInvestorWallet } from '../investor/provisionInvestorProfile';
 import type { SystemRole } from '../auth/roles';
-import { isStaffRole } from '../auth/roles';
+import { isMarketplaceTradingRole, isStaffRole } from '../auth/roles';
 import { allowDemoKyc } from '../runtime/environment';
 
 export type OnboardingChecklist = {
@@ -52,14 +52,14 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
-  if (user.systemRole === 'INVESTOR') {
+  if (isMarketplaceTradingRole(user.systemRole as SystemRole)) {
     return identityVerified && Boolean(resolveLinkedWallet(user.walletAddress));
   }
 
   return identityVerified;
 }
 
-/** KYC + contact + wallet (investors) — required before marketplace checkout. */
+/** KYC + contact + wallet (investors and advisors) — required before marketplace checkout. */
 export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolean {
   const identityReady =
     Boolean(user.emailVerifiedAt) &&
@@ -71,12 +71,12 @@ export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolea
     return false;
   }
 
-  if (user.systemRole && isStaffRole(user.systemRole as SystemRole) && user.systemRole !== 'INVESTOR') {
-    return false;
+  if (isMarketplaceTradingRole(user.systemRole as SystemRole)) {
+    return Boolean(resolveLinkedWallet(user.walletAddress));
   }
 
-  if (user.systemRole === 'INVESTOR') {
-    return Boolean(resolveLinkedWallet(user.walletAddress));
+  if (user.systemRole && isStaffRole(user.systemRole as SystemRole)) {
+    return false;
   }
 
   return true;

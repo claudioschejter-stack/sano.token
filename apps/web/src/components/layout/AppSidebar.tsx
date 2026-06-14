@@ -71,6 +71,7 @@ type AdvisorNavConfig = {
     | 'clients'
     | 'commissions'
     | 'team'
+    | 'myAssets'
     | 'marketplace'
     | 'secondaryMarket'
     | 'myWallet';
@@ -81,6 +82,7 @@ const advisorNavItems: AdvisorNavConfig[] = [
   { href: '/', icon: Home, labelKey: 'home' },
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
+  { href: '/dashboard/portfolio', icon: Building2, labelKey: 'myAssets' },
   { href: '/dashboard/commissions', icon: CircleDollarSign, labelKey: 'commissions' },
   {
     href: '/dashboard/team',
@@ -277,7 +279,9 @@ export function AppSidebar() {
         ? t.nav.home
         : item.labelKey === 'clients'
           ? t.advisorPortal.navClients
-          : item.labelKey === 'commissions'
+          : item.labelKey === 'myAssets'
+            ? t.nav.myAssets
+            : item.labelKey === 'commissions'
             ? t.advisorPortal.navCommissions
             : item.labelKey === 'team'
               ? t.advisorPortal.navTeam

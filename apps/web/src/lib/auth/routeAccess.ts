@@ -56,7 +56,7 @@ export function getRequiredRolesForPath(pathname: string): SystemRole[] | null {
   }
 
   if (matchesAnyPrefix(pathname, INVESTOR_ROUTE_PREFIXES)) {
-    return ['INVESTOR'];
+    return ['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER'];
   }
 
   return null;

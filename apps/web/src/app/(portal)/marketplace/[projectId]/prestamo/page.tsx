@@ -1,11 +1,10 @@
 import { redirect } from 'next/navigation';
 import { auth } from '../../../../../auth';
+import { isMarketplaceTradingRole } from '../../../../../lib/auth/roles';
 import { ProjectBorrowView } from '../../../../../components/marketplace/ProjectBorrowView';
 import { getLinkedWalletForUser } from '../../../../../lib/investor/linkedWalletPolicy';
 import { assertOperationalInvestor, getUserPurchaseContext } from '../../../../../lib/investor/investorService';
 import { collectionWalletHref } from '../../../../../lib/navigation/collectionWalletPath';
-
-const MORPHO_BORROW_PAGE_ROLES = new Set(['INVESTOR']);
 
 type ProjectBorrowPageProps = {
   params: { projectId: string };
@@ -20,7 +19,7 @@ export default async function MarketplaceProjectBorrowPage({ params }: ProjectBo
   }
 
   const role = session.user.role;
-  if (!role || !MORPHO_BORROW_PAGE_ROLES.has(role)) {
+  if (!isMarketplaceTradingRole(role)) {
     redirect('/marketplace');
   }
 

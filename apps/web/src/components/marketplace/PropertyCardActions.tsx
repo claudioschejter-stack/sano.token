@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { SystemRole } from '../../lib/auth/roles';
+import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 import { PropertyActionButton } from './PropertyActionButton';
 
 export type PropertyCardActionsProps = {
@@ -29,7 +30,7 @@ export function PropertyCardActions({
   const t = useTranslation();
   const isSoldOut = availableTokens <= 0;
   const isVerified = kycStatus === 'APPROVED';
-  const canRequestLoan = readyToBorrow && role === 'INVESTOR' && isVerified;
+  const canRequestLoan = readyToBorrow && isMarketplaceTradingRole(role) && isVerified;
   const canPurchase = !isSoldOut && purchaseEnabled;
 
   const handlePrimaryAction = () => {

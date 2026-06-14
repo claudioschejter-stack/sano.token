@@ -1,6 +1,7 @@
 import { prisma } from '@sanova/database';
-import { isAccountOperational } from './accountStatus';
 import { assertInvestorAccessEnabled } from '../auth/investorAccess';
+import { isMarketplaceTradingRole, type SystemRole } from '../auth/roles';
+import { isAccountOperational } from './accountStatus';
 import { requireAuthenticatedSession } from './requireAuthenticatedSession';
 
 export async function requireOperationalSession() {
@@ -46,7 +47,7 @@ export async function requireInvestorOperationalSession() {
     return ctx;
   }
 
-  if (ctx.user.systemRole !== 'INVESTOR') {
+  if (!isMarketplaceTradingRole(ctx.user.systemRole as SystemRole)) {
     return { investorRequired: true as const, userId: ctx.userId, session: ctx.session };
   }
 
