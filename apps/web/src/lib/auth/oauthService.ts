@@ -37,6 +37,11 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
     : resolveRoleForEmail(email);
 
   const investorAccessForOAuth = await resolveInvestorAccessForOAuth(email);
+
+  if (!existingUser && role === 'INVESTOR' && !investorAccessForOAuth) {
+    throw new Error('INVESTOR_ACCESS_NOT_ENABLED');
+  }
+
   const hadValidInvestorInvite = await hasValidInvestorInviteForEmail(email);
 
   const user = await prisma.user.upsert({

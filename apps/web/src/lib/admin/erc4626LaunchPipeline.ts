@@ -4,7 +4,7 @@ import {
   updateAdminAsset,
   type AdminAssetRecord
 } from './assetsService';
-import { enqueueAutomationJob, processAutomationJobs } from './automationJobs';
+import { enqueueAutomationJob, processAutomationJobs, isAutomationJobTableAvailable } from './automationJobs';
 import {
   getErc4626OnChainIssues,
   isErc4626OnChainReady,
@@ -25,7 +25,12 @@ export function shouldUseAsyncErc4626Deploy(): boolean {
 export async function enqueueErc4626DeployPipeline(
   projectId: string,
   options: { requestedPublish: boolean }
-): Promise<{ jobIds: string[]; async: true }> {
+): Promise<{
+  jobIds: string[];
+  async: true;
+  tableAvailable: boolean;
+  warning?: 'AUTOMATION_JOB_TABLE_MISSING';
+}> {
   await updateAdminAsset(projectId, { tokenDeployStatus: 'PENDING' });
   await appendDeploymentEvent(projectId, {
     step: 'TOKEN_DEPLOY',
@@ -46,13 +51,25 @@ export async function enqueueErc4626DeployPipeline(
     payload
   });
 
+  const tableAvailable = isAutomationJobTableAvailable();
   const jobIds = tokenJob?.id ? [tokenJob.id] : [];
+
+  if (!tableAvailable || !tokenJob?.id) {
+    await appendDeploymentEvent(projectId, {
+      step: 'TOKEN_DEPLOY',
+      status: 'FAILED',
+      message:
+        'No se encoló el deploy: la tabla AutomationJob no está disponible. Aplicá el schema Prisma y redeployá.',
+      externalId: 'AUTOMATION_JOB_TABLE_MISSING'
+    });
+    return { jobIds: [], async: true, tableAvailable: false, warning: 'AUTOMATION_JOB_TABLE_MISSING' };
+  }
 
   void processAutomationJobs(3).catch((error) => {
     console.warn('[erc4626LaunchPipeline] background job kick failed:', error);
   });
 
-  return { jobIds, async: true };
+  return { jobIds, async: true, tableAvailable: true };
 }
 
 function collateralProtocolsNeedingRegistration(
@@ -166,11 +183,5 @@ export async function chainErc4626PipelineAfterTokenDeploy(
     step: 'EXPLORER_VERIFY',
     payload: { pipeline: ERC4626_LAUNCH_PIPELINE, requestedPublish },
     runAfter: new Date(now.getTime() + 5_000)
-  });
-  await enqueueAutomationJob({
-    projectId,
-    step: 'LAUNCH_FINALIZE',
-    payload: { pipeline: ERC4626_LAUNCH_PIPELINE, requestedPublish },
-    runAfter: new Date(now.getTime() + 10_000)
   });
 }

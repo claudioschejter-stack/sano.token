@@ -32,5 +32,13 @@ export default function DashboardPage() {
     return <FinancialOverview />;
   }
 
-  return <FinancialOverview />;
+  if (role === 'TREASURY' || role === 'OPERATOR') {
+    return <FinancialOverview />;
+  }
+
+  return (
+    <div className="mx-auto max-w-lg rounded-xl border border-terminal-border bg-terminal-card p-8 text-center text-terminal-muted">
+      Panel no disponible para este rol.
+    </div>
+  );
 }

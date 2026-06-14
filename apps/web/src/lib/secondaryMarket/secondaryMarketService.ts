@@ -1,7 +1,7 @@
 import { prisma, Prisma } from '@sanova/database';
 import { listMarketplaceListings } from '../admin/assetsService';
 import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
-import { creditPlatformWallet } from '../payments/platformWalletService';
+import { creditPlatformWallet, debitPlatformWalletForPurchase } from '../payments/platformWalletService';
 import type {
   SecondaryMarketFeed,
   SecondaryMarketHolding,
@@ -107,7 +107,7 @@ export async function getSecondaryMarketFeed(viewerUserId?: string): Promise<Sec
       id: order.id,
       projectId: order.projectId,
       sellerUserId: order.sellerUserId,
-      sellerName: order.sellerUser.kycFullName ?? order.sellerUser.name ?? order.sellerUser.email,
+      sellerName: order.sellerUser.kycFullName ?? order.sellerUser.name ?? 'Inversor',
       tokenCount: order.tokenCount,
       pricePerTokenUsd,
       totalUsd: pricePerTokenUsd * order.tokenCount,
@@ -164,6 +164,13 @@ export async function createSecondaryListing(input: {
   if (!Number.isFinite(input.pricePerTokenUsd) || input.pricePerTokenUsd <= 0) {
     throw new Error('INVALID_PRICE');
   }
+
+  const sellerContext = await getUserPurchaseContext(input.userId);
+  if (!sellerContext) {
+    throw new Error('USER_NOT_FOUND');
+  }
+
+  assertInvestorCheckoutEligible(sellerContext);
 
   const holdings = await getSecondaryMarketHoldings(input.userId);
   const holding = holdings.find((row) => row.projectId === input.projectId);
@@ -238,24 +245,51 @@ export async function buySecondaryListing(input: { buyerUserId: string; listingI
     throw new Error('BUYER_NOT_FOUND');
   }
 
+  assertInvestorCheckoutEligible(buyerContext);
+
+  const sellerContext = await getUserPurchaseContext(listing.sellerUserId);
+  if (!sellerContext?.investorId) {
+    throw new Error('SELLER_HAS_NO_INVESTOR');
+  }
+
   const buyerWallet =
     buyerContext.walletAddress?.trim() ||
     `secondary-buyer-${input.buyerUserId.slice(0, 8)}`;
 
   const buyerInvestorId = await ensureInvestorForUser(buyerContext, buyerWallet);
 
-  const seller = await prisma.user.findUniqueOrThrow({
-    where: { id: listing.sellerUserId },
-    select: { investorId: true }
-  });
-
-  if (!seller.investorId) {
-    throw new Error('SELLER_HAS_NO_INVESTOR');
-  }
-
   const pricePerTokenUsd = listing.pricePerTokenUsd.toNumber();
   const totalUsd = pricePerTokenUsd * listing.tokenCount;
   const txHash = `secondary-${Date.now().toString(36)}-${listing.id}`;
+  const idempotencyKey = `secondary-p2p:${listing.id}:${input.buyerUserId}`;
+
+  await debitPlatformWalletForPurchase({
+    userId: input.buyerUserId,
+    investorId: buyerInvestorId,
+    amountUsd: totalUsd,
+    idempotencyKey,
+    metadata: {
+      source: 'SECONDARY_P2P_BUY',
+      listingId: listing.id,
+      projectId: listing.projectId,
+      tokenCount: listing.tokenCount,
+      sellerUserId: listing.sellerUserId
+    }
+  });
+
+  await creditPlatformWallet({
+    userId: listing.sellerUserId,
+    investorId: sellerContext.investorId,
+    amountUsd: totalUsd,
+    idempotencyKey: `${idempotencyKey}:seller`,
+    metadata: {
+      source: 'SECONDARY_P2P_SELL',
+      listingId: listing.id,
+      projectId: listing.projectId,
+      tokenCount: listing.tokenCount,
+      buyerUserId: input.buyerUserId
+    }
+  });
 
   await prisma.$transaction(async (tx) => {
     const current = await tx.secondaryMarketListing.findUniqueOrThrow({
@@ -268,7 +302,7 @@ export async function buySecondaryListing(input: { buyerUserId: string; listingI
 
     const sellerInvestment = await tx.investment.findFirst({
       where: {
-        investorId: seller.investorId!,
+        investorId: sellerContext.investorId,
         projectId: current.projectId,
         status: 'ACTIVE'
       },

@@ -389,12 +389,18 @@ export function AdminAssetsView() {
         issues?: LaunchGateIssue[];
         async?: boolean;
         jobIds?: string[];
+        warning?: string;
+        automationTableMissing?: boolean;
       };
 
       if (response.status === 202 && data.async) {
         await loadAssets(filter);
         setEditingId(null);
-        setSaveError(t.adminAssets.asyncDeployQueued);
+        setSaveError(
+          data.warning === 'AUTOMATION_JOB_TABLE_MISSING' || data.automationTableMissing
+            ? t.adminAssets.asyncDeployAutomationTableMissing
+            : t.adminAssets.asyncDeployQueued
+        );
         return;
       }
 

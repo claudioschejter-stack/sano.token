@@ -47,6 +47,46 @@ function jobDelegate(): AutomationJobDelegate | null {
   return (prisma as unknown as { automationJob?: AutomationJobDelegate }).automationJob ?? null;
 }
 
+export function isAutomationJobTableAvailable(): boolean {
+  return jobDelegate() !== null;
+}
+
+async function enqueueLaunchFinalizeIfNeeded(
+  projectId: string,
+  payload: Record<string, unknown> | null | undefined
+): Promise<void> {
+  if (payload?.pipeline !== 'ERC4626_LAUNCH') {
+    return;
+  }
+
+  const delegate = jobDelegate();
+  if (!delegate) {
+    return;
+  }
+
+  const duplicate = await delegate.findMany({
+    where: {
+      projectId,
+      step: 'LAUNCH_FINALIZE',
+      status: { in: ['QUEUED', 'RETRY', 'RUNNING'] }
+    },
+    take: 1
+  });
+
+  if (duplicate.length > 0) {
+    return;
+  }
+
+  await enqueueAutomationJob({
+    projectId,
+    step: 'LAUNCH_FINALIZE',
+    payload: {
+      pipeline: 'ERC4626_LAUNCH',
+      requestedPublish: Boolean(payload?.requestedPublish)
+    }
+  });
+}
+
 function jobStepToEventStep(step: AutomationJobStep): DeploymentEvent['step'] {
   if (step === 'SYNTHETIC_RWA_FLOW') return 'SYNTHETIC_RWA_FLOW';
   if (step === 'YIELD_CONVERT_BATCH') return 'YIELD_CONVERT';
@@ -395,6 +435,12 @@ export async function processAutomationJobs(limit = 5) {
         const { chainErc4626PipelineAfterTokenDeploy } = await import('./erc4626LaunchPipeline');
         await chainErc4626PipelineAfterTokenDeploy(job.projectId, job.payload).catch((error) => {
           console.warn('[automationJobs] pipeline chain failed:', error);
+        });
+      }
+
+      if (job.step === 'COLLATERAL_REGISTER' && job.projectId) {
+        await enqueueLaunchFinalizeIfNeeded(job.projectId, job.payload).catch((error) => {
+          console.warn('[automationJobs] launch finalize enqueue failed:', error);
         });
       }
 

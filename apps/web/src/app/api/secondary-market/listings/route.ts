@@ -13,8 +13,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'KYC_REQUIRED' }, { status: 403 });
   }
 
-  if ('investorRequired' in ctx) {
-    return NextResponse.json({ error: 'INVESTOR_REQUIRED' }, { status: 403 });
+  if ('investorRequired' in ctx || 'investorAccessDisabled' in ctx) {
+    return NextResponse.json({ error: 'INVESTOR_ACCESS_NOT_ENABLED' }, { status: 403 });
   }
 
   try {

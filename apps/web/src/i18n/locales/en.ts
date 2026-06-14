@@ -401,6 +401,8 @@ export const en = {
     deleteBlockedInvestments: "Cannot delete an asset with active investments.",
     deleteBlockedPublished: "Unpublish the asset before deleting it.",
     asyncDeployQueued: "Deploy queued in background. Refresh in a few minutes.",
+    asyncDeployAutomationTableMissing:
+      "AutomationJob table is missing in the database — background deploy was not queued. Run Prisma migrations or create the table, then retry deploy from Loans.",
     sectionDebt: "Debt properties",
     sectionEquity: "Equity properties",
     emptyDebt: "No debt properties match this filter.",
@@ -529,6 +531,8 @@ export const en = {
     investorBorrowOnlyTitle: "Morpho loans: investors only",
     investorBorrowOnlyDesc:
       "KYC-approved investors request loans from the marketplace (Request loan). Vault shares are delivered to their linked Coinbase when buying with USDC on Base. From admin you only configure emission, vault and Morpho readiness.",
+    automationJobTableMissing:
+      "AutomationJob table is missing — async pipeline jobs cannot be queued. Apply database migrations and retry.",
     allowlist: {
       title: "KYC allowlist on-chain",
       description:
@@ -830,6 +834,43 @@ export const en = {
       ONBOARDING: "Onboarding",
       SUSPENDED: "Suspended"
     }
+  },
+  adminOperations: {
+    eyebrow: "Operations",
+    title: "Platform readiness & repair",
+    desc: "Audit treasury, Morpho, liquidity and Base ERC-4626 projects. Repair treasury and collateral in bulk.",
+    refresh: "Refresh audit",
+    loading: "Loading audit…",
+    error: "Could not load operations report.",
+    platformReady: "Platform ready",
+    projectsReady: "Projects ready",
+    projectsNeedingRepair: "Projects needing repair",
+    yes: "Yes",
+    no: "No",
+    dryRun: "Simulate repair",
+    repairAll: "Repair pending projects",
+    repairing: "Repairing…",
+    dryRunResult: "Simulation: {count} project(s) would be repaired.",
+    repairResult: "Repair completed: {ok}/{total} projects OK.",
+    repairError: "Could not run platform repair."
+  },
+  adminInvites: {
+    pendingTitle: "Pending invitations",
+    pendingDesc: "Cancel or resend invitations that have not been accepted yet.",
+    loading: "Loading invitations…",
+    empty: "No pending invitations.",
+    colEmail: "Email",
+    colName: "Name",
+    colRole: "Role",
+    colInvitedBy: "Invited by",
+    colExpires: "Expires",
+    colActions: "Actions",
+    resend: "Resend",
+    cancel: "Cancel",
+    cancelSuccess: "Invitation cancelled.",
+    resendSuccess: "Invitation resent by email.",
+    resendEmailNotSent: "Invitation updated but email was not sent (check RESEND_API_KEY).",
+    actionError: "Could not complete the action."
   },
   managerPortal: {
     eyebrow: "Manager panel",

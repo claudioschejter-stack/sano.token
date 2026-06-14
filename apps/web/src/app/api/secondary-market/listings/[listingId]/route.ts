@@ -19,8 +19,8 @@ export async function POST(
     return NextResponse.json({ error: 'KYC_REQUIRED' }, { status: 403 });
   }
 
-  if ('investorRequired' in ctx) {
-    return NextResponse.json({ error: 'INVESTOR_REQUIRED' }, { status: 403 });
+  if ('investorRequired' in ctx || 'investorAccessDisabled' in ctx) {
+    return NextResponse.json({ error: 'INVESTOR_ACCESS_NOT_ENABLED' }, { status: 403 });
   }
 
   const { listingId } = await context.params;
@@ -38,7 +38,12 @@ export async function POST(
       message === 'LISTING_NOT_FOUND' ||
       message === 'LISTING_NOT_AVAILABLE' ||
       message === 'CANNOT_BUY_OWN_LISTING' ||
-      message === 'INSUFFICIENT_SELLER_TOKENS'
+      message === 'INSUFFICIENT_SELLER_TOKENS' ||
+      message === 'INSUFFICIENT_PLATFORM_BALANCE' ||
+      message === 'INVESTOR_ACCESS_NOT_ENABLED' ||
+      message === 'INVESTOR_WALLET_REQUIRED' ||
+      message === 'ACCOUNT_NOT_OPERATIONAL' ||
+      message === 'KYC_NOT_APPROVED'
         ? 400
         : 500;
 
@@ -61,8 +66,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'KYC_REQUIRED' }, { status: 403 });
   }
 
-  if ('investorRequired' in ctx) {
-    return NextResponse.json({ error: 'INVESTOR_REQUIRED' }, { status: 403 });
+  if ('investorRequired' in ctx || 'investorAccessDisabled' in ctx) {
+    return NextResponse.json({ error: 'INVESTOR_ACCESS_NOT_ENABLED' }, { status: 403 });
   }
 
   const { listingId } = await context.params;

@@ -43,7 +43,7 @@ export function getMarketplaceCapabilities(role: SystemRole | undefined): Market
       return tradingCapabilities('investor');
     case 'TREASURY':
     case 'OPERATOR':
-      return tradingCapabilities('default');
+      return tradingCapabilities('default', { showPurchaseActions: false });
     default:
       return tradingCapabilities('default');
   }

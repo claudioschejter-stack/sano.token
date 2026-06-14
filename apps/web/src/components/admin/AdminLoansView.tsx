@@ -9,6 +9,8 @@ import type { AdminAssetRecord } from '../../lib/admin/assetsService';
 import { isMorphoBorrowReadyAsset } from '../../lib/admin/assetsService';
 import { AdminGate } from './AdminGate';
 import { AdminKycAllowlistSection } from './AdminKycAllowlistSection';
+import { AdminLoansBorrowSection } from './AdminLoansBorrowSection';
+import { AdminOperationsPanel } from './AdminOperationsPanel';
 
 type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MORPHO_READY';
 
@@ -71,6 +73,18 @@ export function AdminLoansView() {
     }
     return assets;
   }, [assets, filter]);
+
+  const borrowReadyProjects = useMemo(
+    () =>
+      assets
+        .filter((asset) => isMorphoBorrowReadyAsset(asset) && asset.vaultAddress)
+        .map((asset) => ({
+          id: asset.id,
+          vaultAddress: asset.vaultAddress!,
+          title: asset.title
+        })),
+    [assets]
+  );
 
   const loadAssets = useCallback(async (nextFilter: AssetFilter) => {
     setLoading(true);
@@ -294,6 +308,10 @@ export function AdminLoansView() {
           <p className="mt-2 text-sm text-terminal-muted">{t.adminLoans.investorBorrowOnlyDesc}</p>
         </section>
 
+        <AdminLoansBorrowSection borrowReadyProjects={borrowReadyProjects} />
+
+        <AdminOperationsPanel />
+
         <AdminKycAllowlistSection />
 
         <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
@@ -357,7 +375,7 @@ export function AdminLoansView() {
 
           {!jobsTableAvailable ? (
             <p className="mt-4 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-3 py-2 text-sm text-terminal-warning">
-              La tabla AutomationJob no está disponible; la automatización sigue usando fallback JSON.
+              {t.adminLoans.automationJobTableMissing}
             </p>
           ) : null}
 

@@ -216,3 +216,126 @@ export async function acceptTeamInvite(token: string): Promise<{ redirectUrl: st
 
   return { redirectUrl };
 }
+
+export type PendingInviteRecord = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+  invitedByEmail: string;
+};
+
+export async function listPendingTeamInvites(): Promise<PendingInviteRecord[]> {
+  const rows = await prisma.teamInvite.findMany({
+    where: {
+      role: { in: ['ADVISOR', 'ADVISOR_MANAGER'] },
+      status: 'PENDING',
+      expiresAt: { gt: new Date() }
+    },
+    include: { invitedBy: { select: { email: true } } },
+    orderBy: { createdAt: 'desc' }
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    status: row.status,
+    expiresAt: row.expiresAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
+    invitedByEmail: row.invitedBy.email
+  }));
+}
+
+export async function cancelPendingInvite(inviteId: string): Promise<void> {
+  const result = await prisma.teamInvite.updateMany({
+    where: { id: inviteId, status: 'PENDING' },
+    data: { status: 'CANCELLED' }
+  });
+
+  if (result.count === 0) {
+    throw new Error('INVITE_NOT_FOUND');
+  }
+}
+
+export async function resendTeamInvite(inviteId: string): Promise<TeamInviteRecord> {
+  const invite = await prisma.teamInvite.findUnique({
+    where: { id: inviteId },
+    include: { upline: true }
+  });
+
+  if (!invite || invite.status !== 'PENDING' || invite.role === 'INVESTOR') {
+    throw new Error('INVITE_NOT_FOUND');
+  }
+
+  if (invite.expiresAt.getTime() < Date.now()) {
+    await prisma.teamInvite.update({
+      where: { id: invite.id },
+      data: { status: 'EXPIRED' }
+    });
+    throw new Error('INVITE_EXPIRED');
+  }
+
+  const role = invite.role as 'ADVISOR' | 'ADVISOR_MANAGER';
+  const rawToken = randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
+
+  await prisma.teamInvite.update({
+    where: { id: invite.id },
+    data: {
+      tokenHash: hashToken(rawToken),
+      expiresAt
+    }
+  });
+
+  const acceptUrl = `${resolveSiteUrl()}/api/team/invite/accept?token=${encodeURIComponent(rawToken)}`;
+  const roleText = roleLabel(role);
+
+  const emailResult = await sendTransactionalEmail({
+    to: invite.email,
+    subject: `Invitación Sanova Global — ${roleText}`,
+    text: [
+      `Hola${invite.name?.trim() ? ` ${invite.name.trim()}` : ''},`,
+      '',
+      `Recordatorio: fuiste invitado a unirte a Sanova Global como ${roleText}.`,
+      acceptUrl,
+      '',
+      'El enlace vence en 7 días.',
+      '',
+      'Sanova Global'
+    ].join('\n'),
+    html: `
+      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:520px">
+        <p>Hola${invite.name?.trim() ? ` ${invite.name.trim()}` : ''},</p>
+        <p>Recordatorio: fuiste invitado a unirte a <strong>Sanova Global</strong> como <strong>${roleText}</strong>.</p>
+        <p style="margin:28px 0">
+          <a href="${acceptUrl}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:8px">
+            Aceptar invitación
+          </a>
+        </p>
+        <p style="color:#64748b;font-size:14px">El enlace vence en 7 días.</p>
+      </div>
+    `
+  });
+
+  return {
+    id: invite.id,
+    email: invite.email,
+    name: invite.name,
+    role,
+    status: invite.status,
+    expiresAt: expiresAt.toISOString(),
+    createdAt: invite.createdAt.toISOString(),
+    emailSent: emailResult.ok,
+    acceptUrl,
+    whatsappMessage: buildTeamInviteWhatsAppMessage({
+      acceptUrl,
+      roleLabel: roleText,
+      name: invite.name
+    })
+  };
+}

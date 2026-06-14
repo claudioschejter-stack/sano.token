@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import {
+  assertInvestorCheckoutEligible,
   getUserPurchaseContext,
   purchaseProjectTokens
 } from '../../../../../lib/investor/investorService';
+import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
 
 type PurchaseBody = {
   tokenCount?: number;
@@ -29,16 +31,15 @@ export async function POST(
   try {
     const body = (await request.json()) as PurchaseBody;
     const tokenCount = Number(body.tokenCount);
-    const walletAddress = body.walletAddress?.trim();
-
-    if (!walletAddress) {
-      return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
-    }
 
     const user = await getUserPurchaseContext(ctx.userId);
     if (!user) {
       return NextResponse.json({ error: 'USER_NOT_FOUND' }, { status: 404 });
     }
+
+    assertInvestorCheckoutEligible(user);
+
+    const walletAddress = await resolveInvestorLinkedWallet(ctx.userId, body.walletAddress?.trim());
 
     const result = await purchaseProjectTokens({
       userId: ctx.userId,
@@ -53,7 +54,9 @@ export async function POST(
 
     if (
       message === 'ACCOUNT_NOT_OPERATIONAL' ||
-      message === 'KYC_NOT_APPROVED'
+      message === 'KYC_NOT_APPROVED' ||
+      message === 'INVESTOR_ACCESS_NOT_ENABLED' ||
+      message === 'INVESTOR_WALLET_REQUIRED'
     ) {
       return NextResponse.json({ error: message }, { status: 403 });
     }

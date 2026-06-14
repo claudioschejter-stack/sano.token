@@ -74,6 +74,8 @@ export type Erc4626SavePipelineResult =
       deploy?: Awaited<ReturnType<typeof executeProjectTokenDeploy>>;
       async?: boolean;
       jobIds?: string[];
+      automationTableMissing?: boolean;
+      warning?: 'AUTOMATION_JOB_TABLE_MISSING';
     }
   | { ok: false; issues: LaunchGateIssue[] };
 
@@ -113,7 +115,14 @@ export async function finalizeErc4626AfterPersist(
         requestedPublish: options.requestedPublish
       });
       asset = (await getAdminAsset(projectId)) ?? asset;
-      return { ok: true, asset, async: true, jobIds: queued.jobIds };
+      return {
+        ok: true,
+        asset,
+        async: true,
+        jobIds: queued.jobIds,
+        automationTableMissing: !queued.tableAvailable,
+        warning: queued.warning
+      };
     }
 
     deploy = await executeProjectTokenDeploy(projectId, { adminAuthorized: true });

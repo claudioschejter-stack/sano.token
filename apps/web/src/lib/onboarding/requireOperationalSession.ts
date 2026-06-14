@@ -1,5 +1,6 @@
 import { prisma } from '@sanova/database';
 import { isAccountOperational } from './accountStatus';
+import { assertInvestorAccessEnabled } from '../auth/investorAccess';
 import { requireAuthenticatedSession } from './requireAuthenticatedSession';
 
 export async function requireOperationalSession() {
@@ -21,7 +22,8 @@ export async function requireOperationalSession() {
       accountStatus: true,
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
-      systemRole: true
+      systemRole: true,
+      investorAccessEnabled: true
     }
   });
 
@@ -46,6 +48,12 @@ export async function requireInvestorOperationalSession() {
 
   if (ctx.user.systemRole !== 'INVESTOR') {
     return { investorRequired: true as const, userId: ctx.userId, session: ctx.session };
+  }
+
+  try {
+    assertInvestorAccessEnabled(ctx.user);
+  } catch {
+    return { investorAccessDisabled: true as const, userId: ctx.userId, session: ctx.session };
   }
 
   return ctx;

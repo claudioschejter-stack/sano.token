@@ -148,7 +148,7 @@ export async function purchaseProjectTokens(input: {
     throw new Error('USER_NOT_FOUND');
   }
 
-  assertOperationalInvestor(user);
+  assertInvestorCheckoutEligible(user);
 
   if (!Number.isInteger(input.tokenCount) || input.tokenCount <= 0) {
     throw new Error('INVALID_TOKEN_COUNT');

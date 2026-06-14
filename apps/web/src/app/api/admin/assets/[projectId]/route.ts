@@ -125,6 +125,8 @@ export async function PATCH(request: Request, context: RouteContext) {
             asset: finalized.asset,
             async: true,
             jobIds: finalized.jobIds ?? [],
+            warning: finalized.warning,
+            automationTableMissing: finalized.automationTableMissing,
             message: 'Deploy ERC-4626 encolado. El estado se actualizará automáticamente.'
           },
           { status: 202 }

@@ -1,4 +1,5 @@
 import { prisma, Prisma, type RentPayoutPreference } from '@sanova/database';
+import { isPendingInvestorWallet } from './provisionInvestorProfile';
 import { Contract, JsonRpcProvider, Wallet } from 'ethers';
 import { getOrCreatePlatformWalletAccount } from '../payments/platformWalletService';
 import { calculateRentCommissionSplit } from '../commission/commissionService';
@@ -42,7 +43,7 @@ export async function updateRentPayoutPreferenceForUser(
 
   if (preference === 'USDC') {
     const payoutWallet = user.walletAddress?.trim() || user.investor?.walletAddress?.trim();
-    if (!payoutWallet) {
+    if (!payoutWallet || isPendingInvestorWallet(payoutWallet)) {
       throw new Error('INVESTOR_WALLET_REQUIRED');
     }
   }

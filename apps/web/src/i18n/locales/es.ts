@@ -408,6 +408,8 @@ export const es = {
     deleteBlockedInvestments: 'No podés eliminar un activo con inversiones activas.',
     deleteBlockedPublished: 'Despublicá el activo antes de eliminarlo.',
     asyncDeployQueued: 'Emisión en cola en segundo plano. Actualizá en unos minutos.',
+    asyncDeployAutomationTableMissing:
+      'Emisión encolada pero la tabla AutomationJob no existe: los jobs no se procesarán hasta aplicar el schema Prisma.',
     sectionDebt: 'Propiedades de deuda',
     sectionEquity: 'Propiedades de capital',
     emptyDebt: 'No hay propiedades de deuda con este filtro.',
@@ -539,6 +541,8 @@ export const es = {
     investorBorrowOnlyTitle: 'Préstamos Morpho: solo inversores',
     investorBorrowOnlyDesc:
       'Los inversores con KYC piden préstamos desde el marketplace (Solicitar préstamo). Las shares del vault llegan a su Coinbase vinculado al comprar con USDC en Base. Desde admin solo configurás emisión, vault y readiness Morpho.',
+    automationJobTableMissing:
+      'La tabla AutomationJob no está disponible: el deploy async no se procesará hasta aplicar el schema Prisma y redeployar.',
     allowlist: {
       title: 'KYC allowlist on-chain',
       description:
@@ -856,6 +860,43 @@ export const es = {
     commissionsComingSoon: 'Próximamente',
     teamCard: 'Red de asesores',
     teamCardDesc: 'Consultá el equipo y los clientes asignados a tu red.'
+  },
+  adminOperations: {
+    eyebrow: 'Operaciones',
+    title: 'Readiness y reparación de plataforma',
+    desc: 'Auditoría de treasury, Morpho, liquidez y proyectos Base ERC-4626. Repara treasury y colateral en lote.',
+    refresh: 'Actualizar auditoría',
+    loading: 'Cargando auditoría…',
+    error: 'No se pudo cargar el reporte operativo.',
+    platformReady: 'Plataforma lista',
+    projectsReady: 'Proyectos listos',
+    projectsNeedingRepair: 'Proyectos a reparar',
+    yes: 'Sí',
+    no: 'No',
+    dryRun: 'Simular reparación',
+    repairAll: 'Reparar proyectos pendientes',
+    repairing: 'Reparando…',
+    dryRunResult: 'Simulación: {count} proyecto(s) serían reparados.',
+    repairResult: 'Reparación completada: {ok}/{total} proyectos OK.',
+    repairError: 'No se pudo ejecutar la reparación operativa.'
+  },
+  adminInvites: {
+    pendingTitle: 'Invitaciones pendientes',
+    pendingDesc: 'Cancelá o reenvía invitaciones que aún no fueron aceptadas.',
+    loading: 'Cargando invitaciones…',
+    empty: 'No hay invitaciones pendientes.',
+    colEmail: 'Email',
+    colName: 'Nombre',
+    colRole: 'Rol',
+    colInvitedBy: 'Invitó',
+    colExpires: 'Vence',
+    colActions: 'Acciones',
+    resend: 'Reenviar',
+    cancel: 'Cancelar',
+    cancelSuccess: 'Invitación cancelada.',
+    resendSuccess: 'Invitación reenviada por email.',
+    resendEmailNotSent: 'Invitación actualizada pero el email no se envió (revisá RESEND_API_KEY).',
+    actionError: 'No se pudo completar la acción.'
   },
   adminSettings: {
     loading: 'Cargando configuración…',

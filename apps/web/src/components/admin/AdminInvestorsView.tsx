@@ -11,6 +11,7 @@ import { KycIdentityDetails } from '../identity/KycIdentityDetails';
 import { hasKycIdentityData } from '../../lib/onboarding/extractDiditIdentity';
 import { resolveAdminInviteError } from '../../lib/admin/resolveInviteError';
 import { AdminGate } from './AdminGate';
+import { AdminPendingInvitesPanel } from './AdminPendingInvitesPanel';
 import { WhatsAppContactInvitePanel } from './WhatsAppContactInvitePanel';
 
 type KycFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -280,6 +281,8 @@ export function AdminInvestorsView() {
             advisorId={inviteAdvisorId || undefined}
             onInviteCreated={() => void loadInvestors(filter)}
           />
+
+          <AdminPendingInvitesPanel kind="investor" />
         </section>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
