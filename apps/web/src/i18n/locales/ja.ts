@@ -101,6 +101,7 @@ export const ja = {
       signingSingle: "ウォレット内の操作を確認してください…",
       signingBatch: "ステップ {current}/{total}: ウォレットで確認してください…",
       success: "融資が完了しました。 USDC がウォレットに入金されます。",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "ローンが用意できなかった。",
       noWallet: "MetaMask または EIP-1193 と互換性のある別のウォレットをインストールします。",
       disclaimer: "市場リスクを伴うオンチェーン運用。 ERC-4626担保（RWAトークン）の場合、ボールトの発行時にモルフォ市場が作成されます（フェーズC）。",
@@ -430,6 +431,8 @@ export const ja = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "オンチェーンのKYC許可リスト",
       description: "トークンを選択し、SanovaAssetToken コントラクトで直接投資家のウォレットを承認または取り消します。",

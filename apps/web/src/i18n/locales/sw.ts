@@ -101,6 +101,7 @@ export const sw = {
       signingSingle: "Thibitisha utendakazi kwenye pochi yako...",
       signingBatch: "Hatua ya {current}/{total}: thibitisha kwenye pochi yako...",
       success: "Mkopo umekamilika. USDC imewekwa kwenye mkoba wako.",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "Mkopo haukuweza kutayarishwa.",
       noWallet: "Sakinisha MetaMask au pochi nyingine inayolingana na EIP-1193.",
       disclaimer: "Uendeshaji wa mnyororo na hatari ya soko. Kwa dhamana ya ERC-4626 (tokeni za RWA), soko la Morpho linaundwa baada ya kutolewa kwa vault (Awamu C).",
@@ -430,6 +431,8 @@ export const sw = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "Orodha ya ruhusa ya KYC kwenye mnyororo",
       description: "Chagua tokeni na uidhinishe au ubatilishe pochi za wawekezaji moja kwa moja kwenye mkataba wa SanovaAssetToken.",

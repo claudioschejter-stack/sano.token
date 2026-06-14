@@ -6,10 +6,8 @@ import {
   assertOperationalInvestor,
   getUserPurchaseContext
 } from '../investor/investorService';
-import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
-
 const INVESTOR_API_ROLES = new Set(['INVESTOR', 'TREASURY']);
-const MORPHO_BORROW_API_ROLES = new Set(['INVESTOR', 'TREASURY', 'ADMIN']);
+const MORPHO_BORROW_API_ROLES = new Set(['INVESTOR']);
 
 export type InvestorSessionContext = {
   userId: string;
@@ -28,6 +26,8 @@ export type InvestorSessionResult = InvestorSessionContext | InvestorSessionForb
 type RequireInvestorSessionOptions = {
   /** When true, requires fully operational account (KYC + verified contact). Default for lending. */
   operational?: boolean;
+  /** Override allowed roles (default: INVESTOR + TREASURY). */
+  allowedRoles?: Set<string>;
 };
 
 export async function requireInvestorSession(
@@ -45,8 +45,9 @@ export async function requireInvestorSession(
     return null;
   }
 
+  const allowedRoles = options.allowedRoles ?? INVESTOR_API_ROLES;
   const role = session.user.role;
-  if (!role || !INVESTOR_API_ROLES.has(role)) {
+  if (!role || !allowedRoles.has(role)) {
     return { forbidden: true, error: 'INVESTOR_ROLE_REQUIRED' };
   }
 
@@ -78,47 +79,7 @@ export function investorSessionForbiddenResponse(ctx: InvestorSessionForbidden) 
   return NextResponse.json({ error: ctx.error ?? 'FORBIDDEN' }, { status: 403 });
 }
 
-/** Morpho borrow preview/prepare: INVESTOR/TREASURY (operational) or ADMIN (linked wallet only). */
+/** Morpho borrow preview/prepare: operational INVESTOR only (linked Coinbase wallet). */
 export async function requireMorphoBorrowSession(): Promise<InvestorSessionResult> {
-  const session = await auth();
-
-  if (!session?.user?.accessToken) {
-    return null;
-  }
-
-  const userId = session.user.id;
-  if (!userId) {
-    return null;
-  }
-
-  const role = session.user.role;
-  if (!role || !MORPHO_BORROW_API_ROLES.has(role)) {
-    return { forbidden: true, error: 'BORROW_ROLE_REQUIRED' };
-  }
-
-  const user = await getUserPurchaseContext(userId);
-  if (!user) {
-    return null;
-  }
-
-  try {
-    if (role === 'ADMIN') {
-      const linked = await getLinkedWalletForUser(userId);
-      if (!linked) {
-        throw new Error('INVESTOR_WALLET_REQUIRED');
-      }
-    } else {
-      assertOperationalInvestor(user);
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'FORBIDDEN';
-    return { forbidden: true, error: message };
-  }
-
-  return {
-    userId,
-    email: session.user.email ?? user.email,
-    role,
-    session
-  };
+  return requireInvestorSession({ operational: true, allowedRoles: MORPHO_BORROW_API_ROLES });
 }

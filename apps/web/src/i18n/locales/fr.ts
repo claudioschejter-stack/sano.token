@@ -101,6 +101,7 @@ export const fr = {
       signingSingle: "Confirmez l’opération dans votre portefeuille…",
       signingBatch: "Étape {current}/{total} : confirmez dans votre portefeuille…",
       success: "Prêt terminé. USDC crédité sur votre portefeuille.",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "Le prêt n'a pas pu être préparé.",
       noWallet: "Installez MetaMask ou un autre portefeuille compatible avec EIP-1193.",
       disclaimer: "Opération en chaîne avec risque de marché. Pour les garanties ERC-4626 (jetons RWA), le marché Morpho est créé lors de l'émission du coffre-fort (Phase C).",
@@ -430,6 +431,8 @@ export const fr = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "Liste blanche KYC en chaîne",
       description: "Choisissez le token et approuvez ou révoquez les portefeuilles des investisseurs directement dans le contrat SanovaAssetToken.",

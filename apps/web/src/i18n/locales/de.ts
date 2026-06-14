@@ -101,6 +101,7 @@ export const de = {
       signingSingle: "Bestätigen Sie den Vorgang in Ihrem Wallet…",
       signingBatch: "Schritt {current}/{total}: Bestätigen Sie in Ihrer Brieftasche…",
       success: "Darlehen abgeschlossen. USDC wird Ihrem Wallet gutgeschrieben.",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "Der Kredit konnte nicht vorbereitet werden.",
       noWallet: "Installieren Sie MetaMask oder ein anderes mit EIP-1193 kompatibles Wallet.",
       disclaimer: "On-Chain-Betrieb mit Marktrisiko. Für ERC-4626-Sicherheiten (RWA-Token) wird der Morpho-Markt mit der Ausgabe des Tresors erstellt (Phase C).",
@@ -430,6 +431,8 @@ export const de = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "KYC-Zulassungsliste in der Kette",
       description: "Wählen Sie den Token aus und genehmigen oder widerrufen Sie Anleger-Wallets direkt im SanovaAssetToken-Vertrag.",

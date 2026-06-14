@@ -9,7 +9,6 @@ import type { AdminAssetRecord } from '../../lib/admin/assetsService';
 import { isMorphoBorrowReadyAsset } from '../../lib/admin/assetsService';
 import { AdminGate } from './AdminGate';
 import { AdminKycAllowlistSection } from './AdminKycAllowlistSection';
-import { AdminLoansBorrowSection } from './AdminLoansBorrowSection';
 
 type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MORPHO_READY';
 
@@ -65,18 +64,6 @@ export function AdminLoansView() {
 
   const filterLabels = t.adminLoans.filters as Record<AssetFilter, string>;
   const statusLabels = t.adminAssets.status as Record<'ACTIVE' | 'INACTIVE', string>;
-
-  const borrowReadyProjects = useMemo(
-    () =>
-      assets
-        .filter((row) => isMorphoBorrowReadyAsset(row))
-        .map((row) => ({
-          id: row.id,
-          vaultAddress: row.vaultAddress!,
-          title: row.title
-        })),
-    [assets]
-  );
 
   const visibleAssets = useMemo(() => {
     if (filter === 'MORPHO_READY') {
@@ -299,7 +286,13 @@ export function AdminLoansView() {
           </div>
         </div>
 
-        <AdminLoansBorrowSection borrowReadyProjects={borrowReadyProjects} />
+        <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-terminal-primary">
+            {t.adminLoans.borrowRequestTitle}
+          </p>
+          <h2 className="mt-1 text-lg font-bold text-terminal-text">{t.adminLoans.investorBorrowOnlyTitle}</h2>
+          <p className="mt-2 text-sm text-terminal-muted">{t.adminLoans.investorBorrowOnlyDesc}</p>
+        </section>
 
         <AdminKycAllowlistSection />
 

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '../../../../../auth';
 import { ProjectBorrowView } from '../../../../../components/marketplace/ProjectBorrowView';
 
-const MORPHO_BORROW_PAGE_ROLES = new Set(['INVESTOR', 'TREASURY']);
+const MORPHO_BORROW_PAGE_ROLES = new Set(['INVESTOR']);
 
 type ProjectBorrowPageProps = {
   params: { projectId: string };

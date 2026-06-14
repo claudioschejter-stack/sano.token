@@ -101,6 +101,7 @@ export const mr = {
       signingSingle: "तुमच्या वॉलेटमधील ऑपरेशनची पुष्टी करा...",
       signingBatch: "पायरी {current}/{total}: तुमच्या वॉलेटमध्ये पुष्टी करा...",
       success: "कर्ज पूर्ण झाले. USDC तुमच्या वॉलेटमध्ये जमा झाले.",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "कर्जाची तयारी होऊ शकली नाही.",
       noWallet: "MetaMask किंवा EIP-1193 शी सुसंगत दुसरे वॉलेट स्थापित करा.",
       disclaimer: "बाजाराच्या जोखमीसह ऑन-चेन ऑपरेशन. ERC-4626 संपार्श्विक (RWA टोकन) साठी, वॉल्ट (फेज C) जारी केल्यावर मॉर्फो मार्केट तयार केले जाते.",
@@ -430,6 +431,8 @@ export const mr = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "केवायसी अनुमत सूची ऑन-चेन",
       description: "टोकन निवडा आणि थेट SanovaAssetToken करारामध्ये गुंतवणूकदारांचे पाकीट मंजूर करा किंवा रद्द करा.",

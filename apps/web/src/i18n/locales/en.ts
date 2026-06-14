@@ -86,7 +86,7 @@ export const en = {
       subtitle:
         "Connect your wallet and borrow USDC on the best rate among Aave, Moonwell, Compound and Morpho (Base). Spark is available when lending on Ethereum.",
       subtitleMorpho:
-        "Use your RWA tokens as collateral. The platform prepares vault deposit, collateral, and borrow in one flow.",
+        "Use vault shares in your linked Coinbase. Sanova prepares Morpho collateral and USDC borrow with minimal signatures.",
       protocolLabel: "Lender",
       morphoRequiresRwa: "requires RWA vault",
       bestRateHint: "Selected rate",
@@ -101,17 +101,19 @@ export const en = {
       notReady: "This asset is not ready for collateralized borrowing yet.",
       useMax: "Max",
       previewReady: "You can borrow up to {max} USDC based on your RWA collateral.",
-      previewEmpty: "Buy RWA tokens for this project to use automatic borrowing.",
+      previewEmpty:
+        "Buy with USDC on Base: vault shares are credited to your linked Coinbase for collateral.",
       preparing: "Preparing automatic transactions…",
-      signingSingle: "Confirm the operation in your wallet…",
-      signingBatch: "Step {current}/{total}: confirm in your wallet…",
-      success: "Loan completed. USDC credited to your wallet.",
+      signingSingle: "Confirm in your Coinbase (Base)…",
+      signingBatch: "Step {current}/{total}: confirm in Coinbase…",
+      success: "Loan completed. USDC credited to your Coinbase.",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "Could not prepare the loan.",
-      noWallet: "Install MetaMask or another EIP-1193 compatible wallet.",
+      noWallet: "Connect Coinbase Wallet on Base (recommended for lower gas).",
       disclaimer:
         "On-chain operation with market risk. For ERC-4626 collateral (RWA tokens), the Morpho market is created when the vault is issued (Phase C).",
       disclaimerMorpho:
-        "Sanova automatically prepares vault deposit, Morpho collateral, and USDC borrow. You only sign (1 or more txs depending on your wallet).",
+        "Investors with KYC only. Collateral: ERC-4626 vault shares in your linked Coinbase. Coinbase Smart Wallet on Base can batch operations into one signature to save gas.",
       disclaimerWeth:
         "Sanova prepares WETH collateral supply and USDC borrow on the selected protocol. You sign each transaction in your wallet. Market and liquidation risk applies."
     },
@@ -446,6 +448,9 @@ export const en = {
       "No asset is ready for Morpho loans yet. Complete token emission, vault, Morpho registration and liquidity first.",
     adminBorrowWalletHint:
       "Use the wallet linked to your admin account (Settings / issuer wallet). The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc:
+      "KYC-approved investors request loans from the marketplace (Request loan). Vault shares are delivered to their linked Coinbase when buying with USDC on Base. From admin you only configure emission, vault and Morpho readiness.",
     allowlist: {
       title: "KYC allowlist on-chain",
       description:

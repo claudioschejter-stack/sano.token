@@ -73,6 +73,8 @@ export async function previewMorphoBorrow(input: {
   walletAddress: string;
   amountUsd?: number;
   oracleAddress?: string | null;
+  /** Investor flow: collateral is vault shares in linked Coinbase (no underlying deposit). */
+  vaultSharesOnly?: boolean;
 }): Promise<MorphoBorrowPreview | null> {
   const vault = input.asset.vaultAddress?.trim();
   if (!vault || !input.asset.readyToBorrow) {
@@ -96,7 +98,7 @@ export async function previewMorphoBorrow(input: {
     let underlyingAssetBalance = 0n;
     let underlyingDecimals = 6;
     const assetToken = input.asset.contractAddress?.trim();
-    if (assetToken) {
+    if (!input.vaultSharesOnly && assetToken) {
       const token = new Contract(assetToken, ERC20_ABI, provider);
       underlyingAssetBalance = (await token.balanceOf(input.walletAddress)) as bigint;
       underlyingDecimals = Number(await token.decimals());
@@ -109,7 +111,9 @@ export async function previewMorphoBorrow(input: {
 
     const collateralUsdFromShares = Number(assetsFromShares) / 10 ** vaultAssetDecimals;
     const collateralUsdFromUnderlying =
-      (Number(underlyingAssetBalance) / 10 ** underlyingDecimals) * input.asset.pricePerToken;
+      input.vaultSharesOnly
+        ? 0
+        : (Number(underlyingAssetBalance) / 10 ** underlyingDecimals) * input.asset.pricePerToken;
     const totalCollateralUsd = collateralUsdFromShares + collateralUsdFromUnderlying;
     const maxByCollateral = totalCollateralUsd * lltvRatio();
     const maxByAsset = maxBorrowUsdPerProject();
@@ -137,7 +141,9 @@ export async function previewMorphoBorrow(input: {
       ready: maxBorrowUsd > 0 && suggestedBorrowUsd > 0,
       message:
         maxBorrowUsd <= 0
-          ? 'Necesitás tokens RWA en tu wallet para usarlos como colateral Morpho.'
+          ? input.vaultSharesOnly
+            ? 'Necesitás shares del vault ERC-4626 en tu Coinbase vinculado. Al comprar con USDC en Base se acreditan automáticamente.'
+            : 'Necesitás tokens RWA en tu wallet para usarlos como colateral Morpho.'
           : undefined
     };
   } finally {
@@ -193,6 +199,7 @@ export async function planMorphoBorrowTransactions(input: {
   walletAddress: string;
   amountUsd: number;
   oracleAddress?: string | null;
+  vaultSharesOnly?: boolean;
 }): Promise<{ transactions: PreparedTransaction[]; marketId: string } | null> {
   const vault = input.asset.vaultAddress?.trim();
   if (!vault || !input.asset.readyToBorrow || input.amountUsd <= 0) {
@@ -208,7 +215,8 @@ export async function planMorphoBorrowTransactions(input: {
     asset: input.asset,
     walletAddress: input.walletAddress,
     amountUsd: input.amountUsd,
-    oracleAddress: input.oracleAddress
+    oracleAddress: input.oracleAddress,
+    vaultSharesOnly: input.vaultSharesOnly
   });
 
   if (!preview?.ready || preview.suggestedBorrowUsd <= 0) {
@@ -229,7 +237,7 @@ export async function planMorphoBorrowTransactions(input: {
     let sharesNeeded = sharesForBorrowUsd(borrowUsd, input.asset.pricePerToken, shareScale);
     let vaultShareBalance = (await vaultContract.balanceOf(input.walletAddress)) as bigint;
 
-    if (vaultShareBalance < sharesNeeded && input.asset.contractAddress) {
+    if (!input.vaultSharesOnly && vaultShareBalance < sharesNeeded && input.asset.contractAddress) {
       const assetToken = input.asset.contractAddress.trim();
       const token = new Contract(assetToken, ERC20_ABI, provider);
       const underlyingBalance = (await token.balanceOf(input.walletAddress)) as bigint;

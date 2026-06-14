@@ -2,10 +2,13 @@
 
 import { Loader2, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { BrowserProvider } from 'ethers';
+import { useAccount, useConnect, useConfig, useSwitchChain } from 'wagmi';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import type { BestBorrowRateResponse } from '../../types/marketplace';
+import { BASE_CHAIN_ID, wagmiConfig } from '../../lib/web3/config';
+import { pickCoinbaseConnector } from '../../lib/web3/walletConnectors';
+import { executePreparedTransactions } from '../../lib/web3/executePreparedTransactions';
 
 const MORPHO_PROTOCOL_ID = 'morpho';
 
@@ -28,6 +31,10 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
   const m = t.marketplace.borrow;
   const w = t.wallet;
   const walletGuard = useLinkedWalletGuard();
+  const config = useConfig();
+  const { address, isConnected, chainId } = useAccount();
+  const { connectors, connectAsync } = useConnect();
+  const { switchChainAsync } = useSwitchChain();
   const isMorphoRwa = Boolean(projectId && vaultAddress && readyToBorrow);
 
   const executableQuotes = useMemo(
@@ -40,7 +47,6 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
 
   const [selectedProtocol, setSelectedProtocol] = useState(defaultProtocol);
   const [amountUsd, setAmountUsd] = useState('1000');
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [preview, setPreview] = useState<BorrowPreview | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -49,27 +55,33 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
   const selectedQuote =
     executableQuotes.find((quote) => quote.id === selectedProtocol) ?? executableQuotes[0];
 
+  const linkedAddress = walletGuard.linkedWallet;
+  const connectedAddress = address?.trim().toLowerCase() ?? null;
+
   useEffect(() => {
     if (!executableQuotes.some((quote) => quote.id === selectedProtocol)) {
       setSelectedProtocol(defaultProtocol);
     }
   }, [defaultProtocol, executableQuotes, selectedProtocol]);
 
-  const connectWallet = useCallback(async (): Promise<string | null> => {
-    if (!window.ethereum) {
+  const connectCoinbaseWallet = useCallback(async (): Promise<string | null> => {
+    const coinbase = pickCoinbaseConnector(connectors);
+    if (!coinbase) {
       setStatus(m.noWallet);
       return null;
     }
 
-    const provider = new BrowserProvider(window.ethereum);
-    const accounts = (await provider.send('eth_requestAccounts', [])) as string[];
-    const address = accounts[0] ?? null;
-    setWalletAddress(address);
-    return address;
-  }, [m.noWallet]);
+    try {
+      const result = await connectAsync({ connector: coinbase, chainId: BASE_CHAIN_ID });
+      return result.accounts[0] ?? null;
+    } catch {
+      setStatus(m.connectFirst);
+      return null;
+    }
+  }, [connectAsync, connectors, m.connectFirst, m.noWallet]);
 
   const loadPreview = useCallback(
-    async (address: string) => {
+    async (wallet: string) => {
       if (!isMorphoRwa || !projectId) {
         setPreview(null);
         return;
@@ -80,7 +92,7 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           projectId,
-          walletAddress: address,
+          walletAddress: wallet,
           amountUsd: Number(amountUsd) > 0 ? Number(amountUsd) : undefined
         })
       });
@@ -100,31 +112,27 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
   );
 
   useEffect(() => {
-    if (!window.ethereum || !isMorphoRwa) {
+    if (!isMorphoRwa || !linkedAddress) {
       return;
     }
 
-    void (async () => {
-      const provider = new BrowserProvider(window.ethereum);
-      const accounts = (await provider.send('eth_accounts', [])) as string[];
-      const address = accounts[0];
-      if (address) {
-        setWalletAddress(address);
-        await loadPreview(address);
-      }
-    })();
-  }, [isMorphoRwa, loadPreview]);
+    if (connectedAddress && connectedAddress === linkedAddress) {
+      void loadPreview(linkedAddress);
+    }
+  }, [connectedAddress, isMorphoRwa, linkedAddress, loadPreview]);
 
   async function executeBorrow() {
     setBusy(true);
     setStatus(m.preparing);
 
     try {
-      let address = walletAddress;
-      if (!address) {
-        address = await connectWallet();
+      let activeAddress = connectedAddress;
+
+      if (!isConnected || !activeAddress) {
+        activeAddress = (await connectCoinbaseWallet())?.toLowerCase() ?? null;
       }
-      if (!address) {
+
+      if (!activeAddress) {
         setStatus(m.connectFirst);
         return;
       }
@@ -139,7 +147,9 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         return;
       }
 
-      if (walletGuard.isWrongNetwork) {
+      if (chainId != null && chainId !== BASE_CHAIN_ID) {
+        await switchChainAsync({ chainId: BASE_CHAIN_ID });
+      } else if (walletGuard.isWrongNetwork) {
         setStatus(w.wrongNetwork);
         return;
       }
@@ -156,7 +166,7 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amountUsd: Number(amountUsd),
-          walletAddress: address,
+          walletAddress: activeAddress,
           projectId,
           vaultAddress
         })
@@ -175,36 +185,19 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         return;
       }
 
-      const provider = new BrowserProvider(window.ethereum!);
-      const signer = await provider.getSigner();
-      const network = await provider.getNetwork();
+      const txCount = payload.prepared.transactions.length;
+      setStatus(
+        txCount === 1 ? m.signingSingle : m.signingBatch.replace('{current}', '1').replace('{total}', String(txCount))
+      );
 
-      if (Number(network.chainId) !== payload.prepared.chainId) {
-        await window.ethereum!.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: `0x${payload.prepared.chainId.toString(16)}` }]
-        });
-      }
+      const executionMode = await executePreparedTransactions(
+        config ?? wagmiConfig,
+        payload.prepared.chainId,
+        payload.prepared.transactions
+      );
 
-      const total = payload.prepared.transactions.length;
-      for (const [index, tx] of payload.prepared.transactions.entries()) {
-        setStatus(
-          total === 1
-            ? m.signingSingle
-            : m.signingBatch.replace('{current}', String(index + 1)).replace('{total}', String(total))
-        );
-        const sent = await signer.sendTransaction({
-          to: tx.to,
-          data: tx.data,
-          value: BigInt(tx.value)
-        });
-        await sent.wait();
-      }
-
-      setStatus(m.success);
-      if (isMorphoSelected) {
-        await loadPreview(address);
-      }
+      setStatus(executionMode === 'batch' ? m.successBatch : m.success);
+      await loadPreview(activeAddress);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : m.prepareFailed);
     } finally {
@@ -214,6 +207,7 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
 
   const bestApy = selectedQuote ? (selectedQuote.borrowApyBps / 100).toFixed(2) : '—';
   const canExecute = Number(amountUsd) > 0 && isMorphoRwa && readyToBorrow;
+  const displayWallet = connectedAddress ?? linkedAddress;
 
   return (
     <section className="mt-6 overflow-hidden rounded-xl border border-terminal-border bg-terminal-card">
@@ -275,9 +269,9 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
           {busy ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
           {canExecute ? m.oneClickBorrow : m.notReadyButton}
         </button>
-        {walletAddress ? (
+        {displayWallet ? (
           <span className="text-xs font-mono text-terminal-muted">
-            {walletAddress.slice(0, 6)}…{walletAddress.slice(-4)}
+            {displayWallet.slice(0, 6)}…{displayWallet.slice(-4)}
           </span>
         ) : null}
       </div>

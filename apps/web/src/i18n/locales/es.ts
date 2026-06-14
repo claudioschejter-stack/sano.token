@@ -91,7 +91,7 @@ export const es = {
       subtitle:
         'Conectá tu wallet y pedí USDC en la mejor tasa entre Aave, Moonwell, Compound y Morpho (Base). Spark está disponible en Ethereum.',
       subtitleMorpho:
-        'Usá tus tokens RWA como colateral. La plataforma prepara depósito, colateral y borrow en un solo flujo.',
+        'Usá las shares del vault en tu Coinbase vinculado. Sanova arma colateral Morpho y borrow USDC con la menor cantidad de firmas.',
       protocolLabel: 'Prestamista',
       morphoRequiresRwa: 'requiere vault RWA',
       bestRateHint: 'Tasa seleccionada',
@@ -106,17 +106,19 @@ export const es = {
       notReady: 'Este activo todavía no está listo para préstamo colateralizado.',
       useMax: 'Máximo',
       previewReady: 'Podés pedir hasta {max} USDC según tu colateral RWA.',
-      previewEmpty: 'Comprá tokens RWA del proyecto para usar este préstamo automático.',
+      previewEmpty:
+        'Comprá con USDC en Base: las shares del vault se acreditan en tu Coinbase vinculado para usar como colateral.',
       preparing: 'Preparando transacciones automáticas…',
-      signingSingle: 'Confirmá la operación en tu wallet…',
-      signingBatch: 'Paso {current}/{total}: confirmá en tu wallet…',
-      success: 'Préstamo completado. USDC acreditado en tu wallet.',
+      signingSingle: 'Confirmá en tu Coinbase (Base)…',
+      signingBatch: 'Paso {current}/{total}: confirmá en tu Coinbase…',
+      success: 'Préstamo completado. USDC acreditado en tu Coinbase.',
+      successBatch: 'Préstamo completado en un solo paso. USDC en tu Coinbase.',
       prepareFailed: 'No se pudo preparar el préstamo.',
-      noWallet: 'Instalá MetaMask u otra wallet compatible con EIP-1193.',
+      noWallet: 'Conectá Coinbase Wallet en Base (recomendado para menor gas).',
       disclaimer:
         'Operación on-chain con riesgo de mercado. Para colateral ERC-4626 (tokens RWA), el mercado Morpho se crea al emitir el vault (Fase C).',
       disclaimerMorpho:
-        'Sanova arma automáticamente depósito en vault, colateral Morpho y borrow USDC. Solo tenés que firmar (1 o más txs según tu wallet).',
+        'Solo inversores con KYC. Colateral: shares ERC-4626 en tu Coinbase vinculado. Coinbase Smart Wallet en Base puede agrupar varias operaciones en una firma para ahorrar gas.',
       disclaimerWeth:
         'Sanova prepara el depósito de WETH como colateral y el borrow USDC en el protocolo elegido. Firmás cada transacción en tu wallet. Aplica riesgo de mercado y liquidación.'
     },
@@ -453,6 +455,9 @@ export const es = {
       'Aún no hay activos listos para préstamos Morpho. Completá emisión, vault, registro Morpho y liquidez.',
     adminBorrowWalletHint:
       'Usá la wallet vinculada a tu cuenta admin (Configuración / wallet emisor). La wallet conectada debe coincidir con la vinculada.',
+    investorBorrowOnlyTitle: 'Préstamos Morpho: solo inversores',
+    investorBorrowOnlyDesc:
+      'Los inversores con KYC piden préstamos desde el marketplace (Solicitar préstamo). Las shares del vault llegan a su Coinbase vinculado al comprar con USDC en Base. Desde admin solo configurás emisión, vault y readiness Morpho.',
     allowlist: {
       title: 'KYC allowlist on-chain',
       description:

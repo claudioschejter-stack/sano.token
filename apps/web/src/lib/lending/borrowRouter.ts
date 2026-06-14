@@ -103,7 +103,8 @@ export async function prepareBorrow(request: BorrowQuoteRequest): Promise<Prepar
     asset,
     walletAddress: request.walletAddress,
     amountUsd: request.amountUsd,
-    oracleAddress
+    oracleAddress,
+    vaultSharesOnly: true
   });
 
   if (!planned) {
@@ -144,6 +145,7 @@ export async function previewMorphoBorrowForProject(input: {
     asset,
     walletAddress: input.walletAddress,
     amountUsd: input.amountUsd,
-    oracleAddress: morphoTarget?.oracleAddress ?? null
+    oracleAddress: morphoTarget?.oracleAddress ?? null,
+    vaultSharesOnly: true
   });
 }

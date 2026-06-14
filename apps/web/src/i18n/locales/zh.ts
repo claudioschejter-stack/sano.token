@@ -101,6 +101,7 @@ export const zh = {
       signingSingle: "确认钱包中的操作...",
       signingBatch: "步骤 {current}/{total}：在您的钱包中确认...",
       success: "贷款完成。USDC 已存入您的钱包。",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "无法准备贷款。",
       noWallet: "安装 MetaMask 或其他与 EIP-1193 兼容的钱包。",
       disclaimer: "链上操作，有市场风险。对于 ERC-4626 抵押品（RWA 代币），Morpho 市场是在金库发行时创建的（C 阶段）。",
@@ -430,6 +431,8 @@ export const zh = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "链上 KYC 许可名单",
       description: "直接在 SanovaAssetToken 合约中选择代币并批准或撤销投资者钱包。",

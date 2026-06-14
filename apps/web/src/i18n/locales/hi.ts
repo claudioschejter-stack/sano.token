@@ -101,6 +101,7 @@ export const hi = {
       signingSingle: "अपने बटुए में संचालन की पुष्टि करें...",
       signingBatch: "चरण {current}/{total}: अपने वॉलेट में पुष्टि करें...",
       success: "ऋण पूरा हुआ. यूएसडीसी आपके वॉलेट में जमा किया गया।",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "लोन तैयार नहीं हो सका.",
       noWallet: "मेटामास्क या EIP-1193 के साथ संगत कोई अन्य वॉलेट स्थापित करें।",
       disclaimer: "बाज़ार जोखिम के साथ ऑन-चेन संचालन। ईआरसी-4626 संपार्श्विक (आरडब्ल्यूए टोकन) के लिए, वॉल्ट (चरण सी) जारी करने पर मॉर्फो बाजार बनाया जाता है।",
@@ -430,6 +431,8 @@ export const hi = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "ऑन-चेन केवाईसी अनुमति सूची",
       description: "टोकन चुनें और सीधे सनोवाएसेटटोकन अनुबंध में निवेशक वॉलेट को स्वीकृत या निरस्त करें।",

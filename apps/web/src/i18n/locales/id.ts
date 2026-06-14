@@ -101,6 +101,7 @@ export const id = {
       signingSingle: "Konfirmasikan operasi di dompet Anda…",
       signingBatch: "Langkah {current}/{total}: konfirmasi di dompet Anda…",
       success: "Pinjaman selesai. USDC dikreditkan ke dompet Anda.",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "Pinjaman tidak dapat disiapkan.",
       noWallet: "Instal MetaMask atau dompet lain yang kompatibel dengan EIP-1193.",
       disclaimer: "Operasi on-chain dengan risiko pasar. Untuk agunan ERC-4626 (token RWA), pasar Morpho dibuat setelah penerbitan brankas (Fase C).",
@@ -430,6 +431,8 @@ export const id = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "Daftar yang diizinkan KYC secara on-chain",
       description: "Pilih token dan setujui atau cabut dompet investor langsung di kontrak SanovaAssetToken.",

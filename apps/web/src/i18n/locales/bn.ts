@@ -101,6 +101,7 @@ export const bn = {
       signingSingle: "আপনার ওয়ালেটে অপারেশন নিশ্চিত করুন...",
       signingBatch: "ধাপ {current}/{total}: আপনার ওয়ালেটে নিশ্চিত করুন...",
       success: "ঋণ সম্পন্ন হয়েছে। USDC আপনার ওয়ালেটে জমা হয়েছে।",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "ঋণ প্রস্তুত করা যায়নি।",
       noWallet: "MetaMask বা EIP-1193 এর সাথে সামঞ্জস্যপূর্ণ অন্য ওয়ালেট ইনস্টল করুন।",
       disclaimer: "বাজারের ঝুঁকি সহ অন-চেইন অপারেশন। ERC-4626 সমান্তরাল (RWA টোকেন) এর জন্য, ভল্ট (ফেজ C) ইস্যু করার পরে Morpho বাজার তৈরি করা হয়।",
@@ -430,6 +431,8 @@ export const bn = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "KYC অন-চেইন অনুমোদিত তালিকা",
       description: "টোকেন চয়ন করুন এবং সরাসরি SanovaAssetToken চুক্তিতে বিনিয়োগকারীর ওয়ালেটগুলিকে অনুমোদন বা প্রত্যাহার করুন৷",

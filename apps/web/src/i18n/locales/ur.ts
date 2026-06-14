@@ -101,6 +101,7 @@ export const ur = {
       signingSingle: "اپنے بٹوے میں آپریشن کی تصدیق کریں…",
       signingBatch: "مرحلہ {current}/{total}: اپنے بٹوے میں تصدیق کریں…",
       success: "قرض مکمل ہوا۔ USDC آپ کے بٹوے میں جمع ہو گیا۔",
+      successBatch: "Loan completed in one step. USDC in your Coinbase.",
       prepareFailed: "قرض کی تیاری نہ ہو سکی۔",
       noWallet: "MetaMask یا EIP-1193 کے ساتھ ہم آہنگ کوئی اور والیٹ انسٹال کریں۔",
       disclaimer: "مارکیٹ رسک کے ساتھ آن چین آپریشن۔ ERC-4626 کولیٹرل (RWA ٹوکنز) کے لیے، مورفو مارکیٹ والٹ (فیز C) کے جاری ہونے پر بنتی ہے۔",
@@ -430,6 +431,8 @@ export const ur = {
     noBorrowRates: "Borrow rates could not be loaded.",
     noBorrowReadyProjects: "No asset is ready for Morpho loans yet.",
     adminBorrowWalletHint: "Use the wallet linked to your admin account. The connected wallet must match the linked address.",
+    investorBorrowOnlyTitle: "Morpho loans: investors only",
+    investorBorrowOnlyDesc: "KYC-approved investors request loans from the marketplace. Vault shares are delivered to their linked Coinbase when buying with USDC on Base.",
     allowlist: {
       title: "KYC کی اجازت کی فہرست آن چین",
       description: "ٹوکن کا انتخاب کریں اور سرمایہ کاروں کے بٹوے کو براہ راست SanovaAssetToken معاہدے میں منظور یا منسوخ کریں۔",
