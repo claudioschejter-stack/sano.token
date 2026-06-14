@@ -64,6 +64,8 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
       update: {}
     });
 
+    await applyInvestorInviteAdvisorForUser(user.id, user.email);
+
     return user.investorId;
   }
 

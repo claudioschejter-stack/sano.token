@@ -31,6 +31,15 @@ export async function applyInvestorInviteAdvisorForUser(userId: string, email: s
     return;
   }
 
+  const investor = await prisma.investor.findUnique({
+    where: { id: user.investorId },
+    select: { incorporatedByAdvisorId: true }
+  });
+
+  if (investor?.incorporatedByAdvisorId) {
+    return;
+  }
+
   await prisma.investor.update({
     where: { id: user.investorId },
     data: { incorporatedByAdvisorId: invite.uplineAdvisorId }

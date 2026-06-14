@@ -9,6 +9,7 @@ import {
   pickDeviceContacts,
   type PickedContact
 } from '../../lib/invite/whatsappInvite';
+import { resolveAdminInviteError } from '../../lib/admin/resolveInviteError';
 
 type InviteRow = PickedContact & {
   emailInput: string;
@@ -74,6 +75,17 @@ export function WhatsAppContactInvitePanel({
       return;
     }
 
+    if (kind === 'team' && teamRole === 'ADVISOR' && !teamUplineId?.trim()) {
+      setRows((current) =>
+        current.map((item, i) =>
+          i === index
+            ? { ...item, status: 'error', error: labels.advisorRequiresUpline }
+            : item
+        )
+      );
+      return;
+    }
+
     setBusy(true);
 
     try {
@@ -117,13 +129,14 @@ export function WhatsAppContactInvitePanel({
       );
       onInviteCreated?.();
     } catch (error) {
+      const code = error instanceof Error ? error.message : undefined;
       setRows((current) =>
         current.map((item, i) =>
           i === index
             ? {
                 ...item,
                 status: 'error',
-                error: error instanceof Error ? error.message : labels.createError
+                error: resolveAdminInviteError(code, labels)
               }
             : item
         )

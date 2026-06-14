@@ -1,7 +1,11 @@
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { SignJWT } from 'jose';
 import type { SystemRole } from './roles';
-import { hasValidInvestorInviteForEmail } from '../admin/investorInviteService';
+import {
+  hasValidInvestorInviteForEmail,
+  markInvestorInviteAcceptedForEmail
+} from '../admin/investorInviteService';
+import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 import { isPreApprovedInvestorEmail, resolveRoleForEmail, resolveRoleForExistingUser } from './roleAllowlist';
 
 type OAuthLoginInput = {
@@ -32,6 +36,7 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
     : resolveRoleForEmail(email);
 
   const investorAccessForOAuth = await resolveInvestorAccessForOAuth(email);
+  const hadValidInvestorInvite = await hasValidInvestorInviteForEmail(email);
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -55,6 +60,11 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
         : {})
     }
   });
+
+  if (user.systemRole === 'INVESTOR' && hadValidInvestorInvite) {
+    await markInvestorInviteAcceptedForEmail(email);
+    await applyInvestorInviteAdvisorForUser(user.id, email);
+  }
 
   const roles = [user.systemRole as SystemRole];
   const secret = process.env.JWT_SECRET;

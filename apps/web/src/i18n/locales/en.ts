@@ -337,7 +337,12 @@ export const en = {
     colPhone: "Phone",
     colEmail: "Email",
     colActions: "Actions",
-    emailPlaceholder: "email@example.com"
+    emailPlaceholder: "email@example.com",
+    inviteAlreadyPending: "There is already a pending invite for this email.",
+    emailAlreadyStaff: "This email belongs to an internal staff account.",
+    advisorNotFound: "The selected advisor was not found.",
+    advisorRequiresUpline: "Advisor invites require selecting an upline manager.",
+    invalidEmail: "Enter a valid email address."
   },
   identityProfile: {
     title: "Identity data",

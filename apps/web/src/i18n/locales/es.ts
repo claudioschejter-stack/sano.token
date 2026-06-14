@@ -344,7 +344,12 @@ export const es = {
     colPhone: 'Teléfono',
     colEmail: 'Email',
     colActions: 'Acciones',
-    emailPlaceholder: 'email@ejemplo.com'
+    emailPlaceholder: 'email@ejemplo.com',
+    inviteAlreadyPending: 'Ya hay una invitación pendiente para ese correo.',
+    emailAlreadyStaff: 'Ese correo pertenece a una cuenta interna del staff.',
+    advisorNotFound: 'El asesor seleccionado no existe.',
+    advisorRequiresUpline: 'Para invitar un asesor debés seleccionar un gerente asignado.',
+    invalidEmail: 'Ingresá un email válido.'
   },
   identityProfile: {
     title: 'Datos de identidad',

@@ -11,6 +11,11 @@ import {
   isMorphoBorrowReadyAsset,
   isMorphoCollateralAsset
 } from '../../lib/admin/assetsService';
+import {
+  formatLaunchGateIssues,
+  type LaunchGateIssue,
+  type LaunchGateIssueCode
+} from '../../lib/admin/erc4626LaunchGate';
 import { AdminGate } from './AdminGate';
 
 type AssetFilter = 'ALL' | 'ACTIVE' | 'INACTIVE' | 'MORPHO_READY';
@@ -381,7 +386,7 @@ export function AdminAssetsView() {
       const data = (await response.json().catch(() => ({}))) as {
         error?: string;
         code?: string;
-        issues?: string[];
+        issues?: LaunchGateIssue[];
         async?: boolean;
         jobIds?: string[];
       };
@@ -394,10 +399,11 @@ export function AdminAssetsView() {
       }
 
       if (!response.ok) {
+        const gateMessages = t.adminLaunch.launchGate as Record<LaunchGateIssueCode, string>;
         if (response.status === 422 && data.issues?.length) {
-          setSaveError(data.issues.join(' · '));
-        } else if (data.code === 'LAUNCH_NOT_READY') {
-          setSaveError(data.issues?.join(' · ') ?? t.adminAssets.saveError);
+          setSaveError(formatLaunchGateIssues(data.issues, gateMessages));
+        } else if (data.error === 'LAUNCH_NOT_READY' && data.issues?.length) {
+          setSaveError(formatLaunchGateIssues(data.issues, gateMessages));
         } else {
           setSaveError(data.error ?? t.adminAssets.saveError);
         }

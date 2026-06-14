@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { auth } from '../../../../../auth';
 import { inviteInvestor } from '../../../../../lib/admin/investorInviteService';
+import { requireAdminSession } from '../../../../../lib/admin/requireAdmin';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const session = await auth();
+  const session = await requireAdminSession();
   const adminUserId = session?.user?.id;
-  const role = session?.user?.role;
 
-  if (!adminUserId || role !== 'ADMIN') {
+  if (!adminUserId) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 

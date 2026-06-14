@@ -6,8 +6,8 @@ import {
   sanitizeErc4626UpdateBody,
   validateErc4626BeforePersist
 } from '../../../../../lib/admin/erc4626LaunchSave';
+import { completeErc4626LaunchPostDeploy } from '../../../../../lib/admin/erc4626LaunchPipeline';
 import {
-  isErc4626OnChainReady,
   isErc4626Standard,
   needsErc4626Deploy
 } from '../../../../../lib/admin/erc4626LaunchGate';
@@ -94,16 +94,16 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (partialCardUpdate || (isErc4626Standard(standard) && !wantsOnChainDeploy)) {
-      if (wantsPublish && isErc4626Standard(standard) && !isErc4626OnChainReady(updated)) {
-        await updateAdminAsset(projectId, { isActive: false });
-        return NextResponse.json(
-          {
-            error: 'LAUNCH_NOT_READY',
-            issues: [{ code: 'CANNOT_PUBLISH_INCOMPLETE' }],
-            asset: await getAdminAsset(projectId)
-          },
-          { status: 422 }
-        );
+      if (wantsPublish && isErc4626Standard(standard)) {
+        const finalized = await completeErc4626LaunchPostDeploy(projectId, { requestedPublish: true });
+        if (finalized.ok === false) {
+          const current = await getAdminAsset(projectId);
+          return NextResponse.json(
+            { error: 'LAUNCH_NOT_READY', issues: finalized.issues, asset: current },
+            { status: 422 }
+          );
+        }
+        return NextResponse.json({ asset: finalized.asset });
       }
 
       return NextResponse.json({ asset: updated });

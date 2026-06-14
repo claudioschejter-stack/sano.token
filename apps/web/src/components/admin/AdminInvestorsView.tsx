@@ -9,6 +9,7 @@ import type { AdminInvestorRecord } from '../../lib/admin/investorsService';
 import type { AdvisorTeamMember } from '../../lib/admin/teamService';
 import { KycIdentityDetails } from '../identity/KycIdentityDetails';
 import { hasKycIdentityData } from '../../lib/onboarding/extractDiditIdentity';
+import { resolveAdminInviteError } from '../../lib/admin/resolveInviteError';
 import { AdminGate } from './AdminGate';
 import { WhatsAppContactInvitePanel } from './WhatsAppContactInvitePanel';
 
@@ -76,7 +77,8 @@ export function AdminInvestorsView() {
       const data = (await response.json()) as { error?: string; warning?: string };
 
       if (!response.ok) {
-        throw new Error(data.error ?? 'invite failed');
+        setInviteMessage(resolveAdminInviteError(data.error, t.adminInviteWhatsApp));
+        return;
       }
 
       setInviteEmail('');
