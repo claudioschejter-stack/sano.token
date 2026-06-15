@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { SiteAnalytics } from '../components/analytics/SiteAnalytics';
 import { PwaRegister } from '../components/PwaRegister';
@@ -36,6 +37,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className="min-h-dvh antialiased touch-manipulation">
         <SiteAnalytics />
+        <SpeedInsights />
         <AppProviders>
           <PwaRegister />
           {children}
