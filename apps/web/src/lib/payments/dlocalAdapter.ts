@@ -1,11 +1,13 @@
 import { createHmac } from 'node:crypto';
 import { checkoutBaseUrl } from './paymentConfig';
+import { mapDLocalPaymentMethodId, resolveDLocalChargeAmount } from './dlocalPaymentMethods';
 
 type DLocalPaymentInput = {
   externalId: string;
   amountUsd: number;
   country: string;
   paymentMethodId?: string;
+  providerRail?: string;
   userEmail?: string | null;
   successUrl: string;
   backUrl: string;
@@ -39,6 +41,24 @@ function signDLocalRequest(login: string, date: string, body: string, secret: st
   return createHmac('sha256', secret).update(`${login}${date}${body}`).digest('hex');
 }
 
+export function formatDLocalAuthorizationHeader(signature: string): string {
+  return `V2-HMAC-SHA256, Signature: ${signature}`;
+}
+
+export function parseDLocalAuthorizationHeader(authorization?: string | null): string | null {
+  if (!authorization?.trim()) {
+    return null;
+  }
+
+  const match = authorization.match(/Signature:\s*([a-f0-9]+)/i);
+  if (match?.[1]) {
+    return match[1];
+  }
+
+  const legacy = authorization.replace(/^V2-HMAC-SHA256:\s*/i, '').trim();
+  return legacy || null;
+}
+
 function mapCountryToDLocal(country: string): string {
   if (country === 'EU') {
     return process.env.DLOCAL_DEFAULT_EU_COUNTRY?.trim().toUpperCase() || 'DE';
@@ -59,11 +79,16 @@ export async function createDLocalPayment(input: DLocalPaymentInput): Promise<DL
   }
 
   const notificationUrl = `${checkoutBaseUrl()}/api/webhooks/dlocal`;
+  const paymentMethodId =
+    input.paymentMethodId ??
+    (input.providerRail ? mapDLocalPaymentMethodId(country, input.providerRail) : 'CARD');
+  const charge = resolveDLocalChargeAmount(country, input.amountUsd);
+
   const body = {
-    amount: Number(input.amountUsd.toFixed(2)),
-    currency: 'USD',
+    amount: charge.amount,
+    currency: charge.currency,
     country,
-    payment_method_id: input.paymentMethodId ?? 'CARD',
+    payment_method_id: paymentMethodId,
     payment_method_flow: 'REDIRECT',
     payer: input.userEmail ? { email: input.userEmail } : undefined,
     order_id: input.externalId,
@@ -84,7 +109,9 @@ export async function createDLocalPayment(input: DLocalPaymentInput): Promise<DL
         'X-Date': date,
         'X-Login': login,
         'X-Trans-Key': transKey,
-        Authorization: `V2-HMAC-SHA256: ${signature}`
+        'X-Version': '2.1',
+        'User-Agent': 'SanovaCapital/1.0',
+        Authorization: formatDLocalAuthorizationHeader(signature)
       },
       body: bodyText
     });
@@ -93,7 +120,7 @@ export async function createDLocalPayment(input: DLocalPaymentInput): Promise<DL
     if (!response.ok) {
       return {
         provider: 'dlocal',
-        metadata: { configured: true, error: text, country, paymentMethodId: input.paymentMethodId }
+        metadata: { configured: true, error: text, country, paymentMethodId, currency: charge.currency }
       };
     }
 
@@ -110,7 +137,9 @@ export async function createDLocalPayment(input: DLocalPaymentInput): Promise<DL
       metadata: {
         configured: true,
         country,
-        paymentMethodId: input.paymentMethodId,
+        currency: charge.currency,
+        amount: charge.amount,
+        paymentMethodId,
         status: data.status,
         mode: 'api'
       }
@@ -134,7 +163,7 @@ export function verifyDLocalWebhookSignature(input: {
   payload: string;
 }): boolean {
   const secret = dlocalNotificationSecret();
-  const login = dlocalLogin();
+  const login = input.login?.trim() || dlocalLogin();
   if (!secret || !login || !input.date || !input.signature) {
     return process.env.NODE_ENV !== 'production';
   }

@@ -20,6 +20,15 @@ export function isPaymentCountrySanctioned(country?: string | null): boolean {
   return PAYMENT_SANCTIONED_COUNTRIES.has(normalizePaymentCountry(country));
 }
 
+/** Stripe Checkout does not support Argentine local rails (Modo, ARS cards, etc.). */
+export const STRIPE_UNAVAILABLE_COUNTRIES = new Set(
+  (process.env.STRIPE_UNAVAILABLE_COUNTRIES ?? 'AR').split(',').map((c) => c.trim().toUpperCase()).filter(Boolean)
+);
+
+export function isStripeAvailableForCountry(country?: string | null): boolean {
+  return !STRIPE_UNAVAILABLE_COUNTRIES.has(normalizePaymentCountry(country));
+}
+
 export async function resolvePaymentCountryForUser(userId: string, hint?: string | null): Promise<string> {
   if (hint?.trim()) {
     return normalizePaymentCountry(hint);

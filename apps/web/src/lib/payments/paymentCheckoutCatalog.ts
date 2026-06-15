@@ -36,6 +36,8 @@ export type PaymentCheckoutRow = {
   usesLocalCurrency?: boolean;
   /** ISO country codes; omit = visible in all countries */
   countries?: string[];
+  /** ISO country codes where this row must not appear (e.g. Stripe in AR). */
+  excludedCountries?: string[];
   sortOrder: number;
 };
 
@@ -238,6 +240,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackFeeBps: 265,
     fallbackGasUsd: 0,
     fallbackNetworkUsd: 0.03,
+    excludedCountries: ['AR'],
     sortOrder: 200
   },
   {
@@ -250,6 +253,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackFeeBps: 265,
     fallbackGasUsd: 0,
     fallbackNetworkUsd: 0.03,
+    excludedCountries: ['AR'],
     sortOrder: 210
   },
   {
@@ -262,6 +266,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackFeeBps: 250,
     fallbackGasUsd: 0,
     fallbackNetworkUsd: 0.03,
+    excludedCountries: ['AR'],
     sortOrder: 220
   },
   {
@@ -274,6 +279,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackFeeBps: 350,
     fallbackGasUsd: 0,
     fallbackNetworkUsd: 0.03,
+    excludedCountries: ['AR'],
     sortOrder: 230
   },
   {
@@ -287,6 +293,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackGasUsd: 0,
     fallbackNetworkUsd: 0.04,
     usesLocalCurrency: true,
+    excludedCountries: ['AR'],
     sortOrder: 240
   },
   {
@@ -539,6 +546,8 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
 export function paymentRowsForCountry(country: string): PaymentCheckoutRow[] {
   const normalized = country.trim().toUpperCase();
   return PAYMENT_CHECKOUT_ROWS.filter(
-    (row) => !row.countries || row.countries.includes(normalized)
+    (row) =>
+      (!row.countries || row.countries.includes(normalized)) &&
+      (!row.excludedCountries || !row.excludedCountries.includes(normalized))
   ).sort((a, b) => a.sortOrder - b.sortOrder);
 }

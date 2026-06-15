@@ -994,6 +994,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   <p className="mt-1 text-emerald-800">{c.usdcEducationBody}</p>
                 </div>
               ) : null}
+              {depositCountry === 'AR' ? (
+                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] text-sky-900">
+                  <p className="font-semibold">{c.argentinaPaymentsTitle}</p>
+                  <p className="mt-1 text-sky-800">{c.argentinaPaymentsBody}</p>
+                </div>
+              ) : null}
               {paymentGroups.map((group) => (
                 <div key={group.id}>
                   <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">

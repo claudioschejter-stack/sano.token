@@ -15,6 +15,8 @@ describe('depositPaymentOptions', () => {
       PAYMENT_CHECKOUT_GROUP_ORDER.filter((id) => quote.groups.some((group) => group.id === id))
     );
     expect(quote.groups.find((group) => group.id === 'argentina')?.options.length).toBeGreaterThan(0);
+    expect(quote.groups.some((group) => group.id === 'global_cards')).toBe(false);
+    expect(quote.options.some((row) => row.provider === 'stripe')).toBe(false);
   });
 
   it('sorts configured options before unavailable ones at equal cost', () => {

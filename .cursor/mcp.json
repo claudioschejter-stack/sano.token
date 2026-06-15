@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "dlocal-integration": {
+      "url": "https://mcp.dlocal.com/integration",
+      "headers": {
+        "x-merchant-id": "YOUR_MERCHANT_ID"
+      }
+    }
+  }
+}

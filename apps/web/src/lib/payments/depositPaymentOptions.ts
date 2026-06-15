@@ -244,7 +244,12 @@ export function buildDepositPaymentOptions(
 
   const sorted = sortDepositPaymentOptions(options);
   const recommended =
-    sorted.find((row) => row.configured && row.groupId === 'linked_wallet') ?? sorted.find((row) => row.configured) ?? null;
+    sorted.find((row) => row.configured && row.groupId === 'linked_wallet') ??
+    (normalizedCountry === 'AR'
+      ? sorted.find((row) => row.configured && row.groupId === 'argentina')
+      : null) ??
+    sorted.find((row) => row.configured) ??
+    null;
   const networks = enabledStablecoinNetworks().map((network) => ({
     id: network.id,
     label: network.label,

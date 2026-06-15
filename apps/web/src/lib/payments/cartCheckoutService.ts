@@ -30,7 +30,11 @@ import { assertPaymentProofPresent } from './purchaseGuard';
 import { buildPurchaseIntentMetadata } from './purchaseIntentMetadata';
 import { readBatchTotalUsdcBaseUnits, sumDecimalUsdBaseUnits } from './paymentAmountUtils';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
-import { resolvePaymentCountryForUser } from './paymentCountry';
+import {
+  isStripeAvailableForCountry,
+  normalizePaymentCountry,
+  resolvePaymentCountryForUser
+} from './paymentCountry';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 import { isLocalRailManualResult } from './stripeCheckoutOptions';
 
@@ -217,6 +221,16 @@ async function attachCartGatewayCheckout(input: {
   }
 
   if (input.method === 'STRIPE') {
+    if (!isStripeAvailableForCountry(input.country)) {
+      return {
+        provider: 'stripe',
+        metadata: {
+          configured: true,
+          error: 'STRIPE_NOT_AVAILABLE_IN_COUNTRY',
+          country: normalizePaymentCountry(input.country)
+        }
+      };
+    }
     return createStripeCartCheckout({
       ...input,
       paymentOptionId: input.paymentOptionId

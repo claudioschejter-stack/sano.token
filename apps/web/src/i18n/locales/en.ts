@@ -1258,6 +1258,9 @@ export const en = {
       "USDC on Base costs a few cents in gas. Link your wallet or use WalletConnect — ideal for investors worldwide.",
     usdcNetworkDepositHint: "Deposits on alternate networks are converted to your Sanova balance after on-chain confirmation.",
     globalCardsHint: "convenient, higher fees",
+    argentinaPaymentsTitle: "Payments in Argentina",
+    argentinaPaymentsBody:
+      "Stripe does not process local Argentine cards or Modo. Use Mercado Pago, bank transfer (dLocal), or USDC for the lowest fees.",
     wisePendingTitle: "Wise transfer — include reference",
     wisePendingBody:
       "Send your transfer via Wise using the bank details below. You must include reference {reference} so treasury can credit your account.",

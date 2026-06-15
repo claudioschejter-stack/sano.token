@@ -1,6 +1,7 @@
 import { checkoutBaseUrl } from './paymentConfig';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
+import { isStripeAvailableForCountry } from './paymentCountry';
 import { appendStripePaymentMethodTypes } from './stripeCheckoutOptions';
 import { getStablecoinNetwork, type StablecoinNetworkId } from './stablecoinNetworks';
 import {
@@ -181,6 +182,16 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
 
   switch (input.method) {
     case 'STRIPE':
+      if (!isStripeAvailableForCountry(input.country)) {
+        return {
+          provider: 'stripe',
+          metadata: {
+            configured: true,
+            error: 'STRIPE_NOT_AVAILABLE_IN_COUNTRY',
+            country: input.country ?? 'AR'
+          }
+        };
+      }
       if (input.paymentIntentId && input.projectId) {
         return createStripeCheckout({
           paymentIntentId: input.paymentIntentId,

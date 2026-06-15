@@ -1,6 +1,7 @@
 import { checkoutBaseUrl } from './paymentConfig';
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
 import { createDLocalPayment } from './dlocalAdapter';
+import { mapDLocalPaymentMethodId, resolveDLocalChargeAmount } from './dlocalPaymentMethods';
 import { createEbanxPayment } from './ebanxAdapter';
 import { createWiseManualCheckout } from './wiseManualCheckout';
 
@@ -60,7 +61,7 @@ export async function createDLocalCheckout(input: LocalRailRequest): Promise<Loc
     externalId: input.depositId,
     amountUsd: input.amountUsd,
     country,
-    paymentMethodId: input.row.providerRail,
+    providerRail: input.row.providerRail,
     userEmail: input.userEmail,
     successUrl: redirectUrl(input),
     backUrl: backUrl(input),
@@ -91,11 +92,13 @@ export async function createDLocalCheckout(input: LocalRailRequest): Promise<Loc
   }
 
   const base = (process.env.DLOCAL_CHECKOUT_BASE_URL ?? 'https://checkout.dlocal.com').replace(/\/$/, '');
+  const paymentMethodId = mapDLocalPaymentMethodId(country, input.row.providerRail);
+  const charge = resolveDLocalChargeAmount(country, input.amountUsd);
   const params = new URLSearchParams({
-    amount: input.amountUsd.toFixed(2),
-    currency: 'USD',
+    amount: charge.amount.toFixed(2),
+    currency: charge.currency,
     external_id: input.depositId,
-    payment_method_id: input.row.providerRail,
+    payment_method_id: paymentMethodId,
     country,
     success_url: redirectUrl(input),
     back_url: backUrl(input)

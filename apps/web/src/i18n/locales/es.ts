@@ -1273,6 +1273,9 @@ export const es = {
       'USDC en Base cuesta centavos de gas. Vinculá tu billetera o usa WalletConnect — ideal para inversores en todo el mundo.',
     usdcNetworkDepositHint: 'Depósitos en otras redes se acreditan en tu saldo Sanova tras confirmación on-chain.',
     globalCardsHint: 'más cómodo, comisión mayor',
+    argentinaPaymentsTitle: 'Pagos en Argentina',
+    argentinaPaymentsBody:
+      'Stripe no procesa tarjetas argentinas ni Modo. Usá Mercado Pago, transferencia (dLocal) o USDC para menor costo.',
     wisePendingTitle: 'Transferencia Wise — incluye la referencia',
     wisePendingBody:
       'Envía la transferencia por Wise con los datos abajo. Debes incluir la referencia {reference} para que tesorería acredite tu cuenta.',
