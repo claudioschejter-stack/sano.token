@@ -1915,6 +1915,7 @@ export const es = {
       WALLET_MISMATCH: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
       KYC_NOT_APPROVED: 'Tu KYC debe estar aprobado antes de vincular la billetera.',
       INVESTOR_ROLE_REQUIRED: 'Solo cuentas inversor pueden vincular una billetera.',
+      WALLET_ROLE_REQUIRED: 'Tu rol requiere vincular Coinbase Wallet para continuar.',
       WALLET_CONNECT_NOT_CONFIGURED:
         'WalletConnect no está configurado. Creá una Coinbase Wallet o contactá soporte.'
     }

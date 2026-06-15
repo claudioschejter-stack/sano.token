@@ -78,7 +78,7 @@ function OnboardingContent() {
   const { data: session, status } = useSession();
   const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
-  const requireWallet = systemRole === 'INVESTOR';
+  const requireWallet = Boolean(systemRole);
   const requirePhoneOtp = requiresPhoneVerification(systemRole);
 
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);

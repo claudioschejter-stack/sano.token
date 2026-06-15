@@ -57,7 +57,7 @@ export async function linkUserWallet(
     throw new Error('ROLE_NOT_ALLOWED');
   }
 
-  if (user.systemRole === 'INVESTOR' && user.kycStatus !== 'APPROVED') {
+  if (user.kycStatus !== 'APPROVED') {
     throw new Error('KYC_NOT_APPROVED');
   }
 

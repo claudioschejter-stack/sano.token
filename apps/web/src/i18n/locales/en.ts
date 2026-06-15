@@ -1878,6 +1878,7 @@ export const en = {
       WALLET_MISMATCH: "The connected wallet does not match the one linked to your account.",
       KYC_NOT_APPROVED: "Your KYC must be approved before linking a wallet.",
       INVESTOR_ROLE_REQUIRED: "Only investor accounts can link a wallet.",
+      WALLET_ROLE_REQUIRED: "Your role requires linking Coinbase Wallet to continue.",
       WALLET_CONNECT_NOT_CONFIGURED:
         "WalletConnect is not configured. Create a Coinbase wallet or contact support."
     }

@@ -57,11 +57,7 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
-  if (isMarketplaceTradingRole(user.systemRole as SystemRole)) {
-    return identityVerified && Boolean(resolveLinkedWallet(user.walletAddress));
-  }
-
-  return identityVerified;
+  return identityVerified && Boolean(resolveLinkedWallet(user.walletAddress));
 }
 
 /** KYC + contact + wallet (investors and advisors) — required before marketplace checkout. */
@@ -100,7 +96,7 @@ export function canAccessCashFlowDashboard(user: UserOnboardingFields): boolean 
   }
 
   if (user.systemRole === 'TREASURY') {
-    return true;
+    return Boolean(resolveLinkedWallet(user.walletAddress));
   }
 
   return canAccessMarketplaceCheckout(user);

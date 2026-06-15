@@ -60,7 +60,7 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
     );
   }
 
-  if (isOperational && systemRole === 'INVESTOR' && !checklist.walletLinked) {
+  if (checklist.kycApproved && !checklist.walletLinked) {
     return (
       <div
         className={`flex flex-wrap items-start gap-3 rounded-xl border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 md:items-center md:justify-between ${className}`}
