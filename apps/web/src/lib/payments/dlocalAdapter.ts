@@ -31,6 +31,10 @@ function dlocalTransKey(): string | null {
   return process.env.DLOCAL_SECRET_KEY?.trim() || process.env.DLOCAL_X_TRANS_KEY?.trim() || null;
 }
 
+function dlocalNotificationSecret(): string | null {
+  return process.env.DLOCAL_NOTIFICATION_SECRET?.trim() || dlocalTransKey();
+}
+
 function signDLocalRequest(login: string, date: string, body: string, secret: string): string {
   return createHmac('sha256', secret).update(`${login}${date}${body}`).digest('hex');
 }
@@ -129,7 +133,7 @@ export function verifyDLocalWebhookSignature(input: {
   signature?: string | null;
   payload: string;
 }): boolean {
-  const secret = dlocalTransKey();
+  const secret = dlocalNotificationSecret();
   const login = dlocalLogin();
   if (!secret || !login || !input.date || !input.signature) {
     return process.env.NODE_ENV !== 'production';
