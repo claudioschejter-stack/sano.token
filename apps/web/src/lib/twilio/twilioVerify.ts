@@ -22,7 +22,37 @@ function mapTwilioVerifyError(status: number, body: string): string {
   if (body.includes('60203') || body.includes('Max send attempts')) {
     return 'RATE_LIMIT';
   }
+  if (body.includes('21608') || body.includes('unverified')) {
+    return 'WHATSAPP_SANDBOX_REQUIRED';
+  }
+  if (body.includes('63015') || body.toLowerCase().includes('sandbox')) {
+    return 'WHATSAPP_SANDBOX_REQUIRED';
+  }
+  if (
+    body.includes('63016') ||
+    body.includes('63007') ||
+    body.includes('60410') ||
+    body.toLowerCase().includes('channel') ||
+    body.toLowerCase().includes('template')
+  ) {
+    return 'WHATSAPP_TEMPLATE_REQUIRED';
+  }
   return 'WHATSAPP_DELIVERY_FAILED';
+}
+
+/** Prefer SMS when only TWILIO_PHONE_NUMBER is configured (common in trial accounts). */
+export function twilioVerifyChannel(): string {
+  const explicit = process.env.TWILIO_VERIFY_CHANNEL?.trim().toLowerCase();
+  if (explicit) {
+    return explicit;
+  }
+
+  const hasWhatsAppSender = Boolean(process.env.TWILIO_WHATSAPP_NUMBER?.trim());
+  if (!hasWhatsAppSender && process.env.TWILIO_PHONE_NUMBER?.trim()) {
+    return 'sms';
+  }
+
+  return 'whatsapp';
 }
 
 export async function sendTwilioVerifyCode(phoneE164: string): Promise<TwilioVerifyResult> {
@@ -31,7 +61,7 @@ export async function sendTwilioVerifyCode(phoneE164: string): Promise<TwilioVer
     return { ok: false, error: 'TWILIO_WHATSAPP_NOT_CONFIGURED' };
   }
 
-  const channel = process.env.TWILIO_VERIFY_CHANNEL?.trim() || 'whatsapp';
+  const channel = twilioVerifyChannel();
 
   const response = await fetch(
     `https://verify.twilio.com/v2/Services/${creds.serviceSid}/Verifications`,

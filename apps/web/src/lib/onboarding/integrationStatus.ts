@@ -14,6 +14,23 @@ export function getOnboardingIntegrations(): IntegrationStatus[] {
       envKeys: ['RESEND_API_KEY', 'ONBOARDING_FROM_EMAIL']
     },
     {
+      id: 'twilio-verify',
+      label: 'Teléfono OTP (Twilio Verify)',
+      configured: Boolean(
+        process.env.TWILIO_ACCOUNT_SID?.trim() &&
+          process.env.TWILIO_AUTH_TOKEN?.trim() &&
+          process.env.TWILIO_VERIFY_SERVICE_SID?.trim()
+      ),
+      envKeys: [
+        'TWILIO_ACCOUNT_SID',
+        'TWILIO_AUTH_TOKEN',
+        'TWILIO_VERIFY_SERVICE_SID',
+        'TWILIO_VERIFY_CHANNEL',
+        'TWILIO_WHATSAPP_NUMBER',
+        'TWILIO_PHONE_NUMBER'
+      ]
+    },
+    {
       id: 'didit',
       label: 'KYC (Didit)',
       configured: Boolean(

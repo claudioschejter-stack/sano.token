@@ -47,7 +47,10 @@ export async function issueVerificationCode(
 
     const result = await sendTwilioVerifyCode(phone);
     if (!result.ok) {
-      return { delivered: false, deliveryError: result.ok === false ? result.error : 'WHATSAPP_DELIVERY_FAILED' };
+      return {
+        delivered: false,
+        deliveryError: result.ok === false ? result.error : 'WHATSAPP_DELIVERY_FAILED'
+      };
     }
 
     await prisma.verificationCode.create({

@@ -33,9 +33,13 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN';
-    if (message !== 'RATE_LIMIT') {
-      console.warn('[onboarding/contact] phone code delivery failed', message);
+
+    if (message === 'RATE_LIMIT') {
+      return NextResponse.json({ error: 'RATE_LIMIT' }, { status: 429 });
     }
+
+    console.warn('[onboarding/contact] phone code delivery failed', message);
+    return NextResponse.json({ error: message }, { status: 502 });
   }
 
   return NextResponse.json({
