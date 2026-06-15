@@ -1803,7 +1803,8 @@ export const en = {
       phone: "mobile phone",
       phonePlaceholder: "2617513426",
       countryLabel: "country code",
-      phoneHint: "Without 0 or 15. Example Mendoza: 2617513426 with +54. No verification code is sent."
+      phoneHint: "Without 0 or 15. Example Mendoza: 2617513426 with +54. No verification code is sent.",
+      phoneHintAdmin: "Without 0 or 15. We will send an SMS/WhatsApp code to verify your phone."
     },
     steps: {
       contactTitle: "Contact details",

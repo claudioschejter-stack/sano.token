@@ -1,13 +1,16 @@
 import { prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from './requireAuthenticatedSession';
+import { isContactStepComplete } from './phoneVerificationPolicy';
 
 export type ContactVerificationFields = {
   emailVerifiedAt: Date | null;
   phone: string | null;
+  phoneVerifiedAt?: Date | null;
+  systemRole?: string | null;
 };
 
 export function isContactVerificationComplete(user: ContactVerificationFields): boolean {
-  return Boolean(user.phone?.trim()) && Boolean(user.emailVerifiedAt);
+  return isContactStepComplete(user);
 }
 
 export async function requireContactVerifiedUser() {
@@ -21,7 +24,9 @@ export async function requireContactVerifiedUser() {
     where: { id: ctx.userId },
     select: {
       emailVerifiedAt: true,
-      phone: true
+      phone: true,
+      phoneVerifiedAt: true,
+      systemRole: true
     }
   });
 

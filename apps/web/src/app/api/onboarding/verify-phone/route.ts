@@ -3,12 +3,17 @@ import { prisma } from '@sanova/database';
 import { consumeVerificationCode } from '../../../../lib/onboarding/verification';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
+import { requiresPhoneVerification } from '../../../../lib/onboarding/phoneVerificationPolicy';
 
 export async function POST(request: Request) {
   const ctx = await requireAuthenticatedSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
+  if (!requiresPhoneVerification(ctx.role)) {
+    return NextResponse.json({ error: 'PHONE_VERIFICATION_NOT_REQUIRED' }, { status: 400 });
   }
 
   const body = (await request.json()) as { code?: string };

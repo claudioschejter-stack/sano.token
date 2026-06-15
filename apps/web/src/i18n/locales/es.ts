@@ -1838,7 +1838,8 @@ export const es = {
       phone: 'Teléfono móvil',
       phonePlaceholder: '2617513426',
       countryLabel: 'Código de país',
-      phoneHint: 'Sin 0 ni 15. Ejemplo Mendoza: 2617513426 con +54. No enviamos código de verificación.'
+      phoneHint: 'Sin 0 ni 15. Ejemplo Mendoza: 2617513426 con +54. No enviamos código de verificación.',
+      phoneHintAdmin: 'Sin 0 ni 15. Te enviaremos un código por SMS/WhatsApp para verificar el teléfono.'
     },
     steps: {
       contactTitle: 'Datos de contacto',

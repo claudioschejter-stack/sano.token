@@ -52,7 +52,8 @@ export async function POST(request: Request) {
     select: {
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
-      phone: true
+      phone: true,
+      systemRole: true
     }
   });
 

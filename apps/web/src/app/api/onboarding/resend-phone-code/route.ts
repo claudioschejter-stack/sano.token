@@ -2,12 +2,17 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { issueVerificationCode } from '../../../../lib/onboarding/verification';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
+import { requiresPhoneVerification } from '../../../../lib/onboarding/phoneVerificationPolicy';
 
 export async function POST() {
   const ctx = await requireAuthenticatedSession();
 
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
+  if (!requiresPhoneVerification(ctx.role)) {
+    return NextResponse.json({ error: 'PHONE_VERIFICATION_NOT_REQUIRED' }, { status: 400 });
   }
 
   const user = await prisma.user.findUnique({

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { buildAndValidateE164Phone } from '../../lib/auth/contactValidation';
+import { requiresPhoneVerification } from '../../lib/onboarding/phoneVerificationPolicy';
 import {
   COUNTRY_DIAL_CODES,
   DEFAULT_DIAL_CODE,
@@ -78,6 +79,7 @@ function OnboardingContent() {
   const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = systemRole === 'INVESTOR';
+  const requirePhoneOtp = requiresPhoneVerification(systemRole);
 
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
@@ -559,7 +561,9 @@ function OnboardingContent() {
                   className="min-h-14 min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-base outline-none ring-blue-500 focus:ring-2"
                 />
               </div>
-              <p className="mt-2 text-xs text-slate-500">{o.fields.phoneHint}</p>
+              <p className="mt-2 text-xs text-slate-500">
+                {requirePhoneOtp ? o.fields.phoneHintAdmin : o.fields.phoneHint}
+              </p>
             </label>
           </section>
         ) : null}

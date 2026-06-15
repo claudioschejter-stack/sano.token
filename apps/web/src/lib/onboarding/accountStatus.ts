@@ -3,6 +3,11 @@ import { isPendingInvestorWallet } from '../investor/provisionInvestorProfile';
 import type { SystemRole } from '../auth/roles';
 import { isMarketplaceTradingRole, isStaffRole } from '../auth/roles';
 import { allowDemoKyc } from '../runtime/environment';
+import {
+  isContactStepComplete,
+  isPhoneVerificationSatisfied,
+  requiresPhoneVerification
+} from './phoneVerificationPolicy';
 
 export type OnboardingChecklist = {
   emailVerified: boolean;
@@ -48,7 +53,7 @@ function resolveLinkedWallet(walletAddress?: string | null): string | null {
 export function isAccountOperational(user: UserOnboardingFields): boolean {
   const identityVerified =
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phoneVerifiedAt) &&
+    isPhoneVerificationSatisfied(user) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
@@ -63,7 +68,7 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
 export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolean {
   const identityReady =
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phoneVerifiedAt) &&
+    isPhoneVerificationSatisfied(user) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
@@ -86,7 +91,7 @@ export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolea
 export function canAccessCashFlowDashboard(user: UserOnboardingFields): boolean {
   const identityReady =
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.phoneVerifiedAt) &&
+    isPhoneVerificationSatisfied(user) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
@@ -114,8 +119,10 @@ export function buildOnboardingChecklist(
   diditEnabled: boolean
 ): OnboardingChecklist {
   const emailVerified = Boolean(user.emailVerifiedAt);
-  const phoneVerified = Boolean(user.phoneVerifiedAt);
-  const contactVerified = phoneVerified && emailVerified;
+  const phoneVerified = requiresPhoneVerification(user.systemRole as SystemRole)
+    ? Boolean(user.phoneVerifiedAt)
+    : true;
+  const contactVerified = isContactStepComplete(user);
   const kycEnabled = contactVerified;
   const kycApproved = user.kycStatus === 'APPROVED';
   const walletAddress = resolveLinkedWallet(user.walletAddress);

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { normalizePhoneE164, issueVerificationCode } from '../../../../lib/onboarding/verification';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
+import { requiresPhoneVerification } from '../../../../lib/onboarding/phoneVerificationPolicy';
 
 export async function POST(request: Request) {
   const ctx = await requireAuthenticatedSession();
@@ -17,11 +18,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'INVALID_PHONE' }, { status: 400 });
   }
 
+  const needsPhoneOtp = requiresPhoneVerification(ctx.role);
+
   const user = await prisma.user.update({
     where: { id: ctx.userId },
-    data: { phone, phoneVerifiedAt: null },
+    data: {
+      phone,
+      ...(needsPhoneOtp ? { phoneVerifiedAt: null } : {})
+    },
     select: { email: true, phone: true }
   });
+
+  if (!needsPhoneOtp) {
+    return NextResponse.json({
+      ok: true,
+      email: user.email,
+      phone: user.phone
+    });
+  }
 
   try {
     const phoneDelivery = await issueVerificationCode(ctx.userId, 'PHONE', phone);
