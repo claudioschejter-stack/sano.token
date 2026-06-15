@@ -30,7 +30,21 @@ function dlocalLogin(): string | null {
 }
 
 function dlocalTransKey(): string | null {
-  return process.env.DLOCAL_SECRET_KEY?.trim() || process.env.DLOCAL_X_TRANS_KEY?.trim() || null;
+  const explicit = process.env.DLOCAL_X_TRANS_KEY?.trim();
+  if (explicit) {
+    return explicit;
+  }
+
+  // Legacy two-credential setups stored x-trans-key in DLOCAL_SECRET_KEY.
+  if (process.env.DLOCAL_SECRET_KEY?.trim() && !process.env.DLOCAL_NOTIFICATION_SECRET?.trim()) {
+    return process.env.DLOCAL_SECRET_KEY.trim();
+  }
+
+  return null;
+}
+
+function dlocalSigningSecret(): string | null {
+  return process.env.DLOCAL_SECRET_KEY?.trim() || dlocalNotificationSecret();
 }
 
 function dlocalNotificationSecret(): string | null {
@@ -69,9 +83,10 @@ function mapCountryToDLocal(country: string): string {
 export async function createDLocalPayment(input: DLocalPaymentInput): Promise<DLocalPaymentResult> {
   const login = dlocalLogin();
   const transKey = dlocalTransKey();
+  const signingSecret = dlocalSigningSecret();
   const country = mapCountryToDLocal(input.country);
 
-  if (!login || !transKey) {
+  if (!login || !transKey || !signingSecret) {
     return {
       provider: 'dlocal',
       metadata: { configured: false, reason: 'MISSING_DLOCAL_CREDENTIALS' }
@@ -99,7 +114,7 @@ export async function createDLocalPayment(input: DLocalPaymentInput): Promise<DL
 
   const bodyText = JSON.stringify(body);
   const date = new Date().toISOString();
-  const signature = signDLocalRequest(login, date, bodyText, transKey);
+  const signature = signDLocalRequest(login, date, bodyText, signingSecret);
 
   try {
     const response = await fetch(`${dlocalApiBase()}/payments`, {
@@ -162,7 +177,7 @@ export function verifyDLocalWebhookSignature(input: {
   signature?: string | null;
   payload: string;
 }): boolean {
-  const secret = dlocalNotificationSecret();
+  const secret = dlocalSigningSecret();
   const login = input.login?.trim() || dlocalLogin();
   if (!secret || !login || !input.date || !input.signature) {
     return process.env.NODE_ENV !== 'production';
