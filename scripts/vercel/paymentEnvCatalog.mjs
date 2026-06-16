@@ -68,6 +68,20 @@ export const PAYMENT_ENV_GROUPS = [
     keys: ['TRANSAK_API_KEY', 'TRANSAK_WEBHOOK_SECRET', 'TRANSAK_ENV']
   },
   {
+    id: 'ripio',
+    label: 'Ripio on-ramp (ARS → USDC)',
+    required: false,
+    keys: [
+      'RIPIO_CLIENT_ID',
+      'RIPIO_CLIENT_SECRET',
+      'RIPIO_WEBHOOK_SECRET',
+      'RIPIO_API_BASE_URL',
+      'RIPIO_ENV',
+      'RIPIO_CHAIN',
+      'RIPIO_FX_ARS'
+    ]
+  },
+  {
     id: 'bridge',
     label: 'Bridge on/off-ramp',
     required: false,
@@ -210,5 +224,6 @@ export const WEBHOOK_PATHS = {
   MERCADOPAGO: '/api/webhooks/mercadopago',
   COINBASE: '/api/webhooks/coinbase',
   TRANSAK: '/api/webhooks/transak',
-  BRIDGE: '/api/webhooks/bridge'
+  BRIDGE: '/api/webhooks/bridge',
+  RIPIO: '/api/webhooks/ripio'
 };

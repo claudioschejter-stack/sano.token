@@ -92,3 +92,41 @@ export function verifyCoinbaseSignature(input: {
 }): boolean {
   return verifyHmacSignature(input);
 }
+
+/** Mercado Pago webhooks: manifest `id:...;request-id:...;ts:...;` signed with HMAC-SHA256. */
+export function verifyMercadoPagoSignature(input: {
+  secret?: string;
+  signature?: string | null;
+  requestId?: string | null;
+  dataId?: string | null;
+}): boolean {
+  const secret = input.secret?.trim();
+  if (!secret) {
+    return allowMissingWebhookSecret();
+  }
+
+  if (!input.signature || !input.requestId || !input.dataId) {
+    return false;
+  }
+
+  const parts = Object.fromEntries(
+    input.signature.split(',').map((part) => {
+      const [key, value] = part.split('=');
+      return [key.trim(), value?.trim()];
+    })
+  );
+  const timestamp = parts.ts;
+  const providedHash = parts.v1;
+  if (!timestamp || !providedHash) {
+    return false;
+  }
+
+  const manifest = `id:${input.dataId};request-id:${input.requestId};ts:${timestamp};`;
+  const expected = createHmac('sha256', secret).update(manifest).digest('hex');
+
+  try {
+    return timingSafeEqual(Buffer.from(providedHash), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}

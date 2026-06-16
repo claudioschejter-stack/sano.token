@@ -3,6 +3,7 @@ import { createHmac } from 'node:crypto';
 import {
   verifyCoinbaseSignature,
   verifyHmacSignature,
+  verifyMercadoPagoSignature,
   verifySharedSecret,
   verifyStripeSignature
 } from './webhookSecurity';
@@ -62,5 +63,23 @@ describe('webhookSecurity', () => {
 
     expect(verifyHmacSignature({ secret, payload, signature })).toBe(true);
     expect(verifyCoinbaseSignature({ secret, payload, signature })).toBe(true);
+  });
+
+  it('validates mercado pago signatures', () => {
+    const secret = 'mp-webhook-secret';
+    const dataId = '123456';
+    const requestId = 'req-abc';
+    const timestamp = '1710000000';
+    const manifest = `id:${dataId};request-id:${requestId};ts:${timestamp};`;
+    const digest = createHmac('sha256', secret).update(manifest).digest('hex');
+
+    expect(
+      verifyMercadoPagoSignature({
+        secret,
+        signature: `ts=${timestamp},v1=${digest}`,
+        requestId,
+        dataId
+      })
+    ).toBe(true);
   });
 });

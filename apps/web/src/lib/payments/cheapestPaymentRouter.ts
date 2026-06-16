@@ -68,6 +68,11 @@ export function quoteCheapestPaymentRoutes(input: CheapestPaymentRouteInput): Pa
   }
 
   if (direction === 'FIAT_TO_STABLECOIN' || direction === 'STABLECOIN_TO_FIAT' || direction === 'FIAT_TO_BALANCE') {
+    if (country === 'AR') {
+      routes.push(
+        route('RIPIO', 'ripio', 'Ripio (ARS → USDC Base)', amountUsd, 140, 'On-ramp ARS a USDC en treasury Base')
+      );
+    }
     routes.push(
       route('BRIDGE', 'bridge', 'Bridge', amountUsd, 80, 'Mas barato para on/off-ramp empresarial con volumen'),
       route('TRANSAK', 'transak', 'Transak', amountUsd, 180, 'On-ramp global rapido'),

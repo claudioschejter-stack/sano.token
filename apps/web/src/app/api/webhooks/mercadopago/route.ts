@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { confirmPaymentIntent, markPaymentIntentFailed } from '../../../../lib/payments/paymentService';
 import { confirmCartBatchByProvider } from '../../../../lib/payments/cartCheckoutService';
 import { confirmPlatformDeposit } from '../../../../lib/payments/platformWalletService';
-import { verifyHmacSignature } from '../../../../lib/payments/webhookSecurity';
+import { verifyMercadoPagoSignature } from '../../../../lib/payments/webhookSecurity';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,15 +28,24 @@ async function fetchMercadoPagoPayment(paymentId: string) {
   };
 }
 
+function mercadoPagoWebhookDataId(request: Request, event: { data?: { id?: string | number } }): string | null {
+  const url = new URL(request.url);
+  const queryId = url.searchParams.get('data.id') ?? url.searchParams.get('id');
+  if (queryId?.trim()) {
+    return queryId.trim();
+  }
+  if (event.data?.id !== undefined && event.data?.id !== null) {
+    return String(event.data.id);
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
   const payload = await request.text();
   const signature = request.headers.get('x-signature');
+  const requestId = request.headers.get('x-request-id');
 
-  if (!verifyHmacSignature({ secret: process.env.MERCADOPAGO_WEBHOOK_SECRET, payload, signature })) {
-    return NextResponse.json({ error: 'INVALID_SIGNATURE' }, { status: 401 });
-  }
-
-  const event = JSON.parse(payload) as {
+  const event = JSON.parse(payload || '{}') as {
     type?: string;
     action?: string;
     data?: { id?: string };
@@ -44,6 +53,18 @@ export async function POST(request: Request) {
     metadata?: { paymentIntentId?: string; cartBatchId?: string; depositId?: string };
     status?: string;
   };
+
+  const dataId = mercadoPagoWebhookDataId(request, event);
+  if (
+    !verifyMercadoPagoSignature({
+      secret: process.env.MERCADOPAGO_WEBHOOK_SECRET,
+      signature,
+      requestId,
+      dataId
+    })
+  ) {
+    return NextResponse.json({ error: 'INVALID_SIGNATURE' }, { status: 401 });
+  }
 
   let payment = event;
   if (event.data?.id && (event.type === 'payment' || event.action === 'payment.updated')) {

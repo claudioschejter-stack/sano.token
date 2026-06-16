@@ -38,6 +38,14 @@ export function isLocalRailManualResult(metadata?: Record<string, unknown> | nul
   return metadata?.mode === 'manual_reconciliation';
 }
 
+export function isRipioOnRampResult(metadata?: Record<string, unknown> | null): boolean {
+  return metadata?.mode === 'ripio_on_ramp';
+}
+
+export function isPendingManualGatewayResult(metadata?: Record<string, unknown> | null): boolean {
+  return isLocalRailManualResult(metadata) || isRipioOnRampResult(metadata);
+}
+
 export function isWiseManualResult(metadata?: Record<string, unknown> | null): boolean {
   return metadata?.mode === 'manual_reconciliation' && metadata?.provider === 'wise';
 }

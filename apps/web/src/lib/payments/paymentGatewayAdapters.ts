@@ -1,5 +1,7 @@
 import { checkoutBaseUrl } from './paymentConfig';
 import { appendStripePaymentMethodTypes } from './stripeCheckoutOptions';
+import { resolveMercadoPagoChargeAmount } from './mercadoPagoCharge';
+import { mercadoPagoAccessToken, mercadoPagoCheckoutUrl, isMercadoPagoSandbox, mercadoPagoTokenLooksInvalid } from './mercadoPagoClient';
 
 type CheckoutRequest = {
   paymentIntentId: string;
@@ -19,6 +21,34 @@ type CheckoutResult = {
 async function parseJson<T>(response: Response): Promise<T> {
   const text = await response.text();
   return text ? (JSON.parse(text) as T) : ({} as T);
+}
+
+function mercadoPagoNotificationUrl(): string {
+  return `${checkoutBaseUrl()}/api/webhooks/mercadopago`;
+}
+
+function mercadoPagoPreferenceItem(title: string, amountUsd: number) {
+  const charge = resolveMercadoPagoChargeAmount(amountUsd);
+  return {
+    title,
+    quantity: 1,
+    currency_id: charge.currency,
+    unit_price: charge.amount
+  };
+}
+
+function mercadoPagoMisconfigured(accessToken: string | null): CheckoutResult | null {
+  const tokenError = mercadoPagoTokenLooksInvalid(accessToken);
+  if (!accessToken) {
+    return { provider: 'mercado_pago', metadata: { configured: false } };
+  }
+  if (tokenError) {
+    return {
+      provider: 'mercado_pago',
+      metadata: { configured: true, error: tokenError, sandbox: isMercadoPagoSandbox(accessToken) }
+    };
+  }
+  return null;
 }
 
 export async function createStripeCheckout(input: CheckoutRequest): Promise<CheckoutResult> {
@@ -69,9 +99,10 @@ export async function createStripeCheckout(input: CheckoutRequest): Promise<Chec
 }
 
 export async function createMercadoPagoCheckout(input: CheckoutRequest): Promise<CheckoutResult> {
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-  if (!accessToken) {
-    return { provider: 'mercado_pago', metadata: { configured: false } };
+  const accessToken = mercadoPagoAccessToken();
+  const misconfigured = mercadoPagoMisconfigured(accessToken);
+  if (misconfigured) {
+    return misconfigured;
   }
 
   const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
@@ -82,14 +113,9 @@ export async function createMercadoPagoCheckout(input: CheckoutRequest): Promise
     },
     body: JSON.stringify({
       external_reference: input.paymentIntentId,
-      items: [
-        {
-          title: `Sanova RWA tokens (${input.tokenCount})`,
-          quantity: 1,
-          currency_id: 'USD',
-          unit_price: input.amountUsd
-        }
-      ],
+      items: [mercadoPagoPreferenceItem(`Sanova RWA tokens (${input.tokenCount})`, input.amountUsd)],
+      notification_url: mercadoPagoNotificationUrl(),
+      auto_return: 'approved',
       back_urls: {
         success: `${checkoutBaseUrl()}/marketplace/${input.projectId}/checkout?payment_intent=${input.paymentIntentId}&status=success`,
         failure: `${checkoutBaseUrl()}/marketplace/${input.projectId}/checkout?payment_intent=${input.paymentIntentId}&status=failed`,
@@ -106,12 +132,12 @@ export async function createMercadoPagoCheckout(input: CheckoutRequest): Promise
     return { provider: 'mercado_pago', metadata: { configured: true, error: await response.text() } };
   }
 
-  const data = await parseJson<{ id?: string; init_point?: string }>(response);
+  const data = await parseJson<{ id?: string; init_point?: string; sandbox_init_point?: string }>(response);
   return {
     provider: 'mercado_pago',
     providerPaymentId: data.id,
-    providerCheckoutUrl: data.init_point,
-    metadata: { configured: true }
+    providerCheckoutUrl: mercadoPagoCheckoutUrl(data),
+    metadata: { configured: true, sandbox: isMercadoPagoSandbox(accessToken) }
   };
 }
 
@@ -228,9 +254,10 @@ export async function createStripeCartCheckout(input: CartCheckoutRequest): Prom
 }
 
 export async function createMercadoPagoCartCheckout(input: CartCheckoutRequest): Promise<CheckoutResult> {
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-  if (!accessToken) {
-    return { provider: 'mercado_pago', metadata: { configured: false } };
+  const accessToken = mercadoPagoAccessToken();
+  const misconfigured = mercadoPagoMisconfigured(accessToken);
+  if (misconfigured) {
+    return misconfigured;
   }
 
   const primaryIntentId = input.paymentIntentIds[0];
@@ -243,14 +270,9 @@ export async function createMercadoPagoCartCheckout(input: CartCheckoutRequest):
     },
     body: JSON.stringify({
       external_reference: primaryIntentId,
-      items: [
-        {
-          title: `Sanova RWA cart (${input.totalTokens} tokens)`,
-          quantity: 1,
-          currency_id: 'USD',
-          unit_price: input.totalUsd
-        }
-      ],
+      items: [mercadoPagoPreferenceItem(`Sanova RWA cart (${input.totalTokens} tokens)`, input.totalUsd)],
+      notification_url: mercadoPagoNotificationUrl(),
+      auto_return: 'approved',
       back_urls: {
         success: urls.success,
         failure: urls.failed,
@@ -268,12 +290,12 @@ export async function createMercadoPagoCartCheckout(input: CartCheckoutRequest):
     return { provider: 'mercado_pago', metadata: { configured: true, error: await response.text() } };
   }
 
-  const data = await parseJson<{ id?: string; init_point?: string }>(response);
+  const data = await parseJson<{ id?: string; init_point?: string; sandbox_init_point?: string }>(response);
   return {
     provider: 'mercado_pago',
     providerPaymentId: data.id,
-    providerCheckoutUrl: data.init_point,
-    metadata: { configured: true, cartBatchId: input.batchId }
+    providerCheckoutUrl: mercadoPagoCheckoutUrl(data),
+    metadata: { configured: true, cartBatchId: input.batchId, sandbox: isMercadoPagoSandbox(accessToken) }
   };
 }
 
@@ -285,9 +307,10 @@ type DepositCheckoutRequest = {
 };
 
 export async function createMercadoPagoDepositCheckout(input: DepositCheckoutRequest): Promise<CheckoutResult> {
-  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-  if (!accessToken) {
-    return { provider: 'mercado_pago', metadata: { configured: false } };
+  const accessToken = mercadoPagoAccessToken();
+  const misconfigured = mercadoPagoMisconfigured(accessToken);
+  if (misconfigured) {
+    return misconfigured;
   }
 
   const label = input.paymentLabel?.trim() || 'Depósito Sanova';
@@ -305,14 +328,9 @@ export async function createMercadoPagoDepositCheckout(input: DepositCheckoutReq
     },
     body: JSON.stringify({
       external_reference: input.depositId,
-      items: [
-        {
-          title: label,
-          quantity: 1,
-          currency_id: 'USD',
-          unit_price: input.amountUsd
-        }
-      ],
+      items: [mercadoPagoPreferenceItem(label, input.amountUsd)],
+      notification_url: mercadoPagoNotificationUrl(),
+      auto_return: 'approved',
       back_urls: urls,
       metadata: {
         depositId: input.depositId,
@@ -325,12 +343,17 @@ export async function createMercadoPagoDepositCheckout(input: DepositCheckoutReq
     return { provider: 'mercado_pago', metadata: { configured: true, error: await response.text() } };
   }
 
-  const data = await parseJson<{ id?: string; init_point?: string }>(response);
+  const data = await parseJson<{ id?: string; init_point?: string; sandbox_init_point?: string }>(response);
   return {
     provider: 'mercado_pago',
     providerPaymentId: data.id,
-    providerCheckoutUrl: data.init_point,
-    metadata: { configured: true, depositId: input.depositId, paymentOptionId: input.paymentOptionId ?? null }
+    providerCheckoutUrl: mercadoPagoCheckoutUrl(data),
+    metadata: {
+      configured: true,
+      depositId: input.depositId,
+      paymentOptionId: input.paymentOptionId ?? null,
+      sandbox: isMercadoPagoSandbox(accessToken)
+    }
   };
 }
 

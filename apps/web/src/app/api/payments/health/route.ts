@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { buildDepositPaymentOptions } from '../../../../lib/payments/depositPaymentOptions';
 import { paymentGatewayConfigured } from '../../../../lib/payments/paymentConfig';
+import { probeMercadoPagoIntegration } from '../../../../lib/payments/mercadoPagoClient';
 import { getPaymentsProductionSummary } from '../../../../lib/payments/paymentsIntegrationStatus';
 
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,9 @@ export async function GET() {
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://sano-token-web.vercel.app');
 
   const summary = getPaymentsProductionSummary(siteUrl);
+  const mercadoPagoProbe = paymentGatewayConfigured('MERCADO_PAGO')
+    ? await probeMercadoPagoIntegration()
+    : { ok: false, sandbox: false, canCreateCheckout: false, error: 'NOT_CONFIGURED' };
   const arQuote = buildDepositPaymentOptions(100, 'AR', 1050, { linkedWalletAddress: '0x0000000000000000000000000000000000000001' });
   const configuredCheckoutOptions = arQuote.options.filter((row) => row.configured);
   const unavailableCheckoutOptions = arQuote.options.filter((row) => !row.configured);
@@ -25,10 +29,13 @@ export async function GET() {
       localRail: paymentGatewayConfigured('LOCAL_RAIL'),
       stripe: paymentGatewayConfigured('STRIPE'),
       mercadoPago: paymentGatewayConfigured('MERCADO_PAGO'),
+      mercadoPagoLive: mercadoPagoProbe.ok && mercadoPagoProbe.canCreateCheckout,
+      ripio: paymentGatewayConfigured('RIPIO'),
       astropay: Boolean(process.env.ASTROPAY_API_KEY?.trim()),
       bridge: paymentGatewayConfigured('BRIDGE'),
       transak: paymentGatewayConfigured('TRANSAK')
     },
+    mercadoPagoProbe,
     checkoutArgentina: {
       totalOptions: arQuote.options.length,
       configuredCount: configuredCheckoutOptions.length,

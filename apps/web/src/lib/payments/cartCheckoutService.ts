@@ -17,6 +17,7 @@ import {
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
 import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
+import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
 import {
@@ -36,7 +37,7 @@ import {
   resolvePaymentCountryForUser
 } from './paymentCountry';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
-import { isLocalRailManualResult } from './stripeCheckoutOptions';
+import { isLocalRailManualResult, isRipioOnRampResult } from './stripeCheckoutOptions';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = ['event Transfer(address indexed from,address indexed to,uint256 value)'];
@@ -183,6 +184,7 @@ async function attachCartGatewayCheckout(input: {
   totalTokens: number;
   primaryProjectId: string;
   paymentIntentIds: string[];
+  userId: string;
   userEmail?: string | null;
   stablecoinNetwork?: string | null;
   country?: string | null;
@@ -251,6 +253,17 @@ async function attachCartGatewayCheckout(input: {
       redirectPath
     });
   }
+  if (input.method === 'RIPIO') {
+    return createRipioOnRampCheckout({
+      depositId: input.batchId,
+      amountUsd: input.totalUsd,
+      stablecoinNetwork: input.stablecoinNetwork,
+      userEmail: input.userEmail,
+      userId: input.userId,
+      redirectPath,
+      paymentOptionRail: checkoutRow?.providerRail ?? null
+    });
+  }
   if (input.method === 'RAMP') {
     return {
       provider: 'ramp',
@@ -266,6 +279,7 @@ const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
   'MERCADO_PAGO',
   'COINBASE',
   'TRANSAK',
+  'RIPIO',
   'BRIDGE',
   'RAMP'
 ]);
@@ -567,12 +581,15 @@ export async function createCartPurchaseCheckout(input: {
     totalTokens,
     primaryProjectId: input.items[0].projectId,
     paymentIntentIds,
+    userId: input.userId,
     userEmail: input.userEmail,
     stablecoinNetwork: network.id,
     country: paymentCountry
   });
 
-  const gatewayManual = gateway?.metadata && isLocalRailManualResult(gateway.metadata);
+  const gatewayManual =
+    gateway?.metadata &&
+    (isLocalRailManualResult(gateway.metadata) || isRipioOnRampResult(gateway.metadata));
 
   if (gatewayManual) {
     for (const intentId of paymentIntentIds) {

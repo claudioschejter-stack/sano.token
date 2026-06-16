@@ -67,6 +67,15 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     supportsPurchase: true
   },
   {
+    id: 'RIPIO',
+    label: 'Ripio',
+    description: 'On-ramp ARS → USDC en Base con transferencia o Mercado Pago.',
+    configured: paymentGatewayConfigured('RIPIO'),
+    automatic: true,
+    supportsDeposit: true,
+    supportsPurchase: true
+  },
+  {
     id: 'BRIDGE',
     label: 'Bridge',
     description: 'On/off-ramp empresarial con confirmación automática.',

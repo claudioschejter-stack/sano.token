@@ -10,15 +10,18 @@ import {
   createMercadoPagoDepositCheckout,
   createStripeCheckout
 } from './paymentGatewayAdapters';
+import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 
 type OnRampRequest = {
   depositId: string;
   amountUsd: number;
   stablecoinNetwork?: string | null;
   userEmail?: string | null;
+  userId?: string | null;
   walletAddress?: string | null;
   redirectPath?: string | null;
   country?: string | null;
+  paymentOptionRail?: string | null;
 };
 
 type OnRampResult = {
@@ -231,6 +234,17 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
       return { provider: 'coinbase', metadata: { configured: Boolean(process.env.COINBASE_COMMERCE_API_KEY) } };
     case 'TRANSAK':
       return createTransakOnRampCheckout(input);
+    case 'RIPIO':
+      return createRipioOnRampCheckout({
+        depositId: input.depositId,
+        amountUsd: input.amountUsd,
+        stablecoinNetwork: input.stablecoinNetwork,
+        userEmail: input.userEmail,
+        userId: input.userId,
+        walletAddress: input.walletAddress,
+        redirectPath: input.redirectPath,
+        paymentOptionRail: input.paymentOptionId ? checkoutRow?.providerRail : input.paymentOptionRail
+      });
     case 'BRIDGE':
       if (checkoutRow?.provider === 'wise') {
         return createLocalRailCheckout({

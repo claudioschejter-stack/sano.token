@@ -18,7 +18,7 @@ import {
   type DepositPaymentOptionGroup
 } from '../../lib/payments/depositPaymentOptions';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
-import { isLocalRailManualResult, isWiseManualResult } from '../../lib/payments/stripeCheckoutOptions';
+import { isLocalRailManualResult, isPendingManualGatewayResult, isRipioOnRampResult, isWiseManualResult } from '../../lib/payments/stripeCheckoutOptions';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
@@ -37,6 +37,7 @@ type CartCheckoutResult = {
   method: PaymentMethod;
   confirmed: boolean;
   manualReview?: boolean;
+  provider?: string | null;
   providerCheckoutUrl: string | null;
   payToAddress: string | null;
   stablecoinNetwork: string | null;
@@ -48,6 +49,7 @@ type DepositResponse = {
   status: string;
   amountUsd: string;
   method: string;
+  provider?: string | null;
   payToAddress: string | null;
   providerCheckoutUrl: string | null;
   metadata?: Record<string, unknown> | null;
@@ -133,6 +135,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         : initialMode;
   const returnStatus = searchParams.get('status');
   const batchFromQuery = searchParams.get('batch');
+  const depositFromQuery = searchParams.get('deposit');
+  const providerFromQuery = searchParams.get('provider');
 
   const items = useCartStore((state) => state.items);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -337,6 +341,96 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   }, [selectedDepositOption]);
 
   useEffect(() => {
+    if (mode !== 'deposit' || !depositFromQuery || !returnStatus) {
+      return;
+    }
+    if (returnStatus !== 'pending' && returnStatus !== 'success') {
+      return;
+    }
+
+    let cancelled = false;
+    setError(null);
+
+    const loadDepositReturn = async () => {
+      try {
+        const response = await fetch(
+          `/api/wallet/deposit-intents?id=${encodeURIComponent(depositFromQuery)}`,
+          { cache: 'no-store' }
+        );
+        const data = (await response.json()) as { error?: string; deposit?: DepositResponse };
+        if (!response.ok || !data.deposit) {
+          if (!cancelled) {
+            setError(data.error ?? 'DEPOSIT_LOAD_FAILED');
+            setStatus('idle');
+          }
+          return;
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setDeposit(data.deposit);
+
+        const providerMeta =
+          (data.deposit.metadata?.provider as Record<string, unknown> | undefined) ?? data.deposit.metadata ?? null;
+        const ripioPending =
+          returnStatus === 'pending' ||
+          providerFromQuery === 'ripio' ||
+          data.deposit.provider === 'ripio' ||
+          isRipioOnRampResult(providerMeta);
+
+        if (ripioPending && data.deposit.status !== 'CONFIRMED') {
+          setPendingReference(data.deposit.id);
+          setStatus('pending_gateway');
+          return;
+        }
+
+        if (returnStatus === 'success' && data.deposit.status === 'CONFIRMED') {
+          setStatus('done');
+          return;
+        }
+
+        if (returnStatus === 'success') {
+          setStatus('verifying');
+          let attempts = 0;
+          while (!cancelled && attempts < 30) {
+            attempts += 1;
+            await new Promise((resolve) => window.setTimeout(resolve, 2000));
+            const poll = await fetch(
+              `/api/wallet/deposit-intents?id=${encodeURIComponent(depositFromQuery)}`,
+              { cache: 'no-store' }
+            );
+            const pollData = (await poll.json()) as { deposit?: DepositResponse };
+            if (poll.ok && pollData.deposit?.status === 'CONFIRMED') {
+              if (!cancelled) {
+                setDeposit(pollData.deposit);
+                setStatus('done');
+              }
+              return;
+            }
+          }
+          if (!cancelled) {
+            setStatus('pending_gateway');
+            setPendingReference(data.deposit.id);
+          }
+        }
+      } catch {
+        if (!cancelled) {
+          setError('DEPOSIT_LOAD_FAILED');
+          setStatus('idle');
+        }
+      }
+    };
+
+    void loadDepositReturn();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [depositFromQuery, mode, providerFromQuery, returnStatus]);
+
+  useEffect(() => {
     if (returnStatus !== 'success' || !batchFromQuery || mode !== 'purchase') {
       return;
     }
@@ -488,8 +582,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         setDeposit(data.deposit);
 
         if (data.deposit.providerCheckoutUrl) {
-          window.location.href = data.deposit.providerCheckoutUrl;
-          return;
+          const checkoutUrl = data.deposit.providerCheckoutUrl;
+          const isInternalReturn =
+            checkoutUrl.includes('/marketplace/carrito') && checkoutUrl.includes('status=pending');
+          if (!isInternalReturn) {
+            window.location.href = checkoutUrl;
+            return;
+          }
         }
 
         if (paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') {
@@ -497,8 +596,14 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           return;
         }
 
-        const providerMeta = (data.deposit.metadata?.provider as Record<string, unknown> | undefined) ?? data.deposit.metadata;
-        if (paymentMethod === 'LOCAL_RAIL' || paymentMethod === 'BRIDGE' || isLocalRailManualResult(providerMeta)) {
+        const providerMeta =
+          (data.deposit.metadata?.provider as Record<string, unknown> | undefined) ?? data.deposit.metadata;
+        if (
+          paymentMethod === 'LOCAL_RAIL' ||
+          paymentMethod === 'BRIDGE' ||
+          paymentMethod === 'RIPIO' ||
+          isPendingManualGatewayResult(providerMeta)
+        ) {
           setPendingReference(data.deposit.id);
           setStatus('pending_gateway');
           return;
@@ -687,6 +792,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       : ((checkout?.paymentIntents?.[0]?.metadata as Record<string, unknown> | undefined)?.gateway as
           Record<string, unknown> | undefined) ?? null;
   const isWisePending = isWiseManualResult(pendingManualMeta);
+  const isRipioPending =
+    pendingManualMeta?.mode === 'ripio_on_ramp' ||
+    deposit?.provider === 'ripio' ||
+    checkout?.provider === 'ripio';
 
   const renderDepositOption = (option: DepositPaymentOption) => {
     const selected = selectedDepositOptionId === option.id;
@@ -1088,17 +1197,28 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           {status === 'pending_gateway' && pendingReference ? (
             <div className="space-y-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
               <p className="font-semibold text-terminal-primary">
-                {isWisePending ? c.wisePendingTitle : c.localRailPendingTitle}
+                {isWisePending
+                  ? c.wisePendingTitle
+                  : isRipioPending
+                    ? 'Transferencia Ripio pendiente'
+                    : c.localRailPendingTitle}
               </p>
               <p className="text-xs text-terminal-muted">
                 {isWisePending
                   ? formatMessage(c.wisePendingBody, { reference: pendingReference })
-                  : formatMessage(mode === 'deposit' ? c.localRailPendingBody : c.localRailPendingPurchase, {
-                      method: selectedDepositOption?.label ?? paymentMethod,
-                      reference: pendingReference
-                    })}
+                  : isRipioPending
+                    ? 'Transfiere el monto en ARS con las instrucciones de abajo. Acreditamos USDC en tu wallet cuando Ripio confirme el depósito.'
+                    : formatMessage(mode === 'deposit' ? c.localRailPendingBody : c.localRailPendingPurchase, {
+                        method: selectedDepositOption?.label ?? paymentMethod,
+                        reference: pendingReference
+                      })}
               </p>
               {isWisePending && pendingManualMeta?.instructions ? (
+                <pre className="whitespace-pre-wrap rounded border border-terminal-border bg-white p-3 text-[11px] font-mono text-terminal-text">
+                  {String(pendingManualMeta.instructions)}
+                </pre>
+              ) : null}
+              {isRipioPending && pendingManualMeta?.instructions ? (
                 <pre className="whitespace-pre-wrap rounded border border-terminal-border bg-white p-3 text-[11px] font-mono text-terminal-text">
                   {String(pendingManualMeta.instructions)}
                 </pre>

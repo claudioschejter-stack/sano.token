@@ -6,6 +6,7 @@ export type PaymentMethodId =
   | 'LOCAL_RAIL'
   | 'BRIDGE'
   | 'TRANSAK'
+  | 'RIPIO'
   | 'RAMP'
   | 'STRIPE'
   | 'MERCADO_PAGO'
@@ -61,6 +62,10 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
 
   if (method === 'TRANSAK') {
     return Boolean(process.env.TRANSAK_API_KEY);
+  }
+
+  if (method === 'RIPIO') {
+    return Boolean(process.env.RIPIO_CLIENT_ID && process.env.RIPIO_CLIENT_SECRET);
   }
 
   if (method === 'RAMP') {

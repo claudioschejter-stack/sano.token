@@ -7,7 +7,7 @@ import { createDepositProviderCheckout } from './paymentOnRampAdapters';
 import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 import { resolvePaymentCountryForUser } from './paymentCountry';
-import { isLocalRailManualResult } from './stripeCheckoutOptions';
+import { isLocalRailManualResult, isRipioOnRampResult } from './stripeCheckoutOptions';
 import type { PaymentRouteQuote } from './cheapestPaymentRouter';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
@@ -273,13 +273,16 @@ export async function createPlatformDeposit(input: {
     amountUsd: input.amountUsd,
     stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork,
     userEmail: user.email,
+    userId: input.userId,
     walletAddress: payerWallet,
     redirectPath: `/marketplace/carrito?mode=deposit&deposit=${deposit.id}&status=success`,
-    country: await resolvePaymentCountryForUser(input.userId)
+    country: await resolvePaymentCountryForUser(input.userId),
+    paymentOptionRail: checkoutRow?.providerRail ?? null
   });
 
   if (checkout.providerCheckoutUrl || checkout.providerPaymentId) {
-    const manualReview = isLocalRailManualResult(checkout.metadata);
+    const manualReview =
+      isLocalRailManualResult(checkout.metadata) || isRipioOnRampResult(checkout.metadata);
     const updated = await prisma.platformDeposit.update({
       where: { id: deposit.id },
       data: {
@@ -289,7 +292,16 @@ export async function createPlatformDeposit(input: {
         providerCheckoutUrl: checkout.providerCheckoutUrl,
         metadata: {
           ...((deposit.metadata as Record<string, unknown>) ?? {}),
-          provider: checkout.metadata
+          provider: checkout.metadata,
+          ripioExternalRef:
+            typeof checkout.metadata?.ripioExternalRef === 'string'
+              ? checkout.metadata.ripioExternalRef
+              : undefined,
+          ripioCustomerId:
+            typeof checkout.metadata?.ripioCustomerId === 'string'
+              ? checkout.metadata.ripioCustomerId
+              : undefined,
+          fiatPaymentInstructions: checkout.metadata?.fiatPaymentInstructions ?? undefined
         } as Prisma.InputJsonObject
       }
     });
@@ -349,6 +361,19 @@ export async function confirmPlatformDeposit(input: {
   });
 
   return serializeDeposit(updated);
+}
+
+export async function getPlatformDepositForUser(input: { userId: string; depositId: string }) {
+  const deposit = await prisma.platformDeposit.findFirst({
+    where: {
+      id: input.depositId,
+      userId: input.userId
+    }
+  });
+  if (!deposit) {
+    throw new Error('DEPOSIT_NOT_FOUND');
+  }
+  return serializeDeposit(deposit);
 }
 
 export function serializeDeposit(deposit: {

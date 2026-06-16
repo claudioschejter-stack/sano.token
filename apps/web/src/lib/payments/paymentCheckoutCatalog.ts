@@ -18,6 +18,7 @@ export type PaymentProviderId =
   | 'bridge'
   | 'wise'
   | 'transak'
+  | 'ripio'
   | 'ramp'
   | 'binance'
   | 'custodial';
@@ -89,6 +90,21 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackNetworkUsd: 0.01,
     stablecoinNetwork: 'BASE',
     sortOrder: 30
+  },
+  {
+    id: 'ripio_on_ramp',
+    groupId: 'argentina',
+    method: 'RIPIO',
+    label: 'Ripio (ARS → USDC Base)',
+    provider: 'ripio',
+    providerRail: 'bank_transfer',
+    fallbackFeeBps: 140,
+    fallbackGasUsd: 0.05,
+    fallbackNetworkUsd: 0.03,
+    usesLocalCurrency: true,
+    countries: ['AR'],
+    stablecoinNetwork: 'BASE',
+    sortOrder: 95
   },
   {
     id: 'modo',
@@ -342,7 +358,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     id: 'ripio',
     groupId: 'latam',
     method: 'LOCAL_RAIL',
-    label: 'Ripio',
+    label: 'Ripio Wallet (dLocal)',
     provider: 'dlocal',
     providerRail: 'wallet',
     fallbackFeeBps: 140,
@@ -350,7 +366,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackNetworkUsd: 0.03,
     usesLocalCurrency: true,
     countries: ['AR'],
-    sortOrder: 330
+    sortOrder: 335
   },
   {
     id: 'bonbit',

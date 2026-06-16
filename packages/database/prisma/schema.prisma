@@ -43,6 +43,7 @@ enum PaymentMethod {
   LOCAL_RAIL
   BRIDGE
   TRANSAK
+  RIPIO
   RAMP
   STRIPE
   MERCADO_PAGO

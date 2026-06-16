@@ -17,6 +17,7 @@ import {
   createStripeCheckout
 } from './paymentGatewayAdapters';
 import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
+import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
 import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
@@ -120,6 +121,8 @@ async function attachProviderCheckout(input: {
   projectId: string;
   amountUsd: number;
   tokenCount: number;
+  userId: string;
+  userEmail?: string | null;
 }) {
   if (input.method === 'STRIPE') {
     return createStripeCheckout({
@@ -151,7 +154,18 @@ async function attachProviderCheckout(input: {
   if (input.method === 'TRANSAK') {
     return createTransakOnRampCheckout({
       depositId: input.intentId,
-      amountUsd: input.amountUsd
+      amountUsd: input.amountUsd,
+      userId: input.userId,
+      userEmail: input.userEmail
+    });
+  }
+
+  if (input.method === 'RIPIO') {
+    return createRipioOnRampCheckout({
+      depositId: input.intentId,
+      amountUsd: input.amountUsd,
+      userId: input.userId,
+      userEmail: input.userEmail
     });
   }
 
@@ -170,6 +184,7 @@ const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
   'MERCADO_PAGO',
   'COINBASE',
   'TRANSAK',
+  'RIPIO',
   'BRIDGE',
   'RAMP'
 ]);
@@ -374,7 +389,9 @@ export async function createPaymentIntent(input: {
     method: input.method,
     projectId: input.projectId,
     amountUsd: intent.amountUsd.toNumber(),
-    tokenCount: input.tokenCount
+    tokenCount: input.tokenCount,
+    userId: input.userId,
+    userEmail: user.email
   });
 
   const updated =

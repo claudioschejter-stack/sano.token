@@ -14,6 +14,7 @@ export const WEBHOOK_PATHS = {
   coinbase: '/api/webhooks/coinbase',
   transak: '/api/webhooks/transak',
   bridge: '/api/webhooks/bridge',
+  ripio: '/api/webhooks/ripio',
   dlocal: '/api/webhooks/dlocal',
   ebanx: '/api/webhooks/ebanx',
   astropay: '/api/webhooks/astropay'
@@ -81,6 +82,12 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
       envKeys: ['BRIDGE_API_KEY', 'BRIDGE_WEBHOOK_SECRET']
     },
     {
+      id: 'ripio',
+      label: 'Ripio on-ramp (ARS → USDC)',
+      configured: paymentGatewayConfigured('RIPIO'),
+      envKeys: ['RIPIO_CLIENT_ID', 'RIPIO_CLIENT_SECRET', 'RIPIO_WEBHOOK_SECRET']
+    },
+    {
       id: 'local-rails',
       label: 'Rails locales (dLocal / EBANX)',
       configured: paymentGatewayConfigured('LOCAL_RAIL'),
@@ -122,7 +129,7 @@ export function getPaymentsProductionSummary(siteUrl: string) {
       networksReady.includes('BASE') &&
       integrations.some(
         (item) =>
-          ['stripe', 'transak', 'mercadopago', 'local-rails', 'astropay', 'bridge', 'coinbase'].includes(item.id) &&
+          ['stripe', 'transak', 'mercadopago', 'ripio', 'local-rails', 'astropay', 'bridge', 'coinbase'].includes(item.id) &&
           item.configured
       ),
     integrations,

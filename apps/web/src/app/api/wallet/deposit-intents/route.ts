@@ -3,7 +3,7 @@ import type { PaymentMethod } from '@sanova/database';
 import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
 import { getPaymentCheckoutRowById } from '../../../../lib/payments/depositPaymentOptions';
 import { isDepositCheckoutRowConfigured } from '../../../../lib/payments/paymentProviderAvailability';
-import { createPlatformDeposit } from '../../../../lib/payments/platformWalletService';
+import { createPlatformDeposit, getPlatformDepositForUser } from '../../../../lib/payments/platformWalletService';
 import { chooseCheapestPaymentRoute, quoteCheapestPaymentRoutes, type PaymentRouteDirection } from '../../../../lib/payments/cheapestPaymentRouter';
 import { prisma } from '@sanova/database';
 import { resolveOperationalWalletAddress } from '../../../../lib/investor/provisionInvestorProfile';
@@ -23,7 +23,34 @@ type DepositBody = {
   stablecoinNetwork?: string;
 };
 
-const METHODS = new Set<PaymentMethod>(['USDC_ONCHAIN', 'STRIPE', 'MERCADO_PAGO', 'COINBASE', 'LOCAL_RAIL', 'BRIDGE', 'TRANSAK', 'RAMP']);
+const METHODS = new Set<PaymentMethod>(['USDC_ONCHAIN', 'STRIPE', 'MERCADO_PAGO', 'COINBASE', 'LOCAL_RAIL', 'BRIDGE', 'TRANSAK', 'RIPIO', 'RAMP']);
+
+export async function GET(request: Request) {
+  const ctx = await requireInvestorSession();
+  if (!ctx) {
+    return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+  }
+  if ('forbidden' in ctx) {
+    return investorSessionForbiddenResponse(ctx);
+  }
+
+  const depositId = new URL(request.url).searchParams.get('id')?.trim();
+  if (!depositId) {
+    return NextResponse.json({ error: 'DEPOSIT_ID_REQUIRED' }, { status: 400 });
+  }
+
+  try {
+    const deposit = await getPlatformDepositForUser({ userId: ctx.userId, depositId });
+    return NextResponse.json({ ok: true, deposit });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'UNKNOWN';
+    if (message === 'DEPOSIT_NOT_FOUND') {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
+    console.error('[wallet/deposit-intents GET]', error);
+    return NextResponse.json({ error: 'DEPOSIT_LOAD_FAILED' }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   const ctx = await requireInvestorSession();
