@@ -10,6 +10,8 @@ import {
 import { ensureAutomationSignerReady, sendAutomationTx, waitForAutomationTx } from './automationTx';
 import { getLendingChainConfig } from '../lending/baseContracts';
 import { fixedUsdPriceToMorphoOraclePrice } from './pricingOracleValidation';
+import { deployNavOracleForVault, shouldUseNavOracle } from './navOracleService';
+import { setupMetaMorphoForMarket } from '../lending/metaMorphoService';
 
 export type CreateMorphoMarketResult =
   | {
@@ -18,6 +20,9 @@ export type CreateMorphoMarketResult =
       txHash: string;
       chainId: number;
       params: MorphoMarketParams;
+      oracleType?: 'nav' | 'fixed';
+      metaMorphoVault?: string | null;
+      metaMorphoPoolUrl?: string | null;
     }
   | { status: 'SKIPPED'; reason: string };
 
@@ -56,6 +61,27 @@ async function deployFixedPriceOracle(wallet: Wallet, pricePerTokenUsd: number):
   return oracle.getAddress();
 }
 
+async function resolveOracleAddress(
+  wallet: Wallet,
+  vaultAddress: string,
+  pricePerTokenUsd: number
+): Promise<{ address: string | null; type: 'nav' | 'fixed' }> {
+  const configured = process.env.MORPHO_ORACLE_ADDRESS?.trim();
+  if (configured) {
+    return { address: configured, type: shouldUseNavOracle() ? 'nav' : 'fixed' };
+  }
+
+  if (shouldUseNavOracle()) {
+    const navResult = await deployNavOracleForVault(vaultAddress, pricePerTokenUsd);
+    if (navResult.status === 'DEPLOYED') {
+      return { address: navResult.oracleAddress, type: 'nav' };
+    }
+  }
+
+  const fixed = await deployFixedPriceOracle(wallet, pricePerTokenUsd);
+  return { address: fixed, type: 'fixed' };
+}
+
 export async function createMorphoMarketForVault(
   vaultAddress: string,
   pricePerTokenUsd: number
@@ -78,8 +104,11 @@ export async function createMorphoMarketForVault(
       return { status: 'SKIPPED', reason: `La wallet de deploy ${wallet.address} no tiene gas en chain ${chainId}.` };
     }
 
-    const oracleAddress =
-      process.env.MORPHO_ORACLE_ADDRESS?.trim() || (await deployFixedPriceOracle(wallet, pricePerTokenUsd));
+    const { address: oracleAddress, type: oracleType } = await resolveOracleAddress(
+      wallet,
+      vaultAddress,
+      pricePerTokenUsd
+    );
     if (!oracleAddress) {
       return {
         status: 'SKIPPED',
@@ -171,12 +200,25 @@ export async function createMorphoMarketForVault(
       return { status: 'SKIPPED', reason: 'Morpho market verification failed after createMarket.' };
     }
 
+    let metaMorphoVault: string | null = null;
+    let metaMorphoPoolUrl: string | null = null;
+    if (process.env.METAMORPHO_VAULT_ADDRESS?.trim() || process.env.METAMORPHO_AUTO_SETUP === 'true') {
+      const metaResult = await setupMetaMorphoForMarket(params);
+      if (metaResult.status === 'READY') {
+        metaMorphoVault = metaResult.vaultAddress;
+        metaMorphoPoolUrl = metaResult.poolUrl;
+      }
+    }
+
     return {
       status: 'CREATED',
       marketId,
       txHash: receipt?.hash ?? tx.hash,
       chainId,
-      params
+      params,
+      oracleType,
+      metaMorphoVault,
+      metaMorphoPoolUrl
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown Morpho market error';

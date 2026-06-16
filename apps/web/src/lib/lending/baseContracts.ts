@@ -32,6 +32,9 @@ export function getLendingChainConfigForChain(chainId: number): LendingChainConf
 
 export const EXECUTABLE_BORROW_PROTOCOLS = ['morpho'] as const;
 
+/** MetaMorpho V1.1 factory on Base mainnet — institutional USDC vault for RWA markets. */
+export const METAMORPHO_FACTORY_ADDRESS = '0xFf62A7c278C62eD665133147129245053Bbf5918';
+
 export type ExecutableBorrowProtocol = (typeof EXECUTABLE_BORROW_PROTOCOLS)[number];
 
 export function listExecutableProtocolsForChain(

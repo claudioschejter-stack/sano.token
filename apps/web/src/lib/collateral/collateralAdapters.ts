@@ -77,7 +77,9 @@ async function registerMorpho(project: CollateralProjectContext): Promise<Collat
           externalId: result.marketId,
           poolUrl: `https://app.morpho.org/base/market/${result.marketId}`,
           oracleAddress: result.params.oracle,
-          notes: `Mercado Morpho Blue creado on-chain (tx ${result.txHash.slice(0, 10)}…).`
+          notes: `Mercado Morpho Blue aislado (${result.oracleType ?? 'nav'} oracle, tx ${result.txHash.slice(0, 10)}…).${
+            result.metaMorphoPoolUrl ? ` MetaMorpho: ${result.metaMorphoPoolUrl}` : ''
+          }`
         };
       }
 

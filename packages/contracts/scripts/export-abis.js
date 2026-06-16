@@ -93,7 +93,8 @@ function main() {
     'SanovaAssetToken.sol',
     'SanovaRwaVault.sol',
     'SanovaAsyncVault.sol',
-    'SanovaFixedPriceOracle.sol'
+    'SanovaFixedPriceOracle.sol',
+    'SanovaNavOracle.sol'
   ]) {
     const contractName = path.basename(contractFile, '.sol');
     const artifactPath = path.join(
