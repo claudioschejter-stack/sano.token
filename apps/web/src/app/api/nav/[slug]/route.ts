@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { buildPublicNavReport } from '../../../lib/nav/navOraclePublic';
+import { buildPublicNavReport } from '../../../../lib/nav/navOraclePublic';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

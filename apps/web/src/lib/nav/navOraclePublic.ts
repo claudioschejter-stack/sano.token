@@ -115,7 +115,7 @@ export async function buildPublicNavReport(slug: string): Promise<PublicNavRepor
 
   const morpho = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
   const oracleAddress = morpho?.oracleAddress ?? process.env.MORPHO_ORACLE_ADDRESS?.trim() ?? null;
-  const totalNavUsd = asset.totalTokens * asset.pricePerTokenUsd;
+  const totalNavUsd = asset.totalTokens * asset.pricePerToken;
 
   let oracleType: PublicNavReport['oracle']['type'] = 'UNKNOWN';
   let onChainPriceValid: boolean | null = null;
