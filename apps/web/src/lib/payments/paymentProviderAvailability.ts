@@ -1,6 +1,5 @@
 import type { PaymentCheckoutRow, PaymentProviderId } from './paymentCheckoutCatalog';
 import { paymentGatewayConfigured } from './paymentConfig';
-import { ripioConfigured } from './ripioClient';
 
 export function isDLocalConfigured(): boolean {
   return Boolean(process.env.DLOCAL_API_KEY?.trim() || process.env.LOCAL_RAILS_ENABLED === 'true');
@@ -50,7 +49,7 @@ export function isPaymentProviderConfigured(provider: PaymentProviderId): boolea
     case 'transak':
       return paymentGatewayConfigured('TRANSAK');
     case 'ripio':
-      return ripioConfigured();
+      return paymentGatewayConfigured('RIPIO');
     case 'ramp':
       return false;
     case 'binance':
