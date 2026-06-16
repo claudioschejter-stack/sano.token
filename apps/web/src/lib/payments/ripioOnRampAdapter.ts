@@ -92,6 +92,7 @@ export async function createRipioOnRampCheckout(input: RipioCheckoutInput): Prom
     const quote = await ripioApi<RipioQuoteResponse>('/api/v1/quotes/', {
       method: 'POST',
       body: {
+        customerId,
         fromCurrency: fiat.currency,
         toCurrency: currency,
         fromAmount: fiat.amount,
