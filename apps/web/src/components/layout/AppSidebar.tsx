@@ -8,14 +8,12 @@ import {
   Landmark,
   LayoutDashboard,
   LogOut,
-  Menu,
   Settings,
   ShoppingBag,
   UserCheck,
   Users,
   UserCog,
-  Wallet,
-  X
+  Wallet
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -317,17 +315,12 @@ export function AppSidebar() {
 
   return (
     <>
-      <header className="safe-top fixed inset-x-0 top-0 z-[60] box-border flex h-14 items-start justify-between gap-2 border-b border-terminal-border bg-terminal-card p-[2mm] md:hidden">
-        <PortalBrandFramesMobileHeader />
-        <button
-          type="button"
-          aria-expanded={mobileOpen}
-          aria-label={mobileOpen ? t.landing.nav.closeMenu : t.landing.nav.openMenu}
+      <header className="safe-top fixed inset-x-0 top-0 z-[60] box-border flex h-14 items-start justify-start border-b border-terminal-border bg-terminal-card p-[2mm] md:hidden">
+        <PortalBrandFramesMobileHeader
           onClick={() => setMobileOpen((open) => !open)}
-          className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center self-start rounded-lg border border-terminal-border text-terminal-text"
-        >
-          {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-        </button>
+          ariaLabel={mobileOpen ? t.landing.nav.closeMenu : t.landing.nav.openMenu}
+          ariaExpanded={mobileOpen}
+        />
       </header>
 
       {mobileOpen ? (

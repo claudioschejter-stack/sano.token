@@ -47,20 +47,45 @@ export function PortalBrandFrames({
 export function PortalBrandFramesMobileHeader({
   href = '/',
   onNavigate,
+  onClick,
+  ariaLabel = 'Sanova Global',
+  ariaExpanded,
   className = ''
-}: Pick<PortalBrandFramesProps, 'href' | 'onNavigate' | 'className'>) {
+}: Pick<PortalBrandFramesProps, 'href' | 'onNavigate' | 'className'> & {
+  onClick?: () => void;
+  ariaLabel?: string;
+  ariaExpanded?: boolean;
+}) {
+  const content = (
+    <div
+      className={`${portalBrandFrameClass} flex items-center justify-start px-[2mm] py-[1mm]`}
+    >
+      <SanovaLogo variant="light" showWordmark href={null} className="h-9 max-h-full" />
+    </div>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel}
+        aria-expanded={ariaExpanded}
+        className={`inline-flex min-h-11 shrink-0 items-center justify-start transition-opacity hover:opacity-95 ${className}`.trim()}
+      >
+        {content}
+      </button>
+    );
+  }
+
   return (
     <Link
       href={href}
       className={`inline-flex shrink-0 items-center justify-start transition-opacity hover:opacity-95 ${className}`.trim()}
       onClick={onNavigate}
-      aria-label="Sanova Global"
+      aria-label={ariaLabel}
     >
-      <div
-        className={`${portalBrandFrameClass} flex items-center justify-start px-[2mm] py-[1mm]`}
-      >
-        <SanovaLogo variant="light" showWordmark href={null} className="h-9 max-h-full" />
-      </div>
+      {content}
     </Link>
   );
 }
