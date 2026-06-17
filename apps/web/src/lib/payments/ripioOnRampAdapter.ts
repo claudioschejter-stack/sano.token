@@ -73,7 +73,7 @@ export async function createRipioOnRampCheckout(input: RipioCheckoutInput): Prom
     return { provider: 'ripio', metadata: { configured: true, error: 'RIPIO_USER_REQUIRED' } };
   }
 
-  const network = getStablecoinNetwork(input.stablecoinNetwork);
+  const network = getStablecoinNetwork('BASE');
   const depositAddress = network.treasuryAddress ?? input.walletAddress?.trim();
   if (!depositAddress) {
     return { provider: 'ripio', metadata: { configured: true, error: 'TREASURY_NOT_CONFIGURED' } };

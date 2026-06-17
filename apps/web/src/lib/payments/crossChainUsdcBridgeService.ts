@@ -9,8 +9,8 @@ export type CrossChainBridgeQuote = {
   note: string;
 };
 
-/** Non-Base USDC se bridgea a Base treasury; el comprador cubre el fee en el quote. */
-export function quoteCrossChainUsdcBridge(fromNetworkId?: string | null): CrossChainBridgeQuote {
+/** Estimación sync para quotes de checkout (fees incluidos en total fiat). */
+export function estimateCrossChainUsdcBridgeFee(fromNetworkId?: string | null): CrossChainBridgeQuote {
   const from = getStablecoinNetwork(fromNetworkId);
   const base = getStablecoinNetwork('BASE');
 
@@ -35,7 +35,7 @@ export function quoteCrossChainUsdcBridge(fromNetworkId?: string | null): CrossC
     bridgeProvider: lifiConfigured ? 'lifi' : 'manual',
     configured: Boolean(base.treasuryAddress) && enabledStablecoinNetworks().some((n) => n.id === from.id),
     note: lifiConfigured
-      ? 'USDC se convierte automáticamente a Base vía LI.FI.'
-      : 'Configurá LIFI_API_KEY para bridge automático a Base.'
+      ? 'USDC se convierte automáticamente a Base vía LI.FI al tesoro Morpho.'
+      : 'Configurá LIFI_API_KEY para bridge automático a Base treasury.'
   };
 }

@@ -532,7 +532,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
   );
 }
 
-type PaymentMethod = 'INTERNAL_BALANCE' | 'USDC_ONCHAIN' | 'STRIPE' | 'MERCADO_PAGO' | 'COINBASE' | 'CUSTODIAL_STABLECOIN';
+type PaymentMethod = 'INTERNAL_BALANCE' | 'USDC_ONCHAIN' | 'COINBASE' | 'CUSTODIAL_STABLECOIN';
 type StablecoinNetworkId = 'BASE' | 'POLYGON' | 'TRON' | 'SOLANA';
 
 type PaymentIntentResponse = {
@@ -558,16 +558,6 @@ const PAYMENT_METHODS: Array<{ id: PaymentMethod; label: string; description: st
     id: 'USDC_ONCHAIN',
     label: 'USDC on-chain',
     description: 'Pago desde tu wallet al patrimonio fiduciario del Compartimento.'
-  },
-  {
-    id: 'STRIPE',
-    label: 'Stripe',
-    description: 'Tarjeta o banco, con confirmación por webhook.'
-  },
-  {
-    id: 'MERCADO_PAGO',
-    label: 'Mercado Pago',
-    description: 'Pago fiat LatAm con conciliación automática.'
   },
   {
     id: 'COINBASE',

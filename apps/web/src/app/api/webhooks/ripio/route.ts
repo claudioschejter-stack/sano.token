@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { resolveCheckoutReferenceByRipioExternalRef } from '../../../../lib/payments/checkoutReferenceResolver';
+import { resolveCheckoutReferenceByRipioExternalRef, resolveExpectedAmountUsd } from '../../../../lib/payments/checkoutReferenceResolver';
 import { settleOnRampCheckout } from '../../../../lib/payments/checkoutTreasurySettlement';
 import { verifyRipioWebhookSignature } from '../../../../lib/payments/ripioClient';
 
@@ -54,11 +54,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: 'reference_not_found' });
   }
 
+  const expectedAmountUsd = await resolveExpectedAmountUsd(reference);
+
   const result = await settleOnRampCheckout({
     reference,
     provider: 'ripio',
     providerPaymentId: transaction?.transactionId ?? externalRef,
     treasuryTxnHash: transaction?.txnHash ?? null,
+    expectedAmountUsd,
     payload: event as Record<string, unknown>
   });
 

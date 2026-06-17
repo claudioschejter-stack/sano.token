@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { confirmPaymentIntent, markPaymentIntentFailed } from '../../../../lib/payments/paymentService';
-import { confirmCartBatchByProvider } from '../../../../lib/payments/cartCheckoutService';
-import { confirmPlatformDeposit } from '../../../../lib/payments/platformWalletService';
+import { markPaymentIntentFailed } from '../../../../lib/payments/paymentService';
 import { verifyMercadoPagoSignature } from '../../../../lib/payments/webhookSecurity';
 
 export const dynamic = 'force-dynamic';
@@ -40,6 +38,7 @@ function mercadoPagoWebhookDataId(request: Request, event: { data?: { id?: strin
   return null;
 }
 
+/** MP ya no confirma compras ni depósitos: fiat→USDC Base se liquida vía Ripio + verificación on-chain. */
 export async function POST(request: Request) {
   const payload = await request.text();
   const signature = request.headers.get('x-signature');
@@ -83,69 +82,25 @@ export async function POST(request: Request) {
   const cartBatchId = payment.metadata?.cartBatchId;
   const depositId = payment.metadata?.depositId;
   const paymentIntentId = payment.metadata?.paymentIntentId || payment.external_reference;
+  const failed = ['rejected', 'cancelled', 'refunded', 'charged_back'].includes(payment.status ?? '');
 
   if (depositId) {
-    const paid = payment.status === 'approved';
-    const failed = ['rejected', 'cancelled', 'refunded', 'charged_back'].includes(payment.status ?? '');
-
-    if (paid) {
-      const deposit = await confirmPlatformDeposit({
-        depositId,
-        provider: 'mercado_pago',
-        providerPaymentId: payment.data?.id,
-        metadata: payment
-      });
-      return NextResponse.json({ ok: true, deposit });
-    }
-
-    if (failed) {
-      return NextResponse.json({ ok: true, ignored: 'deposit_failed' });
-    }
+    return NextResponse.json({ ok: true, ignored: 'mp_deposit_settled_via_ripio_usdc' });
   }
 
   if (cartBatchId) {
-    const paid = payment.status === 'approved' || payment.action === 'payment.updated' || payment.type === 'payment';
-    const failed = ['rejected', 'cancelled', 'refunded', 'charged_back'].includes(payment.status ?? '');
-
-    if (paid) {
-      const paymentIntents = await confirmCartBatchByProvider({
-        batchId: cartBatchId,
-        provider: 'mercado_pago',
-        providerPaymentId: payment.data?.id,
-        payload: payment
-      });
-      return NextResponse.json({ ok: true, paymentIntents });
-    }
-
     if (failed && paymentIntentId) {
-      const paymentIntent = await markPaymentIntentFailed({
+      await markPaymentIntentFailed({
         paymentIntentId,
         provider: 'mercado_pago',
         providerPaymentId: payment.data?.id,
         payload: payment
       });
-      return NextResponse.json({ ok: true, paymentIntent });
     }
+    return NextResponse.json({ ok: true, ignored: 'mp_cart_disabled_use_onramp' });
   }
 
-  if (!paymentIntentId) {
-    return NextResponse.json({ ok: true, ignored: 'missing_payment_intent' });
-  }
-
-  const paid = payment.status === 'approved' || payment.action === 'payment.updated' || payment.type === 'payment';
-  const failed = ['rejected', 'cancelled', 'refunded', 'charged_back'].includes(payment.status ?? '');
-
-  if (paid) {
-    const paymentIntent = await confirmPaymentIntent({
-      paymentIntentId,
-      provider: 'mercado_pago',
-      providerPaymentId: payment.data?.id,
-      payload: payment
-    });
-    return NextResponse.json({ ok: true, paymentIntent });
-  }
-
-  if (failed) {
+  if (paymentIntentId && failed) {
     const paymentIntent = await markPaymentIntentFailed({
       paymentIntentId,
       provider: 'mercado_pago',
@@ -155,5 +110,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, paymentIntent });
   }
 
-  return NextResponse.json({ ok: true, ignored: payment.action ?? payment.type });
+  return NextResponse.json({ ok: true, ignored: 'mp_purchase_disabled_use_onramp' });
 }

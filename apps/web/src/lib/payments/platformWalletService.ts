@@ -4,6 +4,7 @@ import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseC
 import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createDepositProviderCheckout } from './paymentOnRampAdapters';
+import { resolveDepositMethodForUsdcBase } from './paymentCheckoutPolicy';
 import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 import { resolvePaymentCountryForUser } from './paymentCountry';
@@ -222,6 +223,9 @@ export async function createPlatformDeposit(input: {
   }
 
   const checkoutRow = input.paymentOptionId ? getPaymentCheckoutRowById(input.paymentOptionId) : null;
+  const resolvedMethod = checkoutRow
+    ? resolveDepositMethodForUsdcBase(checkoutRow)
+    : { method: input.method, ripioRail: null as string | null };
 
   const investorId =
     user.investorId ?? (payerWallet ? await ensureInvestorForUser(user, payerWallet) : null);
@@ -245,15 +249,15 @@ export async function createPlatformDeposit(input: {
   };
 
   const checkoutInput = {
-    method: input.method,
+    method: resolvedMethod.method,
     paymentOptionId: input.paymentOptionId ?? checkoutRow?.id,
     amountUsd: input.amountUsd,
-    stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork,
+    stablecoinNetwork: 'BASE',
     userEmail: user.email,
     userId: input.userId,
     walletAddress: payerWallet,
     country: await resolvePaymentCountryForUser(input.userId),
-    paymentOptionRail: checkoutRow?.providerRail ?? null
+    paymentOptionRail: resolvedMethod.ripioRail ?? checkoutRow?.providerRail ?? null
   };
 
   if (existing?.status === 'PENDING' && existing.expiresAt > new Date()) {

@@ -23,7 +23,7 @@ type DepositBody = {
   stablecoinNetwork?: string;
 };
 
-const METHODS = new Set<PaymentMethod>(['USDC_ONCHAIN', 'STRIPE', 'MERCADO_PAGO', 'COINBASE', 'LOCAL_RAIL', 'BRIDGE', 'TRANSAK', 'RIPIO', 'RAMP']);
+const METHODS = new Set<PaymentMethod>(['USDC_ONCHAIN', 'MERCADO_PAGO', 'COINBASE', 'LOCAL_RAIL', 'BRIDGE', 'TRANSAK', 'RIPIO', 'RAMP']);
 
 export async function GET(request: Request) {
   const ctx = await requireInvestorSession();

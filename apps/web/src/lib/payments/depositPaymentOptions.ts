@@ -9,7 +9,11 @@ import {
 } from './paymentCheckoutCatalog';
 import { isPaymentCountrySanctioned, normalizePaymentCountry } from './paymentCountry';
 import { isDepositCheckoutRowConfigured } from './paymentProviderAvailability';
-import { quoteCrossChainUsdcBridge } from './crossChainUsdcBridgeService';
+import { estimateCrossChainUsdcBridgeFee } from './crossChainUsdcBridgeService';
+import {
+  type CheckoutFlowMode,
+  paymentRowsForCheckoutMode
+} from './paymentCheckoutPolicy';
 import { buildSmartCheckoutPresentation, type SmartCheckoutPresentation } from './smartCheckoutPresentation';
 import { enabledStablecoinNetworks } from './stablecoinNetworks';
 
@@ -122,6 +126,7 @@ const FALLBACK_FX_USD_TO_LOCAL: Record<string, number> = {
 
 export type BuildDepositPaymentOptionsContext = {
   linkedWalletAddress?: string | null;
+  mode?: CheckoutFlowMode;
 };
 
 export function getPaymentCheckoutRowById(optionId: string): PaymentCheckoutRow | null {
@@ -206,19 +211,17 @@ export function buildDepositPaymentOptions(
   const fxRate = fxRateUsdToLocal ?? FALLBACK_FX_USD_TO_LOCAL[localCurrency] ?? 1;
   const quoteExpiresAt = new Date(Date.now() + DEPOSIT_QUOTE_TTL_SECONDS * 1000).toISOString();
 
-  const options = paymentRowsForCountry(normalizedCountry).map((row) => {
+  const mode = context?.mode ?? 'deposit';
+  const countryRows = paymentRowsForCheckoutMode(normalizedCountry, paymentRowsForCountry(normalizedCountry), mode);
+
+  const options = countryRows.map((row) => {
     const configured = isDepositCheckoutRowConfigured(row, context);
 
     const quotedPlatform = lowestPlatformFeeUsd(row.method, normalizedAmount, normalizedCountry);
     const platformFeeUsd =
-      quotedPlatform ??
-      (row.id === 'credit_card'
-        ? (normalizedAmount * 350) / 10_000
-        : row.id === 'debit_card'
-          ? (normalizedAmount * 250) / 10_000
-          : (normalizedAmount * row.fallbackFeeBps) / 10_000);
+      quotedPlatform ?? (normalizedAmount * row.fallbackFeeBps) / 10_000;
 
-    const bridge = row.stablecoinNetwork ? quoteCrossChainUsdcBridge(row.stablecoinNetwork) : null;
+    const bridge = row.stablecoinNetwork ? estimateCrossChainUsdcBridgeFee(row.stablecoinNetwork) : null;
     const bridgeFeeUsd = bridge && bridge.fromNetwork !== 'BASE' ? bridge.estimatedFeeUsd : 0;
     const gasFeeUsd = estimateGasUsd(row) + bridgeFeeUsd;
     const networkFeeUsd = row.fallbackNetworkUsd;

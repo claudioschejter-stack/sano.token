@@ -55,15 +55,15 @@ export function quoteCheapestPaymentRoutes(input: CheapestPaymentRouteInput): Pa
   }
 
   const localRail = LOCAL_RAILS[country];
-  if (localRail && direction !== 'STABLECOIN_TO_FIAT') {
+  if (localRail && direction !== 'STABLECOIN_TO_FIAT' && country !== 'AR') {
     routes.push({
-      method: country === 'AR' ? 'MERCADO_PAGO' : 'LOCAL_RAIL',
+      method: 'LOCAL_RAIL',
       provider: localRail.provider,
       label: localRail.label,
       estimatedFeeUsd: (amountUsd * localRail.feeBps) / 10_000,
       estimatedFeeBps: localRail.feeBps,
       reason: 'Rail bancario/local suele ser mas barato que tarjeta',
-      configured: country === 'AR' ? paymentGatewayConfigured('MERCADO_PAGO') : paymentGatewayConfigured('LOCAL_RAIL')
+      configured: paymentGatewayConfigured('LOCAL_RAIL')
     });
   }
 
@@ -80,11 +80,7 @@ export function quoteCheapestPaymentRoutes(input: CheapestPaymentRouteInput): Pa
     );
   }
 
-  routes.push(
-    route('STRIPE', 'stripe', 'Stripe', amountUsd, 290, 'Tarjeta/wallet global, mas caro que rails locales'),
-    route('MERCADO_PAGO', 'mercado_pago', 'Mercado Pago', amountUsd, 320, 'Fallback LatAm'),
-    route('COINBASE', 'coinbase', 'Coinbase Commerce', amountUsd, 100, 'Cripto checkout global')
-  );
+  routes.push(route('COINBASE', 'coinbase', 'Coinbase Commerce', amountUsd, 100, 'Cripto checkout global'));
 
   const preferredNetwork = input.preferredNetwork ? getStablecoinNetwork(input.preferredNetwork).id : null;
   return routes

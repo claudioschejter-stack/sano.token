@@ -274,7 +274,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     const fxRate = rates[currency] ?? rates.USD ?? 1;
 
     void fetch(
-      `/api/marketplace/cart/deposit-options?amountUsd=${encodeURIComponent(String(totalUsd))}&country=${encodeURIComponent(depositCountry)}&fxRate=${encodeURIComponent(String(fxRate))}`,
+      `/api/marketplace/cart/deposit-options?amountUsd=${encodeURIComponent(String(totalUsd))}&country=${encodeURIComponent(depositCountry)}&fxRate=${encodeURIComponent(String(fxRate))}&mode=${encodeURIComponent(mode)}`,
       { cache: 'no-store', signal: controller.signal }
     )
       .then((response) => (response.ok ? response.json() : null))
@@ -311,7 +311,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       });
 
     return () => controller.abort();
-  }, [currency, depositCountry, rates, totalUsd]);
+  }, [currency, depositCountry, mode, rates, totalUsd]);
 
   useEffect(() => {
     if (!showPaymentMethods) {

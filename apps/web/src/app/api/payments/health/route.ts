@@ -40,7 +40,7 @@ export async function GET() {
     gateways: {
       usdcOnchain: paymentGatewayConfigured('USDC_ONCHAIN'),
       localRail: paymentGatewayConfigured('LOCAL_RAIL'),
-      stripe: paymentGatewayConfigured('STRIPE'),
+      stripe: false,
       mercadoPago: paymentGatewayConfigured('MERCADO_PAGO'),
       mercadoPagoLive: mercadoPagoProbe.ok && mercadoPagoProbe.canCreateCheckout,
       mercadoPagoEmbedded: mercadoPagoEmbeddedProbe.ok,

@@ -2,6 +2,7 @@ import { prisma, type Prisma } from '@sanova/database';
 import { confirmCartPurchaseBatch, loadCartBatchIntentsAnyStatus } from './cartCheckoutService';
 import { confirmPlatformDeposit } from './platformWalletService';
 import type { ResolvedCheckoutReference } from './checkoutReferenceResolver';
+import { verifyTreasuryUsdcReceipt } from './treasuryUsdcVerification';
 
 export type OnRampSettlementInput = {
   reference: ResolvedCheckoutReference;
@@ -9,15 +10,32 @@ export type OnRampSettlementInput = {
   providerPaymentId: string;
   payload: Record<string, unknown>;
   treasuryTxnHash?: string | null;
+  expectedAmountUsd: number;
 };
 
-/** Fiat/crypto on-ramps settle to Base USDC treasury first; tokens RWA se entregan después. */
+/** Fiat/crypto on-ramps: verificar USDC en treasury Base antes de confirmar. */
 export async function settleOnRampCheckout(input: OnRampSettlementInput) {
+  const txHash = input.treasuryTxnHash?.trim();
+  if (!txHash) {
+    throw new Error('TREASURY_TX_REQUIRED');
+  }
+
+  const verification = await verifyTreasuryUsdcReceipt({
+    txHash,
+    expectedAmountUsd: input.expectedAmountUsd
+  });
+
+  if (!verification.ok) {
+    throw new Error(verification.error);
+  }
+
   const enrichedPayload = {
     ...input.payload,
     settlement: 'treasury_first',
-    treasuryTxnHash: input.treasuryTxnHash ?? null,
-    provider: input.provider
+    treasuryTxnHash: txHash,
+    treasuryAmountBaseUnits: verification.amountBaseUnits,
+    provider: input.provider,
+    morphoTreasury: true
   } as Prisma.InputJsonValue;
 
   if (input.reference.kind === 'deposit') {
@@ -25,6 +43,7 @@ export async function settleOnRampCheckout(input: OnRampSettlementInput) {
       depositId: input.reference.depositId,
       provider: input.provider,
       providerPaymentId: input.providerPaymentId,
+      txHash,
       metadata: enrichedPayload
     });
     return { kind: 'deposit' as const, deposit };
@@ -47,7 +66,7 @@ export async function settleOnRampCheckout(input: OnRampSettlementInput) {
     batchId: input.reference.batchId,
     provider: input.provider,
     providerPaymentId: input.providerPaymentId,
-    txHash: input.treasuryTxnHash ?? undefined,
+    txHash,
     payload: enrichedPayload
   });
 

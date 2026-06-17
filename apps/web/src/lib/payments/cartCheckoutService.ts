@@ -10,9 +10,7 @@ import {
 } from './paymentConfig';
 import { isCheckoutMethodConfigured } from './checkoutMethods';
 import {
-  createCoinbaseCartCheckout,
-  createMercadoPagoCartCheckout,
-  createStripeCartCheckout
+  createCoinbaseCartCheckout
 } from './paymentGatewayAdapters';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
@@ -33,8 +31,6 @@ import { buildPurchaseIntentMetadata } from './purchaseIntentMetadata';
 import { readBatchTotalUsdcBaseUnits, sumDecimalUsdBaseUnits } from './paymentAmountUtils';
 import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
 import {
-  isStripeAvailableForCountry,
-  normalizePaymentCountry,
   resolvePaymentCountryForUser
 } from './paymentCountry';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
@@ -239,30 +235,11 @@ async function attachCartGatewayCheckout(input: {
     return createBridgeOnRampCheckout({
       depositId: input.batchId,
       amountUsd: input.totalUsd,
-      stablecoinNetwork: input.stablecoinNetwork,
+      stablecoinNetwork: 'BASE',
       redirectPath
     });
   }
 
-  if (input.method === 'STRIPE') {
-    if (!isStripeAvailableForCountry(input.country)) {
-      return {
-        provider: 'stripe',
-        metadata: {
-          configured: true,
-          error: 'STRIPE_NOT_AVAILABLE_IN_COUNTRY',
-          country: normalizePaymentCountry(input.country)
-        }
-      };
-    }
-    return createStripeCartCheckout({
-      ...input,
-      paymentOptionId: input.paymentOptionId
-    });
-  }
-  if (input.method === 'MERCADO_PAGO') {
-    return createMercadoPagoCartCheckout(input);
-  }
   if (input.method === 'COINBASE') {
     return createCoinbaseCartCheckout(input);
   }
@@ -277,7 +254,7 @@ async function attachCartGatewayCheckout(input: {
     return createTransakOnRampCheckout({
       depositId: input.batchId,
       amountUsd: input.totalUsd,
-      stablecoinNetwork: input.stablecoinNetwork,
+      stablecoinNetwork: 'BASE',
       userEmail: input.userEmail,
       redirectPath
     });
@@ -286,7 +263,7 @@ async function attachCartGatewayCheckout(input: {
     return createRipioOnRampCheckout({
       depositId: input.batchId,
       amountUsd: input.totalUsd,
-      stablecoinNetwork: input.stablecoinNetwork,
+      stablecoinNetwork: 'BASE',
       userEmail: input.userEmail,
       userId: input.userId,
       redirectPath,
@@ -304,8 +281,6 @@ async function attachCartGatewayCheckout(input: {
 }
 
 const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
-  'STRIPE',
-  'MERCADO_PAGO',
   'COINBASE',
   'TRANSAK',
   'RIPIO',
@@ -973,8 +948,13 @@ export async function confirmCartBatchByProvider(input: {
   batchId: string;
   provider?: string | null;
   providerPaymentId?: string | null;
+  txHash?: string | null;
   payload?: Prisma.InputJsonValue;
 }) {
+  const blockedFiatProviders = new Set(['mercado_pago', 'stripe']);
+  if (input.provider && blockedFiatProviders.has(input.provider)) {
+    throw new Error('FIAT_PROVIDER_REQUIRES_TREASURY_USDC');
+  }
   let sample = input.providerPaymentId?.trim()
     ? await prisma.paymentIntent.findFirst({
         where: { providerPaymentId: input.providerPaymentId.trim() }
@@ -1007,6 +987,7 @@ export async function confirmCartBatchByProvider(input: {
   return confirmCartPurchaseBatch({
     userId: pending[0].userId,
     batchId: input.batchId,
+    txHash: input.txHash,
     provider: input.provider,
     providerPaymentId: input.providerPaymentId,
     payload: input.payload

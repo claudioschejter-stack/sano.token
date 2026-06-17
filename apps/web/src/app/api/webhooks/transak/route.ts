@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { resolveCheckoutReferenceByPartnerOrderId } from '../../../../lib/payments/checkoutReferenceResolver';
+import { resolveCheckoutReferenceByPartnerOrderId, resolveExpectedAmountUsd } from '../../../../lib/payments/checkoutReferenceResolver';
 import { settleOnRampCheckout } from '../../../../lib/payments/checkoutTreasurySettlement';
 import { verifyHmacSignature } from '../../../../lib/payments/webhookSecurity';
 
@@ -47,11 +47,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: 'reference_not_found' });
   }
 
+  const expectedAmountUsd = await resolveExpectedAmountUsd(reference);
+
   const result = await settleOnRampCheckout({
     reference,
     provider: 'transak',
     providerPaymentId: event.eventID || event.webhookData?.id || partnerOrderId,
     treasuryTxnHash: event.webhookData?.transactionHash ?? null,
+    expectedAmountUsd,
     payload: event as Record<string, unknown>
   });
 

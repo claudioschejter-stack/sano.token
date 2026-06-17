@@ -31,22 +31,13 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     supportsPurchase: true
   },
   {
-    id: 'STRIPE',
-    label: 'Stripe',
-    description: 'Tarjeta o banco internacional con confirmación por webhook.',
-    configured: paymentGatewayConfigured('STRIPE'),
-    automatic: true,
-    supportsDeposit: true,
-    supportsPurchase: true
-  },
-  {
     id: 'MERCADO_PAGO',
     label: 'Mercado Pago',
-    description: 'Pagos fiat LatAm con conciliación automática (redirect o saldo embebido).',
-    configured: paymentGatewayConfigured('MERCADO_PAGO'),
+    description: 'Depósito ARS vía Ripio → USDC Base en treasury (saldo embebido o transferencia).',
+    configured: paymentGatewayConfigured('RIPIO'),
     automatic: true,
     supportsDeposit: true,
-    supportsPurchase: true
+    supportsPurchase: false
   },
   {
     id: 'COINBASE',

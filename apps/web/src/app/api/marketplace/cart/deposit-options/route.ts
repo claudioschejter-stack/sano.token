@@ -19,6 +19,8 @@ export async function GET(request: Request) {
   const amountUsd = Number(params.get('amountUsd'));
   const country = params.get('country') ?? 'AR';
   const fxRate = Number(params.get('fxRate'));
+  const modeParam = params.get('mode');
+  const mode = modeParam === 'purchase' ? 'purchase' : 'deposit';
 
   if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
     return NextResponse.json({ error: 'INVALID_AMOUNT' }, { status: 400 });
@@ -36,7 +38,7 @@ export async function GET(request: Request) {
     amountUsd,
     country,
     Number.isFinite(fxRate) && fxRate > 0 ? fxRate : undefined,
-    { linkedWalletAddress }
+    { linkedWalletAddress, mode }
   );
 
   return NextResponse.json({

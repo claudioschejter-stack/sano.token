@@ -73,7 +73,7 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
   }
 
   if (method === 'STRIPE') {
-    return Boolean(process.env.STRIPE_SECRET_KEY);
+    return false;
   }
 
   if (method === 'MERCADO_PAGO') {

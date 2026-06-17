@@ -76,11 +76,17 @@ export function isDepositCheckoutRowConfigured(
   row: PaymentCheckoutRow,
   context?: DepositRowContext
 ): boolean {
-  if (row.id === MERCADOPAGO_WALLET_OPTION_ID) {
-    return isMercadoPagoEmbeddedConfigured();
+  if (row.method === 'MERCADO_PAGO' || row.id === MERCADOPAGO_WALLET_OPTION_ID || row.id === 'mercado_pago') {
+    if (row.id === MERCADOPAGO_WALLET_OPTION_ID) {
+      return isMercadoPagoEmbeddedConfigured() && isPaymentProviderConfigured('ripio');
+    }
+    if (row.id === 'mercado_pago' && isMercadoPagoWalletOnly()) {
+      return false;
+    }
+    return isPaymentProviderConfigured('ripio');
   }
 
-  if (row.id === 'mercado_pago' && isMercadoPagoWalletOnly()) {
+  if (row.provider === 'stripe') {
     return false;
   }
 
@@ -101,10 +107,6 @@ export function isDepositCheckoutRowConfigured(
       return Boolean(context?.linkedWalletAddress?.trim());
     }
     return Boolean(context?.linkedWalletAddress?.trim());
-  }
-
-  if (row.provider === 'stripe' && row.providerRail === 'paypal') {
-    return isStripeConfigured() || Boolean(process.env.PAYPAL_CLIENT_ID ?? process.env.PAYPAL_SECRET);
   }
 
   return isPaymentProviderConfigured(row.provider);

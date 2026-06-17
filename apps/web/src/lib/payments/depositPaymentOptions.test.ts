@@ -40,4 +40,13 @@ describe('depositPaymentOptions', () => {
       expect(group.options).toHaveLength(group.available.length + group.unavailable.length);
     }
   });
+
+  it('purchase mode in Argentina excludes Mercado Pago and Stripe', () => {
+    const quote = buildDepositPaymentOptions(100, 'AR', 1050, { linkedWalletAddress: '0xabc', mode: 'purchase' });
+    expect(quote.options.some((row) => row.method === 'MERCADO_PAGO')).toBe(false);
+    expect(quote.options.some((row) => row.provider === 'stripe')).toBe(false);
+    expect(
+      quote.options.some((row) => row.method === 'RIPIO' || row.method === 'TRANSAK' || row.method === 'BRIDGE')
+    ).toBe(true);
+  });
 });

@@ -4,13 +4,11 @@ import {
   investorSessionForbiddenResponse,
   requireInvestorSession
 } from '../../../../../lib/onboarding/requireInvestorSession';
-import { confirmCartBatchByProvider, loadCartBatchIntentsAnyStatus } from '../../../../../lib/payments/cartCheckoutService';
 import {
   isMercadoPagoEmbeddedConfigured,
   processMercadoPagoEmbeddedPayment
 } from '../../../../../lib/payments/mercadoPagoEmbeddedService';
-import { confirmPlatformDeposit } from '../../../../../lib/payments/platformWalletService';
-import { confirmPaymentIntent } from '../../../../../lib/payments/paymentService';
+import { loadCartBatchIntentsAnyStatus } from '../../../../../lib/payments/cartCheckoutService';
 
 export const dynamic = 'force-dynamic';
 
@@ -110,61 +108,28 @@ export async function POST(request: Request) {
     }
 
     if (referenceType === 'deposit' && deposit) {
-      if (payment.approved) {
-        const confirmed = await confirmPlatformDeposit({
-          depositId: deposit.id,
-          provider: 'mercado_pago',
-          providerPaymentId: payment.paymentId,
-          metadata: { status: payment.status, embedded: true }
-        });
-        return NextResponse.json({
-          ok: true,
-          status: payment.status,
-          approved: true,
-          deposit: confirmed
-        });
-      }
-
       return NextResponse.json({
         ok: true,
         status: payment.status,
-        approved: false,
-        pending: payment.pending,
-        depositId: deposit.id
+        approved: payment.approved,
+        pending: true,
+        depositId: deposit.id,
+        settlement: 'awaiting_ripio_usdc_treasury',
+        message: 'El saldo se acredita cuando Ripio deposita USDC en treasury Base.'
       });
     }
 
     const cartBatchId =
       typeof metadata.cartBatchId === 'string' ? metadata.cartBatchId : body.batchId?.trim();
-    if (referenceType === 'cart' && cartBatchId && payment.approved) {
-      const paymentIntents = await confirmCartBatchByProvider({
-        batchId: cartBatchId,
-        provider: 'mercado_pago',
-        providerPaymentId: payment.paymentId,
-        payload: { status: payment.status, embedded: true }
-      });
-      return NextResponse.json({
-        ok: true,
-        status: payment.status,
-        approved: true,
-        batchId: cartBatchId,
-        paymentIntents
-      });
+    if (referenceType === 'cart' && cartBatchId) {
+      return NextResponse.json(
+        { error: 'MP_CART_DISABLED_USE_ONRAMP', batchId: cartBatchId },
+        { status: 400 }
+      );
     }
 
     if (referenceType === 'payment_intent' && payment.approved) {
-      const paymentIntent = await confirmPaymentIntent({
-        paymentIntentId: externalReference,
-        provider: 'mercado_pago',
-        providerPaymentId: payment.paymentId,
-        payload: { status: payment.status, embedded: true }
-      });
-      return NextResponse.json({
-        ok: true,
-        status: payment.status,
-        approved: true,
-        paymentIntent
-      });
+      return NextResponse.json({ error: 'MP_PURCHASE_DISABLED_USE_ONRAMP' }, { status: 400 });
     }
 
     return NextResponse.json({

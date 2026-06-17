@@ -57,3 +57,27 @@ export async function resolveCheckoutReferenceByPartnerOrderId(
 
   return null;
 }
+
+export async function resolveExpectedAmountUsd(reference: ResolvedCheckoutReference): Promise<number> {
+  if (!reference) return 0;
+
+  if (reference.kind === 'deposit') {
+    const deposit = await prisma.platformDeposit.findUnique({
+      where: { id: reference.depositId },
+      select: { amountUsd: true }
+    });
+    return deposit?.amountUsd.toNumber() ?? 0;
+  }
+
+  const intents = await prisma.paymentIntent.findMany({
+    where: { userId: reference.userId },
+    select: { amountUsd: true, metadata: true }
+  });
+
+  return intents
+    .filter((intent) => {
+      const metadata = (intent.metadata as Record<string, unknown>) ?? {};
+      return metadata.cartBatchId === reference.batchId;
+    })
+    .reduce((sum, row) => sum + row.amountUsd.toNumber(), 0);
+}

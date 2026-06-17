@@ -1,15 +1,9 @@
 import { checkoutBaseUrl } from './paymentConfig';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
-import { isStripeAvailableForCountry } from './paymentCountry';
-import { appendStripePaymentMethodTypes } from './stripeCheckoutOptions';
-import { getStablecoinNetwork, type StablecoinNetworkId } from './stablecoinNetworks';
-import {
-  createCoinbaseCheckout,
-  createMercadoPagoCheckout,
-  createMercadoPagoDepositCheckout,
-  createStripeCheckout
-} from './paymentGatewayAdapters';
+import { getStablecoinNetwork } from './stablecoinNetworks';
+import { createCoinbaseCheckout } from './paymentGatewayAdapters';
+import { resolveDepositMethodForUsdcBase } from './paymentCheckoutPolicy';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 
 type OnRampRequest = {
@@ -41,17 +35,9 @@ function transakHost() {
   return env === 'STAGING' ? TRANSAK_HOST.STAGING : TRANSAK_HOST.PRODUCTION;
 }
 
-function transakNetworkId(networkId?: string | null): string {
-  switch ((networkId ?? 'BASE').toUpperCase() as StablecoinNetworkId) {
-    case 'POLYGON':
-      return 'polygon';
-    case 'SOLANA':
-      return 'solana';
-    case 'TRON':
-      return 'mainnet';
-    default:
-      return 'base';
-  }
+/** Todos los on-ramps fiat depositan USDC en treasury Base (Morpho). */
+function baseTreasuryAddress(): string | null {
+  return getStablecoinNetwork('BASE').treasuryAddress;
 }
 
 export function createTransakOnRampCheckout(input: OnRampRequest): OnRampResult {
@@ -60,18 +46,16 @@ export function createTransakOnRampCheckout(input: OnRampRequest): OnRampResult 
     return { provider: 'transak', metadata: { configured: false } };
   }
 
-  const network = getStablecoinNetwork(input.stablecoinNetwork);
-  const walletAddress = network.treasuryAddress ?? input.walletAddress;
+  const walletAddress = baseTreasuryAddress();
   if (!walletAddress) {
     return { provider: 'transak', metadata: { configured: true, error: 'TREASURY_NOT_CONFIGURED' } };
   }
 
-  const cryptoCode = network.symbol === 'USDT' ? 'USDT' : 'USDC';
   const params = new URLSearchParams({
     apiKey,
     environment: transakHost().includes('stg') ? 'STAGING' : 'PRODUCTION',
-    cryptoCurrencyCode: cryptoCode,
-    network: transakNetworkId(network.id),
+    cryptoCurrencyCode: 'USDC',
+    network: 'base',
     walletAddress,
     disableWalletAddressForm: 'true',
     fiatAmount: input.amountUsd.toFixed(2),
@@ -91,7 +75,7 @@ export function createTransakOnRampCheckout(input: OnRampRequest): OnRampResult 
     provider: 'transak',
     providerPaymentId: input.depositId,
     providerCheckoutUrl: `${transakHost()}/?${params.toString()}`,
-    metadata: { configured: true, network: network.id, mode: 'on_ramp' }
+    metadata: { configured: true, network: 'BASE', mode: 'on_ramp', settlement: 'treasury_first' }
   };
 }
 
@@ -138,8 +122,7 @@ export function createBridgeOnRampCheckout(input: OnRampRequest): OnRampResult {
     return { provider: 'bridge', metadata: { configured: false } };
   }
 
-  const network = getStablecoinNetwork(input.stablecoinNetwork);
-  const walletAddress = network.treasuryAddress;
+  const walletAddress = baseTreasuryAddress();
   if (!walletAddress) {
     return { provider: 'bridge', metadata: { configured: true, error: 'TREASURY_NOT_CONFIGURED' } };
   }
@@ -148,7 +131,7 @@ export function createBridgeOnRampCheckout(input: OnRampRequest): OnRampResult {
     amount: input.amountUsd.toFixed(2),
     currency: 'usd',
     destination_address: walletAddress,
-    destination_chain: network.id.toLowerCase(),
+    destination_chain: 'base',
     external_id: input.depositId,
     redirect_uri: input.redirectPath
       ? `${checkoutBaseUrl()}${input.redirectPath}`
@@ -159,7 +142,7 @@ export function createBridgeOnRampCheckout(input: OnRampRequest): OnRampResult {
     provider: 'bridge',
     providerPaymentId: input.depositId,
     providerCheckoutUrl: `https://dashboard.bridge.xyz/on-ramp?${params.toString()}`,
-    metadata: { configured: true, network: network.id, note: 'Complete Bridge onboarding for live checkout' }
+    metadata: { configured: true, network: 'BASE', settlement: 'treasury_first' }
   };
 }
 
@@ -171,6 +154,10 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
   paymentOptionId?: string | null;
 }): Promise<OnRampResult> {
   const checkoutRow = input.paymentOptionId ? getPaymentCheckoutRowById(input.paymentOptionId) : null;
+  const baseInput: OnRampRequest = {
+    ...input,
+    stablecoinNetwork: 'BASE'
+  };
 
   if (input.method === 'LOCAL_RAIL' && checkoutRow) {
     return createLocalRailCheckout({
@@ -184,44 +171,15 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
   }
 
   switch (input.method) {
-    case 'STRIPE':
-      if (!isStripeAvailableForCountry(input.country)) {
-        return {
-          provider: 'stripe',
-          metadata: {
-            configured: true,
-            error: 'STRIPE_NOT_AVAILABLE_IN_COUNTRY',
-            country: input.country ?? 'AR'
-          }
-        };
-      }
-      if (input.paymentIntentId && input.projectId) {
-        return createStripeCheckout({
-          paymentIntentId: input.paymentIntentId,
-          projectId: input.projectId,
-          amountUsd: input.amountUsd,
-          tokenCount: input.tokenCount ?? 1
-        });
-      }
-      return createStripeDepositCheckout({
-        ...input,
-        paymentOptionId: checkoutRow?.id ?? input.paymentOptionId
+    case 'MERCADO_PAGO': {
+      const resolved = checkoutRow
+        ? resolveDepositMethodForUsdcBase(checkoutRow)
+        : { method: 'RIPIO' as const, ripioRail: 'mercado_pago' };
+      return createRipioOnRampCheckout({
+        ...baseInput,
+        paymentOptionRail: resolved.ripioRail ?? 'mercado_pago'
       });
-    case 'MERCADO_PAGO':
-      if (input.paymentIntentId && input.projectId) {
-        return createMercadoPagoCheckout({
-          paymentIntentId: input.paymentIntentId,
-          projectId: input.projectId,
-          amountUsd: input.amountUsd,
-          tokenCount: input.tokenCount ?? 1
-        });
-      }
-      return createMercadoPagoDepositCheckout({
-        depositId: input.depositId,
-        amountUsd: input.amountUsd,
-        paymentOptionId: checkoutRow?.id ?? input.paymentOptionId,
-        paymentLabel: checkoutRow?.label
-      });
+    }
     case 'COINBASE':
       if (input.paymentIntentId && input.projectId) {
         return createCoinbaseCheckout({
@@ -233,17 +191,11 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
       }
       return { provider: 'coinbase', metadata: { configured: Boolean(process.env.COINBASE_COMMERCE_API_KEY) } };
     case 'TRANSAK':
-      return createTransakOnRampCheckout(input);
+      return createTransakOnRampCheckout(baseInput);
     case 'RIPIO':
       return createRipioOnRampCheckout({
-        depositId: input.depositId,
-        amountUsd: input.amountUsd,
-        stablecoinNetwork: input.stablecoinNetwork,
-        userEmail: input.userEmail,
-        userId: input.userId,
-        walletAddress: input.walletAddress,
-        redirectPath: input.redirectPath,
-        paymentOptionRail: input.paymentOptionId ? checkoutRow?.providerRail : input.paymentOptionRail
+        ...baseInput,
+        paymentOptionRail: checkoutRow?.providerRail ?? input.paymentOptionRail
       });
     case 'BRIDGE':
       if (checkoutRow?.provider === 'wise') {
@@ -255,55 +207,10 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
           redirectPath: input.redirectPath
         });
       }
-      return createBridgeOnRampCheckout(input);
+      return createBridgeOnRampCheckout(baseInput);
     case 'USDC_ONCHAIN':
-      return { provider: 'stablecoin_onchain', metadata: { configured: true } };
+      return { provider: 'stablecoin_onchain', metadata: { configured: true, network: 'BASE' } };
     default:
       return { provider: String(input.method).toLowerCase(), metadata: { configured: false } };
   }
-}
-
-async function createStripeDepositCheckout(
-  input: OnRampRequest & { paymentOptionId?: string | null }
-): Promise<OnRampResult> {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    return { provider: 'stripe', metadata: { configured: false } };
-  }
-
-  const params = new URLSearchParams({
-    mode: 'payment',
-    'line_items[0][price_data][currency]': 'usd',
-    'line_items[0][price_data][product_data][name]': 'Saldo Sanova',
-    'line_items[0][price_data][unit_amount]': Math.round(input.amountUsd * 100).toString(),
-    'line_items[0][quantity]': '1',
-    success_url: `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`,
-    cancel_url: `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=cancelled`,
-    client_reference_id: input.depositId,
-    'metadata[depositId]': input.depositId
-  });
-
-  if (input.paymentOptionId) {
-    params.set('metadata[paymentOptionId]', input.paymentOptionId);
-  }
-
-  appendStripePaymentMethodTypes(params, input.paymentOptionId);
-
-  const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${secretKey}`, 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params
-  });
-
-  if (!response.ok) {
-    return { provider: 'stripe', metadata: { configured: true, error: await response.text() } };
-  }
-
-  const data = (await response.json()) as { id?: string; url?: string };
-  return {
-    provider: 'stripe',
-    providerPaymentId: data.id,
-    providerCheckoutUrl: data.url,
-    metadata: { configured: true, depositId: input.depositId }
-  };
 }
