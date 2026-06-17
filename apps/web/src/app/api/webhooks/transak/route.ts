@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { confirmPlatformDeposit } from '../../../../lib/payments/platformWalletService';
+import { resolveCheckoutReferenceByPartnerOrderId } from '../../../../lib/payments/checkoutReferenceResolver';
+import { settleOnRampCheckout } from '../../../../lib/payments/checkoutTreasurySettlement';
 import { verifyHmacSignature } from '../../../../lib/payments/webhookSecurity';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +23,12 @@ export async function POST(request: Request) {
     eventID?: string;
     status?: string;
     partnerOrderId?: string;
-    webhookData?: { id?: string; status?: string; partnerOrderId?: string };
+    webhookData?: {
+      id?: string;
+      status?: string;
+      partnerOrderId?: string;
+      transactionHash?: string;
+    };
   };
 
   const partnerOrderId = event.partnerOrderId || event.webhookData?.partnerOrderId;
@@ -32,15 +38,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: 'missing_partner_order_id' });
   }
 
-  if (status === 'COMPLETED' || status === 'SUCCESS' || status === 'PAID') {
-    const deposit = await confirmPlatformDeposit({
-      depositId: partnerOrderId,
-      provider: 'transak',
-      providerPaymentId: event.eventID || event.webhookData?.id,
-      metadata: event
-    });
-    return NextResponse.json({ ok: true, deposit });
+  if (status !== 'COMPLETED' && status !== 'SUCCESS' && status !== 'PAID') {
+    return NextResponse.json({ ok: true, ignored: status || 'unknown_status' });
   }
 
-  return NextResponse.json({ ok: true, ignored: status || 'unknown_status' });
+  const reference = await resolveCheckoutReferenceByPartnerOrderId(partnerOrderId);
+  if (!reference) {
+    return NextResponse.json({ ok: true, ignored: 'reference_not_found' });
+  }
+
+  const result = await settleOnRampCheckout({
+    reference,
+    provider: 'transak',
+    providerPaymentId: event.eventID || event.webhookData?.id || partnerOrderId,
+    treasuryTxnHash: event.webhookData?.transactionHash ?? null,
+    payload: event as Record<string, unknown>
+  });
+
+  return NextResponse.json({ ok: true, result });
 }

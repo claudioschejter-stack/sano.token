@@ -9,6 +9,8 @@ import {
 } from './paymentCheckoutCatalog';
 import { isPaymentCountrySanctioned, normalizePaymentCountry } from './paymentCountry';
 import { isDepositCheckoutRowConfigured } from './paymentProviderAvailability';
+import { quoteCrossChainUsdcBridge } from './crossChainUsdcBridgeService';
+import { buildSmartCheckoutPresentation, type SmartCheckoutPresentation } from './smartCheckoutPresentation';
 import { enabledStablecoinNetworks } from './stablecoinNetworks';
 
 export const DEPOSIT_QUOTE_TTL_SECONDS = 40;
@@ -89,6 +91,7 @@ export type DepositQuoteBundle = {
   localCurrency: string;
   fxRateUsdToLocal: number;
   recommendedOptionId: string | null;
+  presentation: SmartCheckoutPresentation;
   stablecoinNetworks: Array<{
     id: string;
     label: string;
@@ -189,6 +192,11 @@ export function buildDepositPaymentOptions(
       localCurrency: 'USD',
       fxRateUsdToLocal: 1,
       recommendedOptionId: null,
+      presentation: buildSmartCheckoutPresentation({
+        amountUsd: 0,
+        localCurrency: 'USD',
+        bestOption: null
+      }),
       stablecoinNetworks: networks
     };
   }
@@ -210,7 +218,9 @@ export function buildDepositPaymentOptions(
           ? (normalizedAmount * 250) / 10_000
           : (normalizedAmount * row.fallbackFeeBps) / 10_000);
 
-    const gasFeeUsd = estimateGasUsd(row);
+    const bridge = row.stablecoinNetwork ? quoteCrossChainUsdcBridge(row.stablecoinNetwork) : null;
+    const bridgeFeeUsd = bridge && bridge.fromNetwork !== 'BASE' ? bridge.estimatedFeeUsd : 0;
+    const gasFeeUsd = estimateGasUsd(row) + bridgeFeeUsd;
     const networkFeeUsd = row.fallbackNetworkUsd;
     const feeUsd = platformFeeUsd + gasFeeUsd + networkFeeUsd;
     const totalUsd = normalizedAmount + feeUsd;
@@ -243,13 +253,8 @@ export function buildDepositPaymentOptions(
   });
 
   const sorted = sortDepositPaymentOptions(options);
-  const recommended =
-    sorted.find((row) => row.configured && row.groupId === 'linked_wallet') ??
-    (normalizedCountry === 'AR'
-      ? sorted.find((row) => row.configured && row.groupId === 'argentina')
-      : null) ??
-    sorted.find((row) => row.configured) ??
-    null;
+  const configured = sorted.filter((row) => row.configured);
+  const recommended = configured[0] ?? null;
   const networks = enabledStablecoinNetworks().map((network) => ({
     id: network.id,
     label: network.label,
@@ -266,6 +271,11 @@ export function buildDepositPaymentOptions(
     localCurrency,
     fxRateUsdToLocal: fxRate,
     recommendedOptionId: recommended?.id ?? null,
+    presentation: buildSmartCheckoutPresentation({
+      amountUsd: normalizedAmount,
+      localCurrency,
+      bestOption: recommended
+    }),
     stablecoinNetworks: networks
   };
 }

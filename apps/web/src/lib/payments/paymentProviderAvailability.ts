@@ -59,6 +59,8 @@ export function isPaymentProviderConfigured(provider: PaymentProviderId): boolea
       return false;
     case 'binance':
       return isBinancePayConfigured() || paymentGatewayConfigured('USDC_ONCHAIN');
+    case 'coinbase':
+      return paymentGatewayConfigured('COINBASE') || paymentGatewayConfigured('USDC_ONCHAIN');
     case 'custodial':
       return paymentGatewayConfigured('CUSTODIAL_STABLECOIN');
     default:
@@ -88,6 +90,15 @@ export function isDepositCheckoutRowConfigured(
     }
     if (row.id === 'binance_usdc' && isBinancePayConfigured()) {
       return true;
+    }
+    if (row.id === 'binance_pay') {
+      return isBinancePayConfigured();
+    }
+    if (row.id === 'coinbase_pay' || row.id === 'coinbase_commerce') {
+      return isPaymentProviderConfigured('coinbase');
+    }
+    if (row.id === 'metamask_usdc') {
+      return Boolean(context?.linkedWalletAddress?.trim());
     }
     return Boolean(context?.linkedWalletAddress?.trim());
   }

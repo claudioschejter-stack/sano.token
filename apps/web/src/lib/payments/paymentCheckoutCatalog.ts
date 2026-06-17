@@ -21,6 +21,7 @@ export type PaymentProviderId =
   | 'ripio'
   | 'ramp'
   | 'binance'
+  | 'coinbase'
   | 'custodial';
 
 export type PaymentCheckoutRow = {
@@ -77,6 +78,59 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackNetworkUsd: 0.01,
     stablecoinNetwork: 'BASE',
     sortOrder: 20
+  },
+  {
+    id: 'metamask_usdc',
+    groupId: 'linked_wallet',
+    method: 'USDC_ONCHAIN',
+    label: 'MetaMask (USDC Base)',
+    provider: 'usdc',
+    providerRail: 'metamask_usdc',
+    fallbackFeeBps: 25,
+    fallbackGasUsd: 0.02,
+    fallbackNetworkUsd: 0.01,
+    stablecoinNetwork: 'BASE',
+    sortOrder: 15
+  },
+  {
+    id: 'coinbase_pay',
+    groupId: 'linked_wallet',
+    method: 'USDC_ONCHAIN',
+    label: 'Coinbase Pay',
+    provider: 'coinbase',
+    providerRail: 'coinbase_pay',
+    fallbackFeeBps: 90,
+    fallbackGasUsd: 0.02,
+    fallbackNetworkUsd: 0.01,
+    stablecoinNetwork: 'BASE',
+    sortOrder: 18
+  },
+  {
+    id: 'coinbase_commerce',
+    groupId: 'international',
+    method: 'COINBASE',
+    label: 'Coinbase Commerce',
+    provider: 'coinbase',
+    providerRail: 'commerce',
+    fallbackFeeBps: 100,
+    fallbackGasUsd: 0.03,
+    fallbackNetworkUsd: 0.02,
+    stablecoinNetwork: 'BASE',
+    excludedCountries: ['AR'],
+    sortOrder: 55
+  },
+  {
+    id: 'binance_pay',
+    groupId: 'international',
+    method: 'USDC_ONCHAIN',
+    label: 'Binance Pay',
+    provider: 'binance',
+    providerRail: 'binance_pay',
+    fallbackFeeBps: 80,
+    fallbackGasUsd: 0.03,
+    fallbackNetworkUsd: 0.02,
+    stablecoinNetwork: 'BASE',
+    sortOrder: 58
   },
   {
     id: 'binance_usdc',

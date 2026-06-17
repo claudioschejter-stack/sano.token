@@ -68,6 +68,14 @@ type DepositQuoteResponse = {
   quoteExpiresAt?: string;
   quoteTtlSeconds?: number;
   recommendedOptionId?: string | null;
+  presentation?: {
+    tokenAmountUsdc: number;
+    bestOptionId: string | null;
+    headline: string;
+    subheadline: string;
+    feeDisclosure: string;
+    showAlternativesLabel: string;
+  };
   stablecoinNetworks?: Array<{ id: string; label: string; symbol: string; cheapestRank: number }>;
 };
 
@@ -183,6 +191,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [depositOptions, setDepositOptions] = useState<DepositPaymentOption[]>([]);
   const [depositOptionGroups, setDepositOptionGroups] = useState<DepositPaymentOptionGroup[]>([]);
   const [recommendedOptionId, setRecommendedOptionId] = useState<string | null>(null);
+  const [checkoutPresentation, setCheckoutPresentation] = useState<DepositQuoteResponse['presentation']>(null);
   const [stablecoinNetworkOptions, setStablecoinNetworkOptions] = useState<
     Array<{ id: string; label: string; symbol: string; cheapestRank: number }>
   >([]);
@@ -274,6 +283,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         setDepositOptions(next);
         setDepositOptionGroups(data?.groups ?? groupDepositPaymentOptions(next));
         setRecommendedOptionId(data?.recommendedOptionId ?? null);
+        setCheckoutPresentation(data?.presentation ?? null);
         setStablecoinNetworkOptions(data?.stablecoinNetworks ?? []);
         setQuoteExpiresAt(data?.quoteExpiresAt ?? null);
         const expiresMs = data?.quoteExpiresAt ? new Date(data.quoteExpiresAt).getTime() - Date.now() : 0;
@@ -1223,10 +1233,45 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           ) : null}
 
+          {showPaymentMethods && checkoutPresentation && selectedDepositOption ? (
+            <div className="mb-[2mm] rounded-xl border border-terminal-primary/25 bg-gradient-to-br from-slate-50 to-blue-50/60 p-4 shadow-sm">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-primary">
+                {checkoutPresentation.headline}
+              </p>
+              <p className="mt-1 text-sm font-semibold text-terminal-text">{selectedDepositOption.label}</p>
+              <p className="mt-1 text-xs text-terminal-muted">{checkoutPresentation.subheadline}</p>
+              <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <p className="text-[10px] uppercase text-terminal-muted">{c.totalToPayLabel}</p>
+                  <p className="font-mono text-xl font-bold text-terminal-primary">
+                    {selectedDepositOption.usesLocalCurrency && selectedDepositOption.totalLocal != null
+                      ? formatDepositLocal(
+                          selectedDepositOption.totalLocal,
+                          selectedDepositOption.displayCurrency,
+                          intlLocale
+                        )
+                      : formatMoneyAmount(selectedDepositOption.totalUsd, feesUseUsdc, currencyLocale)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase text-terminal-muted">
+                    {mode === 'purchase' ? c.subtotalUsdc : 'USDC (Base)'}
+                  </p>
+                  <p className="font-mono text-sm font-semibold text-terminal-text">
+                    {formatUsdc2(checkoutPresentation.tokenAmountUsdc, currencyLocale)}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-2 text-[10px] leading-snug text-terminal-muted">
+                {checkoutPresentation.feeDisclosure}
+              </p>
+            </div>
+          ) : null}
+
           {showPaymentMethods ? (
             <div className="mb-[1mm] mt-0">
               <PaymentMethodLogosButton
-                label={c.selectPaymentMethod}
+                label={checkoutPresentation?.showAlternativesLabel ?? c.selectPaymentMethod}
                 expanded={paymentMethodsExpanded}
                 onClick={() => setPaymentMethodsExpanded((open) => !open)}
                 disabled={sortedDepositOptions.length === 0}

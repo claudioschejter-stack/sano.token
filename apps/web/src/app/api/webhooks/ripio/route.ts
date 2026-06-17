@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@sanova/database';
-import { confirmPlatformDeposit } from '../../../../lib/payments/platformWalletService';
+import { resolveCheckoutReferenceByRipioExternalRef } from '../../../../lib/payments/checkoutReferenceResolver';
+import { settleOnRampCheckout } from '../../../../lib/payments/checkoutTreasurySettlement';
 import { verifyRipioWebhookSignature } from '../../../../lib/payments/ripioClient';
 
 export const dynamic = 'force-dynamic';
@@ -41,35 +41,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: 'missing_external_ref' });
   }
 
-  const deposit = await prisma.platformDeposit.findFirst({
-    where: {
-      metadata: {
-        path: ['ripioExternalRef'],
-        equals: externalRef
-      }
-    }
-  });
-
-  if (!deposit) {
-    return NextResponse.json({ ok: true, ignored: 'deposit_not_found' });
-  }
-
-  if (COMPLETED_EVENTS.has(eventType)) {
-    const confirmed = await confirmPlatformDeposit({
-      depositId: deposit.id,
-      provider: 'ripio',
-      providerPaymentId: transaction?.transactionId ?? externalRef,
-      metadata: {
-        ...event,
-        ripioTxnHash: transaction?.txnHash ?? null
-      }
-    });
-    return NextResponse.json({ ok: true, deposit: confirmed });
-  }
-
   if (FAILED_EVENTS.has(eventType)) {
     return NextResponse.json({ ok: true, ignored: eventType });
   }
 
-  return NextResponse.json({ ok: true, ignored: eventType || 'pending' });
+  if (!COMPLETED_EVENTS.has(eventType)) {
+    return NextResponse.json({ ok: true, ignored: eventType || 'pending' });
+  }
+
+  const reference = await resolveCheckoutReferenceByRipioExternalRef(externalRef);
+  if (!reference) {
+    return NextResponse.json({ ok: true, ignored: 'reference_not_found' });
+  }
+
+  const result = await settleOnRampCheckout({
+    reference,
+    provider: 'ripio',
+    providerPaymentId: transaction?.transactionId ?? externalRef,
+    treasuryTxnHash: transaction?.txnHash ?? null,
+    payload: event as Record<string, unknown>
+  });
+
+  return NextResponse.json({ ok: true, result });
 }

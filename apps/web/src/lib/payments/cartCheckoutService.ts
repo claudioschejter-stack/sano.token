@@ -17,6 +17,7 @@ import {
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
 import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
+import { createBinancePayCheckout } from './binancePayAdapter';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
@@ -264,6 +265,13 @@ async function attachCartGatewayCheckout(input: {
   }
   if (input.method === 'COINBASE') {
     return createCoinbaseCartCheckout(input);
+  }
+  if (checkoutRow?.id === 'binance_pay') {
+    return createBinancePayCheckout({
+      referenceId: input.batchId,
+      amountUsd: input.totalUsd,
+      redirectPath
+    });
   }
   if (input.method === 'TRANSAK') {
     return createTransakOnRampCheckout({
@@ -608,9 +616,8 @@ export async function createCartPurchaseCheckout(input: {
     country: paymentCountry
   });
 
-  const gatewayManual =
-    gateway?.metadata &&
-    (isLocalRailManualResult(gateway.metadata) || isRipioOnRampResult(gateway.metadata));
+  const gatewayManual = gateway?.metadata && isLocalRailManualResult(gateway.metadata);
+  const gatewayOnRamp = gateway?.metadata && isRipioOnRampResult(gateway.metadata);
 
   if (gatewayManual) {
     for (const intentId of paymentIntentIds) {
@@ -644,6 +651,49 @@ export async function createCartPurchaseCheckout(input: {
       stablecoinNetwork: network.id,
       confirmed: false,
       manualReview: true
+    };
+  }
+
+  if (gatewayOnRamp) {
+    providerCheckoutUrl = gateway.providerCheckoutUrl ?? null;
+
+    for (const intentId of paymentIntentIds) {
+      const intent = await prisma.paymentIntent.findUnique({ where: { id: intentId } });
+      const prior = (intent?.metadata as Record<string, unknown>) ?? {};
+      const gatewayMeta = (gateway.metadata ?? {}) as Record<string, unknown>;
+
+      await prisma.paymentIntent.update({
+        where: { id: intentId },
+        data: {
+          status: 'REQUIRES_PAYMENT',
+          provider: gateway.provider,
+          providerPaymentId: gateway.providerPaymentId ?? batchId,
+          providerCheckoutUrl: gateway.providerCheckoutUrl ?? null,
+          metadata: {
+            ...prior,
+            paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null,
+            ripioExternalRef:
+              typeof gatewayMeta.ripioExternalRef === 'string' ? gatewayMeta.ripioExternalRef : null,
+            gateway: gatewayMeta,
+            settlementPolicy: 'treasury_first'
+          } as Prisma.InputJsonObject
+        }
+      });
+    }
+
+    const onRampIntents = await loadCartBatchIntents(input.userId, batchId);
+    return {
+      batchId,
+      mode: 'purchase',
+      totalUsd: totalUsdNumber.toFixed(6),
+      totalTokens,
+      method: input.method,
+      paymentIntents: onRampIntents.map(serializeIntent),
+      providerCheckoutUrl,
+      payToAddress,
+      stablecoinNetwork: network.id,
+      confirmed: false,
+      manualReview: false
     };
   }
 
@@ -925,15 +975,17 @@ export async function confirmCartBatchByProvider(input: {
   providerPaymentId?: string | null;
   payload?: Prisma.InputJsonValue;
 }) {
-  if (!input.providerPaymentId?.trim()) {
-    throw new Error('PAYMENT_CONFIRMATION_REQUIRED');
-  }
+  let sample = input.providerPaymentId?.trim()
+    ? await prisma.paymentIntent.findFirst({
+        where: { providerPaymentId: input.providerPaymentId.trim() }
+      })
+    : null;
 
-  const sample = await prisma.paymentIntent.findFirst({
-    where: {
-      providerPaymentId: input.providerPaymentId.trim()
-    }
-  });
+  if (!sample) {
+    sample = await prisma.paymentIntent.findFirst({
+      where: { metadata: { path: ['cartBatchId'], equals: input.batchId } }
+    });
+  }
 
   if (!sample) {
     return [];
