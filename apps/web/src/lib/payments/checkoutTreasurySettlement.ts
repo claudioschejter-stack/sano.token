@@ -25,7 +25,7 @@ export async function settleOnRampCheckout(input: OnRampSettlementInput) {
     expectedAmountUsd: input.expectedAmountUsd
   });
 
-  if (!verification.ok) {
+  if (verification.ok === false) {
     throw new Error(verification.error);
   }
 
