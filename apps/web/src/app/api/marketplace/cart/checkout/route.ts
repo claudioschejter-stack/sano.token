@@ -16,6 +16,7 @@ type CartCheckoutBody = {
   items?: CartLineInput[];
   method?: string;
   paymentOptionId?: string;
+  paymentOptionRail?: string;
   walletAddress?: string;
   stablecoinNetwork?: string;
 };
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
       items,
       method,
       paymentOptionId: checkoutRow?.id ?? body.paymentOptionId,
+      paymentOptionRail: body.paymentOptionRail ?? checkoutRow?.providerRail,
       walletAddress: body.walletAddress ?? linkedWalletAddress,
       stablecoinNetwork: body.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork
     });

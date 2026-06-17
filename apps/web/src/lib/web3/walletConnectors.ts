@@ -17,3 +17,22 @@ export function pickWalletConnectConnector(connectors: readonly Connector[]) {
       connector.name.toLowerCase().includes('walletconnect')
   );
 }
+
+export function pickMetaMaskConnector(connectors: readonly Connector[]) {
+  return connectors.find(
+    (connector) =>
+      connector.id === 'metaMaskSDK' ||
+      connector.id === 'io.metamask' ||
+      connector.id === 'injected' ||
+      connector.name.toLowerCase().includes('metamask')
+  );
+}
+
+export function pickBinanceConnector(connectors: readonly Connector[]) {
+  return connectors.find(
+    (connector) =>
+      connector.id === 'BinanceW3WSDK' ||
+      connector.id === 'binance' ||
+      connector.name.toLowerCase().includes('binance')
+  );
+}

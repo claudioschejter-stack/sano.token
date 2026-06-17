@@ -198,6 +198,7 @@ async function attachCartGatewayCheckout(input: {
   batchId: string;
   method: PaymentMethod;
   paymentOptionId?: string | null;
+  paymentOptionRail?: string | null;
   totalUsd: number;
   totalTokens: number;
   primaryProjectId: string;
@@ -267,7 +268,7 @@ async function attachCartGatewayCheckout(input: {
       userEmail: input.userEmail,
       userId: input.userId,
       redirectPath,
-      paymentOptionRail: checkoutRow?.providerRail ?? null
+      paymentOptionRail: input.paymentOptionRail ?? checkoutRow?.providerRail ?? null
     });
   }
   if (input.method === 'RAMP') {
@@ -344,6 +345,7 @@ export async function createCartPurchaseCheckout(input: {
   items: CartLineInput[];
   method: PaymentMethod;
   paymentOptionId?: string | null;
+  paymentOptionRail?: string | null;
   walletAddress?: string | null;
   stablecoinNetwork?: string | null;
 }): Promise<CartCheckoutResult> {
@@ -581,6 +583,7 @@ export async function createCartPurchaseCheckout(input: {
     batchId,
     method: input.method,
     paymentOptionId: input.paymentOptionId ?? checkoutRow?.id,
+    paymentOptionRail: input.paymentOptionRail ?? checkoutRow?.providerRail,
     totalUsd: totalUsdNumber,
     totalTokens,
     primaryProjectId: input.items[0].projectId,

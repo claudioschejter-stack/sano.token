@@ -30,10 +30,13 @@ export function ripioSandbox(): boolean {
 
 export function ripioPaymentMethodType(rail?: string | null): string {
   const railNormalized = rail?.trim().toLowerCase();
+  if (!railNormalized) {
+    return process.env.RIPIO_DEFAULT_PAYMENT_METHOD?.trim() || 'bank_transfer';
+  }
   if (railNormalized === 'mercado_pago' || railNormalized === 'mercadopago') {
     return 'mercado_pago';
   }
-  return process.env.RIPIO_DEFAULT_PAYMENT_METHOD?.trim() || 'bank_transfer';
+  return railNormalized;
 }
 
 export function ripioChainForNetwork(networkId?: string | null): { chain: string; currency: string } {

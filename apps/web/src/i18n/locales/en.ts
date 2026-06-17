@@ -1161,6 +1161,13 @@ export const en = {
     cartSummaryTitle: "Your cart",
     addMoreTokens: "Add more tokens to your cart",
     subtotalUsdc: "Subtotal (USDC)",
+    creditAmountUsdc: "Amount to credit (USDC)",
+    totalToPayFeesIncluded: "Includes fees, commissions and conversion to USDC Base",
+    paymentOptionsTitle: "Payment options",
+    fiatOnRampLabel: "Debit card, credit card and bank transfer",
+    multichainUsdcHint:
+      "We accept USDC on Base, Polygon, Solana and TRON. Automatically converted to Base (investor pays).",
+    ripioEwalletTitle: "Choose your e-wallet",
     feesSummaryTitle: "Fees and costs",
     continueShopping: "Keep buying tokens",
     depositTitle: "Deposit funds",

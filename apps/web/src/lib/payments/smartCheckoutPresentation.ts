@@ -33,7 +33,7 @@ export function buildSmartCheckoutPresentation(input: {
       headline: 'Sin métodos de pago disponibles',
       subheadline: 'Contactá soporte para habilitar cobros en tu país.',
       feeDisclosure: 'Los costos de conversión y red los cubre el comprador.',
-      showAlternativesLabel: 'Ver otras opciones'
+      showAlternativesLabel: 'Opciones de Pago'
     };
   }
 
@@ -56,6 +56,6 @@ export function buildSmartCheckoutPresentation(input: {
     subheadline,
     feeDisclosure:
       'Comisiones de pasarela, conversión fiat→USDC y gas en Base están incluidas en el total. Los tokens RWA se acreditan cuando el USDC llega al tesoro.',
-    showAlternativesLabel: 'Ver otras formas de pago'
+    showAlternativesLabel: 'Opciones de Pago'
   };
 }

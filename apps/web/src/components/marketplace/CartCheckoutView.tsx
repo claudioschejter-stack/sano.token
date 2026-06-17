@@ -27,7 +27,13 @@ import { StickyActionBar } from '../mobile/StickyActionBar';
 import { PaymentMethodLogosButton } from './PaymentMethodLogosButton';
 import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
 import { BASE_CHAIN_ID } from '../../lib/web3/config';
-import { pickCoinbaseConnector } from '../../lib/web3/walletConnectors';
+import { pickBinanceConnector, pickCoinbaseConnector, pickMetaMaskConnector } from '../../lib/web3/walletConnectors';
+import {
+  autoConnectWalletOptionId,
+  buildCheckoutDisplaySections,
+  RIPIO_EWALLET_PARENT_ID,
+  RIPIO_EWALLET_RAILS
+} from '../../lib/payments/checkoutPaymentDisplay';
 import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
 import {
   isMercadoPagoEmbeddedResult,
@@ -191,7 +197,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [depositOptions, setDepositOptions] = useState<DepositPaymentOption[]>([]);
   const [depositOptionGroups, setDepositOptionGroups] = useState<DepositPaymentOptionGroup[]>([]);
   const [recommendedOptionId, setRecommendedOptionId] = useState<string | null>(null);
-  const [checkoutPresentation, setCheckoutPresentation] = useState<DepositQuoteResponse['presentation']>(null);
   const [stablecoinNetworkOptions, setStablecoinNetworkOptions] = useState<
     Array<{ id: string; label: string; symbol: string; cheapestRank: number }>
   >([]);
@@ -221,6 +226,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [pendingReference, setPendingReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paymentMethodsExpanded, setPaymentMethodsExpanded] = useState(false);
+  const [ripioEwalletRail, setRipioEwalletRail] = useState<string | null>(null);
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
   const depositCountry = CURRENCY_COUNTRY[currency] ?? 'AR';
@@ -230,6 +236,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     [depositOptionGroups, depositOptions]
   );
 
+  const paymentDisplaySections = useMemo(
+    () => buildCheckoutDisplaySections(sortedDepositOptions),
+    [sortedDepositOptions]
+  );
   const selectedDepositOption = useMemo(
     () => sortedDepositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
     [sortedDepositOptions, selectedDepositOptionId]
@@ -246,6 +256,39 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const showWalletLinker = requiresWallet && mode !== 'deposit' && !isWalletConnectUsdc;
   const linkedWalletAddress = walletGuard.linkedWallet;
   const paymentQuoteExpired = showPaymentMethods && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
+
+  const connectWalletForSelectedOption = useCallback(async () => {
+    if (!autoConnectWalletOptionId(selectedDepositOptionId)) {
+      return;
+    }
+    try {
+      if (selectedDepositOptionId === 'electronic_wallet') {
+        const coinbase = pickCoinbaseConnector(connectors);
+        if (coinbase) {
+          await disconnectAsync();
+          await connectAsync({ connector: coinbase, chainId: BASE_CHAIN_ID });
+        }
+        return;
+      }
+      if (selectedDepositOptionId === 'metamask_usdc') {
+        const metamask = pickMetaMaskConnector(connectors);
+        if (metamask) {
+          await disconnectAsync();
+          await connectAsync({ connector: metamask, chainId: BASE_CHAIN_ID });
+        }
+        return;
+      }
+      if (selectedDepositOptionId === 'binance_usdc') {
+        const binance = pickBinanceConnector(connectors);
+        if (binance) {
+          await disconnectAsync();
+          await connectAsync({ connector: binance, chainId: BASE_CHAIN_ID });
+        }
+      }
+    } catch {
+      /* el usuario puede conectar manualmente */
+    }
+  }, [connectAsync, connectors, disconnectAsync, selectedDepositOptionId]);
 
   const reconnectCoinbaseWallet = useCallback(async () => {
     const coinbase = pickCoinbaseConnector(connectors);
@@ -283,7 +326,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         setDepositOptions(next);
         setDepositOptionGroups(data?.groups ?? groupDepositPaymentOptions(next));
         setRecommendedOptionId(data?.recommendedOptionId ?? null);
-        setCheckoutPresentation(data?.presentation ?? null);
         setStablecoinNetworkOptions(data?.stablecoinNetworks ?? []);
         setQuoteExpiresAt(data?.quoteExpiresAt ?? null);
         const expiresMs = data?.quoteExpiresAt ? new Date(data.quoteExpiresAt).getTime() - Date.now() : 0;
@@ -562,6 +604,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       return;
     }
 
+    if (showPaymentMethods && selectedDepositOptionId === RIPIO_EWALLET_PARENT_ID && !ripioEwalletRail) {
+      setError(c.ripioEwalletTitle);
+      return;
+    }
+
     if (showPaymentMethods && (!selectedDepositOption?.configured || !selectedDepositOptionId)) {
       setError(c.paymentUnavailable);
       return;
@@ -599,6 +646,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     setEmbeddedSession(null);
     setEmbeddedReference(null);
 
+    if (autoConnectWalletOptionId(selectedDepositOptionId)) {
+      await connectWalletForSelectedOption();
+    }
+
     try {
       if (mode === 'deposit') {
         const response = await fetch('/api/wallet/deposit-intents', {
@@ -610,7 +661,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             paymentOptionId: selectedDepositOptionId,
             auto: false,
             stablecoinNetwork,
-            walletAddress: linkedWalletAddress
+            walletAddress: linkedWalletAddress,
+            paymentOptionRail:
+              selectedDepositOptionId === RIPIO_EWALLET_PARENT_ID ? ripioEwalletRail : undefined
           })
         });
 
@@ -673,7 +726,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           method: paymentMethod,
           paymentOptionId: selectedDepositOptionId,
           walletAddress: isWalletConnectUsdc ? linkedWalletAddress : address,
-          stablecoinNetwork
+          stablecoinNetwork,
+          paymentOptionRail:
+            selectedDepositOptionId === RIPIO_EWALLET_PARENT_ID ? ripioEwalletRail : undefined
         })
       });
 
@@ -941,24 +996,32 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     deposit?.provider === 'ripio' ||
     checkout?.provider === 'ripio';
 
-  const renderDepositOption = (option: DepositPaymentOption) => {
+  const renderDepositOption = (option: DepositPaymentOption, displayLabel?: string) => {
     const selected = selectedDepositOptionId === option.id;
     const useUsdc = optionUsesUsdc(option);
     const amountPrimary =
       option.usesLocalCurrency && option.totalLocal != null
-        ? formatUsd2(option.totalLocal, currencyLocale)
-        : formatMoneyAmount(option.totalUsd, useUsdc, currencyLocale);
+        ? formatDepositLocal(option.totalLocal, option.displayCurrency, intlLocale)
+        : formatUsdc2(option.totalUsd, currencyLocale);
 
     return (
       <div key={option.id} className={`bg-white ${!option.configured ? 'opacity-70' : ''}`}>
         <div
           role="button"
           tabIndex={0}
-          onClick={() => setSelectedDepositOptionId(option.id)}
+          onClick={() => {
+            setSelectedDepositOptionId(option.id);
+            if (option.id !== RIPIO_EWALLET_PARENT_ID) {
+              setRipioEwalletRail(null);
+            }
+          }}
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
               setSelectedDepositOptionId(option.id);
+              if (option.id !== RIPIO_EWALLET_PARENT_ID) {
+                setRipioEwalletRail(null);
+              }
             }
           }}
           className={`flex w-full cursor-pointer items-center gap-2 px-3 py-[1mm] text-left transition-colors ${
@@ -966,15 +1029,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           }`}
         >
           <div className="min-w-0 flex-1">
-            <span
-              className={`block font-semibold text-slate-900 text-[120%] leading-tight ${selected ? '' : ''}`}
-            >
-              {option.label}
-              {option.id === recommendedOptionId && option.configured ? (
-                <span className="ml-2 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-emerald-800">
-                  {c.recommendedBadge}
-                </span>
-              ) : null}
+            <span className="block text-[120%] font-semibold leading-tight text-slate-900">
+              {displayLabel ?? option.label}
             </span>
             {!option.configured ? (
               <span className="mt-0.5 block text-[10px] font-medium uppercase text-amber-700">
@@ -992,6 +1048,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   address: `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
                 })}
               </span>
+            ) : optionUsesUsdc(option) ? (
+              <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">{c.multichainUsdcHint}</span>
             ) : option.id === 'mercadopago_wallet' ? (
               <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">
                 Pagás con saldo MP desde el checkout embebido de Mercado Pago
@@ -1005,11 +1063,14 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           <div className={`${AMOUNT_RIGHT} text-[120%] font-bold text-blue-700`}>{amountPrimary}</div>
           <button
             type="button"
-            aria-label={option.label}
+            aria-label={displayLabel ?? option.label}
             aria-pressed={selected}
             onClick={(event) => {
               event.stopPropagation();
               setSelectedDepositOptionId(option.id);
+              if (option.id !== RIPIO_EWALLET_PARENT_ID) {
+                setRipioEwalletRail(null);
+              }
             }}
             className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 bg-white transition-colors ${
               selected ? 'border-blue-600' : 'border-slate-300 hover:border-blue-400'
@@ -1033,24 +1094,29 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 ) : null}
               </div>
             ) : null}
-            <div className={COMPACT_ROW}>
-              <span>{c.feeCommission}</span>
-              <span className={`${AMOUNT_RIGHT} font-medium text-slate-900`}>
-                {formatMoneyAmount(option.platformFeeUsd, useUsdc, currencyLocale)}
-              </span>
-            </div>
-            <div className={COMPACT_ROW}>
-              <span>{c.feeGas}</span>
-              <span className={`${AMOUNT_RIGHT} font-medium text-slate-900`}>
-                {formatMoneyAmount(option.gasFeeUsd, useUsdc, currencyLocale)}
-              </span>
-            </div>
-            <div className={COMPACT_ROW}>
-              <span>{c.feeOther}</span>
-              <span className={`${AMOUNT_RIGHT} font-medium text-slate-900`}>
-                {formatMoneyAmount(option.networkFeeUsd, useUsdc, currencyLocale)}
-              </span>
-            </div>
+            {option.id === RIPIO_EWALLET_PARENT_ID ? (
+              <div className="py-[1mm]">
+                <p className="mb-1 text-[10px] font-semibold uppercase text-slate-600">{c.ripioEwalletTitle}</p>
+                <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white">
+                  {RIPIO_EWALLET_RAILS.map((wallet) => {
+                    const railSelected = ripioEwalletRail === wallet.rail;
+                    return (
+                      <button
+                        key={wallet.rail}
+                        type="button"
+                        onClick={() => setRipioEwalletRail(wallet.rail)}
+                        className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${
+                          railSelected ? 'bg-blue-50 font-semibold text-blue-900' : 'text-slate-800'
+                        }`}
+                      >
+                        <span>{wallet.label}</span>
+                        {railSelected ? <span className="text-[10px] uppercase text-blue-700">✓</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -1058,8 +1124,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   };
 
   const displayTotalUsd = selectedDepositOption?.totalUsd ?? sortedDepositOptions.find((o) => o.configured)?.totalUsd ?? totalUsd;
-  const feePreviewOption = selectedDepositOption ?? sortedDepositOptions.find((o) => o.configured) ?? null;
-  const feesUseUsdc = feePreviewOption ? optionUsesUsdc(feePreviewOption) : true;
   const greetingName = investorFirstName(investorName);
 
   const confirmDisabled =
@@ -1171,9 +1235,39 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 </Link>
               </div>
             )
-          ) : (
+          ) : null}
+
+          {showPaymentMethods ? (
+            <div className="border-b border-terminal-border py-[2mm]">
+              <label className="text-xs font-semibold uppercase tracking-wider text-terminal-muted">
+                {c.creditAmountUsdc}
+              </label>
+              {mode === 'deposit' ? (
+                <input
+                  value={depositAmount}
+                  onChange={(event) => setDepositAmount(event.target.value)}
+                  inputMode="decimal"
+                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2.5 text-right font-mono text-lg text-terminal-text outline-none focus:border-terminal-primary/50"
+                  placeholder="100"
+                />
+              ) : (
+                <p className={`${AMOUNT_RIGHT} mt-1 text-right font-mono text-lg text-terminal-text`}>
+                  {formatUsdc2(totalUsd, currencyLocale)}
+                </p>
+              )}
+              <div className={`${COMPACT_ROW} mt-[2mm]`}>
+                <span className="text-sm font-semibold text-terminal-text">{c.totalToPayLabel}</span>
+                <span className={`${AMOUNT_RIGHT} text-base font-bold text-terminal-primary`}>
+                  {formatUsdc2(displayTotalUsd, currencyLocale)}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[10px] text-terminal-muted">{c.totalToPayFeesIncluded}</p>
+            </div>
+          ) : mode === 'deposit' ? (
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
-              <label className="text-xs font-medium uppercase tracking-wider text-terminal-muted">{c.depositAmountUsd}</label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-terminal-muted">
+                {c.creditAmountUsdc}
+              </label>
               <input
                 value={depositAmount}
                 onChange={(event) => setDepositAmount(event.target.value)}
@@ -1182,96 +1276,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 placeholder="100"
               />
             </div>
-          )}
-
-          {showPaymentMethods ? (
-            <div className="border-b border-terminal-border pt-[2mm] pb-0">
-              <p className="text-sm font-bold text-terminal-text">{c.feesSummaryTitle}</p>
-              <div className="mt-[1mm] space-y-0 text-xs text-terminal-muted">
-                <div className={COMPACT_ROW}>
-                  <span>{mode === 'deposit' ? c.totalDepositUsd : c.subtotalUsdc}</span>
-                  <span className={`${AMOUNT_RIGHT} text-terminal-text`}>
-                    {mode === 'deposit'
-                      ? formatUsd2(totalUsd, currencyLocale)
-                      : formatUsdc2(totalUsd, currencyLocale)}
-                  </span>
-                </div>
-                {mode === 'purchase' && feePreviewOption ? (
-                  <>
-                    <div className={COMPACT_ROW}>
-                      <span>{c.feeCommission}</span>
-                      <span className={`${AMOUNT_RIGHT} text-terminal-text`}>
-                        {formatMoneyAmount(feePreviewOption.platformFeeUsd, feesUseUsdc, currencyLocale)}
-                      </span>
-                    </div>
-                    <div className={COMPACT_ROW}>
-                      <span>{c.feeGas}</span>
-                      <span className={`${AMOUNT_RIGHT} text-terminal-text`}>
-                        {formatMoneyAmount(feePreviewOption.gasFeeUsd, feesUseUsdc, currencyLocale)}
-                      </span>
-                    </div>
-                    <div className={COMPACT_ROW}>
-                      <span>{c.feeOther}</span>
-                      <span className={`${AMOUNT_RIGHT} text-terminal-text`}>
-                        {formatMoneyAmount(feePreviewOption.networkFeeUsd, feesUseUsdc, currencyLocale)}
-                      </span>
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            </div>
           ) : null}
 
           {showPaymentMethods ? (
-            <div className="pt-0 pb-[2mm]">
-              <div className={COMPACT_ROW}>
-                <span className="text-sm font-semibold text-terminal-text">{c.totalToPayLabel}</span>
-                <span className={`${AMOUNT_RIGHT} text-base font-bold text-terminal-primary`}>
-                  {formatMoneyAmount(displayTotalUsd, feesUseUsdc, currencyLocale)}
-                </span>
-              </div>
-            </div>
-          ) : null}
-
-          {showPaymentMethods && checkoutPresentation && selectedDepositOption ? (
-            <div className="mb-[2mm] rounded-xl border border-terminal-primary/25 bg-gradient-to-br from-slate-50 to-blue-50/60 p-4 shadow-sm">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-primary">
-                {checkoutPresentation.headline}
-              </p>
-              <p className="mt-1 text-sm font-semibold text-terminal-text">{selectedDepositOption.label}</p>
-              <p className="mt-1 text-xs text-terminal-muted">{checkoutPresentation.subheadline}</p>
-              <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <p className="text-[10px] uppercase text-terminal-muted">{c.totalToPayLabel}</p>
-                  <p className="font-mono text-xl font-bold text-terminal-primary">
-                    {selectedDepositOption.usesLocalCurrency && selectedDepositOption.totalLocal != null
-                      ? formatDepositLocal(
-                          selectedDepositOption.totalLocal,
-                          selectedDepositOption.displayCurrency,
-                          intlLocale
-                        )
-                      : formatMoneyAmount(selectedDepositOption.totalUsd, feesUseUsdc, currencyLocale)}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] uppercase text-terminal-muted">
-                    {mode === 'purchase' ? c.subtotalUsdc : 'USDC (Base)'}
-                  </p>
-                  <p className="font-mono text-sm font-semibold text-terminal-text">
-                    {formatUsdc2(checkoutPresentation.tokenAmountUsdc, currencyLocale)}
-                  </p>
-                </div>
-              </div>
-              <p className="mt-2 text-[10px] leading-snug text-terminal-muted">
-                {checkoutPresentation.feeDisclosure}
-              </p>
-            </div>
-          ) : null}
-
-          {showPaymentMethods ? (
-            <div className="mb-[1mm] mt-0">
+            <div className="mb-[1mm] mt-[1mm]">
               <PaymentMethodLogosButton
-                label={checkoutPresentation?.showAlternativesLabel ?? c.selectPaymentMethod}
+                label={c.paymentOptionsTitle}
                 expanded={paymentMethodsExpanded}
                 onClick={() => setPaymentMethodsExpanded((open) => !open)}
                 disabled={sortedDepositOptions.length === 0}
@@ -1280,55 +1290,77 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
 
           {showPaymentMethods && paymentMethodsExpanded ? (
-            <div className="space-y-[1mm] pb-[2mm]">
+            <div className="space-y-[2mm] pb-[2mm]">
               {paymentQuoteExpired ? (
                 <p className="text-xs text-terminal-warning">{c.quoteExpired}</p>
               ) : null}
-              {sortedDepositOptions.some((row) => row.groupId === 'linked_wallet' && row.configured) ? (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-900">
-                  <p className="font-semibold">{c.usdcEducationTitle}</p>
-                  <p className="mt-1 text-emerald-800">{c.usdcEducationBody}</p>
-                </div>
-              ) : null}
-              {depositCountry === 'AR' ? (
-                <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] text-sky-900">
-                  <p className="font-semibold">{c.argentinaPaymentsTitle}</p>
-                  <p className="mt-1 text-sky-800">{c.argentinaPaymentsBody}</p>
-                </div>
-              ) : null}
-              {paymentGroups.map((group) => (
-                <div key={group.id}>
+
+              {paymentDisplaySections.walletOptions.length > 0 ? (
+                <div>
                   <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
-                    {c.paymentGroups[group.id]}
-                    {group.id === 'global_cards' ? (
-                      <span className="ml-1 normal-case text-terminal-muted/80">— {c.globalCardsHint}</span>
-                    ) : null}
+                    {c.paymentGroups.linked_wallet}
                   </p>
-                  {group.available.length > 0 ? (
-                    <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                      {group.available.map((option) => renderDepositOption(option))}
-                    </div>
-                  ) : null}
-                  {group.unavailable.length > 0 ? (
-                    <div className="mt-[1mm] space-y-[1mm]">
-                      {group.available.length > 0 ? (
-                        <p className="text-[10px] font-medium uppercase tracking-wide text-terminal-muted/80">
-                          {c.paymentMethodsUnavailable}
-                        </p>
-                      ) : null}
-                      <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-dashed border-terminal-border bg-white">
-                        {group.unavailable.map((option) => renderDepositOption(option))}
-                      </div>
-                    </div>
-                  ) : null}
+                  <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
+                    {paymentDisplaySections.walletOptions.map((option) => renderDepositOption(option))}
+                  </div>
                 </div>
-              ))}
+              ) : null}
+
+              {paymentDisplaySections.fiatOnRampOption ? (
+                <div>
+                  <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                    {c.paymentGroups.international}
+                  </p>
+                  <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
+                    {renderDepositOption(paymentDisplaySections.fiatOnRampOption, c.fiatOnRampLabel)}
+                  </div>
+                </div>
+              ) : null}
+
+              {paymentDisplaySections.ripioEwalletOption ? (
+                <div>
+                  <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                    {c.paymentGroups.argentina}
+                  </p>
+                  <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
+                    {renderDepositOption(paymentDisplaySections.ripioEwalletOption)}
+                  </div>
+                </div>
+              ) : null}
+
+              {paymentDisplaySections.independentOptions.length > 0 ? (
+                <div>
+                  <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                    {c.paymentGroups.argentina}
+                  </p>
+                  <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
+                    {paymentDisplaySections.independentOptions.map((option) => renderDepositOption(option))}
+                  </div>
+                </div>
+              ) : null}
+
               {sortedDepositOptions.length === 0 && totalUsd > 0 ? (
                 <p className="text-xs text-terminal-muted">{c.processing}</p>
               ) : null}
               {sortedDepositOptions.length === 0 && totalUsd <= 0 ? (
                 <p className="text-xs text-terminal-warning">{c.invalidAmount}</p>
               ) : null}
+
+              <div className="md:hidden">
+                <button
+                  type="button"
+                  disabled={confirmDisabled}
+                  onClick={() => void handleConfirm()}
+                  className="min-h-12 w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {confirmLabel}
+                </button>
+                {quoteExpiresAt && quoteSecondsLeft > 0 ? (
+                  <p className="mt-1 text-right text-xs font-medium text-terminal-primary">
+                    {formatMessage(c.quoteExpiresIn, { seconds: String(quoteSecondsLeft) })}
+                  </p>
+                ) : null}
+              </div>
             </div>
           ) : null}
 

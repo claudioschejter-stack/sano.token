@@ -14,6 +14,7 @@ type DepositBody = {
   amountUsd?: number;
   method?: PaymentMethod;
   paymentOptionId?: string;
+  paymentOptionRail?: string;
   auto?: boolean;
   country?: string;
   currency?: string;
@@ -98,6 +99,7 @@ export async function POST(request: Request) {
       amountUsd,
       method,
       paymentOptionId: checkoutRow?.id ?? body.paymentOptionId,
+      paymentOptionRail: body.paymentOptionRail ?? checkoutRow?.providerRail,
       walletAddress: body.walletAddress ?? linkedWalletAddress,
       stablecoinNetwork: route?.stablecoinNetwork ?? body.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork,
       routeQuote: route ?? undefined

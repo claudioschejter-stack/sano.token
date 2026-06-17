@@ -201,6 +201,7 @@ export async function createPlatformDeposit(input: {
   amountUsd: number;
   method: PaymentMethod;
   paymentOptionId?: string | null;
+  paymentOptionRail?: string | null;
   walletAddress?: string | null;
   stablecoinNetwork?: string | null;
   routeQuote?: PaymentRouteQuote;
@@ -257,7 +258,7 @@ export async function createPlatformDeposit(input: {
     userId: input.userId,
     walletAddress: payerWallet,
     country: await resolvePaymentCountryForUser(input.userId),
-    paymentOptionRail: resolvedMethod.ripioRail ?? checkoutRow?.providerRail ?? null
+    paymentOptionRail: input.paymentOptionRail ?? resolvedMethod.ripioRail ?? checkoutRow?.providerRail ?? null
   };
 
   if (existing?.status === 'PENDING' && existing.expiresAt > new Date()) {
