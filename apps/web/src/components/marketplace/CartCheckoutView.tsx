@@ -1317,7 +1317,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4 py-[1mm]">
               <div className={AMOUNT_ROW}>
                 <label className={AMOUNT_CREDIT_LABEL}>{c.creditAmountUsdc}</label>
-                <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} inline-flex items-baseline justify-end gap-1.5 text-white`}>
+                <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} flex items-baseline justify-end gap-1.5 text-white`}>
                   <span>USDC</span>
                   <input
                     value={depositAmount}
