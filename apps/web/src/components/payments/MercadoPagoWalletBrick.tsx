@@ -77,8 +77,7 @@ export function MercadoPagoWalletBrick({
 
       <Payment
         initialization={{
-          amount: session.amount,
-          preferenceId: session.preferenceId
+          amount: session.amount
         }}
         customization={{
           paymentMethods: paymentMethods as never

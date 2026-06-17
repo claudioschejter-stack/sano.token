@@ -349,7 +349,8 @@ async function attachDepositProviderCheckoutToDeposit(
         status: manualReview ? 'MANUAL_REVIEW' : deposit.status === 'MANUAL_REVIEW' ? 'MANUAL_REVIEW' : 'PENDING',
         provider: checkout.provider,
         providerPaymentId: checkout.providerPaymentId,
-        providerCheckoutUrl: checkout.providerCheckoutUrl,
+        providerCheckoutUrl:
+          checkoutInput.paymentOptionId === 'mercadopago_wallet' ? null : (checkout.providerCheckoutUrl ?? null),
         metadata: {
           ...((deposit.metadata as Record<string, unknown>) ?? {}),
           provider: checkout.metadata,

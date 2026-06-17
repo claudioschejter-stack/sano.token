@@ -31,6 +31,7 @@ import { pickCoinbaseConnector } from '../../lib/web3/walletConnectors';
 import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
 import {
   isMercadoPagoEmbeddedResult,
+  MERCADOPAGO_WALLET_OPTION_ID,
   type MercadoPagoEmbeddedSession
 } from '../../lib/payments/mercadoPagoEmbeddedService';
 import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
@@ -360,7 +361,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     if (mode !== 'deposit' || !depositFromQuery || !returnStatus) {
       return;
     }
-    if (returnStatus !== 'pending' && returnStatus !== 'success') {
+    if (returnStatus !== 'pending' && returnStatus !== 'success' && returnStatus !== 'failed') {
       return;
     }
 
@@ -390,6 +391,21 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
         const providerMeta =
           (data.deposit.metadata?.provider as Record<string, unknown> | undefined) ?? data.deposit.metadata ?? null;
+
+        if (returnStatus === 'failed') {
+          if (isMercadoPagoEmbeddedResult(providerMeta)) {
+            setEmbeddedSession(providerMeta);
+            setEmbeddedReference(data.deposit.id);
+            setSelectedDepositOptionId(MERCADOPAGO_WALLET_OPTION_ID);
+            setStatus('mercadopago_embedded');
+            setError('El pago con Mercado Pago fue cancelado o rechazado. Podés intentar de nuevo.');
+          } else {
+            setError('El pago con Mercado Pago fue cancelado o rechazado.');
+            setStatus('idle');
+          }
+          return;
+        }
+
         const ripioPending =
           returnStatus === 'pending' ||
           providerFromQuery === 'ripio' ||
@@ -608,7 +624,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           return;
         }
 
-        if (data.deposit.providerCheckoutUrl) {
+        if (data.deposit.providerCheckoutUrl && selectedDepositOptionId !== MERCADOPAGO_WALLET_OPTION_ID) {
           const checkoutUrl = data.deposit.providerCheckoutUrl;
           const isInternalReturn =
             checkoutUrl.includes('/marketplace/carrito') && checkoutUrl.includes('status=pending');

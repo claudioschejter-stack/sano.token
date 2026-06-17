@@ -118,6 +118,15 @@ export async function createMercadoPagoEmbeddedPreference(input: {
   const charge = resolveMercadoPagoChargeAmount(input.amountUsd, input.country);
   const paymentMethods = walletPaymentMethodExclusions();
 
+  const depositReturnUrls = (depositId: string) => {
+    const base = `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${encodeURIComponent(depositId)}`;
+    return {
+      success: `${base}&status=success`,
+      failure: `${base}&status=failed`,
+      pending: `${base}&status=pending`
+    };
+  };
+
   const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
     method: 'POST',
     headers: {
@@ -134,11 +143,12 @@ export async function createMercadoPagoEmbeddedPreference(input: {
           unit_price: charge.amount
         }
       ],
-      purpose: 'wallet_purchase',
       notification_url: mercadoPagoNotificationUrl(),
+      back_urls: depositReturnUrls(input.externalReference),
       ...(paymentMethods ? { payment_methods: paymentMethods } : {}),
       metadata: {
         embedded: true,
+        depositId: input.externalReference,
         ...input.metadata
       }
     })
