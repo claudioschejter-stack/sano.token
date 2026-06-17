@@ -115,10 +115,12 @@ function formatMoneyAmount(amount: number, useUsdc: boolean, locale: string): st
 }
 
 const COMPACT_ROW = 'flex items-baseline justify-between gap-3 leading-none py-[0.5mm]';
-const AMOUNT_RIGHT = 'shrink-0 text-right font-mono tabular-nums';
+const AMOUNT_ROW = 'grid grid-cols-[minmax(0,1fr)_11rem] items-baseline gap-x-3 py-[1mm]';
+const AMOUNT_VALUE_CELL = 'text-right font-mono tabular-nums';
 const AMOUNT_TOTAL = 'text-base font-bold';
 const AMOUNT_CREDIT_LABEL = 'whitespace-nowrap text-[0.825rem] font-semibold uppercase tracking-wider text-terminal-muted sm:text-sm';
 const AMOUNT_CREDIT_VALUE = 'text-[1.1rem] font-bold';
+const AMOUNT_RIGHT = AMOUNT_VALUE_CELL;
 const SECTION_TITLE = 'my-[1mm] py-0 text-[10px] font-semibold uppercase tracking-wide text-terminal-muted';
 
 function formatDepositLocal(amount: number, currencyCode: string, intlLocale: string) {
@@ -1282,27 +1284,30 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
           {showPaymentMethods ? (
             <div className="border-b border-terminal-border py-[1mm]">
-              <div className={`${COMPACT_ROW} py-[1mm]`}>
+              <div className={AMOUNT_ROW}>
                 <label className={mode === 'deposit' ? AMOUNT_CREDIT_LABEL : 'text-xs font-semibold uppercase tracking-wider text-terminal-muted'}>
                   {c.creditAmountUsdc}
                 </label>
                 {mode === 'deposit' ? (
-                  <input
-                    value={depositAmount}
-                    onChange={(event) => setDepositAmount(event.target.value)}
-                    inputMode="decimal"
-                    className={`${AMOUNT_RIGHT} ${mode === 'deposit' ? AMOUNT_CREDIT_VALUE : AMOUNT_TOTAL} w-auto min-w-[8rem] max-w-[50%] border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
-                    placeholder="100"
-                  />
+                  <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} flex items-baseline justify-end gap-1.5 text-white`}>
+                    <span>USDC</span>
+                    <input
+                      value={depositAmount}
+                      onChange={(event) => setDepositAmount(event.target.value)}
+                      inputMode="decimal"
+                      className="w-[6.5rem] border-0 bg-transparent p-0 text-right text-white outline-none focus:ring-0"
+                      placeholder="100"
+                    />
+                  </div>
                 ) : (
-                  <span className={`${AMOUNT_RIGHT} ${AMOUNT_TOTAL} text-white`}>
+                  <span className={`${AMOUNT_VALUE_CELL} ${AMOUNT_TOTAL} text-white`}>
                     {formatUsdc2(totalUsd, currencyLocale)}
                   </span>
                 )}
               </div>
-              <div className={`${COMPACT_ROW} py-[1mm]`}>
+              <div className={AMOUNT_ROW}>
                 <span className="text-sm font-semibold text-terminal-text">{c.totalToPayLabel}</span>
-                <span className={`${AMOUNT_RIGHT} ${AMOUNT_TOTAL} text-terminal-primary`}>
+                <span className={`${AMOUNT_VALUE_CELL} ${AMOUNT_TOTAL} text-terminal-primary`}>
                   {formatUsdc2(displayTotalUsd, currencyLocale)}
                 </span>
               </div>
@@ -1310,15 +1315,18 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           ) : mode === 'deposit' ? (
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4 py-[1mm]">
-              <div className={`${COMPACT_ROW} py-[1mm]`}>
+              <div className={AMOUNT_ROW}>
                 <label className={AMOUNT_CREDIT_LABEL}>{c.creditAmountUsdc}</label>
-                <input
-                  value={depositAmount}
-                  onChange={(event) => setDepositAmount(event.target.value)}
-                  inputMode="decimal"
-                  className={`${AMOUNT_RIGHT} ${AMOUNT_CREDIT_VALUE} w-auto min-w-[8rem] max-w-[50%] border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
-                  placeholder="100"
-                />
+                <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} inline-flex items-baseline justify-end gap-1.5 text-white`}>
+                  <span>USDC</span>
+                  <input
+                    value={depositAmount}
+                    onChange={(event) => setDepositAmount(event.target.value)}
+                    inputMode="decimal"
+                    className="w-[6.5rem] border-0 bg-transparent p-0 text-right text-white outline-none focus:ring-0"
+                    placeholder="100"
+                  />
+                </div>
               </div>
             </div>
           ) : null}
