@@ -38,6 +38,10 @@ import {
 } from './paymentCountry';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 import { isLocalRailManualResult, isRipioOnRampResult } from './stripeCheckoutOptions';
+import {
+  isMercadoPagoEmbeddedResult,
+  type MercadoPagoEmbeddedSession
+} from './mercadoPagoEmbeddedService';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = ['event Transfer(address indexed from,address indexed to,uint256 value)'];
@@ -59,7 +63,24 @@ export type CartCheckoutResult = {
   stablecoinNetwork: string | null;
   confirmed: boolean;
   manualReview?: boolean;
+  embeddedCheckout?: MercadoPagoEmbeddedSession | null;
 };
+
+function embeddedCheckoutFromGateway(metadata: unknown): MercadoPagoEmbeddedSession | null {
+  return isMercadoPagoEmbeddedResult(metadata) ? metadata : null;
+}
+
+function embeddedCheckoutFromIntents(intents: PublicPaymentIntent[]): MercadoPagoEmbeddedSession | null {
+  for (const intent of intents) {
+    const metadata = (intent.metadata as Record<string, unknown> | null) ?? {};
+    const gateway = metadata.gateway;
+    const session = embeddedCheckoutFromGateway(gateway);
+    if (session) {
+      return session;
+    }
+  }
+  return null;
+}
 
 function normalizeAddress(address?: string | null, network?: StablecoinNetwork): string | null {
   if (!address?.trim()) {
@@ -673,7 +694,8 @@ export async function createCartPurchaseCheckout(input: {
     providerCheckoutUrl,
     payToAddress,
     stablecoinNetwork: network.id,
-    confirmed: false
+    confirmed: false,
+    embeddedCheckout: embeddedCheckoutFromIntents(fresh.map(serializeIntent))
   };
 }
 

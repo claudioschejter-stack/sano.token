@@ -42,7 +42,7 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
   {
     id: 'MERCADO_PAGO',
     label: 'Mercado Pago',
-    description: 'Pagos fiat LatAm con conciliación automática.',
+    description: 'Pagos fiat LatAm con conciliación automática (redirect o saldo embebido).',
     configured: paymentGatewayConfigured('MERCADO_PAGO'),
     automatic: true,
     supportsDeposit: true,

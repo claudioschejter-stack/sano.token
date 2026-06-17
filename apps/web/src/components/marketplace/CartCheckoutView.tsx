@@ -29,6 +29,11 @@ import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton
 import { BASE_CHAIN_ID } from '../../lib/web3/config';
 import { pickCoinbaseConnector } from '../../lib/web3/walletConnectors';
 import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
+import {
+  isMercadoPagoEmbeddedResult,
+  type MercadoPagoEmbeddedSession
+} from '../../lib/payments/mercadoPagoEmbeddedService';
+import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -42,6 +47,7 @@ type CartCheckoutResult = {
   payToAddress: string | null;
   stablecoinNetwork: string | null;
   paymentIntents?: PublicPaymentIntent[];
+  embeddedCheckout?: MercadoPagoEmbeddedSession | null;
 };
 
 type DepositResponse = {
@@ -190,8 +196,18 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [checkout, setCheckout] = useState<CartCheckoutResult | null>(null);
   const [deposit, setDeposit] = useState<DepositResponse | null>(null);
   const [status, setStatus] = useState<
-    'idle' | 'processing' | 'manual' | 'pending_gateway' | 'verifying' | 'done' | 'share_pending' | 'share_failed'
+    | 'idle'
+    | 'processing'
+    | 'manual'
+    | 'pending_gateway'
+    | 'mercadopago_embedded'
+    | 'verifying'
+    | 'done'
+    | 'share_pending'
+    | 'share_failed'
   >('idle');
+  const [embeddedSession, setEmbeddedSession] = useState<MercadoPagoEmbeddedSession | null>(null);
+  const [embeddedReference, setEmbeddedReference] = useState<string | null>(null);
   const [pendingReference, setPendingReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [paymentMethodsExpanded, setPaymentMethodsExpanded] = useState(false);
@@ -554,6 +570,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     setError(null);
     setCheckout(null);
     setDeposit(null);
+    setEmbeddedSession(null);
+    setEmbeddedReference(null);
 
     try {
       if (mode === 'deposit') {
@@ -581,6 +599,15 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
         setDeposit(data.deposit);
 
+        const providerMeta =
+          (data.deposit.metadata?.provider as Record<string, unknown> | undefined) ?? data.deposit.metadata ?? null;
+        if (isMercadoPagoEmbeddedResult(providerMeta)) {
+          setEmbeddedSession(providerMeta);
+          setEmbeddedReference(data.deposit.id);
+          setStatus('mercadopago_embedded');
+          return;
+        }
+
         if (data.deposit.providerCheckoutUrl) {
           const checkoutUrl = data.deposit.providerCheckoutUrl;
           const isInternalReturn =
@@ -596,8 +623,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           return;
         }
 
-        const providerMeta =
-          (data.deposit.metadata?.provider as Record<string, unknown> | undefined) ?? data.deposit.metadata;
         if (
           paymentMethod === 'LOCAL_RAIL' ||
           paymentMethod === 'BRIDGE' ||
@@ -646,6 +671,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
       setCheckout(data.checkout);
       setBatchId(data.checkout.batchId);
+
+      if (data.checkout.embeddedCheckout) {
+        setEmbeddedSession(data.checkout.embeddedCheckout);
+        setEmbeddedReference(data.checkout.paymentIntents?.[0]?.id ?? null);
+        setStatus('mercadopago_embedded');
+        return;
+      }
 
       if (data.checkout.manualReview) {
         setCheckout(data.checkout);
@@ -784,6 +816,92 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     setDeposit(data.deposit);
     setStatus('done');
   };
+
+  const pollEmbeddedDepositConfirmation = useCallback(async (depositId: string) => {
+    setStatus('verifying');
+    setError(null);
+
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 2000));
+      const response = await fetch(`/api/wallet/deposit-intents?id=${encodeURIComponent(depositId)}`, {
+        cache: 'no-store'
+      });
+      const data = (await response.json()) as { deposit?: DepositResponse };
+      if (response.ok && data.deposit?.status === 'CONFIRMED') {
+        setDeposit(data.deposit);
+        setStatus('done');
+        return;
+      }
+    }
+
+    setPendingReference(depositId);
+    setStatus('pending_gateway');
+  }, []);
+
+  const pollEmbeddedCartConfirmation = useCallback(
+    async (activeBatchId: string) => {
+      setStatus('verifying');
+      setError(null);
+
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2000));
+        const response = await fetch(
+          `/api/marketplace/cart/status?batch=${encodeURIComponent(activeBatchId)}`,
+          { cache: 'no-store' }
+        );
+        const data = (await response.json()) as {
+          allConfirmed?: boolean;
+          paymentIntents?: PublicPaymentIntent[];
+        };
+        if (response.ok && data.allConfirmed) {
+          clearCart();
+          applyCartPostPurchaseStatus(data.paymentIntents ?? []);
+          void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
+          return;
+        }
+      }
+
+      setPendingReference(activeBatchId);
+      setStatus('pending_gateway');
+    },
+    [clearCart]
+  );
+
+  const handleEmbeddedApproved = useCallback(async () => {
+    if (mode === 'deposit' && deposit?.id) {
+      const response = await fetch(`/api/wallet/deposit-intents?id=${encodeURIComponent(deposit.id)}`, {
+        cache: 'no-store'
+      });
+      const data = (await response.json()) as { deposit?: DepositResponse };
+      if (response.ok && data.deposit) {
+        setDeposit(data.deposit);
+      }
+      setStatus('done');
+      return;
+    }
+
+    if (mode === 'purchase' && batchId) {
+      const response = await fetch(`/api/marketplace/cart/status?batch=${encodeURIComponent(batchId)}`, {
+        cache: 'no-store'
+      });
+      const data = (await response.json()) as {
+        paymentIntents?: PublicPaymentIntent[];
+      };
+      clearCart();
+      applyCartPostPurchaseStatus(data.paymentIntents ?? []);
+      void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
+    }
+  }, [batchId, clearCart, deposit?.id, mode]);
+
+  const handleEmbeddedPending = useCallback(() => {
+    if (mode === 'deposit' && deposit?.id) {
+      void pollEmbeddedDepositConfirmation(deposit.id);
+      return;
+    }
+    if (mode === 'purchase' && batchId) {
+      void pollEmbeddedCartConfirmation(batchId);
+    }
+  }, [batchId, deposit?.id, mode, pollEmbeddedCartConfirmation, pollEmbeddedDepositConfirmation]);
 
   const payToAddress = mode === 'deposit' ? deposit?.payToAddress : checkout?.payToAddress;
   const pendingManualMeta =
@@ -1270,6 +1388,21 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           ) : null}
 
+          {status === 'mercadopago_embedded' && embeddedSession && embeddedReference ? (
+            <MercadoPagoWalletBrick
+              session={embeddedSession}
+              externalReference={embeddedReference}
+              amountUsd={totalUsd}
+              batchId={batchId}
+              onApproved={handleEmbeddedApproved}
+              onPending={handleEmbeddedPending}
+              onError={(message) => {
+                setError(message);
+                setStatus('mercadopago_embedded');
+              }}
+            />
+          ) : null}
+
           {status === 'manual' && payToAddress ? (
             <div className="space-y-2 rounded-lg border border-terminal-warning/30 bg-terminal-warning/10 p-4 text-xs text-terminal-muted">
               <p>{t.checkout.sendToCompartment}</p>
@@ -1313,7 +1446,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </p>
           ) : null}
 
-          {status !== 'done' && status !== 'share_pending' && status !== 'share_failed' ? (
+          {status !== 'done' &&
+          status !== 'share_pending' &&
+          status !== 'share_failed' &&
+          status !== 'mercadopago_embedded' ? (
             <div className={`${showPaymentMethods ? 'space-y-1' : ''} hidden md:block`}>
               <button
                 type="button"

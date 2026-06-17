@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { buildDepositPaymentOptions } from '../../../../lib/payments/depositPaymentOptions';
 import { paymentGatewayConfigured } from '../../../../lib/payments/paymentConfig';
 import { probeMercadoPagoIntegration } from '../../../../lib/payments/mercadoPagoClient';
+import { probeMercadoPagoEmbeddedWallet } from '../../../../lib/payments/mercadoPagoEmbeddedService';
 import { getPaymentsProductionSummary } from '../../../../lib/payments/paymentsIntegrationStatus';
 
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,18 @@ export async function GET() {
   const mercadoPagoProbe = paymentGatewayConfigured('MERCADO_PAGO')
     ? await probeMercadoPagoIntegration()
     : { ok: false, sandbox: false, canCreateCheckout: false, error: 'NOT_CONFIGURED' };
+  const mercadoPagoEmbeddedProbe = paymentGatewayConfigured('MERCADO_PAGO')
+    ? await probeMercadoPagoEmbeddedWallet()
+    : {
+        ok: false,
+        publicKeyConfigured: false,
+        embeddedEnabled: false,
+        walletOnly: false,
+        sandbox: false,
+        canCreatePreference: false,
+        supportsAccountMoney: false,
+        error: 'NOT_CONFIGURED'
+      };
   const arQuote = buildDepositPaymentOptions(100, 'AR', 1050, { linkedWalletAddress: '0x0000000000000000000000000000000000000001' });
   const configuredCheckoutOptions = arQuote.options.filter((row) => row.configured);
   const unavailableCheckoutOptions = arQuote.options.filter((row) => !row.configured);
@@ -30,12 +43,15 @@ export async function GET() {
       stripe: paymentGatewayConfigured('STRIPE'),
       mercadoPago: paymentGatewayConfigured('MERCADO_PAGO'),
       mercadoPagoLive: mercadoPagoProbe.ok && mercadoPagoProbe.canCreateCheckout,
+      mercadoPagoEmbedded: mercadoPagoEmbeddedProbe.ok,
+      mercadoPagoWallet: mercadoPagoEmbeddedProbe.supportsAccountMoney,
       ripio: paymentGatewayConfigured('RIPIO'),
       astropay: Boolean(process.env.ASTROPAY_API_KEY?.trim()),
       bridge: paymentGatewayConfigured('BRIDGE'),
       transak: paymentGatewayConfigured('TRANSAK')
     },
     mercadoPagoProbe,
+    mercadoPagoEmbeddedProbe,
     checkoutArgentina: {
       totalOptions: arQuote.options.length,
       configuredCount: configuredCheckoutOptions.length,

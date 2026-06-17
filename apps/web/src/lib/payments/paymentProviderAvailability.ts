@@ -1,4 +1,9 @@
 import type { PaymentCheckoutRow, PaymentProviderId } from './paymentCheckoutCatalog';
+import {
+  isMercadoPagoEmbeddedConfigured,
+  isMercadoPagoWalletOnly,
+  MERCADOPAGO_WALLET_OPTION_ID
+} from './mercadoPagoEmbeddedService';
 import { paymentGatewayConfigured } from './paymentConfig';
 
 export function isDLocalConfigured(): boolean {
@@ -69,6 +74,14 @@ export function isDepositCheckoutRowConfigured(
   row: PaymentCheckoutRow,
   context?: DepositRowContext
 ): boolean {
+  if (row.id === MERCADOPAGO_WALLET_OPTION_ID) {
+    return isMercadoPagoEmbeddedConfigured();
+  }
+
+  if (row.id === 'mercado_pago' && isMercadoPagoWalletOnly()) {
+    return false;
+  }
+
   if (row.method === 'USDC_ONCHAIN') {
     if (!paymentGatewayConfigured('USDC_ONCHAIN')) {
       return false;

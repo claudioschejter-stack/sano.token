@@ -15,6 +15,7 @@
         "brand:assets": "node scripts/extract-app-button.mjs"
     },
     "dependencies": {
+        "@mercadopago/sdk-react": "^1.0.7",
         "@rainbow-me/rainbowkit": "^2.2.8",
         "@sanova/blockchain": "*",
         "@sanova/database": "*",

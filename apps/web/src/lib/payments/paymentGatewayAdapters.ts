@@ -2,6 +2,10 @@ import { checkoutBaseUrl } from './paymentConfig';
 import { appendStripePaymentMethodTypes } from './stripeCheckoutOptions';
 import { resolveMercadoPagoChargeAmount } from './mercadoPagoCharge';
 import { mercadoPagoAccessToken, mercadoPagoCheckoutUrl, isMercadoPagoSandbox, mercadoPagoTokenLooksInvalid } from './mercadoPagoClient';
+import {
+  createMercadoPagoEmbeddedPreference,
+  isMercadoPagoWalletOption
+} from './mercadoPagoEmbeddedService';
 
 type CheckoutRequest = {
   paymentIntentId: string;
@@ -254,6 +258,10 @@ export async function createStripeCartCheckout(input: CartCheckoutRequest): Prom
 }
 
 export async function createMercadoPagoCartCheckout(input: CartCheckoutRequest): Promise<CheckoutResult> {
+  if (isMercadoPagoWalletOption(input.paymentOptionId)) {
+    return createMercadoPagoEmbeddedCartCheckout(input);
+  }
+
   const accessToken = mercadoPagoAccessToken();
   const misconfigured = mercadoPagoMisconfigured(accessToken);
   if (misconfigured) {
@@ -306,7 +314,74 @@ type DepositCheckoutRequest = {
   paymentLabel?: string | null;
 };
 
+export async function createMercadoPagoEmbeddedDepositCheckout(input: DepositCheckoutRequest): Promise<CheckoutResult> {
+  const label = input.paymentLabel?.trim() || 'Depósito Sanova';
+  const preference = await createMercadoPagoEmbeddedPreference({
+    externalReference: input.depositId,
+    amountUsd: input.amountUsd,
+    title: label,
+    metadata: {
+      depositId: input.depositId,
+      paymentOptionId: input.paymentOptionId ?? null
+    }
+  });
+
+  if (preference.ok === false) {
+    return {
+      provider: 'mercado_pago',
+      metadata: { configured: true, embedded: false, error: preference.error, sandbox: preference.sandbox }
+    };
+  }
+
+  return {
+    provider: 'mercado_pago',
+    providerPaymentId: preference.session.preferenceId,
+    metadata: {
+      configured: true,
+      depositId: input.depositId,
+      paymentOptionId: input.paymentOptionId ?? null,
+      ...preference.session
+    }
+  };
+}
+
+export async function createMercadoPagoEmbeddedCartCheckout(input: CartCheckoutRequest): Promise<CheckoutResult> {
+  const primaryIntentId = input.paymentIntentIds[0];
+  const preference = await createMercadoPagoEmbeddedPreference({
+    externalReference: primaryIntentId,
+    amountUsd: input.totalUsd,
+    title: `Sanova RWA cart (${input.totalTokens} tokens)`,
+    metadata: {
+      cartBatchId: input.batchId,
+      paymentIntentIds: input.paymentIntentIds.join(','),
+      paymentOptionId: input.paymentOptionId ?? null
+    }
+  });
+
+  if (preference.ok === false) {
+    return {
+      provider: 'mercado_pago',
+      metadata: { configured: true, embedded: false, error: preference.error, sandbox: preference.sandbox }
+    };
+  }
+
+  return {
+    provider: 'mercado_pago',
+    providerPaymentId: preference.session.preferenceId,
+    metadata: {
+      configured: true,
+      cartBatchId: input.batchId,
+      paymentOptionId: input.paymentOptionId ?? null,
+      ...preference.session
+    }
+  };
+}
+
 export async function createMercadoPagoDepositCheckout(input: DepositCheckoutRequest): Promise<CheckoutResult> {
+  if (isMercadoPagoWalletOption(input.paymentOptionId)) {
+    return createMercadoPagoEmbeddedDepositCheckout(input);
+  }
+
   const accessToken = mercadoPagoAccessToken();
   const misconfigured = mercadoPagoMisconfigured(accessToken);
   if (misconfigured) {

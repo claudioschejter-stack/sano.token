@@ -121,10 +121,24 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     sortOrder: 100
   },
   {
+    id: 'mercadopago_wallet',
+    groupId: 'argentina',
+    method: 'MERCADO_PAGO',
+    label: 'Saldo Mercado Pago',
+    provider: 'mercado_pago',
+    providerRail: 'wallet_embedded',
+    fallbackFeeBps: 280,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.03,
+    usesLocalCurrency: true,
+    countries: ['AR'],
+    sortOrder: 105
+  },
+  {
     id: 'mercado_pago',
     groupId: 'argentina',
     method: 'MERCADO_PAGO',
-    label: 'Mercado Pago',
+    label: 'Mercado Pago (redirect)',
     provider: 'mercado_pago',
     providerRail: 'checkout',
     fallbackFeeBps: 320,
