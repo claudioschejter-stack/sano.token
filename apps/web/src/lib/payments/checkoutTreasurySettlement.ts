@@ -25,7 +25,7 @@ export async function settleOnRampCheckout(input: OnRampSettlementInput) {
       depositId: input.reference.depositId,
       provider: input.provider,
       providerPaymentId: input.providerPaymentId,
-      metadata: enrichedPayload as Record<string, unknown>
+      metadata: enrichedPayload
     });
     return { kind: 'deposit' as const, deposit };
   }
