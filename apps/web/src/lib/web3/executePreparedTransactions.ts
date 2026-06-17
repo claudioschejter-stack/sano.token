@@ -17,9 +17,9 @@ export async function executePreparedTransactions(
   config: Config,
   chainId: number,
   transactions: PreparedOnChainTx[]
-): Promise<'batch' | 'sequential'> {
+): Promise<{ mode: 'batch' | 'sequential'; hashes: `0x${string}`[] }> {
   if (transactions.length === 0) {
-    return 'sequential';
+    return { mode: 'sequential', hashes: [] };
   }
 
   const calls = transactions.map((tx) => ({
@@ -28,11 +28,18 @@ export async function executePreparedTransactions(
     value: BigInt(tx.value || '0')
   }));
 
+  const hashes: `0x${string}`[] = [];
+
   if (transactions.length > 1) {
     try {
       const { id } = await sendCalls(config, { chainId, calls });
-      await waitForCallsStatus(config, { id });
-      return 'batch';
+      const status = await waitForCallsStatus(config, { id });
+      const receiptHashes = (status.receipts ?? [])
+        .map((row) => row.transactionHash)
+        .filter((hash): hash is `0x${string}` => Boolean(hash));
+      if (receiptHashes.length > 0) {
+        return { mode: 'batch', hashes: receiptHashes };
+      }
     } catch {
       /* Wallet does not support wallet_sendCalls — sign each tx separately. */
     }
@@ -46,7 +53,8 @@ export async function executePreparedTransactions(
       value: BigInt(tx.value || '0')
     });
     await waitForTransactionReceipt(config, { hash });
+    hashes.push(hash);
   }
 
-  return 'sequential';
+  return { mode: 'sequential', hashes };
 }

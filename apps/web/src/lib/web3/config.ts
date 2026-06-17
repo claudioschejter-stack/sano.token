@@ -1,6 +1,6 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
-import { base } from 'wagmi/chains';
-import { coinbaseWallet, walletConnect } from '@wagmi/connectors';
+import { base, polygon } from 'wagmi/chains';
+import { coinbaseWallet, injected, metaMask, walletConnect } from '@wagmi/connectors';
 import { isWalletConnectConfigured, walletConnectMetadata, walletConnectProjectId } from './walletConnect';
 
 export { isWalletConnectConfigured, walletConnectAllowedOrigins } from './walletConnect';
@@ -10,12 +10,44 @@ const baseRpcUrl =
   process.env.BASE_RPC_URL?.trim() ||
   'https://mainnet.base.org';
 
-export const supportedChains = [base] as const;
+const polygonRpcUrl =
+  process.env.NEXT_PUBLIC_POLYGON_RPC_URL?.trim() ||
+  process.env.POLYGON_RPC_URL?.trim() ||
+  'https://polygon-rpc.com';
+
+export const supportedChains = [base, polygon] as const;
+
+function binanceWeb3Provider() {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+  const provider = (window as Window & { BinanceChain?: unknown }).BinanceChain;
+  return provider ?? undefined;
+}
 
 const connectors = [
   coinbaseWallet({
     appName: walletConnectMetadata.name,
-    preference: 'smartWalletOnly'
+    preference: 'all'
+  }),
+  metaMask({
+    dappMetadata: {
+      name: walletConnectMetadata.name,
+      url: walletConnectMetadata.url
+    }
+  }),
+  injected({
+    target() {
+      const provider = binanceWeb3Provider();
+      if (!provider) {
+        return undefined;
+      }
+      return {
+        id: 'binanceWeb3',
+        name: 'Binance Web3 Wallet',
+        provider: provider as never
+      };
+    }
   }),
   ...(isWalletConnectConfigured
     ? [
@@ -37,10 +69,11 @@ const wagmiStorage = createStorage({
 });
 
 export const wagmiConfig = createConfig({
-  chains: [base],
+  chains: supportedChains,
   connectors,
   transports: {
-    [base.id]: http(baseRpcUrl)
+    [base.id]: http(baseRpcUrl),
+    [polygon.id]: http(polygonRpcUrl)
   },
   ssr: true,
   storage: wagmiStorage

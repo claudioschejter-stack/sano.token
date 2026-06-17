@@ -33,11 +33,14 @@ import {
   buildCheckoutDisplaySections,
   buildFiatOnRampDisplayId,
   FIAT_ON_RAMP_SOURCE_IDS,
+  isWalletUsdcCheckoutOption,
   parseFiatOnRampDisplayId,
   resolveCheckoutPaymentSelection,
   RIPIO_EWALLET_PARENT_ID,
   RIPIO_EWALLET_RAILS
 } from '../../lib/payments/checkoutPaymentDisplay';
+import { useUsdcTreasuryPayment } from '../../hooks/useUsdcTreasuryPayment';
+import { isEvmAutoUsdcNetwork } from '../../lib/web3/usdcTreasuryTransfer';
 import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
 import {
   isMercadoPagoEmbeddedResult,
@@ -173,6 +176,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const { connectAsync, connectors } = useConnect();
   const { disconnectAsync } = useDisconnect();
   const walletGuard = useLinkedWalletGuard();
+  const { payToTreasury } = useUsdcTreasuryPayment();
 
   const mode =
     searchParams.get('mode') === 'deposit'
@@ -297,38 +301,42 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const linkedWalletAddress = walletGuard.linkedWallet;
   const paymentQuoteExpired = showPaymentMethods && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
 
-  const connectWalletForSelectedOption = useCallback(async () => {
+  const connectWalletForSelectedOption = useCallback(async (): Promise<string | null> => {
     if (!autoConnectWalletOptionId(selectedDepositOptionId)) {
-      return;
+      return address ?? null;
     }
     try {
       if (selectedDepositOptionId === 'electronic_wallet') {
         const coinbase = pickCoinbaseConnector(connectors);
         if (coinbase) {
           await disconnectAsync();
-          await connectAsync({ connector: coinbase, chainId: BASE_CHAIN_ID });
+          const result = await connectAsync({ connector: coinbase, chainId: BASE_CHAIN_ID });
+          return result.accounts[0] ?? null;
         }
-        return;
+        return null;
       }
       if (selectedDepositOptionId === 'metamask_usdc') {
         const metamask = pickMetaMaskConnector(connectors);
         if (metamask) {
           await disconnectAsync();
-          await connectAsync({ connector: metamask, chainId: BASE_CHAIN_ID });
+          const result = await connectAsync({ connector: metamask, chainId: BASE_CHAIN_ID });
+          return result.accounts[0] ?? null;
         }
-        return;
+        return null;
       }
       if (selectedDepositOptionId === 'binance_usdc') {
         const binance = pickBinanceConnector(connectors);
         if (binance) {
           await disconnectAsync();
-          await connectAsync({ connector: binance, chainId: BASE_CHAIN_ID });
+          const result = await connectAsync({ connector: binance, chainId: BASE_CHAIN_ID });
+          return result.accounts[0] ?? null;
         }
       }
     } catch {
       /* el usuario puede conectar manualmente */
     }
-  }, [connectAsync, connectors, disconnectAsync, selectedDepositOptionId]);
+    return address ?? null;
+  }, [address, connectAsync, connectors, disconnectAsync, selectedDepositOptionId]);
 
   const reconnectCoinbaseWallet = useCallback(async () => {
     const coinbase = pickCoinbaseConnector(connectors);
@@ -750,7 +758,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         }
 
         if (paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') {
-          setStatus('manual');
+          const autoPaid = await attemptAutoUsdcTreasuryPayment(totalUsd, { depositId: data.deposit.id });
+          if (!autoPaid) {
+            setStatus('manual');
+          }
           return;
         }
 
@@ -842,7 +853,14 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       }
 
       if (paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') {
-        setStatus('manual');
+        const checkoutTotalUsd = Number(data.checkout.totalUsd);
+        const autoPaid = await attemptAutoUsdcTreasuryPayment(
+          Number.isFinite(checkoutTotalUsd) && checkoutTotalUsd > 0 ? checkoutTotalUsd : totalUsd,
+          { activeBatchId: data.checkout.batchId }
+        );
+        if (!autoPaid) {
+          setStatus('manual');
+        }
         return;
       }
 
@@ -886,8 +904,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }
   };
 
-  const verifyUsdcPayment = async () => {
-    if (!batchId || !manualTxHash.trim()) {
+  const verifyUsdcPayment = async (txHashOverride?: string) => {
+    const hash = (txHashOverride ?? manualTxHash).trim();
+    if (!batchId || !hash) {
       return;
     }
 
@@ -899,7 +918,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         batchId,
-        txHash: manualTxHash.trim(),
+        txHash: hash,
         walletAddress: isWalletConnectUsdc ? address : linkedWalletAddress ?? address
       })
     });
@@ -920,8 +939,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
   };
 
-  const verifyDepositTx = async () => {
-    if (!deposit || !manualTxHash.trim()) {
+  const verifyDepositTx = async (txHashOverride?: string) => {
+    const hash = (txHashOverride ?? manualTxHash).trim();
+    if (!deposit || !hash) {
       return;
     }
 
@@ -933,8 +953,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         depositId: deposit.id,
-        txHash: manualTxHash.trim(),
-        walletAddress: linkedWalletAddress ?? undefined
+        txHash: hash,
+        walletAddress: linkedWalletAddress ?? address ?? undefined
       })
     });
 
@@ -947,6 +967,88 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
     setDeposit(data.deposit);
     setStatus('done');
+  };
+
+  const attemptAutoUsdcTreasuryPayment = async (
+    amountUsd: number,
+    context?: { depositId?: string; activeBatchId?: string }
+  ): Promise<boolean> => {
+    if (
+      !isWalletUsdcCheckoutOption(selectedDepositOptionId) ||
+      !isEvmAutoUsdcNetwork(stablecoinNetwork) ||
+      (paymentMethod !== 'USDC_ONCHAIN' && paymentMethod !== 'CUSTODIAL_STABLECOIN')
+    ) {
+      return false;
+    }
+
+    let payer: string | null = address ?? null;
+    if (!payer) {
+      payer = await connectWalletForSelectedOption();
+    }
+    if (!payer) {
+      return false;
+    }
+
+    try {
+      setStatus('processing');
+      const txHash = await payToTreasury({ amountUsd, stablecoinNetwork });
+      setManualTxHash(txHash);
+      if (mode === 'deposit' && context?.depositId) {
+        setStatus('verifying');
+        setError(null);
+        const response = await fetch('/api/wallet/deposit-intents/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            depositId: context.depositId,
+            txHash,
+            walletAddress: linkedWalletAddress ?? payer
+          })
+        });
+        const verifyData = (await response.json()) as { error?: string; deposit?: DepositResponse };
+        if (!response.ok || !verifyData.deposit) {
+          setError(verifyData.error ?? 'STABLECOIN_VERIFY_FAILED');
+          setStatus('manual');
+          return false;
+        }
+        setDeposit(verifyData.deposit);
+        setStatus('done');
+        return true;
+      }
+      if (mode === 'purchase' && context?.activeBatchId) {
+        setStatus('verifying');
+        setError(null);
+        const response = await fetch('/api/marketplace/cart/confirm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            batchId: context.activeBatchId,
+            txHash,
+            walletAddress: isWalletConnectUsdc ? linkedWalletAddress ?? payer : payer
+          })
+        });
+        const verifyData = (await response.json()) as {
+          error?: string;
+          paymentIntents?: PublicPaymentIntent[];
+        };
+        if (!response.ok) {
+          setError(verifyData.error ?? 'STABLECOIN_VERIFY_FAILED');
+          setStatus('manual');
+          return false;
+        }
+        clearCart();
+        applyCartPostPurchaseStatus(verifyData.paymentIntents ?? []);
+        void fetch('/api/portfolio/aggregate?snapshot=true', { cache: 'no-store' });
+        return true;
+      }
+    } catch (autoPayError) {
+      const message = autoPayError instanceof Error ? autoPayError.message : 'USDC_AUTO_PAY_FAILED';
+      if (message !== 'WALLET_NOT_CONNECTED') {
+        setError(message);
+      }
+    }
+
+    return false;
   };
 
   const pollEmbeddedDepositConfirmation = useCallback(async (depositId: string) => {

@@ -199,13 +199,13 @@ export function MorphoRepayPanel({ onRepaid }: MorphoRepayPanelProps) {
           : mr.signingBatch.replace('{current}', '1').replace('{total}', String(txCount))
       );
 
-      const executionMode = await executePreparedTransactions(
+      const execution = await executePreparedTransactions(
         config ?? wagmiConfig,
         payload.prepared.chainId,
         payload.prepared.transactions
       );
 
-      setStatus(executionMode === 'batch' ? mr.success : mr.success);
+      setStatus(execution.mode === 'batch' ? mr.success : mr.success);
       await loadPreview();
       onRepaid?.();
     } catch (error) {

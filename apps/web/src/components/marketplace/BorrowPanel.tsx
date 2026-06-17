@@ -236,13 +236,13 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         txCount === 1 ? m.signingSingle : m.signingBatch.replace('{current}', '1').replace('{total}', String(txCount))
       );
 
-      const executionMode = await executePreparedTransactions(
+      const execution = await executePreparedTransactions(
         config ?? wagmiConfig,
         payload.prepared.chainId,
         payload.prepared.transactions
       );
 
-      setStatus(executionMode === 'batch' ? m.successBatch : m.success);
+      setStatus(execution.mode === 'batch' ? m.successBatch : m.success);
       await refreshPreview(activeAddress, { amountUsd: Number(amountUsd) });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : m.prepareFailed);

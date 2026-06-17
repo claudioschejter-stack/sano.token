@@ -148,6 +148,10 @@ export function walletCheckoutOptionId(optionId: string | null): boolean {
   return WALLET_CHECKOUT_ORDER.includes(optionId as (typeof WALLET_CHECKOUT_ORDER)[number]);
 }
 
+export function isWalletUsdcCheckoutOption(optionId: string | null): boolean {
+  return walletCheckoutOptionId(optionId) || optionId === 'walletconnect_usdc';
+}
+
 export function autoConnectWalletOptionId(optionId: string | null): boolean {
   return optionId === 'electronic_wallet' || optionId === 'metamask_usdc' || optionId === 'binance_usdc';
 }
