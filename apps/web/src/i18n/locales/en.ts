@@ -1161,7 +1161,7 @@ export const en = {
     cartSummaryTitle: "Your cart",
     addMoreTokens: "Add more tokens to your cart",
     subtotalUsdc: "Subtotal (USDC)",
-    creditAmountUsdc: "Amount to credit (USDC)",
+    creditAmountUsdc: "Amount to credit",
     totalToPayFeesIncluded: "Includes fees, commissions and conversion to USDC Base",
     paymentOptionsTitle: "Payment options",
     fiatIntlTransfer: "International transfer",

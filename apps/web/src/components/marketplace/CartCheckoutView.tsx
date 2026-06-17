@@ -93,6 +93,10 @@ function formatUsdc2(amount: number, locale: string): string {
   return `USDC ${amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
+function formatUsdcAmountNumber(amount: number, locale: string): string {
+  return amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 function formatUsd2(amount: number, locale: string): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -120,6 +124,8 @@ const AMOUNT_VALUE_CELL = 'text-right font-mono tabular-nums';
 const AMOUNT_TOTAL = 'text-base font-bold';
 const AMOUNT_CREDIT_LABEL = 'whitespace-nowrap text-[0.825rem] font-semibold uppercase tracking-wider text-terminal-muted sm:text-sm';
 const AMOUNT_CREDIT_VALUE = 'text-[1.1rem] font-bold';
+const USDC_AMOUNT_GAP = 'mr-[5mm] shrink-0';
+const AMOUNT_NUMBER_WIDTH = 'w-[6.5rem] text-right';
 const AMOUNT_RIGHT = AMOUNT_VALUE_CELL;
 const SECTION_TITLE = 'my-[1mm] py-0 text-[10px] font-semibold uppercase tracking-wide text-terminal-muted';
 
@@ -1289,27 +1295,29 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   {c.creditAmountUsdc}
                 </label>
                 {mode === 'deposit' ? (
-                  <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} flex items-baseline justify-end gap-1.5 text-white`}>
-                    <span>USDC</span>
+                  <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} flex items-baseline justify-end text-white`}>
+                    <span className={USDC_AMOUNT_GAP}>USDC</span>
                     <input
                       value={depositAmount}
                       onChange={(event) => setDepositAmount(event.target.value)}
                       inputMode="decimal"
-                      className="w-[6.5rem] border-0 bg-transparent p-0 text-right text-white outline-none focus:ring-0"
+                      className={`${AMOUNT_NUMBER_WIDTH} border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
                       placeholder="100"
                     />
                   </div>
                 ) : (
-                  <span className={`${AMOUNT_VALUE_CELL} ${AMOUNT_TOTAL} text-white`}>
-                    {formatUsdc2(totalUsd, currencyLocale)}
-                  </span>
+                  <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_TOTAL} flex items-baseline justify-end text-white`}>
+                    <span className={USDC_AMOUNT_GAP}>USDC</span>
+                    <span className={AMOUNT_NUMBER_WIDTH}>{formatUsdcAmountNumber(totalUsd, currencyLocale)}</span>
+                  </div>
                 )}
               </div>
               <div className={AMOUNT_ROW}>
                 <span className="text-sm font-semibold text-terminal-text">{c.totalToPayLabel}</span>
-                <span className={`${AMOUNT_VALUE_CELL} ${AMOUNT_TOTAL} text-terminal-primary`}>
-                  {formatUsdc2(displayTotalUsd, currencyLocale)}
-                </span>
+                <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_TOTAL} flex items-baseline justify-end text-terminal-primary`}>
+                  <span className={USDC_AMOUNT_GAP}>USDC</span>
+                  <span className={AMOUNT_NUMBER_WIDTH}>{formatUsdcAmountNumber(displayTotalUsd, currencyLocale)}</span>
+                </div>
               </div>
               <p className="mt-0.5 text-[10px] text-terminal-muted">{c.totalToPayFeesIncluded}</p>
             </div>
@@ -1317,13 +1325,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4 py-[1mm]">
               <div className={AMOUNT_ROW}>
                 <label className={AMOUNT_CREDIT_LABEL}>{c.creditAmountUsdc}</label>
-                <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} flex items-baseline justify-end gap-1.5 text-white`}>
-                  <span>USDC</span>
+                <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} flex items-baseline justify-end text-white`}>
+                  <span className={USDC_AMOUNT_GAP}>USDC</span>
                   <input
                     value={depositAmount}
                     onChange={(event) => setDepositAmount(event.target.value)}
                     inputMode="decimal"
-                    className="w-[6.5rem] border-0 bg-transparent p-0 text-right text-white outline-none focus:ring-0"
+                    className={`${AMOUNT_NUMBER_WIDTH} border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
                     placeholder="100"
                   />
                 </div>

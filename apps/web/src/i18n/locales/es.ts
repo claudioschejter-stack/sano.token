@@ -1177,7 +1177,7 @@ export const es = {
     cartSummaryTitle: 'Tu carrito',
     addMoreTokens: 'Agregar más tokenes al carro de compras',
     subtotalUsdc: 'Subtotal (USDC)',
-    creditAmountUsdc: 'Monto a acreditar (USDC)',
+    creditAmountUsdc: 'Monto a acreditar',
     totalToPayFeesIncluded: 'Incluye gastos, comisiones y conversión a USDC Base',
     paymentOptionsTitle: 'Opciones de Pago',
     fiatIntlTransfer: 'Transferencia internacional',
