@@ -1167,6 +1167,8 @@ export const en = {
     fiatIntlTransfer: "International transfer",
     fiatDebitCard: "Debit card",
     fiatCreditCard: "Credit card",
+    fiatOnRampChargeHint:
+      "Your charge will be in USD or local currency. It is automatically converted to USDC Base (investor pays).",
     fiatOnRampLabel: "Debit card, credit card and bank transfer",
     multichainUsdcHint:
       "We accept USDC on Base, Polygon, Solana and TRON. Automatically converted to Base (investor pays).",

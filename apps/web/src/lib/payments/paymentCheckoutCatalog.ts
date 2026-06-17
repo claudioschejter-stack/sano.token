@@ -178,7 +178,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     id: 'mercadopago_wallet',
     groupId: 'argentina',
     method: 'MERCADO_PAGO',
-    label: 'Saldo Mercado Pago',
+    label: 'Mercado Pago',
     provider: 'mercado_pago',
     providerRail: 'wallet_embedded',
     fallbackFeeBps: 280,

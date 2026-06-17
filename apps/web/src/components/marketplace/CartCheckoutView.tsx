@@ -117,6 +117,9 @@ function formatMoneyAmount(amount: number, useUsdc: boolean, locale: string): st
 const COMPACT_ROW = 'flex items-baseline justify-between gap-3 leading-none py-[0.5mm]';
 const AMOUNT_RIGHT = 'shrink-0 text-right font-mono tabular-nums';
 const AMOUNT_TOTAL = 'text-base font-bold';
+const AMOUNT_CREDIT_LABEL = 'whitespace-nowrap text-[0.825rem] font-semibold uppercase tracking-wider text-terminal-muted sm:text-sm';
+const AMOUNT_CREDIT_VALUE = 'text-[1.1rem] font-bold';
+const SECTION_TITLE = 'my-[1mm] py-0 text-[10px] font-semibold uppercase tracking-wide text-terminal-muted';
 
 function formatDepositLocal(amount: number, currencyCode: string, intlLocale: string) {
   return new Intl.NumberFormat(intlLocale, {
@@ -1089,6 +1092,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   address: `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
                 })}
               </span>
+            ) : isFiatOnRampDisplay ? (
+              <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">{c.fiatOnRampChargeHint}</span>
             ) : optionUsesUsdc(option) ? (
               <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">{c.multichainUsdcHint}</span>
             ) : option.id === 'mercadopago_wallet' ? (
@@ -1278,7 +1283,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           {showPaymentMethods ? (
             <div className="border-b border-terminal-border py-[1mm]">
               <div className={`${COMPACT_ROW} py-[1mm]`}>
-                <label className="text-xs font-semibold uppercase tracking-wider text-terminal-muted">
+                <label className={mode === 'deposit' ? AMOUNT_CREDIT_LABEL : 'text-xs font-semibold uppercase tracking-wider text-terminal-muted'}>
                   {c.creditAmountUsdc}
                 </label>
                 {mode === 'deposit' ? (
@@ -1286,7 +1291,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                     value={depositAmount}
                     onChange={(event) => setDepositAmount(event.target.value)}
                     inputMode="decimal"
-                    className={`${AMOUNT_RIGHT} ${AMOUNT_TOTAL} w-auto min-w-[8rem] max-w-[50%] border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
+                    className={`${AMOUNT_RIGHT} ${mode === 'deposit' ? AMOUNT_CREDIT_VALUE : AMOUNT_TOTAL} w-auto min-w-[8rem] max-w-[50%] border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
                     placeholder="100"
                   />
                 ) : (
@@ -1306,14 +1311,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : mode === 'deposit' ? (
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4 py-[1mm]">
               <div className={`${COMPACT_ROW} py-[1mm]`}>
-                <label className="text-xs font-semibold uppercase tracking-wider text-terminal-muted">
-                  {c.creditAmountUsdc}
-                </label>
+                <label className={AMOUNT_CREDIT_LABEL}>{c.creditAmountUsdc}</label>
                 <input
                   value={depositAmount}
                   onChange={(event) => setDepositAmount(event.target.value)}
                   inputMode="decimal"
-                  className={`${AMOUNT_RIGHT} ${AMOUNT_TOTAL} w-auto min-w-[8rem] max-w-[50%] border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
+                  className={`${AMOUNT_RIGHT} ${AMOUNT_CREDIT_VALUE} w-auto min-w-[8rem] max-w-[50%] border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
                   placeholder="100"
                 />
               </div>
@@ -1339,7 +1342,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
               {paymentDisplaySections.walletOptions.length > 0 ? (
                 <div>
-                  <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                  <p className={SECTION_TITLE}>
                     {c.paymentGroups.linked_wallet}
                   </p>
                   <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
@@ -1350,7 +1353,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
               {paymentDisplaySections.fiatOnRampOptions.length > 0 ? (
                 <div>
-                  <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                  <p className={SECTION_TITLE}>
                     {c.paymentGroups.international}
                   </p>
                   <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
@@ -1361,7 +1364,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
               {paymentDisplaySections.ripioEwalletOption ? (
                 <div>
-                  <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                  <p className={SECTION_TITLE}>
                     {c.paymentGroups.argentina}
                   </p>
                   <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
@@ -1372,7 +1375,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
               {paymentDisplaySections.independentOptions.length > 0 ? (
                 <div>
-                  <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                  <p className={SECTION_TITLE}>
                     {c.paymentGroups.argentina}
                   </p>
                   <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
@@ -1631,7 +1634,19 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             <div className="flex items-center justify-between text-sm">
               <span className="text-terminal-muted">{mode === 'deposit' ? c.depositTitle : c.purchaseTitle}</span>
               <span className="font-mono font-semibold text-terminal-primary">
-                {formatUsd(totalUsd)}
+                {mode === 'deposit' ? (
+                  <>
+                    USDC
+                    <span className="ml-1.5">
+                      {(showPaymentMethods ? displayTotalUsd : totalUsd).toLocaleString(currencyLocale, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  formatUsd(totalUsd)
+                )}
               </span>
             </div>
           }

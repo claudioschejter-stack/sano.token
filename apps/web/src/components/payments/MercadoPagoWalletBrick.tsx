@@ -52,7 +52,7 @@ export function MercadoPagoWalletBrick({
   return (
     <div className="space-y-3 rounded-lg border border-terminal-border bg-terminal-bg p-4">
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-terminal-text">Saldo Mercado Pago</p>
+        <p className="text-sm font-semibold text-terminal-text">Mercado Pago</p>
         <p className="text-xs text-terminal-muted">
           Pagá con el saldo de tu cuenta Mercado Pago. Monto:{' '}
           <span className="font-mono tabular-nums">

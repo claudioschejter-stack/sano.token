@@ -1183,6 +1183,8 @@ export const es = {
     fiatIntlTransfer: 'Transferencia internacional',
     fiatDebitCard: 'Tarjeta de débito',
     fiatCreditCard: 'Tarjeta de crédito',
+    fiatOnRampChargeHint:
+      'Su cargo se hará en USD o en Moneda Local. Se convierte automáticamente en USDC Base (cargo al inversor).',
     fiatOnRampLabel: 'Tarjeta de débito, crédito y transferencia',
     multichainUsdcHint:
       'Aceptamos USDC en Base, Polygon, Solana y TRON. Se convierte automáticamente a Base (cargo al inversor).',
