@@ -35,6 +35,18 @@ function transakHost() {
   return env === 'STAGING' ? TRANSAK_HOST.STAGING : TRANSAK_HOST.PRODUCTION;
 }
 
+function transakDefaultPaymentMethod(rail: string | null | undefined): string | undefined {
+  switch (rail) {
+    case 'debit_card':
+    case 'credit_card':
+      return 'credit_debit_card';
+    case 'international_transfer':
+      return 'bank_transfer';
+    default:
+      return undefined;
+  }
+}
+
 /** Todos los on-ramps fiat depositan USDC en treasury Base (Morpho). */
 function baseTreasuryAddress(): string | null {
   return getStablecoinNetwork('BASE').treasuryAddress;
@@ -69,6 +81,11 @@ export function createTransakOnRampCheckout(input: OnRampRequest): OnRampResult 
 
   if (input.userEmail) {
     params.set('email', input.userEmail);
+  }
+
+  const paymentMethod = transakDefaultPaymentMethod(input.paymentOptionRail);
+  if (paymentMethod) {
+    params.set('defaultPaymentMethod', paymentMethod);
   }
 
   return {

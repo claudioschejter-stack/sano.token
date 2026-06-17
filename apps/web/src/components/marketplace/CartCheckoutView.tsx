@@ -31,6 +31,10 @@ import { pickBinanceConnector, pickCoinbaseConnector, pickMetaMaskConnector } fr
 import {
   autoConnectWalletOptionId,
   buildCheckoutDisplaySections,
+  buildFiatOnRampDisplayId,
+  FIAT_ON_RAMP_SOURCE_IDS,
+  parseFiatOnRampDisplayId,
+  resolveCheckoutPaymentSelection,
   RIPIO_EWALLET_PARENT_ID,
   RIPIO_EWALLET_RAILS
 } from '../../lib/payments/checkoutPaymentDisplay';
@@ -112,6 +116,7 @@ function formatMoneyAmount(amount: number, useUsdc: boolean, locale: string): st
 
 const COMPACT_ROW = 'flex items-baseline justify-between gap-3 leading-none py-[0.5mm]';
 const AMOUNT_RIGHT = 'shrink-0 text-right font-mono tabular-nums';
+const AMOUNT_TOTAL = 'text-base font-bold';
 
 function formatDepositLocal(amount: number, currencyCode: string, intlLocale: string) {
   return new Intl.NumberFormat(intlLocale, {
@@ -129,6 +134,16 @@ const CURRENCY_COUNTRY: Record<string, string> = {
   INR: 'IN',
   MXN: 'MX'
 };
+
+function normalizeSelectableDepositOptionId(id: string | null): string | null {
+  if (!id) {
+    return null;
+  }
+  if (FIAT_ON_RAMP_SOURCE_IDS.includes(id as (typeof FIAT_ON_RAMP_SOURCE_IDS)[number])) {
+    return buildFiatOnRampDisplayId('international_transfer');
+  }
+  return id;
+}
 
 type CartCheckoutViewProps = {
   investorName: string;
@@ -237,13 +252,27 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   );
 
   const paymentDisplaySections = useMemo(
-    () => buildCheckoutDisplaySections(sortedDepositOptions),
-    [sortedDepositOptions]
+    () =>
+      buildCheckoutDisplaySections(sortedDepositOptions, {
+        international_transfer: c.fiatIntlTransfer,
+        debit_card: c.fiatDebitCard,
+        credit_card: c.fiatCreditCard
+      }),
+    [sortedDepositOptions, c.fiatIntlTransfer, c.fiatDebitCard, c.fiatCreditCard]
   );
-  const selectedDepositOption = useMemo(
-    () => sortedDepositOptions.find((row) => row.id === selectedDepositOptionId) ?? null,
-    [sortedDepositOptions, selectedDepositOptionId]
+  const resolvedPaymentSelection = useMemo(
+    () =>
+      resolveCheckoutPaymentSelection(
+        selectedDepositOptionId,
+        paymentDisplaySections.fiatOnRampBaseOption?.id ?? null,
+        ripioEwalletRail
+      ),
+    [selectedDepositOptionId, paymentDisplaySections.fiatOnRampBaseOption?.id, ripioEwalletRail]
   );
+  const selectedDepositOption = useMemo(() => {
+    const optionId = resolvedPaymentSelection.paymentOptionId;
+    return optionId ? sortedDepositOptions.find((row) => row.id === optionId) ?? null : null;
+  }, [resolvedPaymentSelection.paymentOptionId, sortedDepositOptions]);
   const showPaymentMethods =
     (mode === 'deposit' && totalUsd > 0) || (mode === 'purchase' && items.length > 0);
   const requiresWallet =
@@ -332,14 +361,27 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         setQuoteSecondsLeft(Math.max(0, Math.ceil(expiresMs / 1000)));
 
         setSelectedDepositOptionId((current) => {
-          if (current && next.some((row) => row.id === current && row.configured)) {
-            return current;
+          if (current) {
+            const fiatRail = parseFiatOnRampDisplayId(current);
+            if (fiatRail) {
+              const hasFiatProvider = next.some(
+                (row) =>
+                  FIAT_ON_RAMP_SOURCE_IDS.includes(row.id as (typeof FIAT_ON_RAMP_SOURCE_IDS)[number]) &&
+                  row.configured
+              );
+              if (hasFiatProvider) {
+                return current;
+              }
+            } else if (next.some((row) => row.id === current && row.configured)) {
+              return current;
+            }
           }
           const recommended = data?.recommendedOptionId;
           if (recommended && next.some((row) => row.id === recommended && row.configured)) {
-            return recommended;
+            return normalizeSelectableDepositOptionId(recommended);
           }
-          return next.find((row) => row.configured)?.id ?? null;
+          const fallback = next.find((row) => row.configured)?.id ?? null;
+          return normalizeSelectableDepositOptionId(fallback);
         });
       })
       .catch(() => {
@@ -658,12 +700,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           body: JSON.stringify({
             amountUsd: totalUsd,
             method: paymentMethod,
-            paymentOptionId: selectedDepositOptionId,
+            paymentOptionId: resolvedPaymentSelection.paymentOptionId,
             auto: false,
             stablecoinNetwork,
             walletAddress: linkedWalletAddress,
-            paymentOptionRail:
-              selectedDepositOptionId === RIPIO_EWALLET_PARENT_ID ? ripioEwalletRail : undefined
+            paymentOptionRail: resolvedPaymentSelection.paymentOptionRail ?? undefined
           })
         });
 
@@ -724,11 +765,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         body: JSON.stringify({
           items: items.map((row) => ({ projectId: row.projectId, tokenCount: row.tokenCount })),
           method: paymentMethod,
-          paymentOptionId: selectedDepositOptionId,
+          paymentOptionId: resolvedPaymentSelection.paymentOptionId,
           walletAddress: isWalletConnectUsdc ? linkedWalletAddress : address,
           stablecoinNetwork,
-          paymentOptionRail:
-            selectedDepositOptionId === RIPIO_EWALLET_PARENT_ID ? ripioEwalletRail : undefined
+          paymentOptionRail: resolvedPaymentSelection.paymentOptionRail ?? undefined
         })
       });
 
@@ -998,9 +1038,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
   const renderDepositOption = (option: DepositPaymentOption, displayLabel?: string) => {
     const selected = selectedDepositOptionId === option.id;
-    const useUsdc = optionUsesUsdc(option);
-    const amountPrimary =
-      option.usesLocalCurrency && option.totalLocal != null
+    const isFiatOnRampDisplay = parseFiatOnRampDisplayId(option.id) !== null;
+    const amountPrimary = isFiatOnRampDisplay
+      ? formatUsd2(option.totalUsd, currencyLocale)
+      : option.usesLocalCurrency && option.totalLocal != null
         ? formatDepositLocal(option.totalLocal, option.displayCurrency, intlLocale)
         : formatUsdc2(option.totalUsd, currencyLocale);
 
@@ -1175,9 +1216,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           <h1 className="mt-1 text-xl font-bold leading-tight text-terminal-text">
             {mode === 'deposit' ? investorName : formatMessage(c.paymentMenuGreeting, { name: greetingName })}
           </h1>
-          <p className="mt-0.5 text-xs leading-tight text-terminal-muted">
-            {mode === 'deposit' ? c.depositSubtitle : c.paymentMenuSubtitle}
-          </p>
         </div>
 
         <div className="px-4 sm:px-6">
@@ -1238,43 +1276,47 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
 
           {showPaymentMethods ? (
-            <div className="border-b border-terminal-border py-[2mm]">
-              <label className="text-xs font-semibold uppercase tracking-wider text-terminal-muted">
-                {c.creditAmountUsdc}
-              </label>
-              {mode === 'deposit' ? (
-                <input
-                  value={depositAmount}
-                  onChange={(event) => setDepositAmount(event.target.value)}
-                  inputMode="decimal"
-                  className="mt-1 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2.5 text-right font-mono text-lg text-terminal-text outline-none focus:border-terminal-primary/50"
-                  placeholder="100"
-                />
-              ) : (
-                <p className={`${AMOUNT_RIGHT} mt-1 text-right font-mono text-lg text-terminal-text`}>
-                  {formatUsdc2(totalUsd, currencyLocale)}
-                </p>
-              )}
-              <div className={`${COMPACT_ROW} mt-[2mm]`}>
+            <div className="border-b border-terminal-border py-[1mm]">
+              <div className={`${COMPACT_ROW} py-[1mm]`}>
+                <label className="text-xs font-semibold uppercase tracking-wider text-terminal-muted">
+                  {c.creditAmountUsdc}
+                </label>
+                {mode === 'deposit' ? (
+                  <input
+                    value={depositAmount}
+                    onChange={(event) => setDepositAmount(event.target.value)}
+                    inputMode="decimal"
+                    className={`${AMOUNT_RIGHT} ${AMOUNT_TOTAL} w-auto min-w-[8rem] max-w-[50%] border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
+                    placeholder="100"
+                  />
+                ) : (
+                  <span className={`${AMOUNT_RIGHT} ${AMOUNT_TOTAL} text-white`}>
+                    {formatUsdc2(totalUsd, currencyLocale)}
+                  </span>
+                )}
+              </div>
+              <div className={`${COMPACT_ROW} py-[1mm]`}>
                 <span className="text-sm font-semibold text-terminal-text">{c.totalToPayLabel}</span>
-                <span className={`${AMOUNT_RIGHT} text-base font-bold text-terminal-primary`}>
+                <span className={`${AMOUNT_RIGHT} ${AMOUNT_TOTAL} text-terminal-primary`}>
                   {formatUsdc2(displayTotalUsd, currencyLocale)}
                 </span>
               </div>
               <p className="mt-0.5 text-[10px] text-terminal-muted">{c.totalToPayFeesIncluded}</p>
             </div>
           ) : mode === 'deposit' ? (
-            <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
-              <label className="text-xs font-semibold uppercase tracking-wider text-terminal-muted">
-                {c.creditAmountUsdc}
-              </label>
-              <input
-                value={depositAmount}
-                onChange={(event) => setDepositAmount(event.target.value)}
-                inputMode="decimal"
-                className="mt-2 w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2.5 text-right font-mono text-lg text-terminal-text outline-none focus:border-terminal-primary/50"
-                placeholder="100"
-              />
+            <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4 py-[1mm]">
+              <div className={`${COMPACT_ROW} py-[1mm]`}>
+                <label className="text-xs font-semibold uppercase tracking-wider text-terminal-muted">
+                  {c.creditAmountUsdc}
+                </label>
+                <input
+                  value={depositAmount}
+                  onChange={(event) => setDepositAmount(event.target.value)}
+                  inputMode="decimal"
+                  className={`${AMOUNT_RIGHT} ${AMOUNT_TOTAL} w-auto min-w-[8rem] max-w-[50%] border-0 bg-transparent p-0 text-white outline-none focus:ring-0`}
+                  placeholder="100"
+                />
+              </div>
             </div>
           ) : null}
 
@@ -1306,13 +1348,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 </div>
               ) : null}
 
-              {paymentDisplaySections.fiatOnRampOption ? (
+              {paymentDisplaySections.fiatOnRampOptions.length > 0 ? (
                 <div>
                   <p className="py-[1mm] text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
                     {c.paymentGroups.international}
                   </p>
                   <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                    {renderDepositOption(paymentDisplaySections.fiatOnRampOption, c.fiatOnRampLabel)}
+                    {paymentDisplaySections.fiatOnRampOptions.map((option) => renderDepositOption(option))}
                   </div>
                 </div>
               ) : null}

@@ -1164,6 +1164,9 @@ export const en = {
     creditAmountUsdc: "Amount to credit (USDC)",
     totalToPayFeesIncluded: "Includes fees, commissions and conversion to USDC Base",
     paymentOptionsTitle: "Payment options",
+    fiatIntlTransfer: "International transfer",
+    fiatDebitCard: "Debit card",
+    fiatCreditCard: "Credit card",
     fiatOnRampLabel: "Debit card, credit card and bank transfer",
     multichainUsdcHint:
       "We accept USDC on Base, Polygon, Solana and TRON. Automatically converted to Base (investor pays).",

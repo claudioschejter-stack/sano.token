@@ -1180,6 +1180,9 @@ export const es = {
     creditAmountUsdc: 'Monto a acreditar (USDC)',
     totalToPayFeesIncluded: 'Incluye gastos, comisiones y conversión a USDC Base',
     paymentOptionsTitle: 'Opciones de Pago',
+    fiatIntlTransfer: 'Transferencia internacional',
+    fiatDebitCard: 'Tarjeta de débito',
+    fiatCreditCard: 'Tarjeta de crédito',
     fiatOnRampLabel: 'Tarjeta de débito, crédito y transferencia',
     multichainUsdcHint:
       'Aceptamos USDC en Base, Polygon, Solana y TRON. Se convierte automáticamente a Base (cargo al inversor).',
