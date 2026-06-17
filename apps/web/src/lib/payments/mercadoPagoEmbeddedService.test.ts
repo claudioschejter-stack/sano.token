@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  formatMercadoPagoBrickError,
   isMercadoPagoEmbeddedConfigured,
   isMercadoPagoEmbeddedResult,
   isMercadoPagoWalletOption,
@@ -26,6 +27,18 @@ describe('mercadoPagoEmbeddedService', () => {
 
     vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', '');
     expect(isMercadoPagoEmbeddedConfigured()).toBe(false);
+  });
+
+  it('formats brick errors with cause and message', () => {
+    expect(
+      formatMercadoPagoBrickError({
+        type: 'critical',
+        cause: 'missing_amount_property',
+        message: 'Amount property is required'
+      })
+    ).toBe('missing_amount_property: Amount property is required');
+    expect(formatMercadoPagoBrickError('custom_error')).toBe('custom_error');
+    expect(formatMercadoPagoBrickError({})).toBe('MERCADOPAGO_BRICK_ERROR');
   });
 
   it('recognizes embedded gateway metadata', () => {

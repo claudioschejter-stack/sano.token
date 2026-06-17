@@ -984,7 +984,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               </span>
             ) : option.id === 'mercadopago_wallet' ? (
               <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">
-                Pago in-app con saldo de tu cuenta Mercado Pago
+                Pagás con saldo MP desde el checkout embebido de Mercado Pago
               </span>
             ) : option.id === 'mercado_pago' ? (
               <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">

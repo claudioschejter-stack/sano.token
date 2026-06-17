@@ -54,6 +54,27 @@ export function isMercadoPagoEmbeddedConfigured(): boolean {
   );
 }
 
+export function formatMercadoPagoBrickError(error: unknown): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (error && typeof error === 'object') {
+    const brickError = error as { message?: string; cause?: string; type?: string };
+    const code = brickError.cause?.trim();
+    const message = brickError.message?.trim();
+
+    if (code && message) {
+      return `${code}: ${message}`;
+    }
+    if (code || message) {
+      return code ?? message!;
+    }
+  }
+
+  return 'MERCADOPAGO_BRICK_ERROR';
+}
+
 export function isMercadoPagoEmbeddedResult(metadata: unknown): metadata is MercadoPagoEmbeddedSession {
   if (!metadata || typeof metadata !== 'object') {
     return false;

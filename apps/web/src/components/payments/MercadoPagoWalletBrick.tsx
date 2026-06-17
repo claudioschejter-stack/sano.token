@@ -2,9 +2,12 @@
 
 import { initMercadoPago, Payment } from '@mercadopago/sdk-react';
 import { useEffect, useMemo, useState } from 'react';
-import type { MercadoPagoEmbeddedSession } from '../../lib/payments/mercadoPagoEmbeddedService';
+import {
+  formatMercadoPagoBrickError,
+  type MercadoPagoEmbeddedSession
+} from '../../lib/payments/mercadoPagoEmbeddedService';
 
-let mercadoPagoInitialized = false;
+let mercadoPagoInitializedKey: string | null = null;
 
 type MercadoPagoWalletBrickProps = {
   session: MercadoPagoEmbeddedSession;
@@ -17,11 +20,11 @@ type MercadoPagoWalletBrickProps = {
 };
 
 function ensureMercadoPagoInit(publicKey: string) {
-  if (mercadoPagoInitialized) {
+  if (mercadoPagoInitializedKey === publicKey) {
     return;
   }
   initMercadoPago(publicKey, { locale: 'es-AR' });
-  mercadoPagoInitialized = true;
+  mercadoPagoInitializedKey = publicKey;
 }
 
 export function MercadoPagoWalletBrick({
@@ -40,24 +43,10 @@ export function MercadoPagoWalletBrick({
   }, [session.publicKey]);
 
   const paymentMethods = useMemo(
-    () =>
-      session.walletOnly
-        ? {
-            creditCard: 'none' as const,
-            debitCard: 'none' as const,
-            ticket: 'none' as const,
-            bankTransfer: 'none' as const,
-            walletPurchase: 'all' as const
-          }
-        : {
-            creditCard: 'none' as const,
-            debitCard: 'none' as const,
-            ticket: 'all' as const,
-            bankTransfer: 'all' as const,
-            atm: 'all' as const,
-            walletPurchase: 'all' as const
-          },
-    [session.walletOnly]
+    () => ({
+      mercadoPago: 'all' as const
+    }),
+    []
   );
 
   return (
@@ -65,7 +54,7 @@ export function MercadoPagoWalletBrick({
       <div className="space-y-1">
         <p className="text-sm font-semibold text-terminal-text">Saldo Mercado Pago</p>
         <p className="text-xs text-terminal-muted">
-          Pagá con tu cuenta MP sin salir de Sanova. Monto:{' '}
+          Pagá con el saldo de tu cuenta Mercado Pago. Monto:{' '}
           <span className="font-mono tabular-nums">
             {session.amount.toLocaleString('es-AR', {
               style: 'currency',
@@ -76,13 +65,26 @@ export function MercadoPagoWalletBrick({
       </div>
 
       <Payment
+        locale="es-AR"
         initialization={{
-          amount: session.amount
+          amount: session.amount,
+          preferenceId: session.preferenceId
         }}
         customization={{
-          paymentMethods: paymentMethods as never
+          paymentMethods: paymentMethods as never,
+          visual: {
+            defaultPaymentOption: {
+              walletForm: true
+            }
+          }
         }}
-        onSubmit={async ({ formData }) => {
+        onSubmit={async ({ formData, selectedPaymentMethod, paymentType }) => {
+          const method = selectedPaymentMethod ?? paymentType;
+          if (method === 'wallet_purchase') {
+            // Wallet balance is charged via preferenceId redirect, not our Payments API.
+            return;
+          }
+
           setSubmitting(true);
           try {
             const response = await fetch('/api/payments/mercadopago/process', {
@@ -124,7 +126,8 @@ export function MercadoPagoWalletBrick({
           }
         }}
         onError={(error) => {
-          onError?.(typeof error === 'string' ? error : 'MERCADOPAGO_BRICK_ERROR');
+          console.error('[MercadoPagoWalletBrick]', error);
+          onError?.(formatMercadoPagoBrickError(error));
         }}
       />
 
