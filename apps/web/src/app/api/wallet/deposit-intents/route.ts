@@ -5,7 +5,7 @@ import { getPaymentCheckoutRowById } from '../../../../lib/payments/depositPayme
 import { isDepositCheckoutRowConfigured } from '../../../../lib/payments/paymentProviderAvailability';
 import { createPlatformDeposit, getPlatformDepositForUser } from '../../../../lib/payments/platformWalletService';
 import { chooseCheapestPaymentRoute, quoteCheapestPaymentRoutes, type PaymentRouteDirection } from '../../../../lib/payments/cheapestPaymentRouter';
-import { prisma } from '@sanova/database';
+import { prisma, Prisma } from '@sanova/database';
 import { resolveOperationalWalletAddress } from '../../../../lib/investor/provisionInvestorProfile';
 
 export const dynamic = 'force-dynamic';
@@ -129,12 +129,17 @@ export async function POST(request: Request) {
         'WALLET_REQUIRED',
         'INVESTOR_WALLET_REQUIRED',
         'CHAIN_MISMATCH',
-        'INVALID_WALLET'
+        'INVALID_WALLET',
+        'INVESTOR_ACCESS_NOT_ENABLED',
+        'DEPOSIT_ALREADY_PENDING'
       ].includes(message)
     ) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
     console.error('[wallet/deposit-intents]', error);
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'DEPOSIT_ALREADY_PENDING' }, { status: 409 });
+    }
     return NextResponse.json({ error: 'DEPOSIT_CREATE_FAILED' }, { status: 500 });
   }
 }

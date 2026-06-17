@@ -966,6 +966,14 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   address: `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
                 })}
               </span>
+            ) : option.id === 'mercadopago_wallet' ? (
+              <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">
+                Pago in-app con saldo de tu cuenta Mercado Pago
+              </span>
+            ) : option.id === 'mercado_pago' ? (
+              <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">
+                Te redirige al checkout de Mercado Pago
+              </span>
             ) : null}
           </div>
           <div className={`${AMOUNT_RIGHT} text-[120%] font-bold text-blue-700`}>{amountPrimary}</div>

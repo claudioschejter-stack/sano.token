@@ -226,13 +226,59 @@ export async function createPlatformDeposit(input: {
   const investorId =
     user.investorId ?? (payerWallet ? await ensureInvestorForUser(user, payerWallet) : null);
   const expiresAt = new Date(Date.now() + paymentOrderTtlMinutes() * 60_000);
-  const idempotencyKey = `${input.userId}:deposit:${input.method}:${input.paymentOptionId ?? 'default'}:${input.amountUsd}:${payerWallet ?? 'gateway'}:${network.id}`;
+  const baseIdempotencyKey = `${input.userId}:deposit:${input.method}:${input.paymentOptionId ?? 'default'}:${input.amountUsd}:${payerWallet ?? 'gateway'}:${network.id}`;
 
   const existing = await prisma.platformDeposit.findFirst({
-    where: { idempotencyKey }
+    where: { idempotencyKey: baseIdempotencyKey }
   });
-  if (existing && existing.status === 'PENDING' && existing.expiresAt > new Date()) {
-    return serializeDeposit(existing);
+
+  const depositMetadata = {
+    network: network.id,
+    networkKind: network.kind,
+    tokenAddress: network.tokenAddress,
+    decimals: network.decimals,
+    autoTransferSupported: network.kind === 'EVM',
+    selectedRoute: input.routeQuote ?? null,
+    paymentOptionId: input.paymentOptionId ?? null,
+    providerRail: checkoutRow?.providerRail ?? null,
+    paymentLabel: checkoutRow?.label ?? null
+  };
+
+  const checkoutInput = {
+    method: input.method,
+    paymentOptionId: input.paymentOptionId ?? checkoutRow?.id,
+    amountUsd: input.amountUsd,
+    stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork,
+    userEmail: user.email,
+    userId: input.userId,
+    walletAddress: payerWallet,
+    country: await resolvePaymentCountryForUser(input.userId),
+    paymentOptionRail: checkoutRow?.providerRail ?? null
+  };
+
+  if (existing?.status === 'PENDING' && existing.expiresAt > new Date()) {
+    return attachDepositProviderCheckoutToDeposit(existing, checkoutInput);
+  }
+
+  if (existing && ['PENDING', 'EXPIRED', 'FAILED'].includes(existing.status)) {
+    const refreshed = await prisma.platformDeposit.update({
+      where: { id: existing.id },
+      data: {
+        status: 'PENDING',
+        amountUsd: input.amountUsd,
+        expiresAt,
+        investorId,
+        providerCheckoutUrl: null,
+        providerPaymentId: null,
+        metadata: depositMetadata as Prisma.InputJsonObject
+      }
+    });
+    return attachDepositProviderCheckoutToDeposit(refreshed, checkoutInput);
+  }
+
+  let idempotencyKey = baseIdempotencyKey;
+  if (existing) {
+    idempotencyKey = `${baseIdempotencyKey}:${Date.now().toString(36)}`;
   }
 
   const deposit = await prisma.platformDeposit.create({
@@ -252,32 +298,46 @@ export async function createPlatformDeposit(input: {
         (input.method === 'USDC_ONCHAIN' ? 'stablecoin_onchain' : String(input.method).toLowerCase()),
       idempotencyKey,
       expiresAt,
-      metadata: {
-        network: network.id,
-        networkKind: network.kind,
-        tokenAddress: network.tokenAddress,
-        decimals: network.decimals,
-        autoTransferSupported: network.kind === 'EVM',
-        selectedRoute: input.routeQuote ?? null,
-        paymentOptionId: input.paymentOptionId ?? null,
-        providerRail: checkoutRow?.providerRail ?? null,
-        paymentLabel: checkoutRow?.label ?? null
-      }
+      metadata: depositMetadata as Prisma.InputJsonObject
     }
   });
 
+  return attachDepositProviderCheckoutToDeposit(deposit, checkoutInput);
+}
+
+async function attachDepositProviderCheckoutToDeposit(
+  deposit: {
+    id: string;
+    status: PlatformDepositStatus;
+    metadata: Prisma.JsonValue;
+    provider: string | null;
+    providerPaymentId: string | null;
+    providerCheckoutUrl: string | null;
+  },
+  checkoutInput: {
+    method: PaymentMethod;
+    paymentOptionId?: string | null;
+    amountUsd: number;
+    stablecoinNetwork?: string | null;
+    userEmail: string;
+    userId: string;
+    walletAddress: string | null;
+    country: string;
+    paymentOptionRail?: string | null;
+  }
+) {
   const checkout = await createDepositProviderCheckout({
     depositId: deposit.id,
-    method: input.method,
-    paymentOptionId: input.paymentOptionId ?? checkoutRow?.id,
-    amountUsd: input.amountUsd,
-    stablecoinNetwork: input.routeQuote?.stablecoinNetwork ?? input.stablecoinNetwork ?? checkoutRow?.stablecoinNetwork,
-    userEmail: user.email,
-    userId: input.userId,
-    walletAddress: payerWallet,
+    method: checkoutInput.method,
+    paymentOptionId: checkoutInput.paymentOptionId,
+    amountUsd: checkoutInput.amountUsd,
+    stablecoinNetwork: checkoutInput.stablecoinNetwork,
+    userEmail: checkoutInput.userEmail,
+    userId: checkoutInput.userId,
+    walletAddress: checkoutInput.walletAddress,
     redirectPath: `/marketplace/carrito?mode=deposit&deposit=${deposit.id}&status=success`,
-    country: await resolvePaymentCountryForUser(input.userId),
-    paymentOptionRail: checkoutRow?.providerRail ?? null
+    country: checkoutInput.country,
+    paymentOptionRail: checkoutInput.paymentOptionRail
   });
 
   if (checkout.providerCheckoutUrl || checkout.providerPaymentId) {
@@ -286,7 +346,7 @@ export async function createPlatformDeposit(input: {
     const updated = await prisma.platformDeposit.update({
       where: { id: deposit.id },
       data: {
-        status: manualReview ? 'MANUAL_REVIEW' : deposit.status,
+        status: manualReview ? 'MANUAL_REVIEW' : deposit.status === 'MANUAL_REVIEW' ? 'MANUAL_REVIEW' : 'PENDING',
         provider: checkout.provider,
         providerPaymentId: checkout.providerPaymentId,
         providerCheckoutUrl: checkout.providerCheckoutUrl,
@@ -308,7 +368,7 @@ export async function createPlatformDeposit(input: {
     return serializeDeposit(updated);
   }
 
-  return serializeDeposit(deposit);
+  return serializeDeposit(deposit as Parameters<typeof serializeDeposit>[0]);
 }
 
 export async function confirmPlatformDeposit(input: {
