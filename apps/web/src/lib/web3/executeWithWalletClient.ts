@@ -12,7 +12,7 @@ export async function executePreparedTransactionsWithWalletClient(
       to: tx.to as `0x${string}`,
       data: tx.data as `0x${string}`,
       value: BigInt(tx.value || '0')
-    });
+    } as unknown as Parameters<typeof walletClient.sendTransaction>[0]);
     hashes.push(hash);
   }
 

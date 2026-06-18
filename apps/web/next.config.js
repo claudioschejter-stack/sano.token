@@ -22,14 +22,19 @@ const nextConfig = {
       ...config.resolve.alias,
       '@noble/hashes/_assert': path.join(__dirname, 'src/lib/shims/noble-hashes-assert.js'),
       '@wagmi/connectors': path.join(__dirname, 'src/lib/shims/wagmi-connectors.js'),
+      '@walletconnect/utils': path.join(monorepoRoot, 'node_modules/@walletconnect/utils'),
+      '@walletconnect/universal-provider': path.join(monorepoRoot, 'node_modules/@walletconnect/universal-provider'),
+      '@walletconnect/sign-client': path.join(monorepoRoot, 'node_modules/@walletconnect/sign-client'),
+      '@walletconnect/core': path.join(monorepoRoot, 'node_modules/@walletconnect/core'),
+      '@walletconnect/ethereum-provider': path.join(monorepoRoot, 'node_modules/@walletconnect/ethereum-provider'),
       porto: path.join(__dirname, 'src/lib/shims/empty-module.js'),
       'porto/internal': path.join(__dirname, 'src/lib/shims/empty-module.js'),
       'ua-parser-js/dist/ua-parser.min': uaParserMin
     };
 
     config.resolve.modules = [
-      path.join(__dirname, 'node_modules'),
       path.join(monorepoRoot, 'node_modules'),
+      path.join(__dirname, 'node_modules'),
       ...(config.resolve.modules ?? []),
       'node_modules'
     ];

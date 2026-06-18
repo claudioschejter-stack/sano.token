@@ -19,14 +19,14 @@ export type FiatRailWebhookInput = {
   treasuryTxnHash?: string | null;
 };
 
-function treasurySettlementPayload(input: FiatRailWebhookInput): Prisma.InputJsonValue {
+function treasurySettlementPayload(input: FiatRailWebhookInput): Record<string, unknown> {
   return {
     ...input.payload,
     settlementPolicy: 'treasury_first',
     awaitingTreasuryUsdc: true,
     fiatRailProvider: input.provider,
     provider: input.provider
-  } as Prisma.InputJsonValue;
+  };
 }
 
 /** Fiat local rails (SPEI/UPI/Pix): confirm only after USDC lands in Base treasury. */
@@ -117,7 +117,7 @@ export async function dispatchFiatRailTreasuryWebhook(input: FiatRailWebhookInpu
         batchId: reference,
         provider: input.provider,
         providerPaymentId: input.providerPaymentId,
-        payload: treasurySettlementPayload(input)
+        payload: treasurySettlementPayload(input) as Prisma.InputJsonValue,
       });
       if (paymentIntents.length > 0) {
         return { ok: true, paymentIntents };
@@ -131,7 +131,7 @@ export async function dispatchFiatRailTreasuryWebhook(input: FiatRailWebhookInpu
         depositId: reference,
         provider: input.provider,
         providerPaymentId: input.providerPaymentId,
-        metadata: treasurySettlementPayload(input)
+        metadata: treasurySettlementPayload(input) as Prisma.InputJsonValue
       });
       return { ok: true, deposit: confirmed };
     } catch {
