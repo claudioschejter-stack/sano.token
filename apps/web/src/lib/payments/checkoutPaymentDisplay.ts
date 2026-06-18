@@ -23,7 +23,8 @@ export const HIDDEN_CHECKOUT_OPTION_IDS = new Set<string>([
 export const INDEPENDENT_FIAT_OPTION_IDS = new Set([
   'mercadopago_wallet',
   'mercado_pago',
-  'wise'
+  'wise',
+  'privy_on_ramp'
 ]);
 
 export const RIPIO_EWALLET_PARENT_ID = 'ripio_on_ramp';

@@ -14,7 +14,7 @@ import {
 } from './paymentGatewayAdapters';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
-import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
+import { createBridgeOnRampCheckout, createPrivyOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
 import { createBinancePayCheckout } from './binancePayAdapter';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
@@ -252,6 +252,16 @@ async function attachCartGatewayCheckout(input: {
     });
   }
   if (input.method === 'TRANSAK') {
+    if (checkoutRow?.id === 'privy_on_ramp' || checkoutRow?.provider === 'privy') {
+      return createPrivyOnRampCheckout({
+        depositId: input.batchId,
+        amountUsd: input.totalUsd,
+        stablecoinNetwork: 'BASE',
+        userEmail: input.userEmail,
+        redirectPath,
+        country: input.country
+      });
+    }
     return createTransakOnRampCheckout({
       depositId: input.batchId,
       amountUsd: input.totalUsd,

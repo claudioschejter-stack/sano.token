@@ -1,4 +1,6 @@
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
+import { isDLocalLocalRailRow } from './dlocalCountryCoverage';
+import { isLocalRailAggregatorConfigured } from './paymentProviderAvailability';
 
 export type CheckoutFlowMode = 'purchase' | 'deposit';
 
@@ -31,6 +33,17 @@ export function isDirectBaseUsdcRow(row: PaymentCheckoutRow): boolean {
   );
 }
 
+function isLocalRailCheckoutRow(row: PaymentCheckoutRow): boolean {
+  if (row.method !== 'LOCAL_RAIL') {
+    return false;
+  }
+  return isDLocalLocalRailRow(row) || row.provider === 'ebanx';
+}
+
+function localRailCheckoutEnabled(row: PaymentCheckoutRow): boolean {
+  return isLocalRailCheckoutRow(row) && isLocalRailAggregatorConfigured();
+}
+
 export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: CheckoutFlowMode): boolean {
   if (isStripeCheckoutRow(row)) {
     return false;
@@ -40,8 +53,11 @@ export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: Checkou
     if (DEPOSIT_MP_OPTION_IDS.has(row.id) || row.method === 'MERCADO_PAGO') {
       return false;
     }
-    if (row.method === 'LOCAL_RAIL' || row.method === 'CUSTODIAL_STABLECOIN') {
+    if (row.method === 'CUSTODIAL_STABLECOIN') {
       return false;
+    }
+    if (row.method === 'LOCAL_RAIL') {
+      return localRailCheckoutEnabled(row);
     }
     if (isPurchaseOnRampRow(row)) {
       return true;
@@ -63,7 +79,7 @@ export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: Checkou
     return isDirectBaseUsdcRow(row) || isPurchaseOnRampRow(row);
   }
   if (row.method === 'LOCAL_RAIL') {
-    return false;
+    return localRailCheckoutEnabled(row);
   }
   return false;
 }

@@ -22,7 +22,8 @@ export type PaymentProviderId =
   | 'ramp'
   | 'binance'
   | 'coinbase'
-  | 'custodial';
+  | 'custodial'
+  | 'privy';
 
 export type PaymentCheckoutRow = {
   id: string;
@@ -546,6 +547,19 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackNetworkUsd: 0.04,
     usesLocalCurrency: true,
     sortOrder: 550
+  },
+  {
+    id: 'privy_on_ramp',
+    groupId: 'international',
+    method: 'TRANSAK',
+    label: 'Tarjeta / Apple Pay (Privy)',
+    provider: 'privy',
+    providerRail: 'privy_on_ramp',
+    fallbackFeeBps: 180,
+    fallbackGasUsd: 0.05,
+    fallbackNetworkUsd: 0.03,
+    stablecoinNetwork: 'BASE',
+    sortOrder: 520
   },
   {
     id: 'loan_account',

@@ -5,6 +5,7 @@ import { getStablecoinNetwork } from './stablecoinNetworks';
 import { createCoinbaseCheckout } from './paymentGatewayAdapters';
 import { resolveDepositMethodForUsdcBase } from './paymentCheckoutPolicy';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
+import { isPrivyOnRampConfigured, privyFiatAssetForCountry, PRIVY_ON_RAMP_OPTION_ID } from './privyOnRampPolicy';
 
 type OnRampRequest = {
   depositId: string;
@@ -163,6 +164,39 @@ export function createBridgeOnRampCheckout(input: OnRampRequest): OnRampResult {
   };
 }
 
+/** Privy fiat on-ramp is completed client-side via `useFiatOnramp().fund()`. */
+export function createPrivyOnRampCheckout(input: OnRampRequest): OnRampResult {
+  if (!isPrivyOnRampConfigured()) {
+    return { provider: 'privy', metadata: { configured: false } };
+  }
+
+  const walletAddress = baseTreasuryAddress();
+  if (!walletAddress) {
+    return { provider: 'privy', metadata: { configured: true, error: 'TREASURY_NOT_CONFIGURED' } };
+  }
+
+  const country = input.country?.trim().toUpperCase() ?? 'US';
+  const fiatAsset = privyFiatAssetForCountry(country);
+
+  return {
+    provider: 'privy',
+    providerPaymentId: input.depositId,
+    metadata: {
+      configured: true,
+      mode: 'privy_client_fund',
+      network: 'BASE',
+      settlement: 'treasury_first',
+      fiatAsset,
+      amountUsd: input.amountUsd,
+      treasuryAddress: walletAddress,
+      depositId: input.depositId,
+      redirectPath: input.redirectPath
+        ? `${checkoutBaseUrl()}${input.redirectPath}`
+        : `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`
+    }
+  };
+}
+
 export async function createDepositProviderCheckout(input: OnRampRequest & {
   method: string;
   projectId?: string;
@@ -208,6 +242,9 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
       }
       return { provider: 'coinbase', metadata: { configured: Boolean(process.env.COINBASE_COMMERCE_API_KEY) } };
     case 'TRANSAK':
+      if (checkoutRow?.id === PRIVY_ON_RAMP_OPTION_ID || checkoutRow?.provider === 'privy') {
+        return createPrivyOnRampCheckout(baseInput);
+      }
       return createTransakOnRampCheckout(baseInput);
     case 'RIPIO':
       return createRipioOnRampCheckout({

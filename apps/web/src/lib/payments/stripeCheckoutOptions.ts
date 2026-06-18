@@ -42,6 +42,10 @@ export function isRipioOnRampResult(metadata?: Record<string, unknown> | null): 
   return metadata?.mode === 'ripio_on_ramp';
 }
 
+export function isPrivyClientFundResult(metadata?: Record<string, unknown> | null): boolean {
+  return metadata?.mode === 'privy_client_fund';
+}
+
 export function isPendingManualGatewayResult(metadata?: Record<string, unknown> | null): boolean {
   return isLocalRailManualResult(metadata) || isRipioOnRampResult(metadata);
 }

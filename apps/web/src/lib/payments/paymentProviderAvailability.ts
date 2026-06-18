@@ -4,6 +4,7 @@ import {
   isMercadoPagoWalletOnly,
   MERCADOPAGO_WALLET_OPTION_ID
 } from './mercadoPagoEmbeddedService';
+import { isPrivyOnRampConfigured } from './privyOnRampPolicy';
 import { paymentGatewayConfigured } from './paymentConfig';
 
 export function isDLocalConfigured(): boolean {
@@ -63,6 +64,8 @@ export function isPaymentProviderConfigured(provider: PaymentProviderId): boolea
       return paymentGatewayConfigured('COINBASE') || paymentGatewayConfigured('USDC_ONCHAIN');
     case 'custodial':
       return paymentGatewayConfigured('CUSTODIAL_STABLECOIN');
+    case 'privy':
+      return isPrivyOnRampConfigured();
     default:
       return false;
   }

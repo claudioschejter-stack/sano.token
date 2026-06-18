@@ -14,6 +14,7 @@ import {
   type CheckoutFlowMode,
   paymentRowsForCheckoutMode
 } from './paymentCheckoutPolicy';
+import { applyPaymentRoutePolicy } from './paymentRoutePolicy';
 import { buildSmartCheckoutPresentation, type SmartCheckoutPresentation } from './smartCheckoutPresentation';
 import { enabledStablecoinNetworks } from './stablecoinNetworks';
 
@@ -255,7 +256,8 @@ export function buildDepositPaymentOptions(
     };
   });
 
-  const sorted = sortDepositPaymentOptions(options);
+  const routed = applyPaymentRoutePolicy(options, normalizedCountry);
+  const sorted = sortDepositPaymentOptions(routed);
   const configured = sorted.filter((row) => row.configured);
   const recommended = configured[0] ?? null;
   const networks = enabledStablecoinNetworks().map((network) => ({

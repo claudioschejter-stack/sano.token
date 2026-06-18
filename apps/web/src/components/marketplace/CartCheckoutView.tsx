@@ -18,7 +18,7 @@ import {
   type DepositPaymentOptionGroup
 } from '../../lib/payments/depositPaymentOptions';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
-import { isLocalRailManualResult, isPendingManualGatewayResult, isRipioOnRampResult, isWiseManualResult } from '../../lib/payments/stripeCheckoutOptions';
+import { isLocalRailManualResult, isPendingManualGatewayResult, isPrivyClientFundResult, isRipioOnRampResult, isWiseManualResult } from '../../lib/payments/stripeCheckoutOptions';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
@@ -249,6 +249,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     | 'processing'
     | 'manual'
     | 'pending_gateway'
+    | 'pending_privy'
     | 'mercadopago_embedded'
     | 'verifying'
     | 'done'
@@ -778,6 +779,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           return;
         }
 
+        if (isPrivyClientFundResult(providerMeta)) {
+          setPendingReference(data.deposit.id);
+          setStatus('pending_privy');
+          return;
+        }
+
         if (
           paymentMethod === 'LOCAL_RAIL' ||
           paymentMethod === 'BRIDGE' ||
@@ -851,6 +858,14 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
       if (data.checkout.providerCheckoutUrl) {
         window.location.href = data.checkout.providerCheckoutUrl;
+        return;
+      }
+
+      const purchaseGatewayMeta = (data.checkout.paymentIntents?.[0]?.metadata as Record<string, unknown> | undefined)
+        ?.gateway as Record<string, unknown> | undefined;
+      if (isPrivyClientFundResult(purchaseGatewayMeta)) {
+        setPendingReference(data.checkout.batchId);
+        setStatus('pending_privy');
         return;
       }
 
@@ -1596,6 +1611,17 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 address: `${linkedWalletAddress.slice(0, 6)}…${linkedWalletAddress.slice(-4)}`
               })}
             </p>
+          ) : null}
+
+          {status === 'pending_privy' && pendingReference ? (
+            <div className="space-y-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
+              <p className="font-semibold text-terminal-primary">Pago con Privy</p>
+              <p className="text-xs text-terminal-muted">
+                Tu orden está registrada ({pendingReference.slice(0, 8)}…). El on-ramp con tarjeta o Apple Pay se
+                completará en esta pantalla cuando activemos el SDK de Privy. Mientras tanto puedes pagar con USDC desde
+                tu wallet o con SPEI/UPI si está disponible en tu país.
+              </p>
+            </div>
           ) : null}
 
           {status === 'pending_gateway' && pendingReference ? (
