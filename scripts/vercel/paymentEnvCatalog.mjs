@@ -128,6 +128,12 @@ export const PAYMENT_ENV_GROUPS = [
     keys: ['RAMP_API_KEY', 'RAMP_WEBHOOK_SECRET']
   },
   {
+    id: 'privy',
+    label: 'Privy (embedded wallet + on-ramp)',
+    required: false,
+    keys: ['NEXT_PUBLIC_PRIVY_APP_ID', 'PRIVY_APP_SECRET']
+  },
+  {
     id: 'paypal',
     label: 'PayPal (vía Stripe u opcional)',
     required: false,
