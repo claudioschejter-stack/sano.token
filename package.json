@@ -74,7 +74,10 @@
     "react-device-detect": {
       "ua-parser-js": "1.0.39"
     },
-    "ua-parser-js": "1.0.39"
+    "ua-parser-js": "1.0.39",
+    "@react-aria/focus": "^3.19.1",
+    "@react-aria/interactions": "^3.24.0",
+    "@react-aria/utils": "^3.25.0"
   },
   "dependencies": {
     "@vitalets/google-translate-api": "^9.2.1",

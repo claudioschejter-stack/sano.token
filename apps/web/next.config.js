@@ -13,7 +13,7 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
   experimental: {
-    serverComponentsExternalPackages: ['thirdweb', 'ethers']
+    serverComponentsExternalPackages: ['thirdweb', 'ethers', '@privy-io/react-auth']
   },
   webpack: (config, { isServer }) => {
     const uaParserMin = path.join(monorepoRoot, 'node_modules/ua-parser-js/dist/ua-parser.min.js');
