@@ -34,6 +34,9 @@ export function isMobileDevice(): boolean {
 
   const coarsePointer = window.matchMedia('(pointer: coarse)').matches;
   const narrowViewport = window.matchMedia('(max-width: 767px)').matches;
+  const mobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
 
-  return coarsePointer || narrowViewport;
+  return mobileUserAgent || coarsePointer || narrowViewport;
 }

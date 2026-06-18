@@ -1,4 +1,5 @@
 import type { Connector } from 'wagmi';
+import { MOBILE_DIRECT_WALLET_CONNECT_ID } from './mobileWalletDeepLink';
 
 export type CheckoutWalletOptionId = 'electronic_wallet' | 'metamask_usdc' | 'binance_usdc';
 
@@ -23,13 +24,15 @@ export function pickWalletConnectConnector(connectors: readonly Connector[]) {
 
 /** WC instance with showQrModal disabled — opens a single wallet app via deep link. */
 export function pickDirectWalletConnectConnector(connectors: readonly Connector[]) {
-  const walletConnectors = connectors.filter(
-    (connector) =>
-      connector.id === 'walletConnect' ||
-      connector.type === 'walletConnect' ||
-      connector.name.toLowerCase().includes('walletconnect')
+  return (
+    connectors.find((connector) => connector.id === MOBILE_DIRECT_WALLET_CONNECT_ID) ??
+    connectors.find(
+      (connector) =>
+        connector.id === 'walletConnect' ||
+        connector.type === 'walletConnect' ||
+        connector.name.toLowerCase().includes('walletconnect')
+    )
   );
-  return walletConnectors[0];
 }
 
 export function pickMetaMaskConnector(connectors: readonly Connector[]) {

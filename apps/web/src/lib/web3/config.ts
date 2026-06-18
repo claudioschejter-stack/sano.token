@@ -3,6 +3,7 @@ import { base, polygon } from 'wagmi/chains';
 import { getWagmiConnectorV2 } from '@binance/w3w-wagmi-connector-v2';
 import { coinbaseWallet, metaMask, walletConnect } from '@wagmi/connectors';
 import { isWalletConnectConfigured, walletConnectMetadata, walletConnectProjectId } from './walletConnect';
+import { MOBILE_DIRECT_WALLET_CONNECT_ID } from './mobileWalletDeepLink';
 
 export { isWalletConnectConfigured, walletConnectAllowedOrigins } from './walletConnect';
 
@@ -20,6 +21,25 @@ export const supportedChains = [base, polygon] as const;
 
 const createBinanceConnector = getWagmiConnectorV2();
 
+function createMobileDirectWalletConnect() {
+  const factory = walletConnect({
+    projectId: walletConnectProjectId,
+    metadata: walletConnectMetadata,
+    showQrModal: false,
+    customStoragePrefix: 'sanova-mobile-direct',
+    isNewChainsStale: false
+  });
+
+  return (config: Parameters<typeof factory>[0]) => {
+    const connector = factory(config);
+    return {
+      ...connector,
+      id: MOBILE_DIRECT_WALLET_CONNECT_ID,
+      name: 'WalletConnect Direct'
+    };
+  };
+}
+
 const connectors = [
   coinbaseWallet({
     appName: walletConnectMetadata.name,
@@ -36,13 +56,7 @@ const connectors = [
   createBinanceConnector(),
   ...(isWalletConnectConfigured
     ? [
-        walletConnect({
-          projectId: walletConnectProjectId,
-          metadata: walletConnectMetadata,
-          showQrModal: false,
-          customStoragePrefix: 'sanova-mobile-direct',
-          isNewChainsStale: false
-        }),
+        createMobileDirectWalletConnect(),
         walletConnect({
           projectId: walletConnectProjectId,
           metadata: walletConnectMetadata,

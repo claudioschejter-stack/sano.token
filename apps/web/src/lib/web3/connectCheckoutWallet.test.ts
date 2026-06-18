@@ -20,7 +20,7 @@ const connectors = [
   mockConnector('coinbaseWalletSDK', 'Coinbase Wallet', 'coinbaseWallet'),
   mockConnector('metaMaskSDK', 'MetaMask', 'metaMask'),
   mockConnector('wallet.binance.com', 'Binance Wallet', 'binanceWallet'),
-  mockConnector('walletConnect', 'WalletConnect Direct', 'walletConnect'),
+  mockConnector('walletConnectDirect', 'WalletConnect Direct', 'walletConnect'),
   mockConnector('walletConnect', 'WalletConnect Modal', 'walletConnect')
 ];
 
@@ -44,16 +44,16 @@ describe('resolveCheckoutWalletConnector', () => {
     expect(connector?.id).toBe('wallet.binance.com');
   });
 
-  it('picks first walletConnect on mobile for coinbase', () => {
+  it('picks direct walletConnect on mobile for coinbase', () => {
     vi.mocked(isMobileDevice).mockReturnValue(true);
     const connector = resolveCheckoutWalletConnector('electronic_wallet', connectors);
-    expect(connector?.name).toBe('WalletConnect Direct');
+    expect(connector?.id).toBe('walletConnectDirect');
   });
 
-  it('picks first walletConnect on mobile for metamask', () => {
+  it('picks direct walletConnect on mobile for metamask', () => {
     vi.mocked(isMobileDevice).mockReturnValue(true);
     const connector = resolveCheckoutWalletConnector('metamask_usdc', connectors);
-    expect(connector?.name).toBe('WalletConnect Direct');
+    expect(connector?.id).toBe('walletConnectDirect');
   });
 });
 

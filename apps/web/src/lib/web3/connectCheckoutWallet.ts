@@ -88,11 +88,17 @@ export async function connectWalletSession({
   }
 
   const sameConnector = isConnected && activeConnectorId === connector.id;
-  if (isConnected && !sameConnector && !useDirectMobileWallet) {
+  if (isConnected && !sameConnector) {
     try {
       await disconnectAsync();
     } catch {
       /* continue with connect */
+    }
+  } else if (useDirectMobileWallet && isConnected && sameConnector) {
+    try {
+      await disconnectAsync();
+    } catch {
+      /* stale WC session — start fresh pairing */
     }
   }
 
