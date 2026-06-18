@@ -1197,6 +1197,9 @@ export const en = {
     },
     electronicWalletLinkedHint:
       "USDC from your linked wallet ({address}) on Base — credited after transfer confirmation.",
+    walletCheckoutConnectButton: 'Connect {wallet}',
+    walletMobileConnectHint: 'This will open the {wallet} app on your phone to authorize the connection.',
+    walletDesktopConnectHint: 'Connect {wallet} to sign the USDC transfer.',
     walletConnectReceiveHint:
       'Pay USDC from another wallet. Tokens are credited to your linked Coinbase ({address}).',
     walletConnectTapIcon: 'Tap the WalletConnect icon to open the QR code or pick a wallet.',

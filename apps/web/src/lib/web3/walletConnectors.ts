@@ -1,5 +1,7 @@
 import type { Connector } from 'wagmi';
 
+export type CheckoutWalletOptionId = 'electronic_wallet' | 'metamask_usdc' | 'binance_usdc';
+
 export function pickCoinbaseConnector(connectors: readonly Connector[]) {
   return connectors.find(
     (connector) =>
@@ -23,7 +25,6 @@ export function pickMetaMaskConnector(connectors: readonly Connector[]) {
     (connector) =>
       connector.id === 'metaMaskSDK' ||
       connector.id === 'io.metamask' ||
-      connector.id === 'injected' ||
       connector.name.toLowerCase().includes('metamask')
   );
 }

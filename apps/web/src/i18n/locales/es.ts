@@ -1212,6 +1212,9 @@ export const es = {
     },
     electronicWalletLinkedHint:
       'USDC desde tu billetera vinculada ({address}) en Base — se acredita al confirmar la transferencia.',
+    walletCheckoutConnectButton: 'Conectar {wallet}',
+    walletMobileConnectHint: 'Se abrirá la app de {wallet} en tu teléfono para autorizar la conexión.',
+    walletDesktopConnectHint: 'Conectá {wallet} para firmar la transferencia USDC.',
     walletConnectReceiveHint:
       'Pagás USDC desde otra billetera. Los tokens se acreditan en tu Coinbase ({address}).',
     walletConnectTapIcon: 'Tocá el ícono de WalletConnect para abrir el QR o elegir una billetera.',

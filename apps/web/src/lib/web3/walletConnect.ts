@@ -16,6 +16,8 @@ export const walletConnectMetadata = {
 
 /** Domains to allowlist in https://cloud.reown.com */
 export const walletConnectAllowedOrigins = [
+  'https://www.sanovacapital.com',
+  'https://sanovacapital.com',
   'https://sano-token-web.vercel.app',
   'http://localhost:3000',
   'http://127.0.0.1:3000'

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { formatMessage } from '../../i18n';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
 import { useLocalCurrency } from '../../hooks/useLocalCurrency';
@@ -26,8 +26,11 @@ import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 import { StickyActionBar } from '../mobile/StickyActionBar';
 import { PaymentMethodLogosButton } from './PaymentMethodLogosButton';
 import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
+import { WalletCheckoutConnectButton } from '../wallet/WalletCheckoutConnectButton';
 import { BASE_CHAIN_ID } from '../../lib/web3/config';
-import { pickBinanceConnector, pickCoinbaseConnector, pickMetaMaskConnector } from '../../lib/web3/walletConnectors';
+import { connectCheckoutWallet } from '../../lib/web3/connectCheckoutWallet';
+import type { CheckoutWalletOptionId } from '../../lib/web3/walletConnectors';
+import { pickCoinbaseConnector } from '../../lib/web3/walletConnectors';
 import {
   autoConnectWalletOptionId,
   buildCheckoutDisplaySections,
@@ -173,8 +176,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const router = useRouter();
   const searchParams = useSearchParams();
   const { address, isConnected, connector, chainId } = useAccount();
-  const { connectAsync, connectors } = useConnect();
+  const { connectAsync, connectors, reset: resetConnect } = useConnect();
   const { disconnectAsync } = useDisconnect();
+  const { switchChainAsync } = useSwitchChain();
   const walletGuard = useLinkedWalletGuard();
   const { payToTreasury } = useUsdcTreasuryPayment();
 
@@ -297,7 +301,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const isWalletConnectSession =
     isConnected &&
     (connector?.id === 'walletConnect' || connector?.type === 'walletConnect');
-  const showWalletLinker = requiresWallet && mode !== 'deposit' && !isWalletConnectUsdc;
+  const showWalletLinker =
+    requiresWallet &&
+    mode !== 'deposit' &&
+    !isWalletConnectUsdc &&
+    !autoConnectWalletOptionId(selectedDepositOptionId);
   const linkedWalletAddress = walletGuard.linkedWallet;
   const paymentQuoteExpired = showPaymentMethods && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
 
@@ -305,38 +313,32 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     if (!autoConnectWalletOptionId(selectedDepositOptionId)) {
       return address ?? null;
     }
+
     try {
-      if (selectedDepositOptionId === 'electronic_wallet') {
-        const coinbase = pickCoinbaseConnector(connectors);
-        if (coinbase) {
-          await disconnectAsync();
-          const result = await connectAsync({ connector: coinbase, chainId: BASE_CHAIN_ID });
-          return result.accounts[0] ?? null;
-        }
-        return null;
-      }
-      if (selectedDepositOptionId === 'metamask_usdc') {
-        const metamask = pickMetaMaskConnector(connectors);
-        if (metamask) {
-          await disconnectAsync();
-          const result = await connectAsync({ connector: metamask, chainId: BASE_CHAIN_ID });
-          return result.accounts[0] ?? null;
-        }
-        return null;
-      }
-      if (selectedDepositOptionId === 'binance_usdc') {
-        const binance = pickBinanceConnector(connectors);
-        if (binance) {
-          await disconnectAsync();
-          const result = await connectAsync({ connector: binance, chainId: BASE_CHAIN_ID });
-          return result.accounts[0] ?? null;
-        }
-      }
+      return await connectCheckoutWallet({
+        optionId: selectedDepositOptionId as CheckoutWalletOptionId,
+        connectors,
+        connectAsync,
+        disconnectAsync,
+        isConnected,
+        activeConnectorId: connector?.id,
+        resetConnect,
+        switchChainAsync
+      });
     } catch {
-      /* el usuario puede conectar manualmente */
+      return address ?? null;
     }
-    return address ?? null;
-  }, [address, connectAsync, connectors, disconnectAsync, selectedDepositOptionId]);
+  }, [
+    address,
+    connectAsync,
+    connector?.id,
+    connectors,
+    disconnectAsync,
+    isConnected,
+    resetConnect,
+    selectedDepositOptionId,
+    switchChainAsync
+  ]);
 
   const reconnectCoinbaseWallet = useCallback(async () => {
     const coinbase = pickCoinbaseConnector(connectors);
@@ -691,7 +693,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             setError(w.wrongNetwork);
             return;
           }
-        } else if (!walletGuard.canSignOnChain || !address) {
+        } else if (
+          !autoConnectWalletOptionId(selectedDepositOptionId) &&
+          (!walletGuard.canSignOnChain || !address)
+        ) {
           setError(
             walletGuard.isWrongNetwork ? w.wrongNetwork : walletGuard.isWalletMismatch ? w.walletMismatch : w.noWallet
           );
@@ -707,8 +712,16 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     setEmbeddedSession(null);
     setEmbeddedReference(null);
 
+    let connectedPayer: string | null = address ?? null;
     if (autoConnectWalletOptionId(selectedDepositOptionId)) {
-      await connectWalletForSelectedOption();
+      connectedPayer = (await connectWalletForSelectedOption()) ?? connectedPayer;
+      if (mode === 'purchase' && connectedPayer && linkedWalletAddress) {
+        if (connectedPayer.toLowerCase() !== linkedWalletAddress.toLowerCase()) {
+          setError(w.walletMismatch);
+          setStatus('idle');
+          return;
+        }
+      }
     }
 
     try {
@@ -788,7 +801,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           items: items.map((row) => ({ projectId: row.projectId, tokenCount: row.tokenCount })),
           method: paymentMethod,
           paymentOptionId: resolvedPaymentSelection.paymentOptionId,
-          walletAddress: isWalletConnectUsdc ? linkedWalletAddress : address,
+          walletAddress: isWalletConnectUsdc ? linkedWalletAddress : connectedPayer ?? address,
           stablecoinNetwork,
           paymentOptionRail: resolvedPaymentSelection.paymentOptionRail ?? undefined
         })
@@ -1249,6 +1262,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   </p>
                 ) : null}
               </div>
+            ) : autoConnectWalletOptionId(option.id) ? (
+              <div className="py-[1mm]">
+                <WalletCheckoutConnectButton
+                  optionId={option.id as CheckoutWalletOptionId}
+                  walletLabel={displayLabel ?? option.label}
+                />
+              </div>
             ) : null}
             {option.id === RIPIO_EWALLET_PARENT_ID ? (
               <div className="py-[1mm]">
@@ -1292,7 +1312,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         ? !walletGuard.isWalletLinked
         : isWalletConnectUsdc
           ? !walletGuard.isWalletLinked || !isWalletConnectSession
-          : !walletGuard.canSignOnChain));
+          : autoConnectWalletOptionId(selectedDepositOptionId)
+            ? !walletGuard.isWalletLinked
+            : !walletGuard.canSignOnChain));
 
   const confirmLabel =
     status === 'processing'
