@@ -17,6 +17,7 @@
     "dependencies": {
         "@binance/w3w-wagmi-connector-v2": "^1.2.11",
         "@mercadopago/sdk-react": "^1.0.7",
+        "@noble/hashes": "1.8.0",
         "@headlessui/react": "^2.2.0",
         "@react-aria/focus": "^3.19.1",
         "@react-aria/interactions": "^3.24.0",
