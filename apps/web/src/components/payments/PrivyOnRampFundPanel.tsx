@@ -59,13 +59,10 @@ export function PrivyOnRampFundPanel({
         await linkPrivyWallet();
       }
 
-      await fundWallet({
-        address: walletAddress,
-        options: {
-          chain: base,
-          asset: 'USDC',
-          amount: amountUsd.toFixed(2)
-        }
+      await fundWallet(walletAddress, {
+        chain: base,
+        asset: 'USDC',
+        amount: amountUsd.toFixed(2)
       });
 
       setStep('paying');
