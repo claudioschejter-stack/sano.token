@@ -1,6 +1,7 @@
 import type { DepositPaymentOption } from './depositPaymentOptions';
 
 export const WALLET_CHECKOUT_ORDER = [
+  'privy_usdc',
   'electronic_wallet',
   'metamask_usdc',
   'binance_usdc',
@@ -154,5 +155,10 @@ export function isWalletUsdcCheckoutOption(optionId: string | null): boolean {
 }
 
 export function autoConnectWalletOptionId(optionId: string | null): boolean {
-  return optionId === 'electronic_wallet' || optionId === 'metamask_usdc' || optionId === 'binance_usdc';
+  return (
+    optionId === 'privy_usdc' ||
+    optionId === 'electronic_wallet' ||
+    optionId === 'metamask_usdc' ||
+    optionId === 'binance_usdc'
+  );
 }

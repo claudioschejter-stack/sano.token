@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useConnect, useConfig, useSwitchChain } from 'wagmi';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
+import { usePrivyWalletLink } from '../../hooks/usePrivyWalletLink';
 import type { BestBorrowRateResponse } from '../../types/marketplace';
 import { BASE_CHAIN_ID, wagmiConfig } from '../../lib/web3/config';
 import { pickCoinbaseConnector } from '../../lib/web3/walletConnectors';
@@ -13,6 +14,8 @@ import {
   resolveLendingApiErrorMessage
 } from '../../lib/lending/lendingApiErrors';
 import { executePreparedTransactions } from '../../lib/web3/executePreparedTransactions';
+import { executePreparedTransactionsWithWalletClient } from '../../lib/web3/executeWithWalletClient';
+import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
 
 const MORPHO_PROTOCOL_ID = 'morpho';
 
@@ -35,6 +38,8 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
   const m = t.marketplace.borrow;
   const w = t.wallet;
   const walletGuard = useLinkedWalletGuard();
+  const { linkPrivyWallet } = usePrivyWalletLink();
+  const { createEmbeddedWalletClient } = usePrivyEmbeddedWallet();
   const config = useConfig();
   const { address, isConnected, chainId } = useAccount();
   const { connectors, connectAsync } = useConnect();
@@ -61,6 +66,7 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
 
   const linkedAddress = walletGuard.linkedWallet;
   const connectedAddress = address?.trim().toLowerCase() ?? null;
+  const isPrivyLinked = walletGuard.linkedWalletProvider?.toLowerCase().includes('privy') ?? false;
 
   const lendingMessages = useMemo(
     () => ({
@@ -175,7 +181,11 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
       let activeAddress = connectedAddress;
 
       if (!isConnected || !activeAddress) {
-        activeAddress = (await connectCoinbaseWallet())?.toLowerCase() ?? null;
+        if (isPrivyLinked) {
+          activeAddress = (await linkPrivyWallet())?.toLowerCase() ?? null;
+        } else {
+          activeAddress = (await connectCoinbaseWallet())?.toLowerCase() ?? null;
+        }
       }
 
       if (!activeAddress) {
@@ -236,13 +246,24 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
         txCount === 1 ? m.signingSingle : m.signingBatch.replace('{current}', '1').replace('{total}', String(txCount))
       );
 
-      const execution = await executePreparedTransactions(
-        config ?? wagmiConfig,
-        payload.prepared.chainId,
-        payload.prepared.transactions
-      );
+      const execution = isPrivyLinked
+        ? await executePreparedTransactionsWithWalletClient(
+            await createEmbeddedWalletClient(),
+            payload.prepared.transactions
+          )
+        : await executePreparedTransactions(
+            config ?? wagmiConfig,
+            payload.prepared.chainId,
+            payload.prepared.transactions
+          );
 
-      setStatus(execution.mode === 'batch' ? m.successBatch : m.success);
+      setStatus(
+        isPrivyLinked
+          ? m.success
+          : 'mode' in execution && execution.mode === 'batch'
+            ? m.successBatch
+            : m.success
+      );
       await refreshPreview(activeAddress, { amountUsd: Number(amountUsd) });
     } catch (error) {
       setStatus(error instanceof Error ? error.message : m.prepareFailed);

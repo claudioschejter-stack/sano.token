@@ -78,7 +78,9 @@ export async function createDLocalCheckout(input: LocalRailRequest): Promise<Loc
         rail: input.row.providerRail,
         optionId: input.row.id,
         label: input.row.label,
-        country
+        country,
+        settlementPolicy: 'treasury_first',
+        awaitingTreasuryUsdc: true
       }
     };
   }
@@ -118,7 +120,9 @@ export async function createDLocalCheckout(input: LocalRailRequest): Promise<Loc
       optionId: input.row.id,
       label: input.row.label,
       country,
-      mode: 'redirect_fallback'
+      mode: 'redirect_fallback',
+      settlementPolicy: 'treasury_first',
+      awaitingTreasuryUsdc: true
     }
   };
 }

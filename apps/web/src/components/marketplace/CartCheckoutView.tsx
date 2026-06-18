@@ -27,6 +27,9 @@ import { StickyActionBar } from '../mobile/StickyActionBar';
 import { PaymentMethodLogosButton } from './PaymentMethodLogosButton';
 import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
 import { WalletCheckoutConnectButton } from '../wallet/WalletCheckoutConnectButton';
+import { PrivyWalletCheckoutButton } from '../wallet/PrivyWalletCheckoutButton';
+import { PrivyOnRampFundPanel } from '../payments/PrivyOnRampFundPanel';
+import { usePrivyWalletLink } from '../../hooks/usePrivyWalletLink';
 import { BASE_CHAIN_ID } from '../../lib/web3/config';
 import { connectCheckoutWallet } from '../../lib/web3/connectCheckoutWallet';
 import type { CheckoutWalletOptionId } from '../../lib/web3/walletConnectors';
@@ -43,6 +46,7 @@ import {
   RIPIO_EWALLET_RAILS
 } from '../../lib/payments/checkoutPaymentDisplay';
 import { useUsdcTreasuryPayment } from '../../hooks/useUsdcTreasuryPayment';
+import { usePrivyTreasuryPayment } from '../../hooks/usePrivyTreasuryPayment';
 import { isEvmAutoUsdcNetwork } from '../../lib/web3/usdcTreasuryTransfer';
 import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
 import {
@@ -181,6 +185,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const { switchChainAsync } = useSwitchChain();
   const walletGuard = useLinkedWalletGuard();
   const { payToTreasury } = useUsdcTreasuryPayment();
+  const { payToTreasury: payToTreasuryPrivy } = usePrivyTreasuryPayment();
+  const { linkPrivyWallet } = usePrivyWalletLink();
 
   const mode =
     searchParams.get('mode') === 'deposit'
@@ -311,6 +317,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const paymentQuoteExpired = showPaymentMethods && quoteSecondsLeft <= 0 && quoteExpiresAt !== null;
 
   const connectWalletForSelectedOption = useCallback(async (): Promise<string | null> => {
+    if (selectedDepositOptionId === 'privy_usdc') {
+      return (await linkPrivyWallet()) ?? address ?? null;
+    }
     if (!autoConnectWalletOptionId(selectedDepositOptionId)) {
       return address ?? null;
     }
@@ -338,7 +347,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     isConnected,
     resetConnect,
     selectedDepositOptionId,
-    switchChainAsync
+    switchChainAsync,
+    linkPrivyWallet
   ]);
 
   const reconnectCoinbaseWallet = useCallback(async () => {
@@ -1019,7 +1029,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
     try {
       setStatus('processing');
-      const txHash = await payToTreasury({ amountUsd, stablecoinNetwork });
+      const pay =
+        selectedDepositOptionId === 'privy_usdc' ? payToTreasuryPrivy : payToTreasury;
+      const txHash = await pay({ amountUsd, stablecoinNetwork });
       setManualTxHash(txHash);
       if (mode === 'deposit' && context?.depositId) {
         setStatus('verifying');
@@ -1276,6 +1288,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                     })}
                   </p>
                 ) : null}
+              </div>
+            ) : option.id === 'privy_usdc' ? (
+              <div className="py-[1mm]">
+                <PrivyWalletCheckoutButton onLinked={() => void loadDepositQuote()} />
               </div>
             ) : autoConnectWalletOptionId(option.id) ? (
               <div className="py-[1mm]">
@@ -1614,14 +1630,38 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
 
           {status === 'pending_privy' && pendingReference ? (
-            <div className="space-y-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
-              <p className="font-semibold text-terminal-primary">Pago con Privy</p>
-              <p className="text-xs text-terminal-muted">
-                Tu orden está registrada ({pendingReference.slice(0, 8)}…). El on-ramp con tarjeta o Apple Pay se
-                completará en esta pantalla cuando activemos el SDK de Privy. Mientras tanto puedes pagar con USDC desde
-                tu wallet o con SPEI/UPI si está disponible en tu país.
-              </p>
-            </div>
+            <PrivyOnRampFundPanel
+              metadata={
+                ((deposit?.metadata as Record<string, unknown> | undefined)?.provider as
+                  | Record<string, unknown>
+                  | undefined) ??
+                ((checkout?.paymentIntents?.[0]?.metadata as Record<string, unknown> | undefined)?.gateway as
+                  | Record<string, unknown>
+                  | undefined)
+              }
+              amountUsd={totalUsd}
+              stablecoinNetwork={stablecoinNetwork}
+              onFunded={async (txHash) => {
+                if (mode === 'deposit' && deposit?.id) {
+                  await fetch('/api/wallet/deposit-intents/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ depositId: deposit.id, txHash })
+                  });
+                  setStatus('done');
+                  return;
+                }
+                if (batchId) {
+                  await fetch('/api/marketplace/cart/confirm', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ batchId, txHash })
+                  });
+                  setStatus('share_pending');
+                }
+              }}
+              onError={(message) => setError(message)}
+            />
           ) : null}
 
           {status === 'pending_gateway' && pendingReference ? (

@@ -55,6 +55,19 @@ export const PAYMENT_CHECKOUT_GROUP_ORDER: PaymentCheckoutGroupId[] = [
 
 export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
   {
+    id: 'privy_usdc',
+    groupId: 'linked_wallet',
+    method: 'USDC_ONCHAIN',
+    label: 'Privy Wallet (USDC Base)',
+    provider: 'privy',
+    providerRail: 'privy_embedded_usdc',
+    fallbackFeeBps: 10,
+    fallbackGasUsd: 0.01,
+    fallbackNetworkUsd: 0.01,
+    stablecoinNetwork: 'BASE',
+    sortOrder: 5
+  },
+  {
     id: 'electronic_wallet',
     groupId: 'linked_wallet',
     method: 'USDC_ONCHAIN',

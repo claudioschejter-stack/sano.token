@@ -2,6 +2,10 @@ import { prisma, Prisma } from '@sanova/database';
 import { confirmCartBatchByProvider, markCartBatchPaymentFailed } from './cartCheckoutService';
 import { confirmPaymentIntent, markPaymentIntentFailed } from './paymentService';
 import { confirmPlatformDeposit } from './platformWalletService';
+import {
+  dispatchFiatRailTreasuryWebhook,
+  FIAT_RAIL_TREASURY_PROVIDERS
+} from './fiatRailTreasurySettlement';
 
 type PaymentWebhookDispatchInput = {
   externalReference: string;
@@ -16,6 +20,19 @@ export async function dispatchPaymentWebhook(input: PaymentWebhookDispatchInput)
   const reference = input.externalReference.trim();
   if (!reference) {
     return { ok: true, ignored: 'missing_reference' };
+  }
+
+  if (FIAT_RAIL_TREASURY_PROVIDERS.has(input.provider)) {
+    return dispatchFiatRailTreasuryWebhook({
+      externalReference: reference,
+      provider: input.provider,
+      providerPaymentId: input.providerPaymentId,
+      paid: input.paid,
+      failed: input.failed,
+      payload: input.payload,
+      treasuryTxnHash:
+        typeof input.payload.treasuryTxnHash === 'string' ? input.payload.treasuryTxnHash : null
+    });
   }
 
   const cartBatchId =

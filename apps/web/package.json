@@ -17,6 +17,7 @@
     "dependencies": {
         "@binance/w3w-wagmi-connector-v2": "^1.2.11",
         "@mercadopago/sdk-react": "^1.0.7",
+        "@privy-io/react-auth": "^2.17.0",
         "@rainbow-me/rainbowkit": "^2.2.8",
         "@sanova/blockchain": "*",
         "@sanova/database": "*",

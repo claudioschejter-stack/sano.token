@@ -97,6 +97,9 @@ export function isDepositCheckoutRowConfigured(
     if (!paymentGatewayConfigured('USDC_ONCHAIN')) {
       return false;
     }
+    if (row.id === 'privy_usdc' || row.provider === 'privy') {
+      return isPrivyOnRampConfigured();
+    }
     if (row.id === 'binance_usdc' && isBinancePayConfigured()) {
       return true;
     }

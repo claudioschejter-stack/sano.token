@@ -5,7 +5,7 @@ import {
   MOBILE_DIRECT_WALLET_CONNECT_ID
 } from './walletConnectRegistry';
 
-export type CheckoutWalletOptionId = 'electronic_wallet' | 'metamask_usdc' | 'binance_usdc';
+export type CheckoutWalletOptionId = 'privy_usdc' | 'electronic_wallet' | 'metamask_usdc' | 'binance_usdc';
 
 export function pickCoinbaseConnector(connectors: readonly Connector[]) {
   return connectors.find(

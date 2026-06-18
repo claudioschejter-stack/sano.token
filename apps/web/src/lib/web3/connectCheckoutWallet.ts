@@ -58,6 +58,8 @@ export function resolveCheckoutWalletConnector(
   }
 
   switch (optionId) {
+    case 'privy_usdc':
+      return undefined;
     case 'electronic_wallet':
       return pickCoinbaseConnector(connectors);
     case 'metamask_usdc':
