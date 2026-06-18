@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { LoginForm } from '../auth/LoginForm';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
+import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
 import { RegisterForm } from '../auth/RegisterForm';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { LandingHeader } from './LandingHeader';
@@ -61,11 +62,15 @@ function AccessPageContent() {
       return;
     }
 
-    if (!isOperational) {
+    if (!isOperational && !canAccessPortalWithoutInvestorOnboarding(role)) {
       return;
     }
 
-    const destination = resolveAuthenticatedDestination(role, returnTo, isOperational);
+    const destination = resolveAuthenticatedDestination(
+      role,
+      returnTo,
+      isOperational || canAccessPortalWithoutInvestorOnboarding(role)
+    );
     router.replace(destination);
   }, [isOperational, returnTo, router, role, session?.user?.accessToken, status]);
 
@@ -77,7 +82,7 @@ function AccessPageContent() {
     );
   }
 
-  if (isAuthenticated && role && !isOperational) {
+  if (isAuthenticated && role && !isOperational && !canAccessPortalWithoutInvestorOnboarding(role)) {
     return (
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <LandingHeader />

@@ -1,8 +1,14 @@
 import { isPrivyEnabled } from '../privy/config';
+import type { SystemRole } from '../auth/roles';
+import { requiresInvestorStyleOnboarding } from './onboardingGate';
 
-/** When Privy is configured, email OTP (Resend) is deferred until Privy login verifies the address. */
-export function defersEmailVerificationToPrivy(): boolean {
-  return isPrivyEnabled();
+/** Privy email OTP replaces Resend for investors only; staff keep Resend when needed. */
+export function defersEmailVerificationToPrivy(role?: SystemRole | string | null): boolean {
+  if (!isPrivyEnabled()) {
+    return false;
+  }
+
+  return requiresInvestorStyleOnboarding(role);
 }
 
 export function isEmailVerificationSatisfied(input: {

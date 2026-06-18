@@ -84,7 +84,7 @@ function OnboardingContent() {
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = Boolean(systemRole);
   const requirePhoneOtp = requiresPhoneVerification(systemRole);
-  const deferEmailToPrivy = defersEmailVerificationToPrivy();
+  const deferEmailToPrivy = defersEmailVerificationToPrivy(systemRole);
 
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');

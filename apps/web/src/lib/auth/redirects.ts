@@ -2,6 +2,7 @@ import type { SystemRole } from './roles';
 import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from './kycPaths';
 import { normalizeReturnPath } from './returnPath';
 import { resolvePostLoginPath } from './roles';
+import { canAccessPortalWithoutInvestorOnboarding } from '../onboarding/onboardingGate';
 
 export function safeReturnTo(value: string | null | undefined, fallback: string): string {
   return normalizeReturnPath(value, fallback);
@@ -27,6 +28,16 @@ export function resolveAuthenticatedDestination(
   returnTo: string | null | undefined,
   accountOperational = false
 ): string {
+  if (canAccessPortalWithoutInvestorOnboarding(role)) {
+    const home = resolveRoleHomePath(role, true);
+
+    if (!shouldHonorReturnTo(role, returnTo)) {
+      return home;
+    }
+
+    return safeReturnTo(returnTo, home);
+  }
+
   if (!accountOperational) {
     return buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH);
   }

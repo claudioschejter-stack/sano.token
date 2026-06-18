@@ -40,7 +40,7 @@ describe('phoneVerificationPolicy', () => {
     ).toBe(true);
   });
 
-  it('allows contact before email OTP when Privy defers email verification', () => {
+  it('allows contact before email OTP when Privy defers email verification for investors', () => {
     const previous = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
     process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'cmqiztako002p0bjmjiqaebuw';
 
@@ -53,6 +53,14 @@ describe('phoneVerificationPolicy', () => {
           phone: '+5492617513426'
         })
       ).toBe(true);
+      expect(
+        isContactStepComplete({
+          systemRole: 'ADMIN',
+          emailVerifiedAt: null,
+          phoneVerifiedAt: null,
+          phone: '+5492617513426'
+        })
+      ).toBe(false);
     } finally {
       if (previous === undefined) {
         delete process.env.NEXT_PUBLIC_PRIVY_APP_ID;

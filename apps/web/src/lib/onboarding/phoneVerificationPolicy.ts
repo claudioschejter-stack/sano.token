@@ -23,7 +23,8 @@ export function isContactStepComplete(user: {
   phoneVerifiedAt?: Date | null;
   phone?: string | null;
 }): boolean {
-  const emailReady = Boolean(user.emailVerifiedAt) || defersEmailVerificationToPrivy();
+  const emailReady =
+    Boolean(user.emailVerifiedAt) || defersEmailVerificationToPrivy(user.systemRole);
   if (!emailReady) {
     return false;
   }
