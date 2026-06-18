@@ -70,7 +70,8 @@
   "overrides": {
     "@noble/hashes": "1.7.2",
     "@noble/curves": "1.9.7",
-    "@scure/bip32": "1.6.2"
+    "@scure/bip32": "1.6.2",
+    "ua-parser-js": "1.0.39"
   },
   "dependencies": {
     "@vitalets/google-translate-api": "^9.2.1",

@@ -6,7 +6,6 @@ import { useCallback, useMemo, useState } from 'react';
 import { base } from 'viem/chains';
 import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
 import { usePrivyWalletLink } from '../../hooks/usePrivyWalletLink';
-import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
 import { usePrivyTreasuryPayment } from '../../hooks/usePrivyTreasuryPayment';
 
 export type PrivyOnRampFundPanelProps = {
