@@ -1,6 +1,7 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base, polygon } from 'wagmi/chains';
-import { coinbaseWallet, injected, metaMask, walletConnect } from '@wagmi/connectors';
+import { getWagmiConnectorV2 } from '@binance/w3w-wagmi-connector-v2';
+import { coinbaseWallet, metaMask, walletConnect } from '@wagmi/connectors';
 import { isWalletConnectConfigured, walletConnectMetadata, walletConnectProjectId } from './walletConnect';
 
 export { isWalletConnectConfigured, walletConnectAllowedOrigins } from './walletConnect';
@@ -17,16 +18,7 @@ const polygonRpcUrl =
 
 export const supportedChains = [base, polygon] as const;
 
-function binanceWeb3Provider() {
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-  const w = window as Window & {
-    binancew3w?: { ethereum?: unknown };
-    BinanceChain?: unknown;
-  };
-  return w.binancew3w?.ethereum ?? w.BinanceChain ?? undefined;
-}
+const createBinanceConnector = getWagmiConnectorV2();
 
 const connectors = [
   coinbaseWallet({
@@ -40,19 +32,7 @@ const connectors = [
       url: walletConnectMetadata.url
     }
   }),
-  injected({
-    target() {
-      const provider = binanceWeb3Provider();
-      if (!provider) {
-        return undefined;
-      }
-      return {
-        id: 'wallet.binance.com',
-        name: 'Binance Wallet',
-        provider: provider as never
-      };
-    }
-  }),
+  createBinanceConnector(),
   ...(isWalletConnectConfigured
     ? [
         walletConnect({

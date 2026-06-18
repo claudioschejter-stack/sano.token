@@ -9,47 +9,29 @@ import {
   type CheckoutWalletOptionId
 } from './walletConnectors';
 
-type BinanceWindow = Window & {
-  binancew3w?: { ethereum?: unknown };
-  BinanceChain?: unknown;
-};
-
-export function hasBinanceWeb3Provider(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-  const w = window as BinanceWindow;
-  return Boolean(w.binancew3w?.ethereum ?? w.BinanceChain);
+export function isWalletConnectConnector(connector: Connector): boolean {
+  return (
+    connector.id === 'walletConnect' ||
+    connector.type === 'walletConnect' ||
+    connector.name.toLowerCase().includes('walletconnect')
+  );
 }
 
-export function shouldPreferWalletConnectForCheckout(optionId: CheckoutWalletOptionId): boolean {
-  if (optionId === 'binance_usdc') {
-    return !hasBinanceWeb3Provider();
-  }
-  if (isMobileDevice() && optionId === 'electronic_wallet') {
-    return true;
-  }
+export function shouldPreferWalletConnectForCheckout(_optionId: CheckoutWalletOptionId): boolean {
   return false;
 }
 
 export function resolveCheckoutWalletConnector(
   optionId: CheckoutWalletOptionId,
-  connectors: readonly Connector[],
-  preferWalletConnect = shouldPreferWalletConnectForCheckout(optionId)
+  connectors: readonly Connector[]
 ): Connector | undefined {
-  if (preferWalletConnect) {
-    return pickWalletConnectConnector(connectors);
-  }
-
   switch (optionId) {
     case 'electronic_wallet':
       return pickCoinbaseConnector(connectors);
     case 'metamask_usdc':
       return pickMetaMaskConnector(connectors);
     case 'binance_usdc':
-      return hasBinanceWeb3Provider()
-        ? pickBinanceConnector(connectors)
-        : pickWalletConnectConnector(connectors) ?? pickBinanceConnector(connectors);
+      return pickBinanceConnector(connectors);
     default:
       return undefined;
   }
@@ -85,11 +67,13 @@ export async function connectWalletSession({
     }
   }
 
-  const mobile = isMobileDevice();
-  const result = await connectAsync(mobile ? { connector } : { connector, chainId: BASE_CHAIN_ID });
+  const skipChainOnConnect = isMobileDevice() && isWalletConnectConnector(connector);
+  const result = await connectAsync(
+    skipChainOnConnect ? { connector } : { connector, chainId: BASE_CHAIN_ID }
+  );
   const account = result.accounts[0] ?? null;
 
-  if (account && switchChainAsync) {
+  if (account && switchChainAsync && !skipChainOnConnect) {
     try {
       await switchChainAsync({ chainId: BASE_CHAIN_ID });
     } catch {
@@ -111,21 +95,12 @@ type ConnectCheckoutWalletParams = {
   switchChainAsync?: ConnectWalletSessionParams['switchChainAsync'];
 };
 
-async function connectWithPreference(
-  optionId: CheckoutWalletOptionId,
-  connectors: readonly Connector[],
-  preferWalletConnect: boolean,
-  session: Omit<ConnectCheckoutWalletParams, 'optionId' | 'connectors'>
-): Promise<string | null> {
-  const connector = resolveCheckoutWalletConnector(optionId, connectors, preferWalletConnect);
+export async function connectCheckoutWallet(params: ConnectCheckoutWalletParams): Promise<string | null> {
+  const connector = resolveCheckoutWalletConnector(params.optionId, params.connectors);
   if (!connector) {
     return null;
   }
-  return connectWalletSession({ connector, ...session });
-}
 
-export async function connectCheckoutWallet(params: ConnectCheckoutWalletParams): Promise<string | null> {
-  const preferWc = shouldPreferWalletConnectForCheckout(params.optionId);
   const session = {
     connectAsync: params.connectAsync,
     disconnectAsync: params.disconnectAsync,
@@ -136,14 +111,19 @@ export async function connectCheckoutWallet(params: ConnectCheckoutWalletParams)
   };
 
   try {
-    return await connectWithPreference(params.optionId, params.connectors, preferWc, session);
+    return await connectWalletSession({ connector, ...session });
   } catch (primaryError) {
-    const wc = pickWalletConnectConnector(params.connectors);
-    if (!wc || preferWc) {
+    if (params.optionId !== 'metamask_usdc') {
       throw primaryError;
     }
+
+    const wc = pickWalletConnectConnector(params.connectors);
+    if (!wc) {
+      throw primaryError;
+    }
+
     try {
-      return await connectWithPreference(params.optionId, params.connectors, true, session);
+      return await connectWalletSession({ connector: wc, ...session });
     } catch {
       throw primaryError;
     }

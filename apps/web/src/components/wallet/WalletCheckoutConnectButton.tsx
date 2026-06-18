@@ -6,7 +6,7 @@ import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { formatMessage } from '../../i18n';
 import { isMobileDevice } from '../../lib/mobile/deviceConfig';
-import { connectCheckoutWallet, resolveCheckoutWalletConnector, shouldPreferWalletConnectForCheckout } from '../../lib/web3/connectCheckoutWallet';
+import { connectCheckoutWallet, resolveCheckoutWalletConnector } from '../../lib/web3/connectCheckoutWallet';
 import { BASE_CHAIN_ID } from '../../lib/web3/config';
 import type { CheckoutWalletOptionId } from '../../lib/web3/walletConnectors';
 
@@ -55,7 +55,6 @@ export function WalletCheckoutConnectButton({
     () => resolveCheckoutWalletConnector(optionId, connectors),
     [connectors, optionId]
   );
-  const usesWalletConnect = shouldPreferWalletConnectForCheckout(optionId);
   const isTargetSession = isConnected && Boolean(address);
   const wrongChain = isTargetSession && chainId != null && chainId !== BASE_CHAIN_ID;
   const busy = isPending;
@@ -101,11 +100,9 @@ export function WalletCheckoutConnectButton({
     }
   }, [switchChainAsync]);
 
-  const hint = usesWalletConnect
-    ? c.walletConnectOpenHint
-    : isMobileDevice()
-      ? formatMessage(c.walletMobileConnectHint, { wallet: walletLabel })
-      : formatMessage(c.walletDesktopConnectHint, { wallet: walletLabel });
+  const hint = isMobileDevice()
+    ? formatMessage(c.walletMobileConnectHint, { wallet: walletLabel })
+    : formatMessage(c.walletDesktopConnectHint, { wallet: walletLabel });
 
   if (!targetConnector) {
     return (

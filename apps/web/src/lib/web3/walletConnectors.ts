@@ -33,6 +33,7 @@ export function pickBinanceConnector(connectors: readonly Connector[]) {
   return connectors.find(
     (connector) =>
       connector.id === 'wallet.binance.com' ||
+      connector.type === 'binanceWallet' ||
       connector.id === 'binanceWeb3' ||
       connector.id === 'BinanceW3WSDK' ||
       connector.id === 'binance' ||
