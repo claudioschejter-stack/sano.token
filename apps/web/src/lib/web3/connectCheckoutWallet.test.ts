@@ -7,10 +7,11 @@ import {
 } from './connectCheckoutWallet';
 
 vi.mock('../mobile/deviceConfig', () => ({
-  isMobileDevice: vi.fn(() => false)
+  isMobileDevice: vi.fn(() => false),
+  isAndroidDevice: vi.fn(() => false)
 }));
 
-const { isMobileDevice } = await import('../mobile/deviceConfig');
+const { isMobileDevice, isAndroidDevice } = await import('../mobile/deviceConfig');
 
 function mockConnector(id: string, name = id, type = 'mock'): Connector {
   return { id, name, type } as Connector;
@@ -21,12 +22,15 @@ const connectors = [
   mockConnector('metaMaskSDK', 'MetaMask', 'metaMask'),
   mockConnector('wallet.binance.com', 'Binance Wallet', 'binanceWallet'),
   mockConnector('walletConnectDirect', 'WalletConnect Direct', 'walletConnect'),
+  mockConnector('walletConnectAndroidCoinbase', 'Coinbase Wallet (Android)', 'walletConnect'),
+  mockConnector('walletConnectAndroidMetamask', 'MetaMask (Android)', 'walletConnect'),
   mockConnector('walletConnect', 'WalletConnect Modal', 'walletConnect')
 ];
 
 describe('resolveCheckoutWalletConnector', () => {
   beforeEach(() => {
     vi.mocked(isMobileDevice).mockReturnValue(false);
+    vi.mocked(isAndroidDevice).mockReturnValue(false);
   });
 
   it('picks coinbase SDK on desktop for electronic_wallet', () => {
@@ -44,22 +48,32 @@ describe('resolveCheckoutWalletConnector', () => {
     expect(connector?.id).toBe('wallet.binance.com');
   });
 
-  it('picks direct walletConnect on mobile for coinbase', () => {
+  it('picks direct walletConnect on iOS for coinbase', () => {
     vi.mocked(isMobileDevice).mockReturnValue(true);
+    vi.mocked(isAndroidDevice).mockReturnValue(false);
     const connector = resolveCheckoutWalletConnector('electronic_wallet', connectors);
     expect(connector?.id).toBe('walletConnectDirect');
   });
 
-  it('picks direct walletConnect on mobile for metamask', () => {
+  it('picks android coinbase modal walletConnect on android', () => {
     vi.mocked(isMobileDevice).mockReturnValue(true);
+    vi.mocked(isAndroidDevice).mockReturnValue(true);
+    const connector = resolveCheckoutWalletConnector('electronic_wallet', connectors);
+    expect(connector?.id).toBe('walletConnectAndroidCoinbase');
+  });
+
+  it('picks android metamask modal walletConnect on android', () => {
+    vi.mocked(isMobileDevice).mockReturnValue(true);
+    vi.mocked(isAndroidDevice).mockReturnValue(true);
     const connector = resolveCheckoutWalletConnector('metamask_usdc', connectors);
-    expect(connector?.id).toBe('walletConnectDirect');
+    expect(connector?.id).toBe('walletConnectAndroidMetamask');
   });
 });
 
 describe('mobileWalletTargetForOption', () => {
   beforeEach(() => {
     vi.mocked(isMobileDevice).mockReturnValue(false);
+    vi.mocked(isAndroidDevice).mockReturnValue(false);
   });
 
   it('returns null on desktop', () => {
@@ -67,11 +81,19 @@ describe('mobileWalletTargetForOption', () => {
     expect(mobileWalletTargetForOption('metamask_usdc')).toBeNull();
   });
 
-  it('returns wallet targets on mobile', () => {
+  it('returns wallet targets on iOS only', () => {
     vi.mocked(isMobileDevice).mockReturnValue(true);
+    vi.mocked(isAndroidDevice).mockReturnValue(false);
     expect(mobileWalletTargetForOption('electronic_wallet')).toBe('coinbase');
     expect(mobileWalletTargetForOption('metamask_usdc')).toBe('metamask');
     expect(mobileWalletTargetForOption('binance_usdc')).toBeNull();
+  });
+
+  it('returns null on android (modal walletconnect handles deep links)', () => {
+    vi.mocked(isMobileDevice).mockReturnValue(true);
+    vi.mocked(isAndroidDevice).mockReturnValue(true);
+    expect(mobileWalletTargetForOption('electronic_wallet')).toBeNull();
+    expect(mobileWalletTargetForOption('metamask_usdc')).toBeNull();
   });
 });
 

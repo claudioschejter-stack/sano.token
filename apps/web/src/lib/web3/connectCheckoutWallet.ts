@@ -1,13 +1,14 @@
 ﻿import type { Connector } from 'wagmi';
-import { isMobileDevice } from '../mobile/deviceConfig';
+import { isAndroidDevice, isMobileDevice } from '../mobile/deviceConfig';
 import { BASE_CHAIN_ID, onWagmiConfigMessage } from './config';
 import { openMobileWalletWcDeepLink, type MobileWalletTarget } from './mobileWalletDeepLink';
 import {
+  pickAndroidCoinbaseWalletConnectConnector,
+  pickAndroidMetaMaskWalletConnectConnector,
   pickBinanceConnector,
   pickCoinbaseConnector,
   pickDirectWalletConnectConnector,
   pickMetaMaskConnector,
-  pickWalletConnectConnector,
   type CheckoutWalletOptionId
 } from './walletConnectors';
 
@@ -22,7 +23,7 @@ export function isWalletConnectConnector(connector: Connector): boolean {
 export function mobileWalletTargetForOption(
   optionId: CheckoutWalletOptionId
 ): MobileWalletTarget | null {
-  if (!isMobileDevice()) {
+  if (!isMobileDevice() || isAndroidDevice()) {
     return null;
   }
   if (optionId === 'electronic_wallet') {
@@ -42,6 +43,15 @@ export function resolveCheckoutWalletConnector(
   optionId: CheckoutWalletOptionId,
   connectors: readonly Connector[]
 ): Connector | undefined {
+  if (isAndroidDevice()) {
+    if (optionId === 'electronic_wallet') {
+      return pickAndroidCoinbaseWalletConnectConnector(connectors);
+    }
+    if (optionId === 'metamask_usdc') {
+      return pickAndroidMetaMaskWalletConnectConnector(connectors);
+    }
+  }
+
   const mobileTarget = mobileWalletTargetForOption(optionId);
   if (mobileTarget) {
     return pickDirectWalletConnectConnector(connectors);

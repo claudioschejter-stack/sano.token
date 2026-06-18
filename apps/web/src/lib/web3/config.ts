@@ -2,8 +2,15 @@ import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base, polygon } from 'wagmi/chains';
 import { getWagmiConnectorV2 } from '@binance/w3w-wagmi-connector-v2';
 import { coinbaseWallet, metaMask, walletConnect } from '@wagmi/connectors';
+import type { WalletConnectParameters } from '@wagmi/connectors';
 import { isWalletConnectConfigured, walletConnectMetadata, walletConnectProjectId } from './walletConnect';
-import { MOBILE_DIRECT_WALLET_CONNECT_ID } from './mobileWalletDeepLink';
+import {
+  ANDROID_COINBASE_WC_CONNECTOR_ID,
+  ANDROID_METAMASK_WC_CONNECTOR_ID,
+  MOBILE_DIRECT_WALLET_CONNECT_ID,
+  WC_REGISTRY_COINBASE_WALLET_ID,
+  WC_REGISTRY_METAMASK_WALLET_ID
+} from './walletConnectRegistry';
 
 export { isWalletConnectConfigured, walletConnectAllowedOrigins } from './walletConnect';
 
@@ -21,23 +28,61 @@ export const supportedChains = [base, polygon] as const;
 
 const createBinanceConnector = getWagmiConnectorV2();
 
+function wrapWalletConnectConnector(
+  id: string,
+  name: string,
+  parameters: WalletConnectParameters
+) {
+  const factory = walletConnect(parameters);
+
+  return (config: Parameters<typeof factory>[0]) => {
+    const connector = factory(config);
+    return {
+      ...connector,
+      id,
+      name
+    };
+  };
+}
+
 function createMobileDirectWalletConnect() {
-  const factory = walletConnect({
+  return wrapWalletConnectConnector(MOBILE_DIRECT_WALLET_CONNECT_ID, 'WalletConnect Direct', {
     projectId: walletConnectProjectId,
     metadata: walletConnectMetadata,
     showQrModal: false,
     customStoragePrefix: 'sanova-mobile-direct',
     isNewChainsStale: false
   });
+}
 
-  return (config: Parameters<typeof factory>[0]) => {
-    const connector = factory(config);
-    return {
-      ...connector,
-      id: MOBILE_DIRECT_WALLET_CONNECT_ID,
-      name: 'WalletConnect Direct'
-    };
-  };
+function createAndroidCoinbaseWalletConnect() {
+  return wrapWalletConnectConnector(ANDROID_COINBASE_WC_CONNECTOR_ID, 'Coinbase Wallet (Android)', {
+    projectId: walletConnectProjectId,
+    metadata: walletConnectMetadata,
+    showQrModal: true,
+    customStoragePrefix: 'sanova-android-coinbase',
+    isNewChainsStale: false,
+    qrModalOptions: {
+      themeMode: 'light',
+      enableExplorer: true,
+      explorerRecommendedWalletIds: [WC_REGISTRY_COINBASE_WALLET_ID]
+    }
+  });
+}
+
+function createAndroidMetaMaskWalletConnect() {
+  return wrapWalletConnectConnector(ANDROID_METAMASK_WC_CONNECTOR_ID, 'MetaMask (Android)', {
+    projectId: walletConnectProjectId,
+    metadata: walletConnectMetadata,
+    showQrModal: true,
+    customStoragePrefix: 'sanova-android-metamask',
+    isNewChainsStale: false,
+    qrModalOptions: {
+      themeMode: 'light',
+      enableExplorer: true,
+      explorerRecommendedWalletIds: [WC_REGISTRY_METAMASK_WALLET_ID]
+    }
+  });
 }
 
 const connectors = [
@@ -57,6 +102,8 @@ const connectors = [
   ...(isWalletConnectConfigured
     ? [
         createMobileDirectWalletConnect(),
+        createAndroidCoinbaseWalletConnect(),
+        createAndroidMetaMaskWalletConnect(),
         walletConnect({
           projectId: walletConnectProjectId,
           metadata: walletConnectMetadata,

@@ -40,3 +40,11 @@ export function isMobileDevice(): boolean {
 
   return mobileUserAgent || coarsePointer || narrowViewport;
 }
+
+export function isAndroidDevice(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return /Android/i.test(navigator.userAgent);
+}
