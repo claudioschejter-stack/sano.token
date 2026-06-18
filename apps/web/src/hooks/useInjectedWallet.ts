@@ -8,7 +8,8 @@ type EthereumProvider = {
 };
 
 function getEthereum(): EthereumProvider | undefined {
-  return (window as Window & { ethereum?: EthereumProvider }).ethereum;
+  const ethereum = (window as unknown as { ethereum?: EthereumProvider }).ethereum;
+  return ethereum;
 }
 
 export function useInjectedWallet() {
