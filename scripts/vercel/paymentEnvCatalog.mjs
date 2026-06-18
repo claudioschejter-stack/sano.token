@@ -131,7 +131,12 @@ export const PAYMENT_ENV_GROUPS = [
     id: 'privy',
     label: 'Privy (embedded wallet + on-ramp)',
     required: false,
-    keys: ['NEXT_PUBLIC_PRIVY_APP_ID', 'PRIVY_APP_SECRET']
+    keys: [
+      'NEXT_PUBLIC_PRIVY_APP_ID',
+      'PRIVY_APP_SECRET',
+      'PRIVY_VAULT_ID',
+      'PRIVY_TREASURY_WALLET_ID'
+    ]
   },
   {
     id: 'paypal',

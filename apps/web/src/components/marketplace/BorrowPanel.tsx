@@ -16,6 +16,7 @@ import {
 import { executePreparedTransactions } from '../../lib/web3/executePreparedTransactions';
 import { executePreparedTransactionsWithWalletClient } from '../../lib/web3/executeWithWalletClient';
 import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
+import { MorphoHealthPanel } from '../lending/MorphoHealthPanel';
 
 const MORPHO_PROTOCOL_ID = 'morpho';
 
@@ -342,6 +343,8 @@ export function BorrowPanel({ borrowRate, projectId, vaultAddress, readyToBorrow
           </span>
         ) : null}
       </div>
+
+      {projectId ? <MorphoHealthPanel projectId={projectId} /> : null}
 
       {status ? (
         <p className="border-t border-terminal-border px-4 py-3 text-xs text-terminal-muted md:px-6">{status}</p>

@@ -4,8 +4,69 @@ import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireA
 import { linkUserWallet } from '../../../../lib/investor/walletService';
 import { verifyWalletLinkSignature } from '../../../../lib/investor/walletLinkProof';
 import { assertWalletLinkChainId, WALLET_LINK_CHAIN_ID } from '../../../../lib/investor/walletLinkChain';
+import { isPrivyEnabled } from '../../../../lib/privy/config';
 
 export const dynamic = 'force-dynamic';
+
+/** Privy embedded wallet — no signature required when KYC-approved session provisions wallet. */
+export async function POST(request: Request) {
+  const ctx = await requireAuthenticatedSession();
+
+  if (!ctx) {
+    return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+  }
+
+  if (!isPrivyEnabled()) {
+    return NextResponse.json({ error: 'PRIVY_NOT_CONFIGURED' }, { status: 503 });
+  }
+
+  try {
+    const body = (await request.json()) as {
+      walletAddress?: string;
+      walletProvider?: string | null;
+      privyProvisioned?: boolean;
+    };
+
+    if (!body.walletAddress?.trim()) {
+      return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
+    }
+
+    if (!body.privyProvisioned) {
+      return NextResponse.json({ error: 'PRIVY_PROVISION_REQUIRED' }, { status: 400 });
+    }
+
+    const result = await linkUserWallet(
+      ctx.userId,
+      body.walletAddress.trim(),
+      body.walletProvider ?? 'Privy Wallet'
+    );
+
+    return NextResponse.json(result);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return NextResponse.json({ error: 'WALLET_ALREADY_LINKED' }, { status: 400 });
+    }
+
+    const message = error instanceof Error ? error.message : 'UNKNOWN';
+
+    if (message === 'USER_NOT_FOUND') {
+      return NextResponse.json({ error: message }, { status: 404 });
+    }
+
+    if (
+      message === 'KYC_NOT_APPROVED' ||
+      message === 'INVESTOR_ROLE_REQUIRED' ||
+      message === 'ROLE_NOT_ALLOWED' ||
+      message === 'INVALID_WALLET' ||
+      message === 'WALLET_ALREADY_LINKED'
+    ) {
+      return NextResponse.json({ error: message }, { status: 400 });
+    }
+
+    console.error('[investor/wallet POST]', error);
+    return NextResponse.json({ error: 'WALLET_LINK_FAILED' }, { status: 500 });
+  }
+}
 
 export async function PATCH(request: Request) {
   const ctx = await requireAuthenticatedSession();

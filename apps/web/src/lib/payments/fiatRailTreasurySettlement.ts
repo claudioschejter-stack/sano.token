@@ -6,6 +6,7 @@ import {
 } from './checkoutReferenceResolver';
 import { confirmCartBatchByProvider } from './cartCheckoutService';
 import { confirmPlatformDeposit } from './platformWalletService';
+import { fundPrivyWalletAfterFiatPayment } from './privyWalletFundingService';
 
 export const FIAT_RAIL_TREASURY_PROVIDERS = new Set(['dlocal', 'ebanx']);
 
@@ -87,6 +88,22 @@ export async function dispatchFiatRailTreasuryWebhook(input: FiatRailWebhookInpu
             cartBatchId
           } as Prisma.InputJsonObject
         }
+      });
+    }
+
+    if (intents[0]?.userId) {
+      const amountUsd =
+        typeof input.payload.amountUsd === 'number'
+          ? input.payload.amountUsd
+          : Number(input.payload.amount) || 0;
+
+      await fundPrivyWalletAfterFiatPayment({
+        userId: intents[0].userId,
+        amountUsd,
+        provider: input.provider,
+        providerPaymentId: input.providerPaymentId,
+        externalReference: cartBatchId,
+        treasuryTxnHash
       });
     }
 

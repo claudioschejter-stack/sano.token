@@ -22,6 +22,8 @@ import { safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { InstallAppBanner } from '../pwa/InstallAppBanner';
 import { ActivateWalletStep } from './ActivateWalletStep';
+import { PrivyOnboardingWallet } from './PrivyOnboardingWallet';
+import { isPrivyEnabled } from '../../lib/privy/config';
 
 type Step = 'contact' | 'phone' | 'email' | 'identity' | 'wallet' | 'done';
 
@@ -674,13 +676,23 @@ function OnboardingContent() {
         ) : null}
 
         {step === 'wallet' ? (
-          <ActivateWalletStep
-            onLinked={async () => {
-              await refresh({ silent: true });
-              router.replace(returnTo);
-            }}
-            onError={setError}
-          />
+          isPrivyEnabled() ? (
+            <PrivyOnboardingWallet
+              onLinked={async () => {
+                await refresh({ silent: true });
+                router.replace(returnTo);
+              }}
+              onError={setError}
+            />
+          ) : (
+            <ActivateWalletStep
+              onLinked={async () => {
+                await refresh({ silent: true });
+                router.replace(returnTo);
+              }}
+              onError={setError}
+            />
+          )
         ) : null}
 
         {step === 'done' ? (
