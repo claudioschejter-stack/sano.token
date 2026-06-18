@@ -1,9 +1,11 @@
 ﻿import type { Connector } from 'wagmi';
 import { isMobileDevice } from '../mobile/deviceConfig';
-import { BASE_CHAIN_ID } from './config';
+import { BASE_CHAIN_ID, onWagmiConfigMessage } from './config';
+import { openMobileWalletWcDeepLink, type MobileWalletTarget } from './mobileWalletDeepLink';
 import {
   pickBinanceConnector,
   pickCoinbaseConnector,
+  pickDirectWalletConnectConnector,
   pickMetaMaskConnector,
   pickWalletConnectConnector,
   type CheckoutWalletOptionId
@@ -17,6 +19,21 @@ export function isWalletConnectConnector(connector: Connector): boolean {
   );
 }
 
+export function mobileWalletTargetForOption(
+  optionId: CheckoutWalletOptionId
+): MobileWalletTarget | null {
+  if (!isMobileDevice()) {
+    return null;
+  }
+  if (optionId === 'electronic_wallet') {
+    return 'coinbase';
+  }
+  if (optionId === 'metamask_usdc') {
+    return 'metamask';
+  }
+  return null;
+}
+
 export function shouldPreferWalletConnectForCheckout(_optionId: CheckoutWalletOptionId): boolean {
   return false;
 }
@@ -25,6 +42,11 @@ export function resolveCheckoutWalletConnector(
   optionId: CheckoutWalletOptionId,
   connectors: readonly Connector[]
 ): Connector | undefined {
+  const mobileTarget = mobileWalletTargetForOption(optionId);
+  if (mobileTarget) {
+    return pickDirectWalletConnectConnector(connectors);
+  }
+
   switch (optionId) {
     case 'electronic_wallet':
       return pickCoinbaseConnector(connectors);
@@ -45,6 +67,7 @@ type ConnectWalletSessionParams = {
   activeConnectorId?: string;
   resetConnect?: () => void;
   switchChainAsync?: (args: { chainId: number }) => Promise<unknown>;
+  mobileTarget?: MobileWalletTarget | null;
 };
 
 export async function connectWalletSession({
@@ -54,12 +77,18 @@ export async function connectWalletSession({
   isConnected,
   activeConnectorId,
   resetConnect,
-  switchChainAsync
+  switchChainAsync,
+  mobileTarget = null
 }: ConnectWalletSessionParams): Promise<string | null> {
-  resetConnect?.();
+  const mobile = isMobileDevice();
+  const useDirectMobileWallet = mobile && mobileTarget != null;
+
+  if (!useDirectMobileWallet) {
+    resetConnect?.();
+  }
 
   const sameConnector = isConnected && activeConnectorId === connector.id;
-  if (isConnected && !sameConnector) {
+  if (isConnected && !sameConnector && !useDirectMobileWallet) {
     try {
       await disconnectAsync();
     } catch {
@@ -67,21 +96,30 @@ export async function connectWalletSession({
     }
   }
 
-  const skipChainOnConnect = isMobileDevice() && isWalletConnectConnector(connector);
-  const result = await connectAsync(
-    skipChainOnConnect ? { connector } : { connector, chainId: BASE_CHAIN_ID }
-  );
-  const account = result.accounts[0] ?? null;
+  const removeUriListener = useDirectMobileWallet
+    ? onWagmiConfigMessage((message) => {
+        if (message.type === 'display_uri' && typeof message.data === 'string') {
+          openMobileWalletWcDeepLink(mobileTarget, message.data);
+        }
+      })
+    : undefined;
 
-  if (account && switchChainAsync && !skipChainOnConnect) {
-    try {
-      await switchChainAsync({ chainId: BASE_CHAIN_ID });
-    } catch {
-      /* user may approve later or bridge from Polygon */
+  try {
+    const result = await connectAsync(mobile ? { connector } : { connector, chainId: BASE_CHAIN_ID });
+    const account = result.accounts[0] ?? null;
+
+    if (account && switchChainAsync && !mobile) {
+      try {
+        await switchChainAsync({ chainId: BASE_CHAIN_ID });
+      } catch {
+        /* user may approve later or bridge from Polygon */
+      }
     }
-  }
 
-  return account;
+    return account;
+  } finally {
+    removeUriListener?.();
+  }
 }
 
 type ConnectCheckoutWalletParams = {
@@ -101,31 +139,16 @@ export async function connectCheckoutWallet(params: ConnectCheckoutWalletParams)
     return null;
   }
 
-  const session = {
+  const mobileTarget = mobileWalletTargetForOption(params.optionId);
+
+  return connectWalletSession({
+    connector,
     connectAsync: params.connectAsync,
     disconnectAsync: params.disconnectAsync,
     isConnected: params.isConnected,
     activeConnectorId: params.activeConnectorId,
     resetConnect: params.resetConnect,
-    switchChainAsync: params.switchChainAsync
-  };
-
-  try {
-    return await connectWalletSession({ connector, ...session });
-  } catch (primaryError) {
-    if (params.optionId !== 'metamask_usdc') {
-      throw primaryError;
-    }
-
-    const wc = pickWalletConnectConnector(params.connectors);
-    if (!wc) {
-      throw primaryError;
-    }
-
-    try {
-      return await connectWalletSession({ connector: wc, ...session });
-    } catch {
-      throw primaryError;
-    }
-  }
+    switchChainAsync: params.switchChainAsync,
+    mobileTarget
+  });
 }

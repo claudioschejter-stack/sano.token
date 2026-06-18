@@ -30,11 +30,19 @@ const connectors = [
     dappMetadata: {
       name: walletConnectMetadata.name,
       url: walletConnectMetadata.url
-    }
+    },
+    useDeeplink: false
   }),
   createBinanceConnector(),
   ...(isWalletConnectConfigured
     ? [
+        walletConnect({
+          projectId: walletConnectProjectId,
+          metadata: walletConnectMetadata,
+          showQrModal: false,
+          customStoragePrefix: 'sanova-mobile-direct',
+          isNewChainsStale: false
+        }),
         walletConnect({
           projectId: walletConnectProjectId,
           metadata: walletConnectMetadata,
@@ -62,6 +70,18 @@ export const wagmiConfig = createConfig({
   ssr: true,
   storage: wagmiStorage
 });
+
+type WagmiConfigMessage = { type: string; data?: unknown };
+
+/** WalletConnect emits pairing URIs through wagmi's internal config emitter. */
+export function onWagmiConfigMessage(listener: (message: WagmiConfigMessage) => void): () => void {
+  const config = wagmiConfig as typeof wagmiConfig & {
+    emitter: {
+      on: (event: 'message', fn: (message: WagmiConfigMessage) => void) => () => void;
+    };
+  };
+  return config.emitter.on('message', listener);
+}
 
 export const BASE_CHAIN_ID = base.id;
 
