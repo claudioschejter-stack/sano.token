@@ -10,7 +10,7 @@ export function usePrivyWalletLink() {
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const linkPrivyWallet = useCallback(async (): Promise<string | null> => {
+  const linkPrivyWallet = useCallback(async (): Promise<`0x${string}` | null> => {
     if (!enabled) {
       setError('PRIVY_NOT_CONFIGURED');
       return null;

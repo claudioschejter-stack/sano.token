@@ -49,7 +49,10 @@ export function PrivyOnRampFundPanel({
     try {
       let walletAddress = address;
       if (!authenticated || !walletAddress) {
-        walletAddress = await linkPrivyWallet();
+        const linked = await linkPrivyWallet();
+        if (linked) {
+          walletAddress = linked;
+        }
       }
       if (!walletAddress) {
         walletAddress = await ensureReady();
