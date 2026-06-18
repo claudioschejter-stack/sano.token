@@ -1364,7 +1364,7 @@ export const es = {
     connectCoinbase: 'Conectar Coinbase Wallet',
     connectWalletConnect: 'Conectar con WalletConnect',
     walletConnectUnavailable: 'WalletConnect no está configurado. Contactá soporte.',
-    connectFailed: 'No pudimos conectar Coinbase Wallet. Intentá de nuevo.',
+    connectFailed: 'No pudimos conectar la billetera. Intentá de nuevo.',
     connectRejected: 'Conexión cancelada. Podés volver a intentarlo.',
     connectRetryWalletConnect:
       'Reconectá la misma dirección de Coinbase Wallet que tenés registrada en tu perfil.',

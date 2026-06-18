@@ -96,7 +96,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     id: 'binance_usdc',
     groupId: 'linked_wallet',
     method: 'USDC_ONCHAIN',
-    label: 'Binance',
+    label: 'Binance Wallet',
     provider: 'binance',
     providerRail: 'binance_usdc',
     fallbackFeeBps: 35,

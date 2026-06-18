@@ -21,13 +21,17 @@ function binanceWeb3Provider() {
   if (typeof window === 'undefined') {
     return undefined;
   }
-  const provider = (window as Window & { BinanceChain?: unknown }).BinanceChain;
-  return provider ?? undefined;
+  const w = window as Window & {
+    binancew3w?: { ethereum?: unknown };
+    BinanceChain?: unknown;
+  };
+  return w.binancew3w?.ethereum ?? w.BinanceChain ?? undefined;
 }
 
 const connectors = [
   coinbaseWallet({
     appName: walletConnectMetadata.name,
+    appLogoUrl: walletConnectMetadata.icons[0],
     preference: 'all'
   }),
   metaMask({
@@ -43,8 +47,8 @@ const connectors = [
         return undefined;
       }
       return {
-        id: 'binanceWeb3',
-        name: 'Binance Web3 Wallet',
+        id: 'wallet.binance.com',
+        name: 'Binance Wallet',
         provider: provider as never
       };
     }

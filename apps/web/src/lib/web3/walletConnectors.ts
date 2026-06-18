@@ -32,6 +32,7 @@ export function pickMetaMaskConnector(connectors: readonly Connector[]) {
 export function pickBinanceConnector(connectors: readonly Connector[]) {
   return connectors.find(
     (connector) =>
+      connector.id === 'wallet.binance.com' ||
       connector.id === 'binanceWeb3' ||
       connector.id === 'BinanceW3WSDK' ||
       connector.id === 'binance' ||

@@ -13,7 +13,7 @@ function mockConnector(id: string, name = id): Connector {
 const connectors = [
   mockConnector('coinbaseWalletSDK', 'Coinbase Wallet'),
   mockConnector('metaMaskSDK', 'MetaMask'),
-  mockConnector('binanceWeb3', 'Binance Web3 Wallet'),
+  mockConnector('wallet.binance.com', 'Binance Wallet'),
   mockConnector('walletConnect', 'WalletConnect')
 ];
 

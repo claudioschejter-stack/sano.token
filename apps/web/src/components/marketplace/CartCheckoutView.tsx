@@ -1253,7 +1253,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             {option.id === 'walletconnect_usdc' ? (
               <div className="flex flex-col items-center gap-2 py-[1mm]">
                 <p className="text-center text-[10px] text-slate-600">{c.walletConnectTapIcon}</p>
-                <WalletConnectConnectButton iconOnly />
+                <WalletConnectConnectButton />
                 {isWalletConnectSession && address ? (
                   <p className="font-mono text-[10px] text-emerald-700">
                     {formatMessage(c.walletConnectPayingFromShort, {

@@ -5,6 +5,7 @@ import { useCallback, useMemo } from 'react';
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { BASE_CHAIN_ID } from '../../lib/web3/config';
+import { connectWalletSession } from '../../lib/web3/connectCheckoutWallet';
 import { isWalletConnectConfigured } from '../../lib/web3/walletConnect';
 import { pickWalletConnectConnector } from '../../lib/web3/walletConnectors';
 
@@ -61,11 +62,19 @@ export function WalletConnectConnectButton({
       if (isConnected && !isWalletConnectSession) {
         await disconnectAsync();
       }
-      await connectAsync({ connector: wcConnector, chainId: BASE_CHAIN_ID });
+      await connectWalletSession({
+        connector: wcConnector,
+        connectAsync,
+        disconnectAsync,
+        isConnected,
+        activeConnectorId: connector?.id,
+        resetConnect: reset,
+        switchChainAsync
+      });
     } catch {
       /* wagmi surfaces error state */
     }
-  }, [busy, connectAsync, disabled, disconnectAsync, isConnected, isWalletConnectSession, reset, wcConnector]);
+  }, [busy, connectAsync, connector?.id, disconnectAsync, isConnected, isWalletConnectSession, reset, switchChainAsync, wcConnector]);
 
   const switchToBase = useCallback(async () => {
     try {
