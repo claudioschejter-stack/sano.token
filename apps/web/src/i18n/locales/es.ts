@@ -296,6 +296,7 @@ export const es = {
     },
     colInvestor: 'Inversor',
     colEmail: 'Email',
+    colPhone: 'Teléfono',
     colWallet: 'Wallet',
     colKyc: 'KYC',
     colAccess: 'Acceso',
@@ -314,7 +315,8 @@ export const es = {
     empty: 'No hay inversores con este filtro.',
     contactPendingHint: 'El inversor debe verificar email y cargar teléfono antes de aprobar KYC.',
     inviteTitle: 'Invitar inversor',
-    inviteDesc: 'Envía una invitación por email para que el inversor registre con acceso a la plataforma habilitado.',
+    inviteDesc:
+      'Registro abierto: cualquiera puede crear cuenta con teléfono y pasar KYC. Usá invitaciones para nuevos emails o distribuí links por WhatsApp desde la tabla (base de teléfonos registrados).',
     inviteEmail: 'Email',
     inviteName: 'Nombre (opcional)',
     inviteAdvisor: 'Asesor (opcional)',
@@ -323,7 +325,11 @@ export const es = {
     inviteSubmitting: 'Enviando invitación…',
     inviteSuccess: 'Invitación enviada.',
     inviteError: 'No se pudo enviar la invitación. Intentá de nuevo.',
-    inviteEmailNotSent: 'Invitación creada pero no se envió el email (revisá RESEND_API_KEY).'
+    inviteEmailNotSent: 'Invitación creada pero no se envió el email (revisá RESEND_API_KEY).',
+    shareWhatsApp: 'WhatsApp',
+    shareWhatsAppNoPhone: 'Sin teléfono',
+    outreachLoading: 'Generando link…',
+    outreachError: 'No se pudo generar el link de seguimiento.'
   },
   adminInviteWhatsApp: {
     title: 'Invitar desde contactos / WhatsApp',
@@ -1763,7 +1769,7 @@ export const es = {
     staffPanelHint: 'Panel operativo según permisos de tu rol.',
     registerTitle: 'Crear nueva cuenta',
     registerDesc:
-      'Aquí vamos a validar tu correo y registrar tu teléfono.\nLuego pasamos a un KYC para asegurarnos que realmente eres tú.',
+      'Creá tu cuenta con email y teléfono móvil.\nDespués completás la verificación KYC (Didit) para invertir en activos tokenizados.',
     registerButton: 'Crear cuenta y continuar',
     register: {
       fullNameLabel: 'Nombre completo',
@@ -1881,7 +1887,7 @@ export const es = {
       identityOperationalNote:
         'Luego de verificar la identidad, vinculá tu billetera en Base para quedar como inversor aprobado.',
       identityWalletNote:
-        'Después del KYC vas a crear o conectar una billetera en Base (USDC) vinculada automáticamente a tu cuenta.',
+        'Después del KYC vas a activar tu billetera Privy con el mismo email de tu cuenta. Privy verifica el correo; no hace falta el código por email de Sanova.',
       demoKyc: 'Simular verificación (solo demo)',
       kycProviderUnavailable:
         'La verificación de identidad no está disponible en este momento. Contactá a soporte o intentá más tarde.',
@@ -1929,6 +1935,8 @@ export const es = {
       WALLET_ALREADY_LINKED: 'Esta billetera ya está vinculada a otra cuenta.',
       WALLET_MISMATCH: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
       KYC_NOT_APPROVED: 'Tu KYC debe estar aprobado antes de vincular la billetera.',
+      PRIVY_EMAIL_MISMATCH:
+        'El email de Privy no coincide con el de tu cuenta Sanova. Iniciá sesión en Privy con el mismo correo.',
       INVESTOR_ROLE_REQUIRED: 'Solo cuentas inversor pueden vincular una billetera.',
       WALLET_ROLE_REQUIRED: 'Tu rol requiere vincular Coinbase Wallet para continuar.',
       WALLET_CONNECT_NOT_CONFIGURED:

@@ -20,7 +20,7 @@ export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWall
   const t = useTranslation();
   const o = t.onboarding.steps;
   const { refresh, checklist } = useAccountStatus();
-  const { enabled, ready, authenticated, login, ensureReady } = usePrivyEmbeddedWallet();
+  const { enabled, ready, authenticated, login, ensureReady, getAccessToken } = usePrivyEmbeddedWallet();
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'login' | 'linking' | 'done'>('idle');
 
@@ -45,6 +45,7 @@ export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWall
 
       setPhase('linking');
       const address = await ensureReady();
+      const privyAccessToken = await getAccessToken();
 
       const response = await fetch('/api/investor/wallet', {
         method: 'POST',
@@ -53,7 +54,8 @@ export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWall
         body: JSON.stringify({
           walletAddress: address,
           walletProvider: 'Privy Wallet',
-          privyProvisioned: true
+          privyProvisioned: true,
+          ...(privyAccessToken ? { privyAccessToken } : {})
         })
       });
 
@@ -80,6 +82,7 @@ export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWall
     checklist,
     enabled,
     ensureReady,
+    getAccessToken,
     login,
     onError,
     onLinked,

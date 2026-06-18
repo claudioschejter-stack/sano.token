@@ -289,6 +289,7 @@ export const en = {
     },
     colInvestor: "Investor",
     colEmail: "E-mail",
+    colPhone: "Phone",
     colWallet: "Wallet",
     colKyc: "KYC",
     colAccess: "Access",
@@ -307,7 +308,8 @@ export const en = {
     empty: "There are no inverters with this filter.",
     contactPendingHint: "The investor must verify email and charge phone before approving KYC.",
     inviteTitle: "Invite investor",
-    inviteDesc: "Send an email invitation so the investor can register with platform access enabled.",
+    inviteDesc:
+      "Open registration: anyone can sign up with phone and complete KYC. Use email invites for new prospects or share WhatsApp links from the table (registered phone database).",
     inviteEmail: "Email",
     inviteName: "Name (optional)",
     inviteAdvisor: "Advisor (optional)",
@@ -316,7 +318,11 @@ export const en = {
     inviteSubmitting: "Sending invitation…",
     inviteSuccess: "Invitation sent.",
     inviteError: "Could not send the invitation. Try again.",
-    inviteEmailNotSent: "Invite created but email was not sent (check RESEND_API_KEY)."
+    inviteEmailNotSent: "Invite created but email was not sent (check RESEND_API_KEY).",
+    shareWhatsApp: "WhatsApp",
+    shareWhatsAppNoPhone: "No phone",
+    outreachLoading: "Building link…",
+    outreachError: "Could not build follow-up link."
   },
   adminInviteWhatsApp: {
     title: "Invite via WhatsApp contacts",
@@ -1846,7 +1852,7 @@ export const en = {
       identityOperationalNote:
         "After identity verification, link your Base wallet to become an approved investor.",
       identityWalletNote:
-        "After KYC you will create or connect a Base wallet (USDC) automatically linked to your account.",
+        "After KYC you will activate your Privy wallet with the same email as your Sanova account. Privy verifies your email, so the separate Sanova email code is skipped.",
       demoKyc: "Simulate verification (demo only)",
       kycProviderUnavailable:
         "Identity verification is not available right now. Contact support or try again later.",
@@ -1892,6 +1898,8 @@ export const en = {
       WALLET_ALREADY_LINKED: "This wallet is already linked to another account.",
       WALLET_MISMATCH: "The connected wallet does not match the one linked to your account.",
       KYC_NOT_APPROVED: "Your KYC must be approved before linking a wallet.",
+      PRIVY_EMAIL_MISMATCH:
+        'The Privy email does not match your Sanova account email. Sign in to Privy with the same address.',
       INVESTOR_ROLE_REQUIRED: "Only investor accounts can link a wallet.",
       WALLET_ROLE_REQUIRED: "Your role requires linking Coinbase Wallet to continue.",
       WALLET_CONNECT_NOT_CONFIGURED:

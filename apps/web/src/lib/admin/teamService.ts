@@ -127,7 +127,7 @@ export async function listPlatformTeamMembers(): Promise<PlatformTeamMember[]> {
     phone: row.phone,
     emailVerified: Boolean(row.emailVerifiedAt),
     emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
-    phoneVerified: Boolean(row.phoneVerifiedAt),
+    phoneVerified: Boolean(row.phone?.trim()),
     phoneVerifiedAt: row.phoneVerifiedAt?.toISOString() ?? null,
     kycStatus: row.kycStatus,
     accountStatus: row.accountStatus,

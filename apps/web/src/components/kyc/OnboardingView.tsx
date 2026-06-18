@@ -13,6 +13,7 @@ import {
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { buildAndValidateE164Phone } from '../../lib/auth/contactValidation';
 import { requiresPhoneVerification } from '../../lib/onboarding/phoneVerificationPolicy';
+import { defersEmailVerificationToPrivy } from '../../lib/onboarding/emailVerificationPolicy';
 import {
   COUNTRY_DIAL_CODES,
   DEFAULT_DIAL_CODE,
@@ -32,7 +33,8 @@ const ONBOARDING_STEPS: Step[] = ['contact', 'phone', 'email', 'identity', 'wall
 function stepFromChecklist(
   checklist: ReturnType<typeof useAccountStatus>['checklist'],
   diditReturn: boolean,
-  requireWallet: boolean
+  requireWallet: boolean,
+  deferEmailToPrivy: boolean
 ): Step {
   if (!checklist) {
     return 'contact';
@@ -46,7 +48,7 @@ function stepFromChecklist(
     return 'phone';
   }
 
-  if (!checklist.emailVerified) {
+  if (!checklist.emailVerified && !deferEmailToPrivy) {
     return 'email';
   }
 
@@ -82,6 +84,7 @@ function OnboardingContent() {
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = Boolean(systemRole);
   const requirePhoneOtp = requiresPhoneVerification(systemRole);
+  const deferEmailToPrivy = defersEmailVerificationToPrivy();
 
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
@@ -97,8 +100,8 @@ function OnboardingContent() {
   const [resending, setResending] = useState(false);
 
   const step = useMemo(
-    () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, requireWallet),
-    [checklist, diditReturn, requireWallet]
+    () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, requireWallet, deferEmailToPrivy),
+    [checklist, deferEmailToPrivy, diditReturn, requireWallet]
   );
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);

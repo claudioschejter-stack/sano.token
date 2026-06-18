@@ -8,6 +8,7 @@ import {
   isPhoneVerificationSatisfied,
   requiresPhoneVerification
 } from './phoneVerificationPolicy';
+import { isEmailVerificationSatisfied } from './emailVerificationPolicy';
 
 export type OnboardingChecklist = {
   emailVerified: boolean;
@@ -52,7 +53,7 @@ function resolveLinkedWallet(walletAddress?: string | null): string | null {
 
 export function isAccountOperational(user: UserOnboardingFields): boolean {
   const identityVerified =
-    Boolean(user.emailVerifiedAt) &&
+    isEmailVerificationSatisfied(user) &&
     isPhoneVerificationSatisfied(user) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
@@ -63,7 +64,7 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
 /** KYC + contact + wallet (investors and advisors) — required before marketplace checkout. */
 export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolean {
   const identityReady =
-    Boolean(user.emailVerifiedAt) &&
+    isEmailVerificationSatisfied(user) &&
     isPhoneVerificationSatisfied(user) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
@@ -86,7 +87,7 @@ export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolea
 /** Cash-flow dashboard: trading roles need wallet; treasury staff need verified identity only. */
 export function canAccessCashFlowDashboard(user: UserOnboardingFields): boolean {
   const identityReady =
-    Boolean(user.emailVerifiedAt) &&
+    isEmailVerificationSatisfied(user) &&
     isPhoneVerificationSatisfied(user) &&
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
@@ -114,7 +115,7 @@ export function buildOnboardingChecklist(
   user: UserOnboardingFields,
   diditEnabled: boolean
 ): OnboardingChecklist {
-  const emailVerified = Boolean(user.emailVerifiedAt);
+  const emailVerified = isEmailVerificationSatisfied(user);
   const phoneVerified = requiresPhoneVerification(user.systemRole as SystemRole)
     ? Boolean(user.phoneVerifiedAt)
     : true;

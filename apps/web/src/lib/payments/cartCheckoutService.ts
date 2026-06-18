@@ -33,6 +33,11 @@ import { recordPortfolioSnapshot } from '../portfolio/portfolioAggregator';
 import {
   resolvePaymentCountryForUser
 } from './paymentCountry';
+import {
+  isErc4626DirectDepositBatch,
+  verifyVaultDepositReceipt,
+  type ExpectedVaultDeposit
+} from '../web3/vaultDepositPayment';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 import { isLocalRailManualResult, isRipioOnRampResult } from './stripeCheckoutOptions';
 import {
@@ -856,7 +861,11 @@ export async function confirmCartPurchaseBatch(input: {
 
   for (const row of confirmedRows) {
     const rowMetadata = (row.metadata as Record<string, unknown>) ?? {};
-    if (rowMetadata.purchaseMode === 'ERC4626_DEPOSIT' && row.status === 'CONFIRMED') {
+    if (
+      rowMetadata.purchaseMode === 'ERC4626_DEPOSIT' &&
+      row.status === 'CONFIRMED' &&
+      rowMetadata.vaultShareDeliveryStatus !== 'DELIVERED_ONCHAIN'
+    ) {
       try {
         await deliverVaultSharesAfterPayment(row.id);
       } catch (error) {
@@ -917,9 +926,57 @@ export async function verifyCartUsdcPayment(input: {
     throw new Error('TX_CONFIRMATIONS_PENDING');
   }
 
+  const directVaultDeposit = isErc4626DirectDepositBatch(intents);
+  const expectedFrom = normalizeAddress(input.expectedPayer ?? first.payerWalletAddress);
+
+  if (directVaultDeposit) {
+    const expectedDeposits: ExpectedVaultDeposit[] = intents.map((row) => {
+      const rowMetadata = (row.metadata as Record<string, unknown>) ?? {};
+      const vaultAddress = typeof rowMetadata.vaultAddress === 'string' ? rowMetadata.vaultAddress : '';
+      if (!vaultAddress) {
+        throw new Error('VAULT_NOT_CONFIGURED');
+      }
+      return {
+        vaultAddress,
+        amountBaseUnits: ethers.parseUnits(row.amountUsd.toString(), tokenDecimals),
+        payerAddress: expectedFrom ?? normalizeAddress(row.payerWalletAddress) ?? ''
+      };
+    });
+
+    if (expectedDeposits.some((row) => !row.payerAddress)) {
+      provider.destroy();
+      throw new Error('WALLET_REQUIRED');
+    }
+
+    const vaultDepositValid = verifyVaultDepositReceipt({
+      receipt,
+      usdcTokenAddress: usdcAddress,
+      expectedDeposits
+    });
+
+    provider.destroy();
+
+    if (!vaultDepositValid) {
+      throw new Error('VAULT_DEPOSIT_NOT_FOUND');
+    }
+
+    return confirmCartPurchaseBatch({
+      userId: input.userId,
+      batchId: input.batchId,
+      txHash: input.txHash,
+      provider: 'usdc_onchain',
+      payload: {
+        txHash: input.txHash,
+        totalUsd: totalUsd.toFixed(6),
+        purchaseMode: 'ERC4626_DEPOSIT',
+        directVaultDeposit: true,
+        vaultShareDeliveryStatus: 'DELIVERED_ONCHAIN'
+      }
+    });
+  }
+
   const iface = new ethers.Interface(ERC20_TRANSFER_ABI);
   const expectedTo = ethers.getAddress(treasuryAddress);
-  const expectedFrom = normalizeAddress(input.expectedPayer ?? first.payerWalletAddress);
 
   const matchingLog = receipt.logs
     .filter((log) => log.address.toLowerCase() === usdcAddress.toLowerCase())

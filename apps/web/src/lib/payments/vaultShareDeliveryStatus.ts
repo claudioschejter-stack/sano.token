@@ -9,6 +9,7 @@ export function vaultShareDeliveryUiState(
 
   if (
     metadata.vaultShareDeliveryStatus === 'DELIVERED' ||
+    metadata.vaultShareDeliveryStatus === 'DELIVERED_ONCHAIN' ||
     (typeof metadata.vaultShareDeliveryTxHash === 'string' && metadata.vaultShareDeliveryTxHash.trim())
   ) {
     return 'delivered';

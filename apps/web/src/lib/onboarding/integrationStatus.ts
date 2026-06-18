@@ -1,3 +1,5 @@
+import { isInvestorOpenRegistration } from '../auth/investorAccess';
+
 export type IntegrationStatus = {
   id: string;
   label: string;
@@ -8,14 +10,20 @@ export type IntegrationStatus = {
 export function getOnboardingIntegrations(): IntegrationStatus[] {
   return [
     {
+      id: 'open-registration',
+      label: 'Registro abierto inversores',
+      configured: isInvestorOpenRegistration(),
+      envKeys: ['INVESTOR_OPEN_REGISTRATION']
+    },
+    {
       id: 'resend',
-      label: 'Email OTP (Resend)',
+      label: 'Email OTP (Resend; omitido si Privy verifica el correo)',
       configured: Boolean(process.env.RESEND_API_KEY && process.env.ONBOARDING_FROM_EMAIL),
       envKeys: ['RESEND_API_KEY', 'ONBOARDING_FROM_EMAIL']
     },
     {
       id: 'twilio-verify',
-      label: 'Teléfono OTP (Twilio Verify)',
+      label: 'Teléfono OTP (Twilio Verify, opcional — desactivado)',
       configured: Boolean(
         process.env.TWILIO_ACCOUNT_SID?.trim() &&
           process.env.TWILIO_AUTH_TOKEN?.trim() &&

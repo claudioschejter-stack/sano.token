@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from './contactValidation';
-import { resolveInvestorAccessOnRegister } from './investorAccess';
+import { isInvestorOpenRegistration, resolveInvestorAccessOnRegister } from './investorAccess';
 import { hasValidInvestorInviteForEmail, markInvestorInviteAcceptedForEmail } from '../admin/investorInviteService';
 import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 import {
@@ -69,17 +69,16 @@ export async function registerInvestor(input: RegisterInput) {
     (existing && isStaffRole(existing.systemRole as SystemRole) && !existing.passwordHash) ||
     selfRegisterStaffRole;
 
+  const openRegistration = isInvestorOpenRegistration();
+
   const investorAccessEnabled =
     staffOnboarding ||
+    openRegistration ||
     isPreApprovedInvestorEmail(email) ||
     resolveInvestorAccessOnRegister(input.inviteCode) ||
     (await hasValidInvestorInviteForEmail(email));
 
-  if (
-    !staffOnboarding &&
-    process.env.INVESTOR_OPEN_REGISTRATION !== 'true' &&
-    !investorAccessEnabled
-  ) {
+  if (!staffOnboarding && !openRegistration && !investorAccessEnabled) {
     throw new Error('INVALID_INVITE_CODE');
   }
 

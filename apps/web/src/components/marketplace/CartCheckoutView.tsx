@@ -47,6 +47,8 @@ import {
 } from '../../lib/payments/checkoutPaymentDisplay';
 import { useUsdcTreasuryPayment } from '../../hooks/useUsdcTreasuryPayment';
 import { usePrivyTreasuryPayment } from '../../hooks/usePrivyTreasuryPayment';
+import { usePrivyVaultDeposit } from '../../hooks/usePrivyVaultDeposit';
+import type { VaultDepositLine } from '../../lib/web3/vaultDepositPayment';
 import { isEvmAutoUsdcNetwork } from '../../lib/web3/usdcTreasuryTransfer';
 import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
 import {
@@ -156,6 +158,24 @@ const CURRENCY_COUNTRY: Record<string, string> = {
   MXN: 'MX'
 };
 
+function buildVaultDepositsFromIntents(intents: PublicPaymentIntent[] | undefined): VaultDepositLine[] {
+  if (!intents?.length) {
+    return [];
+  }
+
+  return intents.flatMap((row) => {
+    const metadata = (row.metadata as Record<string, unknown> | null) ?? {};
+    if (metadata.purchaseMode !== 'ERC4626_DEPOSIT' || typeof metadata.vaultAddress !== 'string') {
+      return [];
+    }
+    const amountUsd = Number.parseFloat(row.amountUsd);
+    if (!Number.isFinite(amountUsd) || amountUsd <= 0) {
+      return [];
+    }
+    return [{ vaultAddress: metadata.vaultAddress, amountUsd }];
+  });
+}
+
 function normalizeSelectableDepositOptionId(id: string | null): string | null {
   if (!id) {
     return null;
@@ -186,6 +206,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const walletGuard = useLinkedWalletGuard();
   const { payToTreasury } = useUsdcTreasuryPayment();
   const { payToTreasury: payToTreasuryPrivy } = usePrivyTreasuryPayment();
+  const { depositToVaults: depositToVaultsPrivy } = usePrivyVaultDeposit();
   const { linkPrivyWallet } = usePrivyWalletLink();
 
   const mode =
@@ -270,6 +291,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [ripioEwalletRail, setRipioEwalletRail] = useState<string | null>(null);
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
+  const privyVaultDeposits = useMemo(
+    () => buildVaultDepositsFromIntents(checkout?.paymentIntents),
+    [checkout?.paymentIntents]
+  );
+  const usesPrivyVaultDeposit = privyVaultDeposits.length > 0;
   const depositCountry = CURRENCY_COUNTRY[currency] ?? 'AR';
   const sortedDepositOptions = useMemo(() => sortDepositPaymentOptions(depositOptions), [depositOptions]);
   const paymentGroups = useMemo(
@@ -1029,9 +1055,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
     try {
       setStatus('processing');
-      const pay =
-        selectedDepositOptionId === 'privy_usdc' ? payToTreasuryPrivy : payToTreasury;
-      const txHash = await pay({ amountUsd, stablecoinNetwork });
+      const txHash =
+        selectedDepositOptionId === 'privy_usdc' && usesPrivyVaultDeposit
+          ? await depositToVaultsPrivy({ stablecoinNetwork, deposits: privyVaultDeposits })
+          : selectedDepositOptionId === 'privy_usdc'
+            ? await payToTreasuryPrivy({ amountUsd, stablecoinNetwork })
+            : await payToTreasury({ amountUsd, stablecoinNetwork });
       setManualTxHash(txHash);
       if (mode === 'deposit' && context?.depositId) {
         setStatus('verifying');
@@ -1641,6 +1670,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               }
               amountUsd={totalUsd}
               stablecoinNetwork={stablecoinNetwork}
+              vaultDeposits={usesPrivyVaultDeposit ? privyVaultDeposits : undefined}
               onFunded={async (txHash) => {
                 if (mode === 'deposit' && deposit?.id) {
                   await fetch('/api/wallet/deposit-intents/verify', {
@@ -1657,7 +1687,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ batchId, txHash })
                   });
-                  setStatus('share_pending');
+                  setStatus(usesPrivyVaultDeposit ? 'done' : 'share_pending');
                 }
               }}
               onError={(message) => setError(message)}

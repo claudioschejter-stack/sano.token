@@ -8,7 +8,7 @@ import { isPrivyEnabled } from '../lib/privy/config';
 
 export function usePrivyEmbeddedWallet() {
   const enabled = isPrivyEnabled();
-  const { ready, authenticated, login, logout, user } = usePrivy();
+  const { ready, authenticated, login, logout, user, getAccessToken } = usePrivy();
   const { wallets } = useWallets();
 
   const embeddedWallet = useMemo(
@@ -79,6 +79,7 @@ export function usePrivyEmbeddedWallet() {
     embeddedWallet,
     login,
     logout,
+    getAccessToken,
     ensureReady,
     getEthereumProvider,
     createEmbeddedWalletClient

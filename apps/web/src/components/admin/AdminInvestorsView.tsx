@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Check, ChevronDown, ChevronUp, Mail, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Mail, MessageCircle, RefreshCw, X } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
@@ -54,6 +54,33 @@ export function AdminInvestorsView() {
   const filterLabels = ai.filters as Record<KycFilter, string>;
 
   const identityLabels = t.identityProfile;
+
+  async function handleShareOutreach(userId: string, phone: string | null) {
+    if (!phone?.trim()) {
+      return;
+    }
+
+    setUpdatingId(userId);
+
+    try {
+      const response = await fetch(`/api/admin/investors/${userId}/outreach`);
+      const data = (await response.json()) as {
+        error?: string;
+        outreach?: { whatsappUrl?: string | null };
+      };
+
+      if (!response.ok || !data.outreach?.whatsappUrl) {
+        setInviteMessage(ai.outreachError);
+        return;
+      }
+
+      window.open(data.outreach.whatsappUrl, '_blank', 'noopener,noreferrer');
+    } catch {
+      setInviteMessage(ai.outreachError);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
 
   async function submitInvestorInvite() {
     if (!inviteEmail.trim()) {
@@ -342,6 +369,9 @@ export function AdminInvestorsView() {
                       <div>
                         <p className="font-medium text-terminal-text">{displayName}</p>
                         <p className="mt-1 text-xs text-terminal-muted">{row.email}</p>
+                        {row.phone ? (
+                          <p className="mt-1 font-mono text-xs text-terminal-muted">{row.phone}</p>
+                        ) : null}
                       </div>
                       <span
                         className={`inline-flex shrink-0 rounded border px-2 py-1 text-[11px] font-semibold ${statusBadgeClass(row.kycStatus)}`}
@@ -351,6 +381,15 @@ export function AdminInvestorsView() {
                     </div>
                     {row.kycStatus === 'PENDING' ? (
                       <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={isUpdating || !row.phone}
+                          onClick={() => void handleShareOutreach(row.id, row.phone)}
+                          className="inline-flex min-h-11 flex-1 items-center justify-center gap-1 rounded-lg border border-terminal-primary/30 px-3 py-2 text-xs font-semibold text-terminal-primary disabled:opacity-50"
+                        >
+                          <MessageCircle size={14} />
+                          {row.phone ? ai.shareWhatsApp : ai.shareWhatsAppNoPhone}
+                        </button>
                         <button
                           type="button"
                           disabled={isUpdating || !row.contactVerified}
@@ -384,6 +423,7 @@ export function AdminInvestorsView() {
                 <tr>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colInvestor}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colEmail}</th>
+                  <th className="px-6 py-3 font-semibold">{t.adminInvestors.colPhone}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colWallet}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colKyc}</th>
                   <th className="px-6 py-3 font-semibold">{t.adminInvestors.colAccess}</th>
@@ -396,19 +436,19 @@ export function AdminInvestorsView() {
               <tbody className="divide-y divide-terminal-border">
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={10} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminInvestors.loading}
                     </td>
                   </tr>
                 ) : error ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-10 text-center text-red-400">
+                    <td colSpan={10} className="px-6 py-10 text-center text-red-400">
                       {t.adminInvestors.error}
                     </td>
                   </tr>
                 ) : investors.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-10 text-center text-terminal-muted">
+                    <td colSpan={10} className="px-6 py-10 text-center text-terminal-muted">
                       {t.adminInvestors.empty}
                     </td>
                   </tr>
@@ -434,6 +474,9 @@ export function AdminInvestorsView() {
                           ) : null}
                         </td>
                         <td className="px-6 py-4 text-terminal-muted">{row.email}</td>
+                        <td className="px-6 py-4 font-mono text-xs text-terminal-muted">
+                          {row.phone ?? '—'}
+                        </td>
                         <td className="px-6 py-4 font-mono text-xs text-terminal-muted">
                           {wallet === '—' ? wallet : `${wallet.slice(0, 6)}…${wallet.slice(-4)}`}
                         </td>
@@ -501,8 +544,19 @@ export function AdminInvestorsView() {
                           {formatDateTime(row.createdAt)}
                         </td>
                         <td className="px-6 py-4">
-                          {row.kycStatus === 'PENDING' ? (
-                            <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              disabled={isUpdating || !row.phone}
+                              title={row.phone ? ai.shareWhatsApp : ai.shareWhatsAppNoPhone}
+                              onClick={() => void handleShareOutreach(row.id, row.phone)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-terminal-primary/30 px-2.5 py-1.5 text-xs font-semibold text-terminal-primary transition-colors hover:bg-terminal-primary/10 disabled:opacity-50"
+                            >
+                              <MessageCircle size={14} />
+                              {ai.shareWhatsApp}
+                            </button>
+                            {row.kycStatus === 'PENDING' ? (
+                              <>
                               <button
                                 type="button"
                                 disabled={isUpdating || !row.contactVerified}
@@ -526,15 +580,16 @@ export function AdminInvestorsView() {
                                 <X size={14} />
                                 {t.adminInvestors.reject}
                               </button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-terminal-muted">—</span>
-                          )}
+                              </>
+                            ) : (
+                              <span className="text-xs text-terminal-muted">—</span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                       {isExpanded ? (
                         <tr key={`${row.id}-identity`} className="bg-terminal-bg/40">
-                          <td colSpan={9} className="px-6 py-4">
+                          <td colSpan={10} className="px-6 py-4">
                             <KycIdentityDetails
                               identity={row.kycIdentity}
                               labels={identityLabels}

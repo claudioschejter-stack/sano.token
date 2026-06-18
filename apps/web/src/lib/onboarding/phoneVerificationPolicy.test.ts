@@ -6,22 +6,22 @@ import {
 } from './phoneVerificationPolicy';
 
 describe('phoneVerificationPolicy', () => {
-  it('requires OTP only for ADMIN', () => {
-    expect(requiresPhoneVerification('ADMIN')).toBe(true);
+  it('does not require OTP for any role', () => {
+    expect(requiresPhoneVerification('ADMIN')).toBe(false);
     expect(requiresPhoneVerification('INVESTOR')).toBe(false);
     expect(requiresPhoneVerification('ADVISOR')).toBe(false);
   });
 
-  it('treats phone verification as satisfied for non-admin roles', () => {
+  it('treats phone verification as satisfied for all roles', () => {
     expect(
       isPhoneVerificationSatisfied({ systemRole: 'INVESTOR', phoneVerifiedAt: null })
     ).toBe(true);
     expect(
       isPhoneVerificationSatisfied({ systemRole: 'ADMIN', phoneVerifiedAt: null })
-    ).toBe(false);
+    ).toBe(true);
   });
 
-  it('completes contact for investors with phone but without OTP', () => {
+  it('completes contact with phone captured but without OTP', () => {
     expect(
       isContactStepComplete({
         systemRole: 'INVESTOR',
@@ -30,9 +30,6 @@ describe('phoneVerificationPolicy', () => {
         phone: '+5492617513426'
       })
     ).toBe(true);
-  });
-
-  it('requires OTP-verified phone for admin contact step', () => {
     expect(
       isContactStepComplete({
         systemRole: 'ADMIN',
@@ -40,6 +37,28 @@ describe('phoneVerificationPolicy', () => {
         phoneVerifiedAt: null,
         phone: '+5492617513426'
       })
-    ).toBe(false);
+    ).toBe(true);
+  });
+
+  it('allows contact before email OTP when Privy defers email verification', () => {
+    const previous = process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+    process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'cmqiztako002p0bjmjiqaebuw';
+
+    try {
+      expect(
+        isContactStepComplete({
+          systemRole: 'INVESTOR',
+          emailVerifiedAt: null,
+          phoneVerifiedAt: null,
+          phone: '+5492617513426'
+        })
+      ).toBe(true);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.NEXT_PUBLIC_PRIVY_APP_ID;
+      } else {
+        process.env.NEXT_PUBLIC_PRIVY_APP_ID = previous;
+      }
+    }
   });
 });

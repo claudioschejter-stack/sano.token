@@ -5,6 +5,7 @@ import { linkUserWallet } from '../../../../lib/investor/walletService';
 import { verifyWalletLinkSignature } from '../../../../lib/investor/walletLinkProof';
 import { assertWalletLinkChainId, WALLET_LINK_CHAIN_ID } from '../../../../lib/investor/walletLinkChain';
 import { isPrivyEnabled } from '../../../../lib/privy/config';
+import { syncPrivyEmailVerification } from '../../../../lib/onboarding/syncPrivyEmailVerification';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +26,7 @@ export async function POST(request: Request) {
       walletAddress?: string;
       walletProvider?: string | null;
       privyProvisioned?: boolean;
+      privyAccessToken?: string;
     };
 
     if (!body.walletAddress?.trim()) {
@@ -33,6 +35,14 @@ export async function POST(request: Request) {
 
     if (!body.privyProvisioned) {
       return NextResponse.json({ error: 'PRIVY_PROVISION_REQUIRED' }, { status: 400 });
+    }
+
+    const privyAccessToken = body.privyAccessToken?.trim();
+    if (privyAccessToken) {
+      const emailSync = await syncPrivyEmailVerification(ctx.userId, privyAccessToken);
+      if (emailSync.reason === 'EMAIL_MISMATCH') {
+        return NextResponse.json({ error: 'PRIVY_EMAIL_MISMATCH' }, { status: 400 });
+      }
     }
 
     const result = await linkUserWallet(
@@ -58,7 +68,10 @@ export async function POST(request: Request) {
       message === 'INVESTOR_ROLE_REQUIRED' ||
       message === 'ROLE_NOT_ALLOWED' ||
       message === 'INVALID_WALLET' ||
-      message === 'WALLET_ALREADY_LINKED'
+      message === 'WALLET_ALREADY_LINKED' ||
+      message === 'PRIVY_TOKEN_INVALID' ||
+      message === 'PRIVY_TOKEN_REQUIRED' ||
+      message === 'PRIVY_USER_LOOKUP_FAILED'
     ) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
@@ -129,7 +142,10 @@ export async function PATCH(request: Request) {
       message === 'INVESTOR_ROLE_REQUIRED' ||
       message === 'ROLE_NOT_ALLOWED' ||
       message === 'INVALID_WALLET' ||
-      message === 'WALLET_ALREADY_LINKED'
+      message === 'WALLET_ALREADY_LINKED' ||
+      message === 'PRIVY_TOKEN_INVALID' ||
+      message === 'PRIVY_TOKEN_REQUIRED' ||
+      message === 'PRIVY_USER_LOOKUP_FAILED'
     ) {
       return NextResponse.json({ error: message }, { status: 400 });
     }

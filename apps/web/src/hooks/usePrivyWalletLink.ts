@@ -6,7 +6,7 @@ import { usePrivyEmbeddedWallet } from './usePrivyEmbeddedWallet';
 
 export function usePrivyWalletLink() {
   const { refresh } = useAccountStatus();
-  const { ensureReady, enabled } = usePrivyEmbeddedWallet();
+  const { ensureReady, enabled, getAccessToken } = usePrivyEmbeddedWallet();
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,12 +21,15 @@ export function usePrivyWalletLink() {
 
     try {
       const address = await ensureReady();
+      const privyAccessToken = await getAccessToken();
       const response = await fetch('/api/investor/wallet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           walletAddress: address,
-          walletProvider: 'Privy Wallet'
+          walletProvider: 'Privy Wallet',
+          privyProvisioned: true,
+          ...(privyAccessToken ? { privyAccessToken } : {})
         })
       });
 
@@ -44,7 +47,7 @@ export function usePrivyWalletLink() {
     } finally {
       setLinking(false);
     }
-  }, [enabled, ensureReady, refresh]);
+  }, [enabled, ensureReady, getAccessToken, refresh]);
 
   return { linkPrivyWallet, linking, error, enabled };
 }

@@ -691,7 +691,19 @@ export async function confirmPaymentIntentInTx(
         supplyCommitted: true,
         confirmation: input.payload ?? {},
         onChainTxHash: input.txHash ?? null,
-        investmentTxHash
+        investmentTxHash,
+        ...(typeof input.payload === 'object' &&
+        input.payload !== null &&
+        (input.payload as Record<string, unknown>).directVaultDeposit === true
+          ? {
+              vaultShareDeliveryStatus: 'DELIVERED_ONCHAIN',
+              vaultShareDeliveryTxHash: input.txHash ?? null,
+              vaultShareDeliveryAt: new Date().toISOString(),
+              shareReceiverWallet:
+                intent.payerWalletAddress ??
+                (typeof metadata.shareReceiverWallet === 'string' ? metadata.shareReceiverWallet : null)
+            }
+          : {})
       }
     }
   });
@@ -716,7 +728,11 @@ export async function confirmPaymentIntent(input: ConfirmPaymentIntentInput) {
   });
 
   const metadata = (result.metadata as Record<string, unknown>) ?? {};
-  if (metadata.purchaseMode === 'ERC4626_DEPOSIT' && result.status === 'CONFIRMED') {
+  if (
+    metadata.purchaseMode === 'ERC4626_DEPOSIT' &&
+    result.status === 'CONFIRMED' &&
+    metadata.vaultShareDeliveryStatus !== 'DELIVERED_ONCHAIN'
+  ) {
     try {
       await deliverVaultSharesAfterPayment(result.id);
     } catch (error) {

@@ -9,6 +9,7 @@ function isUndeliveredVaultPurchase(metadata: Record<string, unknown> | null | u
   }
   if (
     metadata.vaultShareDeliveryStatus === 'DELIVERED' ||
+    metadata.vaultShareDeliveryStatus === 'DELIVERED_ONCHAIN' ||
     (typeof metadata.vaultShareDeliveryTxHash === 'string' && metadata.vaultShareDeliveryTxHash.trim())
   ) {
     return false;

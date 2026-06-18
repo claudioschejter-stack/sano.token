@@ -1,4 +1,8 @@
-const OPEN_REGISTRATION = process.env.INVESTOR_OPEN_REGISTRATION === 'true';
+export function isInvestorOpenRegistration(): boolean {
+  return process.env.INVESTOR_OPEN_REGISTRATION === 'true';
+}
+
+const OPEN_REGISTRATION = isInvestorOpenRegistration();
 
 function configuredInviteCodes(): Set<string> {
   const raw = process.env.INVESTOR_INVITE_CODES?.trim();

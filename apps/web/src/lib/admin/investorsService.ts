@@ -12,6 +12,7 @@ export type AdminInvestorRecord = {
   id: string;
   email: string;
   name: string | null;
+  phone: string | null;
   kycStatus: KycStatus;
   emailVerified: boolean;
   phoneVerified: boolean;
@@ -79,6 +80,7 @@ function mapAdminInvestorRecord(user: UserWithInvestor): AdminInvestorRecord {
     id: user.id,
     email: user.email,
     name: user.name,
+    phone: user.phone,
     kycStatus: user.kycStatus,
     emailVerified,
     phoneVerified,
@@ -113,7 +115,6 @@ export async function listAdminInvestors(filter: InvestorListFilter = 'ALL'): Pr
   const users = await prisma.user.findMany({
     where: {
       systemRole: 'INVESTOR',
-      emailVerifiedAt: { not: null },
       phone: { not: null },
       ...(filter === 'ALL' ? {} : { kycStatus: filter })
     },

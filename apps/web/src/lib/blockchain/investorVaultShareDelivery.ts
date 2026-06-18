@@ -16,6 +16,7 @@ export function vaultSharesForTokenCount(tokenCount: number): bigint {
 function deliveryAlreadyComplete(metadata: Record<string, unknown>): boolean {
   return (
     metadata.vaultShareDeliveryStatus === 'DELIVERED' ||
+    metadata.vaultShareDeliveryStatus === 'DELIVERED_ONCHAIN' ||
     (typeof metadata.vaultShareDeliveryTxHash === 'string' && metadata.vaultShareDeliveryTxHash.trim().length > 0)
   );
 }
