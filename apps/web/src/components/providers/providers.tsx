@@ -2,18 +2,13 @@
 
 import '@rainbow-me/rainbowkit/styles.css';
 
-import dynamic from 'next/dynamic';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { useState, type ReactNode } from 'react';
 import { WagmiProvider } from 'wagmi';
 import { wagmiConfig } from '../../lib/web3/config';
 import { walletConnectMetadata } from '../../lib/web3/walletConnect';
-
-const PrivyProviderGate = dynamic(
-  () => import('./PrivyProviderGate').then((module) => module.PrivyProviderGate),
-  { ssr: false }
-);
+import { PrivyProviderGate } from './PrivyProviderGate';
 
 type Web3ProvidersProps = {
   children: ReactNode;

@@ -1,8 +1,13 @@
 'use client';
 
-import { PrivyProvider } from '@privy-io/react-auth';
+import dynamic from 'next/dynamic';
 import type { ReactNode } from 'react';
-import { isPrivyEnabled, privyAppId, privyClientConfig } from '../../lib/privy/config';
+import { isPrivyEnabled } from '../../lib/privy/config';
+
+const PrivyProviderInner = dynamic(
+  () => import('./PrivyProviderInner').then((module) => module.PrivyProviderInner),
+  { ssr: false }
+);
 
 type PrivyProviderGateProps = {
   children: ReactNode;
@@ -13,9 +18,5 @@ export function PrivyProviderGate({ children }: PrivyProviderGateProps) {
     return children;
   }
 
-  return (
-    <PrivyProvider appId={privyAppId()} config={privyClientConfig}>
-      {children}
-    </PrivyProvider>
-  );
+  return <PrivyProviderInner>{children}</PrivyProviderInner>;
 }

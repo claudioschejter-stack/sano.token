@@ -36,7 +36,7 @@ const nextConfig = {
 
     if (isServer) {
       const externals = Array.isArray(config.externals) ? config.externals : [config.externals].filter(Boolean);
-      externals.push('thirdweb', 'ethers');
+      externals.push('thirdweb', 'ethers', '@privy-io/react-auth');
       config.externals = externals;
     }
 
