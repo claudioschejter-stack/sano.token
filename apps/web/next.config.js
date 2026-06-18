@@ -16,12 +16,15 @@ const nextConfig = {
     serverComponentsExternalPackages: ['thirdweb', 'ethers']
   },
   webpack: (config, { isServer }) => {
+    const uaParserMin = path.join(monorepoRoot, 'node_modules/ua-parser-js/dist/ua-parser.min.js');
+
     config.resolve.alias = {
       ...config.resolve.alias,
       '@noble/hashes/_assert': path.join(__dirname, 'src/lib/shims/noble-hashes-assert.js'),
       '@wagmi/connectors': path.join(__dirname, 'src/lib/shims/wagmi-connectors.js'),
       porto: path.join(__dirname, 'src/lib/shims/empty-module.js'),
-      'porto/internal': path.join(__dirname, 'src/lib/shims/empty-module.js')
+      'porto/internal': path.join(__dirname, 'src/lib/shims/empty-module.js'),
+      'ua-parser-js/dist/ua-parser.min': uaParserMin
     };
 
     config.resolve.modules = [

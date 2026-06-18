@@ -71,6 +71,9 @@
     "@noble/hashes": "1.7.2",
     "@noble/curves": "1.9.7",
     "@scure/bip32": "1.6.2",
+    "react-device-detect": {
+      "ua-parser-js": "1.0.39"
+    },
     "ua-parser-js": "1.0.39"
   },
   "dependencies": {
