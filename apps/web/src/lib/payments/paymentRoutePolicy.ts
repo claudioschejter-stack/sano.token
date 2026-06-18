@@ -1,5 +1,4 @@
 import type { DepositPaymentOption } from './depositPaymentOptions';
-import type { DepositPaymentOption } from './depositPaymentOptions';
 import { PRIVY_ON_RAMP_OPTION_ID, shouldOfferPrivyOnRampForCountry } from './privyOnRampPolicy';
 import { normalizePaymentCountry } from './paymentCountry';
 
