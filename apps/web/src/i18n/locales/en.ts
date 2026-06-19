@@ -707,6 +707,23 @@ export const en = {
     autoDeployOnCreate: "Attempt automatic broadcast on creation (optional)",
     autoDeployOnCreateEnabled: "Automatic issuance on create (enabled)",
     tokenStatus: "State",
+    walletBalances: {
+      title: "Operational wallets (Base)",
+      desc: "ETH for gas and USDC for Morpho seed. Deposit to these addresses on Base if balances are low.",
+      refresh: "Refresh",
+      loading: "Fetching on-chain balances…",
+      error: "Could not read wallet balances.",
+      chain: "Network",
+      morphoSeedRequired: "Morpho min USDC",
+      statusOk: "OK",
+      statusInsufficient: "Insufficient",
+      copy: "Copy",
+      copied: "Copied",
+      notConfigured: "Wallet not configured in .env",
+      min: "min.",
+      depositHint:
+        "Send native ETH (Base) for gas and USDC (0x833589…2913) for Morpho liquidity. Base mainnet only (chainId 8453)."
+    },
     tokenSkipped: "Automatic broadcast skipped",
     tokenDeployed: "Token deployed.Check the explorer.",
     tokenRequested: "Registered issuance request.",

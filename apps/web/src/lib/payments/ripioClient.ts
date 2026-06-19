@@ -48,19 +48,13 @@ export function ripioChainForNetwork(networkId?: string | null): { chain: string
   }
 
   const normalized = (networkId ?? 'BASE').trim().toUpperCase() as StablecoinNetworkId;
-  switch (normalized) {
-    case 'POLYGON':
-      return { chain: 'POLYGON', currency: 'USDC' };
-    case 'SOLANA':
-      return { chain: 'SOLANA', currency: 'USDC' };
-    case 'TRON':
-      return { chain: 'TRON', currency: 'USDT' };
-    default:
-      return {
-        chain: process.env.RIPIO_CHAIN?.trim() || 'BASE',
-        currency: 'USDC'
-      };
+  if (normalized !== 'BASE') {
+    throw new Error('CHAIN_MISMATCH');
   }
+  return {
+    chain: process.env.RIPIO_CHAIN?.trim() || 'BASE',
+    currency: 'USDC'
+  };
 }
 
 export function resolveRipioFiatAmount(amountUsd: number): { currency: string; amount: string } {

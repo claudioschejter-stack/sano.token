@@ -9,7 +9,7 @@ function syntheticEnabled(): boolean {
 }
 
 function allowedChainIds(): number[] {
-  return (process.env.RWA_SYNTHETIC_ALLOWED_CHAIN_IDS ?? '84532,80002,11155111')
+  return (process.env.RWA_SYNTHETIC_ALLOWED_CHAIN_IDS ?? '8453')
     .split(',')
     .map((value) => Number.parseInt(value.trim(), 10))
     .filter(Number.isFinite);

@@ -5,7 +5,7 @@ export function resolveTreasuryAddress(fallback?: string | null): string | null 
 }
 
 function resolveRpcUrl(): string | null {
-  return process.env.BASE_RPC_URL?.trim() ?? process.env.POLYGON_RPC_URL?.trim() ?? null;
+  return process.env.BASE_RPC_URL?.trim() ?? null;
 }
 
 async function inspectSafeTreasury(treasuryAddress: string) {

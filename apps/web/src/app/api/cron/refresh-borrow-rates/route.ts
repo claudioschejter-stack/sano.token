@@ -106,7 +106,7 @@ export async function GET(request: Request) {
         payload: {
           source: 'daily-cron',
           adminAuthorized: false,
-          allowedChainIds: process.env.RWA_SYNTHETIC_ALLOWED_CHAIN_IDS ?? '84532,80002,11155111'
+          allowedChainIds: process.env.RWA_SYNTHETIC_ALLOWED_CHAIN_IDS ?? '8453'
         },
         maxAttempts: 1
       });

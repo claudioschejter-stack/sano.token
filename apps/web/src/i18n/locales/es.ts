@@ -719,6 +719,23 @@ export const es = {
     autoDeployOnCreate: 'Intentar emisión automática al crear (opcional)',
     autoDeployOnCreateEnabled: 'Emisión automática al crear (activada)',
     tokenStatus: 'Estado',
+    walletBalances: {
+      title: 'Billeteras operativas (Base)',
+      desc: 'ETH para gas y USDC para seed Morpho. Depositá en estas direcciones en red Base si falta saldo.',
+      refresh: 'Actualizar',
+      loading: 'Consultando balances on-chain…',
+      error: 'No se pudieron leer los balances.',
+      chain: 'Red',
+      morphoSeedRequired: 'USDC mínimo Morpho',
+      statusOk: 'OK',
+      statusInsufficient: 'No suficiente',
+      copy: 'Copiar',
+      copied: 'Copiado',
+      notConfigured: 'Billetera no configurada en .env',
+      min: 'mín.',
+      depositHint:
+        'Enviá ETH nativo (Base) para gas y USDC (0x833589…2913) para liquidez Morpho. Solo red Base mainnet (chainId 8453).'
+    },
     tokenSkipped: 'Emisión automática omitida',
     tokenDeployed: 'Token desplegado. Verificá el explorer.',
     tokenRequested: 'Solicitud de emisión registrada.',

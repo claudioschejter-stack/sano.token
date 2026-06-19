@@ -518,28 +518,6 @@ export async function verifyPlatformStablecoinDeposit(input: {
     if (!match) {
       throw new Error('STABLECOIN_TRANSFER_NOT_FOUND');
     }
-  } else {
-    const response = await fetch(network.kind === 'TRON'
-      ? `${network.rpcUrl}/v1/transactions/${input.txHash}/events`
-      : network.rpcUrl, network.kind === 'SOLANA'
-        ? {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              jsonrpc: '2.0',
-              id: input.txHash,
-              method: 'getTransaction',
-              params: [input.txHash, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]
-            })
-          }
-        : undefined);
-    if (!response.ok) {
-      throw new Error('TX_NOT_CONFIRMED');
-    }
-    const body = JSON.stringify(await response.json());
-    if (!body.includes(network.tokenAddress) || !body.includes(network.treasuryAddress)) {
-      throw new Error('STABLECOIN_TRANSFER_NOT_FOUND');
-    }
   }
 
   return confirmPlatformDeposit({

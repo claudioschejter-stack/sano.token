@@ -34,24 +34,6 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
       envKeys: ['BASE_USDC_TOKEN_ADDRESS', 'BASE_STABLECOIN_TREASURY_ADDRESS']
     },
     {
-      id: 'stablecoin-polygon',
-      label: 'USDC Polygon',
-      configured: Boolean(process.env.POLYGON_USDC_TOKEN_ADDRESS && process.env.POLYGON_STABLECOIN_TREASURY_ADDRESS),
-      envKeys: ['POLYGON_USDC_TOKEN_ADDRESS', 'POLYGON_STABLECOIN_TREASURY_ADDRESS']
-    },
-    {
-      id: 'stablecoin-tron',
-      label: 'USDT TRON',
-      configured: Boolean(process.env.TRON_USDT_TOKEN_ADDRESS && process.env.TRON_STABLECOIN_TREASURY_ADDRESS),
-      envKeys: ['TRON_USDT_TOKEN_ADDRESS', 'TRON_STABLECOIN_TREASURY_ADDRESS']
-    },
-    {
-      id: 'stablecoin-solana',
-      label: 'USDC Solana',
-      configured: Boolean(process.env.SOLANA_USDC_MINT_ADDRESS && process.env.SOLANA_STABLECOIN_TREASURY_ADDRESS),
-      envKeys: ['SOLANA_USDC_MINT_ADDRESS', 'SOLANA_STABLECOIN_TREASURY_ADDRESS']
-    },
-    {
       id: 'stripe',
       label: 'Stripe',
       configured: paymentGatewayConfigured('STRIPE'),

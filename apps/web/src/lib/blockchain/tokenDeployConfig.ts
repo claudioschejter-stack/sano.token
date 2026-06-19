@@ -7,7 +7,7 @@ import {
 } from './rwaOperatorSigner';
 
 export function isSanovaTokenDeployConfigured(): boolean {
-  const rpcUrl = (process.env.BASE_RPC_URL ?? process.env.POLYGON_RPC_URL)?.trim();
+  const rpcUrl = process.env.BASE_RPC_URL?.trim();
   return Boolean(isRwaOperatorConfigured() && rpcUrl);
 }
 

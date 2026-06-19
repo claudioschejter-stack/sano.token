@@ -1,5 +1,5 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
-import { base, polygon } from 'wagmi/chains';
+import { base } from 'wagmi/chains';
 import { getWagmiConnectorV2 } from '@binance/w3w-wagmi-connector-v2';
 import { coinbaseWallet, metaMask, walletConnect } from '@wagmi/connectors';
 import type { WalletConnectParameters } from '@wagmi/connectors';
@@ -19,12 +19,7 @@ const baseRpcUrl =
   process.env.BASE_RPC_URL?.trim() ||
   'https://mainnet.base.org';
 
-const polygonRpcUrl =
-  process.env.NEXT_PUBLIC_POLYGON_RPC_URL?.trim() ||
-  process.env.POLYGON_RPC_URL?.trim() ||
-  'https://polygon-rpc.com';
-
-export const supportedChains = [base, polygon] as const;
+export const supportedChains = [base] as const;
 
 const createBinanceConnector = getWagmiConnectorV2();
 
@@ -125,8 +120,7 @@ export const wagmiConfig = createConfig({
   chains: supportedChains,
   connectors,
   transports: {
-    [base.id]: http(baseRpcUrl),
-    [polygon.id]: http(polygonRpcUrl)
+    [base.id]: http(baseRpcUrl)
   },
   ssr: true,
   storage: wagmiStorage

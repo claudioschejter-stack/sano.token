@@ -16,6 +16,7 @@ import type { MarketplaceListing } from '../../types/marketplace';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 import { StickyActionBar } from '../mobile/StickyActionBar';
 import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
+import type { StablecoinNetworkId } from '../../lib/payments/stablecoinNetworks';
 
 type CheckoutViewProps = {
   projectId: string;
@@ -241,10 +242,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
       body: JSON.stringify({
         paymentIntentId: paymentIntent.id,
         txHash: manualTxHash.trim(),
-        walletAddress:
-          stablecoinNetwork === 'BASE' || stablecoinNetwork === 'POLYGON'
-            ? walletGuard.linkedWallet ?? address
-            : undefined
+        walletAddress: walletGuard.linkedWallet ?? address
       })
     });
 
@@ -533,7 +531,6 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
 }
 
 type PaymentMethod = 'INTERNAL_BALANCE' | 'USDC_ONCHAIN' | 'COINBASE' | 'CUSTODIAL_STABLECOIN';
-type StablecoinNetworkId = 'BASE' | 'POLYGON' | 'TRON' | 'SOLANA';
 
 type PaymentIntentResponse = {
   id: string;
@@ -570,22 +567,7 @@ const STABLECOIN_NETWORKS: Array<{ id: StablecoinNetworkId; label: string; descr
   {
     id: 'BASE',
     label: 'Base',
-    description: 'Recomendada: normalmente la más barata para USDC.'
-  },
-  {
-    id: 'POLYGON',
-    label: 'Polygon',
-    description: 'Bajo costo y amplia compatibilidad EVM.'
-  },
-  {
-    id: 'SOLANA',
-    label: 'Solana',
-    description: 'Muy barata, verifica tx hash manualmente.'
-  },
-  {
-    id: 'TRON',
-    label: 'TRON',
-    description: 'Útil para USDT global, verifica tx hash manualmente.'
+    description: 'USDC en Base mainnet (chainId 8453). Red única soportada por Sanova.'
   }
 ];
 

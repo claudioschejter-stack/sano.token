@@ -783,14 +783,6 @@ export async function verifyUsdcPayment(input: {
     throw new Error('VAULT_NOT_CONFIGURED');
   }
 
-  if (network.kind === 'TRON') {
-    return verifyTronStablecoinPayment({ intent, txHash: input.txHash, network, expectedPayer: input.expectedPayer });
-  }
-
-  if (network.kind === 'SOLANA') {
-    return verifySolanaStablecoinPayment({ intent, txHash: input.txHash, network });
-  }
-
   const provider = new ethers.JsonRpcProvider(rpcUrl);
   const receipt = await provider.getTransactionReceipt(input.txHash);
   if (!receipt || receipt.status !== 1) {

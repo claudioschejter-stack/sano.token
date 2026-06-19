@@ -49,6 +49,8 @@ import {
 } from '../../lib/admin/emissionProfiles';
 import { isVaultTokenStandard } from '../../lib/admin/vaultStandards';
 import { AdminGate } from './AdminGate';
+import { AdminLaunchWalletBalances } from './AdminLaunchWalletBalances';
+import { BASE_MAINNET_CHAIN_ID } from '../../lib/blockchain/supportedChains';
 
 type AdminLaunchEditorProps = {
   mode: 'create' | 'edit';
@@ -178,7 +180,7 @@ function assetToForm(asset: AdminAssetRecord): FormState {
     tokenSymbol: asset.tokenSymbol ?? '',
     tokenStandard: asset.tokenStandard,
     emissionProfile: inferEmissionProfileFromAsset(asset),
-    chainId: asset.chainId != null ? String(asset.chainId) : '',
+    chainId: String(BASE_MAINNET_CHAIN_ID),
     spvEntityName: asset.spvEntityName ?? '',
     navOracleUrl: asset.navOracleUrl ?? '',
     centrifugeChecklist: asset.centrifugeChecklist,
@@ -686,7 +688,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
       tokenName: form.tokenName || form.title,
       tokenSymbol: form.tokenSymbol,
       tokenStandard: form.tokenStandard,
-      chainId: form.chainId ? Number.parseInt(form.chainId, 10) : null,
+      chainId: BASE_MAINNET_CHAIN_ID,
       tokenInstrumentType: form.tokenInstrumentType,
       maturityDate: form.tokenInstrumentType === 'DEBT' && form.maturityDate ? form.maturityDate : null,
       equitySharePercent:
@@ -738,7 +740,7 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
         contracts: form.contracts,
         centrifugeChecklist: checklist,
         collateralMorpho: form.collateralMorpho || isVaultTokenStandard(form.tokenStandard),
-        chainId: form.chainId ? Number.parseInt(form.chainId, 10) : null
+        chainId: BASE_MAINNET_CHAIN_ID
       })
     );
   }
@@ -1571,15 +1573,19 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                       {l.tokenStatus}: {tokenStatus}
                     </p>
                   ) : null}
+                  <AdminLaunchWalletBalances
+                    totalTokens={Number.parseInt(form.totalTokens, 10) || undefined}
+                    pricePerToken={Number.parseFloat(form.pricePerToken) || undefined}
+                  />
                   <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-card/60 p-3">
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-terminal-muted">
                       Preflight on-chain
                     </p>
                     <div className="mt-2 grid gap-2 text-xs text-terminal-muted sm:grid-cols-2">
-                      <span>Chain: {tokenDeployHealth?.chainId ?? '—'}</span>
-                      <span>Gas: {tokenDeployHealth?.hasGas ? 'OK' : 'Pendiente'}</span>
+                      <span>Red: Base ({BASE_MAINNET_CHAIN_ID})</span>
+                      <span>Gas operador: {tokenDeployHealth?.hasGas ? 'OK' : 'Pendiente'}</span>
                       <span className="sm:col-span-2 break-all">
-                        Wallet: {tokenDeployHealth?.deployerAddress ?? 'No configurada'}
+                        Operador: {tokenDeployHealth?.deployerAddress ?? 'No configurada'}
                       </span>
                       {tokenDeployHealth?.gasCheckError ? (
                         <span className="sm:col-span-2 text-red-400">{tokenDeployHealth.gasCheckError}</span>

@@ -26,11 +26,6 @@ function resolveRpcUrl(chainId?: number | null): string | null {
     return baseNetwork.rpcUrl;
   }
 
-  const polygonNetwork = getStablecoinNetwork('POLYGON');
-  if (chainId === polygonNetwork.chainId) {
-    return polygonNetwork.rpcUrl;
-  }
-
   return baseNetwork.rpcUrl;
 }
 
@@ -38,13 +33,7 @@ function explorerTxBase(chainId: number): string | null {
   if (chainId === 8453) {
     return 'https://basescan.org';
   }
-  if (chainId === 84532) {
-    return 'https://sepolia.basescan.org';
-  }
-  if (chainId === 137) {
-    return 'https://polygonscan.com';
-  }
-  return null;
+  return 'https://basescan.org';
 }
 
 export function buildVaultExplorerUrl(chainId: number, vaultAddress: string): string | null {

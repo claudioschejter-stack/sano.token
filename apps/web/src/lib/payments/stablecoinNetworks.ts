@@ -1,11 +1,11 @@
-export type StablecoinNetworkId = 'BASE' | 'POLYGON' | 'TRON' | 'SOLANA';
+export type StablecoinNetworkId = 'BASE';
 
 export type StablecoinNetwork = {
   id: StablecoinNetworkId;
   label: string;
-  kind: 'EVM' | 'TRON' | 'SOLANA';
-  chainId: number | null;
-  symbol: 'USDC' | 'USDT';
+  kind: 'EVM';
+  chainId: number;
+  symbol: 'USDC';
   decimals: number;
   tokenAddress: string | null;
   treasuryAddress: string | null;
@@ -34,42 +34,6 @@ export function stablecoinNetworks(): StablecoinNetwork[] {
       treasuryAddress: envString('BASE_STABLECOIN_TREASURY_ADDRESS') || sharedTreasury,
       rpcUrl: envString('BASE_RPC_URL') || 'https://mainnet.base.org',
       cheapestRank: 1
-    },
-    {
-      id: 'POLYGON',
-      label: 'USDC en Polygon',
-      kind: 'EVM',
-      chainId: envNumber('POLYGON_STABLECOIN_CHAIN_ID', 137),
-      symbol: 'USDC',
-      decimals: envNumber('POLYGON_USDC_DECIMALS', 6),
-      tokenAddress: envString('POLYGON_USDC_TOKEN_ADDRESS'),
-      treasuryAddress: envString('POLYGON_STABLECOIN_TREASURY_ADDRESS') || sharedTreasury,
-      rpcUrl: envString('POLYGON_RPC_URL') || 'https://polygon-rpc.com',
-      cheapestRank: 2
-    },
-    {
-      id: 'SOLANA',
-      label: 'USDC en Solana',
-      kind: 'SOLANA',
-      chainId: null,
-      symbol: 'USDC',
-      decimals: envNumber('SOLANA_USDC_DECIMALS', 6),
-      tokenAddress: envString('SOLANA_USDC_MINT_ADDRESS'),
-      treasuryAddress: envString('SOLANA_STABLECOIN_TREASURY_ADDRESS'),
-      rpcUrl: envString('SOLANA_RPC_URL') || 'https://api.mainnet-beta.solana.com',
-      cheapestRank: 3
-    },
-    {
-      id: 'TRON',
-      label: 'USDT en TRON',
-      kind: 'TRON',
-      chainId: null,
-      symbol: 'USDT',
-      decimals: envNumber('TRON_USDT_DECIMALS', 6),
-      tokenAddress: envString('TRON_USDT_TOKEN_ADDRESS'),
-      treasuryAddress: envString('TRON_STABLECOIN_TREASURY_ADDRESS'),
-      rpcUrl: envString('TRON_GRID_API_URL') || 'https://api.trongrid.io',
-      cheapestRank: 4
     }
   ];
 }
@@ -89,14 +53,7 @@ export function requireBaseStablecoinNetwork(id?: string | null): StablecoinNetw
 }
 
 export function enabledStablecoinNetworks(): StablecoinNetwork[] {
-  const allow = process.env.STABLECOIN_ENABLED_NETWORKS?.trim();
-  const networks = stablecoinNetworks().filter((network) => Boolean(network.tokenAddress && network.treasuryAddress));
-  if (!allow) {
-    return networks;
-  }
-
-  const allowed = new Set(allow.split(',').map((item) => item.trim().toUpperCase()));
-  return networks.filter((network) => allowed.has(network.id));
+  return stablecoinNetworks().filter((network) => Boolean(network.tokenAddress && network.treasuryAddress));
 }
 
 function envString(name: string): string | null {

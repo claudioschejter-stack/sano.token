@@ -1,3 +1,4 @@
+import { BASE_MAINNET_CHAIN_ID } from '../blockchain/supportedChains';
 import { resolveTreasuryAddress } from '../blockchain/treasuryPolicy';
 import { isRwaOperatorConfigured, resolveRwaOperatorAddress } from '../blockchain/rwaOperatorSigner';
 
@@ -22,14 +23,9 @@ export type PlatformWalletConfig = {
 };
 
 export function getPlatformWalletConfig(): PlatformWalletConfig {
-  const chainId = Number(process.env.MORPHO_CHAIN_ID ?? process.env.LENDING_CHAIN_ID ?? '8453');
-  const chainName = chainId === 8453 ? 'Base Mainnet' : chainId === 84532 ? 'Base Sepolia' : `Chain ${chainId}`;
-  const explorerBaseUrl =
-    chainId === 8453
-      ? 'https://basescan.org'
-      : chainId === 84532
-        ? 'https://sepolia.basescan.org'
-        : 'https://basescan.org';
+  const chainId = BASE_MAINNET_CHAIN_ID;
+  const chainName = 'Base Mainnet';
+  const explorerBaseUrl = 'https://basescan.org';
 
   const tokenTreasuryAddress = resolveTreasuryAddress();
   const rwaOperatorAddress = resolveRwaOperatorAddress();

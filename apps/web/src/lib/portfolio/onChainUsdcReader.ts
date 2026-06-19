@@ -13,7 +13,7 @@ export type WalletUsdcBalance = {
 
 export async function readWalletUsdcBalances(
   walletAddress: string,
-  networks: Array<'BASE' | 'POLYGON'> = ['BASE']
+  networks: Array<'BASE'> = ['BASE']
 ): Promise<WalletUsdcBalance[]> {
   if (!walletAddress?.trim()) {
     return [];
@@ -37,7 +37,7 @@ export async function readWalletUsdcBalances(
         if (amountUsdc > 0) {
           balances.push({
             walletAddress: ethers.getAddress(walletAddress.trim()),
-            chainId: network.chainId ?? (networkKey === 'BASE' ? 8453 : 137),
+            chainId: network.chainId ?? 8453,
             network: networkKey,
             symbol: network.symbol ?? 'USDC',
             amountUsdc
