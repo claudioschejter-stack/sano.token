@@ -10,7 +10,12 @@
 import { config } from 'dotenv';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Contract, Interface, JsonRpcProvider, Wallet, formatUnits, isAddress } from 'ethers';
+import { Contract, Interface, JsonRpcProvider, Wallet, formatUnits, getAddress, isAddress } from 'ethers';
+
+function buildSafePreValidatedSignature(ownerAddress: string): string {
+  const owner = getAddress(ownerAddress).slice(2).toLowerCase();
+  return `0x${'0'.repeat(24)}${owner}${'0'.repeat(64)}01`;
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../../.env') });
@@ -44,7 +49,11 @@ const SAFE_ABI = [
   'function getOwners() view returns (address[])'
 ];
 
-const TOKEN_ABI = ['function kycApproved(address) view returns (bool)', 'function setKyc(address,bool)'];
+const TOKEN_ABI = [
+  'function kycApproved(address) view returns (bool)',
+  'function setKyc(address,bool)',
+  'function owner() view returns (address)'
+];
 const VAULT_ABI = ['function balanceOf(address) view returns (uint256)', 'function transfer(address,uint256) returns (bool)'];
 const ERC20_ABI = ['function balanceOf(address) view returns (uint256)', 'function transfer(address,uint256) returns (bool)', 'function decimals() view returns (uint8)'];
 
@@ -73,6 +82,7 @@ async function execAsSafeOwner(input: {
   }
 
   const safe = new Contract(input.safe, SAFE_ABI, input.signer);
+  const signatures = buildSafePreValidatedSignature(await input.signer.getAddress());
   const tx = await safe.execTransaction(
     input.target,
     0,
@@ -83,10 +93,52 @@ async function execAsSafeOwner(input: {
     0,
     '0x0000000000000000000000000000000000000000',
     '0x0000000000000000000000000000000000000000',
-    '0x'
+    signatures
   );
   const receipt = await tx.wait();
   return receipt?.hash ?? tx.hash;
+}
+
+async function ensureRecipientKyc(input: {
+  token: string;
+  oldTreasury: string;
+  newTreasury: string;
+  signer: Wallet;
+  signerAddress: string;
+  dryRun: boolean;
+}): Promise<string | null> {
+  const tokenContract = new Contract(input.token, TOKEN_ABI, input.signer.provider!);
+  const approved = (await tokenContract.kycApproved(input.newTreasury)) as boolean;
+  if (approved) {
+    return null;
+  }
+
+  const setKycData = new Interface(TOKEN_ABI).encodeFunctionData('setKyc', [input.newTreasury, true]);
+  const tokenOwner = ((await tokenContract.owner()) as string).toLowerCase();
+
+  if (tokenOwner === input.signerAddress.toLowerCase()) {
+    console.log(`[kyc] direct setKyc on ${input.token}`);
+    if (input.dryRun) {
+      console.log('[dry-run] setKyc →', input.newTreasury);
+      return null;
+    }
+    const tx = await input.signer.sendTransaction({ to: input.token, data: setKycData });
+    const receipt = await tx.wait();
+    return receipt?.hash ?? tx.hash;
+  }
+
+  if (tokenOwner === input.oldTreasury.toLowerCase()) {
+    console.log(`[kyc] Safe setKyc via ${input.oldTreasury}`);
+    return execAsSafeOwner({
+      safe: input.oldTreasury,
+      signer: input.signer,
+      target: input.token,
+      data: setKycData,
+      dryRun: input.dryRun
+    });
+  }
+
+  throw new Error(`TOKEN_OWNER_UNSUPPORTED:${input.token}:${tokenOwner}`);
 }
 
 async function main() {
@@ -133,12 +185,12 @@ async function main() {
     const kyc = await tokenContract.kycApproved(newTreasury);
     if (!kyc) {
       console.log(`[${name}] setKyc(${newTreasury}, true)`);
-      const setKycData = new Interface(TOKEN_ABI).encodeFunctionData('setKyc', [newTreasury, true]);
-      const kycHash = await execAsSafeOwner({
-        safe: OLD_TREASURY,
+      const kycHash = await ensureRecipientKyc({
+        token,
+        oldTreasury: OLD_TREASURY,
+        newTreasury,
         signer,
-        target: token,
-        data: setKycData,
+        signerAddress,
         dryRun
       });
       if (kycHash) console.log(`[${name}] KYC tx:`, kycHash);
