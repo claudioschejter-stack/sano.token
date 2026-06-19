@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Contract, Interface, JsonRpcProvider, Wallet, MaxUint256 } from 'ethers';
+import { Contract, JsonRpcProvider, MaxUint256 } from 'ethers';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../packages/database/.env') });
@@ -12,6 +12,7 @@ import { getAdminAsset } from '../apps/web/src/lib/admin/assetsService';
 import { buildDefaultMorphoMarketParams } from '../apps/web/src/lib/lending/protocols/morphoBorrow';
 import { getLendingChainConfig } from '../apps/web/src/lib/lending/baseContracts';
 import { checkMorphoLiquidity } from '../apps/web/src/lib/lending/morphoLiquidityCheck';
+import { resolveMorphoLiquiditySigner } from '../apps/web/src/lib/blockchain/morphoLiquiditySigner';
 
 const MORPHO_SUPPLY_ABI = [
   'function supply((address loanToken,address collateralToken,address oracle,address irm,uint256 lltv) marketParams, uint256 assets, uint256 shares, address onBehalf, bytes data) returns (uint256 assetsSupplied, uint256 sharesSupplied)'
@@ -42,23 +43,26 @@ async function main() {
   const params = buildDefaultMorphoMarketParams(asset.vaultAddress, morphoTarget.oracleAddress);
   if (!params) throw new Error('Could not build Morpho market params');
 
-  const privateKey = process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim();
-  if (!privateKey) throw new Error('TOKEN_DEPLOY_PRIVATE_KEY required');
-
   const rpc =
     process.env.LENDING_BASE_RPC_URL?.trim() ||
     process.env.BASE_RPC_URL?.trim() ||
     'https://mainnet.base.org';
   const provider = new JsonRpcProvider(rpc);
-  const wallet = new Wallet(privateKey, provider);
+  const chainId = getLendingChainConfig().chainId;
+  const wallet = await resolveMorphoLiquiditySigner(provider, chainId);
+  if (!wallet) {
+    throw new Error('PRIVY_MORPHO_LIQUIDITY_WALLET_ID or TOKEN_DEPLOY_PRIVATE_KEY required');
+  }
+
+  const walletAddress = await wallet.getAddress();
   const { morpho, usdc } = getLendingChainConfig();
 
   const usdcContract = new Contract(usdc, ERC20_ABI, wallet);
   const decimals = await usdcContract.decimals();
   const amount = BigInt(Math.floor(Number(usdcAmount) * 10 ** Number(decimals)));
 
-  const balance = await usdcContract.balanceOf(wallet.address);
-  console.log(`[supply] wallet ${wallet.address} USDC balance: ${balance.toString()}`);
+  const balance = await usdcContract.balanceOf(walletAddress);
+  console.log(`[supply] wallet ${walletAddress} USDC balance: ${balance.toString()}`);
   if (balance < amount) {
     throw new Error(`Insufficient USDC. Need ${amount}, have ${balance}`);
   }
@@ -74,8 +78,8 @@ async function main() {
     irm: params.irm,
     lltv: params.lltv
   };
-  await morphoContract.supply.staticCall(marketParams, amount, 0, wallet.address, '0x');
-  const supplyTx = await morphoContract.supply(marketParams, amount, 0, wallet.address, '0x');
+  await morphoContract.supply.staticCall(marketParams, amount, 0, walletAddress, '0x');
+  const supplyTx = await morphoContract.supply(marketParams, amount, 0, walletAddress, '0x');
   const receipt = await supplyTx.wait();
   console.log(`[supply] Supplied ${usdcAmount} USDC — tx ${receipt?.hash ?? supplyTx.hash}`);
 

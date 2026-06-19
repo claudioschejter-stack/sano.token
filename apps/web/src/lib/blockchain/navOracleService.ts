@@ -1,7 +1,8 @@
-import { Contract, ContractFactory, JsonRpcProvider, Wallet, keccak256, toUtf8Bytes } from 'ethers';
+import { Contract, ContractFactory, JsonRpcProvider, type Signer, keccak256, toUtf8Bytes } from 'ethers';
 import SanovaNavOracleArtifact from './artifacts/SanovaNavOracle.json';
 import { fixedUsdPriceToMorphoOraclePrice } from './pricingOracleValidation';
 import { resolveMorphoChainId } from './explorerUrls';
+import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from './rwaOperatorSigner';
 
 export type DeployNavOracleResult =
   | { status: 'DEPLOYED'; oracleAddress: string; txHash: string }
@@ -10,11 +11,6 @@ export type DeployNavOracleResult =
 export type UpdateNavOracleResult =
   | { status: 'UPDATED'; txHash: string; navPerAssetMicroUsd: bigint }
   | { status: 'SKIPPED'; reason: string };
-
-function resolvePrivateKey(): string | null {
-  const key = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
-  return key || null;
-}
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 8453) {
@@ -46,9 +42,8 @@ export async function deployNavOracleForVault(
   pricePerTokenUsd: number,
   options?: { updaterAddress?: string; ownerAddress?: string }
 ): Promise<DeployNavOracleResult> {
-  const privateKey = resolvePrivateKey();
-  if (!privateKey) {
-    return { status: 'SKIPPED', reason: 'TOKEN_DEPLOY_PRIVATE_KEY requerida para desplegar oracle NAV.' };
+  if (!isRwaOperatorConfigured()) {
+    return { status: 'SKIPPED', reason: 'Operador RWA no configurado para desplegar oracle NAV.' };
   }
 
   const navPerAssetMicroUsd = usdPriceToNavPerAssetMicroUsd(pricePerTokenUsd);
@@ -58,22 +53,26 @@ export async function deployNavOracleForVault(
 
   const chainId = resolveMorphoChainId();
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
-  const wallet = new Wallet(privateKey, provider);
+  const wallet = await resolveRwaOperatorSigner(provider, chainId);
+  if (!wallet) {
+    return { status: 'SKIPPED', reason: 'No se pudo resolver el operador RWA.' };
+  }
 
   try {
-    const gasBalance = await provider.getBalance(wallet.address);
+    const walletAddress = await wallet.getAddress();
+    const gasBalance = await provider.getBalance(walletAddress);
     if (gasBalance <= 0n) {
-      return { status: 'SKIPPED', reason: `Wallet ${wallet.address} sin gas en chain ${chainId}.` };
+      return { status: 'SKIPPED', reason: `Wallet ${walletAddress} sin gas en chain ${chainId}.` };
     }
 
     const updater =
       options?.updaterAddress?.trim() ||
       process.env.NAV_ORACLE_UPDATER_ADDRESS?.trim() ||
-      wallet.address;
+      walletAddress;
     const owner =
       options?.ownerAddress?.trim() ||
       process.env.TOKEN_TREASURY_ADDRESS?.trim() ||
-      wallet.address;
+      walletAddress;
 
     const factory = new ContractFactory(
       SanovaNavOracleArtifact.abi,
@@ -102,9 +101,8 @@ export async function updateNavOraclePrice(
   pricePerTokenUsd: number,
   auditDocumentId: string
 ): Promise<UpdateNavOracleResult> {
-  const privateKey = resolvePrivateKey();
-  if (!privateKey) {
-    return { status: 'SKIPPED', reason: 'TOKEN_DEPLOY_PRIVATE_KEY requerida para actualizar NAV.' };
+  if (!isRwaOperatorConfigured()) {
+    return { status: 'SKIPPED', reason: 'Operador RWA no configurado para actualizar NAV.' };
   }
 
   const navPerAssetMicroUsd = usdPriceToNavPerAssetMicroUsd(pricePerTokenUsd);
@@ -114,7 +112,10 @@ export async function updateNavOraclePrice(
 
   const chainId = resolveMorphoChainId();
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
-  const wallet = new Wallet(privateKey, provider);
+  const wallet = await resolveRwaOperatorSigner(provider, chainId);
+  if (!wallet) {
+    return { status: 'SKIPPED', reason: 'No se pudo resolver el operador RWA.' };
+  }
 
   try {
     const oracle = new Contract(

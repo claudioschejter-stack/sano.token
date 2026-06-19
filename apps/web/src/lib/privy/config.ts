@@ -23,6 +23,60 @@ export function privyTreasuryWalletId(): string {
   return process.env.PRIVY_TREASURY_WALLET_ID?.trim() ?? '';
 }
 
+/** Privy server wallet that signs as owner of TOKEN_TREASURY Safe. */
+export function privySafeOwnerWalletId(): string {
+  return process.env.PRIVY_SAFE_OWNER_WALLET_ID?.trim() ?? '';
+}
+
+export function privySafeOwnerAddress(): string | null {
+  return process.env.TREASURY_OWNER_ADDRESS?.trim() || null;
+}
+
+export function isPrivySafeOwnerConfigured(): boolean {
+  return Boolean(
+    privyAppId() &&
+      process.env.PRIVY_APP_SECRET?.trim() &&
+      privySafeOwnerWalletId() &&
+      privySafeOwnerAddress()
+  );
+}
+
+/** Privy server wallet dedicated to Morpho Blue USDC supply/withdraw. */
+export function privyMorphoLiquidityWalletId(): string {
+  return process.env.PRIVY_MORPHO_LIQUIDITY_WALLET_ID?.trim() ?? '';
+}
+
+export function privyMorphoLiquidityAddress(): string | null {
+  return process.env.MORPHO_LIQUIDITY_ADDRESS?.trim() || null;
+}
+
+export function isPrivyMorphoLiquidityConfigured(): boolean {
+  return Boolean(
+    privyAppId() &&
+      process.env.PRIVY_APP_SECRET?.trim() &&
+      privyMorphoLiquidityWalletId() &&
+      privyMorphoLiquidityAddress()
+  );
+}
+
+/** Privy server wallet — deploy tokens/vaults, Morpho markets, NAV oracle updates. */
+export function privyOperatorWalletId(): string {
+  return process.env.PRIVY_OPERATOR_WALLET_ID?.trim() ?? '';
+}
+
+export function resolveRwaOperatorAddressEnv(): string | null {
+  return process.env.RWA_OPERATOR_ADDRESS?.trim() || null;
+}
+
+export function isPrivyOperatorConfigured(): boolean {
+  return Boolean(
+    privyAppId() &&
+      process.env.PRIVY_APP_SECRET?.trim() &&
+      privyOperatorWalletId() &&
+      resolveRwaOperatorAddressEnv()
+  );
+}
+
 /** JWKS endpoint to verify Privy-issued access tokens (server-side). */
 export function privyJwksUrl(): string {
   const id = privyAppId();

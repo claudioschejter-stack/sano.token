@@ -1,5 +1,5 @@
-import { Wallet } from 'ethers';
 import { resolveTreasuryAddress } from '../blockchain/treasuryPolicy';
+import { isRwaOperatorConfigured, resolveRwaOperatorAddress } from '../blockchain/rwaOperatorSigner';
 
 export type PlatformWalletEnvEntry = {
   key: string;
@@ -21,21 +21,6 @@ export type PlatformWalletConfig = {
   missingEnvKeys: string[];
 };
 
-function readDeployerAddress(): string | null {
-  const privateKey =
-    process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim() || process.env.PRIVATE_KEY?.trim() || null;
-
-  if (!privateKey) {
-    return null;
-  }
-
-  try {
-    return new Wallet(privateKey).address;
-  } catch {
-    return null;
-  }
-}
-
 export function getPlatformWalletConfig(): PlatformWalletConfig {
   const chainId = Number(process.env.MORPHO_CHAIN_ID ?? process.env.LENDING_CHAIN_ID ?? '8453');
   const chainName = chainId === 8453 ? 'Base Mainnet' : chainId === 84532 ? 'Base Sepolia' : `Chain ${chainId}`;
@@ -47,12 +32,13 @@ export function getPlatformWalletConfig(): PlatformWalletConfig {
         : 'https://basescan.org';
 
   const tokenTreasuryAddress = resolveTreasuryAddress();
-  const rwaOperatorAddress = process.env.RWA_OPERATOR_ADDRESS?.trim() || null;
+  const rwaOperatorAddress = resolveRwaOperatorAddress();
   const stablecoinTreasuryAddress =
     process.env.BASE_STABLECOIN_TREASURY_ADDRESS?.trim() ||
     process.env.STABLECOIN_TREASURY_ADDRESS?.trim() ||
     resolveTreasuryAddress();
-  const deployerAddress = readDeployerAddress();
+  const deployerAddress = rwaOperatorAddress;
+  const usesPrivyOperator = Boolean(process.env.PRIVY_OPERATOR_WALLET_ID?.trim());
 
   const envEntries: PlatformWalletEnvEntry[] = [
     {
@@ -62,7 +48,7 @@ export function getPlatformWalletConfig(): PlatformWalletConfig {
       address: tokenTreasuryAddress
     },
     {
-      key: 'RWA_OPERATOR_ADDRESS',
+      key: usesPrivyOperator ? 'PRIVY_OPERATOR_WALLET_ID' : 'RWA_OPERATOR_ADDRESS',
       label: 'rwaOperator',
       configured: Boolean(rwaOperatorAddress),
       address: rwaOperatorAddress
@@ -74,9 +60,9 @@ export function getPlatformWalletConfig(): PlatformWalletConfig {
       address: stablecoinTreasuryAddress
     },
     {
-      key: 'TOKEN_DEPLOY_PRIVATE_KEY',
+      key: usesPrivyOperator ? 'PRIVY_OPERATOR_WALLET_ID' : 'TOKEN_DEPLOY_PRIVATE_KEY',
       label: 'deployer',
-      configured: Boolean(deployerAddress),
+      configured: isRwaOperatorConfigured(),
       address: deployerAddress
     }
   ];

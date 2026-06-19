@@ -1,8 +1,9 @@
-import { Contract, JsonRpcProvider, Wallet, MaxUint256, id, getAddress } from 'ethers';
+import { Contract, JsonRpcProvider, MaxUint256, id, getAddress } from 'ethers';
 import { getLendingChainConfig } from './baseContracts';
 import type { MorphoMarketParams } from './protocols/morphoBorrow';
 import { morphoMarketId } from './protocols/morphoBorrow';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
+import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from '../blockchain/rwaOperatorSigner';
 
 import { METAMORPHO_FACTORY_ADDRESS } from './baseContracts';
 
@@ -39,10 +40,6 @@ export type MetaMorphoSetupResult =
     }
   | { status: 'SKIPPED'; reason: string };
 
-function resolvePrivateKey(): string | null {
-  return (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim() || null;
-}
-
 function resolveRpcUrl(): string {
   return (
     process.env.LENDING_BASE_RPC_URL?.trim() ||
@@ -76,20 +73,24 @@ export async function deployMetaMorphoVault(options?: {
     return { status: 'SKIPPED', reason: `METAMORPHO_VAULT_ADDRESS ya configurado: ${existing}` };
   }
 
-  const privateKey = resolvePrivateKey();
-  if (!privateKey) {
-    return { status: 'SKIPPED', reason: 'TOKEN_DEPLOY_PRIVATE_KEY requerida.' };
+  if (!isRwaOperatorConfigured()) {
+    return { status: 'SKIPPED', reason: 'Operador RWA no configurado.' };
   }
 
   const provider = new JsonRpcProvider(resolveRpcUrl());
-  const wallet = new Wallet(privateKey, provider);
+  const chainId = resolveMorphoChainId();
+  const wallet = await resolveRwaOperatorSigner(provider, chainId);
+  if (!wallet) {
+    return { status: 'SKIPPED', reason: 'No se pudo resolver el operador RWA.' };
+  }
   const { usdc } = getLendingChainConfig();
 
   try {
+    const walletAddress = await wallet.getAddress();
     const owner =
       process.env.MORPHO_CURATOR_ADDRESS?.trim() ||
       process.env.TOKEN_TREASURY_ADDRESS?.trim() ||
-      wallet.address;
+      walletAddress;
     const timelock = BigInt(options?.timelockSeconds ?? Number(process.env.METAMORPHO_TIMELOCK_SECONDS ?? '0'));
     const name = options?.name ?? process.env.METAMORPHO_VAULT_NAME ?? 'Sanova RWA USDC Vault';
     const symbol = options?.symbol ?? process.env.METAMORPHO_VAULT_SYMBOL ?? 'srUSDC';
@@ -138,13 +139,16 @@ export async function setupMetaMorphoForMarket(
     };
   }
 
-  const privateKey = resolvePrivateKey();
-  if (!privateKey) {
-    return { status: 'SKIPPED', reason: 'TOKEN_DEPLOY_PRIVATE_KEY requerida.' };
+  if (!isRwaOperatorConfigured()) {
+    return { status: 'SKIPPED', reason: 'Operador RWA no configurado.' };
   }
 
   const provider = new JsonRpcProvider(resolveRpcUrl());
-  const wallet = new Wallet(privateKey, provider);
+  const chainId = resolveMorphoChainId();
+  const wallet = await resolveRwaOperatorSigner(provider, chainId);
+  if (!wallet) {
+    return { status: 'SKIPPED', reason: 'No se pudo resolver el operador RWA.' };
+  }
   const { usdc } = getLendingChainConfig();
   const txHashes: string[] = [];
 
@@ -179,10 +183,11 @@ export async function setupMetaMorphoForMarket(
 
     const seedTarget = options?.seedUsdc ?? Number(process.env.METAMORPHO_SEED_USDC ?? process.env.MORPHO_SEED_LIQUIDITY_USDC ?? '0');
     if (Number.isFinite(seedTarget) && seedTarget > 0) {
+      const walletAddress = await wallet.getAddress();
       const usdcContract = new Contract(usdc, ERC20_ABI, wallet);
       const decimals = await usdcContract.decimals();
       const seedAmount = BigInt(Math.floor(seedTarget * 10 ** Number(decimals)));
-      const balance = await usdcContract.balanceOf(wallet.address);
+      const balance = await usdcContract.balanceOf(walletAddress);
 
       if (balance >= seedAmount) {
         const approveTx = await usdcContract.approve(vaultAddress, MaxUint256);
@@ -193,7 +198,7 @@ export async function setupMetaMorphoForMarket(
           [...METAMORPHO_DEPOSIT_ABI, ...METAMORPHO_VAULT_ABI],
           wallet
         );
-        const depositTx = await vault.deposit(seedAmount, wallet.address);
+        const depositTx = await vault.deposit(seedAmount, walletAddress);
         const depositReceipt = await depositTx.wait();
         txHashes.push(depositReceipt?.hash ?? depositTx.hash);
 

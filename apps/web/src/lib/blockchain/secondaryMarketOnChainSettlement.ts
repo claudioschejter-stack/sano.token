@@ -1,10 +1,11 @@
-import { Contract, Interface, JsonRpcProvider, Wallet, isAddress } from 'ethers';
+import { Contract, Interface, JsonRpcProvider, type Signer, isAddress } from 'ethers';
 import { getAdminAsset } from '../admin/assetsService';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { vaultSharesForTokenCount } from './investorVaultShareDelivery';
 import { usdcDecimals, usdcTokenAddress } from '../payments/paymentConfig';
 import { waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
+import { resolveTreasuryOwnerSigner } from './treasuryOwnerSigner';
 
 const TOKEN_ABI = [
   'function kycApproved(address) view returns (bool)',
@@ -30,20 +31,13 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
 }
 
-function resolveOperatorSignerKey(): string | null {
-  return (
-    process.env.TREASURY_OWNER_PRIVATE_KEY?.trim() ||
-    process.env.TOKEN_TREASURY_SIGNER_PRIVATE_KEY?.trim() ||
-    null
-  );
-}
-
 async function ensureRecipientKyc(
   assetToken: Contract,
   treasuryAddress: string,
-  signer: Wallet,
+  signer: Signer,
   recipient: string
 ): Promise<void> {
+  const signerAddress = await signer.getAddress();
   const approved = (await assetToken.kycApproved(recipient)) as boolean;
   if (approved) {
     return;
@@ -52,7 +46,7 @@ async function ensureRecipientKyc(
   const setKycData = new Interface(TOKEN_ABI).encodeFunctionData('setKyc', [recipient, true]);
   const treasuryCode = await signer.provider!.getCode(treasuryAddress);
   if (treasuryCode === '0x') {
-    if (signer.address.toLowerCase() !== treasuryAddress.toLowerCase()) {
+    if (signerAddress.toLowerCase() !== treasuryAddress.toLowerCase()) {
       throw new Error('ON_CHAIN_SETTLEMENT_KYC_FAILED');
     }
     const tx = await signer.sendTransaction({ to: assetToken.target, data: setKycData });
@@ -121,11 +115,15 @@ export async function settleSecondaryP2pOnChain(
   }
 
   const treasury = resolveTreasuryAddress();
-  const operatorKey = resolveOperatorSignerKey();
+  const chainId = asset.chainId ?? 8453;
+  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
+  const operator = await resolveTreasuryOwnerSigner(provider, chainId);
 
-  if (!treasury || !isAddress(treasury) || !operatorKey) {
+  if (!treasury || !isAddress(treasury) || !operator) {
     throw new Error('ON_CHAIN_SETTLEMENT_OPERATOR_MISSING');
   }
+
+  const operatorAddress = await operator.getAddress();
 
   const shareAmount = vaultSharesForTokenCount(input.tokenCount);
   if (shareAmount <= 0n) {
@@ -136,11 +134,6 @@ export async function settleSecondaryP2pOnChain(
   if (usdcAmount <= 0n) {
     throw new Error('INVALID_SETTLEMENT_AMOUNT');
   }
-
-  const chainId = asset.chainId ?? 8453;
-  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
-  const operator = new Wallet(operatorKey, provider);
-  const operatorAddress = operator.address;
 
   try {
     const usdcContract = new Contract(usdc, TOKEN_ABI, operator);
@@ -226,9 +219,11 @@ export async function settlePlatformBuybackOnChain(input: {
   }
 
   const treasury = resolveTreasuryAddress();
-  const operatorKey = resolveOperatorSignerKey();
+  const chainId = asset.chainId ?? 8453;
+  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
+  const operator = await resolveTreasuryOwnerSigner(provider, chainId);
 
-  if (!treasury || !isAddress(treasury) || !operatorKey) {
+  if (!treasury || !isAddress(treasury) || !operator) {
     throw new Error('ON_CHAIN_SETTLEMENT_OPERATOR_MISSING');
   }
 
@@ -237,10 +232,7 @@ export async function settlePlatformBuybackOnChain(input: {
     throw new Error('INVALID_TOKEN_COUNT');
   }
 
-  const chainId = asset.chainId ?? 8453;
-  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
-  const operator = new Wallet(operatorKey, provider);
-  const operatorAddress = operator.address;
+  const operatorAddress = await operator.getAddress();
 
   try {
     const vaultContract = new Contract(vault, VAULT_ABI, provider);

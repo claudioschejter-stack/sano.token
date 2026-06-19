@@ -5,6 +5,7 @@ import { getContract } from 'thirdweb';
 import { mintTo } from 'thirdweb/extensions/erc20';
 import { privateKeyToAccount } from 'thirdweb/wallets';
 import { resolveChainId } from './explorerUrls';
+import { isRwaOperatorConfigured } from './rwaOperatorSigner';
 
 export { buildSmartContractDocUrl, explorerUrl, resolveChainId } from './explorerUrls';
 
@@ -37,10 +38,19 @@ export async function deployAssetToken(input: DeployTokenInput): Promise<DeployT
     };
   }
 
+  if (!privateKey && !isRwaOperatorConfigured()) {
+    return {
+      status: 'SKIPPED',
+      reason:
+        'Configurá PRIVY_OPERATOR_WALLET_ID + RWA_OPERATOR_ADDRESS o TOKEN_DEPLOY_PRIVATE_KEY. Thirdweb demo requiere private key local.'
+    };
+  }
+
   if (!privateKey) {
     return {
       status: 'SKIPPED',
-      reason: 'Configurá TOKEN_DEPLOY_PRIVATE_KEY o PRIVATE_KEY con una wallet con gas en testnet (Base Sepolia recomendada).'
+      reason:
+        'Thirdweb demo requiere TOKEN_DEPLOY_PRIVATE_KEY. Para emisión Sanova ERC-4626 usá el estándar SANOVA_KYC / ERC-4626 con operador Privy.'
     };
   }
 

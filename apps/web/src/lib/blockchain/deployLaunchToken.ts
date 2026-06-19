@@ -1,4 +1,4 @@
-import { Contract, ContractFactory, JsonRpcProvider, Wallet, type ContractRunner } from 'ethers';
+import { Contract, ContractFactory, JsonRpcProvider, type ContractRunner } from 'ethers';
 import type { TokenStandard, TokenInstrumentType, VaultFundingStatus } from '../admin/launchTypes';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
@@ -11,6 +11,7 @@ import { assertTreasuryVaultSharesReady } from './verifyTreasuryVaultShares';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 import { configureInitialContractSecurity } from './securityPolicy';
+import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from './rwaOperatorSigner';
 
 export type DeployLaunchTokenInput = {
   tokenStandard: TokenStandard;
@@ -55,11 +56,6 @@ type VaultFundingResult = {
 function normalizeSymbol(symbol: string): string {
   const cleaned = symbol.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   return cleaned.slice(0, 8) || 'RWA';
-}
-
-function resolvePrivateKey(): string | null {
-  const key = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
-  return key || null;
 }
 
 async function waitForExternalContractAllowed(
@@ -195,13 +191,12 @@ async function fundVaultWithDeployerBalance(input: {
 }
 
 async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<DeployLaunchTokenResult> {
-  const privateKey = resolvePrivateKey();
   const chainId = resolveProjectDeployChainId(input.chainId);
 
-  if (!privateKey) {
+  if (!isRwaOperatorConfigured()) {
     return {
       status: 'SKIPPED',
-      reason: 'Configurá TOKEN_DEPLOY_PRIVATE_KEY o PRIVATE_KEY con una wallet con gas en testnet (Base Sepolia recomendada).'
+      reason: 'Configurá PRIVY_OPERATOR_WALLET_ID + RWA_OPERATOR_ADDRESS o TOKEN_DEPLOY_PRIVATE_KEY con gas en Base.'
     };
   }
 
@@ -212,18 +207,23 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
   let deploymentStep = 'bootstrap';
   try {
     const provider = new JsonRpcProvider(resolveChainRpcUrl(chainId));
-    const wallet = new Wallet(privateKey, provider);
+    const wallet = await resolveRwaOperatorSigner(provider, chainId);
+    if (!wallet) {
+      provider.destroy();
+      return { status: 'SKIPPED', reason: 'No se pudo resolver el operador RWA.' };
+    }
+    const walletAddress = await wallet.getAddress();
     await ensureAutomationSignerReady(wallet);
-    const gasBalance = await provider.getBalance(wallet.address);
+    const gasBalance = await provider.getBalance(walletAddress);
     if (gasBalance <= 0n) {
       provider.destroy();
-      return { status: 'SKIPPED', reason: `La wallet de deploy ${wallet.address} no tiene gas en chain ${chainId}.` };
+      return { status: 'SKIPPED', reason: `La wallet operador ${walletAddress} no tiene gas en chain ${chainId}.` };
     }
 
     const tokenName = buildOnChainTokenName(input.tokenName, input.tokenInstrumentType);
     const symbol = normalizeSymbol(input.tokenSymbol);
-    const treasuryAddress = resolveTreasuryAddress(input.treasuryAddress ?? wallet.address) ?? wallet.address;
-    const mintRecipient = isVaultTokenStandard(input.tokenStandard) ? wallet.address : treasuryAddress;
+    const treasuryAddress = resolveTreasuryAddress(input.treasuryAddress ?? walletAddress) ?? walletAddress;
+    const mintRecipient = isVaultTokenStandard(input.tokenStandard) ? walletAddress : treasuryAddress;
     const mintAmount = BigInt(input.totalSupplyUnits) * 10n ** 18n;
 
     const assetFactory = new ContractFactory(
@@ -233,12 +233,12 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     );
 
     deploymentStep = 'asset_deploy';
-    const assetToken = await assetFactory.deploy(tokenName, symbol, wallet.address);
+    const assetToken = await assetFactory.deploy(tokenName, symbol, walletAddress);
     await assetToken.waitForDeployment();
     const contractAddress = await assetToken.getAddress();
     const asset = new Contract(contractAddress, SanovaAssetTokenArtifact.abi, wallet);
 
-    if (mintRecipient.toLowerCase() !== wallet.address.toLowerCase()) {
+    if (mintRecipient.toLowerCase() !== walletAddress.toLowerCase()) {
       const setKycTx = await sendAutomationTx(() => asset.setKyc(mintRecipient, true), wallet);
       await waitForAutomationTx(setKycTx);
     }
@@ -259,7 +259,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
           contractName: 'SanovaAssetToken',
           contract: asset,
           contractAddress,
-          deployerAddress: wallet.address,
+          deployerAddress: walletAddress,
           treasuryAddress
         })
       ];
@@ -281,7 +281,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const vaultFactory = new ContractFactory(vaultArtifact.abi, vaultArtifact.bytecode, wallet);
 
     deploymentStep = 'vault_deploy';
-    const vault = await vaultFactory.deploy(contractAddress, vaultName, vaultSymbol, wallet.address);
+    const vault = await vaultFactory.deploy(contractAddress, vaultName, vaultSymbol, walletAddress);
     await vault.waitForDeployment();
     const vaultAddress = await vault.getAddress();
     const vaultContract = new Contract(vaultAddress, vaultArtifact.abi, wallet);
@@ -289,7 +289,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     const funding = await fundVaultWithDeployerBalance({
       asset,
       vaultContract,
-      walletAddress: wallet.address,
+      walletAddress,
       vaultAddress,
       amount: mintAmount
     });
@@ -323,7 +323,7 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       await transferVaultSharesToTreasury({
         asset,
         vaultContract,
-        walletAddress: wallet.address,
+        walletAddress,
         treasuryAddress,
         wallet
       });
@@ -352,14 +352,14 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
         contractName: 'SanovaAssetToken',
         contract: asset,
         contractAddress,
-        deployerAddress: wallet.address,
+        deployerAddress: walletAddress,
         treasuryAddress
       }),
       await transferOwnershipToTreasury({
         contractName: vaultContractName,
         contract: vaultContract,
         contractAddress: vaultAddress,
-        deployerAddress: wallet.address,
+        deployerAddress: walletAddress,
         treasuryAddress
       })
     ];

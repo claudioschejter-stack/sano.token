@@ -6,6 +6,7 @@ import {
   protocolCredentialsConfigured
 } from './collateralRegistry';
 import type { CollateralProtocol, CollateralTarget } from '../admin/launchTypes';
+import { isRwaOperatorConfigured } from '../blockchain/rwaOperatorSigner';
 
 export type CollateralAdapterResult = {
   status: CollateralTarget['status'];
@@ -121,8 +122,7 @@ async function registerMorpho(project: CollateralProjectContext): Promise<Collat
 }
 
 function canCreateMorphoMarketDirectly(project: CollateralProjectContext): boolean {
-  const privateKey = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
-  return Boolean(project.vaultAddress && privateKey && project.pricePerToken > 0);
+  return Boolean(project.vaultAddress && isRwaOperatorConfigured() && project.pricePerToken > 0);
 }
 
 const ADAPTERS: Record<

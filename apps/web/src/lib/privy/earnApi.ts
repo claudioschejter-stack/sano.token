@@ -1,29 +1,5 @@
-import {
-  isPrivyEarnConfigured,
-  privyAppId,
-  privyTreasuryWalletId,
-  privyVaultId
-} from './config';
-
-const PRIVY_API = 'https://api.privy.io';
-
-function privyAuthHeader(): string {
-  const secret = process.env.PRIVY_APP_SECRET?.trim();
-  if (!secret) {
-    throw new Error('PRIVY_APP_SECRET_NOT_CONFIGURED');
-  }
-  const credentials = Buffer.from(`${privyAppId()}:${secret}`).toString('base64');
-  return `Basic ${credentials}`;
-}
-
-function privyHeaders(extra?: Record<string, string>): HeadersInit {
-  return {
-    'privy-app-id': privyAppId(),
-    Authorization: privyAuthHeader(),
-    'Content-Type': 'application/json',
-    ...extra
-  };
-}
+import { isPrivyEarnConfigured, privyTreasuryWalletId, privyVaultId } from './config';
+import { privyApiBase, privyHeaders } from './privyHttp';
 
 export type PrivyEarnAmountInput =
   | { amount: string; raw_amount?: never }
@@ -36,7 +12,7 @@ export async function getPrivyVaultDetails() {
   }
 
   const vaultId = privyVaultId();
-  const response = await fetch(`${PRIVY_API}/api/v1/earn/ethereum/vaults/${vaultId}`, {
+  const response = await fetch(`${privyApiBase()}/api/v1/earn/ethereum/vaults/${vaultId}`, {
     headers: privyHeaders()
   });
 
@@ -67,7 +43,7 @@ export async function depositToPrivyVault(
   };
 
   const response = await fetch(
-    `${PRIVY_API}/api/v1/wallets/${walletId}/earn/ethereum/deposit`,
+    `${privyApiBase()}/api/v1/wallets/${walletId}/earn/ethereum/deposit`,
     {
       method: 'POST',
       headers: privyHeaders(
@@ -110,7 +86,7 @@ export async function withdrawFromPrivyVault(
   };
 
   const response = await fetch(
-    `${PRIVY_API}/api/v1/wallets/${walletId}/earn/ethereum/withdraw`,
+    `${privyApiBase()}/api/v1/wallets/${walletId}/earn/ethereum/withdraw`,
     {
       method: 'POST',
       headers: privyHeaders(

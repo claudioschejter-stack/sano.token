@@ -1,30 +1,38 @@
-import { JsonRpcProvider, Wallet } from 'ethers';
+import { JsonRpcProvider } from 'ethers';
 import { resolveChainId, resolveChainRpcUrl } from './explorerUrls';
+import {
+  isRwaOperatorConfigured,
+  resolveRwaOperatorAddress,
+  resolveRwaOperatorSigner
+} from './rwaOperatorSigner';
 
 export function isSanovaTokenDeployConfigured(): boolean {
-  const privateKey = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
   const rpcUrl = (process.env.BASE_RPC_URL ?? process.env.POLYGON_RPC_URL)?.trim();
-  return Boolean(privateKey && rpcUrl);
+  return Boolean(isRwaOperatorConfigured() && rpcUrl);
 }
 
 export async function getTokenDeployStatus() {
-  const privateKey = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
   const thirdweb = process.env.THIRDWEB_SECRET_KEY?.trim();
   const chainId = resolveChainId();
   const rpcUrl = resolveChainRpcUrl(chainId);
-  let deployerAddress: string | null = null;
+  const deployerAddress = resolveRwaOperatorAddress();
   let gasBalanceWei: string | null = null;
   let hasGas = false;
   let gasCheckError: string | null = null;
 
-  if (privateKey && rpcUrl) {
+  if (deployerAddress && rpcUrl) {
     const provider = new JsonRpcProvider(rpcUrl);
     try {
-      const wallet = new Wallet(privateKey, provider);
-      deployerAddress = wallet.address;
-      const balance = await provider.getBalance(wallet.address);
+      const balance = await provider.getBalance(deployerAddress);
       gasBalanceWei = balance.toString();
       hasGas = balance > 0n;
+
+      if (isRwaOperatorConfigured()) {
+        const signer = await resolveRwaOperatorSigner(provider, chainId);
+        if (signer && (await signer.getAddress()).toLowerCase() !== deployerAddress.toLowerCase()) {
+          gasCheckError = 'RWA_OPERATOR_ADDRESS no coincide con el firmante configurado.';
+        }
+      }
     } catch (error) {
       gasCheckError = error instanceof Error ? error.message : 'Gas check failed';
     } finally {
@@ -35,14 +43,15 @@ export async function getTokenDeployStatus() {
   const sanovaDirect = isSanovaTokenDeployConfigured() && hasGas;
 
   return {
-    configured: sanovaDirect || Boolean(thirdweb && privateKey && hasGas),
+    configured: sanovaDirect || Boolean(thirdweb && deployerAddress && hasGas),
     sanovaDirect,
-    thirdweb: Boolean(thirdweb && privateKey),
+    thirdweb: Boolean(thirdweb && deployerAddress),
     chainId,
     autoDeployDefault: sanovaDirect,
     deployerAddress,
     hasGas,
     gasBalanceWei,
-    gasCheckError
+    gasCheckError,
+    usesPrivyOperator: Boolean(process.env.PRIVY_OPERATOR_WALLET_ID?.trim())
   };
 }

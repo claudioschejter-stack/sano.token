@@ -1,5 +1,6 @@
-import { Contract, Interface, JsonRpcProvider, Wallet, isAddress } from 'ethers';
+import { Contract, Interface, JsonRpcProvider, type Signer, isAddress } from 'ethers';
 import type { AdminAssetRecord } from '../admin/assetsService';
+import { resolveTreasuryOwnerSigner } from './treasuryOwnerSigner';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { waitForAutomationTx } from './automationTx';
 
@@ -32,27 +33,20 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
 }
 
-function resolveTreasurySignerKey(): string | null {
-  return (
-    process.env.TREASURY_OWNER_PRIVATE_KEY?.trim() ||
-    process.env.TOKEN_TREASURY_SIGNER_PRIVATE_KEY?.trim() ||
-    null
-  );
-}
-
 async function execAsTreasury(input: {
   treasuryAddress: string;
-  signer: Wallet;
+  signer: Signer;
   target: string;
   data: string;
 }): Promise<string> {
+  const signerAddress = await input.signer.getAddress();
   const code = await input.signer.provider!.getCode(input.treasuryAddress);
   const isSafe = code !== '0x';
 
   if (!isSafe) {
-    if (input.signer.address.toLowerCase() !== input.treasuryAddress.toLowerCase()) {
+    if (signerAddress.toLowerCase() !== input.treasuryAddress.toLowerCase()) {
       throw new Error(
-        'EOA treasury: TREASURY_OWNER_PRIVATE_KEY debe coincidir con TOKEN_TREASURY_ADDRESS.'
+        'EOA treasury: el firmante treasury debe coincidir con TOKEN_TREASURY_ADDRESS.'
       );
     }
     const tx = await input.signer.sendTransaction({ to: input.target, data: input.data });
@@ -63,12 +57,12 @@ async function execAsTreasury(input: {
   const safe = new Contract(input.treasuryAddress, SAFE_ABI, input.signer);
   const owners: string[] = await safe.getOwners();
   const signerIsOwner = owners.some(
-    (owner) => owner.toLowerCase() === input.signer.address.toLowerCase()
+    (owner) => owner.toLowerCase() === signerAddress.toLowerCase()
   );
 
   if (!signerIsOwner) {
     throw new Error(
-      `La wallet firmante ${input.signer.address} no es owner del Safe treasury ${input.treasuryAddress}.`
+      `La wallet firmante ${signerAddress} no es owner del Safe treasury ${input.treasuryAddress}.`
     );
   }
 
@@ -112,18 +106,17 @@ export async function migrateTreasuryVaultSharesToWallet(input: {
     return { ok: false, code: 'INVALID_RECIPIENT' };
   }
 
-  const privateKey = resolveTreasurySignerKey();
-  if (!privateKey) {
+  const chainId = input.asset.chainId ?? 8453;
+  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
+  const signer = await resolveTreasuryOwnerSigner(provider, chainId);
+  if (!signer) {
     return {
       ok: false,
       code: 'TREASURY_SIGNER_MISSING',
-      detail: 'Configurá TREASURY_OWNER_PRIVATE_KEY (owner del Safe treasury).'
+      detail:
+        'Configurá PRIVY_SAFE_OWNER_WALLET_ID + TREASURY_OWNER_ADDRESS o TREASURY_OWNER_PRIVATE_KEY.'
     };
   }
-
-  const chainId = input.asset.chainId ?? 8453;
-  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
-  const signer = new Wallet(privateKey, provider);
 
   try {
     const assetContract = new Contract(token, TOKEN_ABI, signer);

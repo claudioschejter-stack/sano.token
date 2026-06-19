@@ -1,7 +1,8 @@
-import { Contract, JsonRpcProvider, Wallet, MaxUint256 } from 'ethers';
+import { Contract, JsonRpcProvider, MaxUint256 } from 'ethers';
 import type { MorphoMarketParams } from './protocols/morphoBorrow';
 import { getLendingChainConfig } from './baseContracts';
 import { resolveMorphoSeedUsdcForProject } from './morphoSeedLiquidity';
+import { resolveMorphoLiquiditySigner } from '../blockchain/morphoLiquiditySigner';
 
 const ERC20_ABI = [
   'function approve(address spender, uint256 amount) returns (bool)',
@@ -45,18 +46,24 @@ export async function seedMorphoLiquidityIfConfigured(
     return { txHash: null, targetUsdc: 0, skippedReason: 'ZERO_SEED_TARGET' };
   }
 
-  const privateKey = process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim();
-  if (!privateKey) {
-    return { txHash: null, targetUsdc: usdcAmount, skippedReason: 'TREASURY_KEY_NOT_CONFIGURED' };
+  const provider = new JsonRpcProvider(resolveRpcUrl());
+  const chainId = getLendingChainConfig().chainId;
+  const wallet = await resolveMorphoLiquiditySigner(provider, chainId);
+  if (!wallet) {
+    provider.destroy();
+    return {
+      txHash: null,
+      targetUsdc: usdcAmount,
+      skippedReason: 'MORPHO_LIQUIDITY_SIGNER_NOT_CONFIGURED'
+    };
   }
 
-  const provider = new JsonRpcProvider(resolveRpcUrl());
-  const wallet = new Wallet(privateKey, provider);
+  const walletAddress = await wallet.getAddress();
   const { morpho, usdc } = getLendingChainConfig();
   const usdcContract = new Contract(usdc, ERC20_ABI, wallet);
   const decimals = await usdcContract.decimals();
   const amount = BigInt(Math.floor(usdcAmount * 10 ** Number(decimals)));
-  const balance = await usdcContract.balanceOf(wallet.address);
+  const balance = await usdcContract.balanceOf(walletAddress);
   if (balance <= 0n) {
     provider.destroy();
     return { txHash: null, targetUsdc: usdcAmount, skippedReason: 'INSUFFICIENT_TREASURY_USDC' };
@@ -75,8 +82,8 @@ export async function seedMorphoLiquidityIfConfigured(
     irm: params.irm,
     lltv: params.lltv
   };
-  await morphoContract.supply.staticCall(marketParams, seedAmount, 0, wallet.address, '0x');
-  const supplyTx = await morphoContract.supply(marketParams, seedAmount, 0, wallet.address, '0x');
+  await morphoContract.supply.staticCall(marketParams, seedAmount, 0, walletAddress, '0x');
+  const supplyTx = await morphoContract.supply(marketParams, seedAmount, 0, walletAddress, '0x');
   const receipt = await supplyTx.wait();
   provider.destroy();
   return {

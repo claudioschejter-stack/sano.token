@@ -5,6 +5,16 @@ import { getErc4626OnChainIssues, isErc4626OnChainReady } from './erc4626LaunchG
 import { getMorphoPostDeployIssues, getTreasuryReadinessIssues } from './erc4626MorphoGate';
 import { readTreasuryVaultReadiness } from '../blockchain/verifyTreasuryVaultShares';
 import { resolveTreasuryAddress } from '../blockchain/treasuryPolicy';
+import {
+  isTreasuryOwnerSignerConfigured,
+  resolveTreasuryOwnerAddress,
+  resolveTreasuryOwnerSigner
+} from '../blockchain/treasuryOwnerSigner';
+import {
+  isMorphoLiquiditySignerConfigured,
+  resolveMorphoLiquidityAddress,
+  resolveMorphoLiquiditySigner
+} from '../blockchain/morphoLiquiditySigner';
 import { resolveMorphoSeedUsdcForProject } from '../lending/morphoSeedLiquidity';
 import { getLendingChainConfig } from '../lending/baseContracts';
 
@@ -40,14 +50,6 @@ export type PlatformOpsReport = {
   };
 };
 
-function resolveTreasurySignerKey(): string | null {
-  return (
-    process.env.TREASURY_OWNER_PRIVATE_KEY?.trim() ||
-    process.env.TOKEN_TREASURY_SIGNER_PRIVATE_KEY?.trim() ||
-    null
-  );
-}
-
 function resolveDeployKey(): string | null {
   return process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim() || process.env.PRIVATE_KEY?.trim() || null;
 }
@@ -67,12 +69,13 @@ function isBaseMorpho4626Asset(asset: AdminAssetRecord): boolean {
 export async function validateTreasurySignerOnChain(): Promise<OpsCheck[]> {
   const checks: OpsCheck[] = [];
   const treasury = resolveTreasuryAddress();
-  const key = resolveTreasurySignerKey();
+  const signerAddress = resolveTreasuryOwnerAddress();
+  const usesPrivy = Boolean(process.env.PRIVY_SAFE_OWNER_WALLET_ID?.trim());
 
-  if (!key) {
+  if (!isTreasuryOwnerSignerConfigured()) {
     checks.push({
       id: 'treasury_signer_key',
-      label: 'TREASURY_OWNER_PRIVATE_KEY',
+      label: usesPrivy ? 'PRIVY_SAFE_OWNER_WALLET_ID' : 'TREASURY_OWNER_PRIVATE_KEY',
       status: 'FAIL',
       detail: 'No configurada'
     });
@@ -81,9 +84,11 @@ export async function validateTreasurySignerOnChain(): Promise<OpsCheck[]> {
 
   checks.push({
     id: 'treasury_signer_key',
-    label: 'TREASURY_OWNER_PRIVATE_KEY',
+    label: usesPrivy ? 'PRIVY_SAFE_OWNER_WALLET_ID' : 'TREASURY_OWNER_PRIVATE_KEY',
     status: 'OK',
-    detail: 'Configurada'
+    detail: usesPrivy
+      ? `${process.env.PRIVY_SAFE_OWNER_WALLET_ID} → ${signerAddress ?? 'TREASURY_OWNER_ADDRESS?'}`
+      : 'Configurada'
   });
 
   if (!treasury || !isAddress(treasury)) {
@@ -104,21 +109,32 @@ export async function validateTreasurySignerOnChain(): Promise<OpsCheck[]> {
   });
 
   const provider = new JsonRpcProvider(resolveBaseRpcUrl());
-  const wallet = new Wallet(key, provider);
+  const chainId = getLendingChainConfig().chainId;
+  const wallet = signerAddress ? await resolveTreasuryOwnerSigner(provider, chainId) : null;
+
+  if (!wallet || !signerAddress) {
+    checks.push({
+      id: 'treasury_signer_match',
+      label: 'Signer treasury',
+      status: 'FAIL',
+      detail: 'No se pudo resolver el firmante treasury'
+    });
+    return checks;
+  }
 
   try {
     const code = await provider.getCode(treasury);
     const isSafe = code !== '0x';
 
     if (!isSafe) {
-      const match = wallet.address.toLowerCase() === treasury.toLowerCase();
+      const match = signerAddress.toLowerCase() === treasury.toLowerCase();
       checks.push({
         id: 'treasury_signer_match',
         label: 'Signer vs treasury (EOA)',
         status: match ? 'OK' : 'FAIL',
         detail: match
-          ? `Coincide (${wallet.address})`
-          : `Signer ${wallet.address} ≠ treasury ${treasury}`
+          ? `Coincide (${signerAddress})`
+          : `Signer ${signerAddress} ≠ treasury ${treasury}`
       });
       return checks;
     }
@@ -129,14 +145,14 @@ export async function validateTreasurySignerOnChain(): Promise<OpsCheck[]> {
       provider
     );
     const owners: string[] = await safe.getOwners();
-    const isOwner = owners.some((owner) => owner.toLowerCase() === wallet.address.toLowerCase());
+    const isOwner = owners.some((owner) => owner.toLowerCase() === signerAddress.toLowerCase());
     checks.push({
       id: 'treasury_signer_match',
       label: 'Signer es owner del Safe treasury',
       status: isOwner ? 'OK' : 'FAIL',
       detail: isOwner
-        ? `${wallet.address} es owner del Safe`
-        : `Signer ${wallet.address} no es owner del Safe ${treasury}`
+        ? `${signerAddress} es owner del Safe`
+        : `Signer ${signerAddress} no es owner del Safe ${treasury}. Agregalo en app.safe.global.`
     });
   } catch (error) {
     checks.push({
@@ -154,24 +170,26 @@ export async function validateTreasurySignerOnChain(): Promise<OpsCheck[]> {
 
 export async function validateMorphoSeedWallet(): Promise<OpsCheck[]> {
   const checks: OpsCheck[] = [];
-  const deployKey = resolveDeployKey();
+  const usesPrivy = Boolean(process.env.PRIVY_MORPHO_LIQUIDITY_WALLET_ID?.trim());
+  const liquidityAddress = resolveMorphoLiquidityAddress();
 
-  if (!deployKey) {
+  if (!isMorphoLiquiditySignerConfigured()) {
     checks.push({
-      id: 'token_deploy_key',
-      label: 'TOKEN_DEPLOY_PRIVATE_KEY',
+      id: 'morpho_liquidity_signer',
+      label: usesPrivy ? 'PRIVY_MORPHO_LIQUIDITY_WALLET_ID' : 'TOKEN_DEPLOY_PRIVATE_KEY',
       status: 'FAIL',
-      detail: 'No configurada (requerida para seed Morpho y repair treasury)'
+      detail: 'No configurada (requerida para seed Morpho)'
     });
     return checks;
   }
 
-  const wallet = new Wallet(deployKey);
   checks.push({
-    id: 'token_deploy_key',
-    label: 'TOKEN_DEPLOY_PRIVATE_KEY',
+    id: 'morpho_liquidity_signer',
+    label: usesPrivy ? 'PRIVY_MORPHO_LIQUIDITY_WALLET_ID' : 'TOKEN_DEPLOY_PRIVATE_KEY',
     status: 'OK',
-    detail: wallet.address
+    detail: usesPrivy
+      ? `${process.env.PRIVY_MORPHO_LIQUIDITY_WALLET_ID} → ${liquidityAddress ?? 'MORPHO_LIQUIDITY_ADDRESS?'}`
+      : liquidityAddress ?? 'Configurada'
   });
 
   const seedFloor = Number(process.env.MORPHO_SEED_LIQUIDITY_USDC ?? '0');
@@ -183,7 +201,19 @@ export async function validateMorphoSeedWallet(): Promise<OpsCheck[]> {
   });
 
   const provider = new JsonRpcProvider(resolveBaseRpcUrl());
-  const signer = wallet.connect(provider);
+  const chainId = getLendingChainConfig().chainId;
+  const signer = liquidityAddress ? await resolveMorphoLiquiditySigner(provider, chainId) : null;
+
+  if (!signer || !liquidityAddress) {
+    checks.push({
+      id: 'morpho_liquidity_usdc',
+      label: 'USDC en wallet Morpho liquidity',
+      status: 'FAIL',
+      detail: 'No se pudo resolver la wallet de liquidez Morpho'
+    });
+    provider.destroy();
+    return checks;
+  }
 
   try {
     const { usdc } = getLendingChainConfig();
@@ -196,7 +226,7 @@ export async function validateMorphoSeedWallet(): Promise<OpsCheck[]> {
       signer
     );
     const [balance, decimals] = await Promise.all([
-      usdcContract.balanceOf(wallet.address),
+      usdcContract.balanceOf(liquidityAddress),
       usdcContract.decimals()
     ]);
     const balanceUsd = Number(balance) / 10 ** Number(decimals);
@@ -204,14 +234,14 @@ export async function validateMorphoSeedWallet(): Promise<OpsCheck[]> {
 
     checks.push({
       id: 'morpho_seed_wallet_usdc',
-      label: 'USDC en wallet de deploy/seed',
+      label: 'USDC en wallet Morpho liquidity',
       status: balanceUsd >= minRequired ? 'OK' : 'WARN',
-      detail: `${balanceUsd.toFixed(2)} USDC (mínimo recomendado ${minRequired})`
+      detail: `${balanceUsd.toFixed(2)} USDC en ${liquidityAddress} (mínimo recomendado ${minRequired})`
     });
   } catch (error) {
     checks.push({
       id: 'morpho_seed_wallet_usdc',
-      label: 'USDC en wallet de deploy/seed',
+      label: 'USDC en wallet Morpho liquidity',
       status: 'WARN',
       detail: error instanceof Error ? error.message : 'No se pudo leer balance USDC'
     });

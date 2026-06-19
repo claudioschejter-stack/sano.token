@@ -3,6 +3,7 @@ import {
   type AdminPlatformConfig
 } from '../platform/platformConfigService';
 import { isSupabaseStorageConfigured } from '../storage/supabaseAdmin';
+import { isRwaOperatorConfigured } from '../blockchain/rwaOperatorSigner';
 
 export type IntegrationStatus = {
   id: string;
@@ -84,6 +85,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
         id: 'thirdweb',
         configured:
           isConfigured(process.env.THIRDWEB_SECRET_KEY) ||
+          isRwaOperatorConfigured() ||
           isConfigured(process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)
       },
       {

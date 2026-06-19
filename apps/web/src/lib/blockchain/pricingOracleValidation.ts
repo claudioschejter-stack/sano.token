@@ -1,6 +1,7 @@
 import { Contract, JsonRpcProvider } from 'ethers';
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { resolveChainId } from './explorerUrls';
+import { isRwaOperatorConfigured } from './rwaOperatorSigner';
 
 const MORPHO_PRICE_SCALE_DECIMALS = 24n;
 
@@ -35,7 +36,7 @@ export async function validateOraclePricing(asset: AdminAssetRecord) {
   const morphoTarget = asset.collateralTargets.find((target) => target.protocol === 'MORPHO');
   const oracleAddress = morphoTarget?.oracleAddress ?? process.env.MORPHO_ORACLE_ADDRESS?.trim();
   if (!hasMorpho || !oracleAddress) {
-    const canDeployOracle = Boolean((process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim());
+    const canDeployOracle = isRwaOperatorConfigured();
     const oracleKind = (process.env.MORPHO_ORACLE_TYPE ?? 'nav').trim().toLowerCase() === 'fixed' ? 'fijo' : 'NAV ERC-4626';
     return {
       ok: !hasMorpho || canDeployOracle,

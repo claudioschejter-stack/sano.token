@@ -1,9 +1,11 @@
 import { prisma, Prisma, type RentPayoutPreference } from '@sanova/database';
 import { isPendingInvestorWallet } from './provisionInvestorProfile';
-import { Contract, JsonRpcProvider, Wallet } from 'ethers';
+import { Contract, JsonRpcProvider, Wallet, getAddress, isAddress } from 'ethers';
 import { getOrCreatePlatformWalletAccount } from '../payments/platformWalletService';
 import { calculateRentCommissionSplit } from '../commission/commissionService';
 import { debitProjectOperatingForDistribution } from '../yield/projectOperatingService';
+import { isPrivyEarnConfigured, privyTreasuryWalletId } from '../privy/config';
+import { PrivyServerWalletSigner } from '../privy/privyServerWalletSigner';
 
 const LIQUIDATED_CASH_STATUS = 'LIQUIDATED_CASH';
 const LIQUIDATED_FIAT_STATUS = 'LIQUIDATED_FIAT';
@@ -125,16 +127,28 @@ export async function sendUsdcRentToInvestorWallet(input: {
 }): Promise<{ status: 'SUBMITTED' | 'SKIPPED'; txHash?: string; reason?: string }> {
   const chainId = input.chainId ?? 8453;
   const privateKey = process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim();
+  const treasuryAddress = process.env.BASE_STABLECOIN_TREASURY_ADDRESS?.trim();
   const usdcAddress =
     process.env.BASE_USDC_TOKEN_ADDRESS?.trim() || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-  if (!privateKey) {
+  const usesPrivyTreasury = Boolean(
+    isPrivyEarnConfigured() && privyTreasuryWalletId() && treasuryAddress && isAddress(treasuryAddress)
+  );
+
+  if (!usesPrivyTreasury && !privateKey) {
     return { status: 'SKIPPED', reason: 'TREASURY_KEY_NOT_CONFIGURED' };
   }
 
   const provider = new JsonRpcProvider(await resolveRpcUrl(chainId));
   try {
-    const wallet = new Wallet(privateKey, provider);
+    const wallet = usesPrivyTreasury
+      ? new PrivyServerWalletSigner(
+          privyTreasuryWalletId(),
+          getAddress(treasuryAddress!),
+          provider,
+          chainId
+        )
+      : new Wallet(privateKey!, provider);
     const usdc = new Contract(usdcAddress, ERC20_ABI, wallet);
     const decimals = Number(await usdc.decimals());
     const amountBaseUnits = BigInt(Math.floor(input.amountUsd * 10 ** decimals));

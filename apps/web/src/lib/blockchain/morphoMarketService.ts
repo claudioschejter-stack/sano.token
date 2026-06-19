@@ -1,4 +1,4 @@
-import { Contract, ContractFactory, JsonRpcProvider, Wallet } from 'ethers';
+import { Contract, ContractFactory, JsonRpcProvider, type Signer } from 'ethers';
 import { resolveMorphoChainId } from './explorerUrls';
 import SanovaFixedPriceOracleArtifact from './artifacts/SanovaFixedPriceOracle.json';
 import {
@@ -12,6 +12,7 @@ import { getLendingChainConfig } from '../lending/baseContracts';
 import { fixedUsdPriceToMorphoOraclePrice } from './pricingOracleValidation';
 import { deployNavOracleForVault, shouldUseNavOracle } from './navOracleService';
 import { setupMetaMorphoForMarket } from '../lending/metaMorphoService';
+import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from './rwaOperatorSigner';
 
 export type CreateMorphoMarketResult =
   | {
@@ -25,11 +26,6 @@ export type CreateMorphoMarketResult =
       metaMorphoPoolUrl?: string | null;
     }
   | { status: 'SKIPPED'; reason: string };
-
-function resolvePrivateKey(): string | null {
-  const key = (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim();
-  return key || null;
-}
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 8453) {
@@ -45,7 +41,7 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.LENDING_BASE_RPC_URL?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 }
 
-async function deployFixedPriceOracle(wallet: Wallet, pricePerTokenUsd: number): Promise<string | null> {
+async function deployFixedPriceOracle(wallet: Signer, pricePerTokenUsd: number): Promise<string | null> {
   const oraclePrice = fixedUsdPriceToMorphoOraclePrice(pricePerTokenUsd);
   if (!oraclePrice) {
     return null;
@@ -62,7 +58,7 @@ async function deployFixedPriceOracle(wallet: Wallet, pricePerTokenUsd: number):
 }
 
 async function resolveOracleAddress(
-  wallet: Wallet,
+  wallet: Signer,
   vaultAddress: string,
   pricePerTokenUsd: number
 ): Promise<{ address: string | null; type: 'nav' | 'fixed' }> {
@@ -86,22 +82,25 @@ export async function createMorphoMarketForVault(
   vaultAddress: string,
   pricePerTokenUsd: number
 ): Promise<CreateMorphoMarketResult> {
-  const privateKey = resolvePrivateKey();
-  if (!privateKey) {
+  if (!isRwaOperatorConfigured()) {
     return {
       status: 'SKIPPED',
-      reason: 'TOKEN_DEPLOY_PRIVATE_KEY requerida para crear mercado Morpho.'
+      reason: 'PRIVY_OPERATOR_WALLET_ID o TOKEN_DEPLOY_PRIVATE_KEY requerida para crear mercado Morpho.'
     };
   }
 
   const chainId = resolveMorphoChainId();
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
-  const wallet = new Wallet(privateKey, provider);
+  const wallet = await resolveRwaOperatorSigner(provider, chainId);
+  if (!wallet) {
+    return { status: 'SKIPPED', reason: 'No se pudo resolver el operador RWA.' };
+  }
 
   try {
-    const gasBalance = await provider.getBalance(wallet.address);
+    const walletAddress = await wallet.getAddress();
+    const gasBalance = await provider.getBalance(walletAddress);
     if (gasBalance <= 0n) {
-      return { status: 'SKIPPED', reason: `La wallet de deploy ${wallet.address} no tiene gas en chain ${chainId}.` };
+      return { status: 'SKIPPED', reason: `La wallet operador ${walletAddress} no tiene gas en chain ${chainId}.` };
     }
 
     const { address: oracleAddress, type: oracleType } = await resolveOracleAddress(

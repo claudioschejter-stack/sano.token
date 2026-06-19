@@ -2,6 +2,7 @@ import { Contract, JsonRpcProvider } from 'ethers';
 import { getLendingChainConfig, METAMORPHO_FACTORY_ADDRESS } from './baseContracts';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 import { getStablecoinNetwork } from '../payments/stablecoinNetworks';
+import { isRwaOperatorConfigured } from '../blockchain/rwaOperatorSigner';
 
 export type MorphoLendingProbeResult = {
   ok: boolean;
@@ -33,9 +34,7 @@ export async function probeMorphoLending(): Promise<MorphoLendingProbeResult> {
   const recommendations: string[] = [];
 
   const vaultAddress = process.env.METAMORPHO_VAULT_ADDRESS?.trim() || null;
-  const deployKey = Boolean(
-    (process.env.TOKEN_DEPLOY_PRIVATE_KEY ?? process.env.PRIVATE_KEY)?.trim()
-  );
+  const deployKey = isRwaOperatorConfigured();
   const oracleAddress = process.env.MORPHO_ORACLE_ADDRESS?.trim() || null;
   const seedRaw = Number(process.env.MORPHO_SEED_LIQUIDITY_USDC ?? process.env.METAMORPHO_SEED_USDC);
   const seedLiquidityUsdc = Number.isFinite(seedRaw) && seedRaw > 0 ? seedRaw : null;
@@ -47,7 +46,7 @@ export async function probeMorphoLending(): Promise<MorphoLendingProbeResult> {
     issues.push('BASE_STABLECOIN_TREASURY_ADDRESS o BASE_USDC_TOKEN_ADDRESS no configurados.');
   }
   if (!deployKey) {
-    issues.push('TOKEN_DEPLOY_PRIVATE_KEY no configurada.');
+    issues.push('PRIVY_OPERATOR_WALLET_ID + RWA_OPERATOR_ADDRESS o TOKEN_DEPLOY_PRIVATE_KEY no configurados.');
   }
   if (!vaultAddress) {
     issues.push('METAMORPHO_VAULT_ADDRESS no configurado.');

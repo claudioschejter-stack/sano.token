@@ -1,4 +1,5 @@
 import { isInvestorOpenRegistration } from '../auth/investorAccess';
+import { isRwaOperatorConfigured } from '../blockchain/rwaOperatorSigner';
 
 export type IntegrationStatus = {
   id: string;
@@ -93,8 +94,8 @@ export function getOnboardingIntegrations(): IntegrationStatus[] {
     {
       id: 'thirdweb',
       label: 'Emisión on-chain (Thirdweb)',
-      configured: Boolean(process.env.THIRDWEB_SECRET_KEY || process.env.TOKEN_DEPLOY_PRIVATE_KEY),
-      envKeys: ['THIRDWEB_SECRET_KEY', 'TOKEN_DEPLOY_PRIVATE_KEY']
+      configured: Boolean(process.env.THIRDWEB_SECRET_KEY || isRwaOperatorConfigured() || process.env.TOKEN_DEPLOY_PRIVATE_KEY),
+      envKeys: ['THIRDWEB_SECRET_KEY', 'PRIVY_OPERATOR_WALLET_ID', 'TOKEN_DEPLOY_PRIVATE_KEY']
     },
     {
       id: 'supabase',
