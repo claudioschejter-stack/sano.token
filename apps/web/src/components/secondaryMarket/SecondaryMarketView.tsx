@@ -217,13 +217,11 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
                 sellLabel={sm.colSell}
                 colPrice={sm.ledgerPrice}
                 colQty={sm.ledgerQty}
-                colAsset={sm.colAsset}
                 emptyBuy={sm.emptyBuy}
                 emptySell={sm.emptySell}
                 ownListingHint={sm.cancelListing}
                 platformBuyback={property.platformBuyback}
                 sellOrders={property.orders}
-                tokenSymbol={property.listing.tokenSymbol}
                 formatUsd={formatUsd}
                 formatQty={formatQty}
                 onSelectBuy={() => goToPlatformBuyback(property, property.platformBuyback)}
