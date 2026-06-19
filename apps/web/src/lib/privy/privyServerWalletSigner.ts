@@ -56,11 +56,15 @@ export class PrivyServerWalletSigner extends AbstractSigner {
       value: typeof tx.value === 'bigint' ? tx.value : tx.value ? BigInt(tx.value) : 0n
     });
 
-    const response = await this.provider!.getTransaction(hash);
-    if (!response) {
-      throw new Error(`PRIVY_TX_NOT_FOUND:${hash}`);
+    const startedAt = Date.now();
+    while (Date.now() - startedAt < 60_000) {
+      const response = await this.provider!.getTransaction(hash);
+      if (response) {
+        return response;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
-    return response;
+    throw new Error(`PRIVY_TX_NOT_FOUND:${hash}`);
   }
 }
