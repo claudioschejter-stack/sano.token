@@ -709,7 +709,7 @@ export const es = {
     morphoRequiredDesc:
       'Completá la documentación legal, el fideicomiso, el oráculo NAV y el checklist antes de guardar. El mercado Morpho se registra automáticamente al emitir.',
     tokenDeployOptionalHint:
-      'La emisión automática no está configurada en el servidor (TOKEN_DEPLOY_PRIVATE_KEY, RPC o gas). No se puede guardar un lanzamiento ERC-4626 hasta configurarlo.',
+      'La emisión automática no está configurada en el servidor. En Vercel configurá BASE_RPC_URL y (opción A) PRIVY_OPERATOR_WALLET_ID + RWA_OPERATOR_ADDRESS + PRIVY_APP_SECRET con gas patrocinado en Privy, o (opción B) TOKEN_DEPLOY_PRIVATE_KEY con ETH en Base.',
     tokenDeployReadyHint:
       'Servidor listo. Guardá el lanzamiento para emitir token + vault ERC-4626 automáticamente.',
     tokenDeployAutoPlaceholder: 'Se completa automáticamente al guardar',
@@ -753,7 +753,7 @@ export const es = {
       MISSING_TOKEN_SYMBOL: 'Falta el símbolo del token.',
       MISSING_TOKEN_NAME: 'Falta el nombre del token.',
       DEPLOY_NOT_CONFIGURED:
-        'Emisión on-chain no configurada en Vercel (TOKEN_DEPLOY_PRIVATE_KEY y BASE_RPC_URL).',
+        'Emisión on-chain no configurada (BASE_RPC_URL + operador Privy o TOKEN_DEPLOY_PRIVATE_KEY).',
       DEPLOY_NO_GAS: 'La wallet de emisión no tiene gas en la red configurada.',
       DEPLOY_RPC_ERROR: 'No se pudo conectar al RPC de la red.',
       TOKEN_NOT_DEPLOYED: 'El token RWA no se desplegó on-chain.',

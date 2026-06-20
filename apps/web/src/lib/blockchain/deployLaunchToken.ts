@@ -11,6 +11,7 @@ import { assertTreasuryVaultSharesReady } from './verifyTreasuryVaultShares';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { transferOwnershipToTreasury, type OwnershipTransferResult } from './ownershipTransfer';
 import { configureInitialContractSecurity } from './securityPolicy';
+import { isPrivyOperatorConfigured } from '../privy/config';
 import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from './rwaOperatorSigner';
 
 export type DeployLaunchTokenInput = {
@@ -214,10 +215,15 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     }
     const walletAddress = await wallet.getAddress();
     await ensureAutomationSignerReady(wallet);
-    const gasBalance = await provider.getBalance(walletAddress);
-    if (gasBalance <= 0n) {
-      provider.destroy();
-      return { status: 'SKIPPED', reason: `La wallet operador ${walletAddress} no tiene gas en chain ${chainId}.` };
+    if (!isPrivyOperatorConfigured()) {
+      const gasBalance = await provider.getBalance(walletAddress);
+      if (gasBalance <= 0n) {
+        provider.destroy();
+        return {
+          status: 'SKIPPED',
+          reason: `La wallet operador ${walletAddress} no tiene gas en chain ${chainId}.`
+        };
+      }
     }
 
     const tokenName = buildOnChainTokenName(input.tokenName, input.tokenInstrumentType);

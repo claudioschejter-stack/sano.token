@@ -64,6 +64,9 @@ type TokenDeployHealth = {
   chainId?: number;
   deployerAddress?: string | null;
   hasGas?: boolean;
+  onChainHasGas?: boolean;
+  usesPrivyOperator?: boolean;
+  privyGasSponsored?: boolean;
   gasBalanceWei?: string | null;
   gasCheckError?: string | null;
 };
@@ -1431,7 +1434,14 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                   </p>
                   <div className="mt-2 grid gap-2 text-xs text-terminal-muted sm:grid-cols-2">
                     <span>Red: Base ({BASE_MAINNET_CHAIN_ID})</span>
-                    <span>Gas operador: {tokenDeployHealth?.hasGas ? 'OK' : 'Pendiente'}</span>
+                    <span>
+                      Gas operador:{' '}
+                      {tokenDeployHealth?.privyGasSponsored
+                        ? 'Privy (patrocinado)'
+                        : tokenDeployHealth?.hasGas
+                          ? 'OK'
+                          : 'Pendiente'}
+                    </span>
                     <span className="sm:col-span-2 break-all">
                       Operador: {tokenDeployHealth?.deployerAddress ?? 'No configurada'}
                     </span>
@@ -1602,7 +1612,14 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                     </p>
                     <div className="mt-2 grid gap-2 text-xs text-terminal-muted sm:grid-cols-2">
                       <span>Red: Base ({BASE_MAINNET_CHAIN_ID})</span>
-                      <span>Gas operador: {tokenDeployHealth?.hasGas ? 'OK' : 'Pendiente'}</span>
+                      <span>
+                      Gas operador:{' '}
+                      {tokenDeployHealth?.privyGasSponsored
+                        ? 'Privy (patrocinado)'
+                        : tokenDeployHealth?.hasGas
+                          ? 'OK'
+                          : 'Pendiente'}
+                    </span>
                       <span className="sm:col-span-2 break-all">
                         Operador: {tokenDeployHealth?.deployerAddress ?? 'No configurada'}
                       </span>

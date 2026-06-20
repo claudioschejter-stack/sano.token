@@ -1,5 +1,6 @@
 import { JsonRpcProvider } from 'ethers';
 import { resolveChainId, resolveChainRpcUrl } from './explorerUrls';
+import { isPrivyOperatorConfigured } from '../privy/config';
 import {
   isRwaOperatorConfigured,
   resolveRwaOperatorAddress,
@@ -16,8 +17,9 @@ export async function getTokenDeployStatus() {
   const chainId = resolveChainId();
   const rpcUrl = resolveChainRpcUrl(chainId);
   const deployerAddress = resolveRwaOperatorAddress();
+  const usesPrivyOperator = isPrivyOperatorConfigured();
   let gasBalanceWei: string | null = null;
-  let hasGas = false;
+  let onChainHasGas = false;
   let gasCheckError: string | null = null;
 
   if (deployerAddress && rpcUrl) {
@@ -25,9 +27,9 @@ export async function getTokenDeployStatus() {
     try {
       const balance = await provider.getBalance(deployerAddress);
       gasBalanceWei = balance.toString();
-      hasGas = balance > 0n;
+      onChainHasGas = balance > 0n;
 
-      if (isRwaOperatorConfigured()) {
+      if (usesPrivyOperator) {
         const signer = await resolveRwaOperatorSigner(provider, chainId);
         if (signer && (await signer.getAddress()).toLowerCase() !== deployerAddress.toLowerCase()) {
           gasCheckError = 'RWA_OPERATOR_ADDRESS no coincide con el firmante configurado.';
@@ -40,7 +42,10 @@ export async function getTokenDeployStatus() {
     }
   }
 
-  const sanovaDirect = isSanovaTokenDeployConfigured() && hasGas;
+  /** Privy server wallets can deploy with sponsored gas (Dashboard → Gas). */
+  const hasGas = onChainHasGas || usesPrivyOperator;
+  const operatorReady = isRwaOperatorConfigured() && Boolean(rpcUrl) && Boolean(deployerAddress);
+  const sanovaDirect = operatorReady && hasGas && !gasCheckError;
 
   return {
     configured: sanovaDirect || Boolean(thirdweb && deployerAddress && hasGas),
@@ -50,8 +55,10 @@ export async function getTokenDeployStatus() {
     autoDeployDefault: sanovaDirect,
     deployerAddress,
     hasGas,
+    onChainHasGas,
     gasBalanceWei,
     gasCheckError,
-    usesPrivyOperator: Boolean(process.env.PRIVY_OPERATOR_WALLET_ID?.trim())
+    usesPrivyOperator,
+    privyGasSponsored: usesPrivyOperator && !onChainHasGas
   };
 }

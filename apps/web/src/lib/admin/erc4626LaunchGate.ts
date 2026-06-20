@@ -192,7 +192,7 @@ export async function getDeployInfrastructureIssues(): Promise<LaunchGateIssue[]
     issues.push({ code: 'DEPLOY_RPC_ERROR', detail: health.gasCheckError });
   }
 
-  if (!health.hasGas) {
+  if (!health.hasGas && !health.usesPrivyOperator) {
     issues.push({
       code: 'DEPLOY_NO_GAS',
       detail: health.deployerAddress

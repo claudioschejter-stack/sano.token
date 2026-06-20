@@ -56,7 +56,7 @@ export async function runAutomationPreflight(asset: AdminAssetRecord): Promise<A
   const checks = [
     check('rpc', 'RPC', Boolean(health.chainId && !health.gasCheckError), health.gasCheckError ?? `Chain ${health.chainId}`),
     check('deployer', 'Deployer', Boolean(health.deployerAddress), health.deployerAddress ?? 'TOKEN_DEPLOY_PRIVATE_KEY no configurada.'),
-    check('gas', 'Gas deployer', Boolean(health.hasGas), health.gasBalanceWei ?? 'Sin gas.'),
+    check('gas', 'Gas deployer', Boolean(health.hasGas), health.privyGasSponsored ? 'Privy gas sponsorship' : health.gasBalanceWei ?? 'Sin gas.'),
     check('supply', 'Supply', asset.totalTokens > 0, `${asset.totalTokens} tokens`),
     check('price', 'Precio', asset.pricePerToken > 0, `USD ${asset.pricePerToken}`),
     check('treasury', 'Treasury', treasuryPolicy.ok, treasuryPolicy.message),

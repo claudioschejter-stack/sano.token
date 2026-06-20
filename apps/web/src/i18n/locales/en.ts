@@ -698,7 +698,7 @@ export const en = {
     morphoRequiredDesc:
       "Complete legal docs, trust contract, NAV oracle, and checklist before saving. The Morpho market is registered automatically on issuance.",
     tokenDeployOptionalHint:
-      "Automatic issuance is not configured on the server (TOKEN_DEPLOY_PRIVATE_KEY, RPC, or gas). ERC-4626 launches cannot be saved until fixed.",
+      "Automatic issuance is not configured on the server. Set BASE_RPC_URL and either (A) PRIVY_OPERATOR_WALLET_ID + RWA_OPERATOR_ADDRESS + PRIVY_APP_SECRET with Privy gas sponsorship, or (B) TOKEN_DEPLOY_PRIVATE_KEY funded with ETH on Base.",
     tokenDeployReadyHint:
       "Server ready. Save the launch to auto-deploy token + ERC-4626 vault.",
     tokenDeployAutoPlaceholder: "Filled automatically when you save",
@@ -741,7 +741,7 @@ export const en = {
       MISSING_TOKEN_SYMBOL: "Token symbol is required.",
       MISSING_TOKEN_NAME: "Token name is required.",
       DEPLOY_NOT_CONFIGURED:
-        "On-chain issuance is not configured on Vercel (TOKEN_DEPLOY_PRIVATE_KEY and BASE_RPC_URL).",
+        "On-chain issuance is not configured (BASE_RPC_URL + Privy operator or TOKEN_DEPLOY_PRIVATE_KEY).",
       DEPLOY_NO_GAS: "Deployer wallet has no gas on the configured network.",
       DEPLOY_RPC_ERROR: "Could not connect to the network RPC.",
       TOKEN_NOT_DEPLOYED: "RWA token was not deployed on-chain.",
