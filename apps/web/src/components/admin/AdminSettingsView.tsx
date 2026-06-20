@@ -454,10 +454,6 @@ export function AdminSettingsView() {
                     </dd>
                   </div>
                 </dl>
-
-                <p className="mt-6 rounded-lg border border-dashed border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
-                  {t.adminSettings.envNote}
-                </p>
               </section>
             </div>
           </>
