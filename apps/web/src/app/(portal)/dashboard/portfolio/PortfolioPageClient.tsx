@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Building } from 'lucide-react';
 import { InvestorPortfolioPanel } from '../../../../components/dashboard/investor/InvestorPortfolioPanel';
 import { InvestorPageHeader } from '../../../../components/dashboard/investor/InvestorPageHeader';
+import { PrivyEarnVaultsPanel } from '../../../../components/privy/PrivyEarnVaultsPanel';
 import { PlatformWalletView } from '../../../../components/wallet/PlatformWalletView';
 import { useTranslation } from '../../../../i18n/LocaleProvider';
 
@@ -16,6 +17,8 @@ export function PortfolioPageClient() {
       <InvestorPageHeader eyebrow={t.nav.myAssets} title={p.title} subtitle={p.subtitle} />
 
       <InvestorPortfolioPanel />
+
+      <PrivyEarnVaultsPanel />
 
       <div className="border-t border-terminal-border pt-8 md:pt-10">
         <PlatformWalletView hideHeader />

@@ -2168,6 +2168,22 @@ export const es = {
       FAILED: 'No se pudo leer on-chain'
     }
   },
+  privyEarnVaultsPanel: {
+    title: 'Vaults Privy Earn',
+    subtitle: 'Vaults de rendimiento USDC en Base — APY y liquidez desde Privy Earn.',
+    apyLabel: 'Rendimiento',
+    tvlLabel: 'TVL',
+    liquidityLabel: 'Liquidez disponible',
+    depositButton: 'Depositar USDC',
+    explorerLabel: 'Ver en BaseScan',
+    refresh: 'Actualizar',
+    loading: 'Cargando vaults desde Privy…',
+    error: 'No se pudieron cargar los vaults Privy Earn.',
+    empty: 'Todavía no hay vaults Earn configurados.',
+    updated: 'Actualizado',
+    footnote:
+      'El depósito pasa por checkout: el USDC se convierte en shares ERC-4626 en tu wallet Privy vía Privy Earn.'
+  },
   demo: {
     assets: {
       aneloOps: 'Operaciones Añelo',

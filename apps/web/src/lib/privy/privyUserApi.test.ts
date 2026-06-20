@@ -37,3 +37,24 @@ describe('extractVerifiedPrivyEmails', () => {
     ).toEqual(['investor@example.com']);
   });
 });
+
+describe('resolvePrivyEmbeddedWalletId', () => {
+  it('returns embedded wallet id for matching address', async () => {
+    const { resolvePrivyEmbeddedWalletId } = await import('./privyUserApi');
+    expect(
+      resolvePrivyEmbeddedWalletId(
+        [
+          {
+            id: 'wallet-id-123',
+            type: 'wallet',
+            address: '0xAbCdEf0123456789012345678901234567890AbCd',
+            connector_type: 'embedded',
+            wallet_client_type: 'privy',
+            chain_type: 'ethereum'
+          }
+        ],
+        '0xabcdef0123456789012345678901234567890abcd'
+      )
+    ).toBe('wallet-id-123');
+  });
+});

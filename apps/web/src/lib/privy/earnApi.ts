@@ -5,14 +5,20 @@ export type PrivyEarnAmountInput =
   | { amount: string; raw_amount?: never }
   | { raw_amount: string; amount?: never };
 
+export type PrivyEarnDepositInput = PrivyEarnAmountInput & {
+  walletId?: string;
+  vaultId?: string;
+  idempotencyKey?: string;
+};
+
 /** GET /v1/earn/ethereum/vaults/{vault_id} — verify vault is live. */
-export async function getPrivyVaultDetails() {
+export async function getPrivyVaultDetails(vaultId?: string) {
   if (!isPrivyEarnConfigured()) {
     throw new Error('PRIVY_EARN_NOT_CONFIGURED');
   }
 
-  const vaultId = privyVaultId();
-  const response = await fetch(`${privyApiBase()}/api/v1/earn/ethereum/vaults/${vaultId}`, {
+  const resolvedVaultId = vaultId?.trim() || privyVaultId();
+  const response = await fetch(`${privyApiBase()}/api/v1/earn/ethereum/vaults/${resolvedVaultId}`, {
     headers: privyHeaders()
   });
 
@@ -24,21 +30,65 @@ export async function getPrivyVaultDetails() {
   return response.json() as Promise<Record<string, unknown>>;
 }
 
-/** POST deposit USDC from treasury wallet into Privy Earn vault. */
-export async function depositToPrivyVault(
-  input: PrivyEarnAmountInput & { walletId?: string; idempotencyKey?: string }
+/** GET /v1/wallets/{wallet_id}/earn/ethereum/vaults?vault_id=… */
+export async function getPrivyWalletEarnPosition(walletId: string, vaultId?: string) {
+  if (!isPrivyEarnConfigured()) {
+    throw new Error('PRIVY_EARN_NOT_CONFIGURED');
+  }
+
+  const resolvedVaultId = vaultId?.trim() || privyVaultId();
+  const params = new URLSearchParams({ vault_id: resolvedVaultId });
+  const response = await fetch(
+    `${privyApiBase()}/api/v1/wallets/${walletId}/earn/ethereum/vaults?${params.toString()}`,
+    { headers: privyHeaders() }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`PRIVY_EARN_POSITION_FAILED:${response.status}:${body}`);
+  }
+
+  return response.json() as Promise<Record<string, unknown>>;
+}
+
+/** GET /v1/wallets/{wallet_id}/actions/{action_id} */
+export async function getPrivyVaultAction(
+  walletId: string,
+  actionId: string,
+  includeSteps = false
 ) {
+  const query = includeSteps ? '?include=steps' : '';
+  const response = await fetch(
+    `${privyApiBase()}/api/v1/wallets/${walletId}/actions/${actionId}${query}`,
+    { headers: privyHeaders() }
+  );
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`PRIVY_WALLET_ACTION_FAILED:${response.status}:${body}`);
+  }
+
+  return response.json() as Promise<Record<string, unknown>>;
+}
+
+/** POST deposit USDC from a Privy wallet into an Earn vault. */
+export async function depositToPrivyVault(input: PrivyEarnDepositInput) {
   if (!isPrivyEarnConfigured()) {
     throw new Error('PRIVY_EARN_NOT_CONFIGURED');
   }
 
   const walletId = input.walletId?.trim() || privyTreasuryWalletId();
   if (!walletId) {
-    throw new Error('PRIVY_TREASURY_WALLET_ID_NOT_CONFIGURED');
+    throw new Error('PRIVY_WALLET_ID_NOT_CONFIGURED');
+  }
+
+  const vaultId = input.vaultId?.trim() || privyVaultId();
+  if (!vaultId) {
+    throw new Error('PRIVY_VAULT_ID_NOT_CONFIGURED');
   }
 
   const body: Record<string, string> = {
-    vault_id: privyVaultId(),
+    vault_id: vaultId,
     ...(input.amount ? { amount: input.amount } : { raw_amount: input.raw_amount! })
   };
 
@@ -67,9 +117,9 @@ export async function depositToPrivyVault(
   }>;
 }
 
-/** POST withdraw USDC (+ yield) from Privy Earn vault back to treasury wallet. */
+/** POST withdraw USDC (+ yield) from Privy Earn vault back to a Privy wallet. */
 export async function withdrawFromPrivyVault(
-  input: PrivyEarnAmountInput & { walletId?: string; idempotencyKey?: string }
+  input: PrivyEarnAmountInput & { walletId?: string; vaultId?: string; idempotencyKey?: string }
 ) {
   if (!isPrivyEarnConfigured()) {
     throw new Error('PRIVY_EARN_NOT_CONFIGURED');
@@ -80,8 +130,13 @@ export async function withdrawFromPrivyVault(
     throw new Error('PRIVY_TREASURY_WALLET_ID_NOT_CONFIGURED');
   }
 
+  const vaultId = input.vaultId?.trim() || privyVaultId();
+  if (!vaultId) {
+    throw new Error('PRIVY_VAULT_ID_NOT_CONFIGURED');
+  }
+
   const body: Record<string, string> = {
-    vault_id: privyVaultId(),
+    vault_id: vaultId,
     ...(input.amount ? { amount: input.amount } : { raw_amount: input.raw_amount! })
   };
 

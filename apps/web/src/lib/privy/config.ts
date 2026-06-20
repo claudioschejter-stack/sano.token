@@ -33,6 +33,70 @@ export function privyVaultId(): string {
   return process.env.PRIVY_VAULT_ID?.trim() ?? '';
 }
 
+function parsePrivyEarnVaultAddressMap(): Record<string, string> {
+  const raw = process.env.PRIVY_EARN_VAULT_BY_ADDRESS?.trim();
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return Object.fromEntries(
+      Object.entries(parsed)
+        .filter(([address, vaultId]) => Boolean(address?.trim() && vaultId?.trim()))
+        .map(([address, vaultId]) => [address.trim().toLowerCase(), vaultId.trim()])
+    );
+  } catch {
+    return {};
+  }
+}
+
+/** Map on-chain vault address → Privy Earn vault_id (Dashboard → Earn). */
+export function resolvePrivyEarnVaultId(vaultAddress?: string | null): string | null {
+  const defaultVaultId = privyVaultId();
+  if (!vaultAddress?.trim()) {
+    return defaultVaultId || null;
+  }
+
+  const normalized = vaultAddress.trim().toLowerCase();
+  const mapped = parsePrivyEarnVaultAddressMap()[normalized];
+  if (mapped) {
+    return mapped;
+  }
+
+  const defaultVaultAddress = process.env.PRIVY_EARN_DEFAULT_VAULT_ADDRESS?.trim().toLowerCase();
+  if (defaultVaultId && defaultVaultAddress && normalized === defaultVaultAddress) {
+    return defaultVaultId;
+  }
+
+  return null;
+}
+
+export function canUsePrivyEarnForVaultAddress(vaultAddress: string): boolean {
+  return Boolean(resolvePrivyEarnVaultId(vaultAddress));
+}
+
+/** Unique Privy Earn vault IDs configured for this app (env map + default). */
+export function listConfiguredPrivyEarnVaultIds(): string[] {
+  const ids = new Set<string>();
+  const defaultId = privyVaultId();
+  if (defaultId) {
+    ids.add(defaultId);
+  }
+  for (const vaultId of Object.values(parsePrivyEarnVaultAddressMap())) {
+    ids.add(vaultId);
+  }
+  return [...ids];
+}
+
+/** On-chain vault address → Privy vault_id entries from env (lowercase addresses). */
+export function listConfiguredPrivyEarnVaultAddressEntries(): Array<{ vaultAddress: string; vaultId: string }> {
+  return Object.entries(parsePrivyEarnVaultAddressMap()).map(([vaultAddress, vaultId]) => ({
+    vaultAddress,
+    vaultId
+  }));
+}
+
 export function isPrivyEarnConfigured(): boolean {
   return Boolean(privyAppId() && privyVaultId() && process.env.PRIVY_APP_SECRET?.trim());
 }

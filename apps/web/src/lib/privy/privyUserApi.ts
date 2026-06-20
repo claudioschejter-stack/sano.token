@@ -21,9 +21,13 @@ function privyHeaders(): HeadersInit {
 }
 
 type PrivyLinkedAccount = {
+  id?: string | null;
   type?: string;
   address?: string;
   email?: string;
+  chain_type?: string;
+  connector_type?: string;
+  wallet_client_type?: string;
   verified_at?: number | null;
   latest_verified_at?: number | null;
   first_verified_at?: number | null;
@@ -76,4 +80,36 @@ export function extractVerifiedPrivyEmails(linkedAccounts: PrivyLinkedAccount[])
   }
 
   return [...emails];
+}
+
+/** Privy embedded wallet ID for Earn API calls (linked_accounts[].id). */
+export function resolvePrivyEmbeddedWalletId(
+  linkedAccounts: PrivyLinkedAccount[],
+  walletAddress: string
+): string | null {
+  const normalized = walletAddress.trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  for (const account of linkedAccounts) {
+    if (account.type !== 'wallet') {
+      continue;
+    }
+    if (account.connector_type !== 'embedded' && account.wallet_client_type !== 'privy') {
+      continue;
+    }
+    if (account.chain_type && account.chain_type !== 'ethereum') {
+      continue;
+    }
+    if (!account.address || account.address.toLowerCase() !== normalized) {
+      continue;
+    }
+    const walletId = account.id?.trim();
+    if (walletId) {
+      return walletId;
+    }
+  }
+
+  return null;
 }

@@ -57,6 +57,7 @@ import {
   type MercadoPagoEmbeddedSession
 } from '../../lib/payments/mercadoPagoEmbeddedService';
 import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
+import { PrivyEarnVaultsPanel } from '../privy/PrivyEarnVaultsPanel';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -1416,6 +1417,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         </div>
 
         <div className="px-4 sm:px-6">
+          <div className="py-[2mm]">
+            <PrivyEarnVaultsPanel compact />
+          </div>
+
           {mode === 'purchase' ? (
             items.length === 0 ? (
               <p className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-6 text-sm text-terminal-muted">

@@ -2129,6 +2129,22 @@ export const en = {
       FAILED: "Could not read on-chain data"
     }
   },
+  privyEarnVaultsPanel: {
+    title: 'Privy Earn vaults',
+    subtitle: 'USDC yield vaults on Base — APY and liquidity from Privy Earn.',
+    apyLabel: 'APY',
+    tvlLabel: 'TVL',
+    liquidityLabel: 'Available liquidity',
+    depositButton: 'Deposit USDC',
+    explorerLabel: 'View on BaseScan',
+    refresh: 'Refresh',
+    loading: 'Loading vaults from Privy…',
+    error: 'Could not load Privy Earn vaults.',
+    empty: 'No Earn vaults configured yet.',
+    updated: 'Updated',
+    footnote:
+      'Deposits go through checkout: USDC is converted to ERC-4626 shares in your Privy wallet via Privy Earn.'
+  },
   demo: {
     assets: {
       aneloOps: "Anelo Operations",
