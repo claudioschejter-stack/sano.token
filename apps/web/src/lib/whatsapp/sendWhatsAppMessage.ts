@@ -96,6 +96,7 @@ export async function sendWhatsAppMessage(input: {
   return { ok: true, sid: data.sid };
 }
 
+/** @deprecated Invites use WhatsApp Web (wa.me) from the admin UI — not Twilio API. */
 export async function sendInviteWhatsAppMessage(input: {
   phone?: string | null;
   message: string;

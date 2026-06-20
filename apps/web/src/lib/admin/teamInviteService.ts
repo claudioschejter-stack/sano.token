@@ -5,7 +5,6 @@ import { normalizeEmail } from '../auth/contactValidation';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
 import { resolveSiteUrl } from '../invite/resolveSiteUrl';
 import { buildTeamInviteWhatsAppMessage } from '../invite/whatsappInvite';
-import { sendInviteWhatsAppMessage } from '../whatsapp/sendWhatsAppMessage';
 import { designateAdvisor } from './teamService';
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -152,12 +151,6 @@ export async function inviteTeamMember(input: {
     roleLabel: roleText,
     name: input.name
   });
-  const whatsappResult = await sendInviteWhatsAppMessage({
-    phone: input.phone,
-    message: whatsappMessage,
-    acceptUrl,
-    recipientName: input.name
-  });
 
   return {
     id: invite.id,
@@ -168,7 +161,7 @@ export async function inviteTeamMember(input: {
     expiresAt: invite.expiresAt.toISOString(),
     createdAt: invite.createdAt.toISOString(),
     emailSent: emailResult.ok,
-    whatsappSent: whatsappResult.sent,
+    whatsappSent: false,
     acceptUrl,
     whatsappMessage
   };

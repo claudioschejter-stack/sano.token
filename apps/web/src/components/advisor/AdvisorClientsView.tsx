@@ -9,6 +9,7 @@ import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { AdvisorClientRecord } from '../../lib/advisor/clientsService';
 import type { DownlineAdvisorRecord } from '../../lib/advisor/downlineService';
 import { resolveNominationError } from '../../lib/advisor/resolveNominationError';
+import { openWhatsAppInvite } from '../../lib/invite/whatsappInvite';
 import { AdvisorGate } from './AdvisorGate';
 
 type KycFilter = 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -136,24 +137,32 @@ export function AdvisorClientsView() {
         })
       });
 
-      const data = (await response.json().catch(() => ({}))) as { error?: string; warning?: string };
+      const data = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        warning?: string;
+        invite?: { whatsappMessage?: string };
+      };
 
       if (!response.ok) {
         setInviteMessage(data.error ?? t.advisorPortal.invite.error);
         return;
       }
 
+      const phone = invitePhone.trim();
+      const whatsappMessage = data.invite?.whatsappMessage;
+      if (phone && whatsappMessage) {
+        openWhatsAppInvite(phone, whatsappMessage);
+      }
+
       setInviteEmail('');
       setInviteName('');
       setInvitePhone('');
       setInviteMessage(
-        data.warning === 'INVITE_CREATED_WHATSAPP_NOT_SENT'
-          ? t.advisorPortal.invite.whatsappNotSent
-          : data.warning === 'INVITE_CREATED_EMAIL_NOT_SENT'
-            ? t.advisorPortal.invite.emailNotSent
-            : data.warning === 'INVITE_CREATED_DELIVERY_NOT_SENT'
-              ? t.advisorPortal.invite.deliveryNotSent
-              : t.advisorPortal.invite.success
+        data.warning === 'INVITE_CREATED_EMAIL_NOT_SENT'
+          ? t.advisorPortal.invite.emailNotSent
+          : phone && whatsappMessage
+            ? `${t.advisorPortal.invite.success} ${t.advisorPortal.invite.whatsappHint}`
+            : t.advisorPortal.invite.success
       );
     } catch {
       setInviteMessage(t.advisorPortal.invite.error);

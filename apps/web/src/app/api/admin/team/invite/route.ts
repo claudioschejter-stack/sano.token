@@ -36,23 +36,9 @@ export async function POST(request: Request) {
       invitedByUserId: adminUserId
     });
 
-    if (!invite.emailSent && !invite.whatsappSent) {
-      return NextResponse.json(
-        { invite, warning: 'INVITE_CREATED_DELIVERY_NOT_SENT' },
-        { status: 201 }
-      );
-    }
-
     if (!invite.emailSent) {
       return NextResponse.json(
         { invite, warning: 'INVITE_CREATED_EMAIL_NOT_SENT' },
-        { status: 201 }
-      );
-    }
-
-    if (body.phone?.trim() && !invite.whatsappSent) {
-      return NextResponse.json(
-        { invite, warning: 'INVITE_CREATED_WHATSAPP_NOT_SENT' },
         { status: 201 }
       );
     }
