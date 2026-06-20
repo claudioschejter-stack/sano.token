@@ -90,12 +90,6 @@ export function ClientPageHardening() {
 
     document.body.classList.add('client-hardened');
 
-    const onContextMenu = (event: MouseEvent) => {
-      if (!isEditableElement(event.target)) {
-        event.preventDefault();
-      }
-    };
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (shouldBlockShortcut(event)) {
         event.preventDefault();
@@ -109,12 +103,6 @@ export function ClientPageHardening() {
       }
     };
 
-    const onCopyCut = (event: ClipboardEvent) => {
-      if (!isEditableElement(event.target)) {
-        event.preventDefault();
-      }
-    };
-
     const detectDevtools = () => {
       const widthGap = window.outerWidth - window.innerWidth;
       const heightGap = window.outerHeight - window.innerHeight;
@@ -122,22 +110,16 @@ export function ClientPageHardening() {
       setDevtoolsOpen(likelyOpen);
     };
 
-    document.addEventListener('contextmenu', onContextMenu);
     document.addEventListener('keydown', onKeyDown, true);
     document.addEventListener('dragstart', onDragStart);
-    document.addEventListener('copy', onCopyCut);
-    document.addEventListener('cut', onCopyCut);
     window.addEventListener('resize', detectDevtools);
     detectDevtools();
     const interval = window.setInterval(detectDevtools, 1500);
 
     return () => {
       document.body.classList.remove('client-hardened');
-      document.removeEventListener('contextmenu', onContextMenu);
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('dragstart', onDragStart);
-      document.removeEventListener('copy', onCopyCut);
-      document.removeEventListener('cut', onCopyCut);
       window.removeEventListener('resize', detectDevtools);
       window.clearInterval(interval);
     };
