@@ -89,7 +89,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: user.name,
             image: user.image,
             provider: account.provider,
-            providerAccountId: account.providerAccountId ?? account.id ?? user.id ?? ''
+            providerAccountId: String(
+              account.providerAccountId ?? account.id ?? user.id ?? ''
+            )
           });
 
           token.sub = result.id;
