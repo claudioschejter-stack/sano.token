@@ -1371,6 +1371,7 @@ export const en = {
     disconnect: "Disconnect",
     connecting: "Connecting…",
     connect: "Connect wallet",
+    connectSimple: "Connect",
     connectCoinbase: "Connect Coinbase Wallet",
     connectWalletConnect: "Connect with WalletConnect",
     walletConnectUnavailable: "WalletConnect is not configured. Contact support.",

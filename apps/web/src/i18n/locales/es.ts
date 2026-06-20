@@ -1385,6 +1385,7 @@ export const es = {
     disconnect: 'Desconectar',
     connecting: 'Conectando…',
     connect: 'Conectar wallet',
+    connectSimple: 'Conectar',
     connectCoinbase: 'Conectar Coinbase Wallet',
     connectWalletConnect: 'Conectar con WalletConnect',
     walletConnectUnavailable: 'WalletConnect no está configurado. Contactá soporte.',

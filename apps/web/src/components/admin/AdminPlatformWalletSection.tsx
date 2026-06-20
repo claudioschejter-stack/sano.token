@@ -208,17 +208,8 @@ export function AdminPlatformWalletSection() {
           </div>
 
           <div className="rounded-lg border border-terminal-primary/20 bg-terminal-primary/5 px-4 py-4">
-            <p className="text-sm font-medium text-terminal-text">{pw.connectTitle}</p>
-            <p className="mt-1 text-sm text-terminal-muted">{pw.connectDesc}</p>
-
-            <div className="mt-4 max-w-md">
-              <CoinbaseConnectButton />
-            </div>
+            <CoinbaseConnectButton />
           </div>
-
-          <p className="rounded-lg border border-dashed border-terminal-border bg-terminal-bg px-4 py-3 text-xs text-terminal-muted">
-            {pw.vercelNote}
-          </p>
         </div>
       ) : null}
     </section>
