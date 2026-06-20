@@ -9,6 +9,10 @@ import {
   isPrivyMorphoLiquidityConfigured,
   resolvePrivyLoginMethods
 } from '../privy/config';
+import {
+  isAppleOAuthConfigured,
+  isGoogleOAuthConfigured
+} from '../auth/oauthProviders';
 
 export type IntegrationStatus = {
   id: string;
@@ -114,8 +118,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       {
         id: 'googleOAuth',
         configured:
-          isConfigured(process.env.AUTH_GOOGLE_ID, process.env.AUTH_GOOGLE_SECRET) ||
-          privyOAuthMethodEnabled('google'),
+          isGoogleOAuthConfigured() || privyOAuthMethodEnabled('google'),
         optional: true,
         envKeys: [
           'NEXT_PUBLIC_PRIVY_LOGIN_METHODS',
@@ -128,8 +131,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
       {
         id: 'appleOAuth',
         configured:
-          isConfigured(process.env.AUTH_APPLE_ID, process.env.AUTH_APPLE_SECRET) ||
-          privyOAuthMethodEnabled('apple'),
+          isAppleOAuthConfigured() || privyOAuthMethodEnabled('apple'),
         optional: true,
         envKeys: [
           'NEXT_PUBLIC_PRIVY_LOGIN_METHODS',
@@ -194,12 +196,8 @@ export async function getAdminSettings(): Promise<AdminSettings> {
     ],
     access: {
       adminEmails: parseEmailList(process.env.AUTH_ADMIN_EMAILS).map(maskEmail),
-      oauthGoogle:
-        isConfigured(process.env.AUTH_GOOGLE_ID, process.env.AUTH_GOOGLE_SECRET) ||
-        privyOAuthMethodEnabled('google'),
-      oauthApple:
-        isConfigured(process.env.AUTH_APPLE_ID, process.env.AUTH_APPLE_SECRET) ||
-        privyOAuthMethodEnabled('apple')
+      oauthGoogle: isGoogleOAuthConfigured() || privyOAuthMethodEnabled('google'),
+      oauthApple: isAppleOAuthConfigured() || privyOAuthMethodEnabled('apple')
     },
     operations: {
       allowDemoKyc: process.env.ALLOW_DEMO_KYC === 'true',

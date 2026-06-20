@@ -9,6 +9,7 @@ import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 import { PasswordInput } from './PasswordInput';
 import { PasskeyLoginButton } from './PasskeyLoginButton';
+import { OAuthSignInButtons } from './OAuthSignInButtons';
 
 type LoginFormProps = {
   callbackUrl?: string;
@@ -72,6 +73,8 @@ export function LoginForm({
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
+      <OAuthSignInButtons callbackUrl={callbackUrl} />
+
       <div>
         <label htmlFor="access-email" className="mb-1.5 block text-sm font-medium text-slate-700">
           {t.access.emailLabel}

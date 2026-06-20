@@ -95,6 +95,7 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
     .sign(new TextEncoder().encode(secret));
 
   return {
+    id: user.id,
     accessToken,
     tokenType: 'Bearer',
     expiresIn: 43200,

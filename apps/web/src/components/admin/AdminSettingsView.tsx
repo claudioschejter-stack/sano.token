@@ -8,6 +8,7 @@ import type { AdminSettings } from '../../lib/admin/getAdminSettings';
 import type { PlatformConfigFieldSource } from '../../lib/platform/platformConfigService';
 import { AdminGate } from './AdminGate';
 import { AdminPlatformWalletSection } from './AdminPlatformWalletSection';
+import { AdminOAuthSetupSection } from './AdminOAuthSetupSection';
 
 type IntegrationId =
   | 'email'
@@ -405,6 +406,12 @@ export function AdminSettingsView() {
                     </dd>
                   </div>
                 </dl>
+
+                <AdminOAuthSetupSection
+                  siteUrl={siteUrl || settings.contact.siteUrl}
+                  oauthGoogle={settings.access.oauthGoogle}
+                  oauthApple={settings.access.oauthApple}
+                />
               </section>
 
               <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
