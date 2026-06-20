@@ -2153,6 +2153,8 @@ export const en = {
     subtitle: "USDC available to borrow in Morpho Blue markets for your ERC-4626 vaults (on-chain, Base).",
     availableLabel: "Total Morpho liquidity available",
     chainHint: "Chain ID {chainId} (Base)",
+    baseNetworkHint:
+      "Morpho runs on Base only. If your wallet shows the wrong network, switch to Base (8453) before opening a market.",
     updated: "Updated",
     refresh: "Refresh",
     loading: "Reading Morpho markets…",

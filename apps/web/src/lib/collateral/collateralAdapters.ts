@@ -7,6 +7,7 @@ import {
 } from './collateralRegistry';
 import type { CollateralProtocol, CollateralTarget } from '../admin/launchTypes';
 import { isRwaOperatorConfigured } from '../blockchain/rwaOperatorSigner';
+import { buildMorphoMarketPoolUrl } from '../lending/morphoMarketUrls';
 
 export type CollateralAdapterResult = {
   status: CollateralTarget['status'];
@@ -76,7 +77,7 @@ async function registerMorpho(project: CollateralProjectContext): Promise<Collat
         return {
           status: 'REGISTERED',
           externalId: result.marketId,
-          poolUrl: `https://app.morpho.org/base/market/${result.marketId}`,
+          poolUrl: buildMorphoMarketPoolUrl(result.marketId, project.tokenSymbol),
           oracleAddress: result.params.oracle,
           notes: `Mercado Morpho Blue aislado (${result.oracleType ?? 'nav'} oracle, tx ${result.txHash.slice(0, 10)}…).${
             result.metaMorphoPoolUrl ? ` MetaMorpho: ${result.metaMorphoPoolUrl}` : ''

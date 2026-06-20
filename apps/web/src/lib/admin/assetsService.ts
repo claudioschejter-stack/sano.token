@@ -27,6 +27,7 @@ import {
 } from './launchTypes';
 import { isVaultTokenStandard } from './vaultStandards';
 import { buildInitialCollateralTargets, mergeCollateralTargets } from '../collateral/collateralTargetsService';
+import { normalizeMorphoCollateralTargets } from '../lending/morphoMarketUrls';
 import type { CollateralProjectContext } from '../collateral/collateralRegistry';
 
 export type AdminAssetRecord = {
@@ -533,7 +534,10 @@ function mapProject(project: {
       explorerVerificationStatus: meta.explorerVerificationStatus,
       launchAuditHash: meta.launchAuditHash
     });
-  const collateralTargets = parseCollateralTargets(project.collateralTargets);
+  const collateralTargets = normalizeMorphoCollateralTargets(
+    parseCollateralTargets(project.collateralTargets),
+    project.tokenSymbol
+  );
   const readyToBorrow = deriveReadyToBorrow({
     readiness,
     tokenStandard: project.tokenStandard,

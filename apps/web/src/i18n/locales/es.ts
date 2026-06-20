@@ -2191,6 +2191,8 @@ export const es = {
       'USDC disponible para pedir prestado en mercados Morpho Blue de tus vaults ERC-4626 (on-chain, Base).',
     availableLabel: 'Liquidez Morpho disponible',
     chainHint: 'Red {chainId} (Base)',
+    baseNetworkHint:
+      'Morpho opera solo en Base. Si tu wallet muestra "red equivocada", cambiá a Base (8453) antes de abrir el mercado.',
     updated: 'Actualizado',
     refresh: 'Actualizar',
     loading: 'Leyendo mercados Morpho…',

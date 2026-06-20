@@ -92,6 +92,10 @@ function isMorphoIntegrationConfigured(): boolean {
     return true;
   }
 
+  if (isConfigured(process.env.METAMORPHO_VAULT_ADDRESS)) {
+    return true;
+  }
+
   return isConfigured(process.env.MORPHO_API_KEY, process.env.MORPHO_CURATOR_ADDRESS);
 }
 

@@ -178,17 +178,17 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
 
       {loading ? <p className="mb-4 text-xs text-terminal-muted">{sm.syncing}</p> : null}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 xl:grid-cols-3 xl:gap-7">
         {feed.properties.map((property) => {
           const holding = holdingsByProject.get(property.listing.id);
 
           return (
             <article
               key={property.listing.id}
-              className="overflow-hidden rounded-lg border border-terminal-border bg-terminal-card shadow-sm"
+              className="overflow-hidden rounded-xl border-2 border-white/95 bg-terminal-card shadow-[0_10px_28px_rgba(0,0,0,0.38)] ring-1 ring-white/15"
             >
-              <div className="flex items-center gap-2 border-b border-terminal-border p-2">
-                <div className="relative h-11 w-14 shrink-0 overflow-hidden rounded-md bg-terminal-bg">
+              <div className="flex items-center gap-2 border-b border-white/80 bg-terminal-bg/40 p-2.5">
+                <div className="relative h-11 w-14 shrink-0 overflow-hidden rounded-md border border-white/20 bg-terminal-bg">
                   {property.listing.imageUrl ? (
                     <Image
                       src={property.listing.imageUrl}
@@ -201,11 +201,30 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-sm font-semibold text-terminal-text">{property.listing.title}</h2>
-                  <p className="truncate text-[10px] text-terminal-muted">
-                    {property.listing.location} · {property.listing.tokenSymbol}
-                    {property.listing.apyPercent != null ? ` · ${property.listing.apyPercent}% APY` : ''}
-                  </p>
-                  <p className="text-[10px] font-mono text-terminal-primary">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                    <span className="truncate text-[10px] text-terminal-muted">{property.listing.location}</span>
+                    {property.listing.tokenSymbol ? (
+                      <>
+                        <span className="text-[10px] text-terminal-muted" aria-hidden>
+                          ·
+                        </span>
+                        <span className="rounded border border-white/35 bg-white/10 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-white">
+                          {property.listing.tokenSymbol}
+                        </span>
+                      </>
+                    ) : null}
+                    {property.listing.apyPercent != null ? (
+                      <>
+                        <span className="text-[10px] text-terminal-muted" aria-hidden>
+                          ·
+                        </span>
+                        <span className="text-[10px] font-semibold text-terminal-success">
+                          {property.listing.apyPercent}% APY
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
+                  <p className="mt-1 text-[10px] font-mono text-terminal-primary">
                     {formatUsd(property.listing.pricePerTokenUsd)} ·{' '}
                     {sm.holdingAvailable.replace('{count}', String(holding?.availableToSell ?? 0))}
                   </p>

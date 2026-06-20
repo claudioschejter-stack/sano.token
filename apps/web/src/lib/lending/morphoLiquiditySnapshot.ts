@@ -2,6 +2,7 @@ import { Contract, JsonRpcProvider } from 'ethers';
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 import { getLendingChainConfig } from './baseContracts';
+import { buildMorphoMarketPoolUrl } from './morphoMarketUrls';
 import { buildDefaultMorphoMarketParams, morphoMarketId } from './protocols/morphoBorrow';
 
 export type MorphoLiquidityMarketRow = {
@@ -51,7 +52,9 @@ export async function readMorphoMarketLiquidity(asset: AdminAssetRecord): Promis
     totalSupplyUsdc: 0,
     totalBorrowUsdc: 0,
     status: 'NO_MARKET' as const,
-    poolUrl: morphoTarget?.poolUrl ?? null,
+    poolUrl: morphoTarget?.externalId
+      ? buildMorphoMarketPoolUrl(morphoTarget.externalId, asset.tokenSymbol)
+      : morphoTarget?.poolUrl ?? null,
     marketId: morphoTarget?.externalId ?? null,
     readyToBorrow: asset.readyToBorrow,
     cachedStatus: asset.morphoLiquidityStatus ?? null
@@ -92,7 +95,7 @@ export async function readMorphoMarketLiquidity(asset: AdminAssetRecord): Promis
       totalBorrowUsdc: baseUnitsToUsdc(totalBorrowAssets),
       status: availableAssets > 0n ? 'LIQUID' : 'NO_LIQUIDITY',
       marketId,
-      poolUrl: morphoTarget.poolUrl ?? `https://app.morpho.org/base/market/${marketId}`
+    poolUrl: morphoTarget.poolUrl ?? buildMorphoMarketPoolUrl(marketId, asset.tokenSymbol),
     };
   } catch {
     return {

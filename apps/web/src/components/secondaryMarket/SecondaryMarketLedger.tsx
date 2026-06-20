@@ -46,14 +46,19 @@ function LedgerColumn({
   ownListingHint?: string;
   onSelect: (row: LedgerRow) => void;
 }) {
+  const columnGridClass = 'grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]';
+
   return (
     <div className="min-w-0">
       <div className="border-b border-white bg-terminal-bg/80 px-2 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wider text-white">
         {title}
       </div>
-      <div className="grid grid-cols-2 place-items-center border-b border-white bg-terminal-bg/50 px-2 py-1 text-center text-[10px] uppercase tracking-wide text-white">
-        <span>{colPrice}</span>
-        <span>{colQty}</span>
+      <div
+        className={`${columnGridClass} items-stretch border-b border-white bg-terminal-bg/50 px-2 py-1 text-center text-[10px] uppercase tracking-wide text-white`}
+      >
+        <span className="flex items-center justify-center">{colPrice}</span>
+        <div className="bg-gray-500/80" aria-hidden />
+        <span className="flex items-center justify-center">{colQty}</span>
       </div>
       {rows.length ? (
         <div className="max-h-40 overflow-y-auto">
@@ -62,11 +67,11 @@ function LedgerColumn({
               key={row.id}
               type="button"
               onClick={() => onSelect(row)}
-              className={`grid w-full grid-cols-2 place-items-center border-b border-white/70 px-2 py-1.5 text-center text-[11px] font-mono transition-colors hover:bg-terminal-primary/10 ${
+              className={`${columnGridClass} w-full items-stretch border-b border-white/70 px-2 py-1.5 text-center text-[11px] font-mono transition-colors hover:bg-terminal-primary/10 ${
                 row.isOwn ? 'bg-terminal-warning/5 hover:bg-terminal-warning/10' : ''
               }`}
             >
-              <span className="w-full font-semibold text-terminal-primary">
+              <span className="flex flex-col items-center justify-center font-semibold text-terminal-primary">
                 {formatUsd(row.pricePerTokenUsd)}
                 {row.isOwn && ownListingHint ? (
                   <span className="mt-0.5 block text-[9px] font-sans font-normal text-terminal-warning">
@@ -74,7 +79,8 @@ function LedgerColumn({
                   </span>
                 ) : null}
               </span>
-              <span className="w-full text-terminal-text">{formatQty(row.tokenCount)}</span>
+              <div className="bg-gray-500/70" aria-hidden />
+              <span className="flex items-center justify-center text-terminal-text">{formatQty(row.tokenCount)}</span>
             </button>
           ))}
         </div>
@@ -118,7 +124,7 @@ export function SecondaryMarketLedger({
     .sort((a, b) => a.pricePerTokenUsd - b.pricePerTokenUsd);
 
   return (
-    <div className="grid grid-cols-2 divide-x divide-white border border-white">
+    <div className="grid grid-cols-2 divide-x divide-white border-t border-white bg-terminal-bg/30">
       <LedgerColumn
         title={buyLabel}
         rows={buyRows}

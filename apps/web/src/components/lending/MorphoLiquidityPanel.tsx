@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { MorphoLiquiditySnapshot } from '../../lib/lending/morphoLiquiditySnapshot';
+import { MorphoMarketLink } from './MorphoMarketLink';
 
 type MorphoLiquidityPanelProps = {
   loansHref?: string;
@@ -111,6 +112,7 @@ export function MorphoLiquidityPanel({
               {m.chainHint.replace('{chainId}', String(snapshot.chainId))}
               {snapshot.updatedAt ? ` · ${m.updated} ${new Date(snapshot.updatedAt).toLocaleString(intlLocale)}` : ''}
             </p>
+            <p className="mt-1 text-xs text-terminal-warning">{m.baseNetworkHint}</p>
           </div>
 
           {snapshot.markets.length === 0 ? (
@@ -132,15 +134,13 @@ export function MorphoLiquidityPanel({
                     </p>
                   </div>
                   {market.poolUrl ? (
-                    <a
+                    <MorphoMarketLink
                       href={market.poolUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-terminal-primary hover:underline"
                     >
                       Morpho
                       <ExternalLink size={12} />
-                    </a>
+                    </MorphoMarketLink>
                   ) : null}
                 </li>
               ))}
