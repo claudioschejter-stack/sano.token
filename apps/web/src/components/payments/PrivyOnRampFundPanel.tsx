@@ -1,13 +1,16 @@
 'use client';
 
-import { useFundWallet } from '@privy-io/react-auth';
+import { useFiatOnramp } from '@privy-io/react-auth';
 import { Loader2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import { base } from 'viem/chains';
 import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
 import { usePrivyWalletLink } from '../../hooks/usePrivyWalletLink';
 import { usePrivyTreasuryPayment } from '../../hooks/usePrivyTreasuryPayment';
 import { usePrivyVaultDeposit } from '../../hooks/usePrivyVaultDeposit';
+import {
+  PRIVY_FIAT_ONRAMP_BASE_CHAIN,
+  resolvePrivyFiatOnRampSource
+} from '../../lib/payments/privyOnRampPolicy';
 import type { VaultDepositLine } from '../../lib/web3/vaultDepositPayment';
 
 export type PrivyOnRampFundPanelProps = {
@@ -20,6 +23,17 @@ export type PrivyOnRampFundPanelProps = {
   onError?: (message: string) => void;
 };
 
+function resolveCountry(metadata: Record<string, unknown> | null | undefined): string {
+  if (typeof metadata?.country === 'string' && metadata.country.trim()) {
+    return metadata.country.trim().toUpperCase();
+  }
+  return 'US';
+}
+
+function isPrivyFundComplete(status: string): boolean {
+  return status === 'submitted' || status === 'confirmed';
+}
+
 export function PrivyOnRampFundPanel({
   metadata,
   amountUsd,
@@ -28,7 +42,7 @@ export function PrivyOnRampFundPanel({
   onFunded,
   onError
 }: PrivyOnRampFundPanelProps) {
-  const { fundWallet } = useFundWallet();
+  const { fund } = useFiatOnramp();
   const { enabled, ready, authenticated, address, ensureReady } = usePrivyEmbeddedWallet();
   const { linkPrivyWallet, linking } = usePrivyWalletLink();
   const { payToTreasury } = usePrivyTreasuryPayment();
@@ -37,12 +51,14 @@ export function PrivyOnRampFundPanel({
   const [step, setStep] = useState<'idle' | 'funding' | 'paying' | 'depositing' | 'done'>('idle');
   const usesVaultDeposit = Boolean(vaultDeposits?.length);
 
+  const country = useMemo(() => resolveCountry(metadata), [metadata]);
+  const fiatSource = useMemo(() => resolvePrivyFiatOnRampSource(country), [country]);
   const fiatAsset = useMemo(() => {
-    if (typeof metadata?.fiatAsset === 'string') {
-      return metadata.fiatAsset;
+    if (typeof metadata?.fiatAsset === 'string' && metadata.fiatAsset.trim()) {
+      return metadata.fiatAsset.trim().toLowerCase();
     }
-    return 'usd';
-  }, [metadata?.fiatAsset]);
+    return fiatSource.defaultAsset;
+  }, [fiatSource.defaultAsset, metadata?.fiatAsset]);
 
   const runPrivyOnRamp = useCallback(async () => {
     if (!enabled || !ready) {
@@ -66,14 +82,23 @@ export function PrivyOnRampFundPanel({
         await linkPrivyWallet();
       }
 
-      await fundWallet({
-        address: walletAddress,
-        options: {
-          chain: base,
-          asset: 'USDC',
-          amount: amountUsd.toFixed(2)
-        }
+      const fundResult = await fund({
+        source: {
+          assets: fiatSource.assets as Parameters<typeof fund>[0]['source']['assets'],
+          defaultAsset: fiatAsset as Parameters<typeof fund>[0]['source']['defaultAsset']
+        },
+        destination: {
+          asset: 'usdc',
+          chain: PRIVY_FIAT_ONRAMP_BASE_CHAIN,
+          address: walletAddress
+        },
+        defaultAmount: amountUsd.toFixed(2),
+        environment: 'production'
       });
+
+      if (!isPrivyFundComplete(fundResult.status)) {
+        throw new Error('PRIVY_FUND_INCOMPLETE');
+      }
 
       setStep(usesVaultDeposit ? 'depositing' : 'paying');
       const txHash = usesVaultDeposit
@@ -83,7 +108,9 @@ export function PrivyOnRampFundPanel({
       await onFunded?.(txHash);
     } catch (fundError) {
       const message = fundError instanceof Error ? fundError.message : 'PRIVY_FUND_FAILED';
-      onError?.(message);
+      if (!message.toLowerCase().includes('closed') && !message.toLowerCase().includes('cancel')) {
+        onError?.(message);
+      }
       setStep('idle');
     } finally {
       setBusy(false);
@@ -95,7 +122,9 @@ export function PrivyOnRampFundPanel({
     depositToVaults,
     enabled,
     ensureReady,
-    fundWallet,
+    fiatAsset,
+    fiatSource.assets,
+    fund,
     linkPrivyWallet,
     onError,
     onFunded,
@@ -116,16 +145,18 @@ export function PrivyOnRampFundPanel({
 
   return (
     <div className="space-y-3 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
-      <p className="font-semibold text-terminal-primary">On-ramp Privy (tarjeta / Apple Pay)</p>
+      <p className="font-semibold text-terminal-primary">On-ramp Privy (tarjeta / transferencia)</p>
       <p className="text-xs text-terminal-muted">
         {usesVaultDeposit
           ? `Comprás USDC en Base con ${fiatAsset.toUpperCase()} y canjeamos automáticamente por tokens ERC-4626 en tu wallet.`
           : `Comprás USDC en Base con ${fiatAsset.toUpperCase()} y enviamos el pago al treasury para acreditar tus shares.`}{' '}
-        Prioridad: dLocal (SPEI/UPI) cuando esté disponible; Privy es el fallback internacional.
+        Privy enruta automáticamente a Stripe, MoonPay, Coinbase, Bridge u otros proveedores habilitados en tu dashboard.
       </p>
       {step === 'done' ? (
         <p className="text-xs font-medium text-emerald-700">
-          {usesVaultDeposit ? 'Tokens ERC-4626 acreditados en tu wallet. Confirmando…' : 'Pago enviado al treasury. Confirmando…'}
+          {usesVaultDeposit
+            ? 'Tokens ERC-4626 acreditados en tu wallet. Confirmando…'
+            : 'Pago enviado al treasury. Confirmando…'}
         </p>
       ) : (
         <button

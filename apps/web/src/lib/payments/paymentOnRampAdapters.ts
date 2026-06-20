@@ -186,6 +186,7 @@ export function createPrivyOnRampCheckout(input: OnRampRequest): OnRampResult {
       mode: 'privy_client_fund',
       network: 'BASE',
       settlement: 'treasury_first',
+      country,
       fiatAsset,
       amountUsd: input.amountUsd,
       treasuryAddress: walletAddress,

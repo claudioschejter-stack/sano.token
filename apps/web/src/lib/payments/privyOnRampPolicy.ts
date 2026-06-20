@@ -35,3 +35,18 @@ export function privyFiatAssetForCountry(country: string): string {
   const normalized = normalizePaymentCountry(country);
   return PRIVY_FIAT_BY_COUNTRY[normalized] ?? 'usd';
 }
+
+/** Base mainnet CAIP-2 chain id for Privy fiat on-ramp destination. */
+export const PRIVY_FIAT_ONRAMP_BASE_CHAIN = 'eip155:8453' as const;
+
+const GLOBAL_FIAT_FALLBACKS = ['usd', 'eur'] as const;
+
+/** Source currencies shown in Privy fiat on-ramp (country default + global fallbacks). */
+export function resolvePrivyFiatOnRampSource(country: string): {
+  assets: string[];
+  defaultAsset: string;
+} {
+  const defaultAsset = privyFiatAssetForCountry(country);
+  const assets = [...new Set([defaultAsset, ...GLOBAL_FIAT_FALLBACKS])];
+  return { assets, defaultAsset };
+}
