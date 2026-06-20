@@ -1,6 +1,25 @@
 import { base } from 'viem/chains';
 import type { PrivyClientConfig } from '@privy-io/react-auth';
 
+const DEFAULT_PRIVY_LOGIN_METHODS = ['email', 'sms'] as const;
+
+export type PrivyLoginMethod = 'email' | 'sms' | 'google' | 'apple' | 'wallet';
+
+export function resolvePrivyLoginMethods(): PrivyLoginMethod[] {
+  const raw = process.env.NEXT_PUBLIC_PRIVY_LOGIN_METHODS?.trim();
+  if (!raw) {
+    return [...DEFAULT_PRIVY_LOGIN_METHODS];
+  }
+
+  const allowed = new Set<PrivyLoginMethod>(['email', 'sms', 'google', 'apple', 'wallet']);
+  const parsed = raw
+    .split(',')
+    .map((item) => item.trim().toLowerCase())
+    .filter((item): item is PrivyLoginMethod => allowed.has(item as PrivyLoginMethod));
+
+  return parsed.length > 0 ? parsed : [...DEFAULT_PRIVY_LOGIN_METHODS];
+}
+
 export function isPrivyEnabled(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID?.trim());
 }
@@ -83,9 +102,9 @@ export function privyJwksUrl(): string {
   return id ? `https://auth.privy.io/api/v1/apps/${id}/jwks.json` : '';
 }
 
-/** Privy embedded wallet on Base — User Pays gas in USDC; mobile-first login. */
+/** Privy embedded wallet on Base — email/SMS login until Google OAuth is configured in Privy Dashboard. */
 export const privyClientConfig: PrivyClientConfig = {
-  loginMethods: ['email', 'google', 'apple', 'sms'],
+  loginMethods: resolvePrivyLoginMethods(),
   appearance: {
     theme: 'light',
     accentColor: '#2563eb',
