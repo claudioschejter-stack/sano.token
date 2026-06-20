@@ -63,6 +63,7 @@ function StatusBadge({ active, activeLabel, inactiveLabel }: { active: boolean; 
 export function AdminSettingsView() {
   const t = useTranslation();
   const integrationLabels = t.adminSettings.integrations as Record<IntegrationId, string>;
+  const setupHints = t.adminSettings.integrationSetupHints as Record<IntegrationId, string>;
 
   const [settings, setSettings] = useState<AdminSettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -143,6 +144,10 @@ export function AdminSettingsView() {
   }
 
   const sourceLabels = t.adminSettings.sources as Record<PlatformConfigFieldSource, string>;
+  const missingRequired =
+    settings?.integrations.filter((item) => !item.configured && !item.optional) ?? [];
+  const missingOptional =
+    settings?.integrations.filter((item) => !item.configured && item.optional) ?? [];
 
   return (
     <AdminGate>
@@ -277,13 +282,21 @@ export function AdminSettingsView() {
                 {INTEGRATION_IDS.map((id) => {
                   const integration = settings.integrations.find((row) => row.id === id);
                   const configured = integration?.configured ?? false;
+                  const optional = integration?.optional ?? false;
 
                   return (
                     <div
                       key={id}
                       className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3"
                     >
-                      <p className="text-sm font-medium text-terminal-text">{integrationLabels[id]}</p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-terminal-text">{integrationLabels[id]}</p>
+                        {optional ? (
+                          <span className="rounded-full border border-terminal-border px-2 py-0.5 text-[10px] uppercase tracking-wide text-terminal-muted">
+                            {t.adminSettings.integrationsOptional}
+                          </span>
+                        ) : null}
+                      </div>
                       <div className="mt-2">
                         <StatusBadge
                           active={configured}
@@ -295,6 +308,60 @@ export function AdminSettingsView() {
                   );
                 })}
               </div>
+
+              {missingRequired.length > 0 ? (
+                <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
+                  <h3 className="text-sm font-semibold text-terminal-text">
+                    {t.adminSettings.integrationsMissingTitle}
+                  </h3>
+                  <p className="mt-1 text-xs text-terminal-muted">{t.adminSettings.integrationsMissingDesc}</p>
+                  <ul className="mt-4 space-y-4">
+                    {missingRequired.map((item) => (
+                      <li key={item.id} className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3">
+                        <p className="text-sm font-medium text-terminal-text">
+                          {integrationLabels[item.id as IntegrationId]}
+                        </p>
+                        <p className="mt-2 text-xs text-terminal-muted">
+                          {setupHints[item.id as IntegrationId]}
+                        </p>
+                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-terminal-muted">
+                          {t.adminSettings.integrationEnvKeys}
+                        </p>
+                        <p className="mt-1 font-mono text-xs text-terminal-primary">{item.envKeys.join(' · ')}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="mt-6 flex items-center gap-2 text-sm text-terminal-success">
+                  <Check size={16} />
+                  {t.adminSettings.integrationsAllConfigured}
+                </p>
+              )}
+
+              {missingOptional.length > 0 ? (
+                <div className="mt-4 rounded-lg border border-dashed border-terminal-border bg-terminal-bg p-5">
+                  <h3 className="text-sm font-semibold text-terminal-text">
+                    {t.adminSettings.integrationsOptionalMissingTitle}
+                  </h3>
+                  <p className="mt-1 text-xs text-terminal-muted">
+                    {t.adminSettings.integrationsOptionalMissingDesc}
+                  </p>
+                  <ul className="mt-4 space-y-3">
+                    {missingOptional.map((item) => (
+                      <li key={item.id} className="text-sm">
+                        <p className="font-medium text-terminal-text">
+                          {integrationLabels[item.id as IntegrationId]}
+                        </p>
+                        <p className="mt-1 text-xs text-terminal-muted">
+                          {setupHints[item.id as IntegrationId]}
+                        </p>
+                        <p className="mt-1 font-mono text-[11px] text-terminal-muted">{item.envKeys.join(' · ')}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </section>
 
             <div className="grid gap-6 lg:grid-cols-2">
