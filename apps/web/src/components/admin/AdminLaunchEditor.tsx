@@ -1421,6 +1421,25 @@ export function AdminLaunchEditor({ mode, projectId, scope = 'marketplace' }: Ad
                     {l.tokenStatus}: {tokenStatus} · Vault: {vaultFundingStatus}
                   </p>
                 ) : null}
+                <AdminLaunchWalletBalances
+                  totalTokens={Number.parseInt(form.totalTokens, 10) || undefined}
+                  pricePerToken={Number.parseFloat(form.pricePerToken) || undefined}
+                />
+                <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-card/60 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-terminal-muted">
+                    Preflight on-chain
+                  </p>
+                  <div className="mt-2 grid gap-2 text-xs text-terminal-muted sm:grid-cols-2">
+                    <span>Red: Base ({BASE_MAINNET_CHAIN_ID})</span>
+                    <span>Gas operador: {tokenDeployHealth?.hasGas ? 'OK' : 'Pendiente'}</span>
+                    <span className="sm:col-span-2 break-all">
+                      Operador: {tokenDeployHealth?.deployerAddress ?? 'No configurada'}
+                    </span>
+                    {tokenDeployHealth?.gasCheckError ? (
+                      <span className="sm:col-span-2 text-red-400">{tokenDeployHealth.gasCheckError}</span>
+                    ) : null}
+                  </div>
+                </div>
                 {form.contracts.smartContract ? (
                   <a
                     href={form.contracts.smartContract}
