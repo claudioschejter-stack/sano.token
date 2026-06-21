@@ -1243,6 +1243,26 @@ export const en = {
     totalToPayLabel: "Total amount to pay",
     selectPaymentMethod: "Choose your payment method",
     choosePaymentMethod: "Choose a payment method",
+    paymentCountryDetected: "Paying from {country}",
+    paymentCountryHint:
+      "We detect your country to show available wallets and cards. Charges convert automatically to USDC on Base.",
+    paymentLaneElectronicWallet: "Electronic wallet",
+    paymentLaneElectronicWalletDesc:
+      "Mercado Pago, Modo, Ualá and other local wallets. Amount in local currency; we credit USDC on Base when confirmed.",
+    paymentLaneCryptoWallet: "Crypto wallet",
+    paymentLaneCryptoWalletDesc:
+      "Send USDC on Base from MetaMask, Coinbase Wallet, Privy or WalletConnect. Best if you already hold stablecoins.",
+    paymentLaneCard: "Credit / debit card",
+    paymentLaneCardDesc:
+      "Card form charged in USD or local currency. We route you through the cheapest provider.",
+    paymentLaneCheapest: "From {amount} (fees included)",
+    paymentLaneBack: "Back to payment types",
+    paymentFeesOnBuyer:
+      "All gateway fees, fiat→USDC conversion and Base gas are charged to the buyer.",
+    paymentLaneElectronicWalletMenu: "Choose your electronic wallet",
+    paymentLaneCryptoWalletMenu: "Choose your crypto wallet (USDC Base)",
+    paymentLaneCardMenu: "Credit or debit card",
+    paymentLaneCardCheapestHint: "Cheapest gateway for your country: {provider}.",
     checkoutFailed: "We couldn't complete your purchase. Please try again.",
     paymentMethodsAvailable: "Accepted payment methods",
     paymentMethodsUnavailable: "Unavailable payment methods",
@@ -1254,8 +1274,10 @@ export const en = {
       asia: "Asia",
       international: "International & on-ramp"
     },
+    electronicWalletLocalHint:
+      'You pay in local currency; the gateway converts automatically to USDC on Base (fees included in the total).',
     electronicWalletLinkedHint:
-      "USDC from your linked wallet ({address}) on Base — credited after transfer confirmation.",
+      "USDC from your linked wallet ({address}) on Base — credited once the transfer confirms.",
     walletCheckoutConnectButton: 'Connect {wallet}',
     walletMobileConnectHint: 'This will open the {wallet} app on your phone to authorize the connection.',
     walletDesktopConnectHint: 'Connect {wallet} to sign the USDC transfer.',

@@ -24,7 +24,13 @@ import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
 import { StickyActionBar } from '../mobile/StickyActionBar';
-import { PaymentMethodLogosButton } from './PaymentMethodLogosButton';
+import { CheckoutPaymentLaneSelector } from '../payments/CheckoutPaymentLaneSelector';
+import { useCheckoutPaymentCountry } from '../../hooks/useCheckoutPaymentCountry';
+import {
+  buildCheckoutPaymentLaneBundle,
+  defaultOptionIdForLane,
+  type CheckoutPaymentLaneId
+} from '../../lib/payments/checkoutPaymentLanes';
 import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
 import { WalletCheckoutConnectButton } from '../wallet/WalletCheckoutConnectButton';
 import { PrivyWalletCheckoutButton } from '../wallet/PrivyWalletCheckoutButton';
@@ -150,14 +156,6 @@ function formatDepositLocal(amount: number, currencyCode: string, intlLocale: st
   }).format(amount);
 }
 
-const CURRENCY_COUNTRY: Record<string, string> = {
-  ARS: 'AR',
-  BRL: 'BR',
-  USD: 'US',
-  EUR: 'EU',
-  INR: 'IN',
-  MXN: 'MX'
-};
 
 function buildVaultDepositsFromIntents(intents: PublicPaymentIntent[] | undefined): VaultDepositLine[] {
   if (!intents?.length) {
@@ -288,7 +286,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [embeddedReference, setEmbeddedReference] = useState<string | null>(null);
   const [pendingReference, setPendingReference] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [paymentMethodsExpanded, setPaymentMethodsExpanded] = useState(false);
+  const [paymentMethodsExpanded] = useState(true);
+  const [paymentLane, setPaymentLane] = useState<CheckoutPaymentLaneId | null>(null);
   const [ripioEwalletRail, setRipioEwalletRail] = useState<string | null>(null);
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
@@ -297,7 +296,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     [checkout?.paymentIntents]
   );
   const usesPrivyVaultDeposit = privyVaultDeposits.length > 0;
-  const depositCountry = CURRENCY_COUNTRY[currency] ?? 'AR';
+  const depositCountry = useCheckoutPaymentCountry(currency);
   const sortedDepositOptions = useMemo(() => sortDepositPaymentOptions(depositOptions), [depositOptions]);
   const paymentGroups = useMemo(
     () => (depositOptionGroups.length > 0 ? depositOptionGroups : groupDepositPaymentOptions(depositOptions)),
@@ -312,6 +311,25 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         credit_card: c.fiatCreditCard
       }),
     [sortedDepositOptions, c.fiatIntlTransfer, c.fiatDebitCard, c.fiatCreditCard]
+  );
+  const paymentLaneBundle = useMemo(
+    () =>
+      buildCheckoutPaymentLaneBundle({
+        options: sortedDepositOptions,
+        country: depositCountry,
+        fiatOnRampLabels: {
+          international_transfer: c.fiatIntlTransfer,
+          debit_card: c.fiatDebitCard,
+          credit_card: c.fiatCreditCard
+        }
+      }),
+    [
+      c.fiatCreditCard,
+      c.fiatDebitCard,
+      c.fiatIntlTransfer,
+      depositCountry,
+      sortedDepositOptions
+    ]
   );
   const resolvedPaymentSelection = useMemo(
     () =>
@@ -1272,6 +1290,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   address: `${walletGuard.linkedWallet.slice(0, 6)}…${walletGuard.linkedWallet.slice(-4)}`
                 })}
               </span>
+            ) : option.method === 'MERCADO_PAGO' || option.method === 'LOCAL_RAIL' || option.method === 'RIPIO' ? (
+              <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">
+                {c.electronicWalletLocalHint}
+              </span>
             ) : isFiatOnRampDisplay ? (
               <span className="mt-0.5 block text-[10px] leading-tight text-slate-600">{c.fiatOnRampChargeHint}</span>
             ) : optionUsesUsdc(option) ? (
@@ -1367,6 +1389,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     (status !== 'idle' && status !== 'manual') ||
     (mode === 'purchase' && items.length === 0) ||
     (showPaymentMethods && paymentQuoteExpired) ||
+    (showPaymentMethods && !paymentLane) ||
+    (showPaymentMethods && !selectedDepositOptionId) ||
     (requiresWallet &&
       selectedDepositOptionId &&
       (mode === 'deposit'
@@ -1530,87 +1554,80 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
           {showPaymentMethods ? (
             <div className="mb-[1mm] mt-[1mm]">
-              <PaymentMethodLogosButton
-                label={c.paymentOptionsTitle}
-                expanded={paymentMethodsExpanded}
-                onClick={() => setPaymentMethodsExpanded((open) => !open)}
-                disabled={sortedDepositOptions.length === 0}
-              />
+              <p className={SECTION_TITLE}>{c.selectPaymentMethod}</p>
             </div>
           ) : null}
 
           {showPaymentMethods && paymentMethodsExpanded ? (
-            <div className="space-y-[2mm] pb-[2mm]">
-              {paymentQuoteExpired ? (
-                <p className="text-xs text-terminal-warning">{c.quoteExpired}</p>
-              ) : null}
+            <CheckoutPaymentLaneSelector
+              bundle={paymentLaneBundle}
+              selectedLane={paymentLane}
+              onSelectLane={(laneId) => {
+                setPaymentLane(laneId);
+                if (!laneId) {
+                  return;
+                }
+                const nextOptionId = defaultOptionIdForLane(laneId, paymentLaneBundle);
+                if (nextOptionId) {
+                  setSelectedDepositOptionId(nextOptionId);
+                }
+                if (laneId !== 'electronic_wallet') {
+                  setRipioEwalletRail(null);
+                }
+              }}
+              ripioEwalletRail={ripioEwalletRail}
+              onSelectRipioRail={(rail) => {
+                setRipioEwalletRail(rail);
+                setSelectedDepositOptionId(RIPIO_EWALLET_PARENT_ID);
+              }}
+              ripioRails={RIPIO_EWALLET_RAILS}
+              labels={{
+                countryDetected: c.paymentCountryDetected,
+                countryHint: c.paymentCountryHint,
+                laneElectronicWallet: c.paymentLaneElectronicWallet,
+                laneElectronicWalletDesc: c.paymentLaneElectronicWalletDesc,
+                laneCryptoWallet: c.paymentLaneCryptoWallet,
+                laneCryptoWalletDesc: c.paymentLaneCryptoWalletDesc,
+                laneCard: c.paymentLaneCard,
+                laneCardDesc: c.paymentLaneCardDesc,
+                laneCheapest: c.paymentLaneCheapest,
+                backToLanes: c.paymentLaneBack,
+                feesOnBuyer: c.paymentFeesOnBuyer,
+                electronicWalletMenuTitle: c.paymentLaneElectronicWalletMenu,
+                cryptoWalletMenuTitle: c.paymentLaneCryptoWalletMenu,
+                cardMenuTitle: c.paymentLaneCardMenu,
+                cardCheapestHint: c.paymentLaneCardCheapestHint,
+                unavailable: c.paymentUnavailable,
+                ripioEwalletTitle: c.ripioEwalletTitle
+              }}
+              formatLocalAmount={(option) =>
+                option.totalLocal != null
+                  ? formatDepositLocal(option.totalLocal, option.displayCurrency, intlLocale)
+                  : formatUsd2(option.totalUsd, currencyLocale)
+              }
+              renderOption={renderDepositOption}
+            />
+          ) : null}
 
-              {paymentDisplaySections.walletOptions.length > 0 ? (
-                <div>
-                  <p className={SECTION_TITLE}>
-                    {c.paymentGroups.linked_wallet}
-                  </p>
-                  <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                    {paymentDisplaySections.walletOptions.map((option) => renderDepositOption(option))}
-                  </div>
-                </div>
-              ) : null}
+          {showPaymentMethods && paymentMethodsExpanded && paymentQuoteExpired ? (
+            <p className="pb-[2mm] text-xs text-terminal-warning">{c.quoteExpired}</p>
+          ) : null}
 
-              {paymentDisplaySections.fiatOnRampOptions.length > 0 ? (
-                <div>
-                  <p className={SECTION_TITLE}>
-                    {c.paymentGroups.international}
-                  </p>
-                  <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                    {paymentDisplaySections.fiatOnRampOptions.map((option) => renderDepositOption(option))}
-                  </div>
-                </div>
+          {showPaymentMethods && paymentMethodsExpanded ? (
+            <div className="md:hidden">
+              <button
+                type="button"
+                disabled={confirmDisabled}
+                onClick={() => void handleConfirm()}
+                className="min-h-12 w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {confirmLabel}
+              </button>
+              {quoteExpiresAt && quoteSecondsLeft > 0 ? (
+                <p className="mt-1 text-right text-xs font-medium text-terminal-primary">
+                  {formatMessage(c.quoteExpiresIn, { seconds: String(quoteSecondsLeft) })}
+                </p>
               ) : null}
-
-              {paymentDisplaySections.ripioEwalletOption ? (
-                <div>
-                  <p className={SECTION_TITLE}>
-                    {c.paymentGroups.argentina}
-                  </p>
-                  <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                    {renderDepositOption(paymentDisplaySections.ripioEwalletOption)}
-                  </div>
-                </div>
-              ) : null}
-
-              {paymentDisplaySections.independentOptions.length > 0 ? (
-                <div>
-                  <p className={SECTION_TITLE}>
-                    {c.paymentGroups.argentina}
-                  </p>
-                  <div className="divide-y divide-terminal-border overflow-hidden rounded-lg border border-terminal-border bg-white">
-                    {paymentDisplaySections.independentOptions.map((option) => renderDepositOption(option))}
-                  </div>
-                </div>
-              ) : null}
-
-              {sortedDepositOptions.length === 0 && totalUsd > 0 ? (
-                <p className="text-xs text-terminal-muted">{c.processing}</p>
-              ) : null}
-              {sortedDepositOptions.length === 0 && totalUsd <= 0 ? (
-                <p className="text-xs text-terminal-warning">{c.invalidAmount}</p>
-              ) : null}
-
-              <div className="md:hidden">
-                <button
-                  type="button"
-                  disabled={confirmDisabled}
-                  onClick={() => void handleConfirm()}
-                  className="min-h-12 w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {confirmLabel}
-                </button>
-                {quoteExpiresAt && quoteSecondsLeft > 0 ? (
-                  <p className="mt-1 text-right text-xs font-medium text-terminal-primary">
-                    {formatMessage(c.quoteExpiresIn, { seconds: String(quoteSecondsLeft) })}
-                  </p>
-                ) : null}
-              </div>
             </div>
           ) : null}
 

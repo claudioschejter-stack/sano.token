@@ -1257,6 +1257,26 @@ export const es = {
     totalToPayLabel: 'Monto total a pagar',
     selectPaymentMethod: 'Elige tu forma de pago',
     choosePaymentMethod: 'Elegí la forma de pago',
+    paymentCountryDetected: 'Pagás desde {country}',
+    paymentCountryHint:
+      'Detectamos tu país para mostrar billeteras y tarjetas disponibles. El cargo se convierte automáticamente a USDC Base.',
+    paymentLaneElectronicWallet: 'Billetera electrónica',
+    paymentLaneElectronicWalletDesc:
+      'Mercado Pago, Modo, Ualá y otras billeteras locales. Monto en moneda local; acreditamos USDC Base al confirmar.',
+    paymentLaneCryptoWallet: 'Billetera criptomonedas',
+    paymentLaneCryptoWalletDesc:
+      'Enviá USDC Base desde MetaMask, Coinbase Wallet, Privy o WalletConnect. Opción más directa si ya tenés stablecoins.',
+    paymentLaneCard: 'Tarjeta de crédito / débito',
+    paymentLaneCardDesc:
+      'Formulario de tarjeta con cargo en USD o moneda local. Elegimos la pasarela más barata para vos.',
+    paymentLaneCheapest: 'Desde {amount} (comisiones incluidas)',
+    paymentLaneBack: 'Volver a formas de pago',
+    paymentFeesOnBuyer:
+      'Todas las comisiones de pasarela, conversión fiat→USDC y gas en Base se cargan al comprador.',
+    paymentLaneElectronicWalletMenu: 'Elegí tu billetera electrónica',
+    paymentLaneCryptoWalletMenu: 'Elegí tu billetera cripto (USDC Base)',
+    paymentLaneCardMenu: 'Tarjeta de crédito o débito',
+    paymentLaneCardCheapestHint: 'Pasarela más económica para tu país: {provider}.',
     checkoutFailed: 'No se pudo completar la compra. Intentá de nuevo.',
     paymentMethodsAvailable: 'Formas de pago aceptadas',
     paymentMethodsUnavailable: 'Formas de pago no disponibles',
@@ -1268,6 +1288,8 @@ export const es = {
       asia: 'Asia',
       international: 'Internacional y on-ramp'
     },
+    electronicWalletLocalHint:
+      'Pagás en moneda local; la pasarela convierte automáticamente a USDC Base (comisiones incluidas en el total).',
     electronicWalletLinkedHint:
       'USDC desde tu billetera vinculada ({address}) en Base — se acredita al confirmar la transferencia.',
     walletCheckoutConnectButton: 'Conectar {wallet}',
