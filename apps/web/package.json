@@ -32,6 +32,8 @@
         "@sentry/nextjs": "^9.5.0",
         "@simplewebauthn/browser": "^13.1.0",
         "@simplewebauthn/server": "^13.1.1",
+        "@stripe/crypto": "^1.1.0",
+        "@stripe/stripe-js": "^9.8.0",
         "@supabase/supabase-js": "^2.106.1",
         "@tanstack/react-query": "^5.81.5",
         "@vercel/speed-insights": "^2.0.0",

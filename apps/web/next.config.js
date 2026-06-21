@@ -18,10 +18,15 @@ const nextConfig = {
   webpack: (config, { isServer }) => {
     const uaParserMin = path.join(monorepoRoot, 'node_modules/ua-parser-js/dist/ua-parser.min.js');
 
+    const emptyModule = path.join(__dirname, 'src/lib/shims/empty-module.js');
+
     config.resolve.alias = {
       ...config.resolve.alias,
       '@noble/hashes/_assert': path.join(__dirname, 'src/lib/shims/noble-hashes-assert.js'),
       '@wagmi/connectors': path.join(__dirname, 'src/lib/shims/wagmi-connectors.js'),
+      '@farcaster/mini-app-solana': emptyModule,
+      '@farcaster/miniapp-sdk': emptyModule,
+      '@solana/wallet-adapter-react': emptyModule,
       '@walletconnect/utils': path.join(monorepoRoot, 'node_modules/@walletconnect/utils'),
       '@walletconnect/universal-provider': path.join(monorepoRoot, 'node_modules/@walletconnect/universal-provider'),
       '@walletconnect/sign-client': path.join(monorepoRoot, 'node_modules/@walletconnect/sign-client'),
