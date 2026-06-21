@@ -29,6 +29,11 @@ export function resolveMorphoMarketSlug(
   return `${vaultSymbol}-usdc`;
 }
 
+/** In-app borrow flow (Morpho Blue txs prepared by Sanova on Base). */
+export function buildSanovaBorrowPath(projectId: string): string {
+  return `/marketplace/${encodeURIComponent(projectId.trim())}/prestamo`;
+}
+
 export function buildMorphoMarketPoolUrl(marketId: string, collateralSymbol?: string | null): string {
   const normalizedId = marketId.trim();
   const slug = resolveMorphoMarketSlug(normalizedId, collateralSymbol);

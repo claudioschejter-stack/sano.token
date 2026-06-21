@@ -2,7 +2,7 @@ import { Contract, JsonRpcProvider } from 'ethers';
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 import { getLendingChainConfig } from './baseContracts';
-import { buildMorphoMarketPoolUrl } from './morphoMarketUrls';
+import { buildMorphoMarketPoolUrl, buildSanovaBorrowPath } from './morphoMarketUrls';
 import { buildDefaultMorphoMarketParams, morphoMarketId } from './protocols/morphoBorrow';
 
 export type MorphoLiquidityMarketRow = {
@@ -13,6 +13,7 @@ export type MorphoLiquidityMarketRow = {
   totalBorrowUsdc: number;
   status: 'LIQUID' | 'NO_LIQUIDITY' | 'NO_MARKET' | 'FAILED';
   poolUrl: string | null;
+  borrowUrl: string | null;
   marketId: string | null;
   readyToBorrow: boolean;
   cachedStatus: string | null;
@@ -55,6 +56,7 @@ export async function readMorphoMarketLiquidity(asset: AdminAssetRecord): Promis
     poolUrl: morphoTarget?.externalId
       ? buildMorphoMarketPoolUrl(morphoTarget.externalId, asset.tokenSymbol)
       : morphoTarget?.poolUrl ?? null,
+    borrowUrl: asset.readyToBorrow ? buildSanovaBorrowPath(asset.id) : null,
     marketId: morphoTarget?.externalId ?? null,
     readyToBorrow: asset.readyToBorrow,
     cachedStatus: asset.morphoLiquidityStatus ?? null
@@ -95,7 +97,8 @@ export async function readMorphoMarketLiquidity(asset: AdminAssetRecord): Promis
       totalBorrowUsdc: baseUnitsToUsdc(totalBorrowAssets),
       status: availableAssets > 0n ? 'LIQUID' : 'NO_LIQUIDITY',
       marketId,
-    poolUrl: morphoTarget.poolUrl ?? buildMorphoMarketPoolUrl(marketId, asset.tokenSymbol),
+      poolUrl: morphoTarget.poolUrl ?? buildMorphoMarketPoolUrl(marketId, asset.tokenSymbol),
+      borrowUrl: availableAssets > 0n && asset.readyToBorrow ? buildSanovaBorrowPath(asset.id) : null
     };
   } catch {
     return {

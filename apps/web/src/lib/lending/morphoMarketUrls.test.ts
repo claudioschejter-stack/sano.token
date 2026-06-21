@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildMorphoMarketPoolUrl, resolveMorphoMarketSlug } from './morphoMarketUrls';
+import { buildMorphoMarketPoolUrl, buildSanovaBorrowPath, resolveMorphoMarketSlug } from './morphoMarketUrls';
 
 describe('morphoMarketUrls', () => {
   it('uses known slug for Añelo NAV market', () => {
@@ -24,5 +24,11 @@ describe('morphoMarketUrls', () => {
 
   it('derives slug from token symbol when market is unknown', () => {
     expect(resolveMorphoMarketSlug('0xabc', 'UV3RWA')).toBe('vuv3rwa-usdc');
+  });
+
+  it('builds in-app borrow path', () => {
+    expect(buildSanovaBorrowPath('proj-apart-hotel-urban-view-anelo-mplonxbv')).toBe(
+      '/marketplace/proj-apart-hotel-urban-view-anelo-mplonxbv/prestamo'
+    );
   });
 });

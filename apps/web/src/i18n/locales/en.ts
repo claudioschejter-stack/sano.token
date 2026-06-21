@@ -169,7 +169,7 @@ export const en = {
     projectBorrow: {
       eyebrow: "Collateralized loan",
       titleFallback: "Loan against RWA tokens",
-      subtitle: "Preview the available rate and maximum amount you can borrow automatically using your tokens as collateral.",
+      subtitle: "Borrow USDC on-chain on Base using your vault shares as collateral. Do not use app.morpho.org for custom RWA markets.",
       backToMarketplace: "Back to marketplace",
       loading: "Loading loan conditions…",
       ratesUnavailable: "We could not load borrowing rates right now."
@@ -2154,7 +2154,11 @@ export const en = {
     availableLabel: "Total Morpho liquidity available",
     chainHint: "Chain ID {chainId} (Base)",
     baseNetworkHint:
-      "Morpho runs on Base only. If your wallet shows the wrong network, switch to Base (8453) before opening a market.",
+      'Loans run on Base (8453) through Sanova, not on app.morpho.org. Connect your wallet on Base before borrowing.',
+    borrowOnSanovaHint:
+      'Custom RWA markets are not listed on Morpho.org ("Market is not listed" is expected). Borrow here via "Request loan" or Marketplace → Property → Loan.',
+    borrowLink: 'Request loan',
+    noLiquidityBorrow: 'No USDC to borrow',
     updated: "Updated",
     refresh: "Refresh",
     loading: "Reading Morpho markets…",

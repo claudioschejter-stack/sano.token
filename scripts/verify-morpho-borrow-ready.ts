@@ -15,7 +15,6 @@ if (process.env.DIRECT_URL?.trim()) {
 }
 
 const PROJECT_ID = 'proj-apart-hotel-urban-view-anelo-mplonxbv';
-const MARKET_ID = '0x81e928e6f75f1c5a7f59a1b3f9d96e856b537fbecb53914e156df346b8f1a00d';
 
 async function main() {
   const { getAdminAsset } = await import('../apps/web/src/lib/admin/assetsService.ts');
@@ -32,6 +31,7 @@ async function main() {
   const morphoTarget = asset.collateralTargets.find((t) => t.protocol === 'MORPHO');
   const vault = asset.vaultAddress;
   const params = vault ? buildDefaultMorphoMarketParams(vault, morphoTarget?.oracleAddress ?? null) : null;
+  const marketId = params ? morphoMarketId(params) : null;
 
   console.log('=== C — Morpho borrow readiness ===\n');
   console.log('Project:', asset.title);
@@ -39,7 +39,12 @@ async function main() {
   console.log('morphoLiquidityStatus:', asset.morphoLiquidityStatus);
   console.log('vault:', vault);
   console.log('morphoStatus:', morphoTarget?.status);
-  console.log('marketId:', params ? morphoMarketId(params) : null);
+  console.log('marketId:', marketId);
+  console.log('borrowUrl:', `/marketplace/${PROJECT_ID}/prestamo`);
+
+  if (!marketId) {
+    throw new Error('Could not derive Morpho market id from vault + oracle');
+  }
 
   const rpc = process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
   const provider = new JsonRpcProvider(rpc);
@@ -50,11 +55,13 @@ async function main() {
     provider
   );
 
-  const market = await morphoContract.market(MARKET_ID);
+  const market = await morphoContract.market(marketId);
   const supply = BigInt(market[0] ?? 0);
   const borrow = BigInt(market[2] ?? 0);
   const available = supply > borrow ? supply - borrow : 0n;
   console.log('\nOn-chain liquidity (USDC base units):', available.toString());
+  console.log('Total supply (base units):', supply.toString());
+  console.log('Total borrow (base units):', borrow.toString());
 
   const ok =
     asset.readyToBorrow &&
@@ -63,6 +70,7 @@ async function main() {
     available > 0n;
 
   console.log('\nBorrow UI should work:', ok ? 'YES' : 'NO');
+  console.log('Note: app.morpho.org may show "Market is not listed" for custom RWA markets — use Sanova borrow flow.');
 
   if (!ok) {
     process.exit(1);
@@ -71,7 +79,7 @@ async function main() {
   console.log('\nManual test:');
   console.log('  1. Login → /marketplace (INVESTOR role sees borrow rates)');
   console.log('  2. Connect wallet on Base with vault shares as collateral');
-  console.log('  3. Borrow panel → Morpho → enter amount → sign txs');
+  console.log(`  3. ${`/marketplace/${PROJECT_ID}/prestamo`} → enter amount → sign txs`);
 
   provider.destroy();
 }

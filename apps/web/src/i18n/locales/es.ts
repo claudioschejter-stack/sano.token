@@ -175,7 +175,7 @@ export const es = {
     projectBorrow: {
       eyebrow: 'Préstamo colateralizado',
       titleFallback: 'Préstamo sobre tokens RWA',
-      subtitle: 'Simulá la tasa disponible y el monto máximo que podés pedir automáticamente con tus tokens como colateral.',
+      subtitle: 'Pedí USDC on-chain en Base con tus shares del vault como colateral. No uses app.morpho.org para mercados RWA custom.',
       backToMarketplace: 'Volver al marketplace',
       loading: 'Cargando condiciones de préstamo…',
       ratesUnavailable: 'No pudimos cargar las tasas de endeudamiento en este momento.'
@@ -2192,7 +2192,11 @@ export const es = {
     availableLabel: 'Liquidez Morpho disponible',
     chainHint: 'Red {chainId} (Base)',
     baseNetworkHint:
-      'Morpho opera solo en Base. Si tu wallet muestra "red equivocada", cambiá a Base (8453) antes de abrir el mercado.',
+      'Los préstamos se ejecutan en Base (8453) desde Sanova, no en app.morpho.org. Conectá tu wallet en Base antes de pedir prestado.',
+    borrowOnSanovaHint:
+      'Los mercados RWA custom no aparecen en Morpho.org ("Market is not listed" es normal). Pedí el préstamo acá con el botón "Pedir préstamo" o desde Marketplace → Propiedad → Préstamo.',
+    borrowLink: 'Pedir préstamo',
+    noLiquidityBorrow: 'Sin USDC prestable',
     updated: 'Actualizado',
     refresh: 'Actualizar',
     loading: 'Leyendo mercados Morpho…',

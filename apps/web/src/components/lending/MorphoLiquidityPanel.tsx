@@ -1,12 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { Droplets, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowRight, Droplets, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { MorphoLiquiditySnapshot } from '../../lib/lending/morphoLiquiditySnapshot';
-import { MorphoMarketLink } from './MorphoMarketLink';
 
 type MorphoLiquidityPanelProps = {
   loansHref?: string;
@@ -113,6 +112,7 @@ export function MorphoLiquidityPanel({
               {snapshot.updatedAt ? ` · ${m.updated} ${new Date(snapshot.updatedAt).toLocaleString(intlLocale)}` : ''}
             </p>
             <p className="mt-1 text-xs text-terminal-warning">{m.baseNetworkHint}</p>
+            <p className="mt-2 text-xs text-terminal-muted">{m.borrowOnSanovaHint}</p>
           </div>
 
           {snapshot.markets.length === 0 ? (
@@ -133,14 +133,16 @@ export function MorphoLiquidityPanel({
                         .replace('{borrow}', formatUsd(market.totalBorrowUsdc))}
                     </p>
                   </div>
-                  {market.poolUrl ? (
-                    <MorphoMarketLink
-                      href={market.poolUrl}
-                      className="inline-flex items-center gap-1 text-xs text-terminal-primary hover:underline"
+                  {market.borrowUrl ? (
+                    <Link
+                      href={market.borrowUrl}
+                      className="inline-flex items-center gap-1 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-1.5 text-xs font-semibold text-terminal-primary hover:bg-terminal-primary/20"
                     >
-                      Morpho
-                      <ExternalLink size={12} />
-                    </MorphoMarketLink>
+                      {m.borrowLink}
+                      <ArrowRight size={12} />
+                    </Link>
+                  ) : market.status === 'NO_LIQUIDITY' ? (
+                    <span className="text-xs text-terminal-muted">{m.noLiquidityBorrow}</span>
                   ) : null}
                 </li>
               ))}
