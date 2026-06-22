@@ -123,9 +123,10 @@ export function PrivyEarnVaultsPanel({ compact = false, className = '' }: PrivyE
             {vaults.map((vault) => (
               <li key={vault.vaultId} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-terminal-text">
-                    {vault.projectTitle ?? vault.name}
-                  </p>
+                  <p className="truncate font-medium text-terminal-text">{vault.name}</p>
+                  {vault.projectTitle && vault.projectTitle !== vault.name ? (
+                    <p className="mt-0.5 truncate text-xs text-terminal-muted">{vault.projectTitle}</p>
+                  ) : null}
                   <p className="mt-0.5 text-xs text-terminal-muted">
                     {vault.provider}
                     {vault.assetSymbol ? ` · ${vault.assetSymbol}` : ''}

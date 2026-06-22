@@ -17,7 +17,7 @@ const ADVISOR_COMMISSIONS_PREFIX = '/dashboard/commissions';
 
 const MANAGER_TEAM_PREFIX = '/dashboard/team';
 
-const INVESTOR_ROUTE_PREFIXES = ['/dashboard/portfolio'] as const;
+const INVESTOR_ROUTE_PREFIXES = ['/dashboard/portfolio', '/dashboard/inversiones'] as const;
 
 const CASH_FLOW_PREFIX = '/dashboard/cash-flow';
 

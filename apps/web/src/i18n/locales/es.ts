@@ -188,6 +188,7 @@ export const es = {
     panel: 'Panel de control',
     marketplace: 'Marketplace',
     myAssets: 'Mis Activos',
+    investments: 'Inversiones',
     myWallet: 'Mi Cartera',
     cashFlow: 'Flujo de Caja',
     collectionWallet: 'Wallet de cobro',
@@ -2241,7 +2242,7 @@ export const es = {
     apyLabel: 'Rendimiento',
     tvlLabel: 'TVL',
     liquidityLabel: 'Liquidez disponible',
-    depositButton: 'Depositar USDC',
+    depositButton: 'Invertir en USDC',
     explorerLabel: 'Ver en BaseScan',
     refresh: 'Actualizar',
     loading: 'Cargando vaults desde Privy…',
@@ -2249,7 +2250,12 @@ export const es = {
     empty: 'Todavía no hay vaults Earn configurados.',
     updated: 'Actualizado',
     footnote:
-      'El depósito pasa por checkout: el USDC se convierte en shares ERC-4626 en tu wallet Privy vía Privy Earn.'
+      'La inversión pasa por checkout: financiá USDC con la pasarela de pagos y recibí shares ERC-4626 en tu wallet Privy vía Privy Earn.'
+  },
+  investments: {
+    title: 'Inversiones',
+    subtitle:
+      'Vaults de rendimiento USDC en Base vía Privy Earn — elegí un fondo e invertí con la pasarela de pagos.'
   },
   demo: {
     assets: {

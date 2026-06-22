@@ -10,6 +10,7 @@ import {
   LogOut,
   Settings,
   ShoppingBag,
+  TrendingUp,
   UserCheck,
   Users,
   UserCog,
@@ -43,6 +44,7 @@ type InvestorNavConfig = {
     | 'marketplace'
     | 'secondaryMarket'
     | 'myAssets'
+    | 'investments'
     | 'myWallet'
     | 'cashFlow';
   roles?: SystemRole[];
@@ -70,6 +72,7 @@ type AdvisorNavConfig = {
     | 'commissions'
     | 'team'
     | 'myAssets'
+    | 'investments'
     | 'marketplace'
     | 'secondaryMarket'
     | 'myWallet';
@@ -81,6 +84,12 @@ const advisorNavItems: AdvisorNavConfig[] = [
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   { href: '/dashboard/clients', icon: UserCheck, labelKey: 'clients' },
   { href: '/dashboard/portfolio', icon: Building2, labelKey: 'myAssets' },
+  {
+    href: '/dashboard/inversiones',
+    icon: TrendingUp,
+    labelKey: 'investments',
+    roles: ['INVESTOR', 'ADVISOR', 'ADVISOR_MANAGER']
+  },
   { href: '/dashboard/commissions', icon: CircleDollarSign, labelKey: 'commissions' },
   {
     href: '/dashboard/team',
@@ -101,6 +110,12 @@ const investorNavItems: InvestorNavConfig[] = [
     href: '/dashboard/portfolio',
     icon: Building2,
     labelKey: 'myAssets',
+    roles: ['INVESTOR']
+  },
+  {
+    href: '/dashboard/inversiones',
+    icon: TrendingUp,
+    labelKey: 'investments',
     roles: ['INVESTOR']
   },
   {
@@ -279,6 +294,8 @@ export function AppSidebar() {
           ? t.advisorPortal.navClients
           : item.labelKey === 'myAssets'
             ? t.nav.myAssets
+            : item.labelKey === 'investments'
+              ? t.nav.investments
             : item.labelKey === 'commissions'
             ? t.advisorPortal.navCommissions
             : item.labelKey === 'team'

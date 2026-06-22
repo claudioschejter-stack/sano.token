@@ -182,6 +182,7 @@ export const en = {
     panel: "Control panel",
     marketplace: "Marketplace",
     myAssets: "My Assets",
+    investments: "Investments",
     myWallet: "My Wallet",
     cashFlow: "Cash Flow",
     collectionWallet: "Collection wallet",
@@ -2203,7 +2204,7 @@ export const en = {
     apyLabel: 'APY',
     tvlLabel: 'TVL',
     liquidityLabel: 'Available liquidity',
-    depositButton: 'Deposit USDC',
+    depositButton: 'Invest in USDC',
     explorerLabel: 'View on BaseScan',
     refresh: 'Refresh',
     loading: 'Loading vaults from Privy…',
@@ -2211,7 +2212,12 @@ export const en = {
     empty: 'No Earn vaults configured yet.',
     updated: 'Updated',
     footnote:
-      'Deposits go through checkout: USDC is converted to ERC-4626 shares in your Privy wallet via Privy Earn.'
+      'Investment goes through checkout: fund USDC via the payment gateway, then receive ERC-4626 shares in your Privy wallet via Privy Earn.'
+  },
+  investments: {
+    title: 'Investments',
+    subtitle:
+      'USDC yield vaults on Base via Privy Earn — choose a fund and invest through the payment gateway.'
   },
   demo: {
     assets: {

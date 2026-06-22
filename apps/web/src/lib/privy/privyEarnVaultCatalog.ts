@@ -64,11 +64,18 @@ function resolveAssetSymbol(details: Record<string, unknown>): string {
   return 'USDC';
 }
 
-function buildCheckoutHref(projectId: string | null): string {
-  if (projectId) {
-    return `/marketplace/${projectId}/checkout`;
+function buildCheckoutHref(vaultId: string, vaultAddress: string): string {
+  const params = new URLSearchParams({
+    mode: 'deposit',
+    returnTo: '/dashboard/inversiones'
+  });
+  if (vaultId.trim()) {
+    params.set('earnVaultId', vaultId.trim());
   }
-  return '/marketplace/carrito?mode=deposit';
+  if (vaultAddress.trim()) {
+    params.set('vaultAddress', vaultAddress.trim());
+  }
+  return `/marketplace/carrito?${params.toString()}`;
 }
 
 export async function listPrivyEarnVaultCatalog(): Promise<{
@@ -117,7 +124,10 @@ export async function listPrivyEarnVaultCatalog(): Promise<{
         availableLiquidityUsd: parseUsd(details, 'available_liquidity_usd'),
         projectId: project?.id ?? null,
         projectTitle: project?.title ?? null,
-        checkoutHref: buildCheckoutHref(project?.id ?? null)
+        checkoutHref: buildCheckoutHref(
+          typeof details.id === 'string' ? details.id : vaultId,
+          vaultAddress
+        )
       });
     } catch (error) {
       console.error('[privyEarnVaultCatalog]', vaultId, error);
@@ -133,7 +143,7 @@ export async function listPrivyEarnVaultCatalog(): Promise<{
           availableLiquidityUsd: 0,
           projectId: null,
           projectTitle: null,
-          checkoutHref: buildCheckoutHref(null)
+          checkoutHref: buildCheckoutHref(vaultId, '')
         });
       }
     }

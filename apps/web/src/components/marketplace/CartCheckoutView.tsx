@@ -218,6 +218,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const batchFromQuery = searchParams.get('batch');
   const depositFromQuery = searchParams.get('deposit');
   const providerFromQuery = searchParams.get('provider');
+  const depositReturnTo = searchParams.get('returnTo')?.trim() || '/dashboard/inversiones';
 
   const items = useCartStore((state) => state.items);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -1416,7 +1417,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     <section className="mx-auto max-w-3xl pb-28 md:pb-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
-          href={mode === 'deposit' ? '/dashboard/portfolio' : '/marketplace'}
+          href={mode === 'deposit' ? depositReturnTo : '/marketplace'}
           className="inline-flex items-center gap-2 text-sm text-terminal-muted hover:text-terminal-text"
         >
           <ArrowLeft size={16} />
@@ -1751,7 +1752,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 </p>
               ) : null}
               <Link
-                href={mode === 'deposit' ? '/dashboard/portfolio' : '/dashboard/portfolio'}
+                href={depositReturnTo}
                 className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
               >
                 {mode === 'deposit' ? c.backToWallet : t.checkout.viewPortfolio}
@@ -1783,7 +1784,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               ) : null}
               {status !== 'share_failed' ? (
                 <Link
-                  href="/dashboard/portfolio"
+                  href={mode === 'deposit' ? depositReturnTo : '/dashboard/portfolio'}
                   className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
                 >
                   {mode === 'deposit' ? c.backToWallet : t.checkout.viewPortfolio}
