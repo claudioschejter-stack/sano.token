@@ -1,0 +1,11 @@
+{
+  "name": "sanova-compliance-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "pdf:flow-of-funds": "node generate-flow-of-funds-pdf.mjs"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.8.0"
+  }
+}

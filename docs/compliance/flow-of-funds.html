@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SANOVA Capital — Flow of Funds</title>
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #1a1a2e;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      margin: 0;
+      padding: 0;
+    }
+    .page { page-break-after: always; padding: 0; }
+    .page:last-child { page-break-after: auto; }
+    header.doc-header {
+      border-bottom: 3px solid #0f4c5c;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+    header.doc-header h1 {
+      margin: 0 0 4px;
+      font-size: 22pt;
+      color: #0f4c5c;
+      letter-spacing: -0.02em;
+    }
+    header.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+    header.doc-header .meta { font-size: 9pt; color: #666; margin-top: 8px; }
+    h2 {
+      font-size: 13pt;
+      color: #0f4c5c;
+      border-left: 4px solid #5fa8d3;
+      padding-left: 10px;
+      margin: 22px 0 10px;
+    }
+    h3 { font-size: 11pt; margin: 14px 0 8px; color: #333; }
+    p { margin: 0 0 10px; }
+    ul { margin: 0 0 10px 18px; padding: 0; }
+    li { margin-bottom: 4px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 7px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #e8f4f8; color: #0f4c5c; }
+    .diagram {
+      border: 1px solid #d0d7de;
+      border-radius: 6px;
+      padding: 12px;
+      margin: 12px 0 16px;
+      background: #fafbfc;
+    }
+    .diagram svg { width: 100%; height: auto; display: block; }
+    .note {
+      background: #fff8e6;
+      border-left: 4px solid #e9a820;
+      padding: 10px 12px;
+      margin: 12px 0;
+      font-size: 9.5pt;
+    }
+    .footer-note {
+      margin-top: 24px;
+      font-size: 8.5pt;
+      color: #666;
+      border-top: 1px solid #ddd;
+      padding-top: 8px;
+    }
+    .badge {
+      display: inline-block;
+      background: #0f4c5c;
+      color: #fff;
+      font-size: 8pt;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-right: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <header class="doc-header">
+    <h1>SANOVA Capital</h1>
+    <p class="subtitle">Third-Party Money Movement — Flow of Funds Diagram</p>
+    <p class="meta">
+      Platform: <strong>https://www.sanovacapital.com</strong> &nbsp;|&nbsp;
+      Settlement: <strong>USDC on Base (chain ID 8453)</strong> &nbsp;|&nbsp;
+      Document date: <strong>June 2026</strong>
+    </p>
+  </header>
+
+  <h2>1. Intended use case</h2>
+  <p>
+    Sanova Capital operates a regulated marketplace where <strong>KYC-approved investors</strong> purchase
+    <strong>fractional shares</strong> of tokenized real estate projects. Shares are represented as
+    <strong>ERC-4626 vault tokens</strong> on the Base blockchain.
+  </p>
+  <p>
+    The platform acts as <strong>merchant of record</strong> for the investment transaction. Licensed
+    <strong>third-party payment providers</strong> collect fiat or facilitate crypto on-ramp on our behalf.
+    All on-chain investment settlement is denominated in <strong>USDC on Base</strong>.
+  </p>
+  <p>Investor funds are used exclusively to:</p>
+  <ul>
+    <li>Settle the investor’s purchase of RWA vault shares</li>
+    <li>Pay platform and advisor commissions (USDC, on-chain)</li>
+    <li>Fund property SPV vaults that back the tokenized assets</li>
+  </ul>
+  <p>Funds are <strong>not</strong> used for FX speculation, crypto trading, or unrelated third-party transfers.</p>
+
+  <h2>2. High-level flow of funds</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 720 420" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="High-level flow">
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#555"/>
+        </marker>
+        <style>
+          .box { fill: #fff; stroke: #0f4c5c; stroke-width: 1.5; rx: 6; }
+          .box-blue { fill: #e8f4f8; stroke: #5fa8d3; }
+          .box-green { fill: #e8f5e9; stroke: #2e7d32; }
+          .box-orange { fill: #fff3e0; stroke: #ef6c00; }
+          .lbl { font: 11px Segoe UI, Arial, sans-serif; fill: #1a1a2e; }
+          .lbl-sm { font: 9px Segoe UI, Arial, sans-serif; fill: #555; }
+          .title { font: bold 12px Segoe UI, Arial, sans-serif; fill: #0f4c5c; }
+          .line { stroke: #555; stroke-width: 1.2; fill: none; marker-end: url(#arrow); }
+        </style>
+      </defs>
+      <text x="20" y="22" class="title">End-to-end money movement</text>
+
+      <rect x="280" y="40" width="160" height="44" class="box box-blue"/>
+      <text x="360" y="58" text-anchor="middle" class="lbl">Investor (KYC)</text>
+      <text x="360" y="72" text-anchor="middle" class="lbl-sm">Selects payment method</text>
+
+      <rect x="280" y="110" width="160" height="44" class="box"/>
+      <text x="360" y="128" text-anchor="middle" class="lbl">Sanova Platform</text>
+      <text x="360" y="142" text-anchor="middle" class="lbl-sm">Checkout / reconciliation</text>
+
+      <rect x="30" y="190" width="130" height="50" class="box box-orange"/>
+      <text x="95" y="210" text-anchor="middle" class="lbl">Mercado Pago</text>
+      <text x="95" y="224" text-anchor="middle" class="lbl-sm">AR wallet (ARS)</text>
+
+      <rect x="180" y="190" width="130" height="50" class="box box-orange"/>
+      <text x="245" y="210" text-anchor="middle" class="lbl">Card on-ramp</text>
+      <text x="245" y="224" text-anchor="middle" class="lbl-sm">Privy / Transak / Bridge</text>
+
+      <rect x="330" y="190" width="130" height="50" class="box box-orange"/>
+      <text x="395" y="210" text-anchor="middle" class="lbl">Local rails</text>
+      <text x="395" y="224" text-anchor="middle" class="lbl-sm">dLocal / EBANX (Pix…)</text>
+
+      <rect x="480" y="190" width="130" height="50" class="box box-orange"/>
+      <text x="545" y="210" text-anchor="middle" class="lbl">Direct USDC</text>
+      <text x="545" y="224" text-anchor="middle" class="lbl-sm">Investor wallet</text>
+
+      <rect x="610" y="190" width="90" height="50" class="box box-orange"/>
+      <text x="655" y="218" text-anchor="middle" class="lbl">Ripio</text>
+
+      <rect x="230" y="280" width="260" height="44" class="box box-blue"/>
+      <text x="360" y="298" text-anchor="middle" class="lbl">Fiat → USDC conversion (TPP)</text>
+      <text x="360" y="312" text-anchor="middle" class="lbl-sm">Only for fiat payment lanes</text>
+
+      <rect x="230" y="350" width="260" height="50" class="box box-green"/>
+      <text x="360" y="370" text-anchor="middle" class="lbl">Sanova USDC Treasury (Base)</text>
+      <text x="360" y="386" text-anchor="middle" class="lbl-sm">BASE_STABLECOIN_TREASURY_ADDRESS</text>
+
+      <line x1="360" y1="84" x2="360" y2="110" class="line"/>
+      <line x1="360" y1="154" x2="360" y2="190" class="line"/>
+      <line x1="95" y1="240" x2="310" y2="280" class="line"/>
+      <line x1="245" y1="240" x2="330" y2="280" class="line"/>
+      <line x1="395" y1="240" x2="390" y2="280" class="line"/>
+      <line x1="545" y1="240" x2="420" y2="350" class="line"/>
+      <line x1="655" y1="240" x2="410" y2="280" class="line"/>
+      <line x1="360" y1="324" x2="360" y2="350" class="line"/>
+    </svg>
+  </div>
+</div>
+
+<div class="page">
+  <h2>3. Post-settlement allocation (on-chain)</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#555"/>
+        </marker>
+        <style>
+          .box { fill: #fff; stroke: #0f4c5c; stroke-width: 1.5; rx: 6; }
+          .box-green { fill: #e8f5e9; stroke: #2e7d32; }
+          .lbl { font: 11px Segoe UI, Arial, sans-serif; fill: #1a1a2e; }
+          .lbl-sm { font: 9px Segoe UI, Arial, sans-serif; fill: #555; }
+          .line { stroke: #555; stroke-width: 1.2; fill: none; marker-end: url(#arrow2); }
+        </style>
+      </defs>
+      <rect x="20" y="70" width="150" height="56" class="box box-green"/>
+      <text x="95" y="92" text-anchor="middle" class="lbl">USDC Treasury</text>
+      <text x="95" y="108" text-anchor="middle" class="lbl-sm">Base — verified receipt</text>
+
+      <rect x="210" y="70" width="150" height="56" class="box"/>
+      <text x="285" y="92" text-anchor="middle" class="lbl">Property vault</text>
+      <text x="285" y="108" text-anchor="middle" class="lbl-sm">ERC-4626 per SPV</text>
+
+      <rect x="400" y="40" width="150" height="56" class="box box-green"/>
+      <text x="475" y="62" text-anchor="middle" class="lbl">Investor wallet</text>
+      <text x="475" y="78" text-anchor="middle" class="lbl-sm">Vault shares delivered</text>
+
+      <rect x="400" y="110" width="150" height="56" class="box"/>
+      <text x="475" y="132" text-anchor="middle" class="lbl">Commission wallets</text>
+      <text x="475" y="148" text-anchor="middle" class="lbl-sm">Advisors / platform</text>
+
+      <rect x="590" y="70" width="110" height="56" class="box"/>
+      <text x="645" y="92" text-anchor="middle" class="lbl">Dividends</text>
+      <text x="645" y="108" text-anchor="middle" class="lbl-sm">USDC to investors</text>
+
+      <line x1="170" y1="98" x2="210" y2="98" class="line"/>
+      <line x1="360" y1="88" x2="400" y2="68" class="line"/>
+      <line x1="360" y1="108" x2="400" y2="138" class="line"/>
+      <line x1="550" y1="68" x2="590" y2="88" class="line"/>
+    </svg>
+  </div>
+
+  <h2>4. Treasury-first settlement policy</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 720 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#555"/>
+        </marker>
+        <style>
+          .box { fill: #fff; stroke: #0f4c5c; stroke-width: 1.5; rx: 6; }
+          .box-warn { fill: #fff8e6; stroke: #e9a820; }
+          .box-ok { fill: #e8f5e9; stroke: #2e7d32; }
+          .lbl { font: 11px Segoe UI, Arial, sans-serif; fill: #1a1a2e; }
+          .line { stroke: #555; stroke-width: 1.2; fill: none; marker-end: url(#arrow3); }
+        </style>
+      </defs>
+      <rect x="10" y="40" width="150" height="44" class="box"/>
+      <text x="85" y="66" text-anchor="middle" class="lbl">Fiat paid (TPP)</text>
+
+      <polygon points="200,62 230,42 230,82" class="box" fill="#e8f4f8"/>
+      <text x="215" y="66" text-anchor="middle" class="lbl" font-size="10">?</text>
+
+      <rect x="250" y="28" width="170" height="44" class="box-warn"/>
+      <text x="335" y="54" text-anchor="middle" class="lbl">No USDC in treasury</text>
+
+      <rect x="250" y="78" width="170" height="44" class="box-ok"/>
+      <text x="335" y="104" text-anchor="middle" class="lbl">USDC verified on Base</text>
+
+      <rect x="460" y="28" width="170" height="44" class="box-warn"/>
+      <text x="545" y="48" text-anchor="middle" class="lbl">MANUAL_REVIEW</text>
+      <text x="545" y="62" text-anchor="middle" class="lbl" font-size="9">Purchase NOT confirmed</text>
+
+      <rect x="460" y="78" width="170" height="44" class="box-ok"/>
+      <text x="545" y="98" text-anchor="middle" class="lbl">CONFIRMED + shares</text>
+
+      <line x1="160" y1="62" x2="200" y2="62" class="line"/>
+      <line x1="230" y1="52" x2="250" y2="50" class="line"/>
+      <line x1="230" y1="72" x2="250" y2="100" class="line"/>
+      <line x1="420" y1="50" x2="460" y2="50" class="line"/>
+      <line x1="420" y1="100" x2="460" y2="100" class="line"/>
+    </svg>
+  </div>
+
+  <div class="note">
+    <strong>Policy:</strong> No RWA vault shares are issued until on-chain verification confirms USDC arrived at the
+    Sanova treasury wallet (or a direct vault deposit for wallet-native USDC flows).
+  </div>
+
+  <h2>5. Currency exchange</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Payment method</th>
+        <th>Incoming currency</th>
+        <th>Exchange to USDC?</th>
+        <th>Final settlement</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Mercado Pago (Argentina)</td><td>ARS</td><td><strong>Yes</strong> — via on-ramp partner</td><td>USDC on Base</td></tr>
+      <tr><td>dLocal / EBANX (LATAM)</td><td>BRL, MXN, local fiat</td><td><strong>Yes</strong></td><td>USDC on Base</td></tr>
+      <tr><td>Privy / Transak / Bridge (card)</td><td>USD / local fiat</td><td><strong>Yes</strong></td><td>USDC on Base</td></tr>
+      <tr><td>Ripio on-ramp</td><td>Local fiat</td><td><strong>Yes</strong></td><td>USDC on Base</td></tr>
+      <tr><td>Direct USDC wallet</td><td>USDC</td><td><strong>No</strong></td><td>USDC on Base</td></tr>
+    </tbody>
+  </table>
+  <p>
+    Sanova does <strong>not</strong> operate a currency exchange business. Conversion is performed solely by the
+    licensed third-party on-ramp or payment provider. Sanova only accepts <strong>USDC on Base</strong> as final settlement.
+  </p>
+</div>
+
+<div class="page">
+  <h2>6. Ultimate destination of funds</h2>
+  <table>
+    <thead>
+      <tr><th>Step</th><th>Destination</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1 — Primary settlement</td>
+        <td><strong>Sanova USDC Treasury Wallet</strong> on Base<br/><span style="font-size:9pt;color:#666">Env: BASE_STABLECOIN_TREASURY_ADDRESS</span></td>
+        <td>Central settlement; all fiat on-ramps deposit here</td>
+      </tr>
+      <tr>
+        <td>2 — Investment allocation</td>
+        <td><strong>Property ERC-4626 vault</strong> (smart contract per SPV)</td>
+        <td>USDC backing the purchased real estate asset</td>
+      </tr>
+      <tr>
+        <td>3 — Investor receipt</td>
+        <td><strong>Investor linked wallet</strong> on Base</td>
+        <td>ERC-4626 vault shares (fractional ownership)</td>
+      </tr>
+      <tr>
+        <td>4 — Commissions</td>
+        <td><strong>Advisor / platform wallets</strong> on Base</td>
+        <td>USDC via CommissionRouter smart contract</td>
+      </tr>
+      <tr>
+        <td>5 — Dividends (ongoing)</td>
+        <td><strong>Investor wallets</strong></td>
+        <td>Property yield as USDC; optional loan auto-repay</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Funds are NOT sent to:</h3>
+  <ul>
+    <li>Personal accounts of Sanova employees</li>
+    <li>Offshore unlinked accounts</li>
+    <li>Unrelated third parties</li>
+    <li>Crypto exchanges for trading or speculation</li>
+  </ul>
+
+  <h2>7. Example transaction (Mercado Pago — Argentina)</h2>
+  <ol>
+    <li>Investor purchases <strong>USD 1,000</strong> in vault shares (+ buyer fees ≈ USD 1,050 total).</li>
+    <li>Investor pays the ARS equivalent via Mercado Pago wallet balance.</li>
+    <li>On-ramp converts to approximately <strong>1,050 USDC</strong> delivered to Sanova treasury on Base.</li>
+    <li>Platform verifies the on-chain transaction and confirms the purchase.</li>
+    <li>~1,000 USDC allocated to the property vault; ~50 USDC commissions to advisors/platform.</li>
+    <li>Investor receives ERC-4626 vault shares in their linked wallet.</li>
+  </ol>
+
+  <h2>8. Compliance controls</h2>
+  <ul>
+    <li><span class="badge">KYC</span> Identity verification required before purchase</li>
+    <li><span class="badge">Routing</span> Payment methods shown by investor country</li>
+    <li><span class="badge">Asset</span> Single on-chain settlement asset: USDC on Base</li>
+    <li><span class="badge">Audit</span> Payment intents, provider IDs, and treasury tx hashes stored</li>
+    <li><span class="badge">Webhooks</span> Provider notifications reconciled against on-chain receipts</li>
+  </ul>
+
+  <p class="footer-note">
+    Sanova Capital — Flow of Funds — Third-Party Money Movement disclosure. For compliance review only.
+    Platform: https://www.sanovacapital.com
+  </p>
+</div>
+
+</body>
+</html>
