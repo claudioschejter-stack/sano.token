@@ -255,6 +255,7 @@ async function attachCartGatewayCheckout(input: {
       batchId: input.batchId,
       totalUsd: input.totalUsd,
       totalTokens: input.totalTokens,
+      primaryProjectId: input.primaryProjectId,
       paymentIntentIds: input.paymentIntentIds,
       paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null
     });
