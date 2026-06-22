@@ -14,7 +14,7 @@ export function InversionesPageClient() {
         title={t.investments.title}
         subtitle={t.investments.subtitle}
       />
-      <PrivyEarnVaultsPanel />
+      <PrivyEarnVaultsPanel hideChrome />
     </section>
   );
 }

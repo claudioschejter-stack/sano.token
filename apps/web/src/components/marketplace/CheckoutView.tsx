@@ -14,7 +14,6 @@ import { findListingById } from '../../lib/findListing';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import type { MarketplaceListing } from '../../types/marketplace';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
-import { PrivyEarnVaultsPanel } from '../privy/PrivyEarnVaultsPanel';
 import { StickyActionBar } from '../mobile/StickyActionBar';
 import { vaultShareDeliveryUiState } from '../../lib/payments/vaultShareDeliveryStatus';
 import type { StablecoinNetworkId } from '../../lib/payments/stablecoinNetworks';
@@ -331,8 +330,6 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
             <ShieldCheck size={14} />
             {t.checkout.kycReady}
           </div>
-
-          <PrivyEarnVaultsPanel compact />
 
           <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4">
             <p className="text-xs font-medium uppercase tracking-wider text-terminal-muted">{t.checkout.tokenQuantity}</p>

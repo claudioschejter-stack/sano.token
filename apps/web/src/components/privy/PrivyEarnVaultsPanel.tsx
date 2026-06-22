@@ -22,10 +22,11 @@ export type PrivyEarnVaultRow = {
 
 type PrivyEarnVaultsPanelProps = {
   compact?: boolean;
+  hideChrome?: boolean;
   className?: string;
 };
 
-export function PrivyEarnVaultsPanel({ compact = false, className = '' }: PrivyEarnVaultsPanelProps) {
+export function PrivyEarnVaultsPanel({ compact = false, hideChrome = false, className = '' }: PrivyEarnVaultsPanelProps) {
   const t = useTranslation();
   const p = t.privyEarnVaultsPanel;
   const { intlLocale } = useLocale();
@@ -81,31 +82,33 @@ export function PrivyEarnVaultsPanel({ compact = false, className = '' }: PrivyE
 
   return (
     <section
-      className={`rounded-xl border border-terminal-border bg-terminal-card p-6 ${compact ? 'p-4' : ''} ${className}`}
+      className={`${hideChrome ? '' : `rounded-xl border border-terminal-border bg-terminal-card p-6 ${compact ? 'p-4' : ''}`} ${className}`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3 text-terminal-primary">
-            <Landmark size={compact ? 18 : 22} />
+      {!hideChrome ? (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-lg border border-terminal-border bg-terminal-bg p-3 text-terminal-primary">
+              <Landmark size={compact ? 18 : 22} />
+            </div>
+            <div>
+              <h2 className={`font-bold text-terminal-text ${compact ? 'text-base' : 'text-lg'}`}>{p.title}</h2>
+              <p className={`mt-1 max-w-2xl text-terminal-muted ${compact ? 'text-xs' : 'text-sm'}`}>{p.subtitle}</p>
+            </div>
           </div>
-          <div>
-            <h2 className={`font-bold text-terminal-text ${compact ? 'text-base' : 'text-lg'}`}>{p.title}</h2>
-            <p className={`mt-1 max-w-2xl text-terminal-muted ${compact ? 'text-xs' : 'text-sm'}`}>{p.subtitle}</p>
-          </div>
+          <button
+            type="button"
+            disabled={loading || refreshing}
+            onClick={() => void load({ silent: true })}
+            className="inline-flex items-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm text-terminal-text hover:border-terminal-primary/40 disabled:opacity-50"
+          >
+            {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            {p.refresh}
+          </button>
         </div>
-        <button
-          type="button"
-          disabled={loading || refreshing}
-          onClick={() => void load({ silent: true })}
-          className="inline-flex items-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm text-terminal-text hover:border-terminal-primary/40 disabled:opacity-50"
-        >
-          {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-          {p.refresh}
-        </button>
-      </div>
+      ) : null}
 
       {loading && vaults.length === 0 ? (
-        <div className="mt-6 flex items-center gap-2 text-sm text-terminal-muted">
+        <div className={`flex items-center gap-2 text-sm text-terminal-muted ${hideChrome ? '' : 'mt-6'}`}>
           <Loader2 size={16} className="animate-spin" />
           {p.loading}
         </div>
@@ -128,8 +131,7 @@ export function PrivyEarnVaultsPanel({ compact = false, className = '' }: PrivyE
                     <p className="mt-0.5 truncate text-xs text-terminal-muted">{vault.projectTitle}</p>
                   ) : null}
                   <p className="mt-0.5 text-xs text-terminal-muted">
-                    {vault.provider}
-                    {vault.assetSymbol ? ` · ${vault.assetSymbol}` : ''}
+                    {vault.assetSymbol || 'USDC'}
                     {vault.vaultAddress
                       ? ` · ${vault.vaultAddress.slice(0, 6)}…${vault.vaultAddress.slice(-4)}`
                       : ''}
@@ -177,13 +179,13 @@ export function PrivyEarnVaultsPanel({ compact = false, className = '' }: PrivyE
             ))}
           </ul>
 
-          {updatedAt ? (
+          {updatedAt && !hideChrome ? (
             <p className="mt-3 text-xs text-terminal-muted">
               {p.updated} {new Date(updatedAt).toLocaleString(intlLocale)}
             </p>
           ) : null}
 
-          <p className="mt-2 text-xs text-terminal-muted">{p.footnote}</p>
+          {!hideChrome ? <p className="mt-2 text-xs text-terminal-muted">{p.footnote}</p> : null}
         </>
       ) : null}
     </section>

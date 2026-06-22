@@ -76,7 +76,7 @@ export function canUsePrivyEarnForVaultAddress(vaultAddress: string): boolean {
   return Boolean(resolvePrivyEarnVaultId(vaultAddress));
 }
 
-/** Unique Privy Earn vault IDs configured for this app (env map + default). */
+/** Unique Privy Earn vault IDs configured for this app (env map + default), stable display order. */
 export function listConfiguredPrivyEarnVaultIds(): string[] {
   const ids = new Set<string>();
   const defaultId = privyVaultId();
@@ -86,7 +86,14 @@ export function listConfiguredPrivyEarnVaultIds(): string[] {
   for (const vaultId of Object.values(parsePrivyEarnVaultAddressMap())) {
     ids.add(vaultId);
   }
-  return [...ids];
+
+  const ordered = privyEarnVaultDisplayOrder().filter((vaultId) => ids.has(vaultId));
+  for (const vaultId of ids) {
+    if (!ordered.includes(vaultId)) {
+      ordered.push(vaultId);
+    }
+  }
+  return ordered;
 }
 
 /** On-chain vault address → Privy vault_id entries from env (lowercase addresses). */
@@ -95,6 +102,62 @@ export function listConfiguredPrivyEarnVaultAddressEntries(): Array<{ vaultAddre
     vaultAddress,
     vaultId
   }));
+}
+
+const DEFAULT_PRIVY_EARN_VAULT_LABELS: Record<string, string> = {
+  f738pgj75dy85kqkb8bh86dd: 'Gauntlet USDC Prime',
+  y9g5a6qf1z50izbyxqbpy3go: 'Steakhouse Prime USDC'
+};
+
+const DEFAULT_PRIVY_EARN_VAULT_ORDER = [
+  'f738pgj75dy85kqkb8bh86dd',
+  'y9g5a6qf1z50izbyxqbpy3go'
+] as const;
+
+function parsePrivyEarnVaultLabels(): Record<string, string> {
+  const raw = process.env.PRIVY_EARN_VAULT_LABELS?.trim();
+  if (!raw) {
+    return DEFAULT_PRIVY_EARN_VAULT_LABELS;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    return { ...DEFAULT_PRIVY_EARN_VAULT_LABELS, ...parsed };
+  } catch {
+    return DEFAULT_PRIVY_EARN_VAULT_LABELS;
+  }
+}
+
+export function resolvePrivyEarnVaultDisplayName(vaultId: string, fallback?: string | null): string {
+  const normalized = vaultId.trim();
+  return parsePrivyEarnVaultLabels()[normalized] ?? fallback?.trim() ?? normalized;
+}
+
+export function privyEarnVaultDisplayOrder(): string[] {
+  const raw = process.env.PRIVY_EARN_VAULT_ORDER?.trim();
+  if (!raw) {
+    return [...DEFAULT_PRIVY_EARN_VAULT_ORDER];
+  }
+
+  return raw
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+export function resolvePrivyEarnVaultAddressById(vaultId: string): string | null {
+  const normalizedId = vaultId.trim();
+  for (const [address, mappedId] of Object.entries(parsePrivyEarnVaultAddressMap())) {
+    if (mappedId === normalizedId) {
+      return address;
+    }
+  }
+
+  if (normalizedId === privyVaultId()) {
+    return process.env.PRIVY_EARN_DEFAULT_VAULT_ADDRESS?.trim() || null;
+  }
+
+  return null;
 }
 
 export function isPrivyEarnConfigured(): boolean {

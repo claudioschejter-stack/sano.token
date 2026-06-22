@@ -2,7 +2,9 @@ import { prisma } from '@sanova/database';
 import {
   isPrivyEarnConfigured,
   listConfiguredPrivyEarnVaultIds,
-  privyVaultId
+  privyEarnVaultDisplayOrder,
+  resolvePrivyEarnVaultAddressById,
+  resolvePrivyEarnVaultDisplayName
 } from './config';
 import { getPrivyVaultDetails } from './earnApi';
 
@@ -46,14 +48,14 @@ function parseUsd(details: Record<string, unknown>, key: string): number {
   return 0;
 }
 
-function resolveVaultAddress(details: Record<string, unknown>): string {
-  const address =
+function resolveVaultAddress(details: Record<string, unknown>, vaultId: string): string {
+  const fromApi =
     typeof details.vault_address === 'string'
       ? details.vault_address
       : typeof details.vaultAddress === 'string'
         ? details.vaultAddress
         : '';
-  return address.trim();
+  return fromApi.trim() || resolvePrivyEarnVaultAddressById(vaultId) || '';
 }
 
 function resolveAssetSymbol(details: Record<string, unknown>): string {
@@ -76,6 +78,44 @@ function buildCheckoutHref(vaultId: string, vaultAddress: string): string {
     params.set('vaultAddress', vaultAddress.trim());
   }
   return `/marketplace/carrito?${params.toString()}`;
+}
+
+function buildCatalogItem(input: {
+  vaultId: string;
+  details?: Record<string, unknown>;
+  project?: { id: string; title: string } | null;
+}): PrivyEarnVaultCatalogItem {
+  const details = input.details ?? {};
+  const vaultAddress = resolveVaultAddress(details, input.vaultId);
+  const apiName = typeof details.name === 'string' ? details.name : null;
+
+  return {
+    vaultId: typeof details.id === 'string' ? details.id : input.vaultId,
+    name: resolvePrivyEarnVaultDisplayName(input.vaultId, apiName),
+    provider: typeof details.provider === 'string' ? details.provider : 'earn',
+    vaultAddress,
+    assetSymbol: resolveAssetSymbol(details),
+    userApyPercent: parseApyPercent(details),
+    tvlUsd: parseUsd(details, 'tvl_usd'),
+    availableLiquidityUsd: parseUsd(details, 'available_liquidity_usd'),
+    projectId: input.project?.id ?? null,
+    projectTitle: input.project?.title ?? null,
+    checkoutHref: buildCheckoutHref(input.vaultId, vaultAddress)
+  };
+}
+
+function sortVaultsByDisplayOrder(vaults: PrivyEarnVaultCatalogItem[]): PrivyEarnVaultCatalogItem[] {
+  const order = privyEarnVaultDisplayOrder();
+  return [...vaults].sort((a, b) => {
+    const aIndex = order.indexOf(a.vaultId);
+    const bIndex = order.indexOf(b.vaultId);
+    if (aIndex === -1 && bIndex === -1) {
+      return b.userApyPercent - a.userApyPercent;
+    }
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
 }
 
 export async function listPrivyEarnVaultCatalog(): Promise<{
@@ -108,48 +148,15 @@ export async function listPrivyEarnVaultCatalog(): Promise<{
 
   for (const vaultId of vaultIds) {
     try {
-      const details = await getPrivyVaultDetails(vaultId);
-      const vaultAddress = resolveVaultAddress(details);
-      const normalizedAddress = vaultAddress.toLowerCase();
-      const project = normalizedAddress ? projectByVault.get(normalizedAddress) : undefined;
-
-      vaults.push({
-        vaultId: typeof details.id === 'string' ? details.id : vaultId,
-        name: typeof details.name === 'string' ? details.name : vaultId,
-        provider: typeof details.provider === 'string' ? details.provider : 'earn',
-        vaultAddress,
-        assetSymbol: resolveAssetSymbol(details),
-        userApyPercent: parseApyPercent(details),
-        tvlUsd: parseUsd(details, 'tvl_usd'),
-        availableLiquidityUsd: parseUsd(details, 'available_liquidity_usd'),
-        projectId: project?.id ?? null,
-        projectTitle: project?.title ?? null,
-        checkoutHref: buildCheckoutHref(
-          typeof details.id === 'string' ? details.id : vaultId,
-          vaultAddress
-        )
-      });
+      const details = (await getPrivyVaultDetails(vaultId)) as Record<string, unknown>;
+      const vaultAddress = resolveVaultAddress(details, vaultId);
+      const project = vaultAddress ? projectByVault.get(vaultAddress.toLowerCase()) : undefined;
+      vaults.push(buildCatalogItem({ vaultId, details, project }));
     } catch (error) {
       console.error('[privyEarnVaultCatalog]', vaultId, error);
-      if (vaultId === privyVaultId()) {
-        vaults.push({
-          vaultId,
-          name: vaultId,
-          provider: 'earn',
-          vaultAddress: '',
-          assetSymbol: 'USDC',
-          userApyPercent: 0,
-          tvlUsd: 0,
-          availableLiquidityUsd: 0,
-          projectId: null,
-          projectTitle: null,
-          checkoutHref: buildCheckoutHref(vaultId, '')
-        });
-      }
+      vaults.push(buildCatalogItem({ vaultId, project: null }));
     }
   }
 
-  vaults.sort((a, b) => b.userApyPercent - a.userApyPercent);
-
-  return { vaults, updatedAt: new Date().toISOString() };
+  return { vaults: sortVaultsByDisplayOrder(vaults), updatedAt: new Date().toISOString() };
 }
