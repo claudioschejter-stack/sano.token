@@ -1,6 +1,11 @@
 import { createHmac } from 'node:crypto';
 import { checkoutBaseUrl } from './paymentConfig';
 import { mapDLocalPaymentMethodId, resolveDLocalChargeAmount } from './dlocalPaymentMethods';
+import {
+  buildDLocalGoOpenCheckoutUrl,
+  dlocalGoApiBase,
+  isDLocalGoMode
+} from './dlocalGoAdapter';
 
 type DLocalPaymentInput = {
   externalId: string;
@@ -22,7 +27,7 @@ type DLocalPaymentResult = {
 };
 
 function dlocalApiBase(): string {
-  return (process.env.DLOCAL_API_BASE_URL ?? 'https://api.dlocal.com').replace(/\/$/, '');
+  return dlocalGoApiBase();
 }
 
 function dlocalLogin(): string | null {
@@ -133,6 +138,33 @@ export async function createDLocalPayment(input: DLocalPaymentInput): Promise<DL
 
     const text = await response.text();
     if (!response.ok) {
+      if (isDLocalGoMode()) {
+        const openCheckoutUrl = buildDLocalGoOpenCheckoutUrl({
+          amountLocal: charge.amount,
+          currency: charge.currency,
+          externalId: input.externalId,
+          successUrl: input.successUrl,
+          backUrl: input.backUrl,
+          email: input.userEmail
+        });
+        if (openCheckoutUrl) {
+          return {
+            provider: 'dlocal',
+            providerPaymentId: input.externalId,
+            providerCheckoutUrl: openCheckoutUrl,
+            metadata: {
+              configured: true,
+              country,
+              currency: charge.currency,
+              amount: charge.amount,
+              paymentMethodId,
+              mode: 'dlocal_go_open_checkout',
+              apiError: text
+            }
+          };
+        }
+      }
+
       return {
         provider: 'dlocal',
         metadata: { configured: true, error: text, country, paymentMethodId, currency: charge.currency }
