@@ -33,11 +33,11 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
   {
     id: 'MERCADO_PAGO',
     label: 'Mercado Pago',
-    description: 'Depósito ARS vía Ripio → USDC Base en treasury (saldo embebido o transferencia).',
-    configured: paymentGatewayConfigured('RIPIO'),
+    description: 'Pagá con Mercado Pago; acreditamos USDC Base al confirmar el pago.',
+    configured: paymentGatewayConfigured('MERCADO_PAGO'),
     automatic: true,
     supportsDeposit: true,
-    supportsPurchase: false
+    supportsPurchase: true
   },
   {
     id: 'COINBASE',

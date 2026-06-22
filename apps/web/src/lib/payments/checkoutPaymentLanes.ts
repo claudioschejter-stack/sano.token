@@ -1,6 +1,7 @@
 import type { DepositPaymentOption } from './depositPaymentOptions';
 import { compareDepositPaymentOptions } from './depositPaymentOptions';
 import {
+  buildFiatOnRampDisplayOptions,
   buildCheckoutDisplaySections,
   buildFiatOnRampDisplayId,
   FIAT_ON_RAMP_SOURCE_IDS,
@@ -142,26 +143,27 @@ export function buildCheckoutPaymentLaneBundle(input: {
   const cardBackends = input.options
     .filter((row) => isCardBackendOption(row) && row.configured)
     .sort(compareDepositPaymentOptions);
-  const cheapestCardBackend = cardBackends[0] ?? sections.fiatOnRampBaseOption;
+  const cheapestCardBackend = cardBackends[0] ?? null;
 
-  const cardDisplayOptions =
-    cheapestCardBackend && sections.fiatOnRampOptions.length > 0
-      ? sections.fiatOnRampOptions.map((row) => ({
-          ...row,
-          ...cheapestCardBackend,
-          id: row.id,
-          label: row.label,
-          usesLocalCurrency: row.id === buildFiatOnRampDisplayId('international_transfer') ? false : row.usesLocalCurrency,
-          totalLocal:
-            row.id === buildFiatOnRampDisplayId('international_transfer')
-              ? null
-              : cheapestCardBackend.totalLocal,
-          displayCurrency:
-            row.id === buildFiatOnRampDisplayId('international_transfer')
-              ? 'USD'
-              : cheapestCardBackend.displayCurrency
-        }))
-      : [];
+  const cardDisplayOptions = cheapestCardBackend
+    ? buildFiatOnRampDisplayOptions(cheapestCardBackend, input.fiatOnRampLabels).map((row) => ({
+        ...row,
+        totalUsd: cheapestCardBackend.totalUsd,
+        totalLocal:
+          row.id === buildFiatOnRampDisplayId('international_transfer')
+            ? null
+            : cheapestCardBackend.totalLocal,
+        displayCurrency:
+          row.id === buildFiatOnRampDisplayId('international_transfer')
+            ? 'USD'
+            : cheapestCardBackend.displayCurrency,
+        usesLocalCurrency:
+          row.id !== buildFiatOnRampDisplayId('international_transfer') &&
+          cheapestCardBackend.usesLocalCurrency,
+        feeUsd: cheapestCardBackend.feeUsd,
+        configured: true
+      }))
+    : [];
 
   optionsByLane.card = cardDisplayOptions;
 

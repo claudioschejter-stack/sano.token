@@ -1,6 +1,4 @@
 import { normalizePaymentCountry } from './paymentCountry';
-import { isDLocalOperationalForCountry } from './dlocalCountryCoverage';
-
 export const PRIVY_ON_RAMP_OPTION_ID = 'privy_on_ramp';
 
 const PRIVY_FIAT_BY_COUNTRY: Record<string, string> = {
@@ -23,12 +21,9 @@ export function isPrivyOnRampConfigured(): boolean {
   return Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID?.trim());
 }
 
-/** Privy on-ramp is the global fallback when dLocal local rails are not operational for the country. */
-export function shouldOfferPrivyOnRampForCountry(country: string): boolean {
-  if (!isPrivyOnRampConfigured()) {
-    return false;
-  }
-  return !isDLocalOperationalForCountry(country);
+/** Privy on-ramp is available whenever Privy is configured (cards / Apple Pay). */
+export function shouldOfferPrivyOnRampForCountry(_country: string): boolean {
+  return isPrivyOnRampConfigured();
 }
 
 export function privyFiatAssetForCountry(country: string): string {

@@ -2,7 +2,8 @@ import { checkoutBaseUrl } from './paymentConfig';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
 import { getStablecoinNetwork } from './stablecoinNetworks';
-import { createCoinbaseCheckout } from './paymentGatewayAdapters';
+import { createCoinbaseCheckout, createMercadoPagoEmbeddedDepositCheckout } from './paymentGatewayAdapters';
+import { MERCADOPAGO_WALLET_OPTION_ID } from './mercadoPagoEmbeddedService';
 import { resolveDepositMethodForUsdcBase } from './paymentCheckoutPolicy';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { isPrivyOnRampConfigured, privyFiatAssetForCountry, PRIVY_ON_RAMP_OPTION_ID } from './privyOnRampPolicy';
@@ -224,6 +225,18 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
 
   switch (input.method) {
     case 'MERCADO_PAGO': {
+      if (
+        checkoutRow?.id === MERCADOPAGO_WALLET_OPTION_ID ||
+        checkoutRow?.provider === 'mercado_pago' ||
+        input.paymentOptionId === MERCADOPAGO_WALLET_OPTION_ID
+      ) {
+        return createMercadoPagoEmbeddedDepositCheckout({
+          depositId: input.depositId,
+          amountUsd: input.amountUsd,
+          paymentOptionId: checkoutRow?.id ?? input.paymentOptionId ?? null,
+          paymentLabel: checkoutRow?.label ?? 'Depósito Sanova'
+        });
+      }
       const resolved = checkoutRow
         ? resolveDepositMethodForUsdcBase(checkoutRow)
         : { method: 'RIPIO' as const, ripioRail: 'mercado_pago' };

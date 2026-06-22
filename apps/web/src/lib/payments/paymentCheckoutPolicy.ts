@@ -51,7 +51,7 @@ export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: Checkou
 
   if (mode === 'purchase') {
     if (DEPOSIT_MP_OPTION_IDS.has(row.id) || row.method === 'MERCADO_PAGO') {
-      return false;
+      return true;
     }
     if (row.method === 'CUSTODIAL_STABLECOIN') {
       return false;

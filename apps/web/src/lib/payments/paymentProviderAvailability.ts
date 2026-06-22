@@ -81,12 +81,12 @@ export function isDepositCheckoutRowConfigured(
 ): boolean {
   if (row.method === 'MERCADO_PAGO' || row.id === MERCADOPAGO_WALLET_OPTION_ID || row.id === 'mercado_pago') {
     if (row.id === MERCADOPAGO_WALLET_OPTION_ID) {
-      return isMercadoPagoEmbeddedConfigured() && isPaymentProviderConfigured('ripio');
+      return isMercadoPagoEmbeddedConfigured();
     }
     if (row.id === 'mercado_pago' && isMercadoPagoWalletOnly()) {
       return false;
     }
-    return isPaymentProviderConfigured('ripio');
+    return isPaymentProviderConfigured('mercado_pago');
   }
 
   if (row.provider === 'stripe') {
@@ -109,10 +109,7 @@ export function isDepositCheckoutRowConfigured(
     if (row.id === 'coinbase_pay' || row.id === 'coinbase_commerce') {
       return isPaymentProviderConfigured('coinbase');
     }
-    if (row.id === 'metamask_usdc') {
-      return Boolean(context?.linkedWalletAddress?.trim());
-    }
-    return Boolean(context?.linkedWalletAddress?.trim());
+    return true;
   }
 
   return isPaymentProviderConfigured(row.provider);

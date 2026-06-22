@@ -10,7 +10,8 @@ import {
 } from './paymentConfig';
 import { isCheckoutMethodConfigured } from './checkoutMethods';
 import {
-  createCoinbaseCartCheckout
+  createCoinbaseCartCheckout,
+  createMercadoPagoCartCheckout
 } from './paymentGatewayAdapters';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
@@ -249,6 +250,15 @@ async function attachCartGatewayCheckout(input: {
   if (input.method === 'COINBASE') {
     return createCoinbaseCartCheckout(input);
   }
+  if (input.method === 'MERCADO_PAGO') {
+    return createMercadoPagoCartCheckout({
+      batchId: input.batchId,
+      totalUsd: input.totalUsd,
+      totalTokens: input.totalTokens,
+      paymentIntentIds: input.paymentIntentIds,
+      paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null
+    });
+  }
   if (checkoutRow?.id === 'binance_pay') {
     return createBinancePayCheckout({
       referenceId: input.batchId,
@@ -301,7 +311,9 @@ const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
   'TRANSAK',
   'RIPIO',
   'BRIDGE',
-  'RAMP'
+  'RAMP',
+  'MERCADO_PAGO',
+  'LOCAL_RAIL'
 ]);
 
 export async function markCartBatchPaymentFailed(input: {
@@ -690,7 +702,7 @@ export async function createCartPurchaseCheckout(input: {
     };
   }
 
-  if (gateway && (gateway.providerCheckoutUrl || gateway.providerPaymentId)) {
+  if (gateway && (gateway.providerCheckoutUrl || gateway.providerPaymentId || isMercadoPagoEmbeddedResult(gateway.metadata))) {
     providerCheckoutUrl = gateway.providerCheckoutUrl ?? null;
 
     for (const intentId of paymentIntentIds) {

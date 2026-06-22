@@ -41,9 +41,11 @@ describe('depositPaymentOptions', () => {
     }
   });
 
-  it('purchase mode in Argentina excludes Mercado Pago and Stripe', () => {
+  it('purchase mode in Argentina includes Mercado Pago but not Stripe', () => {
+    process.env.MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-test';
+    process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY = 'APP_USR-public';
     const quote = buildDepositPaymentOptions(100, 'AR', 1050, { linkedWalletAddress: '0xabc', mode: 'purchase' });
-    expect(quote.options.some((row) => row.method === 'MERCADO_PAGO')).toBe(false);
+    expect(quote.options.some((row) => row.method === 'MERCADO_PAGO')).toBe(true);
     expect(quote.options.some((row) => row.provider === 'stripe')).toBe(false);
     expect(
       quote.options.some((row) => row.method === 'RIPIO' || row.method === 'TRANSAK' || row.method === 'BRIDGE')
