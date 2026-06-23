@@ -9,7 +9,7 @@ import { withLocalePrefix } from '../i18n/localeRouting';
 import { locales } from '../../i18n';
 import { getSiteUrl } from './siteUrl';
 
-const OG_LOCALE_MAP: Record<Locale, string> = {
+const OG_LOCALE_MAP: Partial<Record<Locale, string>> = {
   en: 'en_US',
   es: 'es_AR',
   pt: 'pt_BR',
