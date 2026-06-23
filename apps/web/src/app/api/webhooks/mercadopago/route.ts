@@ -22,7 +22,35 @@ async function fetchMercadoPagoPayment(paymentId: string) {
     id?: string | number;
     status?: string;
     external_reference?: string;
-    metadata?: { paymentIntentId?: string; cartBatchId?: string; depositId?: string };
+    transaction_amount?: number;
+    metadata?: {
+      paymentIntentId?: string;
+      cartBatchId?: string;
+      depositId?: string;
+      userId?: string;
+      amountUsd?: number;
+    };
+  };
+}
+
+async function handleApprovedMercadoPagoPayment(payment: {
+  id?: string | number;
+  status?: string;
+  external_reference?: string;
+  transaction_amount?: number;
+  metadata?: Record<string, unknown>;
+}) {
+  // Treasury Swap model: fiat remains at Mercado Pago; backend delivers USDC/tokens from treasury reserve.
+  // TODO: Ejecutar Smart Contract — mintTokens(userAddress, amount) on Base (chainId 8453)
+  // Example with viem/ethers after resolving the investor embedded wallet:
+  //   const userAddress = await resolveInvestorWalletFromMetadata(payment.metadata);
+  //   const tokenAmount = resolveSanovaTokenAmount(payment.metadata?.amountUsd ?? payment.transaction_amount);
+  //   await mintTokens(userAddress, tokenAmount);
+  return {
+    ok: true,
+    status: 'approved_pending_onchain_mint',
+    paymentId: payment.id ?? null,
+    externalReference: payment.external_reference ?? null
   };
 }
 
@@ -82,7 +110,19 @@ export async function POST(request: Request) {
   const cartBatchId = payment.metadata?.cartBatchId;
   const depositId = payment.metadata?.depositId;
   const paymentIntentId = payment.metadata?.paymentIntentId || payment.external_reference;
+  const approved = payment.status === 'approved';
   const failed = ['rejected', 'cancelled', 'refunded', 'charged_back'].includes(payment.status ?? '');
+
+  if (approved) {
+    const settlement = await handleApprovedMercadoPagoPayment({
+      id: payment.data?.id,
+      status: payment.status,
+      external_reference: payment.external_reference,
+      transaction_amount: (payment as { transaction_amount?: number }).transaction_amount,
+      metadata: payment.metadata as Record<string, unknown> | undefined
+    });
+    return NextResponse.json(settlement);
+  }
 
   if (depositId) {
     return NextResponse.json({ ok: true, ignored: 'mp_deposit_settled_via_ripio_usdc' });
