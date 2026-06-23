@@ -1258,6 +1258,8 @@ export const es = {
     totalToPayLabel: 'Monto total a pagar',
     selectPaymentMethod: 'Elige tu forma de pago',
     choosePaymentMethod: 'Elegí la forma de pago',
+    standardMethodsTab: 'Métodos estándar',
+    paymentGatewayTab: 'Pasarela global',
     paymentCountryDetected: 'Pagás desde {country}',
     paymentCountryHint:
       'Detectamos tu país para mostrar billeteras y tarjetas disponibles. El cargo se convierte automáticamente a USDC Base.',

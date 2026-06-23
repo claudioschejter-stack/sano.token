@@ -1244,6 +1244,8 @@ export const en = {
     totalToPayLabel: "Total amount to pay",
     selectPaymentMethod: "Choose your payment method",
     choosePaymentMethod: "Choose a payment method",
+    standardMethodsTab: "Standard methods",
+    paymentGatewayTab: "Global gateway",
     paymentCountryDetected: "Paying from {country}",
     paymentCountryHint:
       "We detect your country to show available wallets and cards. Charges convert automatically to USDC on Base.",

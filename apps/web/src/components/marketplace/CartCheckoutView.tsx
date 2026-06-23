@@ -63,6 +63,7 @@ import {
   type MercadoPagoEmbeddedSession
 } from '../../lib/payments/mercadoPagoEmbeddedService';
 import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
+import { PaymentGateway } from '../payments/gateway';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -289,6 +290,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [paymentMethodsExpanded] = useState(true);
   const [paymentLane, setPaymentLane] = useState<CheckoutPaymentLaneId | null>(null);
   const [ripioEwalletRail, setRipioEwalletRail] = useState<string | null>(null);
+  const [paymentGatewayTabActive, setPaymentGatewayTabActive] = useState(false);
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
   const privyVaultDeposits = useMemo(
@@ -1551,10 +1553,46 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           {showPaymentMethods ? (
             <div className="mb-[1mm] mt-[1mm]">
               <p className={SECTION_TITLE}>{c.selectPaymentMethod}</p>
+              <div className="mt-[1mm] flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentGatewayTabActive(false)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    !paymentGatewayTabActive
+                      ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
+                      : 'border-terminal-border bg-white text-terminal-muted hover:border-terminal-primary/40'
+                  }`}
+                >
+                  {c.standardMethodsTab}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentGatewayTabActive(true)}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    paymentGatewayTabActive
+                      ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
+                      : 'border-terminal-border bg-white text-terminal-muted hover:border-terminal-primary/40'
+                  }`}
+                >
+                  {c.paymentGatewayTab}
+                </button>
+              </div>
             </div>
           ) : null}
 
-          {showPaymentMethods && paymentMethodsExpanded ? (
+          {showPaymentMethods && paymentMethodsExpanded && paymentGatewayTabActive ? (
+            <PaymentGateway
+              amountUsd={totalUsd}
+              referenceId={deposit?.id ?? batchId ?? ''}
+              investorName={investorName}
+              fallbackCurrency={currency}
+              className="py-[1mm]"
+              onFunded={() => setStatus('done')}
+              onError={(message) => setError(message)}
+            />
+          ) : null}
+
+          {showPaymentMethods && paymentMethodsExpanded && !paymentGatewayTabActive ? (
             <CheckoutPaymentLaneSelector
               bundle={paymentLaneBundle}
               selectedLane={paymentLane}
@@ -1605,11 +1643,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             />
           ) : null}
 
-          {showPaymentMethods && paymentMethodsExpanded && paymentQuoteExpired ? (
+          {showPaymentMethods && paymentMethodsExpanded && paymentQuoteExpired && !paymentGatewayTabActive ? (
             <p className="pb-[2mm] text-xs text-terminal-warning">{c.quoteExpired}</p>
           ) : null}
 
-          {showPaymentMethods && paymentMethodsExpanded ? (
+          {showPaymentMethods && paymentMethodsExpanded && !paymentGatewayTabActive ? (
             <div className="md:hidden">
               <button
                 type="button"
@@ -1849,7 +1887,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           {status !== 'done' &&
           status !== 'share_pending' &&
           status !== 'share_failed' &&
-          status !== 'mercadopago_embedded' ? (
+          status !== 'mercadopago_embedded' &&
+          !paymentGatewayTabActive ? (
             <div className={`${showPaymentMethods ? 'space-y-1' : ''} hidden md:block`}>
               <button
                 type="button"
@@ -1882,7 +1921,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         </div>
       </article>
 
-      {status !== 'done' && status !== 'share_pending' && status !== 'share_failed' ? (
+      {status !== 'done' && status !== 'share_pending' && status !== 'share_failed' && !paymentGatewayTabActive ? (
         <StickyActionBar
           summary={
             <div className="flex items-center justify-between text-sm">
