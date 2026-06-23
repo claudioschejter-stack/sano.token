@@ -64,6 +64,7 @@ import {
 } from '../../lib/payments/mercadoPagoEmbeddedService';
 import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
 import { PaymentGateway } from '../payments/gateway';
+import { SimplifiedCheckout } from '../payments/simplified';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -1581,11 +1582,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
 
           {showPaymentMethods && paymentMethodsExpanded && paymentGatewayTabActive ? (
-            <PaymentGateway
+            <SimplifiedCheckout
               amountUsd={totalUsd}
               referenceId={deposit?.id ?? batchId ?? ''}
               investorName={investorName}
-              fallbackCurrency={currency}
+              country={depositCountry}
               className="py-[1mm]"
               onFunded={() => setStatus('done')}
               onError={(message) => setError(message)}
