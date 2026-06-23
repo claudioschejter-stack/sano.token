@@ -1334,6 +1334,8 @@ export const bn = {
       contact: "যোগাযোগ",
       privacy: "গোপনীয়তা",
       terms: "শর্তাবলী",
+      about: "আমাদের সম্পর্কে",
+      faq: "সাধারণ প্রশ্ন",
       blog: "ব্লগ",
       linkedin: "লিঙ্কডইন",
       youtube: "YouTube"

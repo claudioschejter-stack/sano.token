@@ -1334,6 +1334,8 @@ export const ru = {
       contact: "Контакт",
       privacy: "Конфиденциальность",
       terms: "Условия",
+      about: "О нас",
+      faq: "Вопросы",
       blog: "блог",
       linkedin: "LinkedIn",
       youtube: "Ютуб"

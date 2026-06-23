@@ -1334,6 +1334,8 @@ export const fr = {
       contact: "Contact",
       privacy: "Confidentialité",
       terms: "Termes",
+      about: "Qui sommes-nous",
+      faq: "FAQ",
       blog: "bloguer",
       linkedin: "LinkedIn",
       youtube: "YouTube"

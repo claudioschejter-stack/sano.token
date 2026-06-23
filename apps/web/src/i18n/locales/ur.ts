@@ -1334,6 +1334,8 @@ export const ur = {
       contact: "رابطہ کریں۔",
       privacy: "رازداری",
       terms: "شرائط",
+      about: "ہمارے بارے میں",
+      faq: "عمومی سوالات",
       blog: "بلاگ",
       linkedin: "LinkedIn",
       youtube: "یوٹیوب"

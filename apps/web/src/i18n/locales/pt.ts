@@ -1334,6 +1334,8 @@ export const pt = {
       contact: "Contato",
       privacy: "Privacidade",
       terms: "Termos",
+      about: "Quem somos",
+      faq: "FAQ",
       blog: "blog",
       linkedin: "LinkedIn",
       youtube: "YouTube"

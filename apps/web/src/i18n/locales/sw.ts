@@ -1334,6 +1334,8 @@ export const sw = {
       contact: "Wasiliana",
       privacy: "Faragha",
       terms: "Masharti",
+      about: "Kuhusu sisi",
+      faq: "Maswali",
       blog: "blogu",
       linkedin: "LinkedIn",
       youtube: "YouTube"

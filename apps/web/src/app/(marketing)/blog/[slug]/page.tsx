@@ -51,11 +51,49 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+function ArticleJsonLd({ article, canonical, siteUrl }: {
+  article: NonNullable<ReturnType<typeof getBlogArticle>>;
+  canonical: string;
+  siteUrl: string;
+}) {
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: article.title,
+    description: article.description,
+    datePublished: article.publishedAt,
+    dateModified: article.publishedAt,
+    url: canonical,
+    image: `${siteUrl}/icons/icon-512.png`,
+    publisher: {
+      '@type': 'Organization',
+      '@id': `${siteUrl}/#organization`,
+      name: 'Sanova Global SAS',
+      logo: { '@type': 'ImageObject', url: `${siteUrl}/icons/icon-512.png` }
+    },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': canonical }
+  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+    />
+  );
+}
+
 export default async function BlogSlugPage({ params }: PageProps) {
   const locale = await resolveServerLocale();
   const article = getBlogArticle(params.slug, locale);
   if (!article) {
     notFound();
   }
-  return <BlogArticlePage article={article} />;
+  const siteUrl = getSiteUrl();
+  const path = `/blog/${article.slug}`;
+  const canonical = `${siteUrl}${withLocalePrefix(locale, path)}`;
+  return (
+    <>
+      <ArticleJsonLd article={article} canonical={canonical} siteUrl={siteUrl} />
+      <BlogArticlePage article={article} />
+    </>
+  );
 }

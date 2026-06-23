@@ -1732,6 +1732,8 @@ export const es = {
       disclaimer:
         'Colocación privada de cuotapartes fiduciarias vinculadas a Compartimentos del Fideicomiso Sanova Global RWA. No constituye oferta pública de valores negociables ni emisión registrada ante la CNV (Ley 26.831, art. 2). Sanova Global SAS actúa como fiduciario y administrador tecnológico; los activos no integran su patrimonio social. Toda inversión implica riesgos. Consulte los Términos Legales y la Política de Privacidad.',
       rights: '© 2026 Sanova Global SAS. Todos los derechos reservados.',
+      about: 'Nosotros',
+      faq: 'FAQ',
       contact: 'Contacto',
       privacy: 'Privacidad',
       terms: 'Términos',

@@ -8,13 +8,14 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/acceso', '/contacto', '/privacidad', '/terminos'],
+        allow: ['/', '/blog', '/nosotros', '/faq', '/contacto', '/privacidad', '/terminos'],
         disallow: [
           '/dashboard/',
           '/api/',
           '/marketplace/',
           '/mercado-secundario/',
-          '/kyc'
+          '/kyc',
+          '/acceso'
         ]
       }
     ],

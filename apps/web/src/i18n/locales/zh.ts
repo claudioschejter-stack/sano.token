@@ -1334,6 +1334,8 @@ export const zh = {
       contact: "接触",
       privacy: "隐私",
       terms: "条款",
+      about: "关于我们",
+      faq: "常见问题",
       blog: "博客",
       linkedin: "领英",
       youtube: "YouTube"

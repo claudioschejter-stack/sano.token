@@ -1334,6 +1334,8 @@ export const mr = {
       contact: "संपर्क करा",
       privacy: "गोपनीयता",
       terms: "अटी",
+      about: "आमच्याबद्दल",
+      faq: "सामान्य प्रश्न",
       blog: "ब्लॉग",
       linkedin: "लिंक्डइन",
       youtube: "YouTube"

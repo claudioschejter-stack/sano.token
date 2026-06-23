@@ -1334,6 +1334,8 @@ export const id = {
       contact: "Kontak",
       privacy: "Pribadi",
       terms: "Ketentuan",
+      about: "Tentang kami",
+      faq: "FAQ",
       blog: "blog",
       linkedin: "LinkedIn",
       youtube: "YouTube"

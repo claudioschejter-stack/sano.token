@@ -1334,6 +1334,8 @@ export const ar = {
       contact: "اتصال",
       privacy: "خصوصية",
       terms: "شروط",
+      about: "من نحن",
+      faq: "الأسئلة الشائعة",
       blog: "مدونة",
       linkedin: "ينكدين",
       youtube: "يوتيوب"

@@ -14,8 +14,8 @@ export function getSiteUrl(): string {
 
 export const PUBLIC_MARKETING_PATHS = [
   '/',
-  '/acceso',
-  '/acceso/registro',
+  '/nosotros',
+  '/faq',
   '/contacto',
   '/privacidad',
   '/terminos',

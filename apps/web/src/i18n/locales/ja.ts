@@ -1334,6 +1334,8 @@ export const ja = {
       contact: "接触",
       privacy: "プライバシー",
       terms: "条項",
+      about: "会社概要",
+      faq: "よくある質問",
       blog: "ブログ",
       linkedin: "リンクトイン",
       youtube: "YouTube"

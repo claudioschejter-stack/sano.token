@@ -1708,6 +1708,8 @@ export const en = {
       disclaimer:
         "Private placement of fiduciary shares linked to Compartments of the Sanova Global RWA Trust. Does not constitute a public offering of negotiable securities nor a CNV-registered issuance (Law 26,831, Art. 2). Sanova Global SAS acts as fiduciary and technological administrator; assets do not form part of its corporate patrimony. All investment involves risk. See Legal Terms and Privacy Policy.",
       rights: "© 2026 Sanova Global SAS.All rights reserved.",
+      about: "About us",
+      faq: "FAQ",
       contact: "Contact",
       privacy: "Privacy",
       terms: "Terms",

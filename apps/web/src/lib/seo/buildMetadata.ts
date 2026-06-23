@@ -23,8 +23,7 @@ const OG_LOCALE_MAP: Record<Locale, string> = {
   ur: 'ur_PK',
   id: 'id_ID',
   ja: 'ja_JP',
-  sw: 'sw_KE',
-  mr: 'mr_IN'
+  sw: 'sw_KE'
 };
 
 export function buildSiteMetadata(locale: Locale, path = '/'): Metadata {

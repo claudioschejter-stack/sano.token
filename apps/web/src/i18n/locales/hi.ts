@@ -1334,6 +1334,8 @@ export const hi = {
       contact: "संपर्क",
       privacy: "गोपनीयता",
       terms: "शर्तें",
+      about: "हमारे बारे में",
+      faq: "सामान्य प्रश्न",
       blog: "ब्लॉग",
       linkedin: "Linkedin",
       youtube: "यूट्यूब"
