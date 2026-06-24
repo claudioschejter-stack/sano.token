@@ -20,11 +20,6 @@ export default function robots(): MetadataRoute.Robots {
         ]
       },
       // Block AI training crawlers — remove if you want ChatGPT / Perplexity visibility
-      { userAgent: 'GPTBot', disallow: '/' },
-      { userAgent: 'ChatGPT-User', disallow: '/' },
-      { userAgent: 'CCBot', disallow: '/' },
-      { userAgent: 'anthropic-ai', disallow: '/' },
-      { userAgent: 'Claude-Web', disallow: '/' }
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
     host: siteUrl
