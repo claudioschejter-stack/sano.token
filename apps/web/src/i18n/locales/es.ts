@@ -2254,7 +2254,7 @@ export const es = {
     apyLabel: 'Rendimiento',
     tvlLabel: 'TVL',
     liquidityLabel: 'Liquidez disponible',
-    depositButton: 'Invertir en USDC',
+    depositButton: 'Invertir',
     explorerLabel: 'Ver en BaseScan',
     refresh: 'Actualizar',
     loading: 'Cargando vaults desde Privy…',

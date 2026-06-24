@@ -2216,7 +2216,7 @@ export const en = {
     apyLabel: 'APY',
     tvlLabel: 'TVL',
     liquidityLabel: 'Available liquidity',
-    depositButton: 'Invest in USDC',
+    depositButton: 'Invest',
     explorerLabel: 'View on BaseScan',
     refresh: 'Refresh',
     loading: 'Loading vaults from Privy…',

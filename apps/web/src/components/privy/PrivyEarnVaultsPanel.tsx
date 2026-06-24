@@ -1,10 +1,10 @@
 'use client';
 
 import { ExternalLink, Landmark, Loader2, RefreshCw } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
-import { PrivyEarnVaultDepositPanel } from './PrivyEarnVaultDepositPanel';
 
 export type PrivyEarnVaultRow = {
   vaultId: string;
@@ -37,7 +37,6 @@ export function PrivyEarnVaultsPanel({ compact = false, hideChrome = false, clas
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [notConfigured, setNotConfigured] = useState(false);
-  const [depositingVaultId, setDepositingVaultId] = useState<string | null>(null);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -155,19 +154,12 @@ export function PrivyEarnVaultsPanel({ compact = false, hideChrome = false, clas
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setDepositingVaultId((prev) => (prev === vault.vaultId ? null : vault.vaultId))
-                      }
-                      className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
-                        depositingVaultId === vault.vaultId
-                          ? 'bg-terminal-border text-terminal-muted'
-                          : 'bg-terminal-primary text-white hover:opacity-90'
-                      }`}
+                    <Link
+                      href={vault.checkoutHref}
+                      className="inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-sm transition-opacity hover:opacity-90"
                     >
-                      {depositingVaultId === vault.vaultId ? 'Cerrar' : p.depositButton}
-                    </button>
+                      {p.depositButton}
+                    </Link>
 
                     {vault.vaultAddress ? (
                       <a
@@ -183,14 +175,6 @@ export function PrivyEarnVaultsPanel({ compact = false, hideChrome = false, clas
                     ) : null}
                   </div>
                 </div>
-
-                {/* Inline deposit panel — opens when this vault is selected */}
-                {depositingVaultId === vault.vaultId ? (
-                  <PrivyEarnVaultDepositPanel
-                    vault={vault}
-                    onClose={() => setDepositingVaultId(null)}
-                  />
-                ) : null}
               </li>
             ))}
           </ul>
