@@ -16,6 +16,7 @@ import { auth } from '../../../../auth';
 
 const KID = 'sanova-rwa-v1';
 const ISSUER = 'https://sanovacapital.com';
+const PRIVY_APP_ID = 'cmqiztako002p0bjmjiqaebuw';
 /** Token lifespan — 10 minutes is enough; hook refreshes before expiry. */
 const TOKEN_TTL_SECONDS = 600;
 
@@ -49,6 +50,7 @@ export async function GET() {
       .setProtectedHeader({ alg: 'RS256', kid: KID })
       .setSubject(session.user.id)
       .setIssuer(ISSUER)
+      .setAudience(PRIVY_APP_ID)
       .setIssuedAt()
       .setExpirationTime(`${TOKEN_TTL_SECONDS}s`)
       .sign(privateKey);
