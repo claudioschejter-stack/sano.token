@@ -10,6 +10,7 @@ export type DeployNavOracleResult =
 
 export type UpdateNavOracleResult =
   | { status: 'UPDATED'; txHash: string; navPerAssetMicroUsd: bigint }
+  | { status: 'PROPOSED'; txHash: string; effectiveAt: number; navPerAssetMicroUsd: bigint }
   | { status: 'SKIPPED'; reason: string };
 
 function resolveRpcUrl(chainId: number): string {
@@ -122,20 +123,92 @@ export async function updateNavOraclePrice(
       oracleAddress,
       [
         'function updateNav(uint256 navPerAssetMicroUsd_, bytes32 auditHash)',
+        'function commitPendingNav()',
+        'function pendingNavUpdate() view returns (uint256 navPerAssetMicroUsd, bytes32 auditHash, uint256 effectiveAt)',
+        'function setupExpiresAt() view returns (uint256)',
         'function price() view returns (uint256)'
       ],
       wallet
     );
     const auditHash = auditDocumentToHash(auditDocumentId);
+
+    // Check if we're still in the setup window (immediate updates allowed)
+    const setupExpiresAt = BigInt(await oracle.setupExpiresAt());
+    const nowSec = BigInt(Math.floor(Date.now() / 1000));
+    const inSetupWindow = nowSec <= setupExpiresAt;
+
     const tx = await oracle.updateNav(navPerAssetMicroUsd, auditHash);
     const receipt = await tx.wait();
+
+    if (inSetupWindow) {
+      // Setup window: applied immediately
+      return {
+        status: 'UPDATED',
+        txHash: receipt?.hash ?? tx.hash,
+        navPerAssetMicroUsd
+      };
+    }
+
+    // Production: proposal queued for 24h timelock
+    const pending = await oracle.pendingNavUpdate();
     return {
-      status: 'UPDATED',
+      status: 'PROPOSED',
       txHash: receipt?.hash ?? tx.hash,
+      effectiveAt: Number(pending.effectiveAt),
       navPerAssetMicroUsd
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Nav update failed';
+    return { status: 'SKIPPED', reason: message };
+  } finally {
+    provider.destroy();
+  }
+}
+
+/** Commit a pending NAV update after the 24h timelock has elapsed. */
+export async function commitPendingNavOracleUpdate(
+  oracleAddress: string
+): Promise<{ status: 'COMMITTED'; txHash: string } | { status: 'SKIPPED'; reason: string }> {
+  if (!isRwaOperatorConfigured()) {
+    return { status: 'SKIPPED', reason: 'Operador RWA no configurado.' };
+  }
+
+  const chainId = resolveMorphoChainId();
+  const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
+  const wallet = await resolveRwaOperatorSigner(provider, chainId);
+  if (!wallet) {
+    return { status: 'SKIPPED', reason: 'No se pudo resolver el operador RWA.' };
+  }
+
+  try {
+    const oracle = new Contract(
+      oracleAddress,
+      [
+        'function commitPendingNav()',
+        'function pendingNavUpdate() view returns (uint256 navPerAssetMicroUsd, bytes32 auditHash, uint256 effectiveAt)'
+      ],
+      wallet
+    );
+
+    const pending = await oracle.pendingNavUpdate();
+    if (BigInt(pending.effectiveAt) === 0n) {
+      return { status: 'SKIPPED', reason: 'No hay actualización pendiente.' };
+    }
+
+    const nowSec = BigInt(Math.floor(Date.now() / 1000));
+    if (nowSec < BigInt(pending.effectiveAt)) {
+      const remainingSec = Number(BigInt(pending.effectiveAt) - nowSec);
+      return {
+        status: 'SKIPPED',
+        reason: `Timelock aún activo. Disponible en ${Math.ceil(remainingSec / 3600)}h.`
+      };
+    }
+
+    const tx = await oracle.commitPendingNav();
+    const receipt = await tx.wait();
+    return { status: 'COMMITTED', txHash: receipt?.hash ?? tx.hash };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Commit failed';
     return { status: 'SKIPPED', reason: message };
   } finally {
     provider.destroy();

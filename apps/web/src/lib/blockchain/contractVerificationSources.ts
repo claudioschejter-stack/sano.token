@@ -6,7 +6,8 @@ const COMPILER_VERSION = 'v0.8.20+commit.a1b79de6';
 const CONTRACT_FILES: Record<string, string> = {
   SanovaAssetToken: 'SanovaAssetToken.sol',
   SanovaRwaVault: 'SanovaRwaVault.sol',
-  SanovaFixedPriceOracle: 'SanovaFixedPriceOracle.sol'
+  SanovaFixedPriceOracle: 'SanovaFixedPriceOracle.sol',
+  SanovaNavOracle: 'SanovaNavOracle.sol'
 };
 
 function resolveRepoRoot(): string {

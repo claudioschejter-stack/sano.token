@@ -16,6 +16,23 @@ const { auth } = NextAuth(authConfig);
 
 const LOGIN_GATE_PATHS = new Set(['/marketplace', '/mercado-secundario']);
 
+/**
+ * ISO 3166-1 alpha-2 country codes blocked from registration per OFAC SDN / FATF high-risk list.
+ * Env override: BLOCKED_REGISTRATION_COUNTRIES (comma-separated, e.g. "IR,RU,KP")
+ */
+const DEFAULT_BLOCKED_COUNTRIES = 'IR,RU,KP,SY,CU,VE,MM,SD,BY,AF,SO,YE,LY,SS';
+
+function buildBlockedCountriesSet(): Set<string> {
+  const raw =
+    process.env.BLOCKED_REGISTRATION_COUNTRIES?.trim() || DEFAULT_BLOCKED_COUNTRIES;
+  return new Set(raw.split(',').map((c) => c.trim().toUpperCase()).filter(Boolean));
+}
+
+const BLOCKED_REGISTRATION_COUNTRIES = buildBlockedCountriesSet();
+
+/** Routes where geographic blocking applies (registration + first login step). */
+const GEO_BLOCKED_PATHS = new Set(['/acceso/registro', '/acceso/registro/']);
+
 function withLocaleAndCountryHints(
   response: NextResponse,
   request: { cookies: { get: (name: string) => { value: string } | undefined }; headers: Headers },
@@ -90,6 +107,18 @@ export default auth((request) => {
   }
 
   const { pathname } = request.nextUrl;
+
+  // OFAC / FATF geographic block — applies to registration paths only
+  if (GEO_BLOCKED_PATHS.has(pathname)) {
+    const country = request.headers.get('x-vercel-ip-country')?.toUpperCase();
+    if (country && BLOCKED_REGISTRATION_COUNTRIES.has(country)) {
+      return withLocaleAndCountryHints(
+        NextResponse.redirect(new URL('/acceso?error=REGION_NOT_AVAILABLE', request.url)),
+        request
+      );
+    }
+  }
+
   const isAuthenticated = Boolean(request.auth?.user?.accessToken);
 
   if (LOGIN_GATE_PATHS.has(pathname) && !isAuthenticated) {

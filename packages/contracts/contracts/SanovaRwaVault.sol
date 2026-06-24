@@ -115,6 +115,12 @@ contract SanovaRwaVault is ERC4626, Ownable, Pausable {
         super._withdraw(caller, receiver, owner, assets, shares);
     }
 
+    /// @dev Inflation attack mitigation (EIP-4626 virtual shares).
+    ///      A 3-decimal offset makes the attack cost 1000× more expensive for any attacker.
+    function _decimalsOffset() internal pure override returns (uint8) {
+        return 3;
+    }
+
     function _update(address from, address to, uint256 value) internal override whenNotPaused {
         if (from != address(0) && to != address(0)) {
             require(kycAsset.kycApproved(from) && kycAsset.kycApproved(to), "SANOVA: share transfer requires KYC");
