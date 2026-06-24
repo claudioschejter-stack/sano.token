@@ -20,13 +20,6 @@ export type StartGlobalRetailOnRampInput = {
   preferredProvider?: GlobalOnRampProvider;
 };
 
-function mapPreferredProvider(provider: GlobalOnRampProvider): 'coinbase' | 'moonpay' {
-  if (provider === 'coinbase') {
-    return 'coinbase';
-  }
-  return 'moonpay';
-}
-
 function isFundComplete(status: string): boolean {
   return status === 'submitted' || status === 'confirmed' || status === 'success';
 }
@@ -68,9 +61,7 @@ export function useGlobalRetailOnRamp() {
             asset: 'USDC',
             defaultFundingMethod: 'card',
             card: {
-              preferredProvider: mapPreferredProvider(
-                preferredProvider === 'stripe' ? 'moonpay' : preferredProvider
-              )
+              preferredProvider: preferredProvider === 'coinbase' ? 'coinbase' : 'moonpay'
             }
           }
         });

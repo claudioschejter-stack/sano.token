@@ -79,7 +79,7 @@ export function CardPaymentPanel({ card, country, onFunded }: Props) {
           Proveedores disponibles
         </p>
         <div className="flex flex-wrap gap-2">
-          {['Stripe', 'MoonPay', 'Coinbase', 'Bridge'].map((p) => (
+          {['Stripe', 'MoonPay', 'Coinbase Pay'].map((p) => (
             <span
               key={p}
               className="rounded-full border border-terminal-border bg-white px-2.5 py-0.5 text-[11px] font-medium text-terminal-text"
@@ -89,7 +89,7 @@ export function CardPaymentPanel({ card, country, onFunded }: Props) {
           ))}
         </div>
         <p className="text-[10px] text-terminal-muted">
-          Privy selecciona automáticamente el mejor proveedor disponible para tu país.
+          Privy selecciona automáticamente el mejor proveedor de tarjeta disponible para tu región.
         </p>
       </div>
 
