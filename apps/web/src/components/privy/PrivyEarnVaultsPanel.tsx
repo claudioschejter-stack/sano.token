@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { ExternalLink, Landmark, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
+import { PrivyEarnVaultDepositPanel } from './PrivyEarnVaultDepositPanel';
 
 export type PrivyEarnVaultRow = {
   vaultId: string;
@@ -37,6 +37,7 @@ export function PrivyEarnVaultsPanel({ compact = false, hideChrome = false, clas
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
   const [notConfigured, setNotConfigured] = useState(false);
+  const [depositingVaultId, setDepositingVaultId] = useState<string | null>(null);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -124,57 +125,72 @@ export function PrivyEarnVaultsPanel({ compact = false, hideChrome = false, clas
         <>
           <ul className="mt-4 divide-y divide-terminal-border rounded-lg border border-terminal-border bg-terminal-bg">
             {vaults.map((vault) => (
-              <li key={vault.vaultId} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium text-terminal-text">{vault.name}</p>
-                  {vault.projectTitle && vault.projectTitle !== vault.name ? (
-                    <p className="mt-0.5 truncate text-xs text-terminal-muted">{vault.projectTitle}</p>
-                  ) : null}
-                  <p className="mt-0.5 text-xs text-terminal-muted">
-                    {vault.assetSymbol || 'USDC'}
-                    {vault.vaultAddress
-                      ? ` · ${vault.vaultAddress.slice(0, 6)}…${vault.vaultAddress.slice(-4)}`
-                      : ''}
-                  </p>
-                  {!compact ? (
-                    <p className="mt-1 text-xs text-terminal-muted">
-                      {p.tvlLabel}: {formatUsd(vault.tvlUsd)}
-                      {' · '}
-                      {p.liquidityLabel}: {formatUsd(vault.availableLiquidityUsd)}
+              <li key={vault.vaultId} className="px-4 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-terminal-text">{vault.name}</p>
+                    <p className="mt-0.5 text-xs text-terminal-muted">
+                      {vault.provider ? <span className="capitalize mr-1">{vault.provider}</span> : null}
+                      {vault.assetSymbol || 'USDC'}
+                      {vault.vaultAddress
+                        ? ` · ${vault.vaultAddress.slice(0, 6)}…${vault.vaultAddress.slice(-4)}`
+                        : ''}
                     </p>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-                  <div className="text-left sm:text-right">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
-                      {p.apyLabel}
-                    </p>
-                    <p className="font-mono text-lg font-bold text-terminal-success">
-                      {formatPercent(vault.userApyPercent)}
-                    </p>
+                    {!compact ? (
+                      <p className="mt-1 text-xs text-terminal-muted">
+                        {p.tvlLabel}: {formatUsd(vault.tvlUsd)}
+                        {' · '}
+                        {p.liquidityLabel}: {formatUsd(vault.availableLiquidityUsd)}
+                      </p>
+                    ) : null}
                   </div>
 
-                  <Link
-                    href={vault.checkoutHref}
-                    className="inline-flex items-center justify-center rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-                  >
-                    {p.depositButton}
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-3 sm:justify-end">
+                    <div className="text-left sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                        {p.apyLabel}
+                      </p>
+                      <p className="font-mono text-lg font-bold text-terminal-success">
+                        {formatPercent(vault.userApyPercent)}
+                      </p>
+                    </div>
 
-                  {vault.vaultAddress ? (
-                    <a
-                      href={`https://basescan.org/address/${vault.vaultAddress}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-terminal-primary hover:underline"
-                      aria-label={p.explorerLabel}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setDepositingVaultId((prev) => (prev === vault.vaultId ? null : vault.vaultId))
+                      }
+                      className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                        depositingVaultId === vault.vaultId
+                          ? 'bg-terminal-border text-terminal-muted'
+                          : 'bg-terminal-primary text-white hover:opacity-90'
+                      }`}
                     >
-                      Base
-                      <ExternalLink size={12} />
-                    </a>
-                  ) : null}
+                      {depositingVaultId === vault.vaultId ? 'Cerrar' : p.depositButton}
+                    </button>
+
+                    {vault.vaultAddress ? (
+                      <a
+                        href={`https://basescan.org/address/${vault.vaultAddress}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs text-terminal-primary hover:underline"
+                        aria-label={p.explorerLabel}
+                      >
+                        Base
+                        <ExternalLink size={12} />
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
+
+                {/* Inline deposit panel — opens when this vault is selected */}
+                {depositingVaultId === vault.vaultId ? (
+                  <PrivyEarnVaultDepositPanel
+                    vault={vault}
+                    onClose={() => setDepositingVaultId(null)}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>
