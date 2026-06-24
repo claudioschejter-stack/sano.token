@@ -7,11 +7,19 @@ import { getSiteUrl } from '../../../lib/seo/siteUrl';
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
   const base = buildSiteMetadata(locale, '/nosotros');
+  const isEs = locale === 'es';
   return {
     ...base,
-    title: 'Nosotros | Sanova Global',
-    description:
-      'Conocé al equipo de Sanova Global SAS. Tokenizamos activos reales de Vaca Muerta en Base blockchain para inversores globales.'
+    title: isEs
+      ? 'Nosotros — Equipo Sanova Global | Tokenización RWA Vaca Muerta'
+      : 'About Us — Sanova Global Team | RWA Tokenization Vaca Muerta',
+    description: isEs
+      ? 'Conocé al equipo de Sanova Global SAS. Tokenizamos activos reales de Vaca Muerta en Base blockchain. Somos una empresa argentina con alcance global de inversores en más de 15 países.'
+      : 'Meet the Sanova Global SAS team. We tokenize real-world assets in Vaca Muerta on the Base blockchain for global investors across 15+ countries.',
+    alternates: {
+      ...base.alternates,
+      canonical: `${getSiteUrl()}/nosotros`
+    }
   };
 }
 

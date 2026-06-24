@@ -13,20 +13,34 @@ export function SiteJsonLd({ locale }: SiteJsonLdProps) {
 
   const organization = {
     '@context': 'https://schema.org',
-    '@type': 'Organization',
+    '@type': ['Organization', 'FinancialService'],
     '@id': `${siteUrl}/#organization`,
     name: 'Sanova Global SAS',
     legalName: 'Sanova Global SAS',
     foundingDate: '2024',
     url: siteUrl,
-    logo: `${siteUrl}/icons/icon-512.png`,
+    logo: {
+      '@type': 'ImageObject',
+      url: `${siteUrl}/icons/icon-512.png`,
+      width: 512,
+      height: 512
+    },
+    image: `${siteUrl}/opengraph-image`,
     description: meta.description,
     address: {
       '@type': 'PostalAddress',
       addressCountry: 'AR',
-      addressRegion: 'Neuquén'
+      addressRegion: 'Neuquén',
+      addressLocality: 'Vaca Muerta'
     },
     areaServed: 'Worldwide',
+    serviceType: [
+      'Real Estate Tokenization',
+      'RWA Investment',
+      'DeFi Yield',
+      'Private Placement',
+      'Tokenized Asset Management'
+    ],
     knowsAbout: [
       'Real World Assets',
       'RWA tokens',
@@ -34,8 +48,17 @@ export function SiteJsonLd({ locale }: SiteJsonLdProps) {
       'Vaca Muerta',
       'Shale oil and gas infrastructure',
       'Private placement',
-      'USDC dividends'
+      'USDC dividends',
+      'ERC-4626 tokens',
+      'Morpho DeFi protocol',
+      'Base blockchain'
     ],
+    contactPoint: {
+      '@type': 'ContactPoint',
+      contactType: 'customer service',
+      url: `${siteUrl}/contacto`,
+      availableLanguage: ['Spanish', 'English', 'Portuguese', 'German', 'French', 'Arabic', 'Chinese', 'Japanese', 'Russian', 'Hindi']
+    },
     sameAs: [
       siteUrl,
       getLinkedInUrl(),
@@ -71,7 +94,7 @@ export function SiteJsonLd({ locale }: SiteJsonLdProps) {
       '@type': 'Place',
       name: 'Vaca Muerta, Neuquén, Argentina'
     },
-    serviceType: 'Tokenized real estate private placement'
+    serviceType: ['Real Estate Tokenization', 'RWA Investment', 'DeFi Yield', 'Private Placement']
   };
 
   const payload = [organization, website, investmentService];

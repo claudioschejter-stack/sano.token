@@ -44,11 +44,15 @@ const FAQ_SCHEMA_ITEMS = [
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
   const base = buildSiteMetadata(locale, '/faq');
+  const isEs = locale === 'es';
   return {
     ...base,
-    title: 'Preguntas Frecuentes (FAQ) | Sanova Global',
-    description:
-      'Respondemos las dudas más frecuentes sobre inversión en activos reales tokenizados (RWA), tokens ERC-4626, Vaca Muerta, KYC, rendimientos en USDC y regulación argentina.'
+    title: isEs
+      ? 'Preguntas Frecuentes — Inversión RWA Tokenizada | Sanova Global'
+      : 'FAQ — Tokenized RWA Investment Vaca Muerta | Sanova Global',
+    description: isEs
+      ? 'Respondemos todas las dudas sobre inversión en tokens RWA de Vaca Muerta: KYC, rendimientos en USDC, regulación argentina, riesgos, tokens ERC-4626 y mercado secundario.'
+      : 'All your questions about tokenized RWA investment in Vaca Muerta: KYC process, USDC yields, Argentine regulation, ERC-4626 tokens, risks, and secondary market.'
   };
 }
 
