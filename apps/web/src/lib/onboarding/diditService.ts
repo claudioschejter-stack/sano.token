@@ -2,6 +2,38 @@ import { createHmac, timingSafeEqual } from 'crypto';
 
 const DIDIT_SESSION_URL = 'https://verification.didit.me/v3/session/';
 
+/**
+ * Whole-number floats (1.0) → integers (1), recursively.
+ * Matches Didit's server-side canonicalisation for X-Signature-V2.
+ */
+function shortenFloats(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(shortenFloats);
+  if (v !== null && typeof v === 'object') {
+    return Object.fromEntries(
+      Object.entries(v as Record<string, unknown>).map(([k, x]) => [k, shortenFloats(x)])
+    );
+  }
+  if (typeof v === 'number' && !Number.isInteger(v) && v % 1 === 0) return Math.trunc(v);
+  return v;
+}
+
+/**
+ * Recursive lexicographic key sort (array order preserved).
+ * Required for X-Signature-V2 canonicalisation.
+ */
+function sortKeys(v: unknown): unknown {
+  if (Array.isArray(v)) return v.map(sortKeys);
+  if (v !== null && typeof v === 'object') {
+    return Object.keys(v as object)
+      .sort()
+      .reduce<Record<string, unknown>>((acc, k) => {
+        acc[k] = sortKeys((v as Record<string, unknown>)[k]);
+        return acc;
+      }, {});
+  }
+  return v;
+}
+
 export type DiditSessionResult = {
   sessionId: string;
   url: string;
@@ -90,6 +122,15 @@ export async function retrieveDiditDecision(sessionId: string): Promise<Record<s
   return (await response.json()) as Record<string, unknown>;
 }
 
+/**
+ * Verifies Didit's X-Signature-V2 header using the canonical HMAC-SHA256 algorithm.
+ *
+ * Didit signs: JSON.stringify(sortKeys(shortenFloats(parsedBody))) with unescaped Unicode.
+ * This differs from X-Signature which signs the raw bytes — using the wrong algorithm
+ * causes ALL webhooks to be rejected silently in production.
+ *
+ * @see https://docs.didit.me/integration/webhooks
+ */
 export function verifyDiditWebhookSignature(
   rawBody: string,
   signatureHeader: string | null,
@@ -99,21 +140,40 @@ export function verifyDiditWebhookSignature(
     return process.env.NODE_ENV !== 'production';
   }
 
-  const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-  const provided = signatureHeader.replace(/^sha256=/i, '').trim();
-
   try {
+    // Canonicalise: shortenFloats → sortKeys → JSON.stringify (unescaped Unicode, JS default)
+    const parsed = JSON.parse(rawBody) as unknown;
+    const canonical = JSON.stringify(sortKeys(shortenFloats(parsed)));
+
+    const expected = createHmac('sha256', secret).update(canonical, 'utf8').digest('hex');
+    const provided = signatureHeader.replace(/^sha256=/i, '').trim();
+
+    if (expected.length !== provided.length) return false;
     return timingSafeEqual(Buffer.from(expected), Buffer.from(provided));
   } catch {
     return false;
   }
 }
 
+/**
+ * Maps Didit v3 session status literals (case-sensitive) to internal KYC status.
+ * Didit status strings: "Not Started", "In Progress", "Awaiting User", "In Review",
+ * "Approved", "Declined", "Resubmitted", "Abandoned", "Expired", "Kyc Expired".
+ */
 export function mapDiditStatusToKyc(status: string | undefined): 'APPROVED' | 'REJECTED' | 'PENDING' {
   const normalized = (status ?? '').toLowerCase().trim();
 
   const approvedStatuses = new Set(['approved', 'verified', 'success', 'completed', 'passed', 'accept']);
-  const rejectedStatuses = new Set(['rejected', 'declined', 'failed', 'expired', 'denied', 'abandoned']);
+  // "Kyc Expired" means a previously approved user's KYC aged out — treat as rejected to require re-verification
+  const rejectedStatuses = new Set([
+    'rejected',
+    'declined',
+    'failed',
+    'expired',
+    'kyc expired',
+    'denied',
+    'abandoned'
+  ]);
 
   if (approvedStatuses.has(normalized)) {
     return 'APPROVED';
@@ -123,5 +183,6 @@ export function mapDiditStatusToKyc(status: string | undefined): 'APPROVED' | 'R
     return 'REJECTED';
   }
 
+  // "Not Started", "In Progress", "Awaiting User", "In Review", "Resubmitted" → PENDING
   return 'PENDING';
 }

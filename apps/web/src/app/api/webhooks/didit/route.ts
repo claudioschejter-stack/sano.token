@@ -7,8 +7,23 @@ import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccoun
 import { provisionInvestorProfileOnKycApproval } from '../../../../lib/investor/provisionInvestorProfile';
 import { autoAllowlistInvestorWallet } from '../../../../lib/blockchain/autoAllowlistInvestorWallet';
 
+/** Max age in seconds for Didit webhook replay-protection (X-Timestamp header). */
+const WEBHOOK_MAX_AGE_SEC = 300;
+
 export async function POST(request: Request) {
   const rawBody = await request.text();
+
+  // 1. Timestamp freshness — reject replays older/newer than 300s
+  const tsHeader = request.headers.get('x-timestamp');
+  const ts = tsHeader ? Number(tsHeader) : null;
+  if (ts !== null && !Number.isNaN(ts)) {
+    const ageSec = Math.abs(Date.now() / 1000 - ts);
+    if (ageSec > WEBHOOK_MAX_AGE_SEC) {
+      return NextResponse.json({ error: 'STALE_TIMESTAMP' }, { status: 401 });
+    }
+  }
+
+  // 2. Signature — X-Signature-V2 canonical HMAC-SHA256
   const signature =
     request.headers.get('x-signature-v2') ?? request.headers.get('X-Signature-V2');
 
@@ -18,6 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'INVALID_SIGNATURE' }, { status: 401 });
   }
 
+  // 3. Parse body
   let payload: Record<string, unknown>;
 
   try {
