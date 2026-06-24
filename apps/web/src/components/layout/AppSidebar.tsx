@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   Settings,
+  Shield,
   ShoppingBag,
   TrendingUp,
   UserCheck,
@@ -59,7 +60,8 @@ const adminNavItems = [
   { href: '/dashboard/treasury', icon: Wallet, labelKey: 'treasury' as const },
   { href: '/dashboard/commissions', icon: CircleDollarSign, labelKey: 'commissions' as const },
   { href: '/dashboard/team', icon: UserCog, labelKey: 'team' as const },
-  { href: '/dashboard/settings', icon: Settings, labelKey: 'settings' as const }
+  { href: '/dashboard/settings', icon: Settings, labelKey: 'settings' as const },
+  { href: '/dashboard/account-audit', icon: Shield, labelKey: 'accountAudit' as const }
 ];
 
 type AdvisorNavConfig = {

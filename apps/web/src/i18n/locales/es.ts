@@ -204,6 +204,7 @@ export const es = {
     commissions: 'Comisiones',
     team: 'Equipo',
     settings: 'Configuración',
+    accountAudit: 'Auditoría de cuentas',
     viewMarketplace: 'Ver marketplace'
   },
   adminCommissions: {
