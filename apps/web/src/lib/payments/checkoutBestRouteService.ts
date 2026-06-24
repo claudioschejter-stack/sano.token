@@ -114,7 +114,7 @@ export type SimplifiedCryptoWalletMethod = {
 };
 
 export type SimplifiedCardMethod = {
-  provider: 'mercado_pago_embedded' | 'transak';
+  provider: 'privy' | 'mercado_pago_embedded' | 'transak';
   configured: boolean;
   totalUsd: number;
   totalLocal: number;
@@ -195,29 +195,19 @@ export function resolveCheckoutBestRoutes(input: {
     stablecoinNetwork: 'BASE'
   };
 
-  // --- Card ---
-  const cardFeeBps = isMercadoPagoEmbeddedConfigured() && c === 'AR'
-    ? FEES.mercado_pago_card
-    : FEES.transak_card;
+  // --- Card (always Privy: routes Stripe, MoonPay, Coinbase, Bridge) ---
+  const cardFeeBps = FEES.transak_card; // ~1.99% fee estimate for Privy on-ramp
   const cardLocal = resolveLocalAmount(amountUsd, c, cardFeeBps);
-  const usesMpCard = isMercadoPagoEmbeddedConfigured() && c === 'AR';
   const card: SimplifiedCardMethod = {
-    provider: usesMpCard ? 'mercado_pago_embedded' : 'transak',
-    configured: usesMpCard || Boolean(process.env.TRANSAK_API_KEY?.trim()),
+    provider: 'privy',
+    configured: Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID?.trim()),
     totalUsd: cardLocal.totalUsd,
     totalLocal: cardLocal.totalLocal,
     displayCurrency: cardLocal.displayCurrency,
     feeBps: cardFeeBps,
-    widgetUrl: usesMpCard
-      ? null // MP embedded brick, no URL needed
-      : transakWidgetUrl({
-          amountUsd: cardLocal.totalUsd,
-          country: c,
-          referenceId,
-          paymentMethod: 'credit_debit_card'
-        }),
-    mpPublicKey: usesMpCard ? mercadoPagoPublicKey() : null,
-    mpSandbox: isMercadoPagoSandbox()
+    widgetUrl: null,
+    mpPublicKey: null,
+    mpSandbox: false
   };
 
   // --- Wire ---

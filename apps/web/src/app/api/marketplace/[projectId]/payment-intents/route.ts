@@ -23,7 +23,9 @@ const METHODS = new Set<PaymentMethod>([
   'STRIPE',
   'MERCADO_PAGO',
   'COINBASE',
-  'CUSTODIAL_STABLECOIN'
+  'CUSTODIAL_STABLECOIN',
+  'TRANSAK',
+  'BRIDGE'
 ]);
 
 export async function POST(

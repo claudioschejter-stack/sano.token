@@ -49,6 +49,19 @@ export async function settleOnRampCheckout(input: OnRampSettlementInput) {
     return { kind: 'deposit' as const, deposit };
   }
 
+  // Direct marketplace payment intent (single-project checkout via SimplifiedCheckout)
+  if (input.reference.kind === 'payment_intent') {
+    const intent = await prisma.paymentIntent.update({
+      where: { id: input.reference.intentId },
+      data: {
+        status: 'CONFIRMED',
+        providerPaymentId: input.providerPaymentId,
+        metadata: enrichedPayload
+      }
+    });
+    return { kind: 'payment_intent' as const, intent };
+  }
+
   const intents = await loadCartBatchIntentsAnyStatus(input.reference.userId, input.reference.batchId);
   if (!intents.length) throw new Error('CART_BATCH_NOT_FOUND');
 

@@ -130,6 +130,7 @@ export function SimplifiedCheckout({
         <CardPaymentPanel
           card={routes.card}
           referenceId={referenceId}
+          country={routes.country}
           onFunded={onFunded}
         />
       )}

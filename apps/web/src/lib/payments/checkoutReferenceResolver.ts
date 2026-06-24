@@ -3,6 +3,7 @@ import { prisma } from '@sanova/database';
 export type ResolvedCheckoutReference =
   | { kind: 'deposit'; depositId: string }
   | { kind: 'cart'; batchId: string; userId: string }
+  | { kind: 'payment_intent'; intentId: string; userId: string }
   | null;
 
 export async function resolveCheckoutReferenceByRipioExternalRef(
@@ -49,11 +50,20 @@ export async function resolveCheckoutReferenceByPartnerOrderId(
   });
   if (deposit) return { kind: 'deposit', depositId: deposit.id };
 
-  const intent = await prisma.paymentIntent.findFirst({
+  const batchIntent = await prisma.paymentIntent.findFirst({
     where: { metadata: { path: ['cartBatchId'], equals: ref } },
     select: { userId: true }
   });
-  if (intent) return { kind: 'cart', batchId: ref, userId: intent.userId };
+  if (batchIntent) return { kind: 'cart', batchId: ref, userId: batchIntent.userId };
+
+  // Direct marketplace payment intent lookup (single-project checkout)
+  const directIntent = await prisma.paymentIntent.findUnique({
+    where: { id: ref },
+    select: { id: true, userId: true }
+  });
+  if (directIntent) {
+    return { kind: 'payment_intent', intentId: ref, userId: directIntent.userId };
+  }
 
   return null;
 }
@@ -67,6 +77,14 @@ export async function resolveExpectedAmountUsd(reference: ResolvedCheckoutRefere
       select: { amountUsd: true }
     });
     return deposit?.amountUsd.toNumber() ?? 0;
+  }
+
+  if (reference.kind === 'payment_intent') {
+    const intent = await prisma.paymentIntent.findUnique({
+      where: { id: reference.intentId },
+      select: { amountUsd: true }
+    });
+    return intent?.amountUsd.toNumber() ?? 0;
   }
 
   const intents = await prisma.paymentIntent.findMany({
