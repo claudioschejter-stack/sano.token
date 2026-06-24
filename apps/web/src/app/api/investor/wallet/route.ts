@@ -6,6 +6,7 @@ import { verifyWalletLinkSignature } from '../../../../lib/investor/walletLinkPr
 import { assertWalletLinkChainId, WALLET_LINK_CHAIN_ID } from '../../../../lib/investor/walletLinkChain';
 import { isPrivyEnabled } from '../../../../lib/privy/config';
 import { syncPrivyEmailVerification } from '../../../../lib/onboarding/syncPrivyEmailVerification';
+import { autoAllowlistInvestorWallet } from '../../../../lib/blockchain/autoAllowlistInvestorWallet';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +51,9 @@ export async function POST(request: Request) {
       body.walletAddress.trim(),
       body.walletProvider ?? 'Privy Wallet'
     );
+
+    // Auto-whitelist on all active token contracts if KYC already approved
+    void autoAllowlistInvestorWallet(ctx.userId);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -124,6 +128,9 @@ export async function PATCH(request: Request) {
     }
 
     const result = await linkUserWallet(ctx.userId, body.walletAddress, body.walletProvider);
+
+    // Auto-whitelist on all active token contracts if KYC already approved
+    void autoAllowlistInvestorWallet(ctx.userId);
 
     return NextResponse.json(result);
   } catch (error) {

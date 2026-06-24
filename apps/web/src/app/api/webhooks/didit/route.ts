@@ -5,6 +5,7 @@ import { mapDiditStatusToKyc, verifyDiditWebhookSignature } from '../../../../li
 import { isContactVerificationComplete } from '../../../../lib/onboarding/contactVerification';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
 import { provisionInvestorProfileOnKycApproval } from '../../../../lib/investor/provisionInvestorProfile';
+import { autoAllowlistInvestorWallet } from '../../../../lib/blockchain/autoAllowlistInvestorWallet';
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -79,6 +80,8 @@ export async function POST(request: Request) {
       '../../../../lib/advisor/advisorNotificationService'
     );
     void notifyAdvisorOfClientKycApproved(vendorData);
+    // Auto-whitelist investor wallet on all active on-chain token contracts
+    void autoAllowlistInvestorWallet(vendorData);
   }
 
   return NextResponse.json({ ok: true });
