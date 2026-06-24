@@ -2055,6 +2055,13 @@ export const es = {
     installCta: 'Agregar a pantalla de inicio',
     dismiss: 'Cerrar'
   },
+  walletActivation: {
+    title: 'Activá tu wallet de pagos',
+    desc: 'Configurala una sola vez para pagar sin interrupciones en el futuro.',
+    cta: 'Activar ahora',
+    loading: 'Activando...',
+    dismiss: 'Ahora no'
+  },
   cashFlow: {
     eyebrow: 'Flujo de Caja',
     title: 'Dividendos y Prestamos',

@@ -2019,6 +2019,13 @@ export const en = {
     installCta: "Add to home screen",
     dismiss: "Close"
   },
+  walletActivation: {
+    title: "Activate your payment wallet",
+    desc: "Set it up once to pay without interruptions in the future.",
+    cta: "Activate now",
+    loading: "Activating...",
+    dismiss: "Not now"
+  },
   cashFlow: {
     eyebrow: "Cash Flow",
     title: "Dividends and Loans",
