@@ -34,13 +34,17 @@ export function SiteJsonLd({ locale }: SiteJsonLdProps) {
       addressLocality: 'Vaca Muerta'
     },
     areaServed: 'Worldwide',
-    serviceType: [
-      'Real Estate Tokenization',
-      'RWA Investment',
-      'DeFi Yield',
-      'Private Placement',
-      'Tokenized Asset Management'
-    ],
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: 'Tokenized Real Asset Services',
+      itemListElement: [
+        { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Real Estate Tokenization' } },
+        { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'RWA Investment' } },
+        { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'DeFi Yield Products' } },
+        { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Private Placement' } },
+        { '@type': 'Offer', itemOffered: { '@type': 'Service', name: 'Tokenized Asset Management' } }
+      ]
+    },
     knowsAbout: [
       'Real World Assets',
       'RWA tokens',
@@ -82,9 +86,11 @@ export function SiteJsonLd({ locale }: SiteJsonLdProps) {
     }
   };
 
+  // Using @type Service (not FinancialService) so that `provider` and service-level
+  // properties are schema.org-valid. FinancialService extends LocalBusiness, not Service.
   const investmentService = {
     '@context': 'https://schema.org',
-    '@type': 'FinancialService',
+    '@type': 'Service',
     '@id': `${siteUrl}/#service`,
     name: 'Sanova Global RWA Platform',
     url: siteUrl,
@@ -94,7 +100,7 @@ export function SiteJsonLd({ locale }: SiteJsonLdProps) {
       '@type': 'Place',
       name: 'Vaca Muerta, Neuquén, Argentina'
     },
-    serviceType: ['Real Estate Tokenization', 'RWA Investment', 'DeFi Yield', 'Private Placement']
+    category: 'Real Estate Tokenization, RWA Investment, DeFi Yield, Private Placement'
   };
 
   const payload = [organization, website, investmentService];
