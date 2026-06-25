@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { usePaymentRouting } from '../../../hooks/usePaymentRouting';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { PaymentRouteId } from '../../../lib/checkout/paymentRouteTypes';
+import { buildBridgeVirtualAccountInstructions } from '../../../lib/checkout/bridgeVirtualAccountService';
 import { normalizePaymentCountry } from '../../../lib/payments/paymentCountry';
 import { BridgeTransferInstructions } from './BridgeTransferInstructions';
 import { GlobalRetailOnRampPanel } from './GlobalRetailOnRampPanel';
@@ -64,6 +65,11 @@ export function PaymentGateway({
   );
 
   const countryLabel = normalizePaymentCountry(countryCode);
+
+  const bridgeInstructions = useMemo(
+    () => buildBridgeVirtualAccountInstructions({ amountUsd, referenceId, investorName }),
+    [amountUsd, referenceId, investorName]
+  );
 
   return (
     <section className={`space-y-4 ${className}`}>
@@ -125,9 +131,8 @@ export function PaymentGateway({
 
       {activeRoute === 'global_institutional' ? (
         <BridgeTransferInstructions
-          amountUsd={amountUsd}
-          referenceId={referenceId}
-          investorName={investorName}
+          instructions={bridgeInstructions}
+          isSimulated
           labels={{
             title: g.bridgeTitle,
             subtitle: g.bridgeSubtitle,
