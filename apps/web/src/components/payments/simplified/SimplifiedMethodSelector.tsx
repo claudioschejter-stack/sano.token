@@ -23,6 +23,49 @@ function formatLocalAmount(totalLocal: number, displayCurrency: string): string 
   }).format(totalLocal);
 }
 
+/** Returns a localised wallet group label based on the user's country. */
+function getLocalWalletLabel(country: string): string {
+  const map: Record<string, string> = {
+    AR: 'Billeteras Digitales (Argentina)',
+    BR: 'Carteiras Digitais (Brasil)',
+    MX: 'Billeteras Digitales (México)',
+    CO: 'Billeteras Digitales (Colombia)',
+    PE: 'Billeteras Digitales (Perú)',
+    CL: 'Billeteras Digitales (Chile)',
+    UY: 'Billeteras Digitales (Uruguay)',
+    PY: 'Billeteras Digitales (Paraguay)',
+    BO: 'Billeteras Digitales (Bolivia)',
+    VE: 'Billeteras Digitales (Venezuela)',
+    EC: 'Billeteras Digitales (Ecuador)',
+    US: 'Digital Wallets (USA)',
+    CA: 'Digital Wallets (Canada)',
+    GB: 'Digital Wallets (UK)',
+    DE: 'Digital Wallets (Deutschland)',
+    FR: 'Portefeuilles Numériques (France)',
+    ES: 'Billeteras Digitales (España)',
+    IN: 'Digital Wallets (India)',
+    NG: 'Digital Wallets (Nigeria)',
+    KE: 'Digital Wallets (Kenya)',
+    ZA: 'Digital Wallets (South Africa)',
+    JP: 'デジタルウォレット (日本)',
+    CN: '数字钱包 (中国)',
+    ID: 'Dompet Digital (Indonesia)',
+    PH: 'Digital Wallets (Philippines)',
+    TH: 'กระเป๋าเงินดิจิทัล (ไทย)',
+    MY: 'Digital Wallets (Malaysia)',
+    SG: 'Digital Wallets (Singapore)',
+    TK: 'Digital Wallets (Turkey)',
+    EG: 'المحافظ الرقمية (مصر)',
+    SA: 'المحافظ الرقمية (السعودية)',
+    AE: 'Digital Wallets (UAE)',
+    AU: 'Digital Wallets (Australia)',
+    NZ: 'Digital Wallets (New Zealand)',
+    PK: 'Digital Wallets (Pakistan)',
+    BD: 'ডিজিটাল ওয়ালেট (বাংলাদেশ)',
+  };
+  return map[country.toUpperCase()] ?? 'Billeteras Digitales';
+}
+
 export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }: Props) {
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
@@ -30,15 +73,15 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
   const methods: {
     id: SimplifiedMethod;
     label: string;
-    subLabel: string;
+    amount: string;
     Icon: typeof CreditCard;
     color: string;
     bgColor: string;
   }[] = [
     {
       id: 'fiat_wallet',
-      label: sc.fiatWallet,
-      subLabel: formatLocalAmount(routes.fiatWallet.totalLocal, routes.fiatWallet.displayCurrency),
+      label: getLocalWalletLabel(routes.country),
+      amount: formatLocalAmount(routes.fiatWallet.totalLocal, routes.fiatWallet.displayCurrency),
       Icon: Smartphone,
       color: 'text-emerald-400',
       bgColor: 'bg-emerald-400/10'
@@ -46,7 +89,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
     {
       id: 'crypto_wallet',
       label: sc.cryptoWallet,
-      subLabel: `${routes.cryptoWallet.totalUsd.toFixed(2)} USDC`,
+      amount: `${routes.cryptoWallet.totalUsd.toFixed(2)} USDC`,
       Icon: Wallet,
       color: 'text-terminal-primary',
       bgColor: 'bg-terminal-primary/10'
@@ -54,7 +97,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
     {
       id: 'card',
       label: sc.card,
-      subLabel: formatLocalAmount(routes.card.totalLocal, routes.card.displayCurrency),
+      amount: formatLocalAmount(routes.card.totalLocal, routes.card.displayCurrency),
       Icon: CreditCard,
       color: 'text-violet-400',
       bgColor: 'bg-violet-400/10'
@@ -62,7 +105,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
     {
       id: 'wire',
       label: sc.wire,
-      subLabel: `USD ${routes.wire.totalUsd.toFixed(2)}`,
+      amount: `USD ${routes.wire.totalUsd.toFixed(2)}`,
       Icon: Building2,
       color: 'text-amber-400',
       bgColor: 'bg-amber-400/10'
@@ -70,12 +113,14 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
   ];
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-[2mm]">
       <p className="text-xs font-semibold uppercase tracking-widest text-terminal-muted">
         {sc.selectMethod}
       </p>
-      <div className="grid grid-cols-2 gap-2.5">
-        {methods.map(({ id, label, subLabel, Icon, color, bgColor }) => {
+
+      {/* 2 columns, 2mm vertical margins */}
+      <div className="grid grid-cols-2 gap-2 my-[2mm]">
+        {methods.map(({ id, label, amount, Icon, color, bgColor }) => {
           const isActive = selected === id;
           return (
             <button
@@ -84,31 +129,45 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
               disabled={loading}
               onClick={() => onSelect(id)}
               className={[
-                'group relative flex flex-col items-start gap-2 rounded-xl border p-3.5 text-left transition-all duration-150',
+                'group relative flex flex-row items-center gap-3 rounded-xl border px-3 py-[2mm] text-left transition-all duration-150 w-full',
                 isActive
                   ? 'border-terminal-primary bg-terminal-primary/10 shadow-md shadow-terminal-primary/10 ring-1 ring-terminal-primary/30'
                   : 'border-terminal-border bg-terminal-card hover:border-terminal-primary/40 hover:bg-terminal-bg',
                 loading ? 'cursor-wait opacity-60' : 'cursor-pointer'
               ].join(' ')}
             >
+              {/* Active indicator dot */}
               {isActive && (
-                <span className="absolute right-3 top-3 h-2 w-2 rounded-full bg-terminal-primary shadow-lg shadow-terminal-primary/50" />
+                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-terminal-primary shadow-lg shadow-terminal-primary/50" />
               )}
-              <div className={`rounded-lg p-1.5 ${isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`}`}>
-                <Icon size={16} />
+
+              {/* Icon */}
+              <div
+                className={`shrink-0 rounded-lg p-2 ${
+                  isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`
+                }`}
+              >
+                <Icon size={20} />
               </div>
-              <div>
-                <span className={`block text-xs font-semibold leading-tight ${isActive ? 'text-terminal-primary' : 'text-terminal-text'}`}>
+
+              {/* Label + amount — to the right of the icon */}
+              <div className="min-w-0 flex-1">
+                <span
+                  className={`block text-sm font-semibold leading-tight ${
+                    isActive ? 'text-terminal-primary' : 'text-terminal-text'
+                  }`}
+                >
                   {label}
                 </span>
-                <span className="mt-0.5 block text-[11px] font-medium leading-snug text-terminal-muted">
-                  {subLabel}
+                <span className="mt-0.5 block text-sm font-bold leading-snug text-blue-500">
+                  {amount}
                 </span>
               </div>
             </button>
           );
         })}
       </div>
+
       <p className="text-[10px] text-terminal-muted">{sc.feesNote}</p>
     </div>
   );
