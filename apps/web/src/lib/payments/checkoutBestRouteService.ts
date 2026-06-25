@@ -128,6 +128,7 @@ export type SimplifiedCardMethod = {
 export type SimplifiedWireMethod = {
   totalUsd: number;
   displayCurrency: 'USD';
+  feeBps: number;
   instructions: BridgeVirtualAccountInstructions;
 };
 
@@ -215,6 +216,7 @@ export function resolveCheckoutBestRoutes(input: {
   const wire: SimplifiedWireMethod = {
     totalUsd: Number(wireTotal.toFixed(2)),
     displayCurrency: 'USD',
+    feeBps: FEES.bridge_wire,
     instructions: buildBridgeVirtualAccountInstructions({
       amountUsd: wireTotal,
       referenceId,

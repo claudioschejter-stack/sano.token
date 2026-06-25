@@ -5,15 +5,17 @@ import { useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { SimplifiedCardMethod } from '../../../lib/payments/checkoutBestRouteService';
 import { useGlobalRetailOnRamp } from '../../../hooks/useGlobalRetailOnRamp';
+import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 
 type Props = {
   card: SimplifiedCardMethod;
   referenceId: string;
   country: string;
+  amountUsd: number;
   onFunded?: () => void;
 };
 
-export function CardPaymentPanel({ card, country, onFunded }: Props) {
+export function CardPaymentPanel({ card, country, amountUsd, onFunded }: Props) {
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
   const { startOnRamp, privyReady } = useGlobalRetailOnRamp();
@@ -73,7 +75,6 @@ export function CardPaymentPanel({ card, country, onFunded }: Props) {
         <p className="mt-1 text-xs text-terminal-muted">{sc.cardPrivyHint}</p>
       </div>
 
-      {/* Provider logos / info */}
       <div className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 space-y-2">
         <p className="text-[11px] font-semibold uppercase tracking-wide text-terminal-muted">
           Proveedores disponibles
@@ -93,15 +94,12 @@ export function CardPaymentPanel({ card, country, onFunded }: Props) {
         </p>
       </div>
 
-      <div className="rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2.5 text-xs text-terminal-muted space-y-0.5">
-        <p className="font-semibold text-terminal-text">
-          Total: {card.displayCurrency === 'USD'
-            ? `USD ${card.totalUsd.toFixed(2)}`
-            : `${card.totalLocal.toFixed(2)} ${card.displayCurrency}`
-          }
-        </p>
-        <p>Recibirás USDC en Base, que se acreditará automáticamente en tu cuenta.</p>
-      </div>
+      <PaymentFeeBreakdown
+        amountUsd={amountUsd}
+        totalUsd={card.totalUsd}
+        feeBps={card.feeBps}
+        providerLabel="Privy / Stripe"
+      />
 
       {error && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">

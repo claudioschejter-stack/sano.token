@@ -1,14 +1,12 @@
 'use client';
 
 import { Building2, Copy } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { buildBridgeVirtualAccountInstructions } from '../../../lib/checkout/bridgeVirtualAccountService';
+import { useState } from 'react';
 import type { BridgeVirtualAccountInstructions } from '../../../lib/checkout/paymentRouteTypes';
 
 type BridgeTransferInstructionsProps = {
-  amountUsd: number;
-  referenceId: string;
-  investorName?: string;
+  instructions: BridgeVirtualAccountInstructions;
+  isSimulated?: boolean;
   labels: {
     title: string;
     subtitle: string;
@@ -44,7 +42,7 @@ function CopyField({
   return (
     <div className="rounded-lg border border-terminal-border bg-white px-3 py-2">
       <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">{label}</p>
-        <div className="mt-1 flex items-center justify-between gap-2">
+      <div className="mt-1 flex items-center justify-between gap-2">
         <p className="break-all text-sm text-terminal-text">{value}</p>
         <button
           type="button"
@@ -65,16 +63,10 @@ function CopyField({
 }
 
 export function BridgeTransferInstructions({
-  amountUsd,
-  referenceId,
-  investorName,
+  instructions,
+  isSimulated = true,
   labels
 }: BridgeTransferInstructionsProps) {
-  const instructions = useMemo<BridgeVirtualAccountInstructions>(
-    () => buildBridgeVirtualAccountInstructions({ amountUsd, referenceId, investorName }),
-    [amountUsd, investorName, referenceId]
-  );
-
   return (
     <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
       <div className="flex items-start gap-3">
@@ -87,25 +79,67 @@ export function BridgeTransferInstructions({
         </div>
       </div>
 
-      <p className="mt-3 rounded-lg border border-amber-200/60 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-        {labels.simulatedNotice}
-      </p>
+      {isSimulated && (
+        <p className="mt-3 rounded-lg border border-amber-200/60 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          {labels.simulatedNotice}
+        </p>
+      )}
 
       <div className="mt-4 grid gap-2">
-        <CopyField label={labels.bankName} value={instructions.bankName} copyLabel={labels.copy} copiedLabel={labels.copied} />
-        <CopyField label={labels.accountName} value={instructions.accountName} copyLabel={labels.copy} copiedLabel={labels.copied} />
-        <CopyField label={labels.accountNumber} value={instructions.accountNumber} copyLabel={labels.copy} copiedLabel={labels.copied} />
-        <CopyField label={labels.routingNumber} value={instructions.routingNumber} copyLabel={labels.copy} copiedLabel={labels.copied} />
-        <CopyField label={labels.swift} value={instructions.swift} copyLabel={labels.copy} copiedLabel={labels.copied} />
-        <CopyField label={labels.beneficiaryAddress} value={instructions.beneficiaryAddress} copyLabel={labels.copy} copiedLabel={labels.copied} />
+        <CopyField
+          label={labels.bankName}
+          value={instructions.bankName}
+          copyLabel={labels.copy}
+          copiedLabel={labels.copied}
+        />
+        <CopyField
+          label={labels.accountName}
+          value={instructions.accountName}
+          copyLabel={labels.copy}
+          copiedLabel={labels.copied}
+        />
+        <CopyField
+          label={labels.accountNumber}
+          value={instructions.accountNumber}
+          copyLabel={labels.copy}
+          copiedLabel={labels.copied}
+        />
+        <CopyField
+          label={labels.routingNumber}
+          value={instructions.routingNumber}
+          copyLabel={labels.copy}
+          copiedLabel={labels.copied}
+        />
+        <CopyField
+          label={labels.swift}
+          value={instructions.swift}
+          copyLabel={labels.copy}
+          copiedLabel={labels.copied}
+        />
+        <CopyField
+          label={labels.beneficiaryAddress}
+          value={instructions.beneficiaryAddress}
+          copyLabel={labels.copy}
+          copiedLabel={labels.copied}
+        />
         <CopyField
           label={labels.amount}
           value={`${instructions.currency} ${instructions.amountUsd.toFixed(2)}`}
           copyLabel={labels.copy}
           copiedLabel={labels.copied}
         />
-        <CopyField label={labels.reference} value={instructions.reference} copyLabel={labels.copy} copiedLabel={labels.copied} />
-        <CopyField label={labels.memo} value={instructions.memo} copyLabel={labels.copy} copiedLabel={labels.copied} />
+        <CopyField
+          label={labels.reference}
+          value={instructions.reference}
+          copyLabel={labels.copy}
+          copiedLabel={labels.copied}
+        />
+        <CopyField
+          label={labels.memo}
+          value={instructions.memo}
+          copyLabel={labels.copy}
+          copiedLabel={labels.copied}
+        />
       </div>
 
       <p className="mt-3 text-xs text-terminal-muted">

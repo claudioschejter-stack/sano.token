@@ -115,6 +115,7 @@ export function SimplifiedCheckout({
           referenceId={referenceId}
           country={routes.country}
           onFunded={onFunded}
+          amountUsd={amountUsd}
         />
       )}
 
@@ -123,6 +124,7 @@ export function SimplifiedCheckout({
           cryptoWallet={routes.cryptoWallet}
           treasuryAddress={routes.treasuryAddress}
           country={routes.country}
+          amountUsd={amountUsd}
         />
       )}
 
@@ -132,11 +134,12 @@ export function SimplifiedCheckout({
           referenceId={referenceId}
           country={routes.country}
           onFunded={onFunded}
+          amountUsd={amountUsd}
         />
       )}
 
       {selectedMethod === 'wire' && (
-        <WireTransferPanel wire={routes.wire} />
+        <WireTransferPanel wire={routes.wire} amountUsd={amountUsd} />
       )}
     </div>
   );

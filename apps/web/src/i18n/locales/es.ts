@@ -2384,6 +2384,14 @@ export const es = {
     cardPrivyHint: 'Pagá con tarjeta vía Privy. Privy enruta automáticamente a Stripe, MoonPay, Coinbase o Bridge según tu país.',
     wireTitle: 'Transferencia bancaria',
     wireSubtitle: 'Wire o ACH a la cuenta virtual. Incluí la referencia exactamente como se indica.',
+    feeBreakdown: {
+      title: 'Detalle de costos',
+      investment: 'Monto de inversión',
+      providerFee: 'Comisión del proveedor',
+      networkFee: 'Gas de red (Base)',
+      total: 'Total a pagar',
+      paidByBuyer: 'Los costos son pagados por el comprador'
+    },
     notConfigured: 'Este método de pago no está disponible ahora. Intentá otro.',
     loadingRoutes: 'Preparando métodos de pago…',
     errorRoutes: 'No se pudieron cargar los métodos de pago.',

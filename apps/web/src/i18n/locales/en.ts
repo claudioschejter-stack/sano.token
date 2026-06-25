@@ -2346,6 +2346,14 @@ export const en = {
     cardPrivyHint: "Pay by card via Privy. Privy automatically routes to Stripe, MoonPay, Coinbase or Bridge based on your country.",
     wireTitle: "Bank transfer",
     wireSubtitle: "Wire or ACH to the virtual account. Include the reference exactly as shown.",
+    feeBreakdown: {
+      title: 'Cost breakdown',
+      investment: 'Investment amount',
+      providerFee: 'Provider fee',
+      networkFee: 'Network gas (Base)',
+      total: 'Total to pay',
+      paidByBuyer: 'Costs are paid by the buyer'
+    },
     notConfigured: "This payment method is unavailable right now. Please try another.",
     loadingRoutes: "Preparing payment methods…",
     errorRoutes: "Could not load payment methods.",

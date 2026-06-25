@@ -7,6 +7,7 @@ import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
 import { useMobileWalletDetection } from '../../../hooks/useMobileWalletDetection';
 import type { SimplifiedFiatWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
 import { MobileAppRow } from './MobileAppRow';
+import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 
 const QR_SIZE = 220;
 
@@ -45,16 +46,16 @@ type Props = {
   fiatWallet: SimplifiedFiatWalletMethod;
   referenceId: string;
   country: string;
+  amountUsd: number;
   onFunded?: () => void;
 };
 
-export function FiatWalletPanel({ fiatWallet, referenceId, country, onFunded: _ }: Props) {
+export function FiatWalletPanel({ fiatWallet, referenceId, country, amountUsd, onFunded: _ }: Props) {
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
   const { isDesktop } = useDeviceDetection();
   const { fiatApps, isMobile, probing } = useMobileWalletDetection(country);
 
-  // MP preference state (only for AR)
   const [mpPref, setMpPref] = useState<MpPreferenceResult | null>(null);
   const [mpLoading, setMpLoading] = useState(false);
   const [mpError, setMpError] = useState<string | null>(null);
@@ -130,6 +131,13 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, onFunded: _ 
           </>
         )}
 
+        <PaymentFeeBreakdown
+          amountUsd={amountUsd}
+          totalUsd={fiatWallet.totalUsd}
+          feeBps={fiatWallet.feeBps}
+          providerLabel="Mercado Pago"
+        />
+
         {/* Mobile app list for AR */}
         {isMobile && isAR && (
           <div className="space-y-2">
@@ -173,7 +181,6 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, onFunded: _ 
       </div>
 
       {isDesktop ? (
-        /* Desktop: Show QR of Transak URL */
         <div className="flex flex-col items-center gap-3">
           <img
             src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=10&data=${encodeURIComponent(transakUrl)}`}
@@ -193,7 +200,6 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, onFunded: _ 
           </a>
         </div>
       ) : (
-        /* Mobile: Transak iframe or direct link */
         <>
           <iframe
             src={transakUrl}
@@ -201,7 +207,6 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, onFunded: _ 
             className="h-[580px] w-full rounded-lg border border-terminal-border"
             title="Transak Fiat Wallet"
           />
-          {/* Mobile fiat apps for non-AR (PayPal, Cash App, etc) */}
           {fiatApps.filter((a) => a.installed !== false).length > 0 && (
             <div className="space-y-2">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-terminal-muted">
@@ -216,6 +221,13 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, onFunded: _ 
           )}
         </>
       )}
+
+      <PaymentFeeBreakdown
+        amountUsd={amountUsd}
+        totalUsd={fiatWallet.totalUsd}
+        feeBps={fiatWallet.feeBps}
+        providerLabel="Transak"
+      />
     </section>
   );
 }
