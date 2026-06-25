@@ -1551,7 +1551,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             </div>
           ) : null}
 
-          {showPaymentMethods ? (
+          {showPaymentMethods && !paymentGatewayTabActive ? (
             <div className="mb-[1mm] mt-[1mm]">
               <p className={SECTION_TITLE}>{c.selectPaymentMethod}</p>
             </div>

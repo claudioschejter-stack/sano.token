@@ -122,7 +122,7 @@ export function FiatWalletPanel({
           <div>
             <h3 className="text-sm font-semibold text-terminal-text">{sc.fiatWalletTitle}</h3>
             <p className="mt-0.5 text-xs text-terminal-muted">
-              Elegí cómo pagar con tu billetera digital
+              MODO · Mercado Pago · Billeteras argentinas
             </p>
           </div>
         </div>
