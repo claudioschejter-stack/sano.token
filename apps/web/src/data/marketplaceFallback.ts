@@ -38,6 +38,8 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     soldPercent: 54,
     tokenInstrumentType: 'DEBT',
     maturityDate: '2029-06-30T00:00:00.000Z',
+    // fix: 5 correct token symbol prefix for Rincón de los Sauces
+    tokenSymbol: 'RSAUCES BLE1 RWA',
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   },
@@ -58,6 +60,8 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     soldPercent: 61,
     tokenInstrumentType: 'EQUITY',
     equitySharePercent: 100,
+    // fix: 5 correct token symbol prefix for San Patricio del Chañar
+    tokenSymbol: 'CHANAR PI1 RWA',
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   },
@@ -78,6 +82,8 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     soldPercent: 72,
     tokenInstrumentType: 'EQUITY',
     equitySharePercent: 100,
+    // fix: 5 correct token symbol prefix for Plaza Huincul
+    tokenSymbol: 'HUINCUL CSO1 RWA',
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   },
@@ -98,11 +104,14 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     soldPercent: 86,
     tokenInstrumentType: 'DEBT',
     maturityDate: '2028-12-31T00:00:00.000Z',
+    // fix: 5 correct token symbol prefix for Centenario
+    tokenSymbol: 'CENT MH1 RWA',
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   },
   {
     id: 'proj-anelo-services',
+    // fix: 5 ANELO HUB1 RWA kept as-is (correctly in Añelo)
     title: 'Añelo — Hub de Servicios Petroleros',
     description:
       'Complejo de oficinas, talleres y alojamiento B2B en el corazón operativo de Vaca Muerta, con contratos indexados a operadoras.',
@@ -118,6 +127,7 @@ export const MARKETPLACE_FALLBACK_LISTINGS: MarketplaceListing[] = [
     soldPercent: 42,
     tokenInstrumentType: 'EQUITY',
     equitySharePercent: 100,
+    tokenSymbol: 'ANELO HUB1 RWA',
     fiscalRegime: 'LEY_19640',
     jurisdiction: 'AR'
   }

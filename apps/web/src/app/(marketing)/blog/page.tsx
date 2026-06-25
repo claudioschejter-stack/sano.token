@@ -12,10 +12,24 @@ export async function generateMetadata(): Promise<Metadata> {
   const base = buildSiteMetadata(locale, '/blog');
   const blog = messagesByLocale[locale].blog;
   const siteUrl = getSiteUrl();
+
+  // fix: 2 per-page og:title and og:description
+  // fix: 7 use title.absolute to prevent "| Sanova Global | Sanova Global" duplication
+  const ogTitle = `${blog.title} | Sanova Global`;
   return {
     ...base,
-    title: blog.title,
+    title: { absolute: ogTitle },
     description: blog.subtitle,
+    openGraph: {
+      ...base.openGraph,
+      title: ogTitle,
+      description: blog.subtitle
+    },
+    twitter: {
+      ...base.twitter,
+      title: ogTitle,
+      description: blog.subtitle
+    },
     alternates: {
       canonical: `${siteUrl}${withLocalePrefix(locale, '/blog')}`,
       languages: {

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { FaqPage } from '../../../components/landing/FaqPage';
 import { resolveServerLocale } from '../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../lib/seo/buildMetadata';
+import { getSiteUrl } from '../../../lib/seo/siteUrl';
 
 const FAQ_SCHEMA_ITEMS = [
   {
@@ -45,14 +46,35 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
   const base = buildSiteMetadata(locale, '/faq');
   const isEs = locale === 'es';
+
+  // fix: 2 per-page og:title and og:description
+  // fix: 7 use title.absolute to prevent template appending a second "| Sanova Global"
+  // fix: 8 per-page meta keywords
+  const ogTitle = isEs
+    ? 'Preguntas Frecuentes | Sanova Global'
+    : 'FAQ | Sanova Global';
+  const ogDescription = isEs
+    ? 'Respondemos las dudas más frecuentes sobre RWA, tokens ERC-4626, Vaca Muerta, KYC y rendimientos en USDC.'
+    : 'Answers to the most common questions about RWA, ERC-4626 tokens, Vaca Muerta, KYC, and USDC yields.';
+
   return {
     ...base,
-    title: isEs
-      ? 'Preguntas Frecuentes — Inversión RWA Tokenizada | Sanova Global'
-      : 'FAQ — Tokenized RWA Investment Vaca Muerta | Sanova Global',
-    description: isEs
-      ? 'Respondemos todas las dudas sobre inversión en tokens RWA de Vaca Muerta: KYC, rendimientos en USDC, regulación argentina, riesgos, tokens ERC-4626 y mercado secundario.'
-      : 'All your questions about tokenized RWA investment in Vaca Muerta: KYC process, USDC yields, Argentine regulation, ERC-4626 tokens, risks, and secondary market.'
+    title: { absolute: ogTitle },
+    description: ogDescription,
+    keywords: isEs
+      ? ['FAQ RWA Argentina', 'preguntas tokens Vaca Muerta', 'cómo invertir USDC Argentina', 'KYC tokenización', 'rendimientos on-chain']
+      : ['FAQ RWA Argentina', 'Vaca Muerta token questions', 'how to invest USDC Argentina', 'KYC tokenization', 'on-chain yields'],
+    openGraph: {
+      ...base.openGraph,
+      title: ogTitle,
+      description: ogDescription,
+      url: `${getSiteUrl()}/faq`
+    },
+    twitter: {
+      ...base.twitter,
+      title: ogTitle,
+      description: ogDescription
+    }
   };
 }
 

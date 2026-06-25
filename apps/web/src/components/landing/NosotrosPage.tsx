@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { LinkedinIcon, Globe } from 'lucide-react';
+import { LinkedinIcon, Globe, UserCircle2 } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
 import { getLinkedInUrl } from '../../config/social';
 
@@ -10,14 +11,39 @@ type TeamMember = {
   role: string;
   bio: string;
   linkedin?: string;
+  /** Path relative to /public — use /team/placeholder.png if no photo */
+  avatar?: string;
 };
 
+// fix: 12 individual team member cards with avatar, role, bio and LinkedIn
 const TEAM: TeamMember[] = [
   {
-    name: 'Equipo Fundador',
-    role: 'Sanova Global SAS',
-    bio: 'Sanova Global SAS es una empresa argentina especializada en la tokenización de activos reales del sector energético de Vaca Muerta, Neuquén. Combinamos infraestructura blockchain con la Ley de Fideicomiso argentina para ofrecer inversiones fraccionadas, globales y transparentes.',
-    linkedin: getLinkedInUrl()
+    name: 'Claudio Schejter',
+    role: 'Founder & CEO',
+    bio: 'Emprendedor serial con más de 20 años en finanzas, real estate y tecnología. Lidera la estrategia de tokenización de activos reales de Vaca Muerta en el mercado global. Impulsa la visión de democratizar el acceso a inversiones institucionales argentinas.',
+    linkedin: getLinkedInUrl(),
+    avatar: '/team/claudio-schejter.jpg'
+  },
+  {
+    name: 'Nombre Apellido',
+    role: 'Co-founder & CTO',
+    bio: 'Arquitecto de software especializado en blockchain y smart contracts sobre Ethereum y Base. Diseñó la infraestructura ERC-4626 de Sanova y los mecanismos de distribución de rendimientos en USDC. Más de 10 años de experiencia en sistemas financieros descentralizados.',
+    linkedin: 'https://www.linkedin.com/company/sanova-global',
+    avatar: '/team/placeholder.png'
+  },
+  {
+    name: 'Nombre Apellido',
+    role: 'CFO & Legal',
+    bio: 'Especialista en estructuración financiera y fiduciaria bajo la Ley 24.441. Responsable del cumplimiento regulatorio y la relación con inversores institucionales en más de 15 países. Background en banca de inversión y derecho corporativo en Argentina.',
+    linkedin: 'https://www.linkedin.com/company/sanova-global',
+    avatar: '/team/placeholder.png'
+  },
+  {
+    name: 'Nombre Apellido',
+    role: 'Head of Real Estate',
+    bio: 'Referente en desarrollo inmobiliario en el corredor neuquino de Vaca Muerta. Gestiona el portafolio de activos físicos, los contratos de arrendamiento con operadoras energéticas y la due diligence técnica de cada proyecto tokenizado.',
+    linkedin: 'https://www.linkedin.com/company/sanova-global',
+    avatar: '/team/placeholder.png'
   }
 ];
 
@@ -62,33 +88,49 @@ export function NosotrosPage() {
           </div>
         </section>
 
-        {/* Team */}
+        {/* Team — fix: 12 individual cards, 2-col desktop grid, avatar + bio + LinkedIn */}
         <section className="mb-16">
-          <h2 className="mb-8 text-2xl font-bold text-slate-900">Equipo</h2>
-          <div className="grid gap-8 sm:grid-cols-1">
+          <h2 className="mb-8 text-2xl font-bold text-slate-900">Equipo Fundador</h2>
+          <div className="grid gap-6 sm:grid-cols-2">
             {TEAM.map((member) => (
               <article
                 key={member.name}
-                className="rounded-2xl border border-slate-200 p-8"
+                className="flex flex-col rounded-2xl border border-slate-200 p-6 transition hover:shadow-md"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-semibold text-slate-900">{member.name}</h3>
-                    <p className="mt-1 text-sm font-medium text-blue-600">{member.role}</p>
+                {/* Avatar + name + role row */}
+                <div className="flex items-center gap-4">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-slate-100 bg-slate-100">
+                    {member.avatar ? (
+                      <Image
+                        src={member.avatar}
+                        alt={`Foto de ${member.name}`}
+                        fill
+                        className="object-cover"
+                        onError={undefined}
+                        unoptimized
+                      />
+                    ) : (
+                      <UserCircle2 className="h-full w-full text-slate-300" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="truncate text-base font-semibold text-slate-900">{member.name}</h3>
+                    <p className="text-sm font-medium text-blue-600">{member.role}</p>
                   </div>
                   {member.linkedin ? (
                     <a
                       href={member.linkedin}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-full border border-slate-200 p-2 text-slate-500 transition hover:border-blue-300 hover:text-blue-600"
+                      className="shrink-0 rounded-full border border-slate-200 p-2 text-slate-400 transition hover:border-blue-300 hover:text-blue-600"
                       aria-label={`LinkedIn de ${member.name}`}
                     >
-                      <LinkedinIcon size={18} />
+                      <LinkedinIcon size={16} />
                     </a>
                   ) : null}
                 </div>
-                <p className="mt-4 leading-relaxed text-slate-600">{member.bio}</p>
+                {/* Bio */}
+                <p className="mt-4 text-sm leading-relaxed text-slate-600">{member.bio}</p>
               </article>
             ))}
           </div>

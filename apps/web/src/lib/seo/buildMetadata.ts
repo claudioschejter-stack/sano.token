@@ -9,6 +9,7 @@ import { withLocalePrefix } from '../i18n/localeRouting';
 import { locales } from '../../i18n';
 import { getSiteUrl } from './siteUrl';
 
+// fix: 6 remove sw_KE (Swahili/Kenya — not a supported locale); add mr_IN (Marathi/India)
 const OG_LOCALE_MAP: Partial<Record<Locale, string>> = {
   en: 'en_US',
   es: 'es_AR',
@@ -23,7 +24,7 @@ const OG_LOCALE_MAP: Partial<Record<Locale, string>> = {
   ur: 'ur_PK',
   id: 'id_ID',
   ja: 'ja_JP',
-  sw: 'sw_KE'
+  mr: 'mr_IN'
 };
 
 export function buildSiteMetadata(locale: Locale, path = '/'): Metadata {
@@ -44,6 +45,7 @@ export function buildSiteMetadata(locale: Locale, path = '/'): Metadata {
 
   return {
     metadataBase: new URL(siteUrl),
+    // fix: 7 template appends "| Sanova Global" — child pages must NOT include it in their title string
     title: {
       default: messages.meta.title,
       template: `%s | Sanova Global`

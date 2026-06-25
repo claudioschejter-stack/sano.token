@@ -58,7 +58,9 @@ function HeroImageWithBadge({
       <div className="absolute bottom-0 right-0 z-10 max-w-[18rem] translate-x-[5mm] translate-y-[2mm] rounded-xl border border-white/20 bg-[#111827]/95 p-3 shadow-xl backdrop-blur sm:p-4">
         <p className="text-xs uppercase tracking-wider text-slate-400">{badge.heroBadgeTitle}</p>
         <p className="mt-1 text-sm font-semibold text-blue-200">{badge.heroBadgeSubtitle}</p>
+        {/* fix: 4 disclaimer for APY claim */}
         <p className="mt-1 text-sm text-slate-300">{badge.heroBadgeDetail}</p>
+        <p className="mt-1 text-[10px] text-slate-500">* Rendimiento máximo histórico. Los activos actuales pueden diferir.</p>
       </div>
     </div>
   );
@@ -88,10 +90,14 @@ function HeroImageMobile({
           sizes="100vw"
         />
       </div>
+      {/* fix: 4 add asterisk + disclaimer near APY yield value */}
       <div className="absolute bottom-0 right-0 z-10 translate-x-[2mm] translate-y-[5mm] rounded-lg border border-terminal-border bg-terminal-bg/90 px-3 py-2 text-center backdrop-blur-sm">
         <p className="text-[10px] text-terminal-muted sm:text-xs">{yieldLabel}</p>
         <p className="font-mono text-lg font-bold leading-tight text-terminal-success sm:text-xl">
-          {yieldValue}
+          {yieldValue}<sup className="ml-0.5 text-[9px] text-terminal-muted">*</sup>
+        </p>
+        <p className="mt-0.5 text-[8px] leading-tight text-terminal-muted sm:text-[9px]">
+          * Rendimiento máximo histórico
         </p>
       </div>
     </div>

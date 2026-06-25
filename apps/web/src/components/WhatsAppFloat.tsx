@@ -76,11 +76,13 @@ export function WhatsAppFloat() {
   const portalOffset = isPortalRoute(pathname);
 
   return (
+    {/* fix: 9 accessibility — aria-label, title, rel, target all present */}
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={t.common.whatsappLabel}
+      aria-label="Contactar por WhatsApp"
+      title="Contactar por WhatsApp"
       onPointerDown={() => {
         userInteractedRef.current = true;
         setBlink(false);

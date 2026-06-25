@@ -23,7 +23,9 @@ export function LanguageDropdown({ variant = 'light', className = '' }: Language
       : 'border-terminal-border bg-terminal-card text-terminal-text focus:border-terminal-primary focus:ring-terminal-primary';
 
   return (
+    // fix: 10 aria-label on label container and select for full a11y coverage
     <label
+      aria-label="Seleccionar idioma"
       className={`flex w-full flex-col gap-2 text-sm font-medium sm:flex-row sm:items-center lg:ml-[0.5cm] lg:w-auto ${labelClass} ${className}`.trim()}
     >
       <span className="whitespace-nowrap">{t.landing.languageLabel}</span>
@@ -31,7 +33,7 @@ export function LanguageDropdown({ variant = 'light', className = '' }: Language
         value={locale}
         onChange={(event) => setLocale(event.target.value as Locale)}
         className={`min-h-12 w-full cursor-pointer rounded-lg border px-3 py-3 text-base font-medium shadow-sm outline-none focus:ring-2 sm:min-h-0 sm:w-auto sm:py-2 sm:text-sm ${selectClass}`}
-        aria-label={t.landing.languageLabel}
+        aria-label="Seleccionar idioma"
       >
         {localeOptions.map((option) => (
           <option key={option.value} value={option.value}>
@@ -66,8 +68,10 @@ export function LanguageMobilePanel({ menuOpen = false, onLocaleSelected }: Lang
 
   return (
     <div className="relative mt-1">
+      {/* fix: 10 aria-label on mobile trigger button */}
       <button
         type="button"
+        aria-label="Seleccionar idioma"
         className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
         aria-expanded={languagesOpen}
         onClick={() => setLanguagesOpen(true)}

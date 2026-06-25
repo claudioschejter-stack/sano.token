@@ -8,14 +8,35 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
   const base = buildSiteMetadata(locale, '/nosotros');
   const isEs = locale === 'es';
+
+  // fix: 2 per-page og:title and og:description
+  // fix: 7 use title.absolute to prevent template appending a second "| Sanova Global"
+  // fix: 8 per-page meta keywords
+  const ogTitle = isEs
+    ? 'El equipo de Sanova Global | RWA Tokenización Vaca Muerta'
+    : 'The Sanova Global Team | RWA Tokenization Vaca Muerta';
+  const ogDescription = isEs
+    ? 'Conocé al equipo detrás de Sanova Global SAS. Tokenizamos activos reales en Vaca Muerta sobre Base blockchain para inversores globales.'
+    : 'Meet the team behind Sanova Global SAS. We tokenize real-world assets in Vaca Muerta on Base blockchain for global investors.';
+
   return {
     ...base,
-    title: isEs
-      ? 'Nosotros — Equipo Sanova Global | Tokenización RWA Vaca Muerta'
-      : 'About Us — Sanova Global Team | RWA Tokenization Vaca Muerta',
-    description: isEs
-      ? 'Conocé al equipo de Sanova Global SAS. Tokenizamos activos reales de Vaca Muerta en Base blockchain. Somos una empresa argentina con alcance global de inversores en más de 15 países.'
-      : 'Meet the Sanova Global SAS team. We tokenize real-world assets in Vaca Muerta on the Base blockchain for global investors across 15+ countries.',
+    title: { absolute: ogTitle },
+    description: ogDescription,
+    keywords: isEs
+      ? ['equipo Sanova Global', 'tokenización RWA Argentina', 'blockchain Vaca Muerta', 'inversión real estate Argentina', 'ERC-4626', 'fideicomiso Ley 24441']
+      : ['Sanova Global team', 'RWA tokenization Argentina', 'Vaca Muerta blockchain', 'real estate investment Argentina', 'ERC-4626', 'trust Law 24441'],
+    openGraph: {
+      ...base.openGraph,
+      title: ogTitle,
+      description: ogDescription,
+      url: `${getSiteUrl()}/nosotros`
+    },
+    twitter: {
+      ...base.twitter,
+      title: ogTitle,
+      description: ogDescription
+    },
     alternates: {
       ...base.alternates,
       canonical: `${getSiteUrl()}/nosotros`

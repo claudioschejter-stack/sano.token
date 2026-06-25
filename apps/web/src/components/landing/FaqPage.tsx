@@ -1,8 +1,6 @@
-'use client';
-
-import { useState } from 'react';
+// fix: 3 removed 'use client' — page is now a Server Component; <details>/<summary> handles
+// accordion open/close natively so all answer text is SSR-rendered and SEO-visible.
 import Link from 'next/link';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 import { LandingHeader } from './LandingHeader';
 
 type FaqItem = {
@@ -63,27 +61,23 @@ const FAQ_ITEMS: FaqItem[] = [
   }
 ];
 
+// fix: 3 native <details>/<summary> renders answer text in SSR HTML; no useState needed
 function FaqAccordion({ item }: { item: FaqItem }) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-slate-200">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex w-full items-center justify-between gap-4 py-5 text-left"
-        aria-expanded={open}
-      >
+    <details className="group border-b border-slate-200 open:pb-1">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 py-5 text-left marker:hidden">
         <span className="font-medium text-slate-900">{item.question}</span>
-        {open ? (
-          <ChevronUp size={18} className="shrink-0 text-slate-400" />
-        ) : (
-          <ChevronDown size={18} className="shrink-0 text-slate-400" />
-        )}
-      </button>
-      {open ? (
-        <div className="pb-5 pr-8 text-sm leading-relaxed text-slate-600">{item.answer}</div>
-      ) : null}
-    </div>
+        {/* CSS chevron that flips on open */}
+        <span
+          className="pointer-events-none shrink-0 select-none text-slate-400 transition-transform group-open:rotate-180"
+          aria-hidden
+        >
+          ▾
+        </span>
+      </summary>
+      {/* Answer is always in the DOM — visible to search engines and screen readers */}
+      <div className="pb-5 pr-8 text-sm leading-relaxed text-slate-600">{item.answer}</div>
+    </details>
   );
 }
 

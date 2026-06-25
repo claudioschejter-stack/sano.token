@@ -67,9 +67,10 @@ export function OperatorLogoMarquee({
                 aria-hidden={isDuplicate}
               >
                 <div className="operator-marquee__card">
-                  <MarqueeLogoImage
+                  {/* fix: 1 copy descriptive alt text to duplicate set */}
+                <MarqueeLogoImage
                     src={logo.src}
-                    alt={isDuplicate ? '' : logo.alt}
+                    alt={logo.alt}
                     className={logo.className ?? DEFAULT_LOGO_CLASS}
                   />
                   <p className="operator-marquee__name" aria-hidden={isDuplicate}>
