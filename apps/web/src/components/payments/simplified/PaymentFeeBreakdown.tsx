@@ -7,8 +7,8 @@ import { useTranslation } from '../../../i18n/LocaleProvider';
 type Props = {
   amountUsd: number;
   totalUsd: number;
-  feeBps: number;
-  providerLabel: string;
+  feeBps?: number;
+  providerLabel?: string;
   networkFeeUsd?: number;
 };
 
@@ -38,8 +38,6 @@ function Row({
 export function PaymentFeeBreakdown({
   amountUsd,
   totalUsd,
-  feeBps,
-  providerLabel,
   networkFeeUsd = 0
 }: Props) {
   const t = useTranslation();
@@ -47,7 +45,6 @@ export function PaymentFeeBreakdown({
   const [open, setOpen] = useState(false);
 
   const feeUsd = totalUsd - amountUsd;
-  const feePct = (feeBps / 100).toFixed(2);
   const grandTotal = totalUsd + networkFeeUsd;
 
   return (
