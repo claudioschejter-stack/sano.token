@@ -208,14 +208,20 @@ export function resolveCheckoutBestRoutes(input: {
   // --- Card (always Privy: routes Stripe, MoonPay, Coinbase, Bridge) ---
   const cardFeeBps = FEES.transak_card; // ~1.99% fee estimate for Privy on-ramp
   const cardLocal = resolveLocalAmount(amountUsd, c, cardFeeBps);
+  const cardWidgetUrl = transakWidgetUrl({
+    amountUsd: cardLocal.totalUsd,
+    country: c,
+    referenceId,
+    paymentMethod: 'credit_debit_card'
+  });
   const card: SimplifiedCardMethod = {
-    provider: 'privy',
-    configured: Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID?.trim()),
+    provider: 'transak',
+    configured: Boolean(cardWidgetUrl),
     totalUsd: cardLocal.totalUsd,
     totalLocal: cardLocal.totalLocal,
     displayCurrency: cardLocal.displayCurrency,
     feeBps: cardFeeBps,
-    widgetUrl: null,
+    widgetUrl: cardWidgetUrl,
     mpPublicKey: null,
     mpSandbox: false
   };
