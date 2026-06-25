@@ -168,7 +168,6 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
         })}
       </div>
 
-      <p className="text-[10px] text-terminal-muted">{sc.feesNote}</p>
     </div>
   );
 }
