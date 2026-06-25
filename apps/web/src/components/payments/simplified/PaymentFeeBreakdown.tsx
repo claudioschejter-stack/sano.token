@@ -70,7 +70,7 @@ export function PaymentFeeBreakdown({
         <div className="border-t border-terminal-border px-4 pb-4 pt-3 space-y-2.5">
           <Row label={fb.investment} value={`USD ${amountUsd.toFixed(2)}`} />
           <Row
-            label={`${fb.providerFee} (${providerLabel} ~${feePct}%)`}
+            label={fb.providerFee}
             value={feeUsd > 0.005 ? `+ USD ${feeUsd.toFixed(2)}` : 'Incluido'}
             muted
           />
