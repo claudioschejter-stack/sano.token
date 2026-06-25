@@ -207,88 +207,86 @@ export function FiatWalletPanel({
                     : 'Escaneá el QR desde el celular · Ingresá el monto y la referencia · Confirmá'}
                 </p>
               </>
-            ) : transakUrl ? (
-              /* ── CASE 2: No static QR — show Transak URL QR as web-based universal ── */
-              <>
+            ) : (
+              /* ── CASE 2: No static QR configured — show MODO setup guide ── */
+              /* NOTE: Transak does NOT work with Argentine digital wallets    */
+              /* (MODO, Brubank, Naranja X). It only processes credit cards.  */
+              /* The real universal QR for AR requires BCRA interoperability. */
+              <div className="space-y-3">
+                {/* Pending config notice */}
                 <div className="rounded-lg border border-amber-500/30 bg-amber-900/10 px-3 py-2.5">
                   <p className="text-xs font-semibold text-amber-400">
-                    🌐 QR Web — Se abre en el navegador de tu teléfono
+                    ⏳ QR Interoperable no configurado aún
                   </p>
                   <p className="mt-0.5 text-[11px] text-terminal-muted">
-                    Escaneá con la cámara nativa · Pagá con cualquier método vía Transak · Sin instalar nada
+                    Una vez configurado, este QR será escaneado directamente por MODO, Brubank, Naranja X, Banco Macro y todas las billeteras argentinas.
                   </p>
                 </div>
 
-                {isDesktop ? (
-                  <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
-                    <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
-                      <img
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(transakUrl)}`}
-                        alt="QR Web Universal"
-                        width={QR_SIZE}
-                        height={QR_SIZE}
-                        className="block rounded"
-                      />
-                    </div>
-                    <p className="text-center text-[11px] text-terminal-muted">
-                      Apuntá la cámara de tu celular · Se abre automáticamente en el browser
-                    </p>
-                    <a
-                      href={transakUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs font-medium text-terminal-primary hover:underline"
-                    >
-                      Abrir enlace de pago <ExternalLink className="h-3 w-3" />
-                    </a>
-                  </div>
-                ) : (
-                  <a
-                    href={transakUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary px-4 py-3.5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90"
-                  >
-                    <Smartphone className="h-4 w-4" />
-                    Pagar por web
-                    <ExternalLink className="h-3.5 w-3.5 opacity-75" />
-                  </a>
-                )}
-
-                {/* Setup guide for full interoperability */}
-                <div className="rounded-lg border border-terminal-border/40 bg-terminal-bg/60 px-3 py-2.5 space-y-1.5">
-                  <p className="text-[11px] font-semibold text-terminal-text/80">
-                    ¿Querés que funcione con MODO, Brubank, Naranja X sin abrir el browser?
+                {/* Step-by-step MODO setup */}
+                <div className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 space-y-2">
+                  <p className="text-xs font-semibold text-terminal-text">
+                    Cómo activar el QR Universal:
                   </p>
-                  <p className="text-[11px] text-terminal-muted">
-                    Necesitás un <strong className="text-terminal-primary">QR Interoperable BCRA</strong> (gratuito):
-                  </p>
-                  <ol className="list-decimal pl-4 space-y-0.5 text-[11px] text-terminal-muted">
+                  <ol className="list-decimal pl-4 space-y-1.5 text-[11px] text-terminal-muted">
                     <li>
-                      Registrá tu comercio en{' '}
+                      Esperá las credenciales de{' '}
                       <a
                         href="https://modo.com.ar/comercios"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-terminal-primary hover:underline"
+                        className="font-medium text-terminal-primary hover:underline"
                       >
-                        modo.com.ar/comercios
+                        MODO
                       </a>{' '}
-                      (gratis)
+                      (registro ya completado — llega en 72hs)
                     </li>
-                    <li>Descargá tu QR estático interoperable desde el portal</li>
+                    <li>Desde el portal MODO, descargá el QR estático interoperable</li>
+                    <li>Leé el contenido del QR con cualquier app lectora de QR</li>
                     <li>
-                      Copiá el contenido del QR y cargalo como variable de entorno{' '}
-                      <code className="rounded bg-terminal-border/40 px-1 font-mono text-terminal-primary">
-                        FIAT_STATIC_QR_DATA
-                      </code>{' '}
-                      en Vercel
+                      En Vercel → Settings → Environment Variables, agregá:
+                      <br />
+                      <code className="mt-0.5 inline-block rounded bg-terminal-border/40 px-1.5 py-0.5 font-mono text-[10px] text-terminal-primary">
+                        FIAT_STATIC_QR_DATA = [contenido del QR]
+                      </code>
                     </li>
+                    <li>Redesplegá → el QR aparece automáticamente aquí</li>
                   </ol>
                 </div>
-              </>
-            ) : (
-              <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
+
+                {/* Transak card payment fallback — clearly labeled as card, NOT wallet */}
+                {transakUrl && (
+                  <div className="rounded-lg border border-terminal-border/50 bg-terminal-bg/60 p-3">
+                    <p className="mb-2 text-[11px] font-semibold text-terminal-text/70">
+                      Mientras tanto — pagar con tarjeta de crédito/débito:
+                    </p>
+                    {isDesktop ? (
+                      <a
+                        href={transakUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs font-medium text-terminal-primary hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        Abrir formulario de pago con tarjeta (Transak)
+                      </a>
+                    ) : (
+                      <a
+                        href={transakUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-2.5 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
+                      >
+                        <Smartphone className="h-4 w-4" />
+                        Pagar con tarjeta
+                      </a>
+                    )}
+                    <p className="mt-1.5 text-[10px] text-terminal-muted">
+                      Solo tarjeta · No compatible con MODO, Brubank ni otras billeteras
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         )}
