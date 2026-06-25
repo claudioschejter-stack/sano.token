@@ -150,19 +150,19 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
                 <Icon size={20} />
               </div>
 
-              {/* Label + amount — to the right of the icon */}
-              <div className="min-w-0 flex-1">
-                <span
-                  className={`block text-sm font-semibold leading-tight ${
-                    isActive ? 'text-terminal-primary' : 'text-terminal-text'
-                  }`}
-                >
-                  {label}
-                </span>
-                <span className="mt-0.5 block text-sm font-bold leading-snug text-blue-500">
-                  {amount}
-                </span>
-              </div>
+              {/* Label — grows to fill available space */}
+              <span
+                className={`min-w-0 flex-1 text-sm font-semibold leading-tight ${
+                  isActive ? 'text-terminal-primary' : 'text-terminal-text'
+                }`}
+              >
+                {label}
+              </span>
+
+              {/* Amount — pinned to right edge, same position on every button */}
+              <span className="shrink-0 text-sm font-bold text-blue-500 text-right">
+                {amount}
+              </span>
             </button>
           );
         })}

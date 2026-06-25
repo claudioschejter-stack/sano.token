@@ -2353,8 +2353,8 @@ export const es = {
   simplifiedCheckout: {
     fiatWallet: 'Billetera electrónica',
     cryptoWallet: 'Billetera cripto',
-    card: 'Tarjeta déb / créd',
-    wire: 'Transferencia',
+    card: 'Tarjeta de débito o crédito',
+    wire: 'Transferencia Bancaria',
     selectMethod: 'Elegí cómo pagar',
     probing: 'Detectando apps instaladas…',
     feesNote: 'Comisiones incluidas en el precio',
