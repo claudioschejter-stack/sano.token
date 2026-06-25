@@ -100,10 +100,16 @@ export type SimplifiedFiatWalletMethod = {
   totalLocal: number;
   displayCurrency: string;
   feeBps: number;
-  /** Transak widget URL or MP init_point (populated by client-side preference creation) */
+  /** Transak widget URL (always populated when TRANSAK_API_KEY is set, including AR) */
   widgetUrl: string | null;
   /** MP preference ID to create QR (populated async on client) */
   mpPreferenceId: string | null;
+  /**
+   * Raw QR data string for a static interoperable merchant QR (e.g. MODO / BCRA standard).
+   * Set via FIAT_STATIC_QR_DATA env var. When configured, this is shown as the primary
+   * "Universal QR" that all BCRA-compliant Argentine wallets can scan natively.
+   */
+  staticQrData: string | null;
 };
 
 export type SimplifiedCryptoWalletMethod = {
@@ -180,10 +186,13 @@ export function resolveCheckoutBestRoutes(input: {
     totalLocal: fiatLocal.totalLocal,
     displayCurrency: fiatLocal.displayCurrency,
     feeBps: fiatFeeBps,
-    widgetUrl: c === 'AR'
-      ? null // MP preference created on demand client-side
-      : transakWidgetUrl({ amountUsd: fiatLocal.totalUsd, country: c, referenceId }),
-    mpPreferenceId: null
+    // Always populate widgetUrl with Transak URL when available (used as web-based
+    // universal fallback for AR users in addition to the native MP QR).
+    widgetUrl: transakWidgetUrl({ amountUsd: fiatLocal.totalUsd, country: c, referenceId }),
+    mpPreferenceId: null,
+    // Static interoperable QR data from MODO / BCRA merchant registration.
+    // When set, this is shown as the primary universal QR that all Argentine wallets accept.
+    staticQrData: process.env.FIAT_STATIC_QR_DATA?.trim() || null
   };
 
   // --- Crypto wallet ---
