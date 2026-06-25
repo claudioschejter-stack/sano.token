@@ -75,8 +75,8 @@ export function WhatsAppFloat() {
 
   const portalOffset = isPortalRoute(pathname);
 
+  // fix: 9 accessibility — aria-label, title, rel, target all present
   return (
-    {/* fix: 9 accessibility — aria-label, title, rel, target all present */}
     <a
       href={href}
       target="_blank"
