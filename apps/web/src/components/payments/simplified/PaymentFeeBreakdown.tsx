@@ -80,7 +80,6 @@ export function PaymentFeeBreakdown({
           <div className="border-t border-terminal-border pt-2.5">
             <Row label={fb.total} value={`USD ${grandTotal.toFixed(2)}`} bold />
           </div>
-          <p className="text-[10px] text-terminal-muted pt-0.5">{fb.paidByBuyer}</p>
         </div>
       )}
     </div>
