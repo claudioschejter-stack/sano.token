@@ -198,6 +198,7 @@ export const en = {
     commissions: "Commissions",
     team: "Equipment",
     settings: "Configuration",
+    collectPayments: "Collect payments",
     accountAudit: "Account audit",
     viewMarketplace: "See marketplace"
   },
