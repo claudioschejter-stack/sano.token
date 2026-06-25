@@ -15,7 +15,8 @@ export default {
   },
   session: {
     strategy: 'jwt',
-    maxAge: 60 * 60 * 12
+    maxAge: 60 * 60 * 24 * 30,   // 30 days
+    updateAge: 60 * 60 * 24      // refresh token once per day on activity
   },
   secret: process.env.AUTH_SECRET,
   callbacks: {

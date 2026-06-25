@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2, QrCode } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
@@ -27,19 +27,24 @@ async function fetchMpPreference(params: {
     body: JSON.stringify(params)
   });
   if (!res.ok) {
-    throw new Error(`MP preference error: ${res.status}`);
+    const err = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(err.error ?? `Error ${res.status}`);
   }
   const data = (await res.json()) as {
+    ok?: boolean;
+    /** New shape: { ok: true, session: { initPoint, preferenceId } } */
+    session?: { initPoint?: string; preferenceId?: string };
+    /** Legacy flat shape (fallback) */
     initPoint?: string;
     preferenceId?: string;
     qrData?: string;
   };
-  if (!data.initPoint) throw new Error('Missing initPoint in response');
-  return {
-    initPoint: data.initPoint,
-    preferenceId: data.preferenceId ?? '',
-    qrData: data.qrData ?? data.initPoint
-  };
+
+  const initPoint = data.session?.initPoint ?? data.initPoint;
+  const preferenceId = data.session?.preferenceId ?? data.preferenceId ?? '';
+  if (!initPoint) throw new Error('No se pudo crear el link de pago. Intentá nuevamente.');
+
+  return { initPoint, preferenceId, qrData: initPoint };
 }
 
 type Props = {
@@ -70,7 +75,7 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, amountUsd, o
     fetchMpPreference({ amountUsd: fiatWallet.totalUsd, referenceId })
       .then(setMpPref)
       .catch((err: unknown) => {
-        setMpError(err instanceof Error ? err.message : 'Error desconocido');
+        setMpError(err instanceof Error ? err.message : 'Error al generar el QR');
       })
       .finally(() => setMpLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,7 +83,7 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, amountUsd, o
 
   if (!fiatWallet.configured) {
     return (
-      <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
+      <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
         <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
       </section>
     );
@@ -87,43 +92,54 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, amountUsd, o
   // --- Mercado Pago ---
   if (isMp) {
     return (
-      <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-4">
-        <div>
-          <h3 className="text-sm font-semibold text-terminal-text">{sc.fiatWalletTitle}</h3>
-          <p className="mt-1 text-xs text-terminal-muted">{sc.fiatWalletMpHint}</p>
+      <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
+        <div className="flex items-center gap-3">
+          <div className="rounded-lg bg-[#009EE3]/10 p-2 text-[#009EE3]">
+            <QrCode size={18} />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-terminal-text">{sc.fiatWalletTitle}</h3>
+            <p className="mt-0.5 text-xs text-terminal-muted">{sc.fiatWalletMpHint}</p>
+          </div>
         </div>
 
         {mpLoading && (
-          <div className="flex items-center justify-center gap-2 py-6">
-            <Loader2 className="h-5 w-5 animate-spin text-terminal-primary" />
+          <div className="flex flex-col items-center gap-3 py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-terminal-primary" />
             <span className="text-sm text-terminal-muted">{t.paymentGateway.mpLoading}</span>
           </div>
         )}
 
         {mpError && (
-          <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {mpError}
-          </p>
+          <div className="rounded-lg border border-red-500/30 bg-red-900/20 px-3 py-2.5">
+            <p className="text-xs font-medium text-red-400">{mpError}</p>
+          </div>
         )}
 
-        {mpPref && (
+        {mpPref && !mpLoading && (
           <>
             {isDesktop && (
-              <div className="flex flex-col items-center gap-3">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=10&data=${encodeURIComponent(mpPref.qrData)}`}
-                  alt="Mercado Pago QR"
-                  width={QR_SIZE}
-                  height={QR_SIZE}
-                  className="rounded-lg border border-terminal-border bg-white p-2"
-                />
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
+                <p className="text-xs text-terminal-muted">{sc.fiatWalletMpHint}</p>
+                <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(mpPref.qrData)}`}
+                    alt="Mercado Pago QR"
+                    width={QR_SIZE}
+                    height={QR_SIZE}
+                    className="block rounded"
+                  />
+                </div>
+                <p className="text-[11px] text-terminal-muted">
+                  Abrí Mercado Pago · Escaneá · Confirmá el pago
+                </p>
               </div>
             )}
             <a
               href={mpPref.initPoint}
               target={isDesktop ? '_blank' : '_self'}
               rel="noopener noreferrer"
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#009EE3] px-4 py-3.5 text-sm font-bold text-white shadow-md transition-opacity hover:opacity-90"
             >
               {t.paymentGateway.mpOpenApp}
               <ExternalLink className="h-4 w-4" />
@@ -138,10 +154,9 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, amountUsd, o
           providerLabel="Mercado Pago"
         />
 
-        {/* Mobile app list for AR */}
         {isMobile && isAR && (
           <div className="space-y-2">
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-terminal-muted">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
               {sc.fiatWalletAppsTitle}
             </p>
             {probing ? (
@@ -167,33 +182,43 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, amountUsd, o
   const transakUrl = fiatWallet.widgetUrl;
   if (!transakUrl) {
     return (
-      <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
+      <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
         <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
       </section>
     );
   }
 
   return (
-    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-4">
-      <div>
-        <h3 className="text-sm font-semibold text-terminal-text">{sc.fiatWalletTitle}</h3>
-        <p className="mt-1 text-xs text-terminal-muted">{sc.fiatWalletTransakHint}</p>
+    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
+      <div className="flex items-center gap-3">
+        <div className="rounded-lg bg-terminal-primary/10 p-2 text-terminal-primary">
+          <QrCode size={18} />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-terminal-text">{sc.fiatWalletTitle}</h3>
+          <p className="mt-0.5 text-xs text-terminal-muted">{sc.fiatWalletTransakHint}</p>
+        </div>
       </div>
 
       {isDesktop ? (
-        <div className="flex flex-col items-center gap-3">
-          <img
-            src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=10&data=${encodeURIComponent(transakUrl)}`}
-            alt="Transak QR"
-            width={QR_SIZE}
-            height={QR_SIZE}
-            className="rounded-lg border border-terminal-border bg-white p-2"
-          />
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
+          <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(transakUrl)}`}
+              alt="Transak QR"
+              width={QR_SIZE}
+              height={QR_SIZE}
+              className="block rounded"
+            />
+          </div>
+          <p className="text-[11px] text-terminal-muted">
+            Escaneá con tu billetera digital para pagar
+          </p>
           <a
             href={transakUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 text-xs font-medium text-terminal-primary underline-offset-2 hover:underline"
+            className="flex items-center gap-1.5 text-xs font-medium text-terminal-primary hover:underline"
           >
             {sc.fiatWalletOpenWeb}
             <ExternalLink className="h-3 w-3" />
@@ -204,12 +229,12 @@ export function FiatWalletPanel({ fiatWallet, referenceId, country, amountUsd, o
           <iframe
             src={transakUrl}
             allow="camera; microphone; payment"
-            className="h-[580px] w-full rounded-lg border border-terminal-border"
+            className="h-[580px] w-full rounded-xl border border-terminal-border"
             title="Transak Fiat Wallet"
           />
           {fiatApps.filter((a) => a.installed !== false).length > 0 && (
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-terminal-muted">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
                 {sc.fiatWalletAppsTitle}
               </p>
               {fiatApps

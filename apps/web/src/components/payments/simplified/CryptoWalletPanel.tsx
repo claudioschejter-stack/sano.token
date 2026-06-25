@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy } from 'lucide-react';
+import { Copy, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
@@ -9,7 +9,7 @@ import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkou
 import { MobileAppRow } from './MobileAppRow';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 
-const QR_SIZE = 200;
+const QR_SIZE = 210;
 
 /** USDC token contract on Base (chainId 8453) */
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
@@ -65,48 +65,75 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
   const visibleApps = isMobile ? cryptoApps.filter((a) => a.installed !== false) : [];
 
   return (
-    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-4">
-      <div>
-        <h3 className="text-sm font-semibold text-terminal-text">{sc.cryptoWalletTitle}</h3>
-        <p className="mt-1 text-xs text-terminal-muted">
-          {sc.cryptoWalletHint.replace('{amount}', amountUsdc.toFixed(2))}
-        </p>
+    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
+      <div className="flex items-center gap-3">
+        <div className="rounded-lg bg-terminal-primary/10 p-2 text-terminal-primary">
+          <Wallet size={18} />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-terminal-text">{sc.cryptoWalletTitle}</h3>
+          <p className="mt-0.5 text-xs text-terminal-muted">
+            {sc.cryptoWalletHint.replace('{amount}', amountUsdc.toFixed(2))}
+          </p>
+        </div>
       </div>
 
-      <p className="text-xs text-terminal-muted">{sc.cryptoWalletNetwork}</p>
+      <div className="rounded-lg border border-terminal-primary/20 bg-terminal-primary/5 px-3 py-2">
+        <p className="text-xs font-medium text-terminal-primary">{sc.cryptoWalletNetwork}</p>
+      </div>
 
       {treasuryAddress && eip681Uri ? (
         <>
           {isDesktop && (
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
               <p className="text-xs text-terminal-muted">{sc.cryptoWalletQrHint}</p>
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=10&data=${encodeURIComponent(eip681Uri)}`}
-                alt={sc.cryptoWalletAddress}
-                width={QR_SIZE}
-                height={QR_SIZE}
-                className="rounded-lg border border-terminal-border bg-white p-2"
-              />
+              <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
+                  alt={sc.cryptoWalletAddress}
+                  width={QR_SIZE}
+                  height={QR_SIZE}
+                  className="block rounded"
+                />
+              </div>
+              <p className="text-[11px] text-terminal-muted">
+                Escaneá con MetaMask, Trust, Coinbase Wallet o cualquier wallet EVM
+              </p>
             </div>
           )}
 
-          <div className="rounded-lg border border-terminal-border bg-white px-3 py-2">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+          {/* Address field — dark background to ensure text is readable */}
+          <div className="rounded-xl border border-terminal-border bg-terminal-bg px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted">
               {sc.cryptoWalletAddress}
             </p>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <p className="break-all text-xs font-mono text-terminal-text">{treasuryAddress}</p>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="break-all font-mono text-xs text-terminal-text leading-relaxed">
+                {treasuryAddress}
+              </p>
               <button
                 type="button"
                 onClick={handleCopy}
-                className="shrink-0 rounded-md border border-terminal-border p-1.5 text-terminal-muted hover:text-terminal-primary"
+                className="shrink-0 rounded-lg border border-terminal-border bg-terminal-card p-2 text-terminal-muted transition-colors hover:border-terminal-primary hover:text-terminal-primary"
+                title="Copiar dirección"
               >
                 <Copy size={14} />
               </button>
             </div>
             {copied && (
-              <p className="mt-1 text-[10px] text-terminal-success">{sc.cryptoWalletCopied}</p>
+              <p className="mt-1.5 text-[11px] font-medium text-terminal-success">
+                {sc.cryptoWalletCopied}
+              </p>
             )}
+          </div>
+
+          <div className="rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2.5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted mb-1">
+              Token
+            </p>
+            <p className="text-xs font-medium text-terminal-text">
+              USDC · Base · {amountUsdc.toFixed(2)} USDC
+            </p>
           </div>
         </>
       ) : (
@@ -123,7 +150,7 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
 
       {isMobile && (
         <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-terminal-muted">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
             {sc.cryptoWalletDeepLinks}
           </p>
           {probing ? (

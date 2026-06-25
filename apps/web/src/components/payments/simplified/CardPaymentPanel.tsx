@@ -1,6 +1,6 @@
 'use client';
 
-import { CreditCard, CheckCircle2, Loader2 } from 'lucide-react';
+import { CreditCard, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { SimplifiedCardMethod } from '../../../lib/payments/checkoutBestRouteService';
@@ -25,7 +25,7 @@ export function CardPaymentPanel({ card, country, amountUsd, onFunded }: Props) 
 
   if (!card.configured) {
     return (
-      <section className="rounded-xl border border-terminal-border bg-terminal-card p-4">
+      <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
         <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
       </section>
     );
@@ -33,9 +33,9 @@ export function CardPaymentPanel({ card, country, amountUsd, onFunded }: Props) 
 
   if (done) {
     return (
-      <section className="rounded-xl border border-terminal-success/30 bg-terminal-success/10 p-4">
+      <section className="rounded-xl border border-terminal-success/30 bg-terminal-success/10 p-5">
         <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-terminal-success" />
+          <CheckCircle2 className="h-6 w-6 shrink-0 text-terminal-success" />
           <div>
             <p className="text-sm font-semibold text-terminal-success">Pago procesado correctamente</p>
             <p className="mt-1 text-xs text-terminal-muted">
@@ -69,58 +69,71 @@ export function CardPaymentPanel({ card, country, amountUsd, onFunded }: Props) 
   };
 
   return (
-    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-4">
-      <div>
-        <h3 className="text-sm font-semibold text-terminal-text">{sc.cardTitle}</h3>
-        <p className="mt-1 text-xs text-terminal-muted">{sc.cardPrivyHint}</p>
+    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl bg-violet-400/10 p-2.5 text-violet-400">
+          <CreditCard size={18} />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-terminal-text">{sc.cardTitle}</h3>
+          <p className="mt-0.5 text-xs text-terminal-muted">
+            Pagá con tu tarjeta de débito o crédito de forma segura.
+          </p>
+        </div>
       </div>
 
-      <div className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 space-y-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-terminal-muted">
-          Proveedores disponibles
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {['Stripe', 'MoonPay', 'Coinbase Pay'].map((p) => (
-            <span
-              key={p}
-              className="rounded-full border border-terminal-border bg-white px-2.5 py-0.5 text-[11px] font-medium text-terminal-text"
-            >
-              {p}
-            </span>
-          ))}
+      <div className="rounded-xl border border-terminal-border bg-terminal-bg px-4 py-3.5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted">
+              Total a pagar
+            </p>
+            <p className="mt-1 text-2xl font-bold text-terminal-text">
+              {card.displayCurrency === 'USD'
+                ? `USD ${card.totalUsd.toFixed(2)}`
+                : new Intl.NumberFormat('es-AR', {
+                    style: 'currency',
+                    currency: card.displayCurrency
+                  }).format(card.totalLocal)}
+            </p>
+            <p className="mt-0.5 text-[11px] text-terminal-muted">
+              Recibirás {card.totalUsd.toFixed(2)} USDC en tu cuenta
+            </p>
+          </div>
+          <ShieldCheck className="h-8 w-8 text-terminal-success/60" />
         </div>
-        <p className="text-[10px] text-terminal-muted">
-          Privy selecciona automáticamente el mejor proveedor de tarjeta disponible para tu región.
-        </p>
       </div>
 
       <PaymentFeeBreakdown
         amountUsd={amountUsd}
         totalUsd={card.totalUsd}
         feeBps={card.feeBps}
-        providerLabel="Privy / Stripe"
+        providerLabel="Stripe / MoonPay"
       />
 
       {error && (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-          {error}
-        </p>
+        <div className="rounded-xl border border-red-500/30 bg-red-900/20 px-3 py-2.5">
+          <p className="text-xs font-medium text-red-400">{error}</p>
+        </div>
       )}
 
       <button
         type="button"
         disabled={!privyReady || busy}
         onClick={() => void handlePay()}
-        className="flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-violet-600 px-4 py-4 text-sm font-bold text-white shadow-lg shadow-violet-900/30 transition-all hover:bg-violet-500 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
       >
         {busy ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Procesando pago…
+          </>
         ) : (
-          <CreditCard className="h-4 w-4" />
+          <>
+            <CreditCard className="h-4 w-4" />
+            Pagar {card.totalUsd.toFixed(2)} USD con tarjeta
+          </>
         )}
-        {busy
-          ? 'Procesando pago…'
-          : `Pagar ${card.totalUsd.toFixed(2)} USD con tarjeta`}
       </button>
 
       {!privyReady && (
