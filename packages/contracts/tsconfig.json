@@ -4,7 +4,7 @@
     "module": "CommonJS",
     "moduleResolution": "Node",
     "noEmit": true,
-    "types": ["node"]
+    "types": ["node", "mocha", "chai"]
   },
   "include": ["scripts/**/*.ts", "test/**/*.ts"],
   "exclude": ["node_modules", "artifacts", "cache", "typechain-types"]

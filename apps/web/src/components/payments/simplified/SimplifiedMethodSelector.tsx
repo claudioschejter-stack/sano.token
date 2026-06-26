@@ -118,8 +118,8 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
         {sc.selectMethod}
       </p>
 
-      {/* 1 column on every phone/tablet — 2 columns only on desktop (≥ 1024 px). */}
-      <div className="my-[2mm] grid grid-cols-1 gap-[2mm] lg:grid-cols-2">
+      {/* flex-col on mobile = guaranteed 1 button per row. lg: switches to 2-col grid. */}
+      <div className="my-[2mm] flex w-full flex-col gap-[2mm] lg:grid lg:grid-cols-2 lg:gap-2">
         {methods.map(({ id, label, amount, Icon, color, bgColor }) => {
           const isActive = selected === id;
           return (
