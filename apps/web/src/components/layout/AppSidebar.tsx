@@ -11,6 +11,7 @@ import {
   QrCode,
   Settings,
   Shield,
+  ShieldCheck,
   ShoppingBag,
   TrendingUp,
   UserCheck,
@@ -370,6 +371,14 @@ export function AppSidebar() {
           <div className="md:hidden">
             <SidebarLanguageButton onLocaleSelected={closeMobile} />
           </div>
+          <Link
+            href="/dashboard/settings/security"
+            onClick={closeMobile}
+            className="flex items-center gap-3 rounded-lg px-3 py-2 text-terminal-muted transition-colors hover:bg-terminal-bg hover:text-terminal-text"
+          >
+            <ShieldCheck size={18} />
+            <span className="text-sm">Seguridad (2FA)</span>
+          </Link>
           {signOutButton}
         </div>
       </aside>

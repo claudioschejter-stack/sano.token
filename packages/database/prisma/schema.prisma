@@ -237,11 +237,16 @@ model User {
   accountStatus     AccountStatus @default(ONBOARDING)
   jurisdiction      String?
   preferredLocale   String?
+  totpSecret        String?
+  totpEnabled       Boolean       @default(false)
+  failed2faAttempts Int           @default(0)
+  locked2faUntil    DateTime?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
   investor              Investor?              @relation(fields: [investorId], references: [id], onDelete: SetNull)
   passkeys              UserPasskey[]
+  backupCodes           BackupCode[]
   portfolio             Portfolio?
   dividendDistributions DividendDistribution[]
   advisor               Advisor?
@@ -285,6 +290,18 @@ model UserPasskey {
   transports   Json?
   createdAt    DateTime @default(now())
   lastUsedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model BackupCode {
+  id        String    @id @default(cuid())
+  userId    String
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

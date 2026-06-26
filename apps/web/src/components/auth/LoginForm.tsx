@@ -47,6 +47,35 @@ export function LoginForm({
     setError(null);
     setLoading(true);
 
+    // Paso 1: verificar credenciales — detectar si requiere 2FA
+    const step1Res = await fetch('/api/auth/login/step1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim(), password })
+    });
+
+    const step1Data = (await step1Res.json()) as {
+      ok?: boolean;
+      requiresTOTP?: boolean;
+      tempToken?: string;
+      error?: string;
+      remainingSeconds?: number;
+    };
+
+    if (!step1Res.ok || !step1Data.ok) {
+      setLoading(false);
+      setError(t.access.invalidCredentials);
+      return;
+    }
+
+    // Si requiere 2FA → redirigir a pantalla de verificación TOTP
+    if (step1Data.requiresTOTP && step1Data.tempToken) {
+      const params = new URLSearchParams({ t: step1Data.tempToken, callbackUrl });
+      router.push(`/acceso/verificar-2fa?${params.toString()}`);
+      return;
+    }
+
+    // Sin 2FA → login normal con NextAuth
     const result = await signIn('credentials', {
       email: email.trim(),
       password,
