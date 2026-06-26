@@ -118,8 +118,8 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
         {sc.selectMethod}
       </p>
 
-      {/* Mobile: 1 column full-width. Desktop (md+): 2 columns. */}
-      <div className="my-[2mm] grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-2">
+      {/* 1 column on every phone/tablet — 2 columns only on desktop (≥ 1024 px). */}
+      <div className="my-[2mm] grid grid-cols-1 gap-[2mm] lg:grid-cols-2">
         {methods.map(({ id, label, amount, Icon, color, bgColor }) => {
           const isActive = selected === id;
           return (
@@ -129,9 +129,9 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
               disabled={loading}
               onClick={() => onSelect(id)}
               className={[
-                // Mobile: vertical stack (icon+label / amount). md+: single row.
+                // Always vertical stack on mobile; single row only on desktop.
                 'group relative flex w-full flex-col gap-2 rounded-xl border px-4 py-4 text-left transition-all duration-150',
-                'md:flex-row md:items-center md:gap-3 md:px-3 md:py-[2mm]',
+                'lg:flex-row lg:items-center lg:gap-3 lg:px-3 lg:py-[2mm]',
                 isActive
                   ? 'border-terminal-primary bg-terminal-primary/10 shadow-md shadow-terminal-primary/10 ring-1 ring-terminal-primary/30'
                   : 'border-terminal-border bg-terminal-card hover:border-terminal-primary/40 hover:bg-terminal-bg',
@@ -143,7 +143,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-terminal-primary shadow-lg shadow-terminal-primary/50" />
               )}
 
-              {/* Icon + label row — always horizontal, stretches on md+ */}
+              {/* Icon + label — always a horizontal pair */}
               <div className="flex min-w-0 flex-1 items-center gap-3">
                 <div
                   className={`shrink-0 rounded-lg p-2 ${
@@ -161,8 +161,8 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
                 </span>
               </div>
 
-              {/* Amount — full-width left-aligned on mobile, shrink right on md+ */}
-              <span className="pl-[44px] text-base font-bold text-blue-500 md:shrink-0 md:pl-0 md:text-right">
+              {/* Amount — indented under icon on mobile, right-pinned on desktop */}
+              <span className="pl-[44px] text-base font-bold text-blue-500 lg:shrink-0 lg:pl-0 lg:text-right">
                 {amount}
               </span>
             </button>
