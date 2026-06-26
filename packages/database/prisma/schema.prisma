@@ -1005,3 +1005,14 @@ model SecondaryMarketListing {
   @@index([sellerUserId, status])
   @@index([status, createdAt])
 }
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String
+  projectId String
+  createdAt DateTime @default(now())
+
+  @@unique([email, projectId])
+  @@index([projectId, createdAt])
+  @@index([email])
+}
