@@ -1,7 +1,7 @@
 'use client';
 
 import { Fingerprint, ScanFace } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { startRegistration, type PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
@@ -21,12 +21,22 @@ function isIosDevice(): boolean {
 export function PasskeyRegisterPrompt({ className = '' }: PasskeyRegisterPromptProps) {
   const t = useTranslation();
   const p = t.passkey;
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasPasskeys, setHasPasskeys] = useState<boolean | null>(null);
   const isIos = useMemo(() => isIosDevice(), []);
   const Icon = isIos ? ScanFace : Fingerprint;
+
+  useEffect(() => {
+    if (sessionStatus !== 'authenticated') return;
+
+    fetch('/api/auth/passkey/status')
+      .then((res) => res.json() as Promise<{ hasPasskeys: boolean }>)
+      .then(({ hasPasskeys: hp }) => setHasPasskeys(hp))
+      .catch(() => setHasPasskeys(false));
+  }, [sessionStatus]);
 
   async function handleRegister() {
     setError(null);
@@ -81,6 +91,12 @@ export function PasskeyRegisterPrompt({ className = '' }: PasskeyRegisterPromptP
       setLoading(false);
     }
   }
+
+  // Still loading status from server — don't flash the prompt
+  if (hasPasskeys === null) return null;
+
+  // User already has passkeys registered on any device — no need to prompt
+  if (hasPasskeys) return null;
 
   if (done) {
     return (
