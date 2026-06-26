@@ -118,8 +118,8 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
         {sc.selectMethod}
       </p>
 
-      {/* Responsive grid: 1 col on xs, 2 cols on sm+ */}
-      <div className="grid grid-cols-1 gap-2 my-[2mm] sm:grid-cols-2">
+      {/* Mobile: 1 column full-width. Desktop (md+): 2 columns. */}
+      <div className="my-[2mm] grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-2">
         {methods.map(({ id, label, amount, Icon, color, bgColor }) => {
           const isActive = selected === id;
           return (
@@ -129,7 +129,9 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
               disabled={loading}
               onClick={() => onSelect(id)}
               className={[
-                'group relative flex flex-row items-center gap-3 rounded-xl border px-3 py-[2mm] text-left transition-all duration-150 w-full min-h-[44px]',
+                // Mobile: vertical stack (icon+label / amount). md+: single row.
+                'group relative flex w-full flex-col gap-2 rounded-xl border px-4 py-4 text-left transition-all duration-150',
+                'md:flex-row md:items-center md:gap-3 md:px-3 md:py-[2mm]',
                 isActive
                   ? 'border-terminal-primary bg-terminal-primary/10 shadow-md shadow-terminal-primary/10 ring-1 ring-terminal-primary/30'
                   : 'border-terminal-border bg-terminal-card hover:border-terminal-primary/40 hover:bg-terminal-bg',
@@ -141,26 +143,26 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-terminal-primary shadow-lg shadow-terminal-primary/50" />
               )}
 
-              {/* Icon */}
-              <div
-                className={`shrink-0 rounded-lg p-2 ${
-                  isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`
-                }`}
-              >
-                <Icon size={20} />
+              {/* Icon + label row — always horizontal, stretches on md+ */}
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <div
+                  className={`shrink-0 rounded-lg p-2 ${
+                    isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`
+                  }`}
+                >
+                  <Icon size={20} />
+                </div>
+                <span
+                  className={`min-w-0 flex-1 text-base font-semibold leading-snug ${
+                    isActive ? 'text-terminal-primary' : 'text-terminal-text'
+                  }`}
+                >
+                  {label}
+                </span>
               </div>
 
-              {/* Label — grows to fill available space */}
-              <span
-                className={`min-w-0 flex-1 text-base font-semibold leading-tight ${
-                  isActive ? 'text-terminal-primary' : 'text-terminal-text'
-                }`}
-              >
-                {label}
-              </span>
-
-              {/* Amount — pinned to right edge, same position on every button */}
-              <span className="shrink-0 text-base font-bold text-blue-500 text-right">
+              {/* Amount — full-width left-aligned on mobile, shrink right on md+ */}
+              <span className="pl-[44px] text-base font-bold text-blue-500 md:shrink-0 md:pl-0 md:text-right">
                 {amount}
               </span>
             </button>
