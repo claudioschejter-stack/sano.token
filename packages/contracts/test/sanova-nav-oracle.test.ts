@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import hre from 'hardhat';
+import { id as ethersId } from 'ethers';
 import type { Contract, ContractFactory, ContractTransactionResponse } from 'ethers';
 
 type TestSigner = {
@@ -72,7 +73,7 @@ describe('SanovaNavOracle', () => {
     // Morpho scale: microUsd * 1e18 => 20e6 * 1e18 = 20e24
     expect(price).to.equal(20_000_000n * 10n ** 18n);
 
-    await oracle.connect(updater).updateNav(21_000_000n, hre.ethers.id('audit-q1-2026'));
+    await (oracle.connect(updater) as SanovaNavOracle).updateNav(21_000_000n, ethersId('audit-q1-2026'));
     expect(await oracle.navPerAssetMicroUsd()).to.equal(21_000_000n);
     expect(await oracle.price()).to.equal(21_000_000n * 10n ** 18n);
   });
