@@ -63,6 +63,10 @@ export function CashFlowPageClient() {
     <div className="mx-auto max-w-6xl space-y-6 bg-terminal-bg text-terminal-text md:space-y-8">
       <InvestorPageHeader eyebrow={c.eyebrow} title={c.title} subtitle={c.subtitle} />
 
+      <article className="rounded-xl border border-terminal-border bg-terminal-card p-4 sm:p-6">
+        <PlatformWalletView hideHeader embedded showMarketplaceCta />
+      </article>
+
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <InvestorKpiCard
           label={c.availableCashLabel}
@@ -89,10 +93,6 @@ export function CashFlowPageClient() {
           iconClassName="bg-terminal-bg text-terminal-accent"
         />
       </section>
-
-      <article className="rounded-xl border border-terminal-border bg-terminal-card p-4 sm:p-6">
-        <PlatformWalletView hideHeader embedded showMarketplaceCta />
-      </article>
 
       <MorphoRepayPanel onRepaid={() => void fetchPortfolio()} />
 
