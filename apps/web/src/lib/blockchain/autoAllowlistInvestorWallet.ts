@@ -2,6 +2,7 @@ import { prisma } from '@sanova/database';
 import { setInvestorKycAllowlist } from './kycAllowlist';
 import { isRwaOperatorConfigured } from './rwaOperatorSigner';
 import { isPendingInvestorWallet } from '../investor/provisionInvestorProfile';
+import { upsertInvestorAllowlist } from '../admin/investorsService';
 
 /**
  * Automatically whitelists an investor's wallet on all active on-chain token contracts
@@ -67,6 +68,16 @@ export async function autoAllowlistInvestorWallet(userId: string): Promise<void>
           walletAddress,
           approved: true
         });
+
+        // Sync the DB so the purchase gate (investorAllowlist) stays in step with the chain.
+        await upsertInvestorAllowlist({
+          userId,
+          projectId: project.id,
+          walletAddress,
+          approved: true,
+          txHash: result.txHash ?? null
+        });
+
         results.push({ project: project.title, success: true, txHash: result.txHash });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

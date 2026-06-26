@@ -4,10 +4,16 @@ import { assertInvestorAccessEnabled } from '../../../../lib/auth/investorAccess
 import { requireContactVerifiedUser } from '../../../../lib/onboarding/contactVerification';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
 import { provisionInvestorProfileOnKycApproval } from '../../../../lib/investor/provisionInvestorProfile';
+import { allowDemoKyc } from '../../../../lib/runtime/environment';
 
-/** Demo only — use Didit in production. */
+/** Demo only — never available in production. Use Didit for real KYC. */
 export async function POST() {
-  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_KYC !== 'true') {
+  try {
+    if (!allowDemoKyc()) {
+      return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+    }
+  } catch {
+    // allowDemoKyc() throws if ALLOW_DEMO_KYC=true is detected in production.
     return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
   }
 

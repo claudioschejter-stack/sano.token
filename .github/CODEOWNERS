@@ -1,0 +1,22 @@
+# CODEOWNERS — required reviewers before any PR can merge to main.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default: all changes require a review from the repo owner
+*                                               @claudioschejter-stack
+
+# Smart contracts — highest-risk code; must have an owner review on every change
+packages/contracts/                             @claudioschejter-stack
+
+# Blockchain signing, treasury, KYC allowlist, operator
+apps/web/src/lib/blockchain/                    @claudioschejter-stack
+apps/web/src/lib/auth/                          @claudioschejter-stack
+apps/web/src/lib/privy/                         @claudioschejter-stack
+
+# All API routes (payments, checkout, webhooks, admin)
+apps/web/src/app/api/                           @claudioschejter-stack
+
+# Payment and checkout services
+apps/web/src/lib/payments/                      @claudioschejter-stack
+
+# CI / GitHub workflows — changes here must be explicitly approved
+.github/                                        @claudioschejter-stack

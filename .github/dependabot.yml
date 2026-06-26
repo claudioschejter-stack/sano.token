@@ -1,0 +1,35 @@
+version: 2
+updates:
+  # Root workspace (npm)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "America/Argentina/Buenos_Aires"
+    open-pull-requests-limit: 10
+    groups:
+      # Batch all non-breaking minor/patch updates together
+      non-breaking:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      # Ethers major versions require manual migration
+      - dependency-name: ethers
+        update-types: [version-update:semver-major]
+      # Prisma major versions require schema/migration review
+      - dependency-name: "@prisma/client"
+        update-types: [version-update:semver-major]
+      - dependency-name: prisma
+        update-types: [version-update:semver-major]
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "America/Argentina/Buenos_Aires"
