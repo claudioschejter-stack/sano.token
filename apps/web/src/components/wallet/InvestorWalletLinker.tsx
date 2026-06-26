@@ -1,6 +1,6 @@
 'use client';
 
-import { Loader2, Wallet } from 'lucide-react';
+import { Check, Copy, Loader2, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAccount, useConnect, useDisconnect, useSignMessage, useSwitchChain, type Connector } from 'wagmi';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
@@ -66,6 +66,7 @@ export function InvestorWalletLinker({
   const { signMessageAsync } = useSignMessage();
   const [saving, setSaving] = useState(false);
   const [walletChangeMode, setWalletChangeMode] = useState(false);
+  const [copied, setCopied] = useState(false);
   const linkedRef = useRef<string | null>(walletGuard.linkedWallet);
   const syncedRef = useRef(false);
   const userInitiatedConnectRef = useRef(false);
@@ -381,14 +382,41 @@ export function InvestorWalletLinker({
   const dashboardChangeButtonClass =
     'flex w-full max-w-none items-center justify-center rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3 text-sm font-semibold text-terminal-text transition hover:border-terminal-primary/50 disabled:opacity-50';
 
+  const copyAddress = useCallback(() => {
+    if (!currentWalletAddress) return;
+    void navigator.clipboard.writeText(currentWalletAddress).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, [currentWalletAddress]);
+
+  const shortAddress = currentWalletAddress
+    ? `${currentWalletAddress.slice(0, 6)}…${currentWalletAddress.slice(-4)}`
+    : null;
+
   const dashboardCurrentWalletFrame = showDashboardCurrentWallet && currentWalletAddress ? (
-    <div className="w-full max-w-none rounded-lg border-2 border-amber-400/90 bg-amber-50 px-4 py-3.5 text-amber-950 shadow-sm">
+    <div className="w-full max-w-none overflow-hidden rounded-lg border-2 border-amber-400/90 bg-amber-50 px-4 py-3.5 text-amber-950 shadow-sm">
       {currentWalletName ? (
-        <p className="text-base font-bold leading-snug text-amber-950">{currentWalletName}</p>
+        <p className="truncate text-base font-bold leading-snug text-amber-950">{currentWalletName}</p>
       ) : null}
       <div className={currentWalletName ? 'mt-2' : ''}>
         <p className="text-sm font-semibold text-amber-950">{w.currentWalletLinkedName}</p>
-        <p className="mt-1 break-all font-mono text-xs leading-relaxed text-amber-900/90">{currentWalletAddress}</p>
+        <div className="mt-1 flex items-center gap-2">
+          {/* Mobile: abbreviated address */}
+          <p className="font-mono text-xs text-amber-900/90 md:hidden">{shortAddress}</p>
+          {/* Desktop: full address with break-all */}
+          <p className="hidden min-w-0 break-all font-mono text-xs leading-relaxed text-amber-900/90 md:block">
+            {currentWalletAddress}
+          </p>
+          <button
+            type="button"
+            aria-label="Copiar dirección"
+            onClick={copyAddress}
+            className="shrink-0 rounded p-1 text-amber-700 transition hover:bg-amber-100"
+          >
+            {copied ? <Check size={14} /> : <Copy size={14} />}
+          </button>
+        </div>
       </div>
     </div>
   ) : null;
