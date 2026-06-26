@@ -122,7 +122,7 @@ export function FinancialOverview() {
 
       <MorphoLiquidityPanel loansHref="/marketplace" showLoansLink={canRequestMorphoLoan} />
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 [&>article]:h-full">
+      <section className="grid gap-4 [&>article]:h-full" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
         <InvestorKpiCard
           label={d.kpiTotalPortfolio}
           value={portfolio ? formatUsdc(portfolio.totals.netLiquidValueUsd) : '—'}

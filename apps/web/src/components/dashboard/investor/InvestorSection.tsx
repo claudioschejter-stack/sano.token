@@ -23,7 +23,7 @@ export function InvestorSection({
         <div className="min-w-0 max-w-none flex-1">
           <h2 className="text-base font-bold text-terminal-text sm:text-lg">{title}</h2>
           {subtitle ? (
-            <p className="mt-1 max-w-none text-pretty text-xs leading-relaxed text-terminal-muted sm:text-sm">
+            <p className="mt-1 max-w-none text-pretty text-sm leading-relaxed text-terminal-muted">
               {subtitle}
             </p>
           ) : null}

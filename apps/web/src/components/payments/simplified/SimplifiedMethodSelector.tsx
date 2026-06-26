@@ -118,8 +118,8 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
         {sc.selectMethod}
       </p>
 
-      {/* 2 columns, 2mm vertical margins */}
-      <div className="grid grid-cols-2 gap-2 my-[2mm]">
+      {/* Responsive grid: 1 col on xs, 2 cols on sm+ */}
+      <div className="grid grid-cols-1 gap-2 my-[2mm] sm:grid-cols-2">
         {methods.map(({ id, label, amount, Icon, color, bgColor }) => {
           const isActive = selected === id;
           return (
@@ -129,7 +129,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
               disabled={loading}
               onClick={() => onSelect(id)}
               className={[
-                'group relative flex flex-row items-center gap-3 rounded-xl border px-3 py-[2mm] text-left transition-all duration-150 w-full',
+                'group relative flex flex-row items-center gap-3 rounded-xl border px-3 py-[2mm] text-left transition-all duration-150 w-full min-h-[44px]',
                 isActive
                   ? 'border-terminal-primary bg-terminal-primary/10 shadow-md shadow-terminal-primary/10 ring-1 ring-terminal-primary/30'
                   : 'border-terminal-border bg-terminal-card hover:border-terminal-primary/40 hover:bg-terminal-bg',
@@ -152,7 +152,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
 
               {/* Label — grows to fill available space */}
               <span
-                className={`min-w-0 flex-1 text-sm font-semibold leading-tight ${
+                className={`min-w-0 flex-1 text-base font-semibold leading-tight ${
                   isActive ? 'text-terminal-primary' : 'text-terminal-text'
                 }`}
               >
@@ -160,7 +160,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
               </span>
 
               {/* Amount — pinned to right edge, same position on every button */}
-              <span className="shrink-0 text-sm font-bold text-blue-500 text-right">
+              <span className="shrink-0 text-base font-bold text-blue-500 text-right">
                 {amount}
               </span>
             </button>

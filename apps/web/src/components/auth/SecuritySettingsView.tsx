@@ -140,10 +140,10 @@ export function SecuritySettingsView() {
 
   if (view === 'overview') {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto w-full max-w-2xl space-y-6 px-0">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Seguridad de la cuenta</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-base text-slate-500">
             Configurá métodos adicionales para proteger tu acceso.
           </p>
         </div>

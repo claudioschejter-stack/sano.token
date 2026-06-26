@@ -1763,7 +1763,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               ) : null}
               <Link
                 href={depositReturnTo}
-                className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500"
+                className="inline-flex min-h-11 items-center rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
               >
                 {mode === 'deposit' ? c.backToWallet : t.checkout.viewPortfolio}
               </Link>
@@ -1795,7 +1795,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               {status !== 'share_failed' ? (
                 <Link
                   href={mode === 'deposit' ? depositReturnTo : '/dashboard/portfolio'}
-                  className="inline-flex rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+                  className="inline-flex min-h-11 items-center rounded-lg bg-terminal-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
                 >
                   {mode === 'deposit' ? c.backToWallet : t.checkout.viewPortfolio}
                 </Link>
@@ -1834,7 +1834,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               <button
                 type="button"
                 onClick={() => void (mode === 'deposit' ? verifyDepositTx() : verifyUsdcPayment())}
-                className="rounded-lg bg-terminal-primary px-3 py-2 text-xs font-semibold text-white"
+                className="min-h-11 rounded-lg bg-terminal-primary px-3 py-2 text-sm font-semibold text-white"
               >
                 {c.verifyTx}
               </button>

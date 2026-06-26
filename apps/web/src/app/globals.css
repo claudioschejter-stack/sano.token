@@ -348,6 +348,32 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Responsive base — mobile first */
+  @media (max-width: 767px) {
+    /* Touch targets: at least 44px (WCAG 2.5.8) */
+    button:not(.icon-only),
+    [role="button"]:not(.icon-only) {
+      min-height: 44px;
+    }
+
+    /* Full-width forms on mobile */
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    select,
+    textarea {
+      width: 100%;
+      font-size: 16px; /* prevent iOS zoom on focus */
+    }
+
+    /* Legible base text */
+    p, li, td, th, label {
+      font-size: max(16px, 1rem);
+    }
+  }
+
   body.client-hardened {
     -webkit-user-select: text;
     user-select: text;

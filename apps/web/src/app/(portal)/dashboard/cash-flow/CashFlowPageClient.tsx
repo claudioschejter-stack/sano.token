@@ -67,7 +67,7 @@ export function CashFlowPageClient() {
         <PlatformWalletView hideHeader embedded showMarketplaceCta />
       </article>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
         <InvestorKpiCard
           label={c.availableCashLabel}
           value={isLoading ? '—' : formatUsd(availableCash)}

@@ -269,7 +269,7 @@ export function PlatformWalletView({
             setActiveTab('deposit');
             router.push('/marketplace/carrito?mode=deposit');
           }}
-          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors sm:flex-none sm:px-5 ${
+          className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base font-semibold transition-colors sm:flex-none sm:px-5 ${
             activeTab === 'deposit'
               ? 'bg-terminal-primary text-white'
               : 'text-terminal-muted hover:bg-terminal-bg hover:text-terminal-text'
@@ -285,7 +285,7 @@ export function PlatformWalletView({
             setSuccess(null);
             setActiveTab('withdraw');
           }}
-          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors sm:flex-none sm:px-5 ${
+          className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base font-semibold transition-colors sm:flex-none sm:px-5 ${
             activeTab === 'withdraw'
               ? 'bg-terminal-primary text-white'
               : 'text-terminal-muted hover:bg-terminal-bg hover:text-terminal-text'
@@ -297,7 +297,7 @@ export function PlatformWalletView({
         <button
           type="button"
           onClick={() => setActiveTab('history')}
-          className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors sm:flex-none sm:px-5 ${
+          className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base font-semibold transition-colors sm:flex-none sm:px-5 ${
             activeTab === 'history'
               ? 'bg-terminal-primary text-white'
               : 'text-terminal-muted hover:bg-terminal-bg hover:text-terminal-text'
