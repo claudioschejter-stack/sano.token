@@ -132,10 +132,12 @@ export type SimplifiedCardMethod = {
 };
 
 export type SimplifiedWireMethod = {
+  provider: 'transak' | 'bridge';
+  configured: boolean;
   totalUsd: number;
   displayCurrency: 'USD';
   feeBps: number;
-  instructions: BridgeVirtualAccountInstructions;
+  widgetUrl: string | null;
 };
 
 export type CheckoutBestRoutes = {
@@ -228,15 +230,19 @@ export function resolveCheckoutBestRoutes(input: {
 
   // --- Wire ---
   const wireTotal = amountUsd * (1 + FEES.bridge_wire / 10_000);
+  const wireWidgetUrl = transakWidgetUrl({
+    amountUsd: Number(wireTotal.toFixed(2)),
+    country: c,
+    referenceId,
+    paymentMethod: 'bank_transfer'
+  });
   const wire: SimplifiedWireMethod = {
+    provider: 'transak',
+    configured: Boolean(wireWidgetUrl),
     totalUsd: Number(wireTotal.toFixed(2)),
     displayCurrency: 'USD',
     feeBps: FEES.bridge_wire,
-    instructions: buildBridgeVirtualAccountInstructions({
-      amountUsd: wireTotal,
-      referenceId,
-      investorName: input.investorName
-    })
+    widgetUrl: wireWidgetUrl
   };
 
   return {

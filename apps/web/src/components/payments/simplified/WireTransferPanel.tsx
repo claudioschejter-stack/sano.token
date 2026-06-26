@@ -1,29 +1,12 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Building2, ExternalLink, Smartphone } from 'lucide-react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { SimplifiedWireMethod } from '../../../lib/payments/checkoutBestRouteService';
-import type { BridgeVirtualAccountInstructions } from '../../../lib/checkout/paymentRouteTypes';
-import { BridgeTransferInstructions } from '../gateway/BridgeTransferInstructions';
+import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 
-type ApiResult = {
-  instructions: BridgeVirtualAccountInstructions;
-  isSimulated: boolean;
-};
-
-async function fetchVirtualAccount(params: {
-  referenceId: string;
-  amountUsd: number;
-}): Promise<ApiResult> {
-  const url = new URL('/api/payments/bridge-virtual-account', window.location.origin);
-  url.searchParams.set('referenceId', params.referenceId);
-  url.searchParams.set('amountUsd', String(params.amountUsd));
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`bridge-virtual-account error: ${res.status}`);
-  return res.json() as Promise<ApiResult>;
-}
+const QR_SIZE = 200;
 
 type Props = {
   wire: SimplifiedWireMethod;
@@ -32,67 +15,89 @@ type Props = {
 
 export function WireTransferPanel({ wire, amountUsd }: Props) {
   const t = useTranslation();
-  const g = t.paymentGateway;
   const sc = t.simplifiedCheckout;
+  const { isDesktop } = useDeviceDetection();
 
-  const [result, setResult] = useState<ApiResult | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(true);
-    fetchVirtualAccount({
-      referenceId: wire.instructions.reference,
-      amountUsd: wire.totalUsd
-    })
-      .then(setResult)
-      .catch(() => {
-        setResult({ instructions: wire.instructions, isSimulated: true });
-      })
-      .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [wire.instructions.reference, wire.totalUsd]);
-
-  if (loading) {
+  if (!wire.configured || !wire.widgetUrl) {
     return (
-      <section className="flex items-center justify-center gap-2 rounded-xl border border-terminal-border bg-terminal-card p-8">
-        <Loader2 className="h-5 w-5 animate-spin text-terminal-primary" />
-        <span className="text-sm text-terminal-muted">Cargando datos bancarios…</span>
+      <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
+        <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
       </section>
     );
   }
 
-  const { instructions, isSimulated } = result ?? { instructions: wire.instructions, isSimulated: true };
+  const transakUrl = wire.widgetUrl;
 
   return (
-    <div className="space-y-4">
-      <BridgeTransferInstructions
-        instructions={instructions}
-        isSimulated={isSimulated}
-        labels={{
-          title: sc.wireTitle,
-          subtitle: sc.wireSubtitle,
-          bankName: g.bridgeBankName,
-          accountName: g.bridgeAccountName,
-          accountNumber: g.bridgeAccountNumber,
-          routingNumber: g.bridgeRoutingNumber,
-          swift: g.bridgeSwift,
-          beneficiaryAddress: g.bridgeBeneficiaryAddress,
-          reference: g.bridgeReference,
-          amount: g.bridgeAmount,
-          memo: g.bridgeMemo,
-          settlement: g.bridgeSettlement,
-          copy: g.copy,
-          copied: g.copied,
-          simulatedNotice: g.bridgeSimulatedNotice
-        }}
-      />
+    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
 
-      <PaymentFeeBreakdown
-        amountUsd={amountUsd}
-        totalUsd={wire.totalUsd}
-        feeBps={wire.feeBps}
-        providerLabel="Bridge"
-      />
-    </div>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl bg-amber-400/10 p-2.5 text-amber-400">
+          <Building2 size={18} />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-terminal-text">{sc.wireTitle}</h3>
+          <p className="mt-0.5 text-xs text-terminal-muted">
+            SEPA · ACH · Transferencia local
+          </p>
+        </div>
+      </div>
+
+      {/* Amount */}
+      <div className="rounded-xl border border-terminal-border bg-terminal-bg px-4 py-3.5">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted">
+          Total a pagar
+        </p>
+        <p className="mt-1 text-2xl font-bold text-terminal-text">
+          USD {wire.totalUsd.toFixed(2)}
+        </p>
+        <p className="mt-0.5 text-[11px] text-terminal-muted">
+          Recibirás {amountUsd.toFixed(2)} USDC en tu cuenta
+        </p>
+      </div>
+
+      {/* Fee breakdown */}
+      <PaymentFeeBreakdown amountUsd={amountUsd} totalUsd={wire.totalUsd} />
+
+      {/* Desktop: QR code */}
+      {isDesktop && (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
+          <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(transakUrl)}`}
+              alt="QR Transak — transferencia bancaria"
+              width={QR_SIZE}
+              height={QR_SIZE}
+              className="block rounded"
+            />
+          </div>
+          <p className="text-center text-[11px] text-terminal-muted">
+            Escaneá con el celular para iniciar la transferencia
+          </p>
+          <a
+            href={transakUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-xs font-medium text-terminal-primary hover:underline"
+          >
+            Abrir en el navegador <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      )}
+
+      {/* Mobile: redirect button */}
+      {!isDesktop && (
+        <a
+          href={transakUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-amber-600 px-4 py-4 text-sm font-bold text-white shadow-lg shadow-amber-900/30 transition-all hover:bg-amber-500 active:scale-[0.98]"
+        >
+          <Smartphone className="h-4 w-4" />
+          Iniciar transferencia bancaria — Transak
+        </a>
+      )}
+    </section>
   );
 }
