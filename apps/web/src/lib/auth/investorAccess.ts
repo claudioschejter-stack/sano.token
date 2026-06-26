@@ -1,4 +1,17 @@
 export function isInvestorOpenRegistration(): boolean {
+  const isProduction =
+    process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+
+  if (isProduction && process.env.INVESTOR_OPEN_REGISTRATION === 'true') {
+    // Log a critical warning but fail-safe to false so the invite-code gate is
+    // never bypassed silently. Remove or set to 'false' in Vercel.
+    console.error(
+      '[SECURITY] INVESTOR_OPEN_REGISTRATION=true in production — ' +
+        'all users bypass the invite-code gate. Defaulting to closed registration.'
+    );
+    return false;
+  }
+
   return process.env.INVESTOR_OPEN_REGISTRATION === 'true';
 }
 

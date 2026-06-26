@@ -8,7 +8,17 @@ export function allowDemoContent(): boolean {
   return !isProductionRuntime() || process.env.ALLOW_DEMO_CONTENT === 'true';
 }
 
-/** Demo KYC bypass — local dev only unless ALLOW_DEMO_KYC=true in production. */
+/**
+ * Demo KYC bypass — allowed in local dev only.
+ * ALLOW_DEMO_KYC=true in production is treated as a misconfiguration and
+ * throws immediately so it is never silently accepted.
+ */
 export function allowDemoKyc(): boolean {
-  return !isProductionRuntime() || process.env.ALLOW_DEMO_KYC === 'true';
+  if (isProductionRuntime() && process.env.ALLOW_DEMO_KYC === 'true') {
+    throw new Error(
+      '[SECURITY] ALLOW_DEMO_KYC=true is set in production. ' +
+        'Remove this variable from Vercel immediately — it bypasses all KYC checks.'
+    );
+  }
+  return !isProductionRuntime();
 }
