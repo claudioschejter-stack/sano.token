@@ -1,4 +1,4 @@
-import { Contract, JsonRpcProvider, Wallet, isAddress } from 'ethers';
+import { Contract, JsonRpcProvider, isAddress } from 'ethers';
 import { listAdminAssets, type AdminAssetRecord } from './assetsService';
 import { inferEmissionProfileFromAsset } from './emissionProfiles';
 import { getErc4626OnChainIssues, isErc4626OnChainReady } from './erc4626LaunchGate';
@@ -49,10 +49,6 @@ export type PlatformOpsReport = {
     projectsNeedingRepair: number;
   };
 };
-
-function resolveDeployKey(): string | null {
-  return process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim() || process.env.PRIVATE_KEY?.trim() || null;
-}
 
 function resolveBaseRpcUrl(): string {
   return (
