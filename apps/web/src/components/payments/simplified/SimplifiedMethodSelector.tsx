@@ -139,22 +139,21 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-terminal-primary shadow-lg shadow-terminal-primary/50" />
               )}
 
-              <div className="payment-method-btn__row">
-                <div
-                  className={`shrink-0 rounded-lg p-2 ${
-                    isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`
-                  }`}
-                >
-                  <Icon size={20} />
-                </div>
-                <span
-                  className={`payment-method-btn__label ${
-                    isActive ? 'text-terminal-primary' : 'text-terminal-text'
-                  }`}
-                >
-                  {label}
-                </span>
+              <div
+                className={`shrink-0 rounded-lg p-2 ${
+                  isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`
+                }`}
+              >
+                <Icon size={20} />
               </div>
+
+              <span
+                className={`payment-method-btn__label ${
+                  isActive ? 'text-terminal-primary' : 'text-terminal-text'
+                }`}
+              >
+                {label}
+              </span>
 
               <span className="payment-method-btn__amount">{amount}</span>
             </button>
