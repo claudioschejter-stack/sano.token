@@ -137,7 +137,7 @@ export async function POST(request: Request) {
 
   // Emitir loginToken (mismo mecanismo que passkey login)
   const role = await updateUserRoleIfNeeded(user.id, user.email, user.systemRole as import('../../../../../lib/auth/roles').SystemRole);
-  const authUser = issueAuthUser(user.id, user.email, role);
+  const authUser = await issueAuthUser(user.id, user.email, role);
 
   const loginToken = await new SignJWT({ sub: authUser.id, purpose: 'passkey-login' })
     .setProtectedHeader({ alg: 'HS256' })
