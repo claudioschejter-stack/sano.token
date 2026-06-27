@@ -8,7 +8,9 @@ export function PwaRegister() {
       return;
     }
 
-    void navigator.serviceWorker.register('/sw.js').catch(() => {
+    void navigator.serviceWorker.register('/sw.js').then((registration) => {
+      void registration.update();
+    }).catch(() => {
       // Service worker is optional in local dev.
     });
   }, []);

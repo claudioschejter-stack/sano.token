@@ -118,8 +118,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
         {sc.selectMethod}
       </p>
 
-      {/* flex-col on mobile = guaranteed 1 button per row. lg: switches to 2-col grid. */}
-      <div className="my-[2mm] flex w-full flex-col gap-[2mm] lg:grid lg:grid-cols-2 lg:gap-2">
+      <div className="payment-method-list">
         {methods.map(({ id, label, amount, Icon, color, bgColor }) => {
           const isActive = selected === id;
           return (
@@ -129,22 +128,18 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
               disabled={loading}
               onClick={() => onSelect(id)}
               className={[
-                // Always vertical stack on mobile; single row only on desktop.
-                'group relative flex w-full flex-col gap-2 rounded-xl border px-4 py-4 text-left transition-all duration-150',
-                'lg:flex-row lg:items-center lg:gap-3 lg:px-3 lg:py-[2mm]',
+                'payment-method-btn group relative border',
                 isActive
                   ? 'border-terminal-primary bg-terminal-primary/10 shadow-md shadow-terminal-primary/10 ring-1 ring-terminal-primary/30'
                   : 'border-terminal-border bg-terminal-card hover:border-terminal-primary/40 hover:bg-terminal-bg',
                 loading ? 'cursor-wait opacity-60' : 'cursor-pointer'
               ].join(' ')}
             >
-              {/* Active indicator dot */}
               {isActive && (
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-terminal-primary shadow-lg shadow-terminal-primary/50" />
               )}
 
-              {/* Icon + label — always a horizontal pair */}
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="payment-method-btn__row">
                 <div
                   className={`shrink-0 rounded-lg p-2 ${
                     isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`
@@ -153,7 +148,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
                   <Icon size={20} />
                 </div>
                 <span
-                  className={`min-w-0 flex-1 text-base font-semibold leading-snug ${
+                  className={`payment-method-btn__label ${
                     isActive ? 'text-terminal-primary' : 'text-terminal-text'
                   }`}
                 >
@@ -161,15 +156,11 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
                 </span>
               </div>
 
-              {/* Amount — indented under icon on mobile, right-pinned on desktop */}
-              <span className="pl-[44px] text-base font-bold text-blue-500 lg:shrink-0 lg:pl-0 lg:text-right">
-                {amount}
-              </span>
+              <span className="payment-method-btn__amount">{amount}</span>
             </button>
           );
         })}
       </div>
-
     </div>
   );
 }
