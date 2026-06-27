@@ -23,7 +23,6 @@ function formatLocalAmount(totalLocal: number, displayCurrency: string): string 
   }).format(totalLocal);
 }
 
-/** Returns a localised wallet group label based on the user's country. */
 function getLocalWalletLabel(country: string): string {
   const map: Record<string, string> = {
     AR: 'Billeteras Digitales (Argentina)',
@@ -113,12 +112,13 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
   ];
 
   return (
-    <div className="space-y-[2mm]">
-      <p className="text-xs font-semibold uppercase tracking-widest text-terminal-muted">
+    <div style={{ marginBlock: '2mm' }}>
+      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-terminal-muted">
         {sc.selectMethod}
       </p>
 
-      <div className="payment-method-list">
+      {/* Full-width stacked buttons — all screen sizes */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
         {methods.map(({ id, label, amount, Icon, color, bgColor }) => {
           const isActive = selected === id;
           return (
@@ -127,35 +127,73 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
               type="button"
               disabled={loading}
               onClick={() => onSelect(id)}
-              className={[
-                'payment-method-btn group relative border',
-                isActive
-                  ? 'border-terminal-primary bg-terminal-primary/10 shadow-md shadow-terminal-primary/10 ring-1 ring-terminal-primary/30'
-                  : 'border-terminal-border bg-terminal-card hover:border-terminal-primary/40 hover:bg-terminal-bg',
-                loading ? 'cursor-wait opacity-60' : 'cursor-pointer'
-              ].join(' ')}
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'center',
+                width: '100%',
+                padding: '14px 16px',
+                gap: '12px',
+                borderRadius: '12px',
+                border: isActive
+                  ? '1px solid #3B82F6'
+                  : '1px solid #1F2937',
+                background: isActive ? 'rgba(59,130,246,0.10)' : '#111827',
+                boxShadow: isActive ? '0 2px 12px rgba(59,130,246,0.10)' : 'none',
+                cursor: loading ? 'wait' : 'pointer',
+                opacity: loading ? 0.6 : 1,
+                textAlign: 'left',
+                position: 'relative',
+              }}
             >
               {isActive && (
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-terminal-primary shadow-lg shadow-terminal-primary/50" />
+                <span style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  background: '#3B82F6',
+                  boxShadow: '0 0 8px rgba(59,130,246,0.5)',
+                }} />
               )}
 
+              {/* Icon */}
               <div
-                className={`shrink-0 rounded-lg p-2 ${
-                  isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`
-                }`}
+                className={isActive ? 'bg-terminal-primary/20 text-terminal-primary' : `${bgColor} ${color}`}
+                style={{ flexShrink: 0, borderRadius: 8, padding: 8 }}
               >
                 <Icon size={20} />
               </div>
 
+              {/* Label */}
               <span
-                className={`payment-method-btn__label ${
-                  isActive ? 'text-terminal-primary' : 'text-terminal-text'
-                }`}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  lineHeight: 1.35,
+                  color: isActive ? '#3B82F6' : '#E2E8F0',
+                }}
               >
                 {label}
               </span>
 
-              <span className="payment-method-btn__amount">{amount}</span>
+              {/* Amount — right-aligned */}
+              <span
+                style={{
+                  flexShrink: 0,
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  color: '#3B82F6',
+                  textAlign: 'right',
+                  marginLeft: 'auto',
+                }}
+              >
+                {amount}
+              </span>
             </button>
           );
         })}
