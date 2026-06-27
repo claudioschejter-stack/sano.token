@@ -49,12 +49,12 @@ describe('SanovaNavOracle', () => {
     await vault.setExternalContractAllowed(owner.address, true);
 
     const mintAmount = 1_000n * 10n ** 18n;
-    const mintTx = await (token as Contract & { mint: (to: string, amount: bigint) => Promise<ContractTransactionResponse> }).mint(
+    const mintTx = await ((token as unknown) as Contract & { mint: (to: string, amount: bigint) => Promise<ContractTransactionResponse> }).mint(
       owner.address,
       mintAmount
     );
     await mintTx.wait();
-    await (token as Contract & { approve: (spender: string, amount: bigint) => Promise<ContractTransactionResponse> }).approve(
+    await ((token as unknown) as Contract & { approve: (spender: string, amount: bigint) => Promise<ContractTransactionResponse> }).approve(
       await vault.getAddress(),
       mintAmount
     );
@@ -73,7 +73,7 @@ describe('SanovaNavOracle', () => {
     // Morpho scale: microUsd * 1e18 => 20e6 * 1e18 = 20e24
     expect(price).to.equal(20_000_000n * 10n ** 18n);
 
-    await (oracle.connect(updater) as SanovaNavOracle).updateNav(21_000_000n, ethersId('audit-q1-2026'));
+    await (oracle.connect(updater as any) as SanovaNavOracle).updateNav(21_000_000n, ethersId('audit-q1-2026'));
     expect(await oracle.navPerAssetMicroUsd()).to.equal(21_000_000n);
     expect(await oracle.price()).to.equal(21_000_000n * 10n ** 18n);
   });
