@@ -60,8 +60,8 @@ export function SimplifiedCheckout({
     try {
       const data = await fetchRoutes({ amountUsd, referenceId, country, investorName });
       setRoutes(data);
-      // Default to fiat_wallet
-      if (!selectedMethod) setSelectedMethod('fiat_wallet');
+      // Do not pre-select any method
+      // if (!selectedMethod) setSelectedMethod('fiat_wallet');
     } catch (err) {
       const msg = err instanceof Error ? err.message : sc.errorRoutes;
       setFetchError(msg);
