@@ -38,10 +38,22 @@ const MARKETS_QUERY = `
           liquidityAssetsUsd
           fee
           utilization
-        }
-        dailyApys {
-          supplyApy
           borrowApy
+          avgBorrowApy
+          avgNetBorrowApy
+          supplyApy
+          avgSupplyApy
+          avgNetSupplyApy
+          rewards {
+            asset {
+              address
+              chain {
+                id
+              }
+            }
+            supplyApr
+            borrowApr
+          }
         }
         chain {
           id
@@ -52,7 +64,7 @@ const MARKETS_QUERY = `
   }
 `;
 
-export const revalidate = 300; // revalidate every 5 minutes
+export const revalidate = 300;
 
 export async function GET() {
   try {
@@ -60,14 +72,17 @@ export async function GET() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: MARKETS_QUERY }),
-      next: { revalidate: 300 }
+      next: { revalidate: 300 },
     });
 
     if (!res.ok) {
       return NextResponse.json({ error: 'Failed to fetch Morpho data' }, { status: 502 });
     }
 
-    const json = await res.json() as { data?: { markets?: { items?: unknown[] } }; errors?: unknown[] };
+    const json = await res.json() as {
+      data?: { markets?: { items?: unknown[] } };
+      errors?: unknown[];
+    };
 
     if (json.errors) {
       return NextResponse.json({ error: 'Morpho API error', details: json.errors }, { status: 502 });
@@ -77,14 +92,12 @@ export async function GET() {
 
     return NextResponse.json(
       { markets: items, fetchedAt: new Date().toISOString() },
-      {
-        headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60'
-        }
-      }
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } }
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
