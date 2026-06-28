@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, Wallet } from 'lucide-react';
+import { Copy, ExternalLink, Wallet, CheckCircle2, QrCode } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
@@ -9,26 +9,36 @@ import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkou
 import { MobileAppRow } from './MobileAppRow';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 
-const QR_SIZE = 210;
+const QR_SIZE = 220;
 
 /** USDC token contract on Base (chainId 8453) */
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-/** Gas estimate on Base is negligible (~$0.001) */
+/** Gas on Base is ~$0.001 */
 const BASE_GAS_USD = 0.001;
 
+/**
+ * EIP-681 payment request URI.
+ * Encodes: recipient, token (USDC/Base), amount.
+ * Compatible with MetaMask, Coinbase Wallet, Rainbow, Trust, imToken, etc.
+ */
 function buildEip681Uri(treasuryAddress: string, amountUsdc: number): string {
-  const uint256 = Math.round(amountUsdc * 1e6);
+  const uint256 = Math.round(amountUsdc * 1e6); // USDC has 6 decimals
   return `ethereum:${USDC_BASE}@8453/transfer?address=${treasuryAddress}&uint256=${uint256}`;
 }
 
+/**
+ * App-specific deep links — pre-fill recipient + amount + token.
+ * Falls back to the universal EIP-681 URI for unknown apps.
+ */
 function buildCryptoDeepLink(appId: string, treasuryAddress: string, amountUsdc: number): string {
   const eip681 = buildEip681Uri(treasuryAddress, amountUsdc);
   switch (appId) {
     case 'metamask':
-      return `metamask://send?to=${treasuryAddress}&value=${amountUsdc}&token=USDC&network=base`;
+      // MetaMask mobile supports the ethereum: URI scheme directly
+      return eip681;
     case 'trust':
-      return `trust://send?to=${treasuryAddress}&amount=${amountUsdc}&token=USDC`;
+      return `trust://send?to=${treasuryAddress}&amount=${amountUsdc}&token=USDC&network=base`;
     case 'coinbase_wallet':
       return `cbwallet://send?to=${treasuryAddress}&amount=${amountUsdc}&asset=USDC&network=base`;
     case 'rainbow':
@@ -50,22 +60,39 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
   const sc = t.simplifiedCheckout;
   const { isDesktop } = useDeviceDetection();
   const { cryptoApps, isMobile, probing } = useMobileWalletDetection(country);
-  const [copied, setCopied] = useState(false);
+
+  const [copiedAddr, setCopiedAddr] = useState(false);
+  const [copiedUri, setCopiedUri] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   const amountUsdc = cryptoWallet.totalUsd;
   const eip681Uri = treasuryAddress ? buildEip681Uri(treasuryAddress, amountUsdc) : null;
 
-  const handleCopy = () => {
+  const handleCopyAddr = () => {
     if (!treasuryAddress) return;
     void navigator.clipboard.writeText(treasuryAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    setCopiedAddr(true);
+    setTimeout(() => setCopiedAddr(false), 1500);
+  };
+
+  const handleCopyUri = () => {
+    if (!eip681Uri) return;
+    void navigator.clipboard.writeText(eip681Uri);
+    setCopiedUri(true);
+    setTimeout(() => setCopiedUri(false), 1500);
+  };
+
+  const handlePayNow = () => {
+    if (!eip681Uri) return;
+    // On mobile browsers, the ethereum: URI opens the default wallet app
+    window.location.href = eip681Uri;
   };
 
   const visibleApps = isMobile ? cryptoApps.filter((a) => a.installed !== false) : [];
 
   return (
     <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
+      {/* Header */}
       <div className="flex items-center gap-3">
         <div className="rounded-lg bg-terminal-primary/10 p-2 text-terminal-primary">
           <Wallet size={18} />
@@ -73,36 +100,93 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
         <div>
           <h3 className="text-sm font-semibold text-terminal-text">{sc.cryptoWalletTitle}</h3>
           <p className="mt-0.5 text-xs text-terminal-muted">
-            {sc.cryptoWalletHint.replace('{amount}', amountUsdc.toFixed(2))}
+            USDC · Base Network · {amountUsdc.toFixed(2)} USDC
           </p>
         </div>
       </div>
 
+      {/* Amount to pay — prominent */}
+      <div className="rounded-xl border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-center">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
+          Monto exacto a pagar
+        </p>
+        <p className="mt-1 text-2xl font-bold text-terminal-primary">
+          {amountUsdc.toFixed(2)} <span className="text-base font-semibold">USDC</span>
+        </p>
+        <p className="mt-0.5 text-xs text-terminal-muted">en Base Network · sin conversión</p>
+      </div>
+
+      {/* Network badge */}
       <div className="rounded-lg border border-terminal-primary/20 bg-terminal-primary/5 px-3 py-2">
         <p className="text-xs font-medium text-terminal-primary">{sc.cryptoWalletNetwork}</p>
       </div>
 
       {treasuryAddress && eip681Uri ? (
         <>
-          {isDesktop && (
+          {/* ── PRIMARY ACTION: Pay Now button (mobile) ── */}
+          {isMobile && (
+            <button
+              type="button"
+              onClick={handlePayNow}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3.5 text-sm font-bold text-white shadow-lg active:opacity-90"
+            >
+              <ExternalLink size={16} />
+              Pagar {amountUsdc.toFixed(2)} USDC ahora
+            </button>
+          )}
+
+          {/* ── QR code — desktop always visible, mobile toggle ── */}
+          {isDesktop ? (
             <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
               <p className="text-xs text-terminal-muted">{sc.cryptoWalletQrHint}</p>
               <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
-                  alt={sc.cryptoWalletAddress}
+                  alt={`QR pago ${amountUsdc.toFixed(2)} USDC`}
                   width={QR_SIZE}
                   height={QR_SIZE}
                   className="block rounded"
                 />
               </div>
-              <p className="text-[11px] text-terminal-muted">
+              <p className="text-center text-[11px] text-terminal-muted">
                 Escaneá con MetaMask, Trust, Coinbase Wallet o cualquier wallet EVM
+                <br />
+                <span className="font-semibold text-terminal-primary">
+                  El monto ({amountUsdc.toFixed(2)} USDC) se pre-llena automáticamente
+                </span>
               </p>
+            </div>
+          ) : (
+            /* Mobile: optional QR (for scanning from a second device) */
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowQr((v) => !v)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-terminal-border bg-terminal-bg py-2.5 text-xs font-semibold text-terminal-muted"
+              >
+                <QrCode size={14} />
+                {showQr ? 'Ocultar QR' : 'Ver QR (para escanear desde otro celular)'}
+              </button>
+              {showQr && (
+                <div className="mt-3 flex flex-col items-center gap-2 rounded-xl border border-terminal-border bg-terminal-bg p-4">
+                  <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
+                      alt={`QR pago ${amountUsdc.toFixed(2)} USDC`}
+                      width={QR_SIZE}
+                      height={QR_SIZE}
+                      className="block rounded"
+                    />
+                  </div>
+                  <p className="text-center text-[11px] text-terminal-muted">
+                    Monto pre-llenado: {amountUsdc.toFixed(2)} USDC · Base
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Address field — dark background to ensure text is readable */}
+          {/* ── Address field ── */}
           <div className="rounded-xl border border-terminal-border bg-terminal-bg px-4 py-3">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted">
               {sc.cryptoWalletAddress}
@@ -113,28 +197,56 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
               </p>
               <button
                 type="button"
-                onClick={handleCopy}
+                onClick={handleCopyAddr}
                 className="shrink-0 rounded-lg border border-terminal-border bg-terminal-card p-2 text-terminal-muted transition-colors hover:border-terminal-primary hover:text-terminal-primary"
                 title="Copiar dirección"
               >
-                <Copy size={14} />
+                {copiedAddr ? <CheckCircle2 size={14} className="text-green-500" /> : <Copy size={14} />}
               </button>
             </div>
-            {copied && (
+            {copiedAddr && (
               <p className="mt-1.5 text-[11px] font-medium text-terminal-success">
                 {sc.cryptoWalletCopied}
               </p>
             )}
           </div>
 
-          <div className="rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted mb-1">
-              Token
-            </p>
-            <p className="text-xs font-medium text-terminal-text">
-              USDC · Base · {amountUsdc.toFixed(2)} USDC
-            </p>
-          </div>
+          {/* ── Copy EIP-681 URI (power users) ── */}
+          <button
+            type="button"
+            onClick={handleCopyUri}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-terminal-border bg-transparent py-2 text-[11px] text-terminal-muted transition-colors hover:border-terminal-primary hover:text-terminal-primary"
+          >
+            {copiedUri ? (
+              <><CheckCircle2 size={12} className="text-green-500" /> URI de pago copiada</>
+            ) : (
+              <><Copy size={12} /> Copiar URI de pago (EIP-681)</>
+            )}
+          </button>
+
+          {/* ── Mobile wallet deep links ── */}
+          {isMobile && (
+            <div className="space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
+                {sc.cryptoWalletDeepLinks}
+              </p>
+              {probing ? (
+                <p className="text-xs text-terminal-muted">{sc.probing}</p>
+              ) : visibleApps.length === 0 ? (
+                <p className="text-xs text-terminal-muted">
+                  Usá el botón "Pagar ahora" para abrir tu wallet.
+                </p>
+              ) : (
+                visibleApps.map((app) => (
+                  <MobileAppRow
+                    key={app.id}
+                    app={app}
+                    actionDeepLink={buildCryptoDeepLink(app.id, treasuryAddress, amountUsdc)}
+                  />
+                ))
+              )}
+            </div>
+          )}
         </>
       ) : (
         <p className="text-xs text-terminal-muted">{sc.notConfigured}</p>
@@ -147,31 +259,6 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
         providerLabel="Base USDC"
         networkFeeUsd={BASE_GAS_USD}
       />
-
-      {isMobile && (
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
-            {sc.cryptoWalletDeepLinks}
-          </p>
-          {probing ? (
-            <p className="text-xs text-terminal-muted">{sc.probing}</p>
-          ) : visibleApps.length === 0 ? (
-            <p className="text-xs text-terminal-muted">No se encontraron wallets instaladas.</p>
-          ) : (
-            visibleApps.map((app) => (
-              <MobileAppRow
-                key={app.id}
-                app={app}
-                actionDeepLink={
-                  treasuryAddress
-                    ? buildCryptoDeepLink(app.id, treasuryAddress, amountUsdc)
-                    : app.deepLink
-                }
-              />
-            ))
-          )}
-        </div>
-      )}
     </section>
   );
 }
