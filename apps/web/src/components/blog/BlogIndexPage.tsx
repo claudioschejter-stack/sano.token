@@ -5,6 +5,7 @@ import { LandingHeader } from '../landing/LandingHeader';
 import { useLocalePath } from '../../hooks/useLocalePath';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { BlogArticle } from '../../content/blog/articles';
+import { MorphoMarketsWidget } from './MorphoMarketsWidget';
 
 type BlogIndexPageProps = {
   articles: BlogArticle[];
@@ -48,6 +49,8 @@ export function BlogIndexPage({ articles }: BlogIndexPageProps) {
             </li>
           ))}
         </ul>
+
+        <MorphoMarketsWidget />
       </main>
     </div>
   );
