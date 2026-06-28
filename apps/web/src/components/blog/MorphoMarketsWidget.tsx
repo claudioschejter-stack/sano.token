@@ -10,10 +10,18 @@ type MorphoMarket = {
   loanAsset: { address: string; symbol: string; decimals: number } | null;
   collateralAsset: { address: string; symbol: string; decimals: number } | null;
   state: {
-    borrowAssets: string;
-    supplyAssets: string;
+    borrowAssetsUsd: number | null;
+    supplyAssetsUsd: number | null;
     fee: string;
     utilization: string;
+  } | null;
+  dailyApys: {
+    supplyApy: number | null;
+    borrowApy: number | null;
+  } | null;
+  chain: {
+    id: number;
+    network: string;
   } | null;
 };
 
@@ -22,22 +30,49 @@ type MarketsResponse = {
   fetchedAt: string;
 };
 
-function formatAssets(rawAssets: string | null | undefined, decimals: number): string {
-  if (!rawAssets) return '—';
-  const n = Number(rawAssets) / 10 ** decimals;
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(1)}K`;
-  return `$${n.toFixed(2)}`;
+function formatUsd(val: number | null | undefined): string {
+  if (val == null) return '—';
+  if (val >= 1_000_000_000) return `$${(val / 1_000_000_000).toFixed(2)}B`;
+  if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
+  if (val >= 1_000) return `$${(val / 1_000).toFixed(1)}K`;
+  return `$${val.toFixed(2)}`;
+}
+
+function formatApy(apy: number | null | undefined): string {
+  if (apy == null) return '—';
+  return `${(apy * 100).toFixed(2)}%`;
 }
 
 function formatUtilization(u: string | null | undefined): string {
   if (!u) return '—';
-  return `${(Number(u) * 100).toFixed(1)}%`;
+  const pct = Number(u) * 100;
+  return `${pct.toFixed(1)}%`;
 }
 
 function formatLltv(lltv: string | null | undefined): string {
   if (!lltv) return '—';
   return `${(Number(lltv) / 1e18 * 100).toFixed(0)}%`;
+}
+
+function ChainBadge({ network }: { network: string }) {
+  const isBase = network?.toLowerCase().includes('base');
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        fontSize: 10,
+        fontWeight: 700,
+        padding: '1px 6px',
+        borderRadius: 99,
+        background: isBase ? '#e0f2fe' : '#ede9fe',
+        color: isBase ? '#0369a1' : '#6d28d9',
+        marginLeft: 4,
+        letterSpacing: '0.02em',
+      }}
+    >
+      {isBase ? 'Base' : 'Eth'}
+    </span>
+  );
 }
 
 export function MorphoMarketsWidget() {
@@ -65,7 +100,6 @@ export function MorphoMarketsWidget() {
     return () => { cancelled = true; };
   }, []);
 
-  // Only show markets with known loan and collateral assets
   const markets = (data?.markets ?? []).filter(
     (m) => m.loanAsset && m.collateralAsset && m.state
   );
@@ -82,7 +116,7 @@ export function MorphoMarketsWidget() {
         </span>
       </div>
       <p className="mt-2 text-sm text-slate-500">
-        Datos en tiempo real de los mercados de préstamos descentralizados donde Sanova opera liquidez.
+        Top 100 mercados por liquidez en Ethereum y Base — donde Sanova opera posiciones DeFi.
       </p>
 
       {loading && (
@@ -107,15 +141,16 @@ export function MorphoMarketsWidget() {
           <table className="min-w-full divide-y divide-slate-100 text-sm">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-5 py-3 text-left font-semibold text-slate-600">Par</th>
-                <th className="px-5 py-3 text-right font-semibold text-slate-600">Supply</th>
-                <th className="px-5 py-3 text-right font-semibold text-slate-600">Borrow</th>
-                <th className="px-5 py-3 text-right font-semibold text-slate-600">Utilización</th>
-                <th className="px-5 py-3 text-right font-semibold text-slate-600">LLTV</th>
+                <th className="px-4 py-3 text-left font-semibold text-slate-600">Par</th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-600">Supply (USD)</th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-600">Borrow (USD)</th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-600">APY Supply</th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-600">Utilización</th>
+                <th className="px-4 py-3 text-right font-semibold text-slate-600">LLTV</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {markets.slice(0, 20).map((m) => {
+              {markets.map((m) => {
                 const loan = m.loanAsset!;
                 const collateral = m.collateralAsset!;
                 const state = m.state!;
@@ -129,25 +164,29 @@ export function MorphoMarketsWidget() {
 
                 return (
                   <tr key={m.marketId} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-5 py-3 font-medium text-slate-800">
-                      <span className="inline-flex items-center gap-1">
+                    <td className="px-4 py-3 font-medium text-slate-800">
+                      <span className="inline-flex items-center gap-1 flex-wrap">
                         <span className="rounded bg-blue-100 px-1.5 py-0.5 text-xs font-bold text-blue-700">
                           {collateral.symbol}
                         </span>
                         <span className="text-slate-400">/</span>
                         <span className="text-slate-700">{loan.symbol}</span>
+                        {m.chain && <ChainBadge network={m.chain.network} />}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-right font-mono text-slate-700">
-                      {formatAssets(state.supplyAssets, loan.decimals)}
+                    <td className="px-4 py-3 text-right font-mono text-slate-700">
+                      {formatUsd(state.supplyAssetsUsd)}
                     </td>
-                    <td className="px-5 py-3 text-right font-mono text-slate-700">
-                      {formatAssets(state.borrowAssets, loan.decimals)}
+                    <td className="px-4 py-3 text-right font-mono text-slate-700">
+                      {formatUsd(state.borrowAssetsUsd)}
                     </td>
-                    <td className={`px-5 py-3 text-right font-semibold ${utilColor}`}>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-700">
+                      {formatApy(m.dailyApys?.supplyApy)}
+                    </td>
+                    <td className={`px-4 py-3 text-right font-semibold ${utilColor}`}>
                       {formatUtilization(state.utilization)}
                     </td>
-                    <td className="px-5 py-3 text-right text-slate-600">
+                    <td className="px-4 py-3 text-right text-slate-600">
                       {formatLltv(m.lltv)}
                     </td>
                   </tr>
@@ -161,7 +200,7 @@ export function MorphoMarketsWidget() {
               {new Date(data.fetchedAt).toLocaleString('es-AR', {
                 timeZone: 'America/Argentina/Buenos_Aires',
                 dateStyle: 'short',
-                timeStyle: 'short'
+                timeStyle: 'short',
               })}
             </p>
           )}
@@ -178,7 +217,7 @@ export function MorphoMarketsWidget() {
         >
           Morpho Blue
         </a>{' '}
-        · Datos actualizados cada 5 minutos · Solo lectura, sin wallet requerida
+        · Ethereum mainnet + Base · Datos actualizados cada 5 minutos · Solo lectura, sin wallet requerida
       </p>
     </section>
   );

@@ -4,7 +4,12 @@ const MORPHO_BLUE_API = 'https://blue-api.morpho.org/graphql';
 
 const MARKETS_QUERY = `
   query {
-    markets {
+    markets(
+      first: 100
+      orderBy: SupplyAssetsUsd
+      orderDirection: Desc
+      where: { chainId_in: [1, 8453] }
+    ) {
       items {
         marketId
         lltv
@@ -23,10 +28,18 @@ const MARKETS_QUERY = `
           decimals
         }
         state {
-          borrowAssets
-          supplyAssets
+          borrowAssetsUsd
+          supplyAssetsUsd
           fee
           utilization
+        }
+        dailyApys {
+          supplyApy
+          borrowApy
+        }
+        chain {
+          id
+          network
         }
       }
     }
