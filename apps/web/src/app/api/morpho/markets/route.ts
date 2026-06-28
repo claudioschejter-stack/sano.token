@@ -28,8 +28,14 @@ const MARKETS_QUERY = `
           decimals
         }
         state {
+          collateralAssets
+          collateralAssetsUsd
+          borrowAssets
           borrowAssetsUsd
+          supplyAssets
           supplyAssetsUsd
+          liquidityAssets
+          liquidityAssetsUsd
           fee
           utilization
         }
