@@ -8,12 +8,12 @@
     "packages/*"
   ],
   "scripts": {
-    "postinstall": "npm run db:generate",
+    "postinstall": "npx turbo db:generate --filter=@sanova/database",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
-    "db:generate": "turbo db:generate --filter=@sanova/database",
+    "db:generate": "npx turbo db:generate --filter=@sanova/database",
     "db:push": "turbo db:push --filter=@sanova/database",
     "db:rwa-automation": "node scripts/apply-rwa-automation-migration.mjs",
     "db:stablecoin-payments": "node scripts/apply-stablecoin-payments-migration.mjs",
