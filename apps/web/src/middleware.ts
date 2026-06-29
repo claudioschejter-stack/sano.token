@@ -5,7 +5,7 @@ import { canAccessPath, redirectPathForRole } from './lib/auth/routeAccess';
 import type { SystemRole } from './lib/auth/roles';
 import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
 import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
-import { applySecurityHeaders, getCspHeader } from './lib/security/securityHeaders';
+import { applySecurityHeaders } from './lib/security/securityHeaders';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 import {
@@ -38,8 +38,7 @@ const GEO_BLOCKED_PATHS = new Set(['/acceso/registro', '/acceso/registro/']);
 function withLocaleAndCountryHints(
   response: NextResponse,
   request: { cookies: { get: (name: string) => { value: string } | undefined }; headers: Headers },
-  forcedLocale?: string,
-  nonce?: string
+  forcedLocale?: string
 ) {
   const country = request.headers.get('x-vercel-ip-country');
 
@@ -57,7 +56,7 @@ function withLocaleAndCountryHints(
       path: '/',
       sameSite: 'lax'
     });
-    return applySecurityHeaders(response, nonce);
+    return applySecurityHeaders(response);
   }
 
   const storedLocale = request.cookies.get(LOCALE_STORAGE_KEY)?.value;
@@ -74,14 +73,14 @@ function withLocaleAndCountryHints(
     });
   }
 
-  return applySecurityHeaders(response, nonce);
+  return applySecurityHeaders(response);
 }
 
 function maybeRewriteLocalePrefix(request: {
   nextUrl: URL;
   headers: Headers;
   cookies: { get: (name: string) => { value: string } | undefined };
-}, nonce: string): NextResponse | null {
+}): NextResponse | null {
   const parsed = parseLocalePath(request.nextUrl.pathname);
   if (!parsed.locale) {
     return null;
@@ -89,7 +88,7 @@ function maybeRewriteLocalePrefix(request: {
 
   if (!isLocalePrefixablePath(parsed.pathname)) {
     const redirectUrl = new URL(parsed.pathname, request.nextUrl);
-    return withLocaleAndCountryHints(NextResponse.redirect(redirectUrl), request, parsed.locale, nonce);
+    return withLocaleAndCountryHints(NextResponse.redirect(redirectUrl), request, parsed.locale);
   }
 
   const rewriteUrl = new URL(parsed.pathname, request.nextUrl);
@@ -99,15 +98,11 @@ function maybeRewriteLocalePrefix(request: {
     request: { headers: request.headers }
   });
 
-  return withLocaleAndCountryHints(response, request, parsed.locale, nonce);
+  return withLocaleAndCountryHints(response, request, parsed.locale);
 }
 
 export default auth((request) => {
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  request.headers.set('x-nonce', nonce);
-  request.headers.set('Content-Security-Policy', getCspHeader(nonce));
-
-  const localeRewrite = maybeRewriteLocalePrefix(request, nonce);
+  const localeRewrite = maybeRewriteLocalePrefix(request);
   if (localeRewrite) {
     return localeRewrite;
   }
@@ -120,9 +115,7 @@ export default auth((request) => {
     if (country && BLOCKED_REGISTRATION_COUNTRIES.has(country)) {
       return withLocaleAndCountryHints(
         NextResponse.redirect(new URL('/acceso?error=REGION_NOT_AVAILABLE', request.url)),
-        request,
-        undefined,
-        nonce
+        request
       );
     }
   }
@@ -133,9 +126,7 @@ export default auth((request) => {
     const returnTo = encodeURIComponent(pathname);
     return withLocaleAndCountryHints(
       NextResponse.redirect(new URL(`/acceso?returnTo=${returnTo}`, request.url)),
-      request,
-      undefined,
-      nonce
+      request
     );
   }
 
@@ -151,18 +142,14 @@ export default auth((request) => {
   if (!isProtected) {
     return withLocaleAndCountryHints(
       NextResponse.next({ request: { headers: request.headers } }),
-      request,
-      undefined,
-      nonce
+      request
     );
   }
 
   if (!isAuthenticated) {
     return withLocaleAndCountryHints(
       NextResponse.redirect(new URL('/acceso', request.url)),
-      request,
-      undefined,
-      nonce
+      request
     );
   }
 
@@ -171,17 +158,13 @@ export default auth((request) => {
   if (pathname.startsWith('/dashboard') && !canAccessPath(role, pathname)) {
     return withLocaleAndCountryHints(
       NextResponse.redirect(new URL(redirectPathForRole(role), request.url)),
-      request,
-      undefined,
-      nonce
+      request
     );
   }
 
   return withLocaleAndCountryHints(
     NextResponse.next({ request: { headers: request.headers } }),
-    request,
-    undefined,
-    nonce
+    request
   );
 });
 
