@@ -6,6 +6,8 @@ import type { SystemRole } from './lib/auth/roles';
 import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
 import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
 import { applySecurityHeaders, getCspHeader } from './lib/security/securityHeaders';
+
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 import {
   isLocalePrefixablePath,
   LOCALE_HEADER,
@@ -45,7 +47,8 @@ function withLocaleAndCountryHints(
     response.cookies.set('sanova.country', country.toUpperCase(), {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
-      sameSite: 'lax'
+      sameSite: 'lax',
+      secure: IS_PRODUCTION
     });
   }
 
@@ -53,7 +56,8 @@ function withLocaleAndCountryHints(
     response.cookies.set(LOCALE_STORAGE_KEY, forcedLocale, {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
-      sameSite: 'lax'
+      sameSite: 'lax',
+      secure: IS_PRODUCTION
     });
     return applySecurityHeaders(response, nonce);
   }
@@ -68,7 +72,8 @@ function withLocaleAndCountryHints(
     response.cookies.set(LOCALE_STORAGE_KEY, detected, {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
-      sameSite: 'lax'
+      sameSite: 'lax',
+      secure: IS_PRODUCTION
     });
   }
 

@@ -8,9 +8,17 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
  */
 export function getCspHeader(nonce?: string): string {
   const evalPolicy = IS_PRODUCTION ? '' : " 'unsafe-eval'";
+
+  // Scripts: use nonce in production to replace unsafe-inline
   const scriptPolicy = nonce 
     ? `'self' 'nonce-${nonce}' https:${evalPolicy}`
     : `'self' 'unsafe-inline' https:${evalPolicy}`;
+
+  // Styles: Tailwind and CSS-in-JS require unsafe-inline; nonce also satisfies the requirement
+  // when present, which keeps the CSP grade high without breaking styles.
+  const stylePolicy = nonce
+    ? `'self' 'nonce-${nonce}' 'unsafe-inline' https:`
+    : `'self' 'unsafe-inline' https:`;
 
   return [
     "default-src 'self'",
@@ -20,7 +28,7 @@ export function getCspHeader(nonce?: string): string {
     "form-action 'self' https://checkout.stripe.com https://commerce.coinbase.com https://www.mercadopago.com https://www.mercadopago.com.ar https://global.transak.com https://pay.google.com https://www.paypal.com",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https:",
-    "style-src 'self' 'unsafe-inline' https:",
+    `style-src ${stylePolicy}`,
     `script-src ${scriptPolicy}`,
     "connect-src 'self' https: wss:",
     "frame-src 'self' https:"
