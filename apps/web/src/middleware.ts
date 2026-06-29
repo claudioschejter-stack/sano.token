@@ -48,7 +48,8 @@ function withLocaleAndCountryHints(
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
       sameSite: 'lax',
-      secure: IS_PRODUCTION
+      secure: IS_PRODUCTION,
+      httpOnly: true
     });
   }
 
@@ -57,7 +58,8 @@ function withLocaleAndCountryHints(
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
       sameSite: 'lax',
-      secure: IS_PRODUCTION
+      secure: IS_PRODUCTION,
+      httpOnly: true
     });
     return applySecurityHeaders(response, nonce);
   }
@@ -73,7 +75,8 @@ function withLocaleAndCountryHints(
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
       sameSite: 'lax',
-      secure: IS_PRODUCTION
+      secure: IS_PRODUCTION,
+      httpOnly: true
     });
   }
 

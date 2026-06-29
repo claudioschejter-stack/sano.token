@@ -19,7 +19,22 @@ export default function robots(): MetadataRoute.Robots {
           '/_next/'
         ]
       },
-      // Block AI training crawlers — remove if you want ChatGPT / Perplexity visibility
+      // Block all AI training crawlers explicitly
+      { userAgent: 'GPTBot', disallow: ['/'] },
+      { userAgent: 'ChatGPT-User', disallow: ['/'] },
+      { userAgent: 'Google-Extended', disallow: ['/'] },
+      { userAgent: 'Applebot-Extended', disallow: ['/'] },
+      { userAgent: 'Applebot', disallow: ['/'] },
+      { userAgent: 'ClaudeBot', disallow: ['/'] },
+      { userAgent: 'Claude-User', disallow: ['/'] },
+      { userAgent: 'PerplexityBot', disallow: ['/'] },
+      { userAgent: 'bingbot', disallow: ['/'] },
+      { userAgent: 'BingPreview', disallow: ['/'] },
+      { userAgent: 'DeepSeekBot', disallow: ['/'] },
+      { userAgent: 'Bytespider', disallow: ['/'] },
+      { userAgent: 'AmazonBot', disallow: ['/'] },
+      { userAgent: 'Meta-ExternalAgent', disallow: ['/'] },
+      { userAgent: 'FacebookBot', disallow: ['/'] },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
     host: siteUrl
