@@ -4,12 +4,6 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { getGaMeasurementId } from '../../lib/analytics/analyticsConfig';
 
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-  }
-}
-
 export function GaPageView() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
