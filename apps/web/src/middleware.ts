@@ -47,8 +47,7 @@ function withLocaleAndCountryHints(
     response.cookies.set('sanova.country', country.toUpperCase(), {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
-      sameSite: 'lax',
-      secure: IS_PRODUCTION
+      sameSite: 'lax'
     });
   }
 
@@ -56,8 +55,7 @@ function withLocaleAndCountryHints(
     response.cookies.set(LOCALE_STORAGE_KEY, forcedLocale, {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
-      sameSite: 'lax',
-      secure: IS_PRODUCTION
+      sameSite: 'lax'
     });
     return applySecurityHeaders(response, nonce);
   }
@@ -72,8 +70,7 @@ function withLocaleAndCountryHints(
     response.cookies.set(LOCALE_STORAGE_KEY, detected, {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
-      sameSite: 'lax',
-      secure: IS_PRODUCTION
+      sameSite: 'lax'
     });
   }
 
