@@ -16,7 +16,6 @@ import { buildKycUrl } from '../../lib/auth/kycPaths';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { PasswordInput } from './PasswordInput';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
-import { TurnstileWidget } from './TurnstileWidget';
 
 type RegisterFormProps = {
   /** When set, shows contact fields as read-only with onboarding data. */
@@ -53,7 +52,6 @@ export function RegisterForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const readOnly = Boolean(profileProp);
   const phoneLocked = readOnly && Boolean(profileProp?.phone);
@@ -151,8 +149,7 @@ export function RegisterForm({
           password,
           phone: contact.phone,
           termsAccepted: true,
-          inviteCode: inviteCode.trim() || undefined,
-          turnstileToken
+          inviteCode: inviteCode.trim() || undefined
         })
       });
 
@@ -203,12 +200,6 @@ export function RegisterForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-      {!readOnly && (
-        <TurnstileWidget
-          onVerify={setTurnstileToken}
-          onExpire={() => setTurnstileToken(null)}
-        />
-      )}
       <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <label htmlFor="register-email" className="text-sm font-medium text-slate-700">

@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
 import { requestPasswordReset } from '../../../../lib/auth/passwordResetService';
-import { verifyTurnstile } from '../../../../lib/security/verifyTurnstile';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { email?: string; turnstileToken?: string };
-
-    const turnstileOk = await verifyTurnstile(body.turnstileToken);
-    if (!turnstileOk) {
-      return NextResponse.json({ error: 'CAPTCHA_INVALIDO' }, { status: 400 });
-    }
+    const body = (await request.json()) as { email?: string };
 
     const result = await requestPasswordReset(body.email ?? '');
 

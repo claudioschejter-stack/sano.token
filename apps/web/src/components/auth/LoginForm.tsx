@@ -10,7 +10,6 @@ import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 import { PasswordInput } from './PasswordInput';
 import { PasskeyLoginButton } from './PasskeyLoginButton';
 import { OAuthSignInButtons } from './OAuthSignInButtons';
-import { TurnstileWidget } from './TurnstileWidget';
 
 type LoginFormProps = {
   callbackUrl?: string;
@@ -31,7 +30,6 @@ export function LoginForm({
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (initialEmail.trim()) {
@@ -53,7 +51,7 @@ export function LoginForm({
     const step1Res = await fetch('/api/auth/login/step1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), password, turnstileToken })
+      body: JSON.stringify({ email: email.trim(), password })
     });
 
     const step1Data = (await step1Res.json()) as {
@@ -104,10 +102,6 @@ export function LoginForm({
 
   return (
     <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
-      <TurnstileWidget
-        onVerify={setTurnstileToken}
-        onExpire={() => setTurnstileToken(null)}
-      />
       <OAuthSignInButtons callbackUrl={callbackUrl} />
 
       <div>

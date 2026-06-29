@@ -9,10 +9,9 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 export function getCspHeader(nonce?: string): string {
   const evalPolicy = IS_PRODUCTION ? '' : " 'unsafe-eval'";
 
-  // Scripts: strict-dynamic + nonce lets Next.js scripts load sub-scripts safely,
-  // replacing the overly broad https: whitelist. Falls back to unsafe-inline when no nonce.
+  // Scripts: use nonce in production to replace unsafe-inline
   const scriptPolicy = nonce 
-    ? `'self' 'nonce-${nonce}' 'strict-dynamic'${evalPolicy}`
+    ? `'self' 'nonce-${nonce}' https:${evalPolicy}`
     : `'self' 'unsafe-inline' https:${evalPolicy}`;
 
   // Styles: Tailwind and CSS-in-JS require unsafe-inline; nonce also satisfies the requirement

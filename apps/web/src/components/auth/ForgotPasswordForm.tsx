@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { TurnstileWidget } from './TurnstileWidget';
 
 export function ForgotPasswordForm() {
   const t = useTranslation();
@@ -13,7 +12,6 @@ export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
   const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -25,7 +23,7 @@ export function ForgotPasswordForm() {
       const response = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), turnstileToken })
+        body: JSON.stringify({ email: email.trim() })
       });
 
       const data = (await response.json()) as { error?: string; devResetUrl?: string };
@@ -75,10 +73,6 @@ export function ForgotPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <TurnstileWidget
-        onVerify={setTurnstileToken}
-        onExpire={() => setTurnstileToken(null)}
-      />
       <p className="text-sm text-slate-600">{p.forgotDesc}</p>
 
       <div>
