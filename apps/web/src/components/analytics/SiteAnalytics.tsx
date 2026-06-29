@@ -1,5 +1,6 @@
 import Script from 'next/script';
 import { Suspense } from 'react';
+import { headers } from 'next/headers';
 import {
   getGaMeasurementId,
   getPlausibleDomain,
@@ -18,6 +19,9 @@ export function SiteAnalytics() {
   const gaId = getGaMeasurementId();
   const plausibleDomain = getPlausibleDomain();
   const plausibleSrc = getPlausibleScriptSrc();
+  
+  const nonceList = headers().get('x-nonce');
+  const nonce = nonceList ? nonceList : undefined;
 
   return (
     <>
@@ -26,8 +30,9 @@ export function SiteAnalytics() {
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
             strategy="afterInteractive"
+            nonce={nonce}
           />
-          <Script id="sanova-ga4" strategy="afterInteractive">
+          <Script id="sanova-ga4" strategy="afterInteractive" nonce={nonce}>
             {`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
@@ -47,6 +52,7 @@ export function SiteAnalytics() {
           data-domain={plausibleDomain}
           src={plausibleSrc}
           strategy="afterInteractive"
+          nonce={nonce}
         />
       ) : null}
     </>

@@ -96,6 +96,11 @@ export async function POST(request: Request) {
       '../../../../lib/advisor/advisorNotificationService'
     );
     void notifyAdvisorOfClientKycApproved(vendorData);
+
+    const { notifyInvestorOfKycApproved } = await import(
+      '../../../../lib/investor/investorNotificationService'
+    );
+    void notifyInvestorOfKycApproved(vendorData);
     // Auto-whitelist investor wallet on all active on-chain token contracts
     void autoAllowlistInvestorWallet(vendorData);
   }

@@ -26,28 +26,38 @@ async function sendViaResend(
   if (!apiKey) return false;
 
   const from =
-    process.env.CONTACT_FROM_EMAIL?.trim() || 'Sanova Global <onboarding@resend.dev>';
+    process.env.CONTACT_FROM_EMAIL?.trim() || 'Sanova Global <no-reply@sanovacapital.com>';
 
   const subject = options.subject ?? `[Sanova Contacto] ${name}`;
   const replyTo = options.replyTo ?? email;
 
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      from,
-      to: [to],
-      reply_to: replyTo,
-      subject,
-      text: `Nombre: ${name}\nEmail: ${email}\n\nMensaje:\n${message}`,
-      html: `<p><strong>Nombre:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Mensaje:</strong></p><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`
-    })
-  });
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from,
+        to: [to],
+        reply_to: replyTo,
+        subject,
+        text: `Nombre: ${name}\nEmail: ${email}\n\nMensaje:\n${message}`,
+        html: `<p><strong>Nombre:</strong> ${escapeHtml(name)}</p><p><strong>Email:</strong> ${escapeHtml(email)}</p><p><strong>Mensaje:</strong></p><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`
+      })
+    });
 
-  return response.ok;
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      console.error('[contact-email] Resend error', response.status, body);
+    }
+
+    return response.ok;
+  } catch (error) {
+    console.error('[contact-email] Resend fetch failed', error);
+    return false;
+  }
 }
 
 export async function sendContactEmail(

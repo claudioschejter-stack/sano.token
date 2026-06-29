@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyCredentials } from '../../../../../lib/auth/credentialsService';
 import { is2faLocked, issueTempTotpToken, lockoutRemainingSeconds } from '../../../../../lib/auth/totpService';
 import { prisma } from '@sanova/database';
+import { verifyTurnstile } from '../../../../../lib/security/verifyTurnstile';
 
 /**
  * POST /api/auth/login/step1
@@ -14,12 +15,17 @@ import { prisma } from '@sanova/database';
  *  - { error: ... } → credenciales inválidas
  */
 export async function POST(request: Request) {
-  const body = (await request.json()) as { email?: string; password?: string };
+  const body = (await request.json()) as { email?: string; password?: string; turnstileToken?: string };
   const email = body.email?.trim().toLowerCase();
   const password = body.password;
 
   if (!email || !password) {
     return NextResponse.json({ error: 'CREDENCIALES_INCOMPLETAS' }, { status: 400 });
+  }
+
+  const turnstileOk = await verifyTurnstile(body.turnstileToken);
+  if (!turnstileOk) {
+    return NextResponse.json({ error: 'CAPTCHA_INVALIDO' }, { status: 400 });
   }
 
   const authUser = await verifyCredentials(email, password);

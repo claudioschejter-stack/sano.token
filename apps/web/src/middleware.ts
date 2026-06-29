@@ -5,7 +5,7 @@ import { canAccessPath, redirectPathForRole } from './lib/auth/routeAccess';
 import type { SystemRole } from './lib/auth/roles';
 import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
 import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
-import { applySecurityHeaders } from './lib/security/securityHeaders';
+import { applySecurityHeaders, getCspHeader } from './lib/security/securityHeaders';
 import {
   isLocalePrefixablePath,
   LOCALE_HEADER,
@@ -36,7 +36,8 @@ const GEO_BLOCKED_PATHS = new Set(['/acceso/registro', '/acceso/registro/']);
 function withLocaleAndCountryHints(
   response: NextResponse,
   request: { cookies: { get: (name: string) => { value: string } | undefined }; headers: Headers },
-  forcedLocale?: string
+  forcedLocale?: string,
+  nonce?: string
 ) {
   const country = request.headers.get('x-vercel-ip-country');
 
@@ -54,7 +55,7 @@ function withLocaleAndCountryHints(
       path: '/',
       sameSite: 'lax'
     });
-    return applySecurityHeaders(response);
+    return applySecurityHeaders(response, nonce);
   }
 
   const storedLocale = request.cookies.get(LOCALE_STORAGE_KEY)?.value;
@@ -71,14 +72,14 @@ function withLocaleAndCountryHints(
     });
   }
 
-  return applySecurityHeaders(response);
+  return applySecurityHeaders(response, nonce);
 }
 
 function maybeRewriteLocalePrefix(request: {
   nextUrl: URL;
   headers: Headers;
   cookies: { get: (name: string) => { value: string } | undefined };
-}): NextResponse | null {
+}, nonce: string): NextResponse | null {
   const parsed = parseLocalePath(request.nextUrl.pathname);
   if (!parsed.locale) {
     return null;
@@ -86,22 +87,25 @@ function maybeRewriteLocalePrefix(request: {
 
   if (!isLocalePrefixablePath(parsed.pathname)) {
     const redirectUrl = new URL(parsed.pathname, request.nextUrl);
-    return withLocaleAndCountryHints(NextResponse.redirect(redirectUrl), request, parsed.locale);
+    return withLocaleAndCountryHints(NextResponse.redirect(redirectUrl), request, parsed.locale, nonce);
   }
 
   const rewriteUrl = new URL(parsed.pathname, request.nextUrl);
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set(LOCALE_HEADER, parsed.locale);
-
+  request.headers.set(LOCALE_HEADER, parsed.locale);
+  
   const response = NextResponse.rewrite(rewriteUrl, {
-    request: { headers: requestHeaders }
+    request: { headers: request.headers }
   });
 
-  return withLocaleAndCountryHints(response, request, parsed.locale);
+  return withLocaleAndCountryHints(response, request, parsed.locale, nonce);
 }
 
 export default auth((request) => {
-  const localeRewrite = maybeRewriteLocalePrefix(request);
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  request.headers.set('x-nonce', nonce);
+  request.headers.set('Content-Security-Policy', getCspHeader(nonce));
+
+  const localeRewrite = maybeRewriteLocalePrefix(request, nonce);
   if (localeRewrite) {
     return localeRewrite;
   }
@@ -114,7 +118,9 @@ export default auth((request) => {
     if (country && BLOCKED_REGISTRATION_COUNTRIES.has(country)) {
       return withLocaleAndCountryHints(
         NextResponse.redirect(new URL('/acceso?error=REGION_NOT_AVAILABLE', request.url)),
-        request
+        request,
+        undefined,
+        nonce
       );
     }
   }
@@ -125,7 +131,9 @@ export default auth((request) => {
     const returnTo = encodeURIComponent(pathname);
     return withLocaleAndCountryHints(
       NextResponse.redirect(new URL(`/acceso?returnTo=${returnTo}`, request.url)),
-      request
+      request,
+      undefined,
+      nonce
     );
   }
 
@@ -139,13 +147,20 @@ export default auth((request) => {
         pathname === '/marketplace/carrito'));
 
   if (!isProtected) {
-    return withLocaleAndCountryHints(NextResponse.next(), request);
+    return withLocaleAndCountryHints(
+      NextResponse.next({ request: { headers: request.headers } }),
+      request,
+      undefined,
+      nonce
+    );
   }
 
   if (!isAuthenticated) {
     return withLocaleAndCountryHints(
       NextResponse.redirect(new URL('/acceso', request.url)),
-      request
+      request,
+      undefined,
+      nonce
     );
   }
 
@@ -154,11 +169,18 @@ export default auth((request) => {
   if (pathname.startsWith('/dashboard') && !canAccessPath(role, pathname)) {
     return withLocaleAndCountryHints(
       NextResponse.redirect(new URL(redirectPathForRole(role), request.url)),
-      request
+      request,
+      undefined,
+      nonce
     );
   }
 
-  return withLocaleAndCountryHints(NextResponse.next(), request);
+  return withLocaleAndCountryHints(
+    NextResponse.next({ request: { headers: request.headers } }),
+    request,
+    undefined,
+    nonce
+  );
 });
 
 export const config = {

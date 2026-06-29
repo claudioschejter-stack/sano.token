@@ -50,6 +50,11 @@ export async function POST() {
           '../../../../../lib/advisor/advisorNotificationService'
         );
         void notifyAdvisorOfClientKycApproved(ctx.userId);
+
+        const { notifyInvestorOfKycApproved } = await import(
+          '../../../../../lib/investor/investorNotificationService'
+        );
+        void notifyInvestorOfKycApproved(ctx.userId);
       }
     }
 

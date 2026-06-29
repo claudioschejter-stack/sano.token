@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { sendContactEmail } from '../../../lib/contact/sendContactEmail';
+import { verifyTurnstile } from '../../../lib/security/verifyTurnstile';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -42,6 +43,14 @@ export async function POST(request: Request) {
 
     if (!EMAIL_RE.test(email)) {
       return NextResponse.json({ error: 'invalid_email' }, { status: 400 });
+    }
+
+    // Turnstile check — only for regular contact form (not internal waitlist calls)
+    if (type !== 'waitlist') {
+      const turnstileOk = await verifyTurnstile((body as Record<string, unknown>).turnstileToken as string | undefined);
+      if (!turnstileOk) {
+        return NextResponse.json({ error: 'captcha_invalid' }, { status: 400 });
+      }
     }
 
     // ── Waitlist path ──

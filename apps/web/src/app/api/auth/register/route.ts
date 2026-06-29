@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { registerInvestor } from '../../../../lib/auth/registerService';
+import { verifyTurnstile } from '../../../../lib/security/verifyTurnstile';
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,13 @@ export async function POST(request: Request) {
       taxId?: string;
       termsAccepted?: boolean;
       inviteCode?: string;
+      turnstileToken?: string;
     };
+
+    const turnstileOk = await verifyTurnstile(body.turnstileToken);
+    if (!turnstileOk) {
+      return NextResponse.json({ error: 'CAPTCHA_INVALIDO' }, { status: 400 });
+    }
 
     const result = await registerInvestor({
       email: body.email ?? '',

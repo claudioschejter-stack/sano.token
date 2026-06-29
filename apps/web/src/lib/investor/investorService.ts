@@ -261,6 +261,13 @@ export async function purchaseProjectTokens(input: {
     result.purchasePriceUsd
   );
 
+  const { notifyInvestorOfPurchase } = await import('./investorNotificationService');
+  void notifyInvestorOfPurchase(
+    input.userId,
+    projectMeta?.title ?? 'Asset',
+    result.purchasePriceUsd
+  );
+
   return { ...result, commissionSplit };
 }
 

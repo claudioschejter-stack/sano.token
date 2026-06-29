@@ -10,6 +10,7 @@ import {
 } from '../../lib/contact/contactConfig';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { LandingHeader } from './LandingHeader';
+import { TurnstileWidget } from '../auth/TurnstileWidget';
 
 export function ContactPage() {
   const t = useTranslation();
@@ -17,6 +18,7 @@ export function ContactPage() {
   const legal = t.legal;
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -46,7 +48,7 @@ export function ContactPage() {
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message })
+        body: JSON.stringify({ name, email, message, turnstileToken })
       });
 
       if (response.ok) {
@@ -90,6 +92,10 @@ export function ContactPage() {
             onSubmit={handleSubmit}
             className="mt-10 space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:mt-12 md:p-8"
           >
+            <TurnstileWidget
+              onVerify={setTurnstileToken}
+              onExpire={() => setTurnstileToken(null)}
+            />
             <input type="hidden" name="_next" value={redirectAfterSubmit} />
             <input type="hidden" name="_captcha" value="false" />
             <input type="hidden" name="_template" value="table" />
