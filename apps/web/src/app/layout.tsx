@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { SiteAnalytics } from '../components/analytics/SiteAnalytics';
+import { CookieBanner } from '../components/analytics/CookieBanner';
 import { PwaRegister } from '../components/PwaRegister';
 import { WhatsAppFloat } from '../components/WhatsAppFloat';
 import { AppProviders } from '../components/providers/AppProviders';
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <PwaRegister />
           {children}
           <WhatsAppFloat />
+          <CookieBanner />
         </AppProviders>
       </body>
     </html>

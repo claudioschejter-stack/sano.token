@@ -1,6 +1,6 @@
 import Script from 'next/script';
 import { Suspense } from 'react';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import {
   getGaMeasurementId,
   getPlausibleDomain,
@@ -23,24 +23,37 @@ export function SiteAnalytics() {
   const nonceList = headers().get('x-nonce');
   const nonce = nonceList ? nonceList : undefined;
 
+  // Read consent cookie server-side to avoid GA loading before consent is checked
+  const consentCookie = cookies().get('sanova.cookie-consent');
+  const gaConsented = consentCookie?.value === 'accepted';
+
   return (
     <>
       {isGaEnabled() ? (
         <>
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
-            strategy="afterInteractive"
-            nonce={nonce}
-          />
-          <Script id="sanova-ga4" strategy="afterInteractive" nonce={nonce}>
+          {/* GA4 Consent Mode v2 — default denied, updated on user accept */}
+          <Script id="sanova-ga4-consent" strategy="afterInteractive" nonce={nonce}>
             {`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               window.gtag = gtag;
+              gtag('consent', 'default', {
+                analytics_storage: '${gaConsented ? 'granted' : 'denied'}',
+                ad_storage: 'denied',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied'
+              });
               gtag('js', new Date());
-              gtag('config', '${gaId}', { anonymize_ip: true, send_page_view: true });
+              gtag('config', '${gaId}', { anonymize_ip: true, send_page_view: ${gaConsented} });
             `}
           </Script>
+          {gaConsented && (
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+              nonce={nonce}
+            />
+          )}
           <Suspense fallback={null}>
             <GaPageView />
           </Suspense>
