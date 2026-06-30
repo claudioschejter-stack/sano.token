@@ -22,7 +22,7 @@ export function PortalMobileNav() {
 
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-terminal-border bg-terminal-card/95 backdrop-blur-md md:hidden"
+      className="portal-mobile-nav fixed inset-x-0 bottom-0 z-40 border-t border-terminal-border bg-terminal-card/95 backdrop-blur-md md:hidden"
       aria-label={t.mobile.bottomNavAria}
     >
       <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1 pb-safe pt-1">

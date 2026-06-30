@@ -337,7 +337,7 @@ export function AppSidebar() {
 
   return (
     <>
-      <header className="safe-top fixed inset-x-0 top-0 z-[60] box-border flex h-14 items-start justify-start border-b border-terminal-border bg-terminal-card p-[2mm] md:hidden">
+      <header className="app-sidebar-mobile-header safe-top fixed inset-x-0 top-0 z-[60] box-border flex h-14 items-start justify-start border-b border-terminal-border bg-terminal-card p-[2mm] md:hidden">
         <PortalBrandFramesMobileHeader
           onClick={() => setMobileOpen((open) => !open)}
           ariaLabel={mobileOpen ? t.landing.nav.closeMenu : t.landing.nav.openMenu}
@@ -355,7 +355,7 @@ export function AppSidebar() {
       ) : null}
 
       <aside
-        className={`fixed inset-x-auto bottom-0 left-0 top-14 z-50 flex w-72 max-w-[85vw] flex-col border-r border-terminal-border bg-terminal-card text-terminal-text transition-transform duration-200 md:static md:inset-auto md:top-auto md:z-auto md:h-full md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 ${
+        className={`app-sidebar fixed inset-x-auto bottom-0 left-0 top-14 z-50 flex w-72 max-w-[85vw] flex-col border-r border-terminal-border bg-terminal-card text-terminal-text transition-transform duration-200 md:static md:inset-auto md:top-auto md:z-auto md:h-full md:w-64 md:max-w-none md:shrink-0 md:translate-x-0 ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >

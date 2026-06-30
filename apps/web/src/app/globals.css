@@ -397,6 +397,13 @@
   }
 }
 
+body.pwa-dashboard-active .portal-mobile-nav,
+body.pwa-dashboard-active .app-sidebar,
+body.pwa-dashboard-active .app-sidebar-mobile-header,
+body.pwa-dashboard-active .portal-brand-frames-mobile-header {
+  display: none !important;
+}
+
 /* Depositar fondos — payment method buttons: always full-width, stacked, one per row */
 .payment-method-list {
   display: flex;
