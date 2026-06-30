@@ -15,6 +15,7 @@ export function InstallAppBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isIos, setIsIos] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -27,6 +28,15 @@ export function InstallAppBanner() {
 
     setIsStandalone(standalone);
 
+    // Detect iOS Safari
+    const ua = window.navigator.userAgent;
+    const isIosDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+    
+    if (isIosDevice && isSafari) {
+      setIsIos(true);
+    }
+
     const handler = (event: Event) => {
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
@@ -36,7 +46,7 @@ export function InstallAppBanner() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  if (isStandalone || dismissed || !deferredPrompt) {
+  if (isStandalone || dismissed || (!deferredPrompt && !isIos)) {
     return null;
   }
 
@@ -47,16 +57,25 @@ export function InstallAppBanner() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-900">{p.installTitle}</p>
           <p className="mt-0.5 text-xs text-slate-600">{p.installDesc}</p>
-          <button
-            type="button"
-            className="mt-2 text-sm font-semibold text-blue-600"
-            onClick={() => {
-              void deferredPrompt.prompt();
-              setDeferredPrompt(null);
-            }}
-          >
-            {p.installCta}
-          </button>
+          
+          {isIos ? (
+            <p className="mt-2 text-xs font-medium text-blue-800 bg-blue-100/50 p-2 rounded-md">
+              {p.iosInstruction}
+            </p>
+          ) : (
+            <button
+              type="button"
+              className="mt-2 text-sm font-semibold text-blue-600"
+              onClick={() => {
+                if (deferredPrompt) {
+                  void deferredPrompt.prompt();
+                  setDeferredPrompt(null);
+                }
+              }}
+            >
+              {p.installCta}
+            </button>
+          )}
         </div>
         <button
           type="button"

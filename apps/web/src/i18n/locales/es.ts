@@ -2054,7 +2054,8 @@ export const es = {
     installTitle: 'Instalá Sanova en tu celular',
     installDesc: 'Acceso rápido como app, ideal para subir documentos y verificar identidad.',
     installCta: 'Agregar a pantalla de inicio',
-    dismiss: 'Cerrar'
+    dismiss: 'Cerrar',
+    iosInstruction: 'Para instalar, tocá el ícono de Compartir (el cuadro con la flecha hacia arriba) y seleccioná "Agregar a inicio".'
   },
   walletActivation: {
     title: 'Activá tu wallet de pagos',

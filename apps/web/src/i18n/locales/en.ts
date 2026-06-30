@@ -2018,7 +2018,8 @@ export const en = {
     installTitle: "Install Sanova on your cell phone",
     installDesc: "Quick access as an app, ideal for uploading documents and verifying identity.",
     installCta: "Add to home screen",
-    dismiss: "Close"
+    dismiss: "Close",
+    iosInstruction: 'To install, tap the Share icon (the square with an up arrow) and select "Add to Home Screen".'
   },
   walletActivation: {
     title: "Activate your payment wallet",
