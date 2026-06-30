@@ -1552,6 +1552,10 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   />
                 </div>
               </div>
+              <div className={AMOUNT_ROW}>
+                <span className="text-sm font-semibold text-terminal-text">{c.totalToPayLabel}</span>
+              </div>
+              <p className="mt-0.5 text-[10px] text-terminal-muted">{c.totalToPayFeesIncluded}</p>
             </div>
           ) : null}
 
