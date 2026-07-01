@@ -30,11 +30,14 @@ export async function POST(request: Request) {
   // Verificar si tiene TOTP activo
   const user = await prisma.user.findUnique({
     where: { id: authUser.id },
-    select: { totpEnabled: true, locked2faUntil: true }
+    select: { totpEnabled: true, locked2faUntil: true, kycStatus: true, walletAddress: true, systemRole: true }
   });
 
-  if (!user?.totpEnabled) {
-    // Sin 2FA → informar al cliente que haga signIn('credentials') directamente
+  if (!user) {
+    return NextResponse.json({ error: 'CREDENCIALES_INVALIDAS' }, { status: 401 });
+  }
+
+  if (!user.totpEnabled) {
     return NextResponse.json({ ok: true, requiresTOTP: false });
   }
 

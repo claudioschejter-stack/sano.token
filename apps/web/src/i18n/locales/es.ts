@@ -193,6 +193,7 @@ export const es = {
     cashFlow: 'Flujo de Caja',
     collectionWallet: 'Wallet de cobro',
     secondaryMarket: 'Mercado Secundario',
+    settings: 'Configuración',
     signOut: 'Cerrar Sesión'
   },
   adminNav: {
@@ -1815,6 +1816,8 @@ export const es = {
       }
     },
     invalidCredentials: 'Email o contraseña incorrectos.',
+    accountLocked: 'Cuenta bloqueada temporalmente. Intentá más tarde.',
+    signInWithPassword: 'Ingresar con email y contraseña',
     signingIn: 'Ingresando…',
     signedInAs: 'Sesión activa:',
     roleLabel: 'Rol',
@@ -2048,11 +2051,17 @@ export const es = {
     registering: 'Configurando…',
     registerSuccess: 'Biometría activada. Ya podés ingresar con un toque.',
     registerFailed: 'No se pudo activar la biometría en este dispositivo.',
-    registerCancelled: 'Activación biométrica cancelada.'
+    registerCancelled: 'Activación biométrica cancelada.',
+    registerLater: 'Ahora no'
   },
   pwa: {
     installTitle: 'Instalá Sanova en tu celular',
     installDesc: 'Acceso rápido como app, ideal para subir documentos y verificar identidad.',
+    installDesktopTitle: 'Descargá Sanova en tu celular',
+    installDesktopDesc: 'Para pagos, biometría y acceso rápido, instalá la app en tu dispositivo móvil.',
+    installDesktopHint: 'Abrí sanovacapital.com en tu celular y agregá la app a la pantalla de inicio.',
+    alreadyInstalled: 'Ya tengo la app instalada',
+    installLater: 'Continuar en el navegador',
     installCta: 'Agregar a pantalla de inicio',
     dismiss: 'Cerrar',
     iosInstruction: 'Para instalar, tocá el ícono de Compartir (el cuadro con la flecha hacia arriba) y seleccioná "Agregar a inicio".'

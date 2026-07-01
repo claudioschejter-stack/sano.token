@@ -20,11 +20,18 @@ export async function POST(request: Request) {
 
   const needsPhoneOtp = requiresPhoneVerification(ctx.role);
 
+  const countryHint = request.headers
+    .get('cookie')
+    ?.match(/(?:^|; )sanova\.country=([^;]*)/)?.[1]
+    ?.trim()
+    .toUpperCase();
+
   const user = await prisma.user.update({
     where: { id: ctx.userId },
     data: {
       phone,
-      ...(needsPhoneOtp ? { phoneVerifiedAt: null } : {})
+      ...(needsPhoneOtp ? { phoneVerifiedAt: null } : {}),
+      ...(countryHint ? { jurisdiction: countryHint } : {})
     },
     select: { email: true, phone: true }
   });

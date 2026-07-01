@@ -31,6 +31,7 @@ import { SidebarUserStatus } from './SidebarUserStatus';
 import { MarketplaceCartButton } from '../marketplace/MarketplaceCartButton';
 import { PortalBrandFrames, PortalBrandFramesMobileHeader } from './PortalBrandFrames';
 import { SidebarLanguageButton } from './SidebarLanguageButton';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 type NavItem = {
   href: string;
@@ -371,6 +372,7 @@ export function AppSidebar() {
           <div className="md:hidden">
             <SidebarLanguageButton onLocaleSelected={closeMobile} />
           </div>
+          <ThemeToggleButton />
           <Link
             href="/dashboard/settings/security"
             onClick={closeMobile}

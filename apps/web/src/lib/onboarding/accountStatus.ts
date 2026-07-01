@@ -9,6 +9,7 @@ import {
   requiresPhoneVerification
 } from './phoneVerificationPolicy';
 import { isEmailVerificationSatisfied } from './emailVerificationPolicy';
+import { requiresInvestorStyleOnboarding } from './onboardingGate';
 
 export type OnboardingChecklist = {
   emailVerified: boolean;
@@ -28,6 +29,7 @@ export type OnboardingChecklist = {
   walletLinked: boolean;
   walletAddress: string | null;
   walletProvider: string | null;
+  totpEnabled: boolean;
 };
 
 type UserOnboardingFields = {
@@ -40,6 +42,7 @@ type UserOnboardingFields = {
   walletAddress?: string | null;
   walletProvider?: string | null;
   systemRole?: string | null;
+  totpEnabled?: boolean;
 };
 
 function resolveLinkedWallet(walletAddress?: string | null): string | null {
@@ -51,6 +54,14 @@ function resolveLinkedWallet(walletAddress?: string | null): string | null {
   return trimmed;
 }
 
+export function requiresTotpSetup(user: UserOnboardingFields): boolean {
+  if (!requiresInvestorStyleOnboarding(user.systemRole)) {
+    return false;
+  }
+
+  return user.kycStatus === 'APPROVED' && Boolean(resolveLinkedWallet(user.walletAddress));
+}
+
 export function isAccountOperational(user: UserOnboardingFields): boolean {
   const identityVerified =
     isEmailVerificationSatisfied(user) &&
@@ -58,7 +69,10 @@ export function isAccountOperational(user: UserOnboardingFields): boolean {
     user.kycStatus === 'APPROVED' &&
     user.accountStatus !== 'SUSPENDED';
 
-  return identityVerified && Boolean(resolveLinkedWallet(user.walletAddress));
+  const walletReady = Boolean(resolveLinkedWallet(user.walletAddress));
+  const totpReady = !requiresTotpSetup(user) || Boolean(user.totpEnabled);
+
+  return identityVerified && walletReady && totpReady;
 }
 
 /** KYC + contact + wallet (investors and advisors) — required before marketplace checkout. */
@@ -74,7 +88,8 @@ export function canAccessMarketplaceCheckout(user: UserOnboardingFields): boolea
   }
 
   if (isMarketplaceTradingRole(user.systemRole as SystemRole)) {
-    return Boolean(resolveLinkedWallet(user.walletAddress));
+    const totpReady = !requiresTotpSetup(user) || Boolean(user.totpEnabled);
+    return Boolean(resolveLinkedWallet(user.walletAddress)) && totpReady;
   }
 
   if (user.systemRole && isStaffRole(user.systemRole as SystemRole)) {
@@ -124,7 +139,8 @@ export function buildOnboardingChecklist(
   const kycApproved = user.kycStatus === 'APPROVED';
   const walletAddress = resolveLinkedWallet(user.walletAddress);
   const walletLinked = Boolean(walletAddress);
-  const operational = isAccountOperational({ ...user, walletAddress });
+  const totpEnabled = Boolean(user.totpEnabled);
+  const operational = isAccountOperational({ ...user, walletAddress, totpEnabled });
   const accountStatus = deriveAccountStatus({ ...user, walletAddress });
 
   return {
@@ -142,6 +158,7 @@ export function buildOnboardingChecklist(
     allowDemoKyc: allowDemoKyc(),
     walletLinked,
     walletAddress,
-    walletProvider: user.walletProvider?.trim() || null
+    walletProvider: user.walletProvider?.trim() || null,
+    totpEnabled
   };
 }

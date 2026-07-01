@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+    darkMode: 'class',
     content: [
       "./src/app/**/*.{js,ts,jsx,tsx}",
       "./src/components/**/*.{js,ts,jsx,tsx}",
@@ -22,16 +23,16 @@ module.exports = {
         },
         colors: {
           terminal: {
-            bg: '#0A0E17',
-            card: '#111827',
-            border: '#1F2937',
-            text: '#E2E8F0',
-            primary: '#3B82F6',
-            accent: '#F97316',
-            success: '#22C55E',
-            warning: '#FBBF24',
-            danger: '#EF4444',
-            muted: '#6B7280'
+            bg: 'var(--terminal-bg)',
+            card: 'var(--terminal-card)',
+            border: 'var(--terminal-border)',
+            text: 'var(--terminal-text)',
+            primary: 'var(--terminal-primary)',
+            accent: 'var(--terminal-accent)',
+            success: 'var(--terminal-success)',
+            warning: 'var(--terminal-warning)',
+            danger: 'var(--terminal-danger)',
+            muted: 'var(--terminal-muted)'
           }
         }
       },

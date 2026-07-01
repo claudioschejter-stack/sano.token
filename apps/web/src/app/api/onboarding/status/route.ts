@@ -37,6 +37,7 @@ export async function GET() {
       walletProvider: true,
       systemRole: true,
       diditSessionId: true,
+      totpEnabled: true,
       investor: { select: { fullName: true, cuit: true, walletAddress: true } }
     }
   });
@@ -61,7 +62,8 @@ export async function GET() {
         accountStatus: user.accountStatus,
         walletAddress,
         walletProvider: user.walletProvider,
-        systemRole: user.systemRole
+        systemRole: user.systemRole,
+        totpEnabled: user.totpEnabled
       },
       isDiditConfigured()
     ),

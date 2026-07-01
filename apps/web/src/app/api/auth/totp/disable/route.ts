@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '../../../../../auth';
 import { decryptTotpSecret, verifyTotpCode } from '../../../../../lib/auth/totpService';
 import { prisma } from '@sanova/database';
+import { requiresInvestorStyleOnboarding } from '../../../../../lib/onboarding/onboardingGate';
 
 /**
  * POST /api/auth/totp/disable
@@ -23,11 +24,15 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { totpSecret: true, totpEnabled: true }
+    select: { totpSecret: true, totpEnabled: true, kycStatus: true, systemRole: true }
   });
 
   if (!user?.totpEnabled || !user.totpSecret) {
     return NextResponse.json({ error: 'TOTP_NO_ACTIVO' }, { status: 400 });
+  }
+
+  if (requiresInvestorStyleOnboarding(user.systemRole) && user.kycStatus === 'APPROVED') {
+    return NextResponse.json({ error: 'TOTP_OBLIGATORIO' }, { status: 403 });
   }
 
   const secret = decryptTotpSecret(user.totpSecret);

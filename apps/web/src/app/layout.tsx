@@ -27,6 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={htmlLangForLocale(locale)}
       dir={htmlDirForLocale(locale)}
+      className="dark"
       suppressHydrationWarning
     >
       <head>

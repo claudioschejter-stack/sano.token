@@ -1,8 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Download, X } from 'lucide-react';
+import { Download, Smartphone, X } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
+import { useIsPwa } from '../../hooks/useIsPwa';
+
+const LOCAL_DISMISS_KEY = 'sanova.pwa.banner.dismissed';
+const LOCAL_INSTALLED_KEY = 'sanova.pwa.installed';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -12,27 +17,31 @@ type BeforeInstallPromptEvent = Event & {
 export function InstallAppBanner() {
   const t = useTranslation();
   const p = t.pwa;
+  const { isDesktop } = useDeviceDetection();
+  const isPwa = useIsPwa();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [dismissed, setDismissed] = useState(false);
-  const [isStandalone, setIsStandalone] = useState(false);
   const [isIos, setIsIos] = useState(false);
+  const [alreadyInstalled, setAlreadyInstalled] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
     }
 
-    const standalone =
-      window.matchMedia('(display-mode: standalone)').matches ||
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    if (window.localStorage.getItem(LOCAL_DISMISS_KEY) === '1') {
+      setDismissed(true);
+    }
 
-    setIsStandalone(standalone);
+    if (window.localStorage.getItem(LOCAL_INSTALLED_KEY) === '1') {
+      setAlreadyInstalled(true);
+    }
 
-    // Detect iOS Safari
     const ua = window.navigator.userAgent;
-    const isIosDevice = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isIosDevice =
+      /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
-    
+
     if (isIosDevice && isSafari) {
       setIsIos(true);
     }
@@ -46,44 +55,87 @@ export function InstallAppBanner() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  if (isStandalone || dismissed || (!deferredPrompt && !isIos)) {
+  useEffect(() => {
+    if (isPwa) {
+      window.localStorage.setItem(LOCAL_INSTALLED_KEY, '1');
+      void fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pwaInstalled: true })
+      }).catch(() => undefined);
+    }
+  }, [isPwa]);
+
+  function dismissBanner() {
+    window.localStorage.setItem(LOCAL_DISMISS_KEY, '1');
+    setDismissed(true);
+    void fetch('/api/user/preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pwaDismissed: true })
+    }).catch(() => undefined);
+  }
+
+  function markAlreadyHaveApp() {
+    window.localStorage.setItem(LOCAL_INSTALLED_KEY, '1');
+    setAlreadyInstalled(true);
+    dismissBanner();
+  }
+
+  if (isPwa || dismissed || alreadyInstalled) {
+    return null;
+  }
+
+  const canInstallNative = Boolean(deferredPrompt) || isIos;
+
+  if (!canInstallNative && !isDesktop) {
     return null;
   }
 
   return (
-    <div className="border-b border-blue-100 bg-blue-50 px-4 py-3 safe-top">
-      <div className="mx-auto flex max-w-md items-start gap-3">
-        <Download className="mt-0.5 shrink-0 text-blue-600" size={18} />
+    <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+      <div className="flex items-start gap-3">
+        {isDesktop ? <Smartphone className="mt-0.5 shrink-0 text-blue-600" size={18} /> : <Download className="mt-0.5 shrink-0 text-blue-600" size={18} />}
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-900">{p.installTitle}</p>
-          <p className="mt-0.5 text-xs text-slate-600">{p.installDesc}</p>
-          
+          <p className="text-sm font-semibold text-slate-900">
+            {isDesktop ? p.installDesktopTitle ?? p.installTitle : p.installTitle}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-600">
+            {isDesktop ? p.installDesktopDesc ?? p.installDesc : p.installDesc}
+          </p>
+
           {isIos ? (
-            <p className="mt-2 text-xs font-medium text-blue-800 bg-blue-100/50 p-2 rounded-md">
-              {p.iosInstruction}
-            </p>
-          ) : (
+            <p className="mt-2 rounded-md bg-blue-100/50 p-2 text-xs font-medium text-blue-800">{p.iosInstruction}</p>
+          ) : deferredPrompt ? (
             <button
               type="button"
               className="mt-2 text-sm font-semibold text-blue-600"
               onClick={() => {
-                if (deferredPrompt) {
-                  void deferredPrompt.prompt();
+                void deferredPrompt.prompt().then(() => {
                   setDeferredPrompt(null);
-                }
+                  window.localStorage.setItem(LOCAL_INSTALLED_KEY, '1');
+                });
               }}
             >
               {p.installCta}
             </button>
-          )}
+          ) : null}
+
+          <button
+            type="button"
+            onClick={markAlreadyHaveApp}
+            className="mt-2 block text-xs font-medium text-slate-500 hover:text-slate-700"
+          >
+            {p.alreadyInstalled ?? 'Ya tengo la app instalada'}
+          </button>
         </div>
         <button
           type="button"
-          aria-label={p.dismiss}
-          className="shrink-0 text-slate-400"
-          onClick={() => setDismissed(true)}
+          onClick={dismissBanner}
+          className="shrink-0 rounded p-1 text-slate-400 hover:bg-blue-100 hover:text-slate-600"
+          aria-label="Cerrar"
         >
-          <X size={18} />
+          <X size={16} />
         </button>
       </div>
     </div>

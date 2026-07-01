@@ -7,19 +7,24 @@ import { LocaleProvider } from '../../i18n/LocaleProvider';
 import { AuthTokenSync } from '../auth/AuthTokenSync';
 import { SessionAutoLogout } from '../auth/SessionAutoLogout';
 import { ClientPageHardening } from '../security/ClientPageHardening';
+import { ThemeProvider } from './ThemeProvider';
+import { SessionPreferencesSync } from '../preferences/SessionPreferencesSync';
 import { AuthSessionProvider } from './AuthSessionProvider';
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <AuthSessionProvider>
-      <LocaleProvider>
-        <LocaleHtmlSync />
-        <SessionLocaleSync />
-        <AuthTokenSync />
-        <SessionAutoLogout />
-        <ClientPageHardening />
-        {children}
-      </LocaleProvider>
+      <ThemeProvider>
+        <LocaleProvider>
+          <LocaleHtmlSync />
+          <SessionLocaleSync />
+          <SessionPreferencesSync />
+          <AuthTokenSync />
+          <SessionAutoLogout />
+          <ClientPageHardening />
+          {children}
+        </LocaleProvider>
+      </ThemeProvider>
     </AuthSessionProvider>
   );
 }

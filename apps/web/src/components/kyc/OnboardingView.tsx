@@ -26,15 +26,19 @@ import { ActivateWalletStep } from './ActivateWalletStep';
 import { PrivyOnboardingWallet } from './PrivyOnboardingWallet';
 import { isPrivyEnabled } from '../../lib/privy/config';
 
-type Step = 'contact' | 'phone' | 'email' | 'identity' | 'wallet' | 'done';
+import { TotpOnboardingStep } from '../auth/TotpOnboardingStep';
+import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
 
-const ONBOARDING_STEPS: Step[] = ['contact', 'phone', 'email', 'identity', 'wallet', 'done'];
+type Step = 'contact' | 'phone' | 'email' | 'identity' | 'wallet' | 'totp' | 'done';
+
+const ONBOARDING_STEPS: Step[] = ['contact', 'phone', 'email', 'identity', 'wallet', 'totp', 'done'];
 
 function stepFromChecklist(
   checklist: ReturnType<typeof useAccountStatus>['checklist'],
   diditReturn: boolean,
   requireWallet: boolean,
-  deferEmailToPrivy: boolean
+  deferEmailToPrivy: boolean,
+  systemRole: ReturnType<typeof useAccountStatus>['systemRole']
 ): Step {
   if (!checklist) {
     return 'contact';
@@ -62,6 +66,15 @@ function stepFromChecklist(
 
   if (requireWallet && !checklist.walletLinked) {
     return 'wallet';
+  }
+
+  if (
+    requiresInvestorStyleOnboarding(systemRole) &&
+    checklist.kycApproved &&
+    checklist.walletLinked &&
+    !checklist.totpEnabled
+  ) {
+    return 'totp';
   }
 
   if (checklist.operational) {
@@ -100,8 +113,8 @@ function OnboardingContent() {
   const [resending, setResending] = useState(false);
 
   const step = useMemo(
-    () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, requireWallet, deferEmailToPrivy),
-    [checklist, deferEmailToPrivy, diditReturn, requireWallet]
+    () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, requireWallet, deferEmailToPrivy, systemRole),
+    [checklist, deferEmailToPrivy, diditReturn, requireWallet, systemRole]
   );
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);
@@ -683,7 +696,6 @@ function OnboardingContent() {
             <PrivyOnboardingWallet
               onLinked={async () => {
                 await refresh({ silent: true });
-                router.replace(returnTo);
               }}
               onError={setError}
             />
@@ -691,11 +703,19 @@ function OnboardingContent() {
             <ActivateWalletStep
               onLinked={async () => {
                 await refresh({ silent: true });
-                router.replace(returnTo);
               }}
               onError={setError}
             />
           )
+        ) : null}
+
+        {step === 'totp' ? (
+          <TotpOnboardingStep
+            onComplete={async () => {
+              await refresh({ silent: true });
+              router.replace(returnTo);
+            }}
+          />
         ) : null}
 
         {step === 'done' ? (
@@ -707,7 +727,7 @@ function OnboardingContent() {
         ) : null}
       </main>
 
-      {step !== 'done' && step !== 'identity' && step !== 'wallet' ? (
+      {step !== 'done' && step !== 'identity' && step !== 'wallet' && step !== 'totp' ? (
         <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-md safe-bottom">
           <div className="mx-auto w-full max-w-md">
             <button

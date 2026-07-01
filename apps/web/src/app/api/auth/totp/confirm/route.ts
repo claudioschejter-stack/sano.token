@@ -7,6 +7,7 @@ import {
   verifyTotpCode
 } from '../../../../../lib/auth/totpService';
 import { prisma } from '@sanova/database';
+import { syncUserAccountStatus } from '../../../../../lib/onboarding/syncUserAccount';
 
 /**
  * POST /api/auth/totp/confirm
@@ -61,6 +62,8 @@ export async function POST(request: Request) {
       data: { totpEnabled: true, failed2faAttempts: 0, locked2faUntil: null }
     })
   ]);
+
+  await syncUserAccountStatus(session.user.id);
 
   // Retornar backup codes en texto plano (única vez)
   return NextResponse.json({ ok: true, backupCodes: plainCodes });

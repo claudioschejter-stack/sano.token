@@ -187,6 +187,7 @@ export const en = {
     cashFlow: "Cash Flow",
     collectionWallet: "Collection wallet",
     secondaryMarket: "Secondary Market",
+    settings: "Settings",
     signOut: "Sign Out"
   },
   adminNav: {
@@ -1790,6 +1791,8 @@ export const en = {
       }
     },
     invalidCredentials: "Incorrect email or password.",
+    accountLocked: "Account temporarily locked. Try again later.",
+    signInWithPassword: "Sign in with email and password",
     signingIn: "Entering…",
     signedInAs: "Active session:",
     roleLabel: "Role",
@@ -2012,11 +2015,17 @@ export const en = {
     registering: "Setting up…",
     registerSuccess: "Biometrics enabled. You can now sign in with one tap.",
     registerFailed: "Could not enable biometrics on this device.",
-    registerCancelled: "Biometric setup was cancelled."
+    registerCancelled: "Biometric setup was cancelled.",
+    registerLater: "Not now"
   },
   pwa: {
     installTitle: "Install Sanova on your cell phone",
     installDesc: "Quick access as an app, ideal for uploading documents and verifying identity.",
+    installDesktopTitle: "Get Sanova on your mobile device",
+    installDesktopDesc: "For payments, biometrics, and quick access, install the app on your phone.",
+    installDesktopHint: "Open sanovacapital.com on your phone and add the app to your home screen.",
+    alreadyInstalled: "I already have the app installed",
+    installLater: "Continue in the browser",
     installCta: "Add to home screen",
     dismiss: "Close",
     iosInstruction: 'To install, tap the Share icon (the square with an up arrow) and select "Add to Home Screen".'

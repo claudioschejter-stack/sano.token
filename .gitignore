@@ -69,10 +69,6 @@ apps/web/next-env.d.ts
 .idea/
 .vscode/
 
-.vercel
-
 # Cursor / agent local cache
 .agents/
 skills-lock.json
-
-.vercel

@@ -2,6 +2,47 @@
 @tailwind components;
 @tailwind utilities;
 
+html.dark {
+  color-scheme: dark;
+  --terminal-bg: #0a0e17;
+  --terminal-card: #111827;
+  --terminal-border: #1f2937;
+  --terminal-text: #e2e8f0;
+  --terminal-primary: #3b82f6;
+  --terminal-accent: #f97316;
+  --terminal-success: #22c55e;
+  --terminal-warning: #fbbf24;
+  --terminal-danger: #ef4444;
+  --terminal-muted: #6b7280;
+}
+
+html.light {
+  color-scheme: light;
+  --terminal-bg: #f8fafc;
+  --terminal-card: #ffffff;
+  --terminal-border: #e2e8f0;
+  --terminal-text: #0f172a;
+  --terminal-primary: #2563eb;
+  --terminal-accent: #ea580c;
+  --terminal-success: #16a34a;
+  --terminal-warning: #d97706;
+  --terminal-danger: #dc2626;
+  --terminal-muted: #64748b;
+}
+
+html:not(.light):not(.dark) {
+  --terminal-bg: #0a0e17;
+  --terminal-card: #111827;
+  --terminal-border: #1f2937;
+  --terminal-text: #e2e8f0;
+  --terminal-primary: #3b82f6;
+  --terminal-accent: #f97316;
+  --terminal-success: #22c55e;
+  --terminal-warning: #fbbf24;
+  --terminal-danger: #ef4444;
+  --terminal-muted: #6b7280;
+}
+
 /* Operator logo marquee — pure CSS infinite scroll */
 @keyframes marketplace-cart-blink {
   0%,

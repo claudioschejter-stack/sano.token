@@ -38,9 +38,6 @@ import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalle
 import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
 import { PasskeyRegisterPrompt } from '../auth/PasskeyRegisterPrompt';
 
-import { useIsPwa } from '../../hooks/useIsPwa';
-import { PwaDashboard } from '../pwa/PwaDashboard';
-
 export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
   const [portfolio, setPortfolio] = useState<AggregatedPortfolio | null>(null);
@@ -50,7 +47,6 @@ export function FinancialOverview() {
   const { data: session } = useSession();
   const canRequestMorphoLoan = isMarketplaceTradingRole(session?.user?.role);
   const { intlLocale } = useLocale();
-  const isPwa = useIsPwa();
   const { formatUsd: formatUsdc, formatPercent, formatDateTime, formatMonthLabel } = useMemo(
     () => createIntlFormatters(intlLocale),
     [intlLocale]
@@ -111,10 +107,6 @@ export function FinancialOverview() {
 
   if (!mounted) {
     return <DashboardSkeleton />;
-  }
-
-  if (isPwa) {
-    return <PwaDashboard portfolio={portfolio} displayTargetYield={displayTargetYield} />;
   }
 
   return (

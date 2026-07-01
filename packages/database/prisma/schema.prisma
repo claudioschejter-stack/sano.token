@@ -237,6 +237,9 @@ model User {
   accountStatus     AccountStatus @default(ONBOARDING)
   jurisdiction      String?
   preferredLocale   String?
+  preferredTheme    String?
+  pwaInstalledAt    DateTime?
+  pwaDismissedAt    DateTime?
   totpSecret        String?
   totpEnabled       Boolean       @default(false)
   failed2faAttempts Int           @default(0)

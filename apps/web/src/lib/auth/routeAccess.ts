@@ -6,7 +6,9 @@ const ADMIN_ROUTE_PREFIXES = [
   '/dashboard/assets',
   '/dashboard/loans',
   '/dashboard/treasury',
-  '/dashboard/settings'
+  '/dashboard/settings',
+  '/dashboard/cobrar',
+  '/dashboard/account-audit'
 ] as const;
 
 const ADMIN_ONLY_ROUTE_PREFIXES = [] as const;

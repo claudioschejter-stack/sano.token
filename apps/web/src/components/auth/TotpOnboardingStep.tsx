@@ -1,0 +1,307 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
+import { CheckCircle2, ChevronRight, Copy, Download, KeyRound, ShieldCheck, Smartphone } from 'lucide-react';
+import { OTPInput } from './OTPInput';
+
+type Step = 'instructions' | 'qr' | 'confirm' | 'backup';
+
+type Props = {
+  onComplete: () => void | Promise<void>;
+};
+
+export function TotpOnboardingStep({ onComplete }: Props) {
+  const [step, setStep] = useState<Step>('instructions');
+  const [setupUri, setSetupUri] = useState('');
+  const [setupSecret, setSetupSecret] = useState('');
+  const [confirmCode, setConfirmCode] = useState('');
+  const [confirmError, setConfirmError] = useState('');
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+  const [loadingSetup, setLoadingSetup] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSetup() {
+      setLoadingSetup(true);
+      try {
+        const res = await fetch('/api/auth/totp/setup', { method: 'POST' });
+        const data = (await res.json()) as { uri?: string; secret?: string; error?: string };
+        if (!cancelled && data.uri && data.secret) {
+          setSetupUri(data.uri);
+          setSetupSecret(data.secret);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingSetup(false);
+        }
+      }
+    }
+
+    void loadSetup();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function confirmSetup(code: string) {
+    if (code.length < 6) {
+      return;
+    }
+
+    setConfirmLoading(true);
+    setConfirmError('');
+
+    const res = await fetch('/api/auth/totp/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = (await res.json()) as { ok?: boolean; backupCodes?: string[]; error?: string };
+
+    setConfirmLoading(false);
+
+    if (data.ok && data.backupCodes) {
+      setBackupCodes(data.backupCodes);
+      setStep('backup');
+      return;
+    }
+
+    setConfirmError(
+      data.error === 'CODIGO_INCORRECTO'
+        ? 'Código incorrecto. Verificá que el reloj de tu teléfono esté sincronizado.'
+        : 'Ocurrió un error. Intentá de nuevo.'
+    );
+    setConfirmCode('');
+  }
+
+  function copyBackupCodes() {
+    void navigator.clipboard.writeText(backupCodes.join('\n')).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function downloadBackupCodes() {
+    const blob = new Blob([backupCodes.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sanova-backup-codes.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <section className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900">Activá Google Authenticator</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          Para proteger tu cuenta, configurá el código de 6 dígitos de Sanova Capital antes de ingresar a
+          la plataforma.
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {(['instructions', 'qr', 'confirm', 'backup'] as Step[]).map((s, i) => {
+          const stepIndex = (['instructions', 'qr', 'confirm', 'backup'] as Step[]).indexOf(step);
+          const isActive = s === step;
+          const isDone = i < stepIndex;
+          return (
+            <div key={s} className="flex flex-1 flex-col items-center gap-1">
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-colors ${
+                  isDone
+                    ? 'bg-emerald-500 text-white'
+                    : isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-slate-200 text-slate-500'
+                }`}
+              >
+                {isDone ? <CheckCircle2 size={16} /> : i + 1}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        {step === 'instructions' ? (
+          <div className="space-y-6 text-center">
+            <div className="flex justify-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <Smartphone size={36} />
+              </div>
+            </div>
+            <p className="text-sm text-slate-500">
+              Descargá Google Authenticator en tu teléfono. También funciona con Authy u otra app TOTP.
+            </p>
+            <div className="flex justify-center gap-3">
+              <a
+                href="https://apps.apple.com/app/google-authenticator/id388497605"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                App Store
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Google Play
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStep('qr')}
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
+            >
+              Ya la tengo instalada
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        ) : null}
+
+        {step === 'qr' ? (
+          <div className="space-y-6">
+            <p className="text-center text-sm text-slate-500">
+              Escaneá el QR con Google Authenticator. La entrada aparecerá como <strong>Sanova Capital</strong>.
+            </p>
+            {loadingSetup || !setupUri ? (
+              <div className="flex h-52 items-center justify-center">
+                <div className="h-48 w-48 animate-pulse rounded-xl bg-slate-100" />
+              </div>
+            ) : (
+              <div className="flex justify-center">
+                <div className="rounded-2xl border-4 border-blue-100 bg-white p-4">
+                  <QRCodeSVG value={setupUri} size={200} level="M" />
+                </div>
+              </div>
+            )}
+            {setupSecret ? (
+              <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <summary className="cursor-pointer text-sm font-medium text-slate-600">
+                  ¿No podés escanear? Ingresá el código manualmente
+                </summary>
+                <div className="mt-3 flex items-center gap-2">
+                  <code className="flex-1 break-all rounded-lg bg-white px-3 py-2 font-mono text-xs text-slate-800 ring-1 ring-slate-200">
+                    {setupSecret}
+                  </code>
+                  <button
+                    type="button"
+                    onClick={() => void navigator.clipboard.writeText(setupSecret)}
+                    className="shrink-0 rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white"
+                    aria-label="Copiar secret"
+                  >
+                    <Copy size={14} />
+                  </button>
+                </div>
+              </details>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setStep('confirm')}
+              disabled={!setupUri}
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
+            >
+              Ya escaneé el QR
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        ) : null}
+
+        {step === 'confirm' ? (
+          <div className="space-y-6">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-green-50 text-green-600">
+                  <KeyRound size={28} />
+                </div>
+              </div>
+              <p className="text-sm text-slate-500">
+                Ingresá el código de 6 dígitos que muestra Google Authenticator para Sanova Capital.
+              </p>
+            </div>
+            <OTPInput
+              value={confirmCode}
+              onChange={setConfirmCode}
+              onComplete={(code) => void confirmSetup(code)}
+              error={Boolean(confirmError)}
+              autoFocus
+              disabled={confirmLoading}
+            />
+            {confirmError ? <p className="text-center text-sm text-red-600">{confirmError}</p> : null}
+            <button
+              type="button"
+              onClick={() => void confirmSetup(confirmCode)}
+              disabled={confirmLoading || confirmCode.length < 6}
+              className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
+            >
+              {confirmLoading ? 'Verificando…' : 'Activar autenticador'}
+            </button>
+          </div>
+        ) : null}
+
+        {step === 'backup' ? (
+          <div className="space-y-6">
+            <div className="text-center">
+              <div className="mb-4 flex justify-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <ShieldCheck size={28} />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">¡2FA activado!</h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Guardá estos códigos de recuperación en un lugar seguro.
+              </p>
+            </div>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <div className="grid grid-cols-2 gap-2">
+                {backupCodes.map((code) => (
+                  <code
+                    key={code}
+                    className="rounded-lg bg-white px-3 py-2 text-center font-mono text-sm font-bold tracking-widest text-slate-800 ring-1 ring-amber-200"
+                  >
+                    {code}
+                  </code>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={copyBackupCodes}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                {copied ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                {copied ? 'Copiado' : 'Copiar'}
+              </button>
+              <button
+                type="button"
+                onClick={downloadBackupCodes}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Download size={14} />
+                Descargar
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => void onComplete()}
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
+            >
+              <CheckCircle2 size={16} />
+              Continuar a la plataforma
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}

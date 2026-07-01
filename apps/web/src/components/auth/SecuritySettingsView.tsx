@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   CheckCircle2,
@@ -42,13 +42,13 @@ export function SecuritySettingsView() {
   const [disableError, setDisableError] = useState('');
   const [disableLoading, setDisableLoading] = useState(false);
 
-  // Check status on first render
-  useState(() => {
+  // Check status on mount
+  useEffect(() => {
     fetch('/api/auth/totp/status')
       .then((r) => r.json() as Promise<{ totpEnabled: boolean }>)
       .then(({ totpEnabled }) => setTotpStatus({ enabled: totpEnabled, loading: false }))
       .catch(() => setTotpStatus({ enabled: false, loading: false }));
-  });
+  }, []);
 
   async function startSetup() {
     setView('setup');

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { LoginForm } from '../auth/LoginForm';
+import { AdaptiveLoginFlow } from '../auth/AdaptiveLoginFlow';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
@@ -162,7 +162,7 @@ function AccessPageContent() {
           <h2 className="text-xl font-bold text-slate-900">{a.loginTitle}</h2>
 
           <div className="mt-6">
-            <LoginForm
+            <AdaptiveLoginFlow
               callbackUrl={callbackUrl}
               initialEmail={inviteEmail}
               registerHref={registerHref}

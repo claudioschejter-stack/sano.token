@@ -12,7 +12,8 @@ export async function syncUserAccountStatus(userId: string) {
       kycStatus: true,
       accountStatus: true,
       walletAddress: true,
-      systemRole: true
+      systemRole: true,
+      totpEnabled: true
     }
   });
 
