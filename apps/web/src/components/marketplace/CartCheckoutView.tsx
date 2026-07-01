@@ -1533,9 +1533,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   </div>
                 )}
               </div>
-              {mode !== 'deposit' && (
-                <p className="mt-0.5 text-[10px] text-terminal-muted">{c.totalToPayFeesIncluded}</p>
-              )}
+              <p className="mt-0.5 text-[10px] text-terminal-muted">{c.totalToPayFeesIncluded}</p>
             </div>
           ) : mode === 'deposit' ? (
             <div className="rounded-lg border border-terminal-border bg-terminal-bg p-4 py-[1mm]">

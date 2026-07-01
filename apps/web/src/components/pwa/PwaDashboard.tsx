@@ -178,7 +178,7 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-900 truncate">
-                  {translateDistributionConcept(dist.concept, t.demoLabels)}
+                  {translateDistributionConcept(dist.id, dist.concept, t)}
                 </p>
                 <p className="text-sm text-slate-500">Dinero disponible</p>
               </div>
