@@ -1,5 +1,6 @@
+import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
-import { auth } from './auth';
+import authConfig from './auth.config';
 import { canAccessPath, redirectPathForRole } from './lib/auth/routeAccess';
 import type { SystemRole } from './lib/auth/roles';
 import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
@@ -11,6 +12,8 @@ import {
   parseLocalePath
 } from './lib/i18n/localeRouting';
 import { requiresOnboardingGatePath, shouldRedirectToOnboarding } from './lib/auth/middlewarePolicy';
+
+const { auth } = NextAuth(authConfig);
 
 const LOGIN_GATE_PATHS = new Set(['/marketplace', '/mercado-secundario']);
 
