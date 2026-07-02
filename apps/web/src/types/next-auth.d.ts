@@ -9,6 +9,9 @@ declare module 'next-auth' {
       role?: SystemRole;
       roles?: SystemRole[];
       accessToken?: string;
+      accountOperational?: boolean;
+      totpPending?: boolean;
+      pendingTotpToken?: string;
     };
   }
 }
@@ -19,5 +22,8 @@ declare module 'next-auth/jwt' {
     role?: SystemRole;
     roles?: SystemRole[];
     authError?: string;
+    accountOperational?: boolean;
+    totpPending?: boolean;
+    pendingTotpToken?: string;
   }
 }

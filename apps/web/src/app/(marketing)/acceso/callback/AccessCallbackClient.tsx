@@ -25,7 +25,18 @@ export default function AccessCallbackClient() {
     }
 
     if (status === 'unauthenticated' || session?.authError) {
-      router.replace('/acceso?error=auth');
+      const errorCode =
+        session?.authError === 'CUENTA_BLOQUEADA' ? 'CUENTA_BLOQUEADA' : 'auth';
+      router.replace(`/acceso?error=${errorCode}`);
+      return;
+    }
+
+    if (session?.user?.totpPending && session.user.pendingTotpToken) {
+      const params = new URLSearchParams({
+        t: session.user.pendingTotpToken,
+        callbackUrl: searchParams.get('returnTo') ?? DEFAULT_POST_ONBOARDING_PATH
+      });
+      router.replace(`/acceso/verificar-2fa?${params.toString()}`);
       return;
     }
 
@@ -47,7 +58,7 @@ export default function AccessCallbackClient() {
       : resolveAuthenticatedDestination(role, returnTo, isOperational);
 
     router.replace(destination);
-  }, [checklist?.kycApproved, checklist?.totpEnabled, checklist?.walletLinked, diditSyncing, hasDiditStatus, isOperational, loading, router, searchParams, session?.authError, session?.user?.role, status]);
+  }, [checklist?.kycApproved, checklist?.totpEnabled, checklist?.walletLinked, diditSyncing, hasDiditStatus, isOperational, loading, router, searchParams, session?.authError, session?.user?.pendingTotpToken, session?.user?.role, session?.user?.totpPending, status]);
 
   useEffect(() => {
     if (status === 'authenticated' && hasDiditStatus && !diditSyncStarted.current) {

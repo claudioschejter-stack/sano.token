@@ -1,27 +1,19 @@
-import NextAuth from 'next-auth';
 import { NextResponse } from 'next/server';
-import authConfig from './auth.config';
+import { auth } from './auth';
 import { canAccessPath, redirectPathForRole } from './lib/auth/routeAccess';
 import type { SystemRole } from './lib/auth/roles';
 import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
 import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
 import { applySecurityHeaders } from './lib/security/securityHeaders';
-
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 import {
   isLocalePrefixablePath,
   LOCALE_HEADER,
   parseLocalePath
 } from './lib/i18n/localeRouting';
-
-const { auth } = NextAuth(authConfig);
+import { requiresOnboardingGatePath, shouldRedirectToOnboarding } from './lib/auth/middlewarePolicy';
 
 const LOGIN_GATE_PATHS = new Set(['/marketplace', '/mercado-secundario']);
 
-/**
- * ISO 3166-1 alpha-2 country codes blocked from registration per OFAC SDN / FATF high-risk list.
- * Env override: BLOCKED_REGISTRATION_COUNTRIES (comma-separated, e.g. "IR,RU,KP")
- */
 const DEFAULT_BLOCKED_COUNTRIES = 'IR,RU,KP,SY,CU,VE,MM,SD,BY,AF,SO,YE,LY,SS';
 
 function buildBlockedCountriesSet(): Set<string> {
@@ -32,7 +24,6 @@ function buildBlockedCountriesSet(): Set<string> {
 
 const BLOCKED_REGISTRATION_COUNTRIES = buildBlockedCountriesSet();
 
-/** Routes where geographic blocking applies (registration + first login step). */
 const GEO_BLOCKED_PATHS = new Set(['/acceso/registro', '/acceso/registro/']);
 
 function withLocaleAndCountryHints(
@@ -93,7 +84,7 @@ function maybeRewriteLocalePrefix(request: {
 
   const rewriteUrl = new URL(parsed.pathname, request.nextUrl);
   request.headers.set(LOCALE_HEADER, parsed.locale);
-  
+
   const response = NextResponse.rewrite(rewriteUrl, {
     request: { headers: request.headers }
   });
@@ -109,7 +100,6 @@ export default auth((request) => {
 
   const { pathname } = request.nextUrl;
 
-  // OFAC / FATF geographic block — applies to registration paths only
   if (GEO_BLOCKED_PATHS.has(pathname)) {
     const country = request.headers.get('x-vercel-ip-country')?.toUpperCase();
     if (country && BLOCKED_REGISTRATION_COUNTRIES.has(country)) {
@@ -120,7 +110,18 @@ export default auth((request) => {
     }
   }
 
-  const isAuthenticated = Boolean(request.auth?.user?.accessToken);
+  const sessionUser = request.auth?.user;
+  const totpPending = Boolean(sessionUser?.totpPending && sessionUser?.pendingTotpToken);
+
+  if (totpPending && pathname !== '/acceso/verificar-2fa') {
+    const callbackUrl = encodeURIComponent(pathname + request.nextUrl.search);
+    const totpUrl = new URL('/acceso/verificar-2fa', request.url);
+    totpUrl.searchParams.set('t', sessionUser!.pendingTotpToken!);
+    totpUrl.searchParams.set('callbackUrl', callbackUrl);
+    return withLocaleAndCountryHints(NextResponse.redirect(totpUrl), request);
+  }
+
+  const isAuthenticated = Boolean(sessionUser?.accessToken);
 
   if (LOGIN_GATE_PATHS.has(pathname) && !isAuthenticated) {
     const returnTo = encodeURIComponent(pathname);
@@ -139,7 +140,7 @@ export default auth((request) => {
         pathname.includes('/prestamo') ||
         pathname === '/marketplace/carrito'));
 
-  if (!isProtected) {
+  if (!isProtected && !requiresOnboardingGatePath(pathname)) {
     return withLocaleAndCountryHints(
       NextResponse.next({ request: { headers: request.headers } }),
       request
@@ -153,11 +154,25 @@ export default auth((request) => {
     );
   }
 
-  const role = request.auth?.user?.role as SystemRole | undefined;
+  const role = sessionUser?.role as SystemRole | undefined;
 
   if (pathname.startsWith('/dashboard') && !canAccessPath(role, pathname)) {
     return withLocaleAndCountryHints(
       NextResponse.redirect(new URL(redirectPathForRole(role), request.url)),
+      request
+    );
+  }
+
+  if (
+    shouldRedirectToOnboarding({
+      pathname,
+      role,
+      accountOperational: sessionUser?.accountOperational
+    })
+  ) {
+    const returnTo = encodeURIComponent(pathname + request.nextUrl.search);
+    return withLocaleAndCountryHints(
+      NextResponse.redirect(new URL(`/kyc?returnTo=${returnTo}`, request.url)),
       request
     );
   }

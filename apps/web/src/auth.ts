@@ -6,6 +6,11 @@ import { verifyCredentials } from './lib/auth/credentialsService';
 import { verifyPasskeyLoginToken } from './lib/auth/passkeyService';
 import { handleOAuthLogin } from './lib/auth/oauthService';
 import { buildOAuthProviders } from './lib/auth/oauthProviders';
+import {
+  applyOAuthTotpGate,
+  loadAccountOperational,
+  OAuthTotpLockedError
+} from './lib/auth/sessionClaims';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
@@ -34,7 +39,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: result.email,
             role: result.role,
             roles: result.roles,
-            accessToken: result.accessToken
+            accessToken: result.accessToken,
+            accountOperational: await loadAccountOperational(result.id)
           };
         } catch (error) {
           console.error('[auth] passkey login failed:', error);
@@ -78,7 +84,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: result.email,
             role: result.role,
             roles: result.roles,
-            accessToken: result.accessToken
+            accessToken: result.accessToken,
+            accountOperational: await loadAccountOperational(result.id)
           };
         } catch (error) {
           console.error('[auth] credentials login failed:', error);
@@ -89,7 +96,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session }) {
+      if (trigger === 'update') {
+        const updateSession = session as { accountOperational?: boolean } | undefined;
+        if (typeof updateSession?.accountOperational === 'boolean') {
+          token.accountOperational = updateSession.accountOperational;
+        } else if (typeof token.sub === 'string') {
+          token.accountOperational = await loadAccountOperational(token.sub);
+        }
+        return token;
+      }
+
       if (
         account &&
         (account.provider === 'google' || account.provider === 'apple') &&
@@ -106,13 +123,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             )
           });
 
+          const gated = await applyOAuthTotpGate(result.id, {
+            accessToken: result.accessToken,
+            role: result.role,
+            roles: result.roles
+          });
+
           token.sub = result.id;
-          token.accessToken = result.accessToken;
-          token.role = result.role;
-          token.roles = result.roles;
+          token.role = gated.role as typeof token.role;
+          token.roles = gated.roles as typeof token.roles;
           token.email = user.email;
+          token.accessToken = gated.accessToken;
+          token.accountOperational = gated.accountOperational;
+          token.totpPending = gated.totpPending;
+          token.pendingTotpToken = gated.pendingTotpToken;
           return token;
         } catch (error) {
+          if (error instanceof OAuthTotpLockedError) {
+            token.authError = 'CUENTA_BLOQUEADA';
+            return token;
+          }
+
           token.authError =
             error instanceof Error && error.message === 'INVESTOR_ACCESS_NOT_ENABLED'
               ? 'AccessDenied'

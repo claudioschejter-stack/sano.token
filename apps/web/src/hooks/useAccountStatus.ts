@@ -9,7 +9,7 @@ import { setDemoKycStatus } from './useKycStatus';
 type SystemRole = 'ADMIN' | 'ADVISOR_MANAGER' | 'ADVISOR' | 'INVESTOR' | 'TREASURY' | 'OPERATOR' | null;
 
 export function useAccountStatus() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [checklist, setChecklist] = useState<OnboardingChecklist | null>(null);
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [systemRole, setSystemRole] = useState<SystemRole>(null);
@@ -47,6 +47,10 @@ export function useAccountStatus() {
         setProfile(data.profile ?? null);
         setSystemRole(data.systemRole ?? null);
 
+        if (data.checklist.operational) {
+          void update({ accountOperational: true });
+        }
+
         if (data.checklist.kycApproved) {
           setDemoKycStatus('APPROVED');
         } else if (data.checklist.kycStatus === 'REJECTED') {
@@ -66,7 +70,7 @@ export function useAccountStatus() {
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.accessToken, status]);
+  }, [session?.user?.accessToken, status, update]);
 
   useEffect(() => {
     void refresh();

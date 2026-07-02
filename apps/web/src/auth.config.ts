@@ -5,6 +5,9 @@ type AuthToken = {
   accessToken?: string;
   role?: SystemRole;
   roles?: SystemRole[];
+  accountOperational?: boolean;
+  totpPending?: boolean;
+  pendingTotpToken?: string;
 };
 
 export default {
@@ -37,6 +40,21 @@ export default {
         token.role = authUser.role;
         token.roles = authUser.roles;
         token.email = user.email;
+
+        const enrichedUser = user as {
+          accountOperational?: boolean;
+          totpPending?: boolean;
+          pendingTotpToken?: string;
+        };
+
+        if (enrichedUser.totpPending) {
+          token.totpPending = true;
+          token.pendingTotpToken = enrichedUser.pendingTotpToken;
+          token.accessToken = undefined;
+          token.accountOperational = false;
+        } else if (typeof enrichedUser.accountOperational === 'boolean') {
+          token.accountOperational = enrichedUser.accountOperational;
+        }
       }
 
       return token;
@@ -50,6 +68,9 @@ export default {
         session.user.roles = authToken.roles;
         session.user.accessToken = authToken.accessToken;
         session.user.email = token.email ?? session.user.email;
+        session.user.accountOperational = authToken.accountOperational;
+        session.user.totpPending = authToken.totpPending;
+        session.user.pendingTotpToken = authToken.pendingTotpToken;
       }
 
       session.authError = authToken.authError;
