@@ -23,7 +23,7 @@
     "@nomicfoundation/hardhat-toolbox": "^6.0.0",
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
-    "@types/node": "^20.17.10",
+    "@types/node": "^26.1.0",
     "dotenv": "^16.4.5",
     "hardhat": "^2.22.0",
     "ts-node": "^10.9.2",
