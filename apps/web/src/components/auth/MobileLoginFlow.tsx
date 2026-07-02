@@ -31,14 +31,12 @@ export function MobileLoginFlow({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
-  const [hasPasskeyHint, setHasPasskeyHint] = useState(false);
   const turnstile = useTurnstile();
 
   useEffect(() => {
     const hint = getDevicePasskeyHint();
     if (hint?.email) {
       setEmail(hint.email);
-      setHasPasskeyHint(true);
     } else if (initialEmail.trim()) {
       setEmail(initialEmail);
     }
@@ -110,7 +108,7 @@ export function MobileLoginFlow({
     router.push(callbackUrl);
   }
 
-  if (hasPasskeyHint && !showPasswordLogin) {
+  if (!showPasswordLogin) {
     return (
       <div className={`space-y-4 ${className}`}>
         <PasskeyLoginButton email={email} callbackUrl={callbackUrl} className="mb-1" />
@@ -135,9 +133,7 @@ export function MobileLoginFlow({
 
   return (
     <form onSubmit={handlePasswordLogin} className={`space-y-4 ${className}`}>
-      {hasPasskeyHint ? (
-        <PasskeyLoginButton email={email} callbackUrl={callbackUrl} className="mb-1" />
-      ) : null}
+      <PasskeyLoginButton email={email} callbackUrl={callbackUrl} className="mb-1" />
 
       <div>
         <label htmlFor="access-email-mobile" className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -180,12 +176,13 @@ export function MobileLoginFlow({
       </button>
 
       <div className="flex items-center justify-between gap-4">
-        <Link
-          href={registerHref}
-          className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
+        <button
+          type="button"
+          onClick={() => setShowPasswordLogin(false)}
+          className="text-sm font-medium text-slate-600 hover:text-slate-800"
         >
-          {t.access.notRegisteredYet}
-        </Link>
+          Volver a biometría
+        </button>
         <Link
           href="/acceso/olvidar"
           className="text-sm font-medium text-blue-600 transition hover:text-blue-500"

@@ -441,8 +441,46 @@ html:not(.light):not(.dark) {
 body.pwa-dashboard-active .portal-mobile-nav,
 body.pwa-dashboard-active .app-sidebar,
 body.pwa-dashboard-active .app-sidebar-mobile-header,
-body.pwa-dashboard-active .portal-brand-frames-mobile-header {
+body.pwa-dashboard-active .portal-brand-frames-mobile-header,
+body.mobile-portal-active .portal-mobile-nav,
+body.mobile-portal-active .app-sidebar,
+body.mobile-portal-active .app-sidebar-mobile-header,
+body.mobile-portal-active .portal-brand-frames-mobile-header {
   display: none !important;
+}
+
+/* Mercado Pago mobile portal — light theme overrides for legacy terminal components */
+.mobile-portal-main .bg-terminal-bg {
+  background-color: transparent !important;
+}
+
+.mobile-portal-main .bg-terminal-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  border-radius: 1rem;
+}
+
+.mobile-portal-main .text-terminal-text {
+  color: #0f172a !important;
+}
+
+.mobile-portal-main .text-terminal-muted {
+  color: #64748b !important;
+}
+
+.mobile-portal-main .border-terminal-border {
+  border-color: #e2e8f0 !important;
+}
+
+.mobile-portal-main .bg-terminal-primary,
+.mobile-portal-main .border-terminal-primary {
+  --tw-bg-opacity: 1;
+  background-color: #009ee3 !important;
+  border-color: #009ee3 !important;
+}
+
+.mobile-portal-main .text-terminal-primary {
+  color: #009ee3 !important;
 }
 
 /* Depositar fondos — payment method buttons: always full-width, stacked, one per row */

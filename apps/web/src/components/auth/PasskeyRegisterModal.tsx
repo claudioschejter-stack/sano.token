@@ -6,8 +6,7 @@ import { startRegistration, type PublicKeyCredentialCreationOptionsJSON } from '
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { saveDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
-import { useIsPwa } from '../../hooks/useIsPwa';
-import { useDeviceDetection } from '../../hooks/useDeviceDetection';
+import { useMobilePortal } from '../../hooks/useMobilePortal';
 
 const DISMISS_KEY = 'sanova.passkey.prompt.dismissed';
 
@@ -23,8 +22,7 @@ export function PasskeyRegisterModal() {
   const t = useTranslation();
   const p = t.passkey;
   const { data: session, status } = useSession();
-  const isPwa = useIsPwa();
-  const { isMobile } = useDeviceDetection();
+  const isMobilePortal = useMobilePortal();
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +31,7 @@ export function PasskeyRegisterModal() {
   const Icon = isIos ? ScanFace : Fingerprint;
 
   useEffect(() => {
-    if (status !== 'authenticated' || (!isPwa && !isMobile)) {
+    if (status !== 'authenticated' || !isMobilePortal) {
       return;
     }
 
@@ -50,7 +48,7 @@ export function PasskeyRegisterModal() {
         }
       })
       .catch(() => setHasPasskeys(false));
-  }, [isMobile, isPwa, status]);
+  }, [isMobilePortal, status]);
 
   async function handleRegister() {
     setError(null);

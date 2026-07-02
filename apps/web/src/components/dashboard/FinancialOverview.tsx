@@ -37,6 +37,8 @@ import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregato
 import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
 import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
 import { PasskeyRegisterPrompt } from '../auth/PasskeyRegisterPrompt';
+import { useMobilePortal } from '../../hooks/useMobilePortal';
+import { PwaDashboard } from '../pwa/PwaDashboard';
 
 export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
@@ -44,6 +46,7 @@ export function FinancialOverview() {
   const [weightedTargetYield, setWeightedTargetYield] = useState<number | null>(null);
   const t = useTranslation();
   const d = t.dashboard;
+  const isMobilePortal = useMobilePortal();
   const { data: session } = useSession();
   const canRequestMorphoLoan = isMarketplaceTradingRole(session?.user?.role);
   const { intlLocale } = useLocale();
@@ -107,6 +110,16 @@ export function FinancialOverview() {
 
   if (!mounted) {
     return <DashboardSkeleton />;
+  }
+
+  if (isMobilePortal) {
+    return (
+      <>
+        <LiveDividendStream />
+        <PasskeyRegisterPrompt className="mb-2" />
+        <PwaDashboard portfolio={portfolio} displayTargetYield={displayTargetYield} />
+      </>
+    );
   }
 
   return (

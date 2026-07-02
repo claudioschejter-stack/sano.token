@@ -4,14 +4,17 @@ import { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { CheckCircle2, ChevronRight, Copy, Download, KeyRound, ShieldCheck, Smartphone } from 'lucide-react';
 import { OTPInput } from './OTPInput';
+import { PasskeyRegisterInline } from './PasskeyRegisterInline';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 
-type Step = 'instructions' | 'qr' | 'confirm' | 'backup';
+type Step = 'instructions' | 'qr' | 'confirm' | 'backup' | 'passkey';
 
 type Props = {
   onComplete: () => void | Promise<void>;
 };
 
 export function TotpOnboardingStep({ onComplete }: Props) {
+  const { isMobile } = useDeviceDetection();
   const [step, setStep] = useState<Step>('instructions');
   const [setupUri, setSetupUri] = useState('');
   const [setupSecret, setSetupSecret] = useState('');
@@ -66,7 +69,7 @@ export function TotpOnboardingStep({ onComplete }: Props) {
 
     if (data.ok && data.backupCodes) {
       setBackupCodes(data.backupCodes);
-      setStep('backup');
+      setStep(isMobile ? 'passkey' : 'backup');
       return;
     }
 
@@ -299,6 +302,30 @@ export function TotpOnboardingStep({ onComplete }: Props) {
               <CheckCircle2 size={16} />
               Continuar a la plataforma
             </button>
+          </div>
+        ) : null}
+
+        {step === 'passkey' ? (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <p className="text-sm font-medium text-amber-900">Códigos de recuperación (guardalos)</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {backupCodes.map((code) => (
+                  <code
+                    key={code}
+                    className="rounded-lg bg-white px-2 py-1 text-center font-mono text-xs font-bold text-slate-800"
+                  >
+                    {code}
+                  </code>
+                ))}
+              </div>
+            </div>
+            <PasskeyRegisterInline
+              variant="onboarding"
+              showSkip
+              onSkip={() => void onComplete()}
+              onRegistered={() => void onComplete()}
+            />
           </div>
         ) : null}
       </div>

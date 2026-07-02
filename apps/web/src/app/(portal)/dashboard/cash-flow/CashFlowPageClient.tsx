@@ -22,7 +22,11 @@ import { PlatformWalletView } from '../../../../components/wallet/PlatformWallet
 import { CheckCircle2 } from 'lucide-react';
 import { collectionWalletHref } from '../../../../lib/navigation/collectionWalletPath';
 
+import { useMobilePortal } from '../../../../hooks/useMobilePortal';
+import { PwaCashFlowView } from '../../../../components/pwa/PwaCashFlowView';
+
 export function CashFlowPageClient() {
+  const isMobilePortal = useMobilePortal();
   const t = useTranslation();
   const c = t.cashFlow;
   const router = useRouter();
@@ -57,6 +61,10 @@ export function CashFlowPageClient() {
 
   if (!mounted) {
     return <DashboardSkeleton />;
+  }
+
+  if (isMobilePortal) {
+    return <PwaCashFlowView />;
   }
 
   return (

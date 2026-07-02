@@ -15,6 +15,8 @@ import { LEGAL_CONTACT_PATH } from '../../lib/legal/legalConfig';
 import { splitMarketplaceListings } from '../../lib/marketplace/splitMarketplaceListings';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
+import { useMobilePortal } from '../../hooks/useMobilePortal';
+import { PwaMarketplaceView } from '../pwa/PwaMarketplaceView';
 import { MarketplaceCartButton } from './MarketplaceCartButton';
 import { PropertyCard } from './PropertyCard';
 
@@ -83,6 +85,7 @@ function MarketplaceListingGrid({
 }
 
 export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
+  const isMobilePortal = useMobilePortal();
   const router = useRouter();
   const t = useTranslation();
   const { data: session } = useSession();
@@ -146,6 +149,10 @@ export function MarketplaceView({ initialFeed }: MarketplaceViewProps) {
     onBuy: handleBuy,
     onStartKyc: handleStartKyc
   };
+
+  if (isMobilePortal) {
+    return <PwaMarketplaceView initialFeed={initialFeed} />;
+  }
 
   return (
     <div className="mx-auto w-full max-w-7xl">

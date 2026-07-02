@@ -33,8 +33,8 @@ export function PwaShell({ children }: Props) {
   const firstName = session?.user?.name?.split(' ')[0]?.toUpperCase() ?? 'INVERSOR';
 
   useEffect(() => {
-    document.body.classList.add('pwa-dashboard-active');
-    return () => document.body.classList.remove('pwa-dashboard-active');
+    document.body.classList.add('mobile-portal-active');
+    return () => document.body.classList.remove('mobile-portal-active');
   }, []);
 
   return (
@@ -63,7 +63,7 @@ export function PwaShell({ children }: Props) {
         </div>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-[5.5rem] pt-4">{children}</main>
+      <main className="mobile-portal-main min-h-0 flex-1 overflow-y-auto px-4 pb-[5.5rem] pt-4">{children}</main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white pb-safe">
         <div className="flex h-[4.5rem] items-center justify-around px-2">
@@ -104,9 +104,9 @@ export function PwaShell({ children }: Props) {
             <span className="text-[10px] font-medium">{t.nav.cashFlow}</span>
           </Link>
           <Link
-            href="/dashboard/settings"
+            href="/dashboard/settings/security"
             className={`flex w-16 flex-col items-center justify-center gap-1 ${
-              isActive(pathname, '/dashboard/settings') ? 'text-[#009EE3]' : 'text-slate-400'
+              isActive(pathname, '/dashboard/settings/security') ? 'text-[#009EE3]' : 'text-slate-400'
             }`}
           >
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">

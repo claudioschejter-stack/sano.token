@@ -9,12 +9,12 @@ import { InstallAppBanner } from '../pwa/InstallAppBanner';
 import { PwaShell } from '../pwa/PwaShell';
 import { PostLoginInstallModal } from '../pwa/PostLoginInstallModal';
 import { PasskeyRegisterModal } from '../auth/PasskeyRegisterModal';
-import { useIsPwa } from '../../hooks/useIsPwa';
+import { useMobilePortal } from '../../hooks/useMobilePortal';
 
 export function PortalLayoutClient({ children }: { children: ReactNode }) {
-  const isPwa = useIsPwa();
+  const isMobilePortal = useMobilePortal();
 
-  if (isPwa) {
+  if (isMobilePortal) {
     return (
       <>
         <PwaShell>
