@@ -66,11 +66,16 @@ export function MobileLoginFlow({
       requiresTOTP?: boolean;
       tempToken?: string;
       error?: string;
+      remainingSeconds?: number;
     };
 
     if (!step1Res.ok || !step1Data.ok) {
       setLoading(false);
       turnstile.reset();
+      if (step1Data.error === 'CUENTA_BLOQUEADA') {
+        setError(t.access.accountLocked ?? 'Cuenta bloqueada temporalmente. Intentá más tarde.');
+        return;
+      }
       setError(t.access.invalidCredentials);
       return;
     }

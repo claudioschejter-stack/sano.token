@@ -12,6 +12,14 @@ type PwaPreferencesResponse = {
   pwaDismissedAt?: string | null;
 };
 
+async function patchPwaPreferences(body: { pwaInstalled?: boolean; pwaDismissed?: boolean }) {
+  await fetch('/api/user/preferences', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).catch(() => undefined);
+}
+
 export function usePwaPreferences() {
   const { status } = useSession();
   const [dismissed, setDismissedState] = useState(false);
@@ -62,19 +70,31 @@ export function usePwaPreferences() {
       .finally(() => setLoaded(true));
   }, [status]);
 
-  const setDismissed = useCallback((value: boolean) => {
-    setDismissedState(value);
-    if (value) {
-      window.localStorage.setItem(PWA_DISMISS_KEY, '1');
-    }
-  }, []);
+  const setDismissed = useCallback(
+    (value: boolean) => {
+      setDismissedState(value);
+      if (value) {
+        window.localStorage.setItem(PWA_DISMISS_KEY, '1');
+        if (status === 'authenticated') {
+          void patchPwaPreferences({ pwaDismissed: true });
+        }
+      }
+    },
+    [status]
+  );
 
-  const setInstalled = useCallback((value: boolean) => {
-    setInstalledState(value);
-    if (value) {
-      window.localStorage.setItem(PWA_INSTALLED_KEY, '1');
-    }
-  }, []);
+  const setInstalled = useCallback(
+    (value: boolean) => {
+      setInstalledState(value);
+      if (value) {
+        window.localStorage.setItem(PWA_INSTALLED_KEY, '1');
+        if (status === 'authenticated') {
+          void patchPwaPreferences({ pwaInstalled: true });
+        }
+      }
+    },
+    [status]
+  );
 
   return { dismissed, installed, setDismissed, setInstalled, loaded };
 }

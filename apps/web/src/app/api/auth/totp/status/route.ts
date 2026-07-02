@@ -1,17 +1,26 @@
 import { NextResponse } from 'next/server';
 import { auth } from '../../../../../auth';
 import { prisma } from '@sanova/database';
+import { requiresInvestorStyleOnboarding } from '../../../../../lib/onboarding/onboardingGate';
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
-    return NextResponse.json({ totpEnabled: false });
+    return NextResponse.json({ totpEnabled: false, totpMandatory: false });
   }
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { totpEnabled: true }
+    select: { totpEnabled: true, kycStatus: true, systemRole: true }
   });
 
-  return NextResponse.json({ totpEnabled: user?.totpEnabled ?? false });
+  const totpMandatory =
+    Boolean(user?.totpEnabled) &&
+    user?.kycStatus === 'APPROVED' &&
+    requiresInvestorStyleOnboarding(user.systemRole);
+
+  return NextResponse.json({
+    totpEnabled: user?.totpEnabled ?? false,
+    totpMandatory
+  });
 }

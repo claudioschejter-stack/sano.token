@@ -1,6 +1,8 @@
 import type { SystemRole } from './roles';
 import { ROLE_HOME_PATH } from './roles';
 
+const INVESTOR_SECURITY_PREFIX = '/dashboard/settings/security';
+
 const ADMIN_ROUTE_PREFIXES = [
   '/dashboard/investors',
   '/dashboard/assets',
@@ -8,7 +10,10 @@ const ADMIN_ROUTE_PREFIXES = [
   '/dashboard/treasury',
   '/dashboard/settings',
   '/dashboard/cobrar',
-  '/dashboard/account-audit'
+  '/dashboard/account-audit',
+  '/dashboard/waitlist',
+  '/dashboard/wallet',
+  '/dashboard/wallet-cobro'
 ] as const;
 
 const ADMIN_ONLY_ROUTE_PREFIXES = [] as const;
@@ -33,6 +38,10 @@ function matchesAnyPrefix(pathname: string, prefixes: readonly string[]): boolea
 
 /** Returns allowed roles for a dashboard path, or null if any authenticated role may access. */
 export function getRequiredRolesForPath(pathname: string): SystemRole[] | null {
+  if (matchesPrefix(pathname, INVESTOR_SECURITY_PREFIX)) {
+    return null;
+  }
+
   if (matchesAnyPrefix(pathname, ADMIN_ROUTE_PREFIXES)) {
     return ['ADMIN'];
   }

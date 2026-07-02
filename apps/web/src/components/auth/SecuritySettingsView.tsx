@@ -20,11 +20,18 @@ type View = 'overview' | 'setup' | 'disable' | 'backup-codes';
 
 type TotpStatus = {
   enabled: boolean;
+  mandatory: boolean;
+  loading: boolean;
+};
+
+type PasskeyStatus = {
+  hasPasskeys: boolean;
   loading: boolean;
 };
 
 export function SecuritySettingsView() {
-  const [totpStatus, setTotpStatus] = useState<TotpStatus>({ enabled: false, loading: true });
+  const [totpStatus, setTotpStatus] = useState<TotpStatus>({ enabled: false, mandatory: false, loading: true });
+  const [passkeyStatus, setPasskeyStatus] = useState<PasskeyStatus>({ hasPasskeys: false, loading: true });
   const [view, setView] = useState<View>('overview');
   const [step, setStep] = useState<Step>('idle');
 
@@ -45,9 +52,16 @@ export function SecuritySettingsView() {
   // Check status on mount
   useEffect(() => {
     fetch('/api/auth/totp/status')
-      .then((r) => r.json() as Promise<{ totpEnabled: boolean }>)
-      .then(({ totpEnabled }) => setTotpStatus({ enabled: totpEnabled, loading: false }))
-      .catch(() => setTotpStatus({ enabled: false, loading: false }));
+      .then((r) => r.json() as Promise<{ totpEnabled: boolean; totpMandatory?: boolean }>)
+      .then(({ totpEnabled, totpMandatory }) =>
+        setTotpStatus({ enabled: totpEnabled, mandatory: Boolean(totpMandatory), loading: false })
+      )
+      .catch(() => setTotpStatus({ enabled: false, mandatory: false, loading: false }));
+
+    fetch('/api/auth/passkey/status')
+      .then((r) => r.json() as Promise<{ hasPasskeys: boolean }>)
+      .then(({ hasPasskeys }) => setPasskeyStatus({ hasPasskeys, loading: false }))
+      .catch(() => setPasskeyStatus({ hasPasskeys: false, loading: false }));
   }, []);
 
   async function startSetup() {
@@ -83,7 +97,13 @@ export function SecuritySettingsView() {
 
     if (data.ok && data.backupCodes) {
       setBackupCodes(data.backupCodes);
-      setTotpStatus({ enabled: true, loading: false });
+      const statusRes = await fetch('/api/auth/totp/status');
+      const statusData = (await statusRes.json()) as { totpEnabled: boolean; totpMandatory?: boolean };
+      setTotpStatus({
+        enabled: statusData.totpEnabled,
+        mandatory: Boolean(statusData.totpMandatory),
+        loading: false
+      });
       setStep('backup');
     } else {
       setConfirmError(
@@ -110,9 +130,12 @@ export function SecuritySettingsView() {
     setDisableLoading(false);
 
     if (data.ok) {
-      setTotpStatus({ enabled: false, loading: false });
+      setTotpStatus({ enabled: false, mandatory: false, loading: false });
       setDisableCode('');
       setView('overview');
+    } else if (data.error === 'TOTP_OBLIGATORIO') {
+      setDisableError('El 2FA es obligatorio para cuentas con KYC aprobado y no puede desactivarse.');
+      setDisableCode('');
     } else {
       setDisableError('Código incorrecto. Intentá de nuevo.');
       setDisableCode('');
@@ -157,11 +180,22 @@ export function SecuritySettingsView() {
             <div className="flex-1">
               <h2 className="font-semibold text-slate-900">Ingreso biométrico</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Face ID, Touch ID o huella dactilar — sin contraseñas. Ya activado en este dispositivo.
+                Face ID, Touch ID o huella dactilar — sin contraseñas.
+                {passkeyStatus.hasPasskeys
+                  ? ' Ya activado en tu cuenta.'
+                  : ' Podés registrar una passkey desde el login en móvil o PWA.'}
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-500" />
-                <span className="text-sm font-medium text-emerald-700">Activo</span>
+                {passkeyStatus.loading ? (
+                  <div className="h-5 w-24 animate-pulse rounded bg-slate-100" />
+                ) : passkeyStatus.hasPasskeys ? (
+                  <>
+                    <CheckCircle2 size={16} className="text-emerald-500" />
+                    <span className="text-sm font-medium text-emerald-700">Activo</span>
+                  </>
+                ) : (
+                  <span className="text-sm font-medium text-slate-500">No registrado</span>
+                )}
               </div>
             </div>
           </div>
@@ -188,13 +222,19 @@ export function SecuritySettingsView() {
                     <span className="text-sm font-medium text-emerald-700">2FA activado</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setView('disable')}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
-                    >
-                      <ShieldOff size={14} />
-                      Desactivar 2FA
-                    </button>
+                    {totpStatus.mandatory ? (
+                      <p className="text-sm text-slate-600">
+                        El 2FA es obligatorio para tu cuenta y no puede desactivarse.
+                      </p>
+                    ) : (
+                      <button
+                        onClick={() => setView('disable')}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
+                      >
+                        <ShieldOff size={14} />
+                        Desactivar 2FA
+                      </button>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -226,32 +266,40 @@ export function SecuritySettingsView() {
             </div>
           </div>
           <h2 className="text-center text-xl font-bold text-slate-900">Desactivar 2FA</h2>
-          <p className="mt-2 text-center text-sm text-slate-500">
-            Ingresá el código de Google Authenticator para confirmar.
-          </p>
+          {totpStatus.mandatory ? (
+            <p className="mt-4 text-center text-sm text-slate-600">
+              El 2FA es obligatorio para cuentas con KYC aprobado y no puede desactivarse.
+            </p>
+          ) : (
+            <>
+              <p className="mt-2 text-center text-sm text-slate-500">
+                Ingresá el código de Google Authenticator para confirmar.
+              </p>
 
-          <div className="mt-8 space-y-6">
-            <OTPInput
-              value={disableCode}
-              onChange={setDisableCode}
-              onComplete={(code) => { setDisableCode(code); void disableTotp(); }}
-              error={Boolean(disableError)}
-              autoFocus
-              disabled={disableLoading}
-            />
+              <div className="mt-8 space-y-6">
+                <OTPInput
+                  value={disableCode}
+                  onChange={setDisableCode}
+                  onComplete={(code) => { setDisableCode(code); void disableTotp(); }}
+                  error={Boolean(disableError)}
+                  autoFocus
+                  disabled={disableLoading}
+                />
 
-            {disableError ? (
-              <p className="text-center text-sm text-red-600">{disableError}</p>
-            ) : null}
+                {disableError ? (
+                  <p className="text-center text-sm text-red-600">{disableError}</p>
+                ) : null}
 
-            <button
-              onClick={() => void disableTotp()}
-              disabled={disableLoading || disableCode.length < 6}
-              className="flex w-full items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60"
-            >
-              {disableLoading ? 'Verificando…' : 'Confirmar desactivación'}
-            </button>
-          </div>
+                <button
+                  onClick={() => void disableTotp()}
+                  disabled={disableLoading || disableCode.length < 6}
+                  className="flex w-full items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-60"
+                >
+                  {disableLoading ? 'Verificando…' : 'Confirmar desactivación'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     );

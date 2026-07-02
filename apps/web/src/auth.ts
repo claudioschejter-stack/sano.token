@@ -1,5 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import { prisma } from '@sanova/database';
 import authConfig from './auth.config';
 import { verifyCredentials } from './lib/auth/credentialsService';
 import { verifyPasskeyLoginToken } from './lib/auth/passkeyService';
@@ -58,6 +59,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           const result = await verifyCredentials(email, password);
           if (!result) {
+            return null;
+          }
+
+          const user = await prisma.user.findUnique({
+            where: { id: result.id },
+            select: { totpEnabled: true }
+          });
+
+          // TOTP-enabled accounts must complete /api/auth/login/step1 + login-verify
+          // and sign in via the passkey provider + loginToken — not raw credentials.
+          if (user?.totpEnabled) {
             return null;
           }
 

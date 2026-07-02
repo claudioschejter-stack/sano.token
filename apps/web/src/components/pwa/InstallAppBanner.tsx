@@ -47,21 +47,11 @@ export function InstallAppBanner() {
   useEffect(() => {
     if (isPwa) {
       setInstalled(true);
-      void fetch('/api/user/preferences', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pwaInstalled: true })
-      }).catch(() => undefined);
     }
   }, [isPwa, setInstalled]);
 
   function dismissBanner() {
     setDismissed(true);
-    void fetch('/api/user/preferences', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pwaDismissed: true })
-    }).catch(() => undefined);
   }
 
   function markAlreadyHaveApp() {

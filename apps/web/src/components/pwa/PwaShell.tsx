@@ -53,7 +53,7 @@ export function PwaShell({ children }: Props) {
           <div className="flex items-center gap-2">
             <ThemeToggleButton variant="compact" />
             <Link
-              href="/dashboard/settings"
+              href="/dashboard/settings/security"
               className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
               aria-label={t.nav.settings}
             >
