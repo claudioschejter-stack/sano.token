@@ -1965,6 +1965,10 @@ export const en = {
       contactDesc: "We will use your session email and save your phone number for contact.",
       emailTitle: "Check your email",
       emailDesc: "Enter the 6-digit code that we sent to your email.",
+      emailDescPrivyFallback:
+        "Verify your email with the 6-digit code we sent you. This is required before you can continue.",
+      emailPrivyWalletNote:
+        "When you activate your Privy wallet later we also confirm the same email. If Privy cannot verify it, return here and use the Sanova code.",
       phoneTitle: "Check your phone",
       phoneDesc: "Enter the 6-digit code we sent via WhatsApp.",
       codeSentEmail: "We send a code to your email.Check your inbox and spam.",
@@ -1985,7 +1989,7 @@ export const en = {
       identityOperationalNote:
         "After identity verification, link your Base wallet to become an approved investor.",
       identityWalletNote:
-        "After KYC you will activate your Privy wallet with the same email as your Sanova account. Privy verifies your email, so the separate Sanova email code is skipped.",
+        "After KYC you will activate your Privy wallet with the same email as your Sanova account.",
       demoKyc: "Simulate verification (demo only)",
       kycProviderUnavailable:
         "Identity verification is not available right now. Contact support or try again later.",
@@ -2033,6 +2037,10 @@ export const en = {
       KYC_NOT_APPROVED: "Your KYC must be approved before linking a wallet.",
       PRIVY_EMAIL_MISMATCH:
         'The Privy email does not match your Sanova account email. Sign in to Privy with the same address.',
+      PRIVY_EMAIL_NOT_VERIFIED:
+        'Privy could not verify your email. Go back to the email step and use the code we sent from Sanova.',
+      EMAIL_VERIFICATION_REQUIRED:
+        'Verify your email address before continuing with this step.',
       INVESTOR_ROLE_REQUIRED: "Only investor accounts can link a wallet.",
       WALLET_ROLE_REQUIRED: "Your role requires linking Coinbase Wallet to continue.",
       WALLET_CONNECT_NOT_CONFIGURED:

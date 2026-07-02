@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { Prisma } from '@sanova/database';
+import { Prisma, prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { linkUserWallet } from '../../../../lib/investor/walletService';
 import { verifyWalletLinkSignature } from '../../../../lib/investor/walletLinkProof';
@@ -44,6 +44,18 @@ export async function POST(request: Request) {
       if (emailSync.reason === 'EMAIL_MISMATCH') {
         return NextResponse.json({ error: 'PRIVY_EMAIL_MISMATCH' }, { status: 400 });
       }
+      if (emailSync.reason === 'PRIVY_EMAIL_NOT_VERIFIED') {
+        return NextResponse.json({ error: 'PRIVY_EMAIL_NOT_VERIFIED' }, { status: 403 });
+      }
+    }
+
+    const emailState = await prisma.user.findUnique({
+      where: { id: ctx.userId },
+      select: { emailVerifiedAt: true }
+    });
+
+    if (!emailState?.emailVerifiedAt) {
+      return NextResponse.json({ error: 'EMAIL_VERIFICATION_REQUIRED' }, { status: 403 });
     }
 
     const result = await linkUserWallet(
@@ -75,7 +87,8 @@ export async function POST(request: Request) {
       message === 'WALLET_ALREADY_LINKED' ||
       message === 'PRIVY_TOKEN_INVALID' ||
       message === 'PRIVY_TOKEN_REQUIRED' ||
-      message === 'PRIVY_USER_LOOKUP_FAILED'
+      message === 'PRIVY_USER_LOOKUP_FAILED' ||
+      message === 'EMAIL_VERIFICATION_REQUIRED'
     ) {
       return NextResponse.json({ error: message }, { status: 400 });
     }
@@ -152,7 +165,8 @@ export async function PATCH(request: Request) {
       message === 'WALLET_ALREADY_LINKED' ||
       message === 'PRIVY_TOKEN_INVALID' ||
       message === 'PRIVY_TOKEN_REQUIRED' ||
-      message === 'PRIVY_USER_LOOKUP_FAILED'
+      message === 'PRIVY_USER_LOOKUP_FAILED' ||
+      message === 'EMAIL_VERIFICATION_REQUIRED'
     ) {
       return NextResponse.json({ error: message }, { status: 400 });
     }

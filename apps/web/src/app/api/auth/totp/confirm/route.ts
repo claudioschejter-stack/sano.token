@@ -30,8 +30,12 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { totpSecret: true, totpEnabled: true }
+    select: { totpSecret: true, totpEnabled: true, emailVerifiedAt: true }
   });
+
+  if (!user?.emailVerifiedAt) {
+    return NextResponse.json({ error: 'EMAIL_VERIFICATION_REQUIRED' }, { status: 403 });
+  }
 
   if (!user?.totpSecret) {
     return NextResponse.json({ error: 'SETUP_NO_INICIADO' }, { status: 400 });

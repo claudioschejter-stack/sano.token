@@ -52,7 +52,7 @@ function stepFromChecklist(
     return 'phone';
   }
 
-  if (!checklist.emailVerified && !deferEmailToPrivy) {
+  if (!checklist.emailVerified) {
     return 'email';
   }
 
@@ -640,9 +640,14 @@ function OnboardingContent() {
           <section className="space-y-4">
             <h2 className="text-xl font-bold">{o.steps.emailTitle}</h2>
             <p className="text-sm text-slate-600">
-              {o.steps.emailDesc}{' '}
+              {(deferEmailToPrivy ? o.steps.emailDescPrivyFallback : o.steps.emailDesc)}{' '}
               <span className="font-medium text-slate-800">{checklist.email}</span>
             </p>
+            {deferEmailToPrivy ? (
+              <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-relaxed text-blue-900">
+                {o.steps.emailPrivyWalletNote}
+              </p>
+            ) : null}
             <input
               type="text"
               inputMode="numeric"

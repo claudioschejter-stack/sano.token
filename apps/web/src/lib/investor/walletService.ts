@@ -61,6 +61,10 @@ export async function linkUserWallet(
     throw new Error('KYC_NOT_APPROVED');
   }
 
+  if (!user.emailVerifiedAt) {
+    throw new Error('EMAIL_VERIFICATION_REQUIRED');
+  }
+
   await assertWalletAvailableForUser(userId, normalized);
 
   if (user.systemRole === 'INVESTOR') {

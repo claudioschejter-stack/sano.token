@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAccountOperational, requiresTotpSetup } from './accountStatus';
+import { buildOnboardingChecklist, isAccountOperational, requiresTotpSetup } from './accountStatus';
 
 const baseUser = {
   email: 'user@example.com',
@@ -16,6 +16,48 @@ const investorUser = {
   ...baseUser,
   systemRole: 'INVESTOR' as const
 };
+
+describe('buildOnboardingChecklist email gate', () => {
+  it('blocks KYC until email is verified for investors', () => {
+    const checklist = buildOnboardingChecklist(
+      {
+        email: 'investor@example.com',
+        phone: '+5492617513426',
+        emailVerifiedAt: null,
+        phoneVerifiedAt: null,
+        kycStatus: 'PENDING',
+        accountStatus: 'ONBOARDING',
+        walletAddress: null,
+        systemRole: 'INVESTOR',
+        totpEnabled: false
+      },
+      true
+    );
+
+    expect(checklist.emailVerified).toBe(false);
+    expect(checklist.kycEnabled).toBe(false);
+  });
+
+  it('enables KYC after email verification', () => {
+    const checklist = buildOnboardingChecklist(
+      {
+        email: 'investor@example.com',
+        phone: '+5492617513426',
+        emailVerifiedAt: new Date(),
+        phoneVerifiedAt: null,
+        kycStatus: 'PENDING',
+        accountStatus: 'ONBOARDING',
+        walletAddress: null,
+        systemRole: 'INVESTOR',
+        totpEnabled: false
+      },
+      true
+    );
+
+    expect(checklist.emailVerified).toBe(true);
+    expect(checklist.kycEnabled).toBe(true);
+  });
+});
 
 describe('isAccountOperational wallet policy', () => {
   it('requires linked wallet for ADMIN', () => {

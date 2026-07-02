@@ -1,5 +1,5 @@
 import { isMarketplaceTradingRole, type SystemRole } from '../auth/roles';
-import { defersEmailVerificationToPrivy } from './emailVerificationPolicy';
+import { isEmailVerificationSatisfied } from './emailVerificationPolicy';
 
 /** OTP phone verification is disabled for all roles; phone is captured at registration only. */
 export function requiresPhoneVerification(_role: SystemRole | string | null | undefined): boolean {
@@ -23,9 +23,7 @@ export function isContactStepComplete(user: {
   phoneVerifiedAt?: Date | null;
   phone?: string | null;
 }): boolean {
-  const emailReady =
-    Boolean(user.emailVerifiedAt) || defersEmailVerificationToPrivy(user.systemRole);
-  if (!emailReady) {
+  if (!isEmailVerificationSatisfied(user)) {
     return false;
   }
 

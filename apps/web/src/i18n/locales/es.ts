@@ -1999,6 +1999,10 @@ export const es = {
       contactDesc: 'Usaremos tu email de sesión y guardaremos tu teléfono para contacto.',
       emailTitle: 'Verificá tu email',
       emailDesc: 'Ingresá el código de 6 dígitos que enviamos a tu correo.',
+      emailDescPrivyFallback:
+        'Verificá tu correo con el código de 6 dígitos que te enviamos. Es obligatorio antes de continuar.',
+      emailPrivyWalletNote:
+        'Al activar tu billetera Privy más adelante también confirmamos el mismo correo. Si Privy no lo verifica, volvé acá y usá el código de Sanova.',
       phoneTitle: 'Verificá tu teléfono',
       phoneDesc: 'Ingresá el código de 6 dígitos que enviamos por WhatsApp.',
       codeSentEmail: 'Enviamos un código a tu correo. Revisá la bandeja de entrada y spam.',
@@ -2019,7 +2023,7 @@ export const es = {
       identityOperationalNote:
         'Luego de verificar la identidad, vinculá tu billetera en Base para quedar como inversor aprobado.',
       identityWalletNote:
-        'Después del KYC vas a activar tu billetera Privy con el mismo email de tu cuenta. Privy verifica el correo; no hace falta el código por email de Sanova.',
+        'Después del KYC vas a activar tu billetera Privy con el mismo email de tu cuenta.',
       demoKyc: 'Simular verificación (solo demo)',
       kycProviderUnavailable:
         'La verificación de identidad no está disponible en este momento. Contactá a soporte o intentá más tarde.',
@@ -2069,6 +2073,10 @@ export const es = {
       KYC_NOT_APPROVED: 'Tu KYC debe estar aprobado antes de vincular la billetera.',
       PRIVY_EMAIL_MISMATCH:
         'El email de Privy no coincide con el de tu cuenta Sanova. Iniciá sesión en Privy con el mismo correo.',
+      PRIVY_EMAIL_NOT_VERIFIED:
+        'Privy no pudo verificar tu correo. Volvé al paso de email y usá el código que te enviamos desde Sanova.',
+      EMAIL_VERIFICATION_REQUIRED:
+        'Verificá tu correo electrónico antes de continuar con este paso.',
       INVESTOR_ROLE_REQUIRED: 'Solo cuentas inversor pueden vincular una billetera.',
       WALLET_ROLE_REQUIRED: 'Tu rol requiere vincular Coinbase Wallet para continuar.',
       WALLET_CONNECT_NOT_CONFIGURED:

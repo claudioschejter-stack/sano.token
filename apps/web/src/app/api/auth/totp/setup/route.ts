@@ -14,6 +14,15 @@ export async function POST() {
     return NextResponse.json({ error: 'NO_AUTENTICADO' }, { status: 401 });
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerifiedAt: true }
+  });
+
+  if (!user?.emailVerifiedAt) {
+    return NextResponse.json({ error: 'EMAIL_VERIFICATION_REQUIRED' }, { status: 403 });
+  }
+
   const secret = generateTotpSecret();
   const encrypted = encryptTotpSecret(secret);
   const uri = getTotpUri(secret, session.user.email ?? session.user.id);
