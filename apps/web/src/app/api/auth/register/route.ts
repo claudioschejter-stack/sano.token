@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { registerInvestor } from '../../../../lib/auth/registerService';
+import { requireTurnstile } from '../../../../lib/security/requireTurnstile';
 
 export async function POST(request: Request) {
   try {
@@ -11,7 +12,11 @@ export async function POST(request: Request) {
       taxId?: string;
       termsAccepted?: boolean;
       inviteCode?: string;
+      turnstileToken?: string;
     };
+
+    const captchaError = await requireTurnstile(body.turnstileToken);
+    if (captchaError) return captchaError;
 
     const result = await registerInvestor({
       email: body.email ?? '',

@@ -12,6 +12,7 @@ const nextConfig = {
   ...(process.env.VERCEL ? {} : { output: 'standalone' }),
   productionBrowserSourceMaps: false,
   poweredByHeader: false,
+  staticPageGenerationTimeout: 180,
   experimental: {
     serverComponentsExternalPackages: ['thirdweb', 'ethers', '@privy-io/react-auth']
   },

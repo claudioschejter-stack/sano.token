@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { createHmac, timingSafeEqual } from 'crypto';
+import { dispatchApprovedLocalWalletPayment } from '../../../../lib/payments/localWalletWebhookSettlement';
 
 export const dynamic = 'force-dynamic';
 
@@ -43,46 +45,47 @@ type ModoEvent = {
   data?: ModoPaymentData;
 };
 
-function verifyModoSignature(request: Request, _rawBody: string): boolean {
+function verifyModoSignature(request: Request, rawBody: string): boolean {
   const secret = process.env.MODO_WEBHOOK_SECRET?.trim();
   if (!secret) {
-    // If no secret is configured, allow the request (dev / initial setup).
-    // TODO: Once MODO provides the signing secret, enforce HMAC verification here.
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[webhook/modo] MODO_WEBHOOK_SECRET not configured');
+      return false;
+    }
     return true;
   }
 
-  // MODO uses an x-modo-signature header with HMAC-SHA256 of the raw body.
   const signature = request.headers.get('x-modo-signature') ?? request.headers.get('x-signature');
   if (!signature) return false;
 
-  // HMAC verification would go here once MODO_WEBHOOK_SECRET is confirmed:
-  // const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-  // return timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
-
-  return true;
+  const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+  try {
+    const provided = Buffer.from(signature.trim());
+    const expectedBuffer = Buffer.from(expected);
+    if (provided.length !== expectedBuffer.length) {
+      return false;
+    }
+    return timingSafeEqual(provided, expectedBuffer);
+  } catch {
+    return signature.trim() === expected;
+  }
 }
 
 async function handleApprovedModoPayment(data: ModoPaymentData) {
-  // Treasury Swap model: ARS lands at MODO merchant account;
-  // backend delivers USDC from treasury reserve to the investor's wallet.
-  //
-  // TODO: Resolve investor wallet from reference and trigger on-chain delivery:
-  //   const { walletAddress, amountUsdc } = await resolveDepositFromReference(data.reference);
-  //   await deliverUsdcFromTreasury(walletAddress, amountUsdc);
-
-  console.info('[webhook/modo] Payment approved', {
-    paymentId: data.paymentId,
-    amount: data.amount,
-    currency: data.currency,
-    reference: data.reference
+  return dispatchApprovedLocalWalletPayment({
+    externalReference: data.reference,
+    provider: 'modo',
+    providerPaymentId: data.paymentId ?? data.reference ?? null,
+    amountUsd: typeof data.amount === 'number' ? data.amount : null,
+    payload: {
+      ...data,
+      reference: data.reference,
+      paymentId: data.paymentId,
+      amount: data.amount,
+      currency: data.currency,
+      status: data.status ?? 'approved'
+    }
   });
-
-  return {
-    ok: true,
-    status: 'approved_pending_usdc_delivery',
-    paymentId: data.paymentId ?? null,
-    reference: data.reference ?? null
-  };
 }
 
 export async function POST(request: Request) {

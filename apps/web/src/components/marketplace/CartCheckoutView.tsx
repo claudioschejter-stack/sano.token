@@ -17,6 +17,7 @@ import {
   type DepositPaymentOption,
   type DepositPaymentOptionGroup
 } from '../../lib/payments/depositPaymentOptions';
+import { resolvePaymentCheckoutLabel } from '../../lib/payments/paymentCheckoutLabels';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
 import { isLocalRailManualResult, isPendingManualGatewayResult, isPrivyClientFundResult, isRipioOnRampResult, isWiseManualResult } from '../../lib/payments/stripeCheckoutOptions';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
@@ -1242,6 +1243,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
   const renderDepositOption = (option: DepositPaymentOption, displayLabel?: string) => {
     const selected = selectedDepositOptionId === option.id;
+    const localizedLabel = resolvePaymentCheckoutLabel(option.id, option.label, c.paymentMethods);
+    const label = displayLabel ?? localizedLabel;
     const isFiatOnRampDisplay = parseFiatOnRampDisplayId(option.id) !== null;
     const amountPrimary = isFiatOnRampDisplay
       ? formatUsd2(option.totalUsd, currencyLocale)
@@ -1275,7 +1278,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         >
           <div className="min-w-0 flex-1">
             <span className="block text-[120%] font-semibold leading-tight text-slate-900">
-              {displayLabel ?? option.label}
+              {label}
             </span>
             {!option.configured ? (
               <span className="mt-0.5 block text-[10px] font-medium uppercase text-amber-700">
@@ -1314,7 +1317,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           <div className={`${AMOUNT_RIGHT} text-[120%] font-bold text-blue-700`}>{amountPrimary}</div>
           <button
             type="button"
-            aria-label={displayLabel ?? option.label}
+            aria-label={label}
             aria-pressed={selected}
             onClick={(event) => {
               event.stopPropagation();
@@ -1352,7 +1355,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               <div className="py-[1mm]">
                 <WalletCheckoutConnectButton
                   optionId={option.id as CheckoutWalletOptionId}
-                  walletLabel={displayLabel ?? option.label}
+                  walletLabel={label}
                 />
               </div>
             ) : null}

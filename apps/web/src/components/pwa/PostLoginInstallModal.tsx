@@ -5,34 +5,30 @@ import { Download, Smartphone, X } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { useIsPwa } from '../../hooks/useIsPwa';
-
-const MODAL_SEEN_KEY = 'sanova.pwa.postlogin.seen';
+import { PWA_POSTLOGIN_SEEN_KEY, usePwaPreferences } from '../../hooks/usePwaPreferences';
 
 export function PostLoginInstallModal() {
   const t = useTranslation();
   const p = t.pwa;
   const { isDesktop } = useDeviceDetection();
   const isPwa = useIsPwa();
+  const { dismissed, installed, loaded } = usePwaPreferences();
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (!isDesktop || isPwa) {
+    if (!loaded || !isDesktop || isPwa || dismissed || installed) {
       return;
     }
 
-    if (window.localStorage.getItem(MODAL_SEEN_KEY) === '1') {
-      return;
-    }
-
-    if (window.localStorage.getItem('sanova.pwa.installed') === '1') {
+    if (window.localStorage.getItem(PWA_POSTLOGIN_SEEN_KEY) === '1') {
       return;
     }
 
     setOpen(true);
-  }, [isDesktop, isPwa]);
+  }, [dismissed, installed, isDesktop, isPwa, loaded]);
 
   function close() {
-    window.localStorage.setItem(MODAL_SEEN_KEY, '1');
+    window.localStorage.setItem(PWA_POSTLOGIN_SEEN_KEY, '1');
     setOpen(false);
   }
 
@@ -53,19 +49,17 @@ export function PostLoginInstallModal() {
         </div>
         <h2 className="mt-4 text-lg font-bold text-slate-900">{p.installDesktopTitle ?? p.installTitle}</h2>
         <p className="mt-2 text-sm text-slate-600">{p.installDesktopDesc ?? p.installDesc}</p>
-        <p className="mt-3 text-xs text-slate-500">
-          {p.installDesktopHint ?? 'Escaneá el código o abrí sanovacapital.com en tu celular y agregá la app a la pantalla de inicio.'}
+        <p className="mt-4 rounded-lg bg-slate-50 px-3 py-2 text-center text-xs text-slate-500">
+          {p.installDesktopQrHint ?? 'Escaneá el QR del manifest desde tu celular para instalar Sanova.'}
         </p>
-        <div className="mt-6 flex flex-col gap-3">
-          <a
-            href="/manifest.json"
-            className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={close}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500"
           >
             <Download size={16} />
             {p.installCta}
-          </a>
-          <button type="button" onClick={close} className="text-sm font-medium text-slate-500 hover:text-slate-700">
-            {p.installLater ?? 'Continuar en el navegador'}
           </button>
         </div>
       </div>

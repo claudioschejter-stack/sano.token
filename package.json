@@ -19,6 +19,7 @@
     "db:stablecoin-payments": "node scripts/apply-stablecoin-payments-migration.mjs",
     "db:project-yield": "node scripts/apply-project-yield-migration.mjs",
     "vercel:check-payments": "node scripts/vercel/check-payments-env.mjs",
+    "vercel:audit-production-env": "node scripts/vercel/audit-production-env.mjs",
     "vercel:sync-payments": "node scripts/vercel/sync-payments-env.mjs",
     "vercel:configure-payments": "node scripts/vercel/configure-payments-production.mjs",
     "vercel:configure-token-issuance": "node scripts/vercel/configure-token-issuance-production.mjs",
@@ -59,7 +60,7 @@
     "i18n:translate:fix": "tsx scripts/i18n/translate-from-es.mjs",
     "blog:translate": "tsx scripts/i18n/translate-blog-from-es.mjs",
     "legal:translate": "tsx scripts/i18n/translate-legal-from-es.mjs",
-    "test:rwa-launch-flow": "tsx scripts/test-rwa-launch-flow.ts"
+    "verify:supabase": "node scripts/verify-supabase-connectivity.mjs"
   },
   "devDependencies": {
     "translate-google": "^1.5.0",

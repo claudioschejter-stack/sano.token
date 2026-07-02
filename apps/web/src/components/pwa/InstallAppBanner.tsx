@@ -5,9 +5,7 @@ import { Download, Smartphone, X } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { useIsPwa } from '../../hooks/useIsPwa';
-
-const LOCAL_DISMISS_KEY = 'sanova.pwa.banner.dismissed';
-const LOCAL_INSTALLED_KEY = 'sanova.pwa.installed';
+import { usePwaPreferences } from '../../hooks/usePwaPreferences';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -19,22 +17,13 @@ export function InstallAppBanner() {
   const p = t.pwa;
   const { isDesktop } = useDeviceDetection();
   const isPwa = useIsPwa();
+  const { dismissed, installed, setDismissed, setInstalled, loaded } = usePwaPreferences();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [dismissed, setDismissed] = useState(false);
   const [isIos, setIsIos] = useState(false);
-  const [alreadyInstalled, setAlreadyInstalled] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
       return;
-    }
-
-    if (window.localStorage.getItem(LOCAL_DISMISS_KEY) === '1') {
-      setDismissed(true);
-    }
-
-    if (window.localStorage.getItem(LOCAL_INSTALLED_KEY) === '1') {
-      setAlreadyInstalled(true);
     }
 
     const ua = window.navigator.userAgent;
@@ -57,17 +46,16 @@ export function InstallAppBanner() {
 
   useEffect(() => {
     if (isPwa) {
-      window.localStorage.setItem(LOCAL_INSTALLED_KEY, '1');
+      setInstalled(true);
       void fetch('/api/user/preferences', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pwaInstalled: true })
       }).catch(() => undefined);
     }
-  }, [isPwa]);
+  }, [isPwa, setInstalled]);
 
   function dismissBanner() {
-    window.localStorage.setItem(LOCAL_DISMISS_KEY, '1');
     setDismissed(true);
     void fetch('/api/user/preferences', {
       method: 'PATCH',
@@ -77,12 +65,11 @@ export function InstallAppBanner() {
   }
 
   function markAlreadyHaveApp() {
-    window.localStorage.setItem(LOCAL_INSTALLED_KEY, '1');
-    setAlreadyInstalled(true);
+    setInstalled(true);
     dismissBanner();
   }
 
-  if (isPwa || dismissed || alreadyInstalled) {
+  if (!loaded || isPwa || dismissed || installed) {
     return null;
   }
 
@@ -113,7 +100,7 @@ export function InstallAppBanner() {
               onClick={() => {
                 void deferredPrompt.prompt().then(() => {
                   setDeferredPrompt(null);
-                  window.localStorage.setItem(LOCAL_INSTALLED_KEY, '1');
+                  setInstalled(true);
                 });
               }}
             >

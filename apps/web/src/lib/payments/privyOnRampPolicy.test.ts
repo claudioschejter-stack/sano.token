@@ -26,10 +26,10 @@ describe('privyOnRampPolicy', () => {
     expect(PRIVY_FIAT_ONRAMP_BASE_CHAIN).toBe('eip155:8453');
   });
 
-  it('hides Privy on-ramp in Argentina when dLocal is configured', () => {
+  it('offers Privy on-ramp in Argentina when Privy is configured', () => {
     process.env.DLOCAL_API_KEY = 'test';
     process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
-    expect(shouldOfferPrivyOnRampForCountry('AR')).toBe(false);
+    expect(shouldOfferPrivyOnRampForCountry('AR')).toBe(true);
     delete process.env.DLOCAL_API_KEY;
   });
 });

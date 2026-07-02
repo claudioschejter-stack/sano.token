@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
+import { useTurnstile } from '../../lib/security/useTurnstile';
 import { PasswordInput } from './PasswordInput';
 
 type DesktopLoginFlowProps = {
@@ -31,6 +32,7 @@ export function DesktopLoginFlow({
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const turnstile = useTurnstile();
 
   useEffect(() => {
     if (initialEmail.trim()) {
@@ -69,10 +71,16 @@ export function DesktopLoginFlow({
     setError(null);
     setLoading(true);
 
+    if (turnstile.enabled && !turnstile.token) {
+      setLoading(false);
+      setError(t.access.captchaRequired ?? 'Completá la verificación de seguridad.');
+      return;
+    }
+
     const step1Res = await fetch('/api/auth/login/step1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), password })
+      body: JSON.stringify({ email: email.trim(), password, turnstileToken: turnstile.token })
     });
 
     const step1Data = (await step1Res.json()) as {
@@ -85,6 +93,7 @@ export function DesktopLoginFlow({
 
     if (!step1Res.ok || !step1Data.ok) {
       setLoading(false);
+      turnstile.reset();
       if (step1Data.error === 'CUENTA_BLOQUEADA') {
         setError(t.access.accountLocked ?? 'Cuenta bloqueada temporalmente. Intentá más tarde.');
         return;
@@ -197,6 +206,8 @@ export function DesktopLoginFlow({
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
       ) : null}
+
+      {turnstile.widget}
 
       <button
         type="submit"

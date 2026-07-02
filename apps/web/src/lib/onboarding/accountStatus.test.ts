@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isAccountOperational } from './accountStatus';
+import { isAccountOperational, requiresTotpSetup } from './accountStatus';
 
 const baseUser = {
   email: 'user@example.com',
@@ -10,6 +10,11 @@ const baseUser = {
   accountStatus: 'ONBOARDING' as const,
   walletAddress: '0x1234567890123456789012345678901234567890',
   systemRole: 'ADMIN'
+};
+
+const investorUser = {
+  ...baseUser,
+  systemRole: 'INVESTOR' as const
 };
 
 describe('isAccountOperational wallet policy', () => {
@@ -35,13 +40,46 @@ describe('isAccountOperational wallet policy', () => {
     ).toBe(false);
   });
 
-  it('requires linked wallet for INVESTOR', () => {
+  it('requires linked wallet and TOTP for INVESTOR', () => {
     expect(
       isAccountOperational({
         ...baseUser,
         systemRole: 'INVESTOR',
-        walletAddress: '0x1234567890123456789012345678901234567890'
+        walletAddress: '0x1234567890123456789012345678901234567890',
+        totpEnabled: true
       })
     ).toBe(true);
+    expect(
+      isAccountOperational({
+        ...baseUser,
+        systemRole: 'INVESTOR',
+        walletAddress: '0x1234567890123456789012345678901234567890',
+        totpEnabled: false
+      })
+    ).toBe(false);
+  });
+});
+
+describe('requiresTotpSetup', () => {
+  it('requires TOTP for investors with KYC approved and linked wallet', () => {
+    expect(requiresTotpSetup(investorUser)).toBe(true);
+    expect(requiresTotpSetup({ ...investorUser, walletAddress: null })).toBe(false);
+    expect(requiresTotpSetup({ ...investorUser, kycStatus: 'PENDING' })).toBe(false);
+  });
+
+  it('does not require TOTP for platform ops roles', () => {
+    expect(requiresTotpSetup(baseUser)).toBe(false);
+    expect(requiresTotpSetup({ ...baseUser, systemRole: 'TREASURY' })).toBe(false);
+  });
+});
+
+describe('isAccountOperational TOTP policy', () => {
+  it('blocks INVESTOR without TOTP when KYC and wallet are ready', () => {
+    expect(isAccountOperational({ ...investorUser, totpEnabled: false })).toBe(false);
+    expect(isAccountOperational({ ...investorUser, totpEnabled: true })).toBe(true);
+  });
+
+  it('does not require TOTP for ADMIN even without totpEnabled', () => {
+    expect(isAccountOperational({ ...baseUser, totpEnabled: false })).toBe(true);
   });
 });

@@ -17,6 +17,7 @@ import {
   type PasskeyWebContext
 } from './passkeyConfig';
 import { issueAuthUser, updateUserRoleIfNeeded } from './issueAuthUser';
+import { is2faLocked, issueTempTotpToken, lockoutRemainingSeconds } from './totpService';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const LOGIN_TOKEN_TTL = '2m';
@@ -265,7 +266,17 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
 
   const passkey = await prisma.userPasskey.findUnique({
     where: { credentialId: response.id },
-    include: { user: { select: { id: true, email: true, systemRole: true } } }
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          systemRole: true,
+          totpEnabled: true,
+          locked2faUntil: true
+        }
+      }
+    }
   });
 
   if (!passkey) {
@@ -300,6 +311,17 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
 
   await prisma.webAuthnChallenge.delete({ where: { id: challengeRecord.id } }).catch(() => undefined);
 
+  const email = passkey.user.email;
+
+  if (passkey.user.totpEnabled) {
+    if (is2faLocked(passkey.user)) {
+      throw new Error(`CUENTA_BLOQUEADA:${lockoutRemainingSeconds(passkey.user)}`);
+    }
+
+    const tempToken = await issueTempTotpToken(passkey.user.id);
+    return { requiresTOTP: true as const, tempToken, email };
+  }
+
   const loginToken = await new SignJWT({ sub: passkey.user.id, purpose: 'passkey-login' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
@@ -316,7 +338,7 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
     }
   });
 
-  return { loginToken, email: passkey.user.email };
+  return { requiresTOTP: false as const, loginToken, email };
 }
 
 export async function verifyPasskeyLoginToken(loginToken: string) {

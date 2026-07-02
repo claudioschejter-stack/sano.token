@@ -14,6 +14,7 @@ import {
 import type { OnboardingProfile } from '../../lib/onboarding/profile';
 import { buildKycUrl } from '../../lib/auth/kycPaths';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
+import { useTurnstile } from '../../lib/security/useTurnstile';
 import { PasswordInput } from './PasswordInput';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
 
@@ -52,6 +53,7 @@ export function RegisterForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const turnstile = useTurnstile();
 
   const readOnly = Boolean(profileProp);
   const phoneLocked = readOnly && Boolean(profileProp?.phone);
@@ -140,6 +142,12 @@ export function RegisterForm({
 
     setLoading(true);
 
+    if (turnstile.enabled && !turnstile.token) {
+      setLoading(false);
+      setError(r.errors.CAPTCHA_REQUIRED ?? 'Completá la verificación de seguridad.');
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -149,7 +157,8 @@ export function RegisterForm({
           password,
           phone: contact.phone,
           termsAccepted: true,
-          inviteCode: inviteCode.trim() || undefined
+          inviteCode: inviteCode.trim() || undefined,
+          turnstileToken: turnstile.token
         })
       });
 
@@ -159,6 +168,7 @@ export function RegisterForm({
 
       if (!response.ok) {
         const key = data.error ?? 'GENERIC';
+        turnstile.reset();
         const message = r.errors[key as keyof typeof r.errors] ?? r.errors.GENERIC;
         if (key === 'INVALID_EMAIL') {
           setFieldErrors({ email: message });
@@ -346,13 +356,16 @@ export function RegisterForm({
       ) : null}
 
       {!readOnly ? (
-        <button
+        <>
+          {turnstile.widget}
+          <button
           type="submit"
           disabled={loading || !acceptedLegal}
           className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? r.submitting : r.submitButton}
         </button>
+        </>
       ) : null}
 
       {!readOnly && loginHref ? (

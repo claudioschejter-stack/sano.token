@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { markPaymentIntentFailed } from '../../../../lib/payments/paymentService';
+import { dispatchApprovedLocalWalletPayment } from '../../../../lib/payments/localWalletWebhookSettlement';
 import { verifyMercadoPagoSignature } from '../../../../lib/payments/webhookSecurity';
 
 export const dynamic = 'force-dynamic';
@@ -40,18 +41,27 @@ async function handleApprovedMercadoPagoPayment(payment: {
   transaction_amount?: number;
   metadata?: Record<string, unknown>;
 }) {
-  // Treasury Swap model: fiat remains at Mercado Pago; backend delivers USDC/tokens from treasury reserve.
-  // TODO: Ejecutar Smart Contract — mintTokens(userAddress, amount) on Base (chainId 8453)
-  // Example with viem/ethers after resolving the investor embedded wallet:
-  //   const userAddress = await resolveInvestorWalletFromMetadata(payment.metadata);
-  //   const tokenAmount = resolveSanovaTokenAmount(payment.metadata?.amountUsd ?? payment.transaction_amount);
-  //   await mintTokens(userAddress, tokenAmount);
-  return {
-    ok: true,
-    status: 'approved_pending_onchain_mint',
-    paymentId: payment.id ?? null,
-    externalReference: payment.external_reference ?? null
-  };
+  const metadata = payment.metadata ?? {};
+  const amountUsd =
+    typeof metadata.amountUsd === 'number'
+      ? metadata.amountUsd
+      : typeof payment.transaction_amount === 'number'
+        ? payment.transaction_amount
+        : null;
+
+  return dispatchApprovedLocalWalletPayment({
+    externalReference: payment.external_reference,
+    provider: 'mercado_pago',
+    providerPaymentId: payment.id !== undefined ? String(payment.id) : null,
+    amountUsd,
+    payload: {
+      ...metadata,
+      external_reference: payment.external_reference,
+      transaction_amount: payment.transaction_amount,
+      paymentId: payment.id ?? null,
+      status: payment.status ?? 'approved'
+    }
+  });
 }
 
 function mercadoPagoWebhookDataId(request: Request, event: { data?: { id?: string | number } }): string | null {

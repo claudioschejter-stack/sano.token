@@ -83,15 +83,31 @@ export function PasskeyLoginButton({
 
       const verifyData = (await verifyResponse.json()) as {
         loginToken?: string;
+        requiresTOTP?: boolean;
+        tempToken?: string;
         email?: string;
         error?: string;
+        remainingSeconds?: number;
       };
-      if (!verifyResponse.ok || !verifyData.loginToken) {
+      if (!verifyResponse.ok) {
         const code = verifyData.error ?? 'VERIFY_FAILED';
         if (code === 'PASSKEY_NOT_FOUND') {
           clearDevicePasskeyHint();
         }
+        if (code === 'CUENTA_BLOQUEADA') {
+          throw new Error(`CUENTA_BLOQUEADA:${verifyData.remainingSeconds ?? 0}`);
+        }
         throw new Error(code);
+      }
+
+      if (verifyData.requiresTOTP && verifyData.tempToken) {
+        const params = new URLSearchParams({ t: verifyData.tempToken, callbackUrl });
+        router.push(`/acceso/verificar-2fa?${params.toString()}`);
+        return;
+      }
+
+      if (!verifyData.loginToken) {
+        throw new Error('VERIFY_FAILED');
       }
 
       const hintEmail = verifyData.email?.trim().toLowerCase() || loginEmail;
@@ -127,7 +143,9 @@ export function PasskeyLoginButton({
               ? p.notRegistered
               : code === 'CHALLENGE_EXPIRED'
                 ? p.challengeExpired
-                : p.loginFailed
+                : code.startsWith('CUENTA_BLOQUEADA')
+                  ? (t.access.accountLocked ?? 'Cuenta bloqueada temporalmente. Intentá más tarde.')
+                  : p.loginFailed
         );
       }
     } finally {

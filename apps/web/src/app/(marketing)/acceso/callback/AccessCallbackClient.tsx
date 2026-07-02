@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../../i18n/LocaleProvider';
 import { resolveAuthenticatedDestination } from '../../../../lib/auth/redirects';
 import type { SystemRole } from '../../../../lib/auth/roles';
+import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from '../../../../lib/auth/kycPaths';
 import { useAccountStatus } from '../../../../hooks/useAccountStatus';
 
 export default function AccessCallbackClient() {
@@ -13,7 +14,7 @@ export default function AccessCallbackClient() {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const access = useTranslation().access;
-  const { isOperational, loading, refresh } = useAccountStatus();
+  const { isOperational, loading, refresh, checklist } = useAccountStatus();
   const diditSyncStarted = useRef(false);
   const [diditSyncing, setDiditSyncing] = useState(false);
   const hasDiditStatus = searchParams.has('status') || searchParams.has('verificationSessionId');
@@ -34,9 +35,19 @@ export default function AccessCallbackClient() {
 
     const returnTo = searchParams.get('returnTo');
     const role = (session?.user?.role ?? 'INVESTOR') as SystemRole;
-    const destination = resolveAuthenticatedDestination(role, returnTo, isOperational);
+
+    const needsTotpStep =
+      !isOperational &&
+      checklist?.kycApproved &&
+      checklist.walletLinked &&
+      !checklist.totpEnabled;
+
+    const destination = needsTotpStep
+      ? buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH, 'totp')
+      : resolveAuthenticatedDestination(role, returnTo, isOperational);
+
     router.replace(destination);
-  }, [diditSyncing, hasDiditStatus, isOperational, loading, router, searchParams, session?.authError, session?.user?.role, status]);
+  }, [checklist?.kycApproved, checklist?.totpEnabled, checklist?.walletLinked, diditSyncing, hasDiditStatus, isOperational, loading, router, searchParams, session?.authError, session?.user?.role, status]);
 
   useEffect(() => {
     if (status === 'authenticated' && hasDiditStatus && !diditSyncStarted.current) {

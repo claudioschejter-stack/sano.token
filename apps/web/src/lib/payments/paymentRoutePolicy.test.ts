@@ -15,7 +15,7 @@ describe('paymentRoutePolicy', () => {
     process.env = env;
   });
 
-  it('MX purchase: SPEI visible when dLocal configured, Privy hidden', () => {
+  it('MX purchase: SPEI and Privy on-ramp when dLocal and Privy configured', () => {
     process.env.DLOCAL_API_KEY = 'test-key';
     process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
 
@@ -25,16 +25,16 @@ describe('paymentRoutePolicy', () => {
 
     const quote = buildDepositPaymentOptions(100, 'MX', 17.5, { mode: 'purchase' });
     expect(quote.options.some((row) => row.id === 'spei' && row.configured)).toBe(true);
-    expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(false);
+    expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(true);
   });
 
-  it('IN purchase: UPI (PhonePe) visible when dLocal configured, Privy hidden', () => {
+  it('IN purchase: UPI (PhonePe) and Privy when dLocal and Privy configured', () => {
     process.env.DLOCAL_API_KEY = 'test-key';
     process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
 
     const quote = buildDepositPaymentOptions(100, 'IN', 83, { mode: 'purchase' });
     expect(quote.options.some((row) => row.id === 'phonepe' && row.configured)).toBe(true);
-    expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(false);
+    expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(true);
   });
 
   it('GB purchase: Privy on-ramp when configured (no dLocal local rails)', () => {

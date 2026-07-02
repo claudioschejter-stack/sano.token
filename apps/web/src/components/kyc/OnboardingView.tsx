@@ -91,6 +91,7 @@ function OnboardingContent() {
   const searchParams = useSearchParams();
   const returnTo = safeReturnTo(searchParams.get('returnTo'), '/marketplace');
   const diditReturn = searchParams.get('didit') === '1';
+  const requestedStepParam = searchParams.get('step');
 
   const { data: session, status } = useSession();
   const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
@@ -112,10 +113,30 @@ function OnboardingContent() {
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
 
-  const step = useMemo(
+  const computedStep = useMemo(
     () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, requireWallet, deferEmailToPrivy, systemRole),
     [checklist, deferEmailToPrivy, diditReturn, requireWallet, systemRole]
   );
+
+  const step = useMemo(() => {
+    if (!requestedStepParam || !ONBOARDING_STEPS.includes(requestedStepParam as Step)) {
+      return computedStep;
+    }
+
+    const requestedStep = requestedStepParam as Step;
+    const requestedIndex = ONBOARDING_STEPS.indexOf(requestedStep);
+    const computedIndex = ONBOARDING_STEPS.indexOf(computedStep);
+
+    if (requestedStep === 'totp' && computedStep === 'totp') {
+      return 'totp';
+    }
+
+    if (requestedIndex <= computedIndex) {
+      return requestedStep;
+    }
+
+    return computedStep;
+  }, [computedStep, requestedStepParam]);
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);
 
