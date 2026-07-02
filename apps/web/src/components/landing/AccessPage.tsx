@@ -6,6 +6,8 @@ import { Suspense, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { AdaptiveLoginFlow } from '../auth/AdaptiveLoginFlow';
+import { MobileAccessLanding } from '../auth/MobileAccessLanding';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
@@ -36,6 +38,7 @@ function buildRegisterHref(
 
 function AccessPageContent() {
   const router = useRouter();
+  const { isMobile } = useDeviceDetection();
   const t = useTranslation();
   const a = t.access;
   const legal = t.legal;
@@ -73,6 +76,10 @@ function AccessPageContent() {
     );
     router.replace(destination);
   }, [isOperational, returnTo, router, role, session?.user?.accessToken, status]);
+
+  if (isMobile) {
+    return <MobileAccessLanding />;
+  }
 
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (

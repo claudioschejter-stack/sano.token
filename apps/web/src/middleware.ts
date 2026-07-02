@@ -11,6 +11,7 @@ import {
   LOCALE_HEADER,
   parseLocalePath
 } from './lib/i18n/localeRouting';
+import { isMobileUserAgent, isMobileMarketingEntryPath } from './lib/auth/mobileUserAgent';
 import { requiresOnboardingGatePath, shouldRedirectToOnboarding } from './lib/auth/middlewarePolicy';
 
 const { auth } = NextAuth(authConfig);
@@ -102,6 +103,20 @@ export default auth((request) => {
   }
 
   const { pathname } = request.nextUrl;
+  const userAgent = request.headers.get('user-agent');
+
+  if (isMobileUserAgent(userAgent) && isMobileMarketingEntryPath(pathname)) {
+    const acceso = new URL('/acceso', request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      if (key !== 'tab' || value === 'register') {
+        acceso.searchParams.set(key, value);
+      }
+    });
+    if (pathname !== '/') {
+      acceso.searchParams.set('returnTo', pathname);
+    }
+    return withLocaleAndCountryHints(NextResponse.redirect(acceso), request);
+  }
 
   if (GEO_BLOCKED_PATHS.has(pathname)) {
     const country = request.headers.get('x-vercel-ip-country')?.toUpperCase();

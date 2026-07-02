@@ -27,18 +27,22 @@ import { PrivyOnboardingWallet } from './PrivyOnboardingWallet';
 import { isPrivyEnabled } from '../../lib/privy/config';
 
 import { TotpOnboardingStep } from '../auth/TotpOnboardingStep';
+import { BiometricOnboardingStep } from '../auth/BiometricOnboardingStep';
 import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 
-type Step = 'contact' | 'phone' | 'email' | 'identity' | 'wallet' | 'totp' | 'done';
+type Step = 'contact' | 'phone' | 'email' | 'identity' | 'wallet' | 'biometric' | 'totp' | 'done';
 
-const ONBOARDING_STEPS: Step[] = ['contact', 'phone', 'email', 'identity', 'wallet', 'totp', 'done'];
+const ONBOARDING_STEPS: Step[] = ['contact', 'phone', 'email', 'identity', 'wallet', 'biometric', 'totp', 'done'];
 
 function stepFromChecklist(
   checklist: ReturnType<typeof useAccountStatus>['checklist'],
   diditReturn: boolean,
   requireWallet: boolean,
   deferEmailToPrivy: boolean,
-  systemRole: ReturnType<typeof useAccountStatus>['systemRole']
+  systemRole: ReturnType<typeof useAccountStatus>['systemRole'],
+  passkeyRegistered: boolean,
+  isMobile: boolean
 ): Step {
   if (!checklist) {
     return 'contact';
@@ -69,6 +73,16 @@ function stepFromChecklist(
   }
 
   if (
+    isMobile &&
+    requiresInvestorStyleOnboarding(systemRole) &&
+    checklist.kycApproved &&
+    checklist.walletLinked &&
+    !passkeyRegistered
+  ) {
+    return 'biometric';
+  }
+
+  if (
     requiresInvestorStyleOnboarding(systemRole) &&
     checklist.kycApproved &&
     checklist.walletLinked &&
@@ -95,10 +109,13 @@ function OnboardingContent() {
 
   const { data: session, status } = useSession();
   const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
+  const { isMobile } = useDeviceDetection();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = Boolean(systemRole);
   const requirePhoneOtp = requiresPhoneVerification(systemRole);
   const deferEmailToPrivy = defersEmailVerificationToPrivy(systemRole);
+  const [passkeyRegistered, setPasskeyRegistered] = useState(false);
+  const [passkeyStatusLoaded, setPasskeyStatusLoaded] = useState(false);
 
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
@@ -114,8 +131,17 @@ function OnboardingContent() {
   const [resending, setResending] = useState(false);
 
   const computedStep = useMemo(
-    () => stepFromChecklist(checklist, diditReturn && !checklist?.kycApproved, requireWallet, deferEmailToPrivy, systemRole),
-    [checklist, deferEmailToPrivy, diditReturn, requireWallet, systemRole]
+    () =>
+      stepFromChecklist(
+        checklist,
+        diditReturn && !checklist?.kycApproved,
+        requireWallet,
+        deferEmailToPrivy,
+        systemRole,
+        passkeyRegistered,
+        isMobile
+      ),
+    [checklist, deferEmailToPrivy, diditReturn, isMobile, passkeyRegistered, requireWallet, systemRole]
   );
 
   const step = useMemo(() => {
@@ -131,12 +157,33 @@ function OnboardingContent() {
       return 'totp';
     }
 
+    if (requestedStep === 'biometric' && computedStep === 'biometric') {
+      return 'biometric';
+    }
+
     if (requestedIndex <= computedIndex) {
       return requestedStep;
     }
 
     return computedStep;
   }, [computedStep, requestedStepParam]);
+
+  useEffect(() => {
+    if (!sessionReady) {
+      return;
+    }
+
+    fetch('/api/auth/passkey/status')
+      .then((res) => res.json() as Promise<{ hasPasskeys: boolean }>)
+      .then(({ hasPasskeys }) => {
+        setPasskeyRegistered(hasPasskeys);
+        setPasskeyStatusLoaded(true);
+      })
+      .catch(() => {
+        setPasskeyRegistered(false);
+        setPasskeyStatusLoaded(true);
+      });
+  }, [sessionReady, checklist?.walletLinked]);
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);
 
@@ -489,9 +536,9 @@ function OnboardingContent() {
     }
   }, [returnTo, router, status]);
 
-  if (status === 'unauthenticated' || status === 'loading' || !sessionReady || (loading && !checklist)) {
+  if (status === 'unauthenticated' || status === 'loading' || !sessionReady || (loading && !checklist) || (isMobile && !passkeyStatusLoaded && checklist?.walletLinked)) {
     return (
-      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center text-slate-600">
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-white px-4 text-center text-slate-600">
         <p className="text-sm font-medium">{o.loading}</p>
         <Link href="/acceso" className="text-sm font-semibold text-blue-600 hover:text-blue-500">
           {o.backToAccess}
@@ -501,10 +548,10 @@ function OnboardingContent() {
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-slate-50 text-slate-900">
-      <InstallAppBanner />
+    <div className="flex min-h-[100dvh] flex-col bg-white text-slate-900">
+      {!isMobile ? <InstallAppBanner /> : null}
 
-      <header className="sticky top-0 z-10 border-b border-slate-200/80 bg-slate-50/95 px-4 py-4 backdrop-blur-md safe-top">
+      <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur-md safe-top">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white">
@@ -733,6 +780,15 @@ function OnboardingContent() {
               onError={setError}
             />
           )
+        ) : null}
+
+        {step === 'biometric' ? (
+          <BiometricOnboardingStep
+            onComplete={async () => {
+              setPasskeyRegistered(true);
+              await refresh({ silent: true });
+            }}
+          />
         ) : null}
 
         {step === 'totp' ? (

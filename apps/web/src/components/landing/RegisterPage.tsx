@@ -7,6 +7,8 @@ import { Suspense, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { RegisterForm } from '../auth/RegisterForm';
+import { MobileAccessLanding } from '../auth/MobileAccessLanding';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { DEFAULT_POST_ONBOARDING_PATH, buildKycUrl } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
@@ -39,6 +41,7 @@ function buildLoginHref(
 
 function RegisterPageContent() {
   const router = useRouter();
+  const { isMobile } = useDeviceDetection();
   const t = useTranslation();
   const a = t.access;
   const legal = t.legal;
@@ -69,6 +72,10 @@ function RegisterPageContent() {
     const destination = resolveAuthenticatedDestination(role, returnTo, isOperational);
     router.replace(destination);
   }, [isOperational, loginHref, returnTo, router, role, session?.user?.accessToken, status]);
+
+  if (isMobile) {
+    return <MobileAccessLanding defaultTab="register" />;
+  }
 
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (

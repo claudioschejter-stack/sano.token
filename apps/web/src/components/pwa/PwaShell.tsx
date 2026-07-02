@@ -38,7 +38,7 @@ export function PwaShell({ children }: Props) {
   }, []);
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#F5F5F5]">
+    <div className="flex min-h-dvh flex-col bg-white">
       <header className="sticky top-0 z-40 bg-[#009EE3] px-4 pb-4 pt-safe-top shadow-sm">
         <div className="flex items-center justify-between pt-3">
           <div className="flex items-center gap-3">
@@ -65,7 +65,7 @@ export function PwaShell({ children }: Props) {
 
       <main className="mobile-portal-main min-h-0 flex-1 overflow-y-auto px-4 pb-[5.5rem] pt-4">{children}</main>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-200 bg-white pb-safe">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white pb-safe">
         <div className="flex h-[4.5rem] items-center justify-around px-2">
           <Link
             href="/dashboard"
@@ -88,7 +88,7 @@ export function PwaShell({ children }: Props) {
           <div className="relative -top-5 flex w-16 flex-col items-center justify-center">
             <Link
               href="/marketplace/carrito"
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-[#009EE3] text-white shadow-lg shadow-[#009EE3]/30 ring-4 ring-[#F5F5F5]"
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-[#009EE3] text-white shadow-lg shadow-[#009EE3]/30 ring-4 ring-white"
               aria-label="Pagar / QR"
             >
               <ScanLine size={28} />

@@ -1,13 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { CheckCircle2, ChevronRight, Copy, Download, KeyRound, ShieldCheck, Smartphone } from 'lucide-react';
 import { OTPInput } from './OTPInput';
-import { PasskeyRegisterInline } from './PasskeyRegisterInline';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
+import {
+  googleAuthenticatorStoreUrl,
+  provisionGoogleAuthenticator
+} from '../../lib/auth/totpAuthenticatorLink';
+import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
-type Step = 'instructions' | 'qr' | 'confirm' | 'backup' | 'passkey';
+type Step = 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
 
 type Props = {
   onComplete: () => void | Promise<void>;
@@ -15,7 +19,7 @@ type Props = {
 
 export function TotpOnboardingStep({ onComplete }: Props) {
   const { isMobile } = useDeviceDetection();
-  const [step, setStep] = useState<Step>('instructions');
+  const [step, setStep] = useState<Step>(isMobile ? 'provision' : 'instructions');
   const [setupUri, setSetupUri] = useState('');
   const [setupSecret, setSetupSecret] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
@@ -24,6 +28,8 @@ export function TotpOnboardingStep({ onComplete }: Props) {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [loadingSetup, setLoadingSetup] = useState(false);
+  const [provisionAttempted, setProvisionAttempted] = useState(false);
+  const autoProvisionRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,6 +56,17 @@ export function TotpOnboardingStep({ onComplete }: Props) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMobile || !setupUri || autoProvisionRef.current) {
+      return;
+    }
+
+    autoProvisionRef.current = true;
+    provisionGoogleAuthenticator(setupUri);
+    setProvisionAttempted(true);
+    setStep('confirm');
+  }, [isMobile, setupUri]);
+
   async function confirmSetup(code: string) {
     if (code.length < 6) {
       return;
@@ -69,7 +86,7 @@ export function TotpOnboardingStep({ onComplete }: Props) {
 
     if (data.ok && data.backupCodes) {
       setBackupCodes(data.backupCodes);
-      setStep(isMobile ? 'passkey' : 'backup');
+      setStep('backup');
       return;
     }
 
@@ -98,20 +115,25 @@ export function TotpOnboardingStep({ onComplete }: Props) {
     URL.revokeObjectURL(url);
   }
 
+  const stepIndicators: Step[] = isMobile
+    ? ['provision', 'confirm', 'backup']
+    : ['instructions', 'qr', 'confirm', 'backup'];
+
   return (
     <section className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">Activá Google Authenticator</h2>
+        <h2 className="text-xl font-bold text-slate-900">Sanova Capital en Google Authenticator</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Para proteger tu cuenta, configurá el código de 6 dígitos de Sanova Capital antes de ingresar a
-          la plataforma.
+          {isMobile
+            ? 'Instalamos la entrada de Sanova Capital en tu autenticador. Confirmá el código de 6 dígitos para continuar.'
+            : 'Para proteger tu cuenta, configurá el código de 6 dígitos de Sanova Capital antes de ingresar a la plataforma.'}
         </p>
       </div>
 
       <div className="flex items-center gap-2">
-        {(['instructions', 'qr', 'confirm', 'backup'] as Step[]).map((s, i) => {
-          const stepIndex = (['instructions', 'qr', 'confirm', 'backup'] as Step[]).indexOf(step);
-          const isActive = s === step;
+        {stepIndicators.map((s, i) => {
+          const stepIndex = stepIndicators.indexOf(step === 'qr' ? 'provision' : step);
+          const isActive = s === step || (step === 'qr' && s === 'provision');
           const isDone = i < stepIndex;
           return (
             <div key={s} className="flex flex-1 flex-col items-center gap-1">
@@ -120,9 +142,10 @@ export function TotpOnboardingStep({ onComplete }: Props) {
                   isDone
                     ? 'bg-emerald-500 text-white'
                     : isActive
-                      ? 'bg-blue-600 text-white'
+                      ? 'text-white'
                       : 'bg-slate-200 text-slate-500'
                 }`}
+                style={isActive && !isDone ? { backgroundColor: MP_ACCENT } : undefined}
               >
                 {isDone ? <CheckCircle2 size={16} /> : i + 1}
               </div>
@@ -131,7 +154,51 @@ export function TotpOnboardingStep({ onComplete }: Props) {
         })}
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm ring-1 ring-slate-100">
+        {step === 'provision' ? (
+          <div className="space-y-6 text-center">
+            <div className="flex justify-center">
+              <div
+                className="flex h-20 w-20 items-center justify-center rounded-2xl text-white"
+                style={{ backgroundColor: MP_ACCENT }}
+              >
+                <Smartphone size={36} />
+              </div>
+            </div>
+            <p className="text-sm text-slate-600">
+              {loadingSetup
+                ? 'Preparando Sanova Capital en Google Authenticator…'
+                : provisionAttempted
+                  ? 'Si no se abrió la app, tocá el botón para instalar Google Authenticator y agregar Sanova Capital.'
+                  : 'Abriendo Google Authenticator…'}
+            </p>
+            <button
+              type="button"
+              disabled={!setupUri || loadingSetup}
+              onClick={() => {
+                if (setupUri) {
+                  provisionGoogleAuthenticator(setupUri);
+                  setProvisionAttempted(true);
+                  setStep('confirm');
+                }
+              }}
+              className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              style={{ backgroundColor: MP_ACCENT }}
+            >
+              {loadingSetup ? 'Preparando…' : 'Abrir Google Authenticator'}
+              <ChevronRight size={16} />
+            </button>
+            <a
+              href={googleAuthenticatorStoreUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm font-medium text-slate-500 underline-offset-2 hover:underline"
+            >
+              Instalar Google Authenticator
+            </a>
+          </div>
+        ) : null}
+
         {step === 'instructions' ? (
           <div className="space-y-6 text-center">
             <div className="flex justify-center">
@@ -142,30 +209,12 @@ export function TotpOnboardingStep({ onComplete }: Props) {
             <p className="text-sm text-slate-500">
               Descargá Google Authenticator en tu teléfono. También funciona con Authy u otra app TOTP.
             </p>
-            <div className="flex justify-center gap-3">
-              <a
-                href="https://apps.apple.com/app/google-authenticator/id388497605"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                App Store
-              </a>
-              <a
-                href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                Google Play
-              </a>
-            </div>
             <button
               type="button"
               onClick={() => setStep('qr')}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
             >
-              Ya la tengo instalada
+              Continuar
               <ChevronRight size={16} />
             </button>
           </div>
@@ -174,7 +223,8 @@ export function TotpOnboardingStep({ onComplete }: Props) {
         {step === 'qr' ? (
           <div className="space-y-6">
             <p className="text-center text-sm text-slate-500">
-              Escaneá el QR con Google Authenticator. La entrada aparecerá como <strong>Sanova Capital</strong>.
+              Escaneá el QR con Google Authenticator. La entrada aparecerá como{' '}
+              <strong>Sanova Capital</strong>.
             </p>
             {loadingSetup || !setupUri ? (
               <div className="flex h-52 items-center justify-center">
@@ -228,7 +278,7 @@ export function TotpOnboardingStep({ onComplete }: Props) {
                 </div>
               </div>
               <p className="text-sm text-slate-500">
-                Ingresá el código de 6 dígitos que muestra Google Authenticator para Sanova Capital.
+                Ingresá el código de 6 dígitos de <strong>Sanova Capital</strong> en Google Authenticator.
               </p>
             </div>
             <OTPInput
@@ -244,10 +294,20 @@ export function TotpOnboardingStep({ onComplete }: Props) {
               type="button"
               onClick={() => void confirmSetup(confirmCode)}
               disabled={confirmLoading || confirmCode.length < 6}
-              className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
+              className="flex min-h-14 w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+              style={{ backgroundColor: MP_ACCENT }}
             >
               {confirmLoading ? 'Verificando…' : 'Activar autenticador'}
             </button>
+            {isMobile && setupUri ? (
+              <button
+                type="button"
+                onClick={() => provisionGoogleAuthenticator(setupUri)}
+                className="w-full text-sm font-medium text-slate-500 underline-offset-2 hover:underline"
+              >
+                Reabrir Google Authenticator
+              </button>
+            ) : null}
           </div>
         ) : null}
 
@@ -302,30 +362,6 @@ export function TotpOnboardingStep({ onComplete }: Props) {
               <CheckCircle2 size={16} />
               Continuar a la plataforma
             </button>
-          </div>
-        ) : null}
-
-        {step === 'passkey' ? (
-          <div className="space-y-6">
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <p className="text-sm font-medium text-amber-900">Códigos de recuperación (guardalos)</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {backupCodes.map((code) => (
-                  <code
-                    key={code}
-                    className="rounded-lg bg-white px-2 py-1 text-center font-mono text-xs font-bold text-slate-800"
-                  >
-                    {code}
-                  </code>
-                ))}
-              </div>
-            </div>
-            <PasskeyRegisterInline
-              variant="onboarding"
-              showSkip
-              onSkip={() => void onComplete()}
-              onRegistered={() => void onComplete()}
-            />
           </div>
         ) : null}
       </div>
