@@ -38,7 +38,28 @@ describe('buildOnboardingChecklist email gate', () => {
     expect(checklist.kycEnabled).toBe(false);
   });
 
-  it('enables KYC after email verification', () => {
+  it('enables KYC after email and phone verification', () => {
+    const checklist = buildOnboardingChecklist(
+      {
+        email: 'investor@example.com',
+        phone: '+5492617513426',
+        emailVerifiedAt: new Date(),
+        phoneVerifiedAt: new Date(),
+        kycStatus: 'PENDING',
+        accountStatus: 'ONBOARDING',
+        walletAddress: null,
+        systemRole: 'INVESTOR',
+        totpEnabled: false
+      },
+      true
+    );
+
+    expect(checklist.emailVerified).toBe(true);
+    expect(checklist.phoneVerified).toBe(true);
+    expect(checklist.kycEnabled).toBe(true);
+  });
+
+  it('blocks KYC until phone OTP is verified for investors', () => {
     const checklist = buildOnboardingChecklist(
       {
         email: 'investor@example.com',
@@ -55,7 +76,7 @@ describe('buildOnboardingChecklist email gate', () => {
     );
 
     expect(checklist.emailVerified).toBe(true);
-    expect(checklist.kycEnabled).toBe(true);
+    expect(checklist.kycEnabled).toBe(false);
   });
 });
 

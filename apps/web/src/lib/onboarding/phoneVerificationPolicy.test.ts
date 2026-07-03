@@ -6,22 +6,34 @@ import {
 } from './phoneVerificationPolicy';
 
 describe('phoneVerificationPolicy', () => {
-  it('does not require OTP for any role', () => {
+  it('requires OTP for marketplace-facing roles only', () => {
     expect(requiresPhoneVerification('ADMIN')).toBe(false);
-    expect(requiresPhoneVerification('INVESTOR')).toBe(false);
-    expect(requiresPhoneVerification('ADVISOR')).toBe(false);
+    expect(requiresPhoneVerification('INVESTOR')).toBe(true);
+    expect(requiresPhoneVerification('ADVISOR')).toBe(true);
+    expect(requiresPhoneVerification('TREASURY')).toBe(false);
   });
 
-  it('treats phone verification as satisfied for all roles', () => {
+  it('requires phoneVerifiedAt for roles with OTP enabled', () => {
     expect(
       isPhoneVerificationSatisfied({ systemRole: 'INVESTOR', phoneVerifiedAt: null })
+    ).toBe(false);
+    expect(
+      isPhoneVerificationSatisfied({ systemRole: 'INVESTOR', phoneVerifiedAt: new Date() })
     ).toBe(true);
     expect(
       isPhoneVerificationSatisfied({ systemRole: 'ADMIN', phoneVerifiedAt: null })
     ).toBe(true);
   });
 
-  it('completes contact with phone captured but without OTP', () => {
+  it('completes contact when email and phone requirements are met', () => {
+    expect(
+      isContactStepComplete({
+        systemRole: 'INVESTOR',
+        emailVerifiedAt: new Date(),
+        phoneVerifiedAt: new Date(),
+        phone: '+5492617513426'
+      })
+    ).toBe(true);
     expect(
       isContactStepComplete({
         systemRole: 'INVESTOR',
@@ -29,7 +41,7 @@ describe('phoneVerificationPolicy', () => {
         phoneVerifiedAt: null,
         phone: '+5492617513426'
       })
-    ).toBe(true);
+    ).toBe(false);
     expect(
       isContactStepComplete({
         systemRole: 'ADMIN',
@@ -53,22 +65,6 @@ describe('phoneVerificationPolicy', () => {
           phone: '+5492617513426'
         })
       ).toBe(false);
-      expect(
-        isContactStepComplete({
-          systemRole: 'ADMIN',
-          emailVerifiedAt: null,
-          phoneVerifiedAt: null,
-          phone: '+5492617513426'
-        })
-      ).toBe(false);
-      expect(
-        isContactStepComplete({
-          systemRole: 'INVESTOR',
-          emailVerifiedAt: new Date(),
-          phoneVerifiedAt: null,
-          phone: '+5492617513426'
-        })
-      ).toBe(true);
     } finally {
       if (previous === undefined) {
         delete process.env.NEXT_PUBLIC_PRIVY_APP_ID;

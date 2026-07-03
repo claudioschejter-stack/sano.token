@@ -6,6 +6,7 @@ import { AdvisorDashboardHome } from '../../../components/advisor/AdvisorDashboa
 import { ManagerDashboardHome } from '../../../components/advisor/ManagerDashboardHome';
 import { FinancialOverview } from '../../../components/dashboard/FinancialOverview';
 import { DashboardSkeleton } from '../../../components/dashboard/DashboardSkeleton';
+import { PanelInstallAppSection } from '../../../components/pwa/PanelInstallAppSection';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -16,29 +17,29 @@ export default function DashboardPage() {
 
   const role = session?.user?.role;
 
+  let content;
   if (role === 'ADMIN') {
-    return <AdminOverview />;
-  }
-
-  if (role === 'ADVISOR_MANAGER') {
-    return <ManagerDashboardHome />;
-  }
-
-  if (role === 'ADVISOR') {
-    return <AdvisorDashboardHome />;
-  }
-
-  if (role === 'INVESTOR') {
-    return <FinancialOverview />;
-  }
-
-  if (role === 'TREASURY' || role === 'OPERATOR') {
-    return <FinancialOverview />;
+    content = <AdminOverview />;
+  } else if (role === 'ADVISOR_MANAGER') {
+    content = <ManagerDashboardHome />;
+  } else if (role === 'ADVISOR') {
+    content = <AdvisorDashboardHome />;
+  } else if (role === 'INVESTOR') {
+    content = <FinancialOverview />;
+  } else if (role === 'TREASURY' || role === 'OPERATOR') {
+    content = <FinancialOverview />;
+  } else {
+    content = (
+      <div className="mx-auto max-w-lg rounded-xl border border-terminal-border bg-terminal-card p-8 text-center text-terminal-muted">
+        Panel no disponible para este rol.
+      </div>
+    );
   }
 
   return (
-    <div className="mx-auto max-w-lg rounded-xl border border-terminal-border bg-terminal-card p-8 text-center text-terminal-muted">
-      Panel no disponible para este rol.
-    </div>
+    <>
+      <PanelInstallAppSection />
+      {content}
+    </>
   );
 }

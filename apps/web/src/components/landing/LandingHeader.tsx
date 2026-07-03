@@ -5,7 +5,6 @@ import { ArrowRight } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { SanovaLogo } from '../brand/SanovaLogo';
 import { LanguageDropdown } from './LanguageDropdown';
-import { MobileAuthEntryLink } from '../pwa/MobileAuthEntryLink';
 import { platformEntryCtaClassName } from './MarketplaceCtaLink';
 
 const headerSignUpClass =
@@ -57,12 +56,12 @@ export function LandingHeader({ showLanguageSelector = false }: LandingHeaderPro
 
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2 lg:flex-none lg:shrink-0">
           <div className="flex min-w-0 flex-1 items-center justify-end gap-2 lg:hidden">
-            <MobileAuthEntryLink href="/acceso/registro" className={headerSignUpMobileClass}>
+            <Link href="/acceso/registro" className={headerSignUpMobileClass}>
               {l.nav.signUp}
-            </MobileAuthEntryLink>
-            <MobileAuthEntryLink href="/acceso" className={headerSignInMobileClass}>
+            </Link>
+            <Link href="/acceso" className={headerSignInMobileClass}>
               {l.nav.signIn}
-            </MobileAuthEntryLink>
+            </Link>
           </div>
 
           <div className="hidden items-center gap-3 lg:flex">

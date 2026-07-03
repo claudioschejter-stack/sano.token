@@ -6,62 +6,45 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   CheckCircle2,
-  Mail,
-  Phone,
   Smartphone
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { buildAndValidateE164Phone } from '../../lib/auth/contactValidation';
 import { requiresPhoneVerification } from '../../lib/onboarding/phoneVerificationPolicy';
 import { defersEmailVerificationToPrivy } from '../../lib/onboarding/emailVerificationPolicy';
-import {
-  COUNTRY_DIAL_CODES,
-  DEFAULT_DIAL_CODE,
-  parseE164Phone
-} from '../../lib/auth/countryDialCodes';
 import { safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
-import { InstallAppBanner } from '../pwa/InstallAppBanner';
 import { ActivateWalletStep } from './ActivateWalletStep';
 import { PrivyOnboardingWallet } from './PrivyOnboardingWallet';
 import { isPrivyEnabled } from '../../lib/privy/config';
 
 import { TotpOnboardingStep } from '../auth/TotpOnboardingStep';
-import { BiometricOnboardingStep } from '../auth/BiometricOnboardingStep';
 import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
-import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 
-type Step = 'contact' | 'phone' | 'email' | 'identity' | 'wallet' | 'biometric' | 'totp' | 'done';
+type Step = 'email' | 'phone' | 'identity' | 'wallet' | 'totp' | 'done';
 
-const ONBOARDING_STEPS: Step[] = ['contact', 'phone', 'email', 'identity', 'wallet', 'biometric', 'totp', 'done'];
+const ONBOARDING_STEPS: Step[] = ['email', 'phone', 'identity', 'wallet', 'totp', 'done'];
 
 function stepFromChecklist(
   checklist: ReturnType<typeof useAccountStatus>['checklist'],
   diditReturn: boolean,
   requireWallet: boolean,
   deferEmailToPrivy: boolean,
-  systemRole: ReturnType<typeof useAccountStatus>['systemRole'],
-  passkeyRegistered: boolean,
-  isMobile: boolean
+  systemRole: ReturnType<typeof useAccountStatus>['systemRole']
 ): Step {
   if (!checklist) {
-    return 'contact';
-  }
-
-  if (!checklist.phone) {
-    return 'contact';
-  }
-
-  if (!checklist.phoneVerified) {
-    return 'phone';
-  }
-
-  if (!checklist.emailVerified) {
     return 'email';
   }
 
+  if (!checklist.emailVerified && !deferEmailToPrivy) {
+    return 'email';
+  }
+
+  if (!checklist.phoneVerified && requiresPhoneVerification(systemRole)) {
+    return 'phone';
+  }
+
   if (!checklist.kycEnabled) {
-    return 'contact';
+    return 'email';
   }
 
   if (!checklist.kycApproved || diditReturn) {
@@ -70,16 +53,6 @@ function stepFromChecklist(
 
   if (requireWallet && !checklist.walletLinked) {
     return 'wallet';
-  }
-
-  if (
-    isMobile &&
-    requiresInvestorStyleOnboarding(systemRole) &&
-    checklist.kycApproved &&
-    checklist.walletLinked &&
-    !passkeyRegistered
-  ) {
-    return 'biometric';
   }
 
   if (
@@ -110,16 +83,10 @@ function OnboardingContent() {
 
   const { data: session, status, update: updateSession } = useSession();
   const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
-  const { isMobile } = useDeviceDetection();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = Boolean(systemRole);
-  const requirePhoneOtp = requiresPhoneVerification(systemRole);
   const deferEmailToPrivy = defersEmailVerificationToPrivy(systemRole);
-  const [passkeyRegistered, setPasskeyRegistered] = useState(false);
-  const [passkeyStatusLoaded, setPasskeyStatusLoaded] = useState(false);
 
-  const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
-  const [phoneLocal, setPhoneLocal] = useState('');
   const [emailCode, setEmailCode] = useState('');
   const [phoneCode, setPhoneCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -138,11 +105,9 @@ function OnboardingContent() {
         diditReturn && !checklist?.kycApproved,
         requireWallet,
         deferEmailToPrivy,
-        systemRole,
-        passkeyRegistered,
-        isMobile
+        systemRole
       ),
-    [checklist, deferEmailToPrivy, diditReturn, isMobile, passkeyRegistered, requireWallet, systemRole]
+    [checklist, deferEmailToPrivy, diditReturn, requireWallet, systemRole]
   );
 
   const step = useMemo(() => {
@@ -166,10 +131,6 @@ function OnboardingContent() {
       return 'totp';
     }
 
-    if (requestedStep === 'biometric' && computedStep === 'biometric') {
-      return 'biometric';
-    }
-
     // Allow revisiting an earlier step only (?step=email while already on wallet).
     if (requestedIndex < computedIndex) {
       return requestedStep;
@@ -177,23 +138,6 @@ function OnboardingContent() {
 
     return computedStep;
   }, [checklist?.operational, computedStep, requestedStepParam]);
-
-  useEffect(() => {
-    if (!sessionReady) {
-      return;
-    }
-
-    fetch('/api/auth/passkey/status')
-      .then((res) => res.json() as Promise<{ hasPasskeys: boolean }>)
-      .then(({ hasPasskeys }) => {
-        setPasskeyRegistered(hasPasskeys);
-        setPasskeyStatusLoaded(true);
-      })
-      .catch(() => {
-        setPasskeyRegistered(false);
-        setPasskeyStatusLoaded(true);
-      });
-  }, [sessionReady, checklist?.walletLinked]);
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);
 
@@ -220,23 +164,6 @@ function OnboardingContent() {
     await updateSession({ accountOperational: true });
     router.replace(returnTo);
   }, [refresh, returnTo, router, updateSession]);
-
-  useEffect(() => {
-    if (!checklist?.phone || phoneLocal) {
-      return;
-    }
-
-    const parsed = parseE164Phone(checklist.phone);
-    if (parsed) {
-      setDialCode(parsed.dialCode);
-      setPhoneLocal(parsed.local);
-    }
-  }, [checklist?.phone, phoneLocal]);
-
-  const validatedPhone = useMemo(
-    () => buildAndValidateE164Phone(dialCode, phoneLocal),
-    [dialCode, phoneLocal]
-  );
 
   useEffect(() => {
     if (!isOperational) {
@@ -431,46 +358,6 @@ function OnboardingContent() {
     }
   }, [phoneCode, o.errors, refresh]);
 
-  const submitContact = useCallback(async () => {
-    const phone = buildAndValidateE164Phone(dialCode, phoneLocal);
-    if (!phone) {
-      setError(o.errors.INVALID_PHONE);
-      return;
-    }
-
-    setBusy(true);
-    setError(null);
-    setDevHint(null);
-
-    try {
-      const response = await fetch('/api/onboarding/contact', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone })
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        devCodes?: { email?: string; phone?: string };
-      };
-
-      if (!response.ok) {
-        setError(o.errors[data.error ?? 'GENERIC'] ?? o.errors.GENERIC);
-        return;
-      }
-
-      if (data.devCodes?.email) {
-        setDevHint(`Email: ${data.devCodes.email}`);
-      }
-
-      await refresh({ silent: Boolean(checklist) });
-    } catch {
-      setError(o.errors.GENERIC);
-    } finally {
-      setBusy(false);
-    }
-  }, [checklist, dialCode, o.errors, phoneLocal, refresh]);
-
   const verifyEmail = useCallback(async () => {
     setBusy(true);
     setError(null);
@@ -570,7 +457,7 @@ function OnboardingContent() {
     }
   }, [returnTo, router, status]);
 
-  if (status === 'unauthenticated' || status === 'loading' || !sessionReady || (loading && !checklist) || (isMobile && !passkeyStatusLoaded && checklist?.walletLinked)) {
+  if (status === 'unauthenticated' || status === 'loading' || !sessionReady || (loading && !checklist)) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-white px-4 text-center text-slate-600">
         <p className="text-sm font-medium">{o.loading}</p>
@@ -583,8 +470,6 @@ function OnboardingContent() {
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-white text-slate-900">
-      {!isMobile ? <InstallAppBanner /> : null}
-
       <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur-md safe-top">
         <div className="mx-auto flex w-full max-w-md items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -602,9 +487,9 @@ function OnboardingContent() {
         </div>
 
         <div className="mx-auto mt-4 flex w-full max-w-md gap-1.5">
-          {[0, 1, 2, 3].map((index) => (
+          {ONBOARDING_STEPS.slice(0, -1).map((stepKey, index) => (
             <div
-              key={index}
+              key={stepKey}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
                 progressIndex >= index ? 'bg-blue-600' : 'bg-slate-200'
               }`}
@@ -636,56 +521,6 @@ function OnboardingContent() {
           <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
             <p className="text-sm font-semibold text-emerald-800">{o.steps.emailApproved}</p>
           </div>
-        ) : null}
-
-        {step === 'contact' ? (
-          <section className="space-y-4">
-            <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
-            <p className="text-sm text-slate-600">{o.steps.contactDesc}</p>
-
-            <label className="block">
-              <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
-                <Mail size={16} /> {o.fields.email}
-              </span>
-              <input
-                readOnly
-                value={session?.user?.email ?? checklist?.email ?? ''}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-4 text-base text-slate-500"
-              />
-            </label>
-
-            <label className="block">
-              <span className="mb-2 flex items-center gap-2 text-sm font-medium text-slate-700">
-                <Phone size={16} /> {o.fields.phone}
-              </span>
-              <div className="flex gap-2">
-                <select
-                  aria-label={o.fields.countryLabel}
-                  value={dialCode}
-                  onChange={(event) => setDialCode(event.target.value)}
-                  className="min-h-14 w-[7.5rem] shrink-0 rounded-2xl border border-slate-200 bg-white px-2 py-4 text-base outline-none ring-blue-500 focus:ring-2"
-                >
-                  {COUNTRY_DIAL_CODES.map((country) => (
-                    <option key={country.code} value={country.code}>
-                      {country.flag} {country.iso} {country.code}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  autoComplete="tel-national"
-                  placeholder={o.fields.phonePlaceholder}
-                  value={phoneLocal}
-                  onChange={(event) => setPhoneLocal(event.target.value.replace(/\D/g, ''))}
-                  className="min-h-14 min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-4 text-base outline-none ring-blue-500 focus:ring-2"
-                />
-              </div>
-              <p className="mt-2 text-xs text-slate-500">
-                {requirePhoneOtp ? o.fields.phoneHintAdmin : o.fields.phoneHint}
-              </p>
-            </label>
-          </section>
         ) : null}
 
         {step === 'phone' ? (
@@ -816,15 +651,6 @@ function OnboardingContent() {
           )
         ) : null}
 
-        {step === 'biometric' ? (
-          <BiometricOnboardingStep
-            onComplete={async () => {
-              setPasskeyRegistered(true);
-              await refresh({ silent: true });
-            }}
-          />
-        ) : null}
-
         {step === 'totp' ? (
           <TotpOnboardingStep preferConfirm={totpPreferConfirm} onComplete={handleTotpComplete} />
         ) : null}
@@ -845,13 +671,11 @@ function OnboardingContent() {
               type="button"
               disabled={
                 busy ||
-                (step === 'contact' && !validatedPhone) ||
                 (step === 'phone' && phoneCode.length !== 6) ||
                 (step === 'email' && emailCode.length !== 6)
               }
               onClick={() => {
-                if (step === 'contact') void submitContact();
-                else if (step === 'phone') void verifyPhone();
+                if (step === 'phone') void verifyPhone();
                 else if (step === 'email') void verifyEmail();
               }}
               className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 text-base font-semibold text-white disabled:opacity-60"
