@@ -71,7 +71,8 @@ export function getTotpUri(secret: string, email: string): string {
 }
 
 export function verifyTotpCode(secret: string, token: string): boolean {
-  return authenticator.check(token, secret);
+  // Allow ±1 step (30s) for phone clock drift during mobile onboarding.
+  return authenticator.verify({ token, secret, window: 1 });
 }
 
 // ---------------------------------------------------------------------------

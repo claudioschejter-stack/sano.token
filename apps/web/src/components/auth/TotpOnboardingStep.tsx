@@ -53,14 +53,12 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
   const { isMobile } = useDeviceDetection();
   const storedStep = readStoredStep();
   const [pendingSetup, setPendingSetup] = useState(false);
-  const [step, setStep] = useState<Step>(() => {
-    const initial = initialTotpOnboardingStep({
+  const [step, setStep] = useState<Step>(() =>
+    initialTotpOnboardingStep({
       isMobile,
-      preferConfirm,
       storedStep
-    });
-    return initial === 'confirm' ? 'confirm' : initial;
-  });
+    })
+  );
   const [setupUri, setSetupUri] = useState('');
   const [setupSecret, setSetupSecret] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
@@ -70,8 +68,9 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
   const [copied, setCopied] = useState(false);
   const [loadingSetup, setLoadingSetup] = useState(false);
   const [provisionAttempted, setProvisionAttempted] = useState(
-    shouldStartTotpOnConfirmStep({ preferConfirm, storedStep }) || storedStep === 'confirm'
+    shouldStartTotpOnConfirmStep({ storedStep }) || storedStep === 'confirm'
   );
+  const [resettingSetup, setResettingSetup] = useState(false);
   const setupLoadedRef = useRef(false);
   const onCompleteRef = useRef(onComplete);
 
@@ -95,7 +94,6 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
 
         if (
           shouldStartTotpOnConfirmStep({
-            preferConfirm,
             pendingSetup: hasPendingSetup,
             storedStep
           })
@@ -122,6 +120,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
         if (!cancelled && data.uri && data.secret) {
           setSetupUri(data.uri);
           setSetupSecret(data.secret);
+          setPendingSetup(true);
         }
       } finally {
         if (!cancelled) {
@@ -135,7 +134,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     return () => {
       cancelled = true;
     };
-  }, [isMobile, preferConfirm, storedStep]);
+  }, [isMobile, storedStep]);
 
   useEffect(() => {
     const onPageShow = () => {
@@ -153,6 +152,57 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
   function goToStep(next: Step) {
     setStep(next);
     persistStep(next === 'instructions' || next === 'provision' || next === 'qr' ? null : next);
+  }
+
+  async function loadTotpSetup(options?: { force?: boolean }) {
+    setLoadingSetup(true);
+    setConfirmError('');
+
+    try {
+      const res = await fetch('/api/auth/totp/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: Boolean(options?.force) })
+      });
+      const data = (await res.json()) as { uri?: string; secret?: string; error?: string };
+
+      if (data.uri && data.secret) {
+        setSetupUri(data.uri);
+        setSetupSecret(data.secret);
+        setPendingSetup(true);
+        return data.uri;
+      }
+    } finally {
+      setLoadingSetup(false);
+    }
+
+    return null;
+  }
+
+  function syncGoogleAuthenticator(uri = setupUri) {
+    if (!uri) {
+      return;
+    }
+
+    persistStep('confirm');
+    provisionGoogleAuthenticator(uri);
+    setProvisionAttempted(true);
+    goToStep('confirm');
+  }
+
+  async function resetTotpSetup() {
+    setResettingSetup(true);
+    setConfirmCode('');
+    setConfirmError('');
+
+    const uri = await loadTotpSetup({ force: true });
+    if (uri) {
+      syncGoogleAuthenticator(uri);
+    } else {
+      setConfirmError('No pudimos regenerar el autenticador. Intentá de nuevo.');
+    }
+
+    setResettingSetup(false);
   }
 
   async function confirmSetup(code: string) {
@@ -265,14 +315,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
             <button
               type="button"
               disabled={!setupUri || loadingSetup}
-              onClick={() => {
-                if (setupUri) {
-                  persistStep('confirm');
-                  provisionGoogleAuthenticator(setupUri);
-                  setProvisionAttempted(true);
-                  goToStep('confirm');
-                }
-              }}
+              onClick={() => syncGoogleAuthenticator()}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
               style={{ backgroundColor: MP_ACCENT }}
             >
@@ -290,6 +333,10 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
             <button
               type="button"
               onClick={() => {
+                if (setupUri) {
+                  syncGoogleAuthenticator();
+                  return;
+                }
                 setProvisionAttempted(true);
                 goToStep('confirm');
               }}
@@ -395,6 +442,18 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 </p>
               )}
             </div>
+            {isMobile && setupUri ? (
+              <button
+                type="button"
+                disabled={loadingSetup || resettingSetup}
+                onClick={() => syncGoogleAuthenticator()}
+                className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                style={{ backgroundColor: MP_ACCENT }}
+              >
+                {loadingSetup ? 'Preparando…' : 'Sincronizar con Google Authenticator'}
+                <ChevronRight size={16} />
+              </button>
+            ) : null}
             <OTPInput
               value={confirmCode}
               onChange={setConfirmCode}
@@ -413,13 +472,16 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
             >
               {confirmLoading ? 'Verificando…' : 'Activar autenticador'}
             </button>
-            {isMobile && setupUri ? (
+            {isMobile ? (
               <button
                 type="button"
-                onClick={() => provisionGoogleAuthenticator(setupUri)}
-                className="w-full text-sm font-medium text-slate-500 underline-offset-2 hover:underline"
+                disabled={resettingSetup || loadingSetup}
+                onClick={() => void resetTotpSetup()}
+                className="w-full text-sm font-medium text-slate-500 underline-offset-2 hover:underline disabled:opacity-60"
               >
-                Reabrir Google Authenticator
+                {resettingSetup
+                  ? 'Regenerando autenticador…'
+                  : 'El código no coincide: eliminar entradas viejas y reconfigurar'}
               </button>
             ) : null}
           </div>

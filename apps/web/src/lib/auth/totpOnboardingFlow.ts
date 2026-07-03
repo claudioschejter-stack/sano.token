@@ -1,9 +1,8 @@
 export function shouldStartTotpOnConfirmStep(input: {
-  preferConfirm?: boolean;
   pendingSetup?: boolean;
   storedStep?: 'confirm' | 'backup' | null;
 }): boolean {
-  if (input.preferConfirm || input.pendingSetup) {
+  if (input.pendingSetup) {
     return true;
   }
 
@@ -12,7 +11,6 @@ export function shouldStartTotpOnConfirmStep(input: {
 
 export function initialTotpOnboardingStep(input: {
   isMobile: boolean;
-  preferConfirm?: boolean;
   pendingSetup?: boolean;
   storedStep?: 'confirm' | 'backup' | null;
 }): 'instructions' | 'provision' | 'confirm' {

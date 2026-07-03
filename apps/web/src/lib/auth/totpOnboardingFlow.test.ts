@@ -16,22 +16,21 @@ describe('totpOnboardingFlow', () => {
     ).toBe('confirm');
   });
 
-  it('starts on confirm when returning from mobile login', () => {
+  it('shows provision first for brand-new mobile setup even with totpMode hint in URL', () => {
     expect(
       initialTotpOnboardingStep({
         isMobile: true,
-        preferConfirm: true
-      })
-    ).toBe('confirm');
-  });
-
-  it('shows provision first only for brand-new mobile setup', () => {
-    expect(
-      initialTotpOnboardingStep({
-        isMobile: true,
-        pendingSetup: false,
-        preferConfirm: false
+        pendingSetup: false
       })
     ).toBe('provision');
+  });
+
+  it('resumes on confirm when session stored the confirm step', () => {
+    expect(
+      initialTotpOnboardingStep({
+        isMobile: true,
+        storedStep: 'confirm'
+      })
+    ).toBe('confirm');
   });
 });
