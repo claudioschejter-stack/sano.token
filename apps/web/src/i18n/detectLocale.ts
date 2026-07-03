@@ -1,4 +1,5 @@
 import { defaultLocale, locales, type Locale } from './index';
+import { detectCountryFromTimezone, resolveGeoLocale } from '../lib/i18n/geoLocale';
 
 const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   en: 'en',
@@ -34,6 +35,19 @@ const COUNTRY_LOCALE_HINT: Record<string, Locale> = {
   CO: 'es',
   CL: 'es',
   PE: 'es',
+  UY: 'es',
+  PY: 'es',
+  BO: 'es',
+  EC: 'es',
+  VE: 'es',
+  CR: 'es',
+  PA: 'es',
+  DO: 'es',
+  GT: 'es',
+  HN: 'es',
+  NI: 'es',
+  SV: 'es',
+  PR: 'es',
   US: 'en',
   GB: 'en',
   CA: 'en',
@@ -117,7 +131,8 @@ export function readCountryHint(): string | null {
   }
 
   const match = document.cookie.match(new RegExp(`(?:^|; )${COUNTRY_COOKIE}=([^;]*)`));
-  return match?.[1] ? decodeURIComponent(match[1]) : null;
+  const fromCookie = match?.[1] ? decodeURIComponent(match[1]) : null;
+  return fromCookie ?? detectCountryFromTimezone();
 }
 
 /** Best locale from device/browser settings (ignores stored preference). */
@@ -140,23 +155,7 @@ export function resolveInitialLocale(options: {
   stored?: string | null;
   countryHint?: string | null;
   browserLanguages?: string[];
+  manual?: boolean;
 }): Locale {
-  const stored = options.stored?.trim();
-  if (stored && locales.includes(stored as Locale)) {
-    return stored as Locale;
-  }
-
-  for (const language of options.browserLanguages ?? []) {
-    const fromBrowser = mapBrowserLanguageToLocale(language);
-    if (fromBrowser) {
-      return fromBrowser;
-    }
-  }
-
-  const fromCountry = mapCountryToLocaleHint(options.countryHint);
-  if (fromCountry) {
-    return fromCountry;
-  }
-
-  return defaultLocale;
+  return resolveGeoLocale(options);
 }

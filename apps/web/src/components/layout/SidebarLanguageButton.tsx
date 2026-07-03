@@ -39,7 +39,7 @@ export function SidebarLanguageButton({ onLocaleSelected }: SidebarLanguageButto
 
   const handleSelect = (nextLocale: Locale) => {
     pinMobileLocale(nextLocale);
-    setLocale(nextLocale);
+    setLocale(nextLocale, { manual: true });
     setOpen(false);
     onLocaleSelected?.();
     router.refresh();

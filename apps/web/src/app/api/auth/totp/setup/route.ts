@@ -1,37 +1,52 @@
 import { NextResponse } from 'next/server';
 import { auth } from '../../../../../auth';
-import { encryptTotpSecret, generateTotpSecret, getTotpUri } from '../../../../../lib/auth/totpService';
 import { prisma } from '@sanova/database';
+import { encryptTotpSetupSecret, resolveTotpSetup } from '../../../../../lib/auth/totpSetup';
 
 /**
  * POST /api/auth/totp/setup
- * Genera un nuevo secret TOTP y lo almacena (pendiente de confirmación).
- * Retorna el URI para generar el QR (no retorna el secret en texto plano).
+ * Genera o reutiliza un secret TOTP pendiente de confirmación.
+ * Body opcional: { force?: boolean }
  */
-export async function POST() {
+export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'NO_AUTENTICADO' }, { status: 401 });
   }
 
+  const body = (await request.json().catch(() => ({}))) as { force?: boolean };
+
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { emailVerifiedAt: true }
+    select: { emailVerifiedAt: true, totpSecret: true, totpEnabled: true }
   });
 
   if (!user?.emailVerifiedAt) {
     return NextResponse.json({ error: 'EMAIL_VERIFICATION_REQUIRED' }, { status: 403 });
   }
 
-  const secret = generateTotpSecret();
-  const encrypted = encryptTotpSecret(secret);
-  const uri = getTotpUri(secret, session.user.email ?? session.user.id);
-
-  // Guardar secret encriptado (aún no habilitado — totpEnabled sigue en false)
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: { totpSecret: encrypted }
+  const email = session.user.email ?? session.user.id;
+  const resolved = resolveTotpSetup({
+    email,
+    totpSecret: user.totpSecret,
+    totpEnabled: user.totpEnabled,
+    force: Boolean(body.force)
   });
 
-  return NextResponse.json({ uri, secret });
+  if ('error' in resolved) {
+    return NextResponse.json({ error: 'YA_ACTIVADO' }, { status: 400 });
+  }
+
+  if (!resolved.reused) {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { totpSecret: encryptTotpSetupSecret(resolved.secret) }
+    });
+  }
+
+  return NextResponse.json({
+    uri: resolved.uri,
+    secret: resolved.secret,
+    reused: resolved.reused
+  });
 }

@@ -15,6 +15,7 @@ import type { OnboardingProfile } from '../../lib/onboarding/profile';
 import { buildKycUrl } from '../../lib/auth/kycPaths';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { useTurnstile } from '../../lib/security/useTurnstile';
+import { formFieldClassName, formFieldErrorClassName } from '../../lib/ui/formFieldClassName';
 import { PasswordInput } from './PasswordInput';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
 
@@ -241,11 +242,7 @@ export function RegisterForm({
             }
           }}
           aria-invalid={Boolean(fieldErrors.email)}
-          className={`min-h-12 w-full rounded-lg border px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-2 read-only:bg-slate-50 read-only:text-slate-600 ${
-            fieldErrors.email
-              ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-              : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
-          }`}
+          className={`${formFieldClassName} ${fieldErrors.email ? formFieldErrorClassName : ''}`}
           placeholder={r.emailPlaceholder}
         />
         {fieldErrors.email ? (
@@ -282,7 +279,7 @@ export function RegisterForm({
             value={dialCode}
             disabled={readOnly || phoneLocked}
             onChange={(event) => setDialCode(event.target.value)}
-            className="min-h-12 w-[8.5rem] shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-600"
+            className="min-h-12 w-[8.5rem] shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-white disabled:text-slate-600"
           >
             {COUNTRY_DIAL_CODES.map((country) => (
               <option key={country.code} value={country.code}>
@@ -311,11 +308,7 @@ export function RegisterForm({
               }
             }}
             aria-invalid={Boolean(fieldErrors.phone)}
-            className={`min-h-12 min-w-0 flex-1 rounded-lg border px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-2 read-only:bg-slate-50 read-only:text-slate-600 ${
-              fieldErrors.phone
-                ? 'border-red-400 focus:border-red-500 focus:ring-red-100'
-                : 'border-slate-300 focus:border-blue-500 focus:ring-blue-100'
-            }`}
+            className={`${formFieldClassName} min-w-0 flex-1 ${fieldErrors.phone ? formFieldErrorClassName : ''}`}
             placeholder={r.phonePlaceholder}
           />
         </div>
@@ -330,7 +323,7 @@ export function RegisterForm({
       ) : null}
 
       {!readOnly ? (
-        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-xs leading-relaxed text-slate-600">
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-xs leading-relaxed text-slate-600">
           <input
             type="checkbox"
             checked={acceptedLegal}

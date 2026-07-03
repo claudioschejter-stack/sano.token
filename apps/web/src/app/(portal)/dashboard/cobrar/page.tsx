@@ -1,6 +1,7 @@
 import { auth } from '../../../../auth';
 import { redirect } from 'next/navigation';
 import { getStablecoinNetwork } from '../../../../lib/payments/stablecoinNetworks';
+import { isMercadoPagoQrConfigured } from '../../../../lib/payments/mercadoPagoQr/config';
 import { PaymentQRView } from '../../../../components/payment/PaymentQRView';
 
 /**
@@ -48,6 +49,7 @@ export default async function CobrarPage() {
       chainId={chainId}
       hasFiat={Boolean(transakApiKey && treasuryAddress)}
       hasCrypto={Boolean(treasuryAddress)}
+      mpQrConfigured={isMercadoPagoQrConfigured()}
     />
   );
 }

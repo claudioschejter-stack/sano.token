@@ -3,7 +3,7 @@
 import { Fingerprint, ScanFace } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { startAuthentication, type PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
@@ -17,6 +17,10 @@ type PasskeyLoginButtonProps = {
   email?: string;
   callbackUrl?: string;
   className?: string;
+  /** Automatically attempt passkey login when this device has biometrics configured. */
+  autoTrigger?: boolean;
+  /** Hide the biometric button once passkey is configured on this device. */
+  hideWhenConfigured?: boolean;
 };
 
 function isIosDevice(): boolean {
@@ -29,7 +33,9 @@ function isIosDevice(): boolean {
 export function PasskeyLoginButton({
   email = '',
   callbackUrl = '/acceso/callback',
-  className = ''
+  className = '',
+  autoTrigger = false,
+  hideWhenConfigured = false
 }: PasskeyLoginButtonProps) {
   const t = useTranslation();
   const p = t.passkey;
@@ -38,8 +44,11 @@ export function PasskeyLoginButton({
   const [error, setError] = useState<string | null>(null);
   const isIos = useMemo(() => isIosDevice(), []);
   const Icon = isIos ? ScanFace : Fingerprint;
+  const deviceHint = useMemo(() => getDevicePasskeyHint(), []);
+  const hasConfiguredPasskey = Boolean(deviceHint?.credentialId);
+  const autoAttemptedRef = useRef(false);
 
-  async function handlePasskeyLogin() {
+  const handlePasskeyLogin = useCallback(async () => {
     setError(null);
     setLoading(true);
 
@@ -48,15 +57,15 @@ export function PasskeyLoginButton({
         throw new Error('NOT_SUPPORTED');
       }
 
-      const deviceHint = getDevicePasskeyHint();
-      const loginEmail = email.trim() || deviceHint?.email || null;
+      const hint = getDevicePasskeyHint();
+      const loginEmail = email.trim() || hint?.email || null;
 
       const optionsResponse = await fetch('/api/auth/passkey/login/options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: loginEmail,
-          deviceCredentialId: deviceHint?.credentialId ?? null
+          deviceCredentialId: hint?.credentialId ?? null
         })
       });
 
@@ -151,19 +160,44 @@ export function PasskeyLoginButton({
     } finally {
       setLoading(false);
     }
+  }, [callbackUrl, email, p.challengeExpired, p.loginCancelled, p.loginFailed, p.notRegistered, p.notSupported, router, t.access.accountLocked]);
+
+  useEffect(() => {
+    if (!autoTrigger || !hasConfiguredPasskey || autoAttemptedRef.current) {
+      return;
+    }
+
+    autoAttemptedRef.current = true;
+    void handlePasskeyLogin();
+  }, [autoTrigger, handlePasskeyLogin, hasConfiguredPasskey]);
+
+  const hideButton = hideWhenConfigured && hasConfiguredPasskey;
+
+  if (hideButton && loading) {
+    return (
+      <div className={className}>
+        <p className="py-3 text-center text-sm text-slate-500">{p.signingIn}</p>
+      </div>
+    );
+  }
+
+  if (hideButton && !error) {
+    return null;
   }
 
   return (
     <div className={className}>
-      <button
-        type="button"
-        disabled={loading}
-        onClick={() => void handlePasskeyLogin()}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-blue-400 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <Icon size={18} aria-hidden />
-        {loading ? p.signingIn : isIos ? p.loginFaceId : p.loginBiometric}
-      </button>
+      {!hideButton ? (
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => void handlePasskeyLogin()}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-blue-400 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Icon size={18} aria-hidden />
+          {loading ? p.signingIn : isIos ? p.loginFaceId : p.loginBiometric}
+        </button>
+      ) : null}
       {error ? (
         <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           {error}

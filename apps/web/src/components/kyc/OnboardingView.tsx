@@ -106,6 +106,7 @@ function OnboardingContent() {
   const returnTo = safeReturnTo(searchParams.get('returnTo'), '/marketplace');
   const diditReturn = searchParams.get('didit') === '1';
   const requestedStepParam = searchParams.get('step');
+  const totpPreferConfirm = searchParams.get('totpMode') === 'confirm';
 
   const { data: session, status } = useSession();
   const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
@@ -186,6 +187,26 @@ function OnboardingContent() {
   }, [sessionReady, checklist?.walletLinked]);
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);
+
+  const handleTotpComplete = useCallback(async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const response = await fetch('/api/onboarding/status', { cache: 'no-store' });
+      if (response.ok) {
+        const data = (await response.json()) as {
+          checklist?: { totpEnabled?: boolean; operational?: boolean };
+        };
+        if (data.checklist?.totpEnabled) {
+          await refresh({ silent: true });
+          router.replace(returnTo);
+          return;
+        }
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
+
+    await refresh({ silent: true });
+    router.replace(returnTo);
+  }, [refresh, returnTo, router]);
 
   useEffect(() => {
     if (!checklist?.phone || phoneLocal) {
@@ -792,12 +813,7 @@ function OnboardingContent() {
         ) : null}
 
         {step === 'totp' ? (
-          <TotpOnboardingStep
-            onComplete={async () => {
-              await refresh({ silent: true });
-              router.replace(returnTo);
-            }}
-          />
+          <TotpOnboardingStep preferConfirm={totpPreferConfirm} onComplete={handleTotpComplete} />
         ) : null}
 
         {step === 'done' ? (
@@ -842,7 +858,7 @@ export function OnboardingView() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-[100dvh] items-center justify-center bg-slate-50 text-slate-600">
+        <div className="flex min-h-[100dvh] items-center justify-center bg-white text-slate-600">
           <p className="text-sm font-medium">{t.onboarding.loading}</p>
         </div>
       }

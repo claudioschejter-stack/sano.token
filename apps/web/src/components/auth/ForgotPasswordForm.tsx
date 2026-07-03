@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 
 export function ForgotPasswordForm() {
   const t = useTranslation();
@@ -87,7 +88,7 @@ export function ForgotPasswordForm() {
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className={formFieldClassName}
           placeholder={t.access.emailPlaceholder}
         />
       </div>

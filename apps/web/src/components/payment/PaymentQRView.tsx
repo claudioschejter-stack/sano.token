@@ -1,8 +1,9 @@
 'use client';
 
 import { QRCodeSVG } from 'qrcode.react';
-import { CreditCard, Download, ExternalLink, Wallet } from 'lucide-react';
+import { CreditCard, ExternalLink, Wallet } from 'lucide-react';
 import { useState } from 'react';
+import { MpQrInPersonCheckout } from '../payments/qr/MpQrInPersonCheckout';
 
 type PaymentQRViewProps = {
   fiatUrl: string;
@@ -11,6 +12,7 @@ type PaymentQRViewProps = {
   chainId: number;
   hasFiat: boolean;
   hasCrypto: boolean;
+  mpQrConfigured?: boolean;
 };
 
 function QRCard({
@@ -101,7 +103,8 @@ export function PaymentQRView({
   treasuryAddress,
   chainId,
   hasFiat,
-  hasCrypto
+  hasCrypto,
+  mpQrConfigured = false
 }: PaymentQRViewProps) {
   const basescanUrl = treasuryAddress
     ? `https://basescan.org/address/${treasuryAddress}`
@@ -153,6 +156,8 @@ export function PaymentQRView({
           </div>
         )}
       </div>
+
+      <MpQrInPersonCheckout configured={mpQrConfigured} />
 
       {/* Info panel */}
       <div className="rounded-xl border border-terminal-border bg-terminal-card p-5 space-y-3">

@@ -17,7 +17,22 @@ export default function AccessCallbackClient() {
   const { isOperational, loading, refresh, checklist } = useAccountStatus();
   const diditSyncStarted = useRef(false);
   const [diditSyncing, setDiditSyncing] = useState(false);
+  const [totpPendingSetup, setTotpPendingSetup] = useState<boolean | null>(null);
   const hasDiditStatus = searchParams.has('status') || searchParams.has('verificationSessionId');
+
+  useEffect(() => {
+    if (status !== 'authenticated') {
+      setTotpPendingSetup(null);
+      return;
+    }
+
+    void fetch('/api/auth/totp/status', { cache: 'no-store', credentials: 'same-origin' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { pendingSetup?: boolean } | null) => {
+        setTotpPendingSetup(Boolean(data?.pendingSetup));
+      })
+      .catch(() => setTotpPendingSetup(false));
+  }, [status]);
 
   useEffect(() => {
     if (status === 'loading') {
@@ -53,12 +68,34 @@ export default function AccessCallbackClient() {
       checklist.walletLinked &&
       !checklist.totpEnabled;
 
+    if (needsTotpStep && totpPendingSetup === null) {
+      return;
+    }
+
     const destination = needsTotpStep
-      ? buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH, 'totp')
+      ? buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH, 'totp', {
+          totpMode: totpPendingSetup ? 'confirm' : undefined
+        })
       : resolveAuthenticatedDestination(role, returnTo, isOperational);
 
     router.replace(destination);
-  }, [checklist?.kycApproved, checklist?.totpEnabled, checklist?.walletLinked, diditSyncing, hasDiditStatus, isOperational, loading, router, searchParams, session?.authError, session?.user?.pendingTotpToken, session?.user?.role, session?.user?.totpPending, status]);
+  }, [
+    checklist?.kycApproved,
+    checklist?.totpEnabled,
+    checklist?.walletLinked,
+    diditSyncing,
+    hasDiditStatus,
+    isOperational,
+    loading,
+    router,
+    searchParams,
+    session?.authError,
+    session?.user?.pendingTotpToken,
+    session?.user?.role,
+    session?.user?.totpPending,
+    status,
+    totpPendingSetup
+  ]);
 
   useEffect(() => {
     if (status === 'authenticated' && hasDiditStatus && !diditSyncStarted.current) {
@@ -76,7 +113,7 @@ export default function AccessCallbackClient() {
   }, [hasDiditStatus, refresh, status]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-700">
+    <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">
       <p className="text-sm font-medium">{access.redirectingByRole}</p>
     </div>
   );

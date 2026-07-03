@@ -7,11 +7,16 @@ import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
 import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
 import { applySecurityHeaders } from './lib/security/securityHeaders';
 import {
+  isLocaleCompatibleWithCountry,
+  resolveGeoLocale
+} from './lib/i18n/geoLocale';
+import { LOCALE_MANUAL_KEY } from './lib/i18n/mobileLocalePreference';
+import type { Locale } from './i18n';
+import {
   isLocalePrefixablePath,
   LOCALE_HEADER,
   parseLocalePath
 } from './lib/i18n/localeRouting';
-import { isMobileUserAgent, isMobileMarketingEntryPath } from './lib/auth/mobileUserAgent';
 import { requiresOnboardingGatePath, shouldRedirectToOnboarding } from './lib/auth/middlewarePolicy';
 
 const { auth } = NextAuth(authConfig);
@@ -51,21 +56,46 @@ function withLocaleAndCountryHints(
       path: '/',
       sameSite: 'lax'
     });
+    response.cookies.set(LOCALE_MANUAL_KEY, '1', {
+      maxAge: 60 * 60 * 24 * 365,
+      path: '/',
+      sameSite: 'lax'
+    });
     return applySecurityHeaders(response);
   }
 
   const storedLocale = request.cookies.get(LOCALE_STORAGE_KEY)?.value;
-  if (!storedLocale) {
-    const detected = resolveLocaleFromRequest({
-      stored: null,
-      countryHint: country,
-      acceptLanguage: request.headers.get('accept-language')
+  const manualLocale = request.cookies.get(LOCALE_MANUAL_KEY)?.value === '1';
+  const acceptLanguage = request.headers.get('accept-language');
+  const browserLanguages = acceptLanguage
+    ? acceptLanguage
+        .split(',')
+        .map((part) => part.split(';')[0]?.trim())
+        .filter((value): value is string => Boolean(value))
+    : [];
+
+  const countryCode = country?.toUpperCase() ?? null;
+  const shouldRefreshLocale =
+    !manualLocale ||
+    (storedLocale &&
+      countryCode &&
+      !isLocaleCompatibleWithCountry(storedLocale as Locale, countryCode));
+
+  if (!storedLocale || shouldRefreshLocale) {
+    const detected = resolveGeoLocale({
+      stored: storedLocale,
+      countryHint: countryCode,
+      browserLanguages,
+      manual: manualLocale && !shouldRefreshLocale
     });
     response.cookies.set(LOCALE_STORAGE_KEY, detected, {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
       sameSite: 'lax'
     });
+    if (shouldRefreshLocale && !manualLocale) {
+      response.cookies.delete(LOCALE_MANUAL_KEY);
+    }
   }
 
   return applySecurityHeaders(response);
@@ -103,20 +133,6 @@ export default auth((request) => {
   }
 
   const { pathname } = request.nextUrl;
-  const userAgent = request.headers.get('user-agent');
-
-  if (isMobileUserAgent(userAgent) && isMobileMarketingEntryPath(pathname)) {
-    const acceso = new URL('/acceso', request.url);
-    request.nextUrl.searchParams.forEach((value, key) => {
-      if (key !== 'tab' || value === 'register') {
-        acceso.searchParams.set(key, value);
-      }
-    });
-    if (pathname !== '/') {
-      acceso.searchParams.set('returnTo', pathname);
-    }
-    return withLocaleAndCountryHints(NextResponse.redirect(acceso), request);
-  }
 
   if (GEO_BLOCKED_PATHS.has(pathname)) {
     const country = request.headers.get('x-vercel-ip-country')?.toUpperCase();

@@ -6,8 +6,6 @@ import { Suspense, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { AdaptiveLoginFlow } from '../auth/AdaptiveLoginFlow';
-import { MobileAccessLanding } from '../auth/MobileAccessLanding';
-import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
@@ -38,7 +36,6 @@ function buildRegisterHref(
 
 function AccessPageContent() {
   const router = useRouter();
-  const { isMobile } = useDeviceDetection();
   const t = useTranslation();
   const a = t.access;
   const legal = t.legal;
@@ -77,13 +74,9 @@ function AccessPageContent() {
     router.replace(destination);
   }, [isOperational, returnTo, router, role, session?.user?.accessToken, status]);
 
-  if (isMobile) {
-    return <MobileAccessLanding />;
-  }
-
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-700">
+      <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">
         <p className="text-sm font-medium">{a.continueButton}…</p>
       </div>
     );
@@ -91,11 +84,11 @@ function AccessPageContent() {
 
   if (isAuthenticated && role && !isOperational && !canAccessPortalWithoutInvestorOnboarding(role)) {
     return (
-      <div className="min-h-screen bg-slate-50 text-slate-900">
+      <div className="min-h-screen bg-white text-slate-900">
         <LandingHeader />
 
         <main className="mx-auto w-full max-w-lg px-4 py-12 md:py-16">
-          <article className="rounded-2xl border border-blue-200 bg-white p-8 shadow-sm">
+          <article className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
             <h1 className="text-2xl font-bold text-slate-900">{a.sessionActiveTitle}</h1>
             <p className="mt-3 text-sm text-slate-600">
               {registered ? a.sessionRegisteredDesc : a.sessionPendingDesc}
@@ -132,7 +125,7 @@ function AccessPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-white text-slate-900">
       <LandingHeader />
 
       <main className="mx-auto w-full max-w-lg px-4 py-12 md:px-6 md:py-16">
@@ -201,7 +194,7 @@ function AccessPageContent() {
 
 export function AccessPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
       <AccessPageContent />
     </Suspense>
   );

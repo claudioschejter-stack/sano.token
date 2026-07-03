@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { markPaymentIntentFailed } from '../../../../lib/payments/paymentService';
 import { dispatchApprovedLocalWalletPayment } from '../../../../lib/payments/localWalletWebhookSettlement';
+import { mercadoPagoWebhookSecret } from '../../../../lib/payments/mercadoPagoClient';
+import {
+  handleMercadoPagoQrOrderWebhook,
+  isMercadoPagoQrOrderWebhookEvent
+} from '../../../../lib/payments/mercadoPagoQr/webhookHandler';
 import { verifyMercadoPagoSignature } from '../../../../lib/payments/webhookSecurity';
 
 export const dynamic = 'force-dynamic';
@@ -94,13 +99,18 @@ export async function POST(request: Request) {
   const dataId = mercadoPagoWebhookDataId(request, event);
   if (
     !verifyMercadoPagoSignature({
-      secret: process.env.MERCADOPAGO_WEBHOOK_SECRET,
+      secret: mercadoPagoWebhookSecret() ?? undefined,
       signature,
       requestId,
       dataId
     })
   ) {
     return NextResponse.json({ error: 'INVALID_SIGNATURE' }, { status: 401 });
+  }
+
+  if (isMercadoPagoQrOrderWebhookEvent(event)) {
+    const qrResult = await handleMercadoPagoQrOrderWebhook(event);
+    return NextResponse.json(qrResult);
   }
 
   let payment = event;

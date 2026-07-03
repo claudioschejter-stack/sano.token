@@ -4,6 +4,38 @@ import { isMobileDevice } from '../mobile/deviceConfig';
 
 export const LOCALE_STORAGE_KEY = 'sanova.locale';
 export const LOCALE_PINNED_KEY = 'sanova.locale.pinned';
+export const LOCALE_MANUAL_KEY = 'sanova.locale.manual';
+
+function readCookieFlag(name: string): boolean {
+  if (typeof document === 'undefined') {
+    return false;
+  }
+
+  return document.cookie.includes(`${name}=1`);
+}
+
+export function readLocaleManualFlag(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return window.localStorage.getItem(LOCALE_MANUAL_KEY) === '1' || readCookieFlag(LOCALE_MANUAL_KEY);
+}
+
+export function setLocaleManualFlag(manual: boolean): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (manual) {
+    window.localStorage.setItem(LOCALE_MANUAL_KEY, '1');
+    document.cookie = `${LOCALE_MANUAL_KEY}=1; path=/; max-age=31536000; samesite=lax`;
+    return;
+  }
+
+  window.localStorage.removeItem(LOCALE_MANUAL_KEY);
+  document.cookie = `${LOCALE_MANUAL_KEY}=; path=/; max-age=0; samesite=lax`;
+}
 
 export function readPinnedMobileLocale(): Locale | null {
   if (typeof window === 'undefined' || !isMobileDevice()) {
@@ -33,6 +65,7 @@ export function resetMobileLocaleOnSignOut(): void {
   }
 
   window.sessionStorage.removeItem(LOCALE_PINNED_KEY);
+  setLocaleManualFlag(false);
 
   if (isMobileDevice()) {
     window.localStorage.setItem(LOCALE_STORAGE_KEY, detectDeviceLocale());

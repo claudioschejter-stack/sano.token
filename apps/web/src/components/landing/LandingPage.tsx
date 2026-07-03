@@ -21,11 +21,14 @@ import { HeroSubtitle } from './HeroSubtitle';
 import { FeaturedPropertiesSection } from './FeaturedPropertiesSection';
 import { MacroInvestmentThesis } from './MacroInvestmentThesis';
 import { MarketplaceCtaLink } from './MarketplaceCtaLink';
+import { YouTubeFeaturedSection } from './YouTubeFeaturedSection';
 import { VacaMuertaOperators } from './VacaMuertaOperators';
+import type { FeaturedYouTubeVideo } from '../../config/social';
 import type { MarketplaceFeed } from '../../types/marketplace';
 
 type LandingPageProps = {
   initialFeed: MarketplaceFeed;
+  youtubeVideos: FeaturedYouTubeVideo[];
 };
 
 type HeroBadgeCopy = {
@@ -131,7 +134,7 @@ function HeroActions({
   );
 }
 
-export function LandingPage({ initialFeed }: LandingPageProps) {
+export function LandingPage({ initialFeed, youtubeVideos }: LandingPageProps) {
   const t = useTranslation();
   const l = t.landing;
   const localePath = useLocalePath();
@@ -268,6 +271,8 @@ export function LandingPage({ initialFeed }: LandingPageProps) {
           ))}
         </div>
       </section>
+
+      <YouTubeFeaturedSection videos={youtubeVideos} />
 
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 py-12 text-white md:py-16">
         <div className="mx-auto w-full max-w-3xl px-4 text-center md:px-6">

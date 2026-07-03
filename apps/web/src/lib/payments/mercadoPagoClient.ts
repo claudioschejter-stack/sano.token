@@ -1,5 +1,17 @@
 export function mercadoPagoAccessToken(): string | null {
-  return process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() || null;
+  return (
+    process.env.MP_ACCESS_TOKEN?.trim() ||
+    process.env.MERCADOPAGO_ACCESS_TOKEN?.trim() ||
+    null
+  );
+}
+
+export function mercadoPagoWebhookSecret(): string | null {
+  return (
+    process.env.MP_WEBHOOK_SECRET?.trim() ||
+    process.env.MERCADOPAGO_WEBHOOK_SECRET?.trim() ||
+    null
+  );
 }
 
 export function isMercadoPagoSandbox(accessToken?: string | null): boolean {

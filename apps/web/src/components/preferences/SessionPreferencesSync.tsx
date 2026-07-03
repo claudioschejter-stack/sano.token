@@ -3,12 +3,14 @@
 import { useSession } from 'next-auth/react';
 import { useEffect, useRef } from 'react';
 import { useLocale } from '../../i18n/LocaleProvider';
-import { locales, type Locale } from '../../i18n';
+import { detectBrowserLocales, readCountryHint, resolveInitialLocale } from '../../i18n/detectLocale';
+import { normalizePaymentCountry } from '../../lib/payments/paymentCountry';
+import { readLocaleManualFlag, setLocaleManualFlag } from '../../lib/i18n/mobileLocalePreference';
 import { useTheme, type ThemeMode } from '../providers/ThemeProvider';
 
 export function SessionPreferencesSync() {
   const { status } = useSession();
-  const { setLocale } = useLocale();
+  const { locale, setLocale } = useLocale();
   const { setTheme } = useTheme();
   const loadedRef = useRef(false);
 
@@ -19,23 +21,67 @@ export function SessionPreferencesSync() {
 
     loadedRef.current = true;
 
+    const countryHint = readCountryHint();
+    const browserLanguages = detectBrowserLocales();
+
     void fetch('/api/user/preferences', { cache: 'no-store', credentials: 'same-origin' })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data: { preferredLocale?: string | null; preferredTheme?: string | null } | null) => {
-        if (!data) {
-          return;
-        }
+      .then(
+        (data: {
+          preferredLocale?: string | null;
+          preferredTheme?: string | null;
+          jurisdiction?: string | null;
+        } | null) => {
+          if (!data) {
+            return;
+          }
 
-        if (data.preferredLocale && locales.includes(data.preferredLocale as Locale)) {
-          setLocale(data.preferredLocale as Locale);
-        }
+          const geoCountry = normalizePaymentCountry(data.jurisdiction ?? countryHint ?? 'AR');
+          const manual = readLocaleManualFlag();
+          const resolvedLocale = resolveInitialLocale({
+            stored: manual ? data.preferredLocale ?? locale : null,
+            countryHint: geoCountry,
+            browserLanguages,
+            manual
+          });
 
-        if (data.preferredTheme === 'light' || data.preferredTheme === 'dark') {
-          setTheme(data.preferredTheme as ThemeMode);
+          const patchBody: {
+            preferredLocale?: string;
+            jurisdiction?: string;
+          } = {};
+
+          if (!manual && resolvedLocale !== locale) {
+            setLocale(resolvedLocale);
+            setLocaleManualFlag(false);
+            patchBody.preferredLocale = resolvedLocale;
+          } else if (
+            !manual &&
+            data.preferredLocale &&
+            data.preferredLocale !== resolvedLocale
+          ) {
+            patchBody.preferredLocale = resolvedLocale;
+            setLocale(resolvedLocale);
+          }
+
+          if (!data.jurisdiction && countryHint) {
+            patchBody.jurisdiction = geoCountry;
+          }
+
+          if (Object.keys(patchBody).length > 0) {
+            void fetch('/api/user/preferences', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(patchBody)
+            }).catch(() => undefined);
+          }
+
+          if (data.preferredTheme === 'light' || data.preferredTheme === 'dark') {
+            setTheme(data.preferredTheme as ThemeMode);
+          }
         }
-      })
+      )
       .catch(() => undefined);
-  }, [setLocale, setTheme, status]);
+  }, [locale, setLocale, setTheme, status]);
 
   return null;
 }

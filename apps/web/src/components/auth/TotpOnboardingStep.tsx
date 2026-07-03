@@ -9,17 +9,58 @@ import {
   googleAuthenticatorStoreUrl,
   provisionGoogleAuthenticator
 } from '../../lib/auth/totpAuthenticatorLink';
+import { initialTotpOnboardingStep, shouldStartTotpOnConfirmStep } from '../../lib/auth/totpOnboardingFlow';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
 type Step = 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
+type PersistedStep = 'confirm' | 'backup';
+
+const TOTP_ONBOARDING_STORAGE_KEY = 'sanova:totp-onboarding:v1';
 
 type Props = {
   onComplete: () => void | Promise<void>;
+  /** Skip opening GA automatically — user already added Sanova Capital. */
+  preferConfirm?: boolean;
 };
 
-export function TotpOnboardingStep({ onComplete }: Props) {
+function readStoredStep(): PersistedStep | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const stored = window.sessionStorage.getItem(TOTP_ONBOARDING_STORAGE_KEY);
+  if (stored === 'confirm' || stored === 'backup') {
+    return stored;
+  }
+
+  return null;
+}
+
+function persistStep(step: Step | null) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  if (step === 'confirm' || step === 'backup') {
+    window.sessionStorage.setItem(TOTP_ONBOARDING_STORAGE_KEY, step);
+    return;
+  }
+
+  window.sessionStorage.removeItem(TOTP_ONBOARDING_STORAGE_KEY);
+}
+
+export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props) {
   const { isMobile } = useDeviceDetection();
-  const [step, setStep] = useState<Step>(isMobile ? 'provision' : 'instructions');
+  const storedStep = readStoredStep();
+  const [pendingSetup, setPendingSetup] = useState(false);
+  const [step, setStep] = useState<Step>(() => {
+    const initial = initialTotpOnboardingStep({
+      isMobile,
+      preferConfirm,
+      storedStep
+    });
+    return initial === 'confirm' ? 'confirm' : initial;
+  });
   const [setupUri, setSetupUri] = useState('');
   const [setupSecret, setSetupSecret] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
@@ -28,16 +69,55 @@ export function TotpOnboardingStep({ onComplete }: Props) {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
   const [loadingSetup, setLoadingSetup] = useState(false);
-  const [provisionAttempted, setProvisionAttempted] = useState(false);
-  const autoProvisionRef = useRef(false);
+  const [provisionAttempted, setProvisionAttempted] = useState(
+    shouldStartTotpOnConfirmStep({ preferConfirm, storedStep }) || storedStep === 'confirm'
+  );
+  const setupLoadedRef = useRef(false);
+  const onCompleteRef = useRef(onComplete);
+
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadSetup() {
+    async function bootstrap() {
+      const statusRes = await fetch('/api/auth/totp/status', { cache: 'no-store' });
+      if (statusRes.ok) {
+        const status = (await statusRes.json()) as { totpEnabled?: boolean; pendingSetup?: boolean };
+        if (status.totpEnabled) {
+          persistStep(null);
+          await onCompleteRef.current();
+          return;
+        }
+
+        const hasPendingSetup = Boolean(status.pendingSetup);
+        setPendingSetup(hasPendingSetup);
+
+        if (
+          shouldStartTotpOnConfirmStep({
+            preferConfirm,
+            pendingSetup: hasPendingSetup,
+            storedStep
+          })
+        ) {
+          setStep('confirm');
+          setProvisionAttempted(true);
+          persistStep('confirm');
+        }
+      }
+
+      if (setupLoadedRef.current) {
+        return;
+      }
+      setupLoadedRef.current = true;
+
       setLoadingSetup(true);
       try {
-        const res = await fetch('/api/auth/totp/setup', { method: 'POST' });
+        const res = await fetch('/api/auth/totp/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
         const data = (await res.json()) as { uri?: string; secret?: string; error?: string };
         if (!cancelled && data.uri && data.secret) {
           setSetupUri(data.uri);
@@ -50,22 +130,30 @@ export function TotpOnboardingStep({ onComplete }: Props) {
       }
     }
 
-    void loadSetup();
+    void bootstrap();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isMobile, preferConfirm, storedStep]);
 
   useEffect(() => {
-    if (!isMobile || !setupUri || autoProvisionRef.current) {
-      return;
-    }
+    const onPageShow = () => {
+      const saved = readStoredStep();
+      if (saved === 'confirm' || saved === 'backup') {
+        setStep(saved);
+        setProvisionAttempted(true);
+      }
+    };
 
-    autoProvisionRef.current = true;
-    provisionGoogleAuthenticator(setupUri);
-    setProvisionAttempted(true);
-    setStep('confirm');
-  }, [isMobile, setupUri]);
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
+
+  function goToStep(next: Step) {
+    setStep(next);
+    persistStep(next === 'instructions' || next === 'provision' || next === 'qr' ? null : next);
+  }
 
   async function confirmSetup(code: string) {
     if (code.length < 6) {
@@ -86,7 +174,7 @@ export function TotpOnboardingStep({ onComplete }: Props) {
 
     if (data.ok && data.backupCodes) {
       setBackupCodes(data.backupCodes);
-      setStep('backup');
+      goToStep('backup');
       return;
     }
 
@@ -124,9 +212,11 @@ export function TotpOnboardingStep({ onComplete }: Props) {
       <div>
         <h2 className="text-xl font-bold text-slate-900">Sanova Capital en Google Authenticator</h2>
         <p className="mt-2 text-sm text-slate-600">
-          {isMobile
-            ? 'Instalamos la entrada de Sanova Capital en tu autenticador. Confirmá el código de 6 dígitos para continuar.'
-            : 'Para proteger tu cuenta, configurá el código de 6 dígitos de Sanova Capital antes de ingresar a la plataforma.'}
+          {step === 'confirm' && (provisionAttempted || pendingSetup || preferConfirm)
+            ? 'Ingresá el código de 6 dígitos de Sanova Capital en Google Authenticator para activar tu cuenta.'
+            : isMobile
+              ? 'Para proteger tu cuenta, agregá Sanova Capital en Google Authenticator y confirmá el código de 6 dígitos.'
+              : 'Para proteger tu cuenta, configurá el código de 6 dígitos de Sanova Capital antes de ingresar a la plataforma.'}
         </p>
       </div>
 
@@ -177,9 +267,10 @@ export function TotpOnboardingStep({ onComplete }: Props) {
               disabled={!setupUri || loadingSetup}
               onClick={() => {
                 if (setupUri) {
+                  persistStep('confirm');
                   provisionGoogleAuthenticator(setupUri);
                   setProvisionAttempted(true);
-                  setStep('confirm');
+                  goToStep('confirm');
                 }
               }}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
@@ -196,6 +287,16 @@ export function TotpOnboardingStep({ onComplete }: Props) {
             >
               Instalar Google Authenticator
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                setProvisionAttempted(true);
+                goToStep('confirm');
+              }}
+              className="block w-full text-sm font-medium text-slate-600 underline-offset-2 hover:underline"
+            >
+              Ya tengo Sanova Capital en Google Authenticator
+            </button>
           </div>
         ) : null}
 
@@ -211,7 +312,7 @@ export function TotpOnboardingStep({ onComplete }: Props) {
             </p>
             <button
               type="button"
-              onClick={() => setStep('qr')}
+              onClick={() => goToStep('qr')}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
             >
               Continuar
@@ -238,7 +339,7 @@ export function TotpOnboardingStep({ onComplete }: Props) {
               </div>
             )}
             {setupSecret ? (
-              <details className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <details className="rounded-xl border border-slate-200 bg-white p-4">
                 <summary className="cursor-pointer text-sm font-medium text-slate-600">
                   ¿No podés escanear? Ingresá el código manualmente
                 </summary>
@@ -259,7 +360,7 @@ export function TotpOnboardingStep({ onComplete }: Props) {
             ) : null}
             <button
               type="button"
-              onClick={() => setStep('confirm')}
+              onClick={() => goToStep('confirm')}
               disabled={!setupUri}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
             >
@@ -278,8 +379,21 @@ export function TotpOnboardingStep({ onComplete }: Props) {
                 </div>
               </div>
               <p className="text-sm text-slate-500">
-                Ingresá el código de 6 dígitos de <strong>Sanova Capital</strong> en Google Authenticator.
+                {provisionAttempted || pendingSetup || preferConfirm
+                  ? 'Abrí Google Authenticator, elegí la entrada Sanova Capital más reciente e ingresá el código de 6 dígitos abajo.'
+                  : 'Ingresá el código de 6 dígitos de '}
+                {!(provisionAttempted || pendingSetup || preferConfirm) ? (
+                  <>
+                    <strong>Sanova Capital</strong> en Google Authenticator.
+                  </>
+                ) : null}
               </p>
+              {(provisionAttempted || pendingSetup) && (
+                <p className="mt-2 text-xs text-amber-700">
+                  Si ves más de una entrada Sanova Capital, usá la más reciente o eliminá las duplicadas e ingresá el
+                  código de la que quede activa.
+                </p>
+              )}
             </div>
             <OTPInput
               value={confirmCode}
@@ -356,7 +470,10 @@ export function TotpOnboardingStep({ onComplete }: Props) {
             </div>
             <button
               type="button"
-              onClick={() => void onComplete()}
+              onClick={() => {
+                persistStep(null);
+                void onComplete();
+              }}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
             >
               <CheckCircle2 size={16} />

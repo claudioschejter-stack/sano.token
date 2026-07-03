@@ -7,8 +7,6 @@ import { Suspense, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { RegisterForm } from '../auth/RegisterForm';
-import { MobileAccessLanding } from '../auth/MobileAccessLanding';
-import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { DEFAULT_POST_ONBOARDING_PATH, buildKycUrl } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
@@ -41,7 +39,6 @@ function buildLoginHref(
 
 function RegisterPageContent() {
   const router = useRouter();
-  const { isMobile } = useDeviceDetection();
   const t = useTranslation();
   const a = t.access;
   const legal = t.legal;
@@ -73,13 +70,9 @@ function RegisterPageContent() {
     router.replace(destination);
   }, [isOperational, loginHref, returnTo, router, role, session?.user?.accessToken, status]);
 
-  if (isMobile) {
-    return <MobileAccessLanding defaultTab="register" />;
-  }
-
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-700">
+      <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">
         <p className="text-sm font-medium">{a.continueButton}…</p>
       </div>
     );
@@ -90,7 +83,7 @@ function RegisterPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-white text-slate-900">
       <LandingHeader />
 
       <main className="mx-auto w-full max-w-lg px-4 py-12 md:px-6 md:py-16">
@@ -157,7 +150,7 @@ function RegisterPageContent() {
 
 export function RegisterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50" />}>
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
       <RegisterPageContent />
     </Suspense>
   );

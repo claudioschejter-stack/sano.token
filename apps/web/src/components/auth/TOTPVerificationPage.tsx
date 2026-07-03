@@ -6,6 +6,7 @@ import { signIn } from 'next-auth/react';
 import { ShieldCheck, X } from 'lucide-react';
 import { OTPInput } from './OTPInput';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
+import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 
 export function TOTPVerificationPage() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export function TOTPVerificationPage() {
 
   if (!tempToken) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-white px-4">
         <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
           <X className="mx-auto mb-3 text-red-500" size={32} />
           <p className="font-semibold text-red-700">Sesión inválida</p>
@@ -90,7 +91,7 @@ export function TOTPVerificationPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-white px-4">
       <div className="w-full max-w-md">
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
 
@@ -121,7 +122,7 @@ export function TOTPVerificationPage() {
                 value={backupCode}
                 onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
                 placeholder="XXXXX-XXXXX"
-                className="min-h-12 w-full rounded-xl border border-slate-300 px-4 py-3 text-center font-mono text-lg font-bold tracking-widest text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className={`${formFieldClassName} text-center font-mono text-lg font-bold tracking-widest`}
                 disabled={loading}
               />
               {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}

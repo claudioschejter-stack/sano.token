@@ -9,6 +9,7 @@ import {
   FORM_SUBMIT_ACTION
 } from '../../lib/contact/contactConfig';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 import { LandingHeader } from './LandingHeader';
 
 export function ContactPage() {
@@ -106,7 +107,7 @@ export function ContactPage() {
                 required
                 autoComplete="name"
                 placeholder={c.namePlaceholder}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className={`mt-2 ${formFieldClassName}`}
               />
             </div>
 
@@ -121,7 +122,7 @@ export function ContactPage() {
                 required
                 autoComplete="email"
                 placeholder={c.emailPlaceholder}
-                className="mt-2 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className={`mt-2 ${formFieldClassName}`}
               />
             </div>
 
@@ -135,7 +136,7 @@ export function ContactPage() {
                 required
                 rows={5}
                 placeholder={c.messagePlaceholder}
-                className="mt-2 w-full resize-y rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+                className={`mt-2 resize-y ${formFieldClassName} min-h-[8rem]`}
               />
             </div>
 

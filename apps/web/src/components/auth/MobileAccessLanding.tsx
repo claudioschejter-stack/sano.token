@@ -52,7 +52,7 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
   const inviteError = searchParams.get('inviteError');
   const investorInvite = searchParams.get('invite')?.trim() ?? '';
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
-  const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}`;
+  const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}${tab === 'login' ? '&totpMode=confirm' : ''}`;
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
   const registerHref = buildRegisterHref(returnTo, inviteEmail, investorInvite, staffInvite);
   const registered = searchParams.get('registered') === '1';

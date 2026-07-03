@@ -1,6 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { LOCALE_HEADER } from '../lib/i18n/localeRouting';
-import { LOCALE_STORAGE_KEY } from '../lib/i18n/mobileLocalePreference';
+import { LOCALE_MANUAL_KEY, LOCALE_STORAGE_KEY } from '../lib/i18n/mobileLocalePreference';
 import {
   mapBrowserLanguageToLocale,
   mapCountryToLocaleHint,
@@ -26,6 +26,7 @@ export async function resolveServerLocale(): Promise<Locale> {
   const cookieStore = await cookies();
   const stored = cookieStore.get(LOCALE_STORAGE_KEY)?.value;
   const countryHint = cookieStore.get(COUNTRY_COOKIE)?.value;
+  const manual = cookieStore.get(LOCALE_MANUAL_KEY)?.value === '1';
 
   const headerStore = await headers();
   const pathLocale = headerStore.get(LOCALE_HEADER)?.trim();
@@ -33,7 +34,8 @@ export async function resolveServerLocale(): Promise<Locale> {
     return resolveInitialLocale({
       stored: pathLocale,
       countryHint,
-      browserLanguages: []
+      browserLanguages: [],
+      manual: true
     });
   }
 
@@ -42,7 +44,8 @@ export async function resolveServerLocale(): Promise<Locale> {
   return resolveInitialLocale({
     stored,
     countryHint,
-    browserLanguages
+    browserLanguages,
+    manual
   });
 }
 
@@ -50,12 +53,14 @@ export function resolveLocaleFromRequest(options: {
   stored?: string | null;
   countryHint?: string | null;
   acceptLanguage?: string | null;
+  manual?: boolean;
 }): Locale {
   const browserLanguages = parseAcceptLanguage(options.acceptLanguage ?? null);
   return resolveInitialLocale({
     stored: options.stored,
     countryHint: options.countryHint,
-    browserLanguages
+    browserLanguages,
+    manual: options.manual
   });
 }
 

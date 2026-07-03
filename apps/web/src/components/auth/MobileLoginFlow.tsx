@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 import { useTurnstile } from '../../lib/security/useTurnstile';
+import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 import { PasswordInput } from './PasswordInput';
 import { PasskeyLoginButton } from './PasskeyLoginButton';
 
@@ -32,6 +33,8 @@ export function MobileLoginFlow({
   const [loading, setLoading] = useState(false);
   const [showPasswordLogin, setShowPasswordLogin] = useState(false);
   const turnstile = useTurnstile();
+  const passkeyHint = useMemo(() => getDevicePasskeyHint(), []);
+  const hasConfiguredPasskey = Boolean(passkeyHint?.credentialId);
 
   useEffect(() => {
     const hint = getDevicePasskeyHint();
@@ -111,7 +114,13 @@ export function MobileLoginFlow({
   if (!showPasswordLogin) {
     return (
       <div className={`space-y-4 ${className}`}>
-        <PasskeyLoginButton email={email} callbackUrl={callbackUrl} className="mb-1" />
+        <PasskeyLoginButton
+          email={email}
+          callbackUrl={callbackUrl}
+          className="mb-1"
+          autoTrigger={hasConfiguredPasskey}
+          hideWhenConfigured={hasConfiguredPasskey}
+        />
         <button
           type="button"
           onClick={() => setShowPasswordLogin(true)}
@@ -133,7 +142,9 @@ export function MobileLoginFlow({
 
   return (
     <form onSubmit={handlePasswordLogin} className={`space-y-4 ${className}`}>
-      <PasskeyLoginButton email={email} callbackUrl={callbackUrl} className="mb-1" />
+      {!hasConfiguredPasskey ? (
+        <PasskeyLoginButton email={email} callbackUrl={callbackUrl} className="mb-1" />
+      ) : null}
 
       <div>
         <label htmlFor="access-email-mobile" className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -147,7 +158,7 @@ export function MobileLoginFlow({
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className={formFieldClassName}
           placeholder={t.access.emailPlaceholder}
         />
       </div>
@@ -175,14 +186,7 @@ export function MobileLoginFlow({
         {loading ? t.access.signingIn : t.access.signInButton}
       </button>
 
-      <div className="flex items-center justify-between gap-4">
-        <button
-          type="button"
-          onClick={() => setShowPasswordLogin(false)}
-          className="text-sm font-medium text-slate-600 hover:text-slate-800"
-        >
-          Volver a biometría
-        </button>
+      <div className="flex items-center justify-end gap-4">
         <Link
           href="/acceso/olvidar"
           className="text-sm font-medium text-blue-600 transition hover:text-blue-500"

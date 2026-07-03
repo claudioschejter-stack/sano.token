@@ -12,7 +12,9 @@ import { isMobileDevice } from '../lib/mobile/deviceConfig';
 import {
   LOCALE_STORAGE_KEY,
   pinMobileLocale,
-  readPinnedMobileLocale
+  readLocaleManualFlag,
+  readPinnedMobileLocale,
+  setLocaleManualFlag
 } from '../lib/i18n/mobileLocalePreference';
 import type { Messages } from './locales/en';
 
@@ -23,28 +25,31 @@ function readInitialLocale(): Locale {
     return defaultLocale;
   }
 
+  const countryHint = readCountryHint();
+  const browserLanguages = detectBrowserLocales();
+  const manual = readLocaleManualFlag();
+
   if (isMobileDevice()) {
     const pinned = readPinnedMobileLocale();
-    if (pinned) {
+    if (pinned && manual) {
       return pinned;
     }
 
-    return detectDeviceLocale();
+    return resolveInitialLocale({
+      stored: window.localStorage.getItem(STORAGE_KEY),
+      countryHint,
+      browserLanguages,
+      manual: false
+    });
   }
 
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored && resolveLocale(stored) !== defaultLocale) {
-    return resolveLocale(stored);
-  }
-
-  if (stored) {
-    return resolveLocale(stored);
-  }
 
   return resolveInitialLocale({
-    stored: null,
-    countryHint: readCountryHint(),
-    browserLanguages: detectBrowserLocales()
+    stored,
+    countryHint,
+    browserLanguages,
+    manual
   });
 }
 
@@ -52,7 +57,7 @@ type LocaleContextValue = {
   locale: Locale;
   intlLocale: string;
   messages: Messages;
-  setLocale: (locale: Locale) => void;
+  setLocale: (locale: Locale, options?: { manual?: boolean }) => void;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -82,8 +87,12 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
   }, []);
 
-  const setLocale = useCallback((nextLocale: Locale) => {
+  const setLocale = useCallback((nextLocale: Locale, options?: { manual?: boolean }) => {
+    const manual = options?.manual ?? false;
     setLocaleState(nextLocale);
+    if (manual) {
+      setLocaleManualFlag(true);
+    }
     if (isMobileDevice()) {
       pinMobileLocale(nextLocale);
     } else {

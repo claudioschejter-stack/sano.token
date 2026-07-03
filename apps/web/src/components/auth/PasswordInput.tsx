@@ -3,6 +3,7 @@
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 
 type PasswordInputProps = {
   id: string;
@@ -45,7 +46,7 @@ export function PasswordInput({
           minLength={minLength}
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-slate-300 py-3 pl-4 pr-12 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className={`${formFieldClassName} py-3 pl-4 pr-12`}
           placeholder={placeholder}
         />
         <button

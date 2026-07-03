@@ -7,6 +7,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
+import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 import { PasswordInput } from './PasswordInput';
 import { PasskeyLoginButton } from './PasskeyLoginButton';
 import { OAuthSignInButtons } from './OAuthSignInButtons';
@@ -116,7 +117,7 @@ export function LoginForm({
           required
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          className={formFieldClassName}
           placeholder={t.access.emailPlaceholder}
         />
       </div>

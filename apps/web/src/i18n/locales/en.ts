@@ -853,6 +853,10 @@ export const en = {
     walletRequiredDesc:
       "Connecting in the marketplace is not enough — activate Coinbase Wallet on Base from onboarding to link the address to your profile.",
     walletRequiredCta: "Link wallet",
+    totpRequiredTitle: "Google Authenticator confirmation pending",
+    totpRequiredDesc:
+      "If you already added Sanova Capital in the app, return to onboarding and enter the 6-digit code to enable 2FA.",
+    totpRequiredCta: "Confirm authenticator",
     continueCta: "Complete verification",
     kycLabels: {
       PENDING: "Pending",
@@ -1724,6 +1728,13 @@ export const en = {
       step4Desc:
         "Secondary transfers only among enabled investors, with fiduciary approval and whitelist. Not an open public market."
     },
+    youtube: {
+      title: "Sanova on YouTube",
+      subtitle: "All videos published on the official @SanovaGlobal channel.",
+      watchOnYoutube: "Watch on YouTube",
+      channelCta: "View full YouTube channel",
+      ariaLabel: "Sanova Global videos on YouTube"
+    },
     featured: {
       title: "Featured properties",
       subtitle: "Real-world assets with transparent token economy.",
@@ -2069,6 +2080,13 @@ export const en = {
     registerFailed: "Could not enable biometrics on this device.",
     registerCancelled: "Biometric setup was cancelled.",
     registerLater: "Not now"
+  },
+  mobileAppPrompt: {
+    title: 'The platform works best with the app',
+    description:
+      'Download Sanova on your phone for biometrics, Google Authenticator, and a smoother experience. You can also continue in the browser.',
+    downloadYes: 'Download the app',
+    downloadNo: 'Continue on the web'
   },
   pwa: {
     installTitle: "Install Sanova on your cell phone",

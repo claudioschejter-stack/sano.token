@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { LandingPage } from '../../components/landing/LandingPage';
 import { fetchMarketplaceFeed } from '../../lib/marketplace/marketplaceFeedServer';
+import { getSanovaYouTubeChannelVideos } from '../../lib/youtube/channelVideos';
 import { resolveServerLocale } from '../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../lib/seo/buildMetadata';
 import { getSiteUrl } from '../../lib/seo/siteUrl';
@@ -29,7 +30,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HomePage() {
-  const initialFeed = await fetchMarketplaceFeed();
+  const [initialFeed, youtubeVideos] = await Promise.all([
+    fetchMarketplaceFeed(),
+    getSanovaYouTubeChannelVideos()
+  ]);
 
-  return <LandingPage initialFeed={initialFeed} />;
+  return <LandingPage initialFeed={initialFeed} youtubeVideos={youtubeVideos} />;
 }

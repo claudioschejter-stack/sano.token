@@ -11,7 +11,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { totpEnabled: true, kycStatus: true, systemRole: true }
+    select: { totpEnabled: true, totpSecret: true, kycStatus: true, systemRole: true }
   });
 
   const totpMandatory =
@@ -21,6 +21,7 @@ export async function GET() {
 
   return NextResponse.json({
     totpEnabled: user?.totpEnabled ?? false,
-    totpMandatory
+    totpMandatory,
+    pendingSetup: Boolean(user?.totpSecret && !user?.totpEnabled)
   });
 }

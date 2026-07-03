@@ -18,24 +18,35 @@ describe('detectLocale', () => {
     expect(mapCountryToLocaleHint('AR')).toBe('es');
   });
 
-  it('prefers stored locale over browser and country', () => {
+  it('prefers stored locale when manually selected', () => {
     expect(
       resolveInitialLocale({
         stored: 'fr',
         countryHint: 'AR',
-        browserLanguages: ['es']
+        browserLanguages: ['es'],
+        manual: true
       })
     ).toBe('fr');
   });
 
-  it('prefers browser language over country hint', () => {
+  it('prefers country locale over incompatible stored preference', () => {
+    expect(
+      resolveInitialLocale({
+        stored: 'sw',
+        countryHint: 'AR',
+        browserLanguages: ['es-AR']
+      })
+    ).toBe('es');
+  });
+
+  it('uses country locale when browser prefers another language in strict geo countries', () => {
     expect(
       resolveInitialLocale({
         stored: null,
         countryHint: 'AR',
         browserLanguages: ['en-US']
       })
-    ).toBe('en');
+    ).toBe('es');
   });
 
   it('detects device locale from browser languages', () => {

@@ -31,7 +31,7 @@ export function LanguageDropdown({ variant = 'light', className = '' }: Language
       <span className="whitespace-nowrap">{t.landing.languageLabel}</span>
       <select
         value={locale}
-        onChange={(event) => setLocale(event.target.value as Locale)}
+        onChange={(event) => setLocale(event.target.value as Locale, { manual: true })}
         className={`min-h-12 w-full cursor-pointer rounded-lg border px-3 py-3 text-base font-medium shadow-sm outline-none focus:ring-2 sm:min-h-0 sm:w-auto sm:py-2 sm:text-sm ${selectClass}`}
         aria-label="Seleccionar idioma"
       >
@@ -62,7 +62,7 @@ export function LanguageMobilePanel({ menuOpen = false, onLocaleSelected }: Lang
   }, [menuOpen]);
 
   const handleLocaleSelect = (nextLocale: Locale) => {
-    setLocale(nextLocale);
+    setLocale(nextLocale, { manual: true });
     onLocaleSelected?.();
   };
 

@@ -389,6 +389,23 @@ html:not(.light):not(.dark) {
     -webkit-tap-highlight-color: transparent;
   }
 
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='hidden']),
+  select,
+  textarea {
+    background-color: #ffffff;
+  }
+
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+    box-shadow: 0 0 0 1000px #ffffff inset;
+    -webkit-text-fill-color: #0f172a;
+    caret-color: #0f172a;
+  }
+
   /* Responsive base — mobile first */
   @media (max-width: 767px) {
     /* Touch targets: at least 44px (WCAG 2.5.8) */

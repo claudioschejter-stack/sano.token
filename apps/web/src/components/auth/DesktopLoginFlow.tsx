@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 import { useTurnstile } from '../../lib/security/useTurnstile';
+import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 import { PasswordInput } from './PasswordInput';
 
 type DesktopLoginFlowProps = {
@@ -147,7 +148,7 @@ export function DesktopLoginFlow({
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
-            className="min-h-12 w-full rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className={formFieldClassName}
             placeholder={t.access.emailPlaceholder}
           />
         </div>
@@ -178,7 +179,7 @@ export function DesktopLoginFlow({
 
   return (
     <form onSubmit={handlePasswordSubmit} className={`space-y-4 ${className}`}>
-      <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3">
         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{t.access.emailLabel}</p>
         <p className="mt-1 text-sm font-semibold text-slate-900">{email}</p>
         <button
