@@ -20,7 +20,8 @@ import { LandingHeader } from './LandingHeader';
 import { HeroSubtitle } from './HeroSubtitle';
 import { FeaturedPropertiesSection } from './FeaturedPropertiesSection';
 import { MacroInvestmentThesis } from './MacroInvestmentThesis';
-import { MarketplaceCtaLink } from './MarketplaceCtaLink';
+import { MarketplaceCtaLink, marketplaceCtaClassName } from './MarketplaceCtaLink';
+import { MobileAuthEntryLink } from '../pwa/MobileAuthEntryLink';
 import { YouTubeFeaturedSection } from './YouTubeFeaturedSection';
 import { VacaMuertaOperators } from './VacaMuertaOperators';
 import type { FeaturedYouTubeVideo } from '../../config/social';
@@ -109,19 +110,29 @@ function HeroImageMobile({
 
 function HeroActions({
   primary,
+  registerLabel,
   secondary,
   trustLine,
   showTrustLine = true
 }: {
   primary: string;
+  registerLabel: string;
   secondary: string;
   trustLine: string;
   showTrustLine?: boolean;
 }) {
+  const localePath = useLocalePath();
+
   return (
     <div className="w-full translate-y-[2mm]">
       <div className="flex w-full flex-col gap-2.5 sm:gap-3 md:flex-row md:flex-wrap md:gap-4">
         <MarketplaceCtaLink>{primary}</MarketplaceCtaLink>
+        <MobileAuthEntryLink
+          href={localePath('/acceso/registro')}
+          className={marketplaceCtaClassName}
+        >
+          {registerLabel}
+        </MobileAuthEntryLink>
         <a
           href="#how-it-works"
           className="inline-flex min-h-11 w-full items-center justify-center rounded-full border border-white/30 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10 sm:min-h-12 sm:py-3 sm:text-base md:w-auto md:text-sm"
@@ -179,6 +190,7 @@ export function LandingPage({ initialFeed, youtubeVideos }: LandingPageProps) {
               <HeroSubtitle hero={l.hero} part="tail" className="mt-0 sm:mt-0" />
               <HeroActions
                 primary={l.hero.ctaPrimary}
+                registerLabel={l.nav.signUp}
                 secondary={l.hero.ctaSecondary}
                 trustLine={l.hero.trustLine}
               />
@@ -193,6 +205,7 @@ export function LandingPage({ initialFeed, youtubeVideos }: LandingPageProps) {
             <div className="mt-4">
               <HeroActions
                 primary={l.hero.ctaPrimary}
+                registerLabel={l.nav.signUp}
                 secondary={l.hero.ctaSecondary}
                 trustLine={l.hero.trustLine}
               />
