@@ -51,7 +51,15 @@ export function CashFlowPageClient() {
       return;
     }
 
-    router.replace(collectionWalletHref({ returnTo: '/dashboard/cash-flow' }));
+    // wagmi/Privy/checklist hydrate independently right after mount, so a
+    // mismatch can appear for a moment before they settle. Requiring it to
+    // stay true for a short window avoids bouncing the page on a false
+    // positive during that window.
+    const timer = window.setTimeout(() => {
+      router.replace(collectionWalletHref({ returnTo: '/dashboard/cash-flow' }));
+    }, 800);
+
+    return () => window.clearTimeout(timer);
   }, [mounted, router, walletGuard.isWalletMismatch]);
 
   const totalDistributed = useMemo(

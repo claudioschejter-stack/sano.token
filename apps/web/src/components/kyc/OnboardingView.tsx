@@ -91,6 +91,16 @@ function OnboardingContent() {
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
 
+  // Once the session/checklist have hydrated successfully, later transient
+  // `status === 'loading'` flips (triggered by `session.update()` when the
+  // JWT catches up to the operational checklist) must not bounce the UI back
+  // to the full-page spinner. Doing so caused a visible "done -> spinner ->
+  // done -> redirect" flash right before leaving /kyc.
+  const hasHydratedRef = useRef(false);
+  if (sessionReady && checklist) {
+    hasHydratedRef.current = true;
+  }
+
   const computedStep = useMemo(
     () =>
       stepFromChecklist(
@@ -146,7 +156,11 @@ function OnboardingContent() {
           if (data.checklist.operational) {
             await updateSession({ accountOperational: true });
           }
-          router.replace(returnTo);
+          // Hard navigation: by the time updateSession() resolves, the browser
+          // already applied the refreshed JWT cookie, so a full page load lets
+          // the middleware read it immediately instead of racing a soft
+          // client-side transition against the cookie write.
+          window.location.assign(returnTo);
           return;
         }
       }
@@ -155,8 +169,8 @@ function OnboardingContent() {
 
     await refresh({ silent: true });
     await updateSession({ accountOperational: true });
-    router.replace(returnTo);
-  }, [refresh, returnTo, router, updateSession]);
+    window.location.assign(returnTo);
+  }, [refresh, returnTo, updateSession]);
 
   useEffect(() => {
     if (!isOperational) {
@@ -176,14 +190,16 @@ function OnboardingContent() {
     }
 
     if (step === 'done' || (isOperational && (!requireWallet || checklist?.walletLinked))) {
-      router.replace(returnTo);
+      // Hard navigation avoids racing the middleware against the JWT cookie
+      // write from the `update()` call above, which was causing an
+      // occasional /kyc <-> returnTo bounce.
+      window.location.assign(returnTo);
     }
   }, [
     checklist?.walletLinked,
     isOperational,
     requireWallet,
     returnTo,
-    router,
     session?.user?.accountOperational,
     step
   ]);
@@ -388,7 +404,11 @@ function OnboardingContent() {
     }
   }, [returnTo, router, status]);
 
-  if (status === 'unauthenticated' || status === 'loading' || !sessionReady || (loading && !checklist)) {
+  const shouldShowLoadingScreen =
+    status === 'unauthenticated' ||
+    (!hasHydratedRef.current && (status === 'loading' || !sessionReady || (loading && !checklist)));
+
+  if (shouldShowLoadingScreen) {
     return (
       <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-white px-4 text-center text-slate-600">
         <p className="text-sm font-medium">{o.loading}</p>
