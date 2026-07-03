@@ -27,6 +27,7 @@ export default async function AddToCartPage({ params }: AddToCartPageProps) {
       accountStatus: true,
       walletAddress: true,
       systemRole: true,
+      totpEnabled: true,
       investor: { select: { walletAddress: true } }
     }
   });

@@ -24,7 +24,8 @@ export async function requireOperationalSession() {
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
       systemRole: true,
-      investorAccessEnabled: true
+      investorAccessEnabled: true,
+      totpEnabled: true
     }
   });
 

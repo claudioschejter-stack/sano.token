@@ -31,6 +31,7 @@ export default async function MarketplaceCartPage({ searchParams }: CartPageProp
       accountStatus: true,
       walletAddress: true,
       systemRole: true,
+      totpEnabled: true,
       investor: { select: { walletAddress: true } }
     }
   });

@@ -32,6 +32,7 @@ export default async function MarketplaceCheckoutPage({ params }: CheckoutPagePr
       accountStatus: true,
       walletAddress: true,
       systemRole: true,
+      totpEnabled: true,
       investor: { select: { walletAddress: true } }
     }
   });

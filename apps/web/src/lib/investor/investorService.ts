@@ -37,6 +37,7 @@ type UserPurchaseContext = {
   investorId: string | null;
   investorAccessEnabled: boolean;
   systemRole: string;
+  totpEnabled: boolean;
 };
 
 export async function getUserPurchaseContext(userId: string): Promise<UserPurchaseContext | null> {
@@ -55,7 +56,8 @@ export async function getUserPurchaseContext(userId: string): Promise<UserPurcha
       walletAddress: true,
       investorId: true,
       investorAccessEnabled: true,
-      systemRole: true
+      systemRole: true,
+      totpEnabled: true
     }
   });
 }

@@ -45,7 +45,8 @@ export async function linkUserWallet(
       walletAddress: true,
       investorId: true,
       investorAccessEnabled: true,
-      systemRole: true
+      systemRole: true,
+      totpEnabled: true
     }
   });
 
@@ -82,7 +83,8 @@ export async function linkUserWallet(
         walletAddress: normalized,
         investorId: user.investorId,
         investorAccessEnabled: user.investorAccessEnabled,
-        systemRole: user.systemRole
+        systemRole: user.systemRole,
+        totpEnabled: user.totpEnabled
       },
       normalized,
       providerLabel
