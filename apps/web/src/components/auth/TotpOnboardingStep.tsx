@@ -324,7 +324,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
 
     if (data.error === 'CODIGO_INCORRECTO') {
       const reloaded = await loadTotpSetup();
-      const hint = reloaded?.hint ?? setupSecretHint || setupSecret.slice(-4) || '????';
+      const hint = reloaded?.hint ?? (setupSecretHint || setupSecret.slice(-4) || '????');
       setConfirmError(
         `Código incorrecto. En Google Authenticator debe estar la clave que termina en ${hint}. Tocá "Empezar de cero", borrá entradas viejas y pegá la clave del recuadro azul.`
       );
