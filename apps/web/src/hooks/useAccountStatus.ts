@@ -43,13 +43,19 @@ export function useAccountStatus() {
           profile?: OnboardingProfile;
           systemRole?: SystemRole;
         };
-        setChecklist(data.checklist);
-        setProfile(data.profile ?? null);
-        setSystemRole(data.systemRole ?? null);
 
+        // Persist the operational flag in the JWT/cookie BEFORE exposing it via
+        // local state. Otherwise a consumer (e.g. OnboardingView) can redirect
+        // to a protected route based on `isOperational` while the session cookie
+        // still says the account is not operational, causing the middleware to
+        // bounce the user straight back to /kyc (redirect loop).
         if (data.checklist.operational) {
           await update({ accountOperational: true });
         }
+
+        setChecklist(data.checklist);
+        setProfile(data.profile ?? null);
+        setSystemRole(data.systemRole ?? null);
 
         if (data.checklist.kycApproved) {
           setDemoKycStatus('APPROVED');

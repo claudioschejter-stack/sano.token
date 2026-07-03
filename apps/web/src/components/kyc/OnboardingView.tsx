@@ -163,6 +163,14 @@ function OnboardingContent() {
       return;
     }
 
+    // Guard against redirecting to a protected route before the session cookie
+    // (read by the middleware) actually reflects the operational status. Without
+    // this, the middleware would immediately bounce the user back to /kyc,
+    // producing a redirect loop.
+    if (session?.user?.accountOperational !== true) {
+      return;
+    }
+
     if (requireWallet && !checklist?.walletLinked && step !== 'done') {
       return;
     }
@@ -170,7 +178,15 @@ function OnboardingContent() {
     if (step === 'done' || (isOperational && (!requireWallet || checklist?.walletLinked))) {
       router.replace(returnTo);
     }
-  }, [checklist?.walletLinked, isOperational, requireWallet, returnTo, router, step]);
+  }, [
+    checklist?.walletLinked,
+    isOperational,
+    requireWallet,
+    returnTo,
+    router,
+    session?.user?.accountOperational,
+    step
+  ]);
 
   const syncDiditStatus = useCallback(async () => {
     try {
