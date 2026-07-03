@@ -9,6 +9,7 @@ import {
 export type TotpSetupPayload = {
   uri: string;
   secret: string;
+  secretHint: string;
   reused: boolean;
 };
 
@@ -27,6 +28,7 @@ export function resolveTotpSetup(input: {
     return {
       uri: getTotpUri(secret, input.email),
       secret,
+      secretHint: secret.slice(-4),
       reused: true
     };
   }
@@ -35,6 +37,7 @@ export function resolveTotpSetup(input: {
   return {
     uri: getTotpUri(secret, input.email),
     secret,
+    secretHint: secret.slice(-4),
     reused: false
   };
 }

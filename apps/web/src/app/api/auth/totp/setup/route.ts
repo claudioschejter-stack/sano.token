@@ -47,6 +47,7 @@ export async function POST(request: Request) {
   return NextResponse.json({
     uri: resolved.uri,
     secret: resolved.secret,
+    secretHint: resolved.secretHint,
     reused: resolved.reused
   });
 }

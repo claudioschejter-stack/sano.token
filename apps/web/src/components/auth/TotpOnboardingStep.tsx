@@ -38,9 +38,11 @@ function markProvisionedSecret(secret: string) {
 
 function ManualTotpSetupKey({
   secret,
+  secretHint,
   onCopied
 }: {
   secret: string;
+  secretHint?: string;
   onCopied?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
@@ -48,6 +50,11 @@ function ManualTotpSetupKey({
   return (
     <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-left">
       <p className="text-sm font-semibold text-blue-950">Configuración manual (recomendada si el código no valida)</p>
+      {secretHint ? (
+        <p className="mt-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-blue-950 ring-1 ring-blue-200">
+          Clave activa del servidor: termina en <span className="font-mono tracking-widest">{secretHint}</span>
+        </p>
+      ) : null}
       <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-blue-900">
         <li>Eliminá todas las entradas &quot;Sanova Capital&quot; en Google Authenticator.</li>
         <li>Abrí Google Authenticator → + → Introducir clave de configuración.</li>
@@ -124,6 +131,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
   );
   const [setupUri, setSetupUri] = useState('');
   const [setupSecret, setSetupSecret] = useState('');
+  const [setupSecretHint, setSetupSecretHint] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
   const [confirmError, setConfirmError] = useState('');
   const [confirmLoading, setConfirmLoading] = useState(false);
@@ -179,10 +187,11 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({})
         });
-        const data = (await res.json()) as { uri?: string; secret?: string; error?: string };
+        const data = (await res.json()) as { uri?: string; secret?: string; secretHint?: string; error?: string };
         if (!cancelled && data.uri && data.secret) {
           setSetupUri(data.uri);
           setSetupSecret(data.secret);
+          setSetupSecretHint(data.secretHint ?? data.secret.slice(-4));
           setPendingSetup(true);
         }
       } finally {
@@ -227,13 +236,15 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ force: Boolean(options?.force) })
       });
-      const data = (await res.json()) as { uri?: string; secret?: string; error?: string };
+      const data = (await res.json()) as { uri?: string; secret?: string; secretHint?: string; error?: string };
 
       if (data.uri && data.secret) {
+        const hint = data.secretHint ?? data.secret.slice(-4);
         setSetupUri(data.uri);
         setSetupSecret(data.secret);
+        setSetupSecretHint(hint);
         setPendingSetup(true);
-        return data.uri;
+        return { uri: data.uri, hint };
       }
     } finally {
       setLoadingSetup(false);
@@ -275,8 +286,8 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     }
 
     setupLoadedRef.current = false;
-    const uri = await loadTotpSetup();
-    if (uri) {
+    const loaded = await loadTotpSetup();
+    if (loaded?.uri) {
       setStep('provision');
       setProvisionAttempted(false);
       setConfirmError('');
@@ -306,15 +317,24 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
 
     if (data.ok && data.backupCodes) {
       setBackupCodes(data.backupCodes);
+      clearTotpOnboardingStorage();
       goToStep('backup');
+      return;
+    }
+
+    if (data.error === 'CODIGO_INCORRECTO') {
+      const reloaded = await loadTotpSetup();
+      const hint = reloaded?.hint ?? setupSecretHint || setupSecret.slice(-4) || '????';
+      setConfirmError(
+        `Código incorrecto. En Google Authenticator debe estar la clave que termina en ${hint}. Tocá "Empezar de cero", borrá entradas viejas y pegá la clave del recuadro azul.`
+      );
+      setConfirmCode('');
       return;
     }
 
     setConfirmError(
       data.error === 'TOTP_CONFIG_INVALIDO'
         ? 'Error de configuración del servidor. Contactá soporte: la clave TOTP no pudo leerse.'
-        : data.error === 'CODIGO_INCORRECTO'
-        ? 'Código incorrecto. Tocá "Empezar de cero", eliminá todas las entradas Sanova Capital en Google Authenticator y configurá la clave manual del recuadro azul.'
         : 'Ocurrió un error. Intentá de nuevo.'
     );
     setConfirmCode('');
@@ -414,7 +434,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
             >
               Instalar Google Authenticator
             </a>
-            {setupSecret ? <ManualTotpSetupKey secret={setupSecret} /> : null}
+            {setupSecret ? <ManualTotpSetupKey secret={setupSecret} secretHint={setupSecretHint} /> : null}
             <button
               type="button"
               onClick={() => {
@@ -539,7 +559,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 <ChevronRight size={16} />
               </button>
             ) : null}
-            {setupSecret ? <ManualTotpSetupKey secret={setupSecret} /> : null}
+            {setupSecret ? <ManualTotpSetupKey secret={setupSecret} secretHint={setupSecretHint} /> : null}
             <OTPInput
               value={confirmCode}
               onChange={setConfirmCode}

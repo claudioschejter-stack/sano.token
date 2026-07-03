@@ -5,7 +5,8 @@ vi.mock('./totpService', () => ({
   decryptTotpSecret: vi.fn((value: string) => `decrypted:${value}`),
   encryptTotpSecret: vi.fn((value: string) => `encrypted:${value}`),
   generateTotpSecret: vi.fn(() => 'NEW-SECRET'),
-  getTotpUri: vi.fn((secret: string, email: string) => `otpauth://totp/${email}?secret=${secret}`)
+  getTotpUri: vi.fn((secret: string, email: string) => `otpauth://totp/${email}?secret=${secret}`),
+  normalizeTotpSecret: vi.fn((value: string) => value.toUpperCase())
 }));
 
 describe('resolveTotpSetup', () => {
@@ -17,7 +18,8 @@ describe('resolveTotpSetup', () => {
     });
 
     expect(result).toMatchObject({
-      secret: 'decrypted:stored-secret',
+      secret: 'DECRYPTED:STORED-SECRET',
+      secretHint: 'CRET',
       reused: true
     });
   });
