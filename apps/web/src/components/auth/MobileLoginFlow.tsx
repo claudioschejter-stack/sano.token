@@ -8,7 +8,6 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
-import { useTurnstile } from '../../lib/security/useTurnstile';
 import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 import { PasswordInput } from './PasswordInput';
@@ -46,7 +45,6 @@ export function MobileLoginFlow({
   const [loading, setLoading] = useState(false);
   const [view, setView] = useState<MobileLoginView>('primary');
   const [setupBiometricAfterLogin, setSetupBiometricAfterLogin] = useState(false);
-  const turnstile = useTurnstile();
   const passkeyHint = useMemo(() => getDevicePasskeyHint(), []);
   const hasConfiguredPasskey = Boolean(passkeyHint?.credentialId);
   const isIos = useMemo(() => isIosDevice(), []);
@@ -65,16 +63,10 @@ export function MobileLoginFlow({
     setError(null);
     setLoading(true);
 
-    if (turnstile.enabled && !turnstile.token) {
-      setLoading(false);
-      setError(t.access.captchaRequired ?? 'Completá la verificación de seguridad.');
-      return;
-    }
-
     const step1Res = await fetch('/api/auth/login/step1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), password, turnstileToken: turnstile.token })
+      body: JSON.stringify({ email: email.trim(), password })
     });
 
     const step1Data = (await step1Res.json()) as {
@@ -87,7 +79,6 @@ export function MobileLoginFlow({
 
     if (!step1Res.ok || !step1Data.ok) {
       setLoading(false);
-      turnstile.reset();
       if (step1Data.error === 'CUENTA_BLOQUEADA') {
         setError(t.access.accountLocked ?? 'Cuenta bloqueada temporalmente. Intentá más tarde.');
         return;
@@ -208,8 +199,6 @@ export function MobileLoginFlow({
         {error ? (
           <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
         ) : null}
-
-        {turnstile.widget}
 
         <button
           type="submit"
