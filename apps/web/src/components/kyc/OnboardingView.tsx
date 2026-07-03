@@ -108,7 +108,7 @@ function OnboardingContent() {
   const requestedStepParam = searchParams.get('step');
   const totpPreferConfirm = searchParams.get('totpMode') === 'confirm';
 
-  const { data: session, status } = useSession();
+  const { data: session, status, update: updateSession } = useSession();
   const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
   const { isMobile } = useDeviceDetection();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
@@ -150,9 +150,17 @@ function OnboardingContent() {
       return computedStep;
     }
 
+    if (computedStep === 'done' || checklist?.operational) {
+      return 'done';
+    }
+
     const requestedStep = requestedStepParam as Step;
     const requestedIndex = ONBOARDING_STEPS.indexOf(requestedStep);
     const computedIndex = ONBOARDING_STEPS.indexOf(computedStep);
+
+    if (requestedStep === computedStep) {
+      return requestedStep;
+    }
 
     if (requestedStep === 'totp' && computedStep === 'totp') {
       return 'totp';
@@ -162,12 +170,13 @@ function OnboardingContent() {
       return 'biometric';
     }
 
-    if (requestedIndex <= computedIndex) {
+    // Allow revisiting an earlier step only (?step=email while already on wallet).
+    if (requestedIndex < computedIndex) {
       return requestedStep;
     }
 
     return computedStep;
-  }, [computedStep, requestedStepParam]);
+  }, [checklist?.operational, computedStep, requestedStepParam]);
 
   useEffect(() => {
     if (!sessionReady) {
@@ -197,6 +206,9 @@ function OnboardingContent() {
         };
         if (data.checklist?.totpEnabled) {
           await refresh({ silent: true });
+          if (data.checklist.operational) {
+            await updateSession({ accountOperational: true });
+          }
           router.replace(returnTo);
           return;
         }
@@ -205,8 +217,9 @@ function OnboardingContent() {
     }
 
     await refresh({ silent: true });
+    await updateSession({ accountOperational: true });
     router.replace(returnTo);
-  }, [refresh, returnTo, router]);
+  }, [refresh, returnTo, router, updateSession]);
 
   useEffect(() => {
     if (!checklist?.phone || phoneLocal) {

@@ -48,7 +48,7 @@ export function useAccountStatus() {
         setSystemRole(data.systemRole ?? null);
 
         if (data.checklist.operational) {
-          void update({ accountOperational: true });
+          await update({ accountOperational: true });
         }
 
         if (data.checklist.kycApproved) {
