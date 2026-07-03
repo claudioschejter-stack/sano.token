@@ -14,6 +14,7 @@
     "db:studio": "prisma studio",
     "db:seed": "node prisma/seed.mjs",
     "db:reset-users": "node prisma/reset-users.mjs",
+    "db:reset-user-totp": "node prisma/reset-user-totp.mjs",
     "build": "tsc",
     "typecheck": "tsc --noEmit"
   },

@@ -263,13 +263,25 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     setConfirmError('');
     clearTotpOnboardingStorage();
 
-    const uri = await loadTotpSetup({ force: true });
+    const resetRes = await fetch('/api/auth/totp/reset-setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!resetRes.ok) {
+      setConfirmError('No pudimos reiniciar el autenticador. Cerrá sesión e intentá de nuevo.');
+      setResettingSetup(false);
+      return;
+    }
+
+    setupLoadedRef.current = false;
+    const uri = await loadTotpSetup();
     if (uri) {
       setStep('provision');
       setProvisionAttempted(false);
-      syncGoogleAuthenticator(uri);
+      setConfirmError('');
     } else {
-      setConfirmError('No pudimos regenerar el autenticador. Intentá de nuevo.');
+      setConfirmError('No pudimos generar una clave nueva. Intentá de nuevo.');
     }
 
     setResettingSetup(false);
@@ -299,8 +311,10 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     }
 
     setConfirmError(
-      data.error === 'CODIGO_INCORRECTO'
-        ? 'Código incorrecto. Eliminá entradas viejas de Sanova Capital en Google Authenticator, copiá la clave manual de abajo y volvé a intentar.'
+      data.error === 'TOTP_CONFIG_INVALIDO'
+        ? 'Error de configuración del servidor. Contactá soporte: la clave TOTP no pudo leerse.'
+        : data.error === 'CODIGO_INCORRECTO'
+        ? 'Código incorrecto. Tocá "Empezar de cero", eliminá todas las entradas Sanova Capital en Google Authenticator y configurá la clave manual del recuadro azul.'
         : 'Ocurrió un error. Intentá de nuevo.'
     );
     setConfirmCode('');
@@ -549,11 +563,11 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 type="button"
                 disabled={resettingSetup || loadingSetup}
                 onClick={() => void resetTotpSetup()}
-                className="w-full text-sm font-medium text-slate-500 underline-offset-2 hover:underline disabled:opacity-60"
+                className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 disabled:opacity-60"
               >
                 {resettingSetup
-                  ? 'Regenerando autenticador…'
-                  : 'Reiniciar: borrar entradas viejas y generar clave nueva'}
+                  ? 'Reiniciando autenticador…'
+                  : 'Empezar de cero (borra clave anterior en el servidor)'}
               </button>
             ) : null}
           </div>

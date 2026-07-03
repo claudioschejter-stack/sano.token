@@ -45,7 +45,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'YA_ACTIVADO' }, { status: 400 });
   }
 
-  const secret = decryptTotpSecret(user.totpSecret);
+  let secret: string;
+  try {
+    secret = decryptTotpSecret(user.totpSecret);
+  } catch {
+    return NextResponse.json({ error: 'TOTP_CONFIG_INVALIDO' }, { status: 500 });
+  }
+
   const valid = verifyTotpCode(secret, code);
 
   if (!valid) {
