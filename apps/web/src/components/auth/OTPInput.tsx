@@ -21,7 +21,7 @@ export function OTPInput({
   error = false,
   autoFocus = false
 }: OTPInputProps) {
-  const digits = value.padEnd(length, '').slice(0, length).split('');
+  const digits = Array.from({ length }, (_, index) => value[index] ?? '');
   const refs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
