@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowUpRight, Building, History, Loader2, ShoppingBag } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { DashboardSkeleton } from '../dashboard/DashboardSkeleton';
 import { InvestorSection } from '../dashboard/investor/InvestorSection';
 import { formatMessage } from '../../i18n';
 import { createIntlFormatters } from '../../i18n/formatters';
@@ -236,7 +235,16 @@ export function PlatformWalletView({
   }, [activeTab, checklist?.walletAddress, status, tw.walletNotLinked, w.errorNoBalance, wallet]);
 
   if (isLoadingWallet && !wallet) {
-    return <DashboardSkeleton />;
+    return (
+      <div className="animate-pulse space-y-4">
+        <div className="flex gap-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-11 flex-1 rounded-lg bg-terminal-card border border-terminal-border" />
+          ))}
+        </div>
+        <div className="h-48 rounded-xl bg-terminal-card border border-terminal-border" />
+      </div>
+    );
   }
 
   return (

@@ -15,7 +15,6 @@ import {
 import type { AggregatedPortfolio } from '../../../lib/portfolio/portfolioAggregator';
 import { createIntlFormatters } from '../../../i18n/formatters';
 import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
-import { DashboardSkeleton } from '../DashboardSkeleton';
 import { InvestorKpiCard } from './InvestorKpiCard';
 import { InvestorSection } from './InvestorSection';
 
@@ -350,7 +349,16 @@ export function InvestorPortfolioPanel() {
   }, [portfolio]);
 
   if (isLoading) {
-    return <DashboardSkeleton />;
+    return (
+      <div className="animate-pulse space-y-6 md:space-y-8">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div key={index} className="h-32 rounded-xl border border-terminal-border bg-terminal-card" />
+          ))}
+        </div>
+        <div className="h-64 rounded-xl border border-terminal-border bg-terminal-card" />
+      </div>
+    );
   }
 
   if (!portfolio) {
