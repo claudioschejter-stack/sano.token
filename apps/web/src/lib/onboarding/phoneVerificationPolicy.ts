@@ -1,9 +1,9 @@
 import { isMarketplaceTradingRole, type SystemRole } from '../auth/roles';
 import { isEmailVerificationSatisfied } from './emailVerificationPolicy';
 
-/** SMS OTP after registration for marketplace-facing roles. */
-export function requiresPhoneVerification(role: SystemRole | string | null | undefined): boolean {
-  return isMarketplaceTradingRole(role as SystemRole);
+/** OTP phone verification is disabled for all roles; phone is captured at registration only. */
+export function requiresPhoneVerification(_role: SystemRole | string | null | undefined): boolean {
+  return false;
 }
 
 export function isPhoneVerificationSatisfied(input: {
