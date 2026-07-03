@@ -16,6 +16,7 @@ type PortalUserFields = {
   accountStatus: AccountStatus;
   walletAddress: string | null;
   systemRole: string | null;
+  totpEnabled: boolean;
 };
 
 async function loadPortalUser(userId: string): Promise<PortalUserFields | null> {
@@ -30,6 +31,7 @@ async function loadPortalUser(userId: string): Promise<PortalUserFields | null> 
       accountStatus: true,
       walletAddress: true,
       systemRole: true,
+      totpEnabled: true,
       investor: { select: { walletAddress: true } }
     }
   });
