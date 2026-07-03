@@ -7,6 +7,7 @@ import { OTPInput } from './OTPInput';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import {
   googleAuthenticatorStoreUrl,
+  copyTotpSetupSecret,
   provisionGoogleAuthenticator
 } from '../../lib/auth/totpAuthenticatorLink';
 import { initialTotpOnboardingStep, shouldStartTotpOnConfirmStep } from '../../lib/auth/totpOnboardingFlow';
@@ -16,6 +17,68 @@ type Step = 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
 type PersistedStep = 'confirm' | 'backup';
 
 const TOTP_ONBOARDING_STORAGE_KEY = 'sanova:totp-onboarding:v1';
+const TOTP_PROVISIONED_SECRET_KEY = 'sanova:totp-provisioned-secret:v1';
+
+function clearTotpOnboardingStorage() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.sessionStorage.removeItem(TOTP_ONBOARDING_STORAGE_KEY);
+  window.sessionStorage.removeItem(TOTP_PROVISIONED_SECRET_KEY);
+}
+
+function markProvisionedSecret(secret: string) {
+  if (typeof window === 'undefined' || !secret) {
+    return;
+  }
+
+  window.sessionStorage.setItem(TOTP_PROVISIONED_SECRET_KEY, secret.replace(/\s+/g, '').toUpperCase());
+}
+
+function ManualTotpSetupKey({
+  secret,
+  onCopied
+}: {
+  secret: string;
+  onCopied?: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-left">
+      <p className="text-sm font-semibold text-blue-950">Configuración manual (recomendada si el código no valida)</p>
+      <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-blue-900">
+        <li>Eliminá todas las entradas &quot;Sanova Capital&quot; en Google Authenticator.</li>
+        <li>Abrí Google Authenticator → + → Introducir clave de configuración.</li>
+        <li>Cuenta: Sanova Capital · Tipo: Basada en el tiempo · Clave: (copiá abajo).</li>
+        <li>Volvé acá e ingresá el código de 6 dígitos que muestra la entrada nueva.</li>
+      </ol>
+      <div className="mt-3 flex items-center gap-2">
+        <code className="flex-1 break-all rounded-lg bg-white px-3 py-2 font-mono text-xs text-slate-800 ring-1 ring-blue-200">
+          {secret.replace(/\s+/g, '').toUpperCase()}
+        </code>
+        <button
+          type="button"
+          onClick={() => {
+            void copyTotpSetupSecret(secret).then((ok) => {
+              if (ok) {
+                markProvisionedSecret(secret);
+                setCopied(true);
+                onCopied?.();
+                window.setTimeout(() => setCopied(false), 2000);
+              }
+            });
+          }}
+          className="shrink-0 rounded-lg border border-blue-200 bg-white p-2 text-slate-600 hover:bg-blue-50"
+          aria-label="Copiar clave de configuración"
+        >
+          {copied ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 type Props = {
   onComplete: () => void | Promise<void>;
@@ -184,6 +247,10 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
       return;
     }
 
+    if (setupSecret) {
+      markProvisionedSecret(setupSecret);
+    }
+
     persistStep('confirm');
     provisionGoogleAuthenticator(uri);
     setProvisionAttempted(true);
@@ -194,9 +261,12 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     setResettingSetup(true);
     setConfirmCode('');
     setConfirmError('');
+    clearTotpOnboardingStorage();
 
     const uri = await loadTotpSetup({ force: true });
     if (uri) {
+      setStep('provision');
+      setProvisionAttempted(false);
       syncGoogleAuthenticator(uri);
     } else {
       setConfirmError('No pudimos regenerar el autenticador. Intentá de nuevo.');
@@ -230,7 +300,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
 
     setConfirmError(
       data.error === 'CODIGO_INCORRECTO'
-        ? 'Código incorrecto. Verificá que el reloj de tu teléfono esté sincronizado.'
+        ? 'Código incorrecto. Eliminá entradas viejas de Sanova Capital en Google Authenticator, copiá la clave manual de abajo y volvé a intentar.'
         : 'Ocurrió un error. Intentá de nuevo.'
     );
     setConfirmCode('');
@@ -330,6 +400,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
             >
               Instalar Google Authenticator
             </a>
+            {setupSecret ? <ManualTotpSetupKey secret={setupSecret} /> : null}
             <button
               type="button"
               onClick={() => {
@@ -450,10 +521,11 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
                 style={{ backgroundColor: MP_ACCENT }}
               >
-                {loadingSetup ? 'Preparando…' : 'Sincronizar con Google Authenticator'}
+                {loadingSetup ? 'Preparando…' : 'Abrir Google Authenticator'}
                 <ChevronRight size={16} />
               </button>
             ) : null}
+            {setupSecret ? <ManualTotpSetupKey secret={setupSecret} /> : null}
             <OTPInput
               value={confirmCode}
               onChange={setConfirmCode}
@@ -481,7 +553,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
               >
                 {resettingSetup
                   ? 'Regenerando autenticador…'
-                  : 'El código no coincide: eliminar entradas viejas y reconfigurar'}
+                  : 'Reiniciar: borrar entradas viejas y generar clave nueva'}
               </button>
             ) : null}
           </div>

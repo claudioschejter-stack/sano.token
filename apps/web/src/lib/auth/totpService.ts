@@ -55,7 +55,13 @@ export function decryptTotpSecret(stored: string): string {
   const ciphertext = Buffer.from(stored.slice(56), 'hex');
   const decipher = createDecipheriv(ALGORITHM, key, iv);
   decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
+  return normalizeTotpSecret(
+    Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')
+  );
+}
+
+export function normalizeTotpSecret(secret: string): string {
+  return secret.replace(/\s+/g, '').toUpperCase();
 }
 
 // ---------------------------------------------------------------------------
@@ -71,9 +77,9 @@ export function getTotpUri(secret: string, email: string): string {
 }
 
 export function verifyTotpCode(secret: string, token: string): boolean {
-  // Allow ±1 step (30s) for phone clock drift during mobile onboarding.
-  authenticator.options = { window: 1 };
-  return authenticator.check(token, secret);
+  // Allow ±2 steps (~60s) for phone clock drift during mobile onboarding.
+  authenticator.options = { window: 2 };
+  return authenticator.check(token, normalizeTotpSecret(secret));
 }
 
 // ---------------------------------------------------------------------------

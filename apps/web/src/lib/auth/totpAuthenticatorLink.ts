@@ -29,7 +29,7 @@ export function googleAuthenticatorStoreUrl(): string {
 
 /**
  * Opens Google Authenticator with the otpauth provisioning URI when the app is installed.
- * Falls back to the store listing when the deep link does not stick (best-effort on mobile).
+ * Uses the direct otpauth:// scheme (Android intent URLs truncate query params and break secrets).
  */
 export function provisionGoogleAuthenticator(otpauthUri: string): void {
   if (typeof window === 'undefined' || !otpauthUri.trim()) {
@@ -46,19 +46,25 @@ export function provisionGoogleAuthenticator(otpauthUri: string): void {
   };
 
   document.addEventListener('visibilitychange', onVisibility, { once: true });
-
-  if (isAndroidDevice()) {
-    const path = otpauthUri.replace(/^otpauth:\/\//, '');
-    const intent = `intent://${path}#Intent;scheme=otpauth;package=com.google.android.apps.authenticator2;S.browser_fallback_url=${encodeURIComponent(storeUrl)};end`;
-    window.location.href = intent;
-  } else {
-    window.location.href = otpauthUri;
-  }
+  window.location.href = otpauthUri;
 
   window.setTimeout(() => {
     document.removeEventListener('visibilitychange', onVisibility);
     if (!openedApp && document.visibilityState === 'visible') {
       window.open(storeUrl, '_blank', 'noopener,noreferrer');
     }
-  }, 1800);
+  }, 2500);
+}
+
+export async function copyTotpSetupSecret(secret: string): Promise<boolean> {
+  if (typeof navigator === 'undefined' || !secret.trim()) {
+    return false;
+  }
+
+  try {
+    await navigator.clipboard.writeText(secret.replace(/\s+/g, '').toUpperCase());
+    return true;
+  } catch {
+    return false;
+  }
 }

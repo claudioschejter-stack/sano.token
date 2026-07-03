@@ -2,7 +2,8 @@ import {
   decryptTotpSecret,
   encryptTotpSecret,
   generateTotpSecret,
-  getTotpUri
+  getTotpUri,
+  normalizeTotpSecret
 } from './totpService';
 
 export type TotpSetupPayload = {
@@ -22,7 +23,7 @@ export function resolveTotpSetup(input: {
   }
 
   if (input.totpSecret && !input.force) {
-    const secret = decryptTotpSecret(input.totpSecret);
+    const secret = normalizeTotpSecret(decryptTotpSecret(input.totpSecret));
     return {
       uri: getTotpUri(secret, input.email),
       secret,
@@ -30,7 +31,7 @@ export function resolveTotpSetup(input: {
     };
   }
 
-  const secret = generateTotpSecret();
+  const secret = normalizeTotpSecret(generateTotpSecret());
   return {
     uri: getTotpUri(secret, input.email),
     secret,
