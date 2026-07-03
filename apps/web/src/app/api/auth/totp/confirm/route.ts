@@ -55,7 +55,13 @@ export async function POST(request: Request) {
   const valid = verifyTotpCode(secret, code);
 
   if (!valid) {
-    return NextResponse.json({ error: 'CODIGO_INCORRECTO' }, { status: 400 });
+    return NextResponse.json(
+      {
+        error: 'CODIGO_INCORRECTO',
+        secretHint: secret.slice(-4)
+      },
+      { status: 400 }
+    );
   }
 
   // Generar y guardar backup codes

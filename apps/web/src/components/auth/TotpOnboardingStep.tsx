@@ -142,10 +142,47 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     shouldStartTotpOnConfirmStep({ storedStep }) || storedStep === 'confirm'
   );
   const [resettingSetup, setResettingSetup] = useState(false);
-  const setupLoadedRef = useRef(false);
+  const setupInflightRef = useRef<Promise<{ uri: string; hint: string } | null> | null>(null);
   const onCompleteRef = useRef(onComplete);
 
   onCompleteRef.current = onComplete;
+
+  async function loadTotpSetup(options?: { force?: boolean }) {
+    if (setupInflightRef.current && !options?.force) {
+      return setupInflightRef.current;
+    }
+
+    const request = (async () => {
+      setLoadingSetup(true);
+      setConfirmError('');
+
+      try {
+        const res = await fetch('/api/auth/totp/setup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: Boolean(options?.force) })
+        });
+        const data = (await res.json()) as { uri?: string; secret?: string; secretHint?: string; error?: string };
+
+        if (data.uri && data.secret) {
+          const hint = data.secretHint ?? data.secret.slice(-4);
+          setSetupUri(data.uri);
+          setSetupSecret(data.secret);
+          setSetupSecretHint(hint);
+          setPendingSetup(true);
+          return { uri: data.uri, hint };
+        }
+      } finally {
+        setLoadingSetup(false);
+        setupInflightRef.current = null;
+      }
+
+      return null;
+    })();
+
+    setupInflightRef.current = request;
+    return request;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -175,30 +212,11 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
         }
       }
 
-      if (setupLoadedRef.current) {
+      if (cancelled) {
         return;
       }
-      setupLoadedRef.current = true;
 
-      setLoadingSetup(true);
-      try {
-        const res = await fetch('/api/auth/totp/setup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({})
-        });
-        const data = (await res.json()) as { uri?: string; secret?: string; secretHint?: string; error?: string };
-        if (!cancelled && data.uri && data.secret) {
-          setSetupUri(data.uri);
-          setSetupSecret(data.secret);
-          setSetupSecretHint(data.secretHint ?? data.secret.slice(-4));
-          setPendingSetup(true);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingSetup(false);
-        }
-      }
+      await loadTotpSetup();
     }
 
     void bootstrap();
@@ -224,33 +242,6 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
   function goToStep(next: Step) {
     setStep(next);
     persistStep(next === 'instructions' || next === 'provision' || next === 'qr' ? null : next);
-  }
-
-  async function loadTotpSetup(options?: { force?: boolean }) {
-    setLoadingSetup(true);
-    setConfirmError('');
-
-    try {
-      const res = await fetch('/api/auth/totp/setup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force: Boolean(options?.force) })
-      });
-      const data = (await res.json()) as { uri?: string; secret?: string; secretHint?: string; error?: string };
-
-      if (data.uri && data.secret) {
-        const hint = data.secretHint ?? data.secret.slice(-4);
-        setSetupUri(data.uri);
-        setSetupSecret(data.secret);
-        setSetupSecretHint(hint);
-        setPendingSetup(true);
-        return { uri: data.uri, hint };
-      }
-    } finally {
-      setLoadingSetup(false);
-    }
-
-    return null;
   }
 
   function syncGoogleAuthenticator(uri = setupUri) {
@@ -285,8 +276,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
       return;
     }
 
-    setupLoadedRef.current = false;
-    const loaded = await loadTotpSetup();
+    const loaded = await loadTotpSetup({ force: true });
     if (loaded?.uri) {
       setStep('provision');
       setProvisionAttempted(false);
@@ -311,7 +301,12 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code })
     });
-    const data = (await res.json()) as { ok?: boolean; backupCodes?: string[]; error?: string };
+    const data = (await res.json()) as {
+      ok?: boolean;
+      backupCodes?: string[];
+      error?: string;
+      secretHint?: string;
+    };
 
     setConfirmLoading(false);
 
@@ -324,9 +319,16 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
 
     if (data.error === 'CODIGO_INCORRECTO') {
       const reloaded = await loadTotpSetup();
-      const hint = reloaded?.hint ?? (setupSecretHint || setupSecret.slice(-4) || '????');
+      const serverHint = data.secretHint ?? reloaded?.hint;
+      const uiHint = setupSecretHint || setupSecret.slice(-4);
+      const hint = serverHint ?? uiHint ?? '????';
+      if (serverHint && uiHint && serverHint !== uiHint) {
+        setSetupSecretHint(serverHint);
+      }
       setConfirmError(
-        `Código incorrecto. En Google Authenticator debe estar la clave que termina en ${hint}. Tocá "Empezar de cero", borrá entradas viejas y pegá la clave del recuadro azul.`
+        `Código incorrecto. El servidor espera la clave que termina en ${hint}${
+          uiHint && serverHint && uiHint !== serverHint ? ` (en pantalla decía ${uiHint})` : ''
+        }. Tocá "Empezar de cero", borrá entradas viejas en Google Authenticator y pegá la clave del recuadro azul.`
       );
       setConfirmCode('');
       return;
