@@ -1,5 +1,6 @@
 import { prisma } from '@sanova/database';
 import { isAccountOperational } from '../onboarding/accountStatus';
+import { resolveOperationalWalletAddress } from '../investor/provisionInvestorProfile';
 import { is2faLocked, issueTempTotpToken, lockoutRemainingSeconds } from './totpService';
 
 export type SessionAuthClaims = {
@@ -33,7 +34,8 @@ export async function loadAccountOperational(userId: string): Promise<boolean> {
       accountStatus: true,
       walletAddress: true,
       systemRole: true,
-      totpEnabled: true
+      totpEnabled: true,
+      investor: { select: { walletAddress: true } }
     }
   });
 
@@ -41,7 +43,14 @@ export async function loadAccountOperational(userId: string): Promise<boolean> {
     return false;
   }
 
-  return isAccountOperational(user);
+  // Some investors only have their wallet stored on the `investor` relation
+  // rather than `user.walletAddress` directly. Resolving it the same way as
+  // `/api/onboarding/status` and `requireInvestorPortalPage` keeps the JWT's
+  // `accountOperational` flag in agreement with the DB-truth checklist, so a
+  // fully onboarded user isn't bounced to /kyc right after logging in.
+  const walletAddress = resolveOperationalWalletAddress(user.walletAddress, user.investor?.walletAddress);
+
+  return isAccountOperational({ ...user, walletAddress });
 }
 
 /**

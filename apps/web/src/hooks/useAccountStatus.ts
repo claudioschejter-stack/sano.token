@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import type { OnboardingChecklist } from '../lib/onboarding/accountStatus';
 import type { OnboardingProfile } from '../lib/onboarding/profile';
@@ -14,6 +14,20 @@ export function useAccountStatus() {
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [systemRole, setSystemRole] = useState<SystemRole>(null);
   const [loading, setLoading] = useState(true);
+
+  // `update` (from next-auth's useSession) is NOT reference-stable: it is
+  // rebuilt whenever the session/loading state changes internally, including
+  // as a *result* of calling it. Depending on it directly from `refresh`
+  // would recreate `refresh` on every call, re-triggering the mount effect
+  // below and creating a self-sustaining refetch loop (visible as UI flicker
+  // and, in the onboarding view, a permanently stuck loading state). Reading
+  // it through a ref keeps `refresh`'s identity stable.
+  const updateRef = useRef(update);
+  useEffect(() => {
+    updateRef.current = update;
+  }, [update]);
+
+  const accountOperational = session?.user?.accountOperational;
 
   const refresh = useCallback(async (options?: { silent?: boolean }) => {
     if (status === 'loading') {
@@ -44,18 +58,16 @@ export function useAccountStatus() {
           systemRole?: SystemRole;
         };
 
-        // Persist the operational flag in the JWT/cookie BEFORE exposing it via
-        // local state. Otherwise a consumer (e.g. OnboardingView) can redirect
-        // to a protected route based on `isOperational` while the session cookie
-        // still says the account is not operational, causing the middleware to
-        // bounce the user straight back to /kyc (redirect loop).
-        if (data.checklist.operational) {
-          await update({ accountOperational: true });
-        }
-
         setChecklist(data.checklist);
         setProfile(data.profile ?? null);
         setSystemRole(data.systemRole ?? null);
+
+        // Only push the operational flag into the JWT/cookie when the session
+        // doesn't already reflect it. Calling `update()` unconditionally on
+        // every refresh is what causes the refetch loop described above.
+        if (data.checklist.operational && accountOperational !== true) {
+          await updateRef.current({ accountOperational: true });
+        }
 
         if (data.checklist.kycApproved) {
           setDemoKycStatus('APPROVED');
@@ -76,7 +88,7 @@ export function useAccountStatus() {
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.accessToken, status, update]);
+  }, [accountOperational, session?.user?.accessToken, status]);
 
   useEffect(() => {
     void refresh();

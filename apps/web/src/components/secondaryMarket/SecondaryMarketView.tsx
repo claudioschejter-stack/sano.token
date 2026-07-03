@@ -30,7 +30,7 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
   const sellProjectFromQuery = searchParams.get('sell');
   const { intlLocale } = useLocale();
   const { formatUsd } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
-  const { checklist } = useAccountStatus();
+  const { checklist, loading: accountLoading } = useAccountStatus();
   const kycApproved = checklist?.kycApproved ?? false;
 
   const [feed, setFeed] = useState(initialFeed);
@@ -158,7 +158,7 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
         </div>
       </header>
 
-      {!kycApproved ? (
+      {!accountLoading && !kycApproved ? (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 text-sm text-terminal-warning">
           <ShieldAlert size={18} className="mt-0.5 shrink-0" />
           <div>

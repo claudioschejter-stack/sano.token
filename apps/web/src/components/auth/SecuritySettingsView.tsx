@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { signOut } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   CheckCircle2,
@@ -9,10 +10,13 @@ import {
   Download,
   Fingerprint,
   KeyRound,
+  LogOut,
   ShieldCheck,
   ShieldOff,
   Smartphone
 } from 'lucide-react';
+import { useTranslation } from '../../i18n/LocaleProvider';
+import { resetMobileLocaleOnSignOut } from '../../lib/i18n/mobileLocalePreference';
 import { OTPInput } from './OTPInput';
 
 type Step = 'idle' | 'instructions' | 'qr' | 'confirm' | 'backup';
@@ -30,6 +34,7 @@ type PasskeyStatus = {
 };
 
 export function SecuritySettingsView() {
+  const t = useTranslation();
   const [totpStatus, setTotpStatus] = useState<TotpStatus>({ enabled: false, mandatory: false, loading: true });
   const [passkeyStatus, setPasskeyStatus] = useState<PasskeyStatus>({ hasPasskeys: false, loading: true });
   const [view, setView] = useState<View>('overview');
@@ -159,6 +164,12 @@ export function SecuritySettingsView() {
     URL.revokeObjectURL(url);
   }
 
+  async function handleSignOut() {
+    window.localStorage.removeItem('sanova.jwt');
+    resetMobileLocaleOnSignOut();
+    await signOut({ callbackUrl: '/acceso' });
+  }
+
   // --- Render ---
 
   if (view === 'overview') {
@@ -248,6 +259,18 @@ export function SecuritySettingsView() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* Cerrar sesión */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <button
+            type="button"
+            onClick={() => void handleSignOut()}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
+          >
+            <LogOut size={18} />
+            {t.nav.signOut}
+          </button>
         </section>
       </div>
     );
