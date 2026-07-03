@@ -9,7 +9,7 @@ import { MobileAuthEntryLink } from '../pwa/MobileAuthEntryLink';
 import { platformEntryCtaClassName } from './MarketplaceCtaLink';
 
 const headerSignUpClass =
-  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 transition hover:border-slate-400 hover:bg-slate-50 sm:min-h-10 sm:px-4 sm:text-sm';
+  'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full bg-blue-500 px-3 text-xs font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-400 sm:min-h-10 sm:px-4 sm:text-sm';
 
 const headerSignUpMobileClass =
   'inline-flex min-h-9 shrink-0 items-center justify-center rounded-full border-2 border-blue-500 bg-transparent px-3 text-xs font-semibold text-blue-600 transition hover:bg-blue-500/10 sm:min-h-10 sm:px-4 sm:text-sm';
