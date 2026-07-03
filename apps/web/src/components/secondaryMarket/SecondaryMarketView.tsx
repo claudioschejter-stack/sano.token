@@ -185,10 +185,10 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
           return (
             <article
               key={property.listing.id}
-              className="overflow-hidden rounded-xl border-2 border-white/95 bg-terminal-card shadow-[0_10px_28px_rgba(0,0,0,0.38)] ring-1 ring-white/15"
+              className="overflow-hidden rounded-xl border-2 border-terminal-border bg-terminal-card shadow-[0_10px_28px_rgba(0,0,0,0.2)] ring-1 ring-terminal-border/40"
             >
-              <div className="flex items-center gap-2 border-b border-white/80 bg-terminal-bg/40 p-2.5">
-                <div className="relative h-11 w-14 shrink-0 overflow-hidden rounded-md border border-white/20 bg-terminal-bg">
+              <div className="flex items-center gap-2 border-b border-terminal-border bg-terminal-bg/40 p-2.5">
+                <div className="relative h-11 w-14 shrink-0 overflow-hidden rounded-md border border-terminal-border bg-terminal-bg">
                   {property.listing.imageUrl ? (
                     <Image
                       src={property.listing.imageUrl}
@@ -208,7 +208,7 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
                         <span className="text-[10px] text-terminal-muted" aria-hidden>
                           ·
                         </span>
-                        <span className="rounded border border-white/35 bg-white/10 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-white">
+                        <span className="rounded border border-terminal-primary/30 bg-terminal-primary/10 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wide text-terminal-primary">
                           {property.listing.tokenSymbol}
                         </span>
                       </>
