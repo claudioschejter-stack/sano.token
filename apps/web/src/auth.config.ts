@@ -23,7 +23,15 @@ export default {
   },
   secret: process.env.AUTH_SECRET,
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
+      if (trigger === 'update' && session) {
+        const updateData = session as { accountOperational?: boolean };
+        if (typeof updateData.accountOperational === 'boolean') {
+          token.accountOperational = updateData.accountOperational;
+        }
+        return token;
+      }
+
       if (user) {
         const authUser = user as {
           id?: string;
