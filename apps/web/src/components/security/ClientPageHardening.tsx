@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 function isClientHardeningEnabled(): boolean {
   if (typeof window === 'undefined') {
@@ -15,7 +15,20 @@ function isClientHardeningEnabled(): boolean {
     return true;
   }
 
-  return process.env.NODE_ENV === 'production';
+  // Off by default: the old outer/inner size heuristic caused false positives on mobile
+  // browsers (address bars, PWAs, safe areas) and blocked legitimate onboarding flows.
+  return false;
+}
+
+function isMobileLike(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return (
+    window.matchMedia('(max-width: 767px)').matches ||
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent)
+  );
 }
 
 function isEditableElement(target: EventTarget | null): boolean {
@@ -76,15 +89,13 @@ function shouldBlockShortcut(event: KeyboardEvent): boolean {
 }
 
 /**
- * Client-side hardening: discourages casual DevTools / view-source / context-menu abuse.
- * Cannot prevent a determined attacker — all mutations are local to their browser;
- * APIs must enforce authorization server-side.
+ * Optional desktop-only hardening: blocks common DevTools / view-source shortcuts.
+ * Does not detect DevTools via viewport heuristics (too many false positives on mobile).
+ * All authorization remains enforced server-side.
  */
 export function ClientPageHardening() {
-  const [devtoolsOpen, setDevtoolsOpen] = useState(false);
-
   useEffect(() => {
-    if (!isClientHardeningEnabled()) {
+    if (!isClientHardeningEnabled() || isMobileLike()) {
       return;
     }
 
@@ -103,38 +114,15 @@ export function ClientPageHardening() {
       }
     };
 
-    const detectDevtools = () => {
-      const widthGap = window.outerWidth - window.innerWidth;
-      const heightGap = window.outerHeight - window.innerHeight;
-      const likelyOpen = widthGap > 160 || heightGap > 160;
-      setDevtoolsOpen(likelyOpen);
-    };
-
     document.addEventListener('keydown', onKeyDown, true);
     document.addEventListener('dragstart', onDragStart);
-    window.addEventListener('resize', detectDevtools);
-    detectDevtools();
-    const interval = window.setInterval(detectDevtools, 1500);
 
     return () => {
       document.body.classList.remove('client-hardened');
       document.removeEventListener('keydown', onKeyDown, true);
       document.removeEventListener('dragstart', onDragStart);
-      window.removeEventListener('resize', detectDevtools);
-      window.clearInterval(interval);
     };
   }, []);
 
-  if (!isClientHardeningEnabled() || !devtoolsOpen) {
-    return null;
-  }
-
-  return (
-    <div
-      className="pointer-events-none fixed inset-x-0 top-0 z-[99999] bg-amber-600/95 px-4 py-2 text-center text-xs font-semibold text-white shadow-md"
-      role="status"
-    >
-      Herramientas de desarrollador detectadas. El contenido y las operaciones están protegidos en el servidor.
-    </div>
-  );
+  return null;
 }
