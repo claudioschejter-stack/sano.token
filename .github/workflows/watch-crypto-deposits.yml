@@ -5,6 +5,14 @@ name: Watch crypto deposits (backup)
 # more useful running every few minutes. This workflow pings the same
 # endpoint on a tighter schedule using a separate secret so it doesn't touch
 # the native Vercel cron's CRON_SECRET.
+#
+# NOTE: this hits the *.vercel.app production alias, not the custom domain
+# (www.sanovacapital.com). The custom domain is proxied through Cloudflare,
+# which issues a JS "managed challenge" to GitHub Actions runner IPs before
+# the request ever reaches our app -- curl can't solve that challenge, so it
+# always came back as an opaque 403 regardless of the bearer token. The
+# *.vercel.app alias resolves straight to the deployment and isn't proxied
+# by Cloudflare, so the app's own auth check (401/200) is what decides.
 on:
   schedule:
     - cron: '*/5 * * * *'
@@ -16,14 +24,6 @@ jobs:
     steps:
       - name: Trigger watch-crypto-deposits endpoint
         run: |
-          curl -sS -D - -o body.txt -w "\nHTTP_STATUS:%{http_code}\n" \
-            -A "Mozilla/5.0 (compatible; SanovaCronWatcher/1.0)" \
+          curl --fail --show-error --silent \
             -H "Authorization: Bearer ${{ secrets.CRON_EXTERNAL_SECRET }}" \
-            "https://www.sanovacapital.com/api/cron/watch-crypto-deposits" | tee headers.txt
-          echo "----- BODY -----"
-          cat body.txt
-          status=$(grep -o 'HTTP_STATUS:[0-9]*' headers.txt | cut -d: -f2)
-          if [ "$status" -ge 400 ]; then
-            echo "Request failed with status $status"
-            exit 1
-          fi
+            "https://sano-token-web.vercel.app/api/cron/watch-crypto-deposits"
