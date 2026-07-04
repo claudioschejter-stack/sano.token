@@ -82,6 +82,9 @@ contract SanovaAMM is Ownable, ReentrancyGuard {
             propertyToken.transferFrom(msg.sender, treasury, tokenAmount),
             "SANOVA: token transfer failed"
         );
+        // slither-disable-next-line arbitrary-send-erc20 -- `treasury` is an admin-configured
+        // contract state variable (not caller-controlled), which must pre-approve this AMM to
+        // fund instant-sale payouts; this is not an arbitrary third party.
         require(
             payoutStable.transferFrom(treasury, msg.sender, netPayout),
             "SANOVA: stable payout failed"

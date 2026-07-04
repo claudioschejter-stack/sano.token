@@ -101,7 +101,13 @@ contract SanovaAsyncVault is SanovaRwaVault {
     {
         require(assets > 0, "SANOVA7540: zero assets");
         _authorizeController(owner, msg.sender);
-        IERC20(asset()).transferFrom(owner, address(this), assets);
+        // slither-disable-next-line arbitrary-send-erc20 -- `owner` is authorized above via
+        // _authorizeController (must be msg.sender or an approved operator), so this can only
+        // move funds the caller is already entitled to move, not an arbitrary third party's.
+        require(
+            IERC20(asset()).transferFrom(owner, address(this), assets),
+            "SANOVA7540: deposit transfer failed"
+        );
 
         requestId = nextDepositRequestId++;
         depositRequests[requestId] = DepositRequest({

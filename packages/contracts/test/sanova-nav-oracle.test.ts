@@ -9,10 +9,12 @@ type TestSigner = {
 
 type SanovaAssetToken = Contract & {
   setKyc: (account: string, approved: boolean) => Promise<ContractTransactionResponse>;
+  setExternalContractAllowed: (account: string, allowed: boolean) => Promise<ContractTransactionResponse>;
 };
 
 type SanovaRwaVault = Contract & {
   deposit: (assets: bigint, receiver: string) => Promise<ContractTransactionResponse>;
+  convertToAssets: (shares: bigint) => Promise<bigint>;
 };
 
 type SanovaNavOracle = Contract & {
@@ -46,6 +48,9 @@ describe('SanovaNavOracle', () => {
     )) as SanovaRwaVault;
 
     await token.setKyc(await vault.getAddress(), true);
+    // The token itself gates transfers to contract addresses (see SanovaAssetToken._update),
+    // so the vault must be allowlisted on the token before it can receive deposits.
+    await token.setExternalContractAllowed(await vault.getAddress(), true);
     await vault.setExternalContractAllowed(owner.address, true);
 
     const mintAmount = 1_000n * 10n ** 18n;
@@ -69,12 +74,19 @@ describe('SanovaNavOracle', () => {
       owner.address
     )) as SanovaNavOracle;
 
+    // The vault applies a 3-decimal virtual-shares offset (inflation-attack mitigation, see
+    // SanovaRwaVault._decimalsOffset), so 1 share is intentionally NOT worth 1 underlying asset
+    // right after the first deposit. Derive the expected price from the vault's own exchange
+    // rate instead of assuming a 1:1 ratio, so this test verifies the oracle's formula
+    // (assetsPerShare * nav) rather than the vault's internal share-minting math.
+    const assetsPerShare = await vault.convertToAssets(10n ** 18n);
+    const expectedPrice = (nav: bigint) => (assetsPerShare * nav / 10n ** 18n) * 10n ** 18n;
+
     const price = await oracle.price();
-    // Morpho scale: microUsd * 1e18 => 20e6 * 1e18 = 20e24
-    expect(price).to.equal(20_000_000n * 10n ** 18n);
+    expect(price).to.equal(expectedPrice(navPerAssetMicroUsd));
 
     await (oracle.connect(updater as any) as SanovaNavOracle).updateNav(21_000_000n, ethersId('audit-q1-2026'));
     expect(await oracle.navPerAssetMicroUsd()).to.equal(21_000_000n);
-    expect(await oracle.price()).to.equal(21_000_000n * 10n ** 18n);
+    expect(await oracle.price()).to.equal(expectedPrice(21_000_000n));
   });
 });
