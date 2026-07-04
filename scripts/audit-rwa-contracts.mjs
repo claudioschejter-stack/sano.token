@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
 const root = process.cwd();
@@ -47,25 +47,52 @@ requireSourcePattern('SanovaRwaVault.sol', [
 ]);
 
 console.log('[rwa-audit] Running Slither if available...');
-// Only fail the build on High severity findings in our own contracts: Slither's
-// default exit behavior fails on ANY finding (including informational/optimization
-// notes inside vendored OpenZeppelin code we don't control), which made this gate
-// unusable in CI. Medium/Low/Informational findings are still printed for manual
-// review before mainnet, they just don't block every commit.
+// Slither's own exit-code convention fails the process on ANY finding of any
+// severity, including informational/optimization notes inside vendored
+// OpenZeppelin code we don't control, which made this gate unusable in CI
+// (every single commit failed). The `--fail-*` CLI flags that used to let you
+// pick a severity threshold have also been in flux across Slither releases,
+// so instead of relying on Slither's exit code we ask it to never fail
+// (`--fail-none`), dump structured JSON, and decide for ourselves: only High
+// severity findings in our own contracts (dependencies excluded) block CI.
+// Medium/Low/Informational findings are still printed for manual review
+// before mainnet, they just don't block every commit.
+const reportPath = join(contractsDir, 'slither-report.json');
+if (existsSync(reportPath)) unlinkSync(reportPath);
 const slither = run(
   'slither',
-  ['.', '--exclude-dependencies', '--fail-high'],
+  ['.', '--exclude-dependencies', '--fail-none', '--json', 'slither-report.json'],
   { cwd: contractsDir }
 );
-if (slither.status === 0) {
-  console.log(slither.stdout);
-} else {
+console.log(slither.stdout);
+if (slither.stderr) console.error(slither.stderr);
+
+const slitherRan = slither.status === 0 && existsSync(reportPath);
+if (!slitherRan) {
   if (process.env.REQUIRE_SLITHER === 'true') {
-    console.error(slither.stdout || slither.stderr);
+    console.error('[rwa-audit] Slither did not run successfully.');
     process.exit(slither.status ?? 1);
   }
-  console.warn('[rwa-audit] Slither unavailable or reported findings. Review output before mainnet.');
-  console.warn((slither.stdout || slither.stderr || '').slice(0, 4000));
+  console.warn('[rwa-audit] Slither unavailable. Review manually before mainnet.');
+} else {
+  const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+  const detectors = report?.results?.detectors ?? [];
+  const highSeverity = detectors.filter((d) => d.impact === 'High');
+  unlinkSync(reportPath);
+
+  if (highSeverity.length) {
+    console.error(`[rwa-audit] ${highSeverity.length} High severity Slither finding(s) in our own contracts:`);
+    for (const finding of highSeverity) {
+      console.error(`- ${finding.check}: ${finding.description}`);
+    }
+    if (process.env.REQUIRE_SLITHER === 'true') {
+      process.exit(1);
+    }
+  } else if (detectors.length) {
+    console.warn(`[rwa-audit] ${detectors.length} Slither finding(s) (Medium/Low/Informational). Review before mainnet.`);
+  } else {
+    console.log('[rwa-audit] Slither: no findings.');
+  }
 }
 
 console.log('[rwa-audit] Completed.');
