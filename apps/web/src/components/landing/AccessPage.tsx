@@ -6,13 +6,13 @@ import { Suspense, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { AdaptiveLoginFlow } from '../auth/AdaptiveLoginFlow';
-import { PasskeyRegisterInline } from '../auth/PasskeyRegisterInline';
+import { MobileAccessLanding } from '../auth/MobileAccessLanding';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
 import { RegisterForm } from '../auth/RegisterForm';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
-import { useDeviceDetection } from '../../hooks/useDeviceDetection';
+import { useIsPwa } from '../../hooks/useIsPwa';
 import { LandingHeader } from './LandingHeader';
 import { TrustBadges } from './TrustBadges';
 
@@ -50,19 +50,17 @@ function AccessPageContent() {
   const inviteError = searchParams.get('inviteError');
   const investorInvite = searchParams.get('invite')?.trim() ?? '';
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
-  const setupBiometric = searchParams.get('setupBiometric') === '1';
   const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}`;
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
   const registerHref = buildRegisterHref(returnTo, inviteEmail, investorInvite, staffInvite);
 
   const { isOperational, loading: accountLoading, profile } = useAccountStatus();
-  const { isMobile } = useDeviceDetection();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
   const role = session?.user?.role;
   const registered = searchParams.get('registered') === '1';
 
   useEffect(() => {
-    if (status !== 'authenticated' || !session?.user?.accessToken || !role || setupBiometric) {
+    if (status !== 'authenticated' || !session?.user?.accessToken || !role) {
       return;
     }
 
@@ -76,41 +74,12 @@ function AccessPageContent() {
       isOperational || canAccessPortalWithoutInvestorOnboarding(role)
     );
     router.replace(destination);
-  }, [isOperational, returnTo, router, role, session?.user?.accessToken, setupBiometric, status]);
+  }, [isOperational, returnTo, router, role, session?.user?.accessToken, status]);
 
-  if (status === 'loading' || (isAuthenticated && accountLoading && !setupBiometric)) {
+  if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">
         <p className="text-sm font-medium">{a.continueButton}…</p>
-      </div>
-    );
-  }
-
-  if (isAuthenticated && setupBiometric && isMobile && role) {
-    const destination = resolveAuthenticatedDestination(
-      role,
-      returnTo,
-      isOperational || canAccessPortalWithoutInvestorOnboarding(role)
-    );
-
-    return (
-      <div className="min-h-screen bg-white text-slate-900">
-        <LandingHeader />
-        <main className="mx-auto w-full max-w-lg px-4 py-12 md:py-16">
-          <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
-            <PasskeyRegisterInline
-              variant="onboarding"
-              onRegistered={() => router.replace(destination)}
-            />
-            <button
-              type="button"
-              onClick={() => router.replace(destination)}
-              className="mt-4 flex min-h-12 w-full items-center justify-center rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-800"
-            >
-              Continuar sin biometría
-            </button>
-          </article>
-        </main>
       </div>
     );
   }
@@ -226,6 +195,14 @@ function AccessPageContent() {
 }
 
 export function AccessPage() {
+  const isPwa = useIsPwa();
+
+  // Launched from the home-screen icon (or "Abrir la app"): show the app-style
+  // login/register shell with a properties teaser instead of the marketing landing.
+  if (isPwa) {
+    return <MobileAccessLanding />;
+  }
+
   return (
     <Suspense fallback={<div className="min-h-screen bg-white" />}>
       <AccessPageContent />

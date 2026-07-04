@@ -8,6 +8,11 @@ import { resolveAuthenticatedDestination } from '../../../../lib/auth/redirects'
 import type { SystemRole } from '../../../../lib/auth/roles';
 import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from '../../../../lib/auth/kycPaths';
 import { useAccountStatus } from '../../../../hooks/useAccountStatus';
+import { useDeviceDetection } from '../../../../hooks/useDeviceDetection';
+import { getDevicePasskeyHint } from '../../../../lib/auth/devicePasskeyStorage';
+import { hasBiometricPromptBeenShown, markBiometricPromptShown } from '../../../../lib/auth/biometricPromptStorage';
+import { BiometricOnboardingStep } from '../../../../components/auth/BiometricOnboardingStep';
+import { InstallAppBanner } from '../../../../components/pwa/InstallAppBanner';
 
 export default function AccessCallbackClient() {
   const router = useRouter();
@@ -15,9 +20,11 @@ export default function AccessCallbackClient() {
   const { data: session, status } = useSession();
   const access = useTranslation().access;
   const { isOperational, loading, refresh, checklist } = useAccountStatus();
+  const { isMobile } = useDeviceDetection();
   const diditSyncStarted = useRef(false);
   const [diditSyncing, setDiditSyncing] = useState(false);
   const [totpPendingSetup, setTotpPendingSetup] = useState<boolean | null>(null);
+  const [biometricGate, setBiometricGate] = useState<{ destination: string } | null>(null);
   const hasDiditStatus = searchParams.has('status') || searchParams.has('verificationSessionId');
 
   useEffect(() => {
@@ -35,7 +42,7 @@ export default function AccessCallbackClient() {
   }, [status]);
 
   useEffect(() => {
-    if (status === 'loading') {
+    if (status === 'loading' || biometricGate) {
       return;
     }
 
@@ -78,18 +85,35 @@ export default function AccessCallbackClient() {
         })
       : resolveAuthenticatedDestination(role, returnTo, isOperational);
 
+    // First successful login on this phone with email/password (not needing KYC/TOTP
+    // setup): offer to enable biometric unlock once, like Mercado Pago does.
+    const email = session?.user?.email?.trim().toLowerCase() ?? '';
+    if (
+      !needsTotpStep &&
+      isMobile &&
+      email &&
+      !getDevicePasskeyHint()?.credentialId &&
+      !hasBiometricPromptBeenShown(email)
+    ) {
+      setBiometricGate({ destination });
+      return;
+    }
+
     router.replace(destination);
   }, [
+    biometricGate,
     checklist?.kycApproved,
     checklist?.totpEnabled,
     checklist?.walletLinked,
     diditSyncing,
     hasDiditStatus,
+    isMobile,
     isOperational,
     loading,
     router,
     searchParams,
     session?.authError,
+    session?.user?.email,
     session?.user?.pendingTotpToken,
     session?.user?.role,
     session?.user?.totpPending,
@@ -111,6 +135,25 @@ export default function AccessCallbackClient() {
       });
     }
   }, [hasDiditStatus, refresh, status]);
+
+  if (biometricGate) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white px-4 py-12 text-slate-700">
+        <div className="w-full max-w-md">
+          <InstallAppBanner />
+          <BiometricOnboardingStep
+            onComplete={() => {
+              const email = session?.user?.email?.trim().toLowerCase();
+              if (email) {
+                markBiometricPromptShown(email);
+              }
+              router.replace(biometricGate.destination);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">

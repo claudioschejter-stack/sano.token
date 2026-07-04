@@ -10,6 +10,9 @@ type OTPInputProps = {
   disabled?: boolean;
   error?: boolean;
   autoFocus?: boolean;
+  /** Change this value (e.g. a counter) to force a re-focus on an already-mounted input,
+   * such as when the user returns from another app (Google Authenticator). */
+  focusSignal?: unknown;
 };
 
 export function OTPInput({
@@ -19,7 +22,8 @@ export function OTPInput({
   onComplete,
   disabled = false,
   error = false,
-  autoFocus = false
+  autoFocus = false,
+  focusSignal
 }: OTPInputProps) {
   const digits = Array.from({ length }, (_, index) => value[index] ?? '');
   const refs = useRef<(HTMLInputElement | null)[]>([]);
@@ -28,7 +32,8 @@ export function OTPInput({
     if (autoFocus) {
       refs.current[0]?.focus();
     }
-  }, [autoFocus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocus, focusSignal]);
 
   function focusIndex(index: number) {
     refs.current[Math.min(Math.max(index, 0), length - 1)]?.focus();

@@ -12,6 +12,7 @@ import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
+import { PwaPropertyCarousel } from '../pwa/PwaPropertyCarousel';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
 type Tab = 'login' | 'register';
@@ -177,6 +178,12 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
           />
         )}
       </div>
+
+      {tab === 'login' ? (
+        <div className="-mx-6 mt-8">
+          <PwaPropertyCarousel title="Propiedades disponibles" limit={4} compact showViewAll={false} />
+        </div>
+      ) : null}
     </MobileAuthShell>
   );
 }

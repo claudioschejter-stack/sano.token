@@ -1,11 +1,9 @@
 'use client';
 
 import { Fingerprint, ScanFace } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { startRegistration, type PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
-import { useSession } from 'next-auth/react';
+import { useMemo } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { saveDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
+import { usePasskeyRegistration } from '../../lib/auth/usePasskeyRegistration';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
 type Props = {
@@ -32,65 +30,22 @@ export function PasskeyRegisterInline({
 }: Props) {
   const t = useTranslation();
   const p = t.passkey;
-  const { data: session } = useSession();
-  const [loading, setLoading] = useState(false);
-  const [done, setDone] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const isIos = useMemo(() => isIosDevice(), []);
   const Icon = isIos ? ScanFace : Fingerprint;
+  const { register, loading, done, errorCode } = usePasskeyRegistration();
+
+  const error = errorCode
+    ? errorCode === 'NOT_SUPPORTED'
+      ? p.notSupported
+      : errorCode === 'CANCELLED'
+        ? p.registerCancelled
+        : p.registerFailed
+    : null;
 
   async function handleRegister() {
-    setError(null);
-    setLoading(true);
-
-    try {
-      if (!window.PublicKeyCredential) {
-        throw new Error('NOT_SUPPORTED');
-      }
-
-      const optionsResponse = await fetch('/api/auth/passkey/register/options', { method: 'POST' });
-      const optionsData = (await optionsResponse.json()) as {
-        options?: PublicKeyCredentialCreationOptionsJSON;
-        error?: string;
-      };
-
-      if (!optionsResponse.ok || !optionsData.options) {
-        throw new Error(optionsData.error ?? 'OPTIONS_FAILED');
-      }
-
-      const attestation = await startRegistration({ optionsJSON: optionsData.options });
-
-      const verifyResponse = await fetch('/api/auth/passkey/register/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          response: attestation,
-          deviceName: isIos ? 'Face ID' : 'Huella / biometría'
-        })
-      });
-
-      if (!verifyResponse.ok) {
-        throw new Error('REGISTER_FAILED');
-      }
-
-      const userEmail = session?.user?.email?.trim().toLowerCase();
-      if (userEmail && attestation.id) {
-        saveDevicePasskeyHint({ email: userEmail, credentialId: attestation.id });
-      }
-
-      setDone(true);
+    const ok = await register({ deviceName: isIos ? 'Face ID' : 'Huella / biometría' });
+    if (ok) {
       onRegistered?.();
-    } catch (caught) {
-      const code = caught instanceof Error ? caught.message : 'REGISTER_FAILED';
-      setError(
-        code === 'NOT_SUPPORTED'
-          ? p.notSupported
-          : code === 'NotAllowedError' || code === 'AbortError'
-            ? p.registerCancelled
-            : p.registerFailed
-      );
-    } finally {
-      setLoading(false);
     }
   }
 

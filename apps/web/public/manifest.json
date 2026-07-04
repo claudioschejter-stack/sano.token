@@ -2,7 +2,7 @@
   "name": "Sanova Global — RWA & Vaca Muerta Investment",
   "short_name": "Sanova",
   "description": "Tokenized real estate and RWA investment in Vaca Muerta. USDC income, KYC-compliant private placement.",
-  "start_url": "/",
+  "start_url": "/acceso",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

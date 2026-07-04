@@ -142,8 +142,12 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     shouldStartTotpOnConfirmStep({ storedStep }) || storedStep === 'confirm'
   );
   const [resettingSetup, setResettingSetup] = useState(false);
+  const [justReturned, setJustReturned] = useState(false);
+  const [focusSignal, setFocusSignal] = useState(0);
   const setupInflightRef = useRef<Promise<{ uri: string; hint: string } | null> | null>(null);
   const onCompleteRef = useRef(onComplete);
+  const autoProvisionedRef = useRef(false);
+  const wasHiddenRef = useRef(false);
 
   onCompleteRef.current = onComplete;
 
@@ -239,6 +243,46 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
+  // Auto-open Google Authenticator on mobile as soon as the setup URI is ready —
+  // the user doesn't have to tap "Abrir Google Authenticator" manually.
+  useEffect(() => {
+    if (!isMobile || autoProvisionedRef.current) {
+      return;
+    }
+
+    if (step === 'provision' && setupUri && !loadingSetup) {
+      autoProvisionedRef.current = true;
+      syncGoogleAuthenticator(setupUri);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMobile, step, setupUri, loadingSetup]);
+
+  // Detect the user coming back from Google Authenticator (tab/app regains focus)
+  // to surface a "welcome back" hint and refocus the 6-digit input automatically.
+  useEffect(() => {
+    if (!isMobile) {
+      return;
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        wasHiddenRef.current = true;
+        return;
+      }
+
+      if (document.visibilityState === 'visible' && wasHiddenRef.current) {
+        wasHiddenRef.current = false;
+        if (provisionAttempted) {
+          setJustReturned(true);
+          setFocusSignal((n) => n + 1);
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [isMobile, provisionAttempted]);
+
   function goToStep(next: Step) {
     setStep(next);
     persistStep(next === 'instructions' || next === 'provision' || next === 'qr' ? null : next);
@@ -256,6 +300,8 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     persistStep('confirm');
     provisionGoogleAuthenticator(uri);
     setProvisionAttempted(true);
+    setJustReturned(false);
+    wasHiddenRef.current = true;
     goToStep('confirm');
   }
 
@@ -533,10 +579,12 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 </div>
               </div>
               <p className="text-sm text-slate-500">
-                {provisionAttempted || pendingSetup || preferConfirm
-                  ? 'Abrí Google Authenticator, elegí la entrada Sanova Capital más reciente e ingresá el código de 6 dígitos abajo.'
-                  : 'Ingresá el código de 6 dígitos de '}
-                {!(provisionAttempted || pendingSetup || preferConfirm) ? (
+                {justReturned
+                  ? 'Volviste — ingresá el código de 6 dígitos que ves en Google Authenticator.'
+                  : provisionAttempted || pendingSetup || preferConfirm
+                    ? 'Abrí Google Authenticator, elegí la entrada Sanova Capital más reciente e ingresá el código de 6 dígitos abajo.'
+                    : 'Ingresá el código de 6 dígitos de '}
+                {!justReturned && !(provisionAttempted || pendingSetup || preferConfirm) ? (
                   <>
                     <strong>Sanova Capital</strong> en Google Authenticator.
                   </>
@@ -564,10 +612,16 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
             {setupSecret ? <ManualTotpSetupKey secret={setupSecret} secretHint={setupSecretHint} /> : null}
             <OTPInput
               value={confirmCode}
-              onChange={setConfirmCode}
+              onChange={(value) => {
+                setConfirmCode(value);
+                if (value) {
+                  setJustReturned(false);
+                }
+              }}
               onComplete={(code) => void confirmSetup(code)}
               error={Boolean(confirmError)}
               autoFocus
+              focusSignal={focusSignal}
               disabled={confirmLoading}
             />
             {confirmError ? <p className="text-center text-sm text-red-600">{confirmError}</p> : null}

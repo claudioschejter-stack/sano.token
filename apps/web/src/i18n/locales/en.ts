@@ -2098,6 +2098,9 @@ export const en = {
     alreadyInstalled: "I already have the app installed",
     installLater: "Continue in the browser",
     installCta: "Add to home screen",
+    openTitle: "You already have the app",
+    openDesc: "Open it from your home screen for the best experience.",
+    openCta: "Open app",
     dismiss: "Close",
     iosInstruction: 'To install, tap the Share icon (the square with an up arrow) and select "Add to Home Screen".'
   },

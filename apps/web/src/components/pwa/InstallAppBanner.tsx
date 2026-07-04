@@ -59,8 +59,38 @@ export function InstallAppBanner() {
     dismissBanner();
   }
 
-  if (!loaded || isPwa || dismissed || installed) {
+  if (!loaded || isPwa || dismissed) {
     return null;
+  }
+
+  // Already installed on this device: swap the CTA to "Abrir la app" instead of hiding
+  // the banner, since the button is the primary way to launch the installed PWA.
+  if (installed) {
+    return (
+      <div className="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+        <div className="flex items-start gap-3">
+          <Smartphone className="mt-0.5 shrink-0 text-emerald-600" size={18} />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">{p.openTitle ?? p.installTitle}</p>
+            <p className="mt-0.5 text-xs text-slate-600">{p.openDesc ?? p.installDesc}</p>
+            <a
+              href="/acceso"
+              className="mt-2 inline-block text-sm font-semibold text-emerald-700"
+            >
+              {p.openCta ?? 'Abrir la app'}
+            </a>
+          </div>
+          <button
+            type="button"
+            onClick={dismissBanner}
+            className="shrink-0 rounded p-1 text-slate-400 hover:bg-emerald-100 hover:text-slate-600"
+            aria-label={p.dismiss}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const canInstallNative = Boolean(deferredPrompt) || isIos;
@@ -110,7 +140,7 @@ export function InstallAppBanner() {
           type="button"
           onClick={dismissBanner}
           className="shrink-0 rounded p-1 text-slate-400 hover:bg-blue-100 hover:text-slate-600"
-          aria-label="Cerrar"
+          aria-label={p.dismiss}
         >
           <X size={16} />
         </button>

@@ -2135,6 +2135,9 @@ export const es = {
     alreadyInstalled: 'Ya tengo la app instalada',
     installLater: 'Continuar en el navegador',
     installCta: 'Agregar a pantalla de inicio',
+    openTitle: 'Ya tenés la app instalada',
+    openDesc: 'Abrila desde la pantalla de inicio de tu celular para la mejor experiencia.',
+    openCta: 'Abrir la app',
     dismiss: 'Cerrar',
     iosInstruction: 'Para instalar, tocá el ícono de Compartir (el cuadro con la flecha hacia arriba) y seleccioná "Agregar a inicio".'
   },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -17,9 +17,11 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { resetMobileLocaleOnSignOut } from '../../lib/i18n/mobileLocalePreference';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
+import { googleAuthenticatorStoreUrl, provisionGoogleAuthenticator } from '../../lib/auth/totpAuthenticatorLink';
 import { OTPInput } from './OTPInput';
 
-type Step = 'idle' | 'instructions' | 'qr' | 'confirm' | 'backup';
+type Step = 'idle' | 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
 type View = 'overview' | 'setup' | 'disable' | 'backup-codes';
 
 type TotpStatus = {
@@ -35,6 +37,7 @@ type PasskeyStatus = {
 
 export function SecuritySettingsView() {
   const t = useTranslation();
+  const { isMobile } = useDeviceDetection();
   const [totpStatus, setTotpStatus] = useState<TotpStatus>({ enabled: false, mandatory: false, loading: true });
   const [passkeyStatus, setPasskeyStatus] = useState<PasskeyStatus>({ hasPasskeys: false, loading: true });
   const [view, setView] = useState<View>('overview');
@@ -48,6 +51,10 @@ export function SecuritySettingsView() {
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [provisionAttempted, setProvisionAttempted] = useState(false);
+  const [justReturned, setJustReturned] = useState(false);
+  const [focusSignal, setFocusSignal] = useState(0);
+  const wasHiddenRef = useRef(false);
 
   // Disable 2FA state
   const [disableCode, setDisableCode] = useState('');
@@ -71,10 +78,12 @@ export function SecuritySettingsView() {
 
   async function startSetup() {
     setView('setup');
-    setStep('instructions');
+    setStep(isMobile ? 'provision' : 'instructions');
     setConfirmCode('');
     setConfirmError('');
     setBackupCodes([]);
+    setProvisionAttempted(false);
+    setJustReturned(false);
 
     const res = await fetch('/api/auth/totp/setup', { method: 'POST' });
     const data = (await res.json()) as { uri?: string; secret?: string; error?: string };
@@ -82,9 +91,51 @@ export function SecuritySettingsView() {
     if (data.uri && data.secret) {
       setSetupUri(data.uri);
       setSetupSecret(data.secret);
-      setStep('qr');
+
+      if (isMobile) {
+        syncGoogleAuthenticator(data.uri);
+      } else {
+        setStep('qr');
+      }
     }
   }
+
+  function syncGoogleAuthenticator(uri = setupUri) {
+    if (!uri) {
+      return;
+    }
+
+    provisionGoogleAuthenticator(uri);
+    setProvisionAttempted(true);
+    setJustReturned(false);
+    wasHiddenRef.current = true;
+    setStep('confirm');
+  }
+
+  // Detect the user coming back from Google Authenticator to refocus the code input.
+  useEffect(() => {
+    if (!isMobile || view !== 'setup') {
+      return;
+    }
+
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        wasHiddenRef.current = true;
+        return;
+      }
+
+      if (document.visibilityState === 'visible' && wasHiddenRef.current) {
+        wasHiddenRef.current = false;
+        if (provisionAttempted) {
+          setJustReturned(true);
+          setFocusSignal((n) => n + 1);
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, [isMobile, view, provisionAttempted]);
 
   async function confirmSetup(code: string) {
     if (code.length < 6) return;
@@ -337,10 +388,16 @@ export function SecuritySettingsView() {
 
       {/* Progress */}
       <div className="flex items-center gap-2">
-        {(['instructions', 'qr', 'confirm', 'backup'] as Step[]).map((s, i) => {
-          const stepIndex = (['instructions', 'qr', 'confirm', 'backup'] as Step[]).indexOf(step);
+        {(isMobile
+          ? (['provision', 'confirm', 'backup'] as Step[])
+          : (['instructions', 'qr', 'confirm', 'backup'] as Step[])
+        ).map((s, i, arr) => {
+          const stepIndex = arr.indexOf(step);
           const isActive = s === step;
           const isDone = i < stepIndex;
+          const labels = isMobile
+            ? ['Autenticador', 'Verificar', 'Guardar']
+            : ['Instalar', 'Escanear', 'Verificar', 'Guardar'];
           return (
             <div key={s} className="flex flex-1 flex-col items-center gap-1">
               <div
@@ -355,7 +412,7 @@ export function SecuritySettingsView() {
                 {isDone ? <CheckCircle2 size={16} /> : i + 1}
               </div>
               <span className={`text-xs ${isActive ? 'font-medium text-slate-800' : 'text-slate-400'}`}>
-                {['Instalar', 'Escanear', 'Verificar', 'Guardar'][i]}
+                {labels[i]}
               </span>
             </div>
           );
@@ -363,6 +420,37 @@ export function SecuritySettingsView() {
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+
+        {/* Paso mobile: abrir Google Authenticator automaticamente */}
+        {step === 'provision' && (
+          <div className="space-y-6 text-center">
+            <div className="flex justify-center">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <Smartphone size={36} />
+              </div>
+            </div>
+            <p className="text-sm text-slate-500">
+              {setupUri ? 'Abriendo Google Authenticator…' : 'Preparando Sanova Capital en Google Authenticator…'}
+            </p>
+            <button
+              type="button"
+              disabled={!setupUri}
+              onClick={() => syncGoogleAuthenticator()}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
+            >
+              Abrir Google Authenticator
+              <ChevronRight size={16} />
+            </button>
+            <a
+              href={googleAuthenticatorStoreUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-sm font-medium text-slate-500 underline-offset-2 hover:underline"
+            >
+              Instalar Google Authenticator
+            </a>
+          </div>
+        )}
 
         {/* Paso 1: Instrucciones */}
         {step === 'instructions' && (
@@ -467,16 +555,56 @@ export function SecuritySettingsView() {
               </div>
               <h2 className="text-xl font-bold text-slate-900">Ingresá el código de verificación</h2>
               <p className="mt-2 text-sm text-slate-500">
-                Abrí Google Authenticator e ingresá el código de 6 dígitos que muestra para Sanova Capital.
+                {justReturned
+                  ? 'Volviste — ingresá el código de 6 dígitos que ves en Google Authenticator.'
+                  : 'Abrí Google Authenticator e ingresá el código de 6 dígitos que muestra para Sanova Capital.'}
               </p>
             </div>
 
+            {isMobile && setupUri ? (
+              <button
+                type="button"
+                disabled={confirmLoading}
+                onClick={() => syncGoogleAuthenticator()}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
+              >
+                Abrir Google Authenticator
+                <ChevronRight size={16} />
+              </button>
+            ) : null}
+
+            {isMobile && setupSecret ? (
+              <details className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-left">
+                <summary className="cursor-pointer text-sm font-medium text-slate-600">
+                  ¿No podés abrir la app? Ingresá el código manualmente
+                </summary>
+                <div className="mt-3 flex items-center gap-2">
+                  <code className="flex-1 break-all rounded-lg bg-white px-3 py-2 font-mono text-xs text-slate-800 ring-1 ring-slate-200">
+                    {setupSecret}
+                  </code>
+                  <button
+                    onClick={() => void navigator.clipboard.writeText(setupSecret)}
+                    aria-label="Copiar secret"
+                    className="shrink-0 rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white"
+                  >
+                    <Copy size={14} />
+                  </button>
+                </div>
+              </details>
+            ) : null}
+
             <OTPInput
               value={confirmCode}
-              onChange={setConfirmCode}
+              onChange={(value) => {
+                setConfirmCode(value);
+                if (value) {
+                  setJustReturned(false);
+                }
+              }}
               onComplete={(code) => void confirmSetup(code)}
               error={Boolean(confirmError)}
               autoFocus
+              focusSignal={focusSignal}
               disabled={confirmLoading}
             />
 
