@@ -14,7 +14,9 @@
     "baseUrl": ".",
     "paths": {
       "@sanova/database": ["packages/database/src/index.ts"],
-      "@sanova/database/*": ["packages/database/src/*"]
+      "@sanova/database/*": ["packages/database/src/*"],
+      "@sanova/blockchain": ["packages/blockchain/src/index.ts"],
+      "@sanova/blockchain/*": ["packages/blockchain/src/*"]
     }
   }
 }

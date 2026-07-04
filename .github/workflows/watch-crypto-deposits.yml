@@ -16,6 +16,14 @@ jobs:
     steps:
       - name: Trigger watch-crypto-deposits endpoint
         run: |
-          curl --fail --show-error --silent \
+          curl -sS -D - -o body.txt -w "\nHTTP_STATUS:%{http_code}\n" \
+            -A "Mozilla/5.0 (compatible; SanovaCronWatcher/1.0)" \
             -H "Authorization: Bearer ${{ secrets.CRON_EXTERNAL_SECRET }}" \
-            "https://www.sanovacapital.com/api/cron/watch-crypto-deposits"
+            "https://www.sanovacapital.com/api/cron/watch-crypto-deposits" | tee headers.txt
+          echo "----- BODY -----"
+          cat body.txt
+          status=$(grep -o 'HTTP_STATUS:[0-9]*' headers.txt | cut -d: -f2)
+          if [ "$status" -ge 400 ]; then
+            echo "Request failed with status $status"
+            exit 1
+          fi
