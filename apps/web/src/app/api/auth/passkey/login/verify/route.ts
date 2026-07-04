@@ -31,13 +31,6 @@ export async function POST(request: Request) {
   try {
     const webContext = resolvePasskeyWebContext(request);
     const result = await verifyPasskeyLogin(body.response, webContext);
-    if (result.requiresTOTP) {
-      return NextResponse.json({
-        requiresTOTP: true,
-        tempToken: result.tempToken,
-        email: result.email
-      });
-    }
     return NextResponse.json({ loginToken: result.loginToken, email: result.email });
   } catch (error) {
     console.error('[passkey/login/verify]', error);

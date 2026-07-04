@@ -17,7 +17,7 @@ import {
   type PasskeyWebContext
 } from './passkeyConfig';
 import { issueAuthUser, updateUserRoleIfNeeded } from './issueAuthUser';
-import { is2faLocked, issueTempTotpToken, lockoutRemainingSeconds } from './totpService';
+import { is2faLocked, lockoutRemainingSeconds } from './totpService';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const LOGIN_TOKEN_TTL = '2m';
@@ -313,15 +313,15 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
 
   const email = passkey.user.email;
 
-  if (passkey.user.totpEnabled) {
-    if (is2faLocked(passkey.user)) {
-      throw new Error(`CUENTA_BLOQUEADA:${lockoutRemainingSeconds(passkey.user)}`);
-    }
-
-    const tempToken = await issueTempTotpToken(passkey.user.id);
-    return { requiresTOTP: true as const, tempToken, email };
+  if (is2faLocked(passkey.user)) {
+    throw new Error(`CUENTA_BLOQUEADA:${lockoutRemainingSeconds(passkey.user)}`);
   }
 
+  // Passkey login already requires WebAuthn user verification (device possession +
+  // biometric/PIN, see `requireUserVerification: true` above), which is equivalent-or-
+  // stronger than password+TOTP. So unlike password login, a passkey login never asks
+  // for the TOTP code, even when `totpEnabled` is true — TOTP stays required only for
+  // the password-based desktop login path.
   const loginToken = await new SignJWT({ sub: passkey.user.id, purpose: 'passkey-login' })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()

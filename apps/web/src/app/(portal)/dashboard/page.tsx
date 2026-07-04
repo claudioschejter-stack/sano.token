@@ -6,7 +6,6 @@ import { AdvisorDashboardHome } from '../../../components/advisor/AdvisorDashboa
 import { ManagerDashboardHome } from '../../../components/advisor/ManagerDashboardHome';
 import { FinancialOverview } from '../../../components/dashboard/FinancialOverview';
 import { DashboardSkeleton } from '../../../components/dashboard/DashboardSkeleton';
-import { PanelInstallAppSection } from '../../../components/pwa/PanelInstallAppSection';
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -36,10 +35,5 @@ export default function DashboardPage() {
     );
   }
 
-  return (
-    <>
-      <PanelInstallAppSection />
-      {content}
-    </>
-  );
+  return content;
 }

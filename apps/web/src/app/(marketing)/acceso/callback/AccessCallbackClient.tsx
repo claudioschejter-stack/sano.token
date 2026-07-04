@@ -12,7 +12,6 @@ import { useDeviceDetection } from '../../../../hooks/useDeviceDetection';
 import { getDevicePasskeyHint } from '../../../../lib/auth/devicePasskeyStorage';
 import { hasBiometricPromptBeenShown, markBiometricPromptShown } from '../../../../lib/auth/biometricPromptStorage';
 import { BiometricOnboardingStep } from '../../../../components/auth/BiometricOnboardingStep';
-import { InstallAppBanner } from '../../../../components/pwa/InstallAppBanner';
 
 export default function AccessCallbackClient() {
   const router = useRouter();
@@ -140,7 +139,6 @@ export default function AccessCallbackClient() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white px-4 py-12 text-slate-700">
         <div className="w-full max-w-md">
-          <InstallAppBanner />
           <BiometricOnboardingStep
             onComplete={() => {
               const email = session?.user?.email?.trim().toLowerCase();
