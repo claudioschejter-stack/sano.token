@@ -1,6 +1,9 @@
 import { prisma } from '@sanova/database';
 import { getMercadoPagoQrOrderApi } from '../mercadoPagoQr/client';
 import { updateMercadoPagoQrOrderFromApi } from '../mercadoPagoQr/repository';
+import { dispatchApprovedLocalWalletPayment } from '../localWalletWebhookSettlement';
+
+const PAID_QR_ORDER_STATUSES = new Set(['processed', 'paid']);
 
 type MercadoPagoWebhookEvent = {
   type?: string;
@@ -32,6 +35,25 @@ export async function handleMercadoPagoQrOrderWebhook(event: MercadoPagoWebhookE
 
   const apiOrder = await getMercadoPagoQrOrderApi(mpOrderId);
   const updated = await updateMercadoPagoQrOrderFromApi(local.id, apiOrder);
+
+  // Investor-checkout dynamic QR orders (FiatWalletPanel) carry the platform deposit id
+  // or cart batch id as external_reference; merchant "cobrar" orders use an unrelated
+  // ad-hoc reference and simply won't match anything downstream (safe no-op).
+  if (PAID_QR_ORDER_STATUSES.has(updated.status)) {
+    await dispatchApprovedLocalWalletPayment({
+      externalReference: updated.externalReference,
+      provider: 'mercado_pago_qr',
+      providerPaymentId: updated.mpPaymentId,
+      amountUsd: null,
+      payload: {
+        mpOrderId: updated.mpOrderId,
+        mpPaymentId: updated.mpPaymentId,
+        externalReference: updated.externalReference,
+        amountArs: Number(updated.amountArs),
+        status: updated.status
+      }
+    });
+  }
 
   return {
     ok: true,

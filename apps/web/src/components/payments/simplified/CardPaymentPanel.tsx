@@ -1,12 +1,10 @@
 'use client';
 
-import { CreditCard, ExternalLink, Smartphone } from 'lucide-react';
+import { CheckCircle2, CreditCard, ExternalLink, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { SimplifiedCardMethod } from '../../../lib/payments/checkoutBestRouteService';
-import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
-
-const QR_SIZE = 200;
 
 type Props = {
   card: SimplifiedCardMethod;
@@ -14,14 +12,53 @@ type Props = {
   country: string;
   amountUsd: number;
   onFunded?: () => void;
+  onError?: (message: string) => void;
 };
 
-export function CardPaymentPanel({ card, amountUsd }: Props) {
+/** Transak widget postMessage event ids — see https://docs.transak.com/integration/web/iframe */
+type TransakMessage = {
+  event_id?: string;
+  data?: Record<string, unknown>;
+};
+
+export function CardPaymentPanel({ card, amountUsd, onFunded, onError }: Props) {
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
-  const { isDesktop } = useDeviceDetection();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const onFundedRef = useRef(onFunded);
+  const onErrorRef = useRef(onError);
+  onFundedRef.current = onFunded;
+  onErrorRef.current = onError;
 
-  if (!card.configured || !card.widgetUrl) {
+  const [status, setStatus] = useState<'loading' | 'ready' | 'confirmed' | 'failed'>('loading');
+
+  const transakUrl = card.widgetUrl;
+
+  // Listen for Transak's widget lifecycle events so payment completion is detected
+  // automatically — the user never has to leave the page or click "I've paid".
+  useEffect(() => {
+    if (!transakUrl) return;
+
+    const handleMessage = (event: MessageEvent<TransakMessage>) => {
+      if (event.source !== iframeRef.current?.contentWindow) return;
+
+      const eventId = event.data?.event_id;
+      if (eventId === 'TRANSAK_WIDGET_OPEN') {
+        setStatus('ready');
+      } else if (eventId === 'TRANSAK_ORDER_SUCCESSFUL') {
+        setStatus('confirmed');
+        onFundedRef.current?.();
+      } else if (eventId === 'TRANSAK_ORDER_FAILED') {
+        setStatus('failed');
+        onErrorRef.current?.('El pago con tarjeta no pudo procesarse. Intentá nuevamente.');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [transakUrl]);
+
+  if (!card.configured || !transakUrl) {
     return (
       <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
         <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
@@ -29,11 +66,8 @@ export function CardPaymentPanel({ card, amountUsd }: Props) {
     );
   }
 
-  const transakUrl = card.widgetUrl;
-
   return (
     <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
-
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="rounded-xl bg-violet-400/10 p-2.5 text-violet-400">
@@ -42,7 +76,7 @@ export function CardPaymentPanel({ card, amountUsd }: Props) {
         <div>
           <h3 className="text-sm font-semibold text-terminal-text">{sc.cardTitle}</h3>
           <p className="mt-0.5 text-xs text-terminal-muted">
-            Visa · Mastercard · débito o crédito
+            Visa · Mastercard · Google Pay · Apple Pay · PayPal
           </p>
         </div>
       </div>
@@ -68,43 +102,43 @@ export function CardPaymentPanel({ card, amountUsd }: Props) {
       {/* Fee breakdown */}
       <PaymentFeeBreakdown amountUsd={amountUsd} totalUsd={card.totalUsd} />
 
-      {/* Desktop: QR code */}
-      {isDesktop && (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
-          <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(transakUrl)}`}
-              alt="QR Transak — pago con tarjeta"
-              width={QR_SIZE}
-              height={QR_SIZE}
-              className="block rounded"
+      {status === 'confirmed' ? (
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-terminal-success/40 bg-terminal-success/10 px-4 py-6 text-center">
+          <CheckCircle2 size={28} className="text-terminal-success" />
+          <p className="text-sm font-bold text-terminal-success">¡Pago con tarjeta exitoso!</p>
+          <p className="text-xs text-terminal-muted">Estamos acreditando tu USDC en Base.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <p className="text-center text-[11px] text-terminal-muted">
+            El monto ya está precargado — completá tus datos o pagá con Google Pay, Apple Pay o PayPal dentro del formulario.
+          </p>
+          <div className="relative overflow-hidden rounded-xl border border-terminal-border bg-white">
+            {status === 'loading' && (
+              <div className="flex h-[620px] w-full items-center justify-center gap-2 text-sm text-terminal-muted">
+                <Loader2 className="h-5 w-5 animate-spin text-violet-500" />
+                Cargando formulario de pago…
+              </div>
+            )}
+            <iframe
+              ref={iframeRef}
+              src={transakUrl}
+              allow="camera; microphone; payment; clipboard-write"
+              referrerPolicy="strict-origin-when-cross-origin"
+              className={`w-full rounded-xl border-0 ${status === 'loading' ? 'hidden' : 'block h-[620px]'}`}
+              title="Transak — pago con tarjeta"
             />
           </div>
-          <p className="text-center text-[11px] text-terminal-muted">
-            Escaneá con el celular para pagar con tarjeta
-          </p>
           <a
             href={transakUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs font-medium text-terminal-primary hover:underline"
+            className="flex items-center justify-center gap-1.5 text-xs font-medium text-terminal-primary hover:underline"
           >
-            Abrir en el navegador <ExternalLink className="h-3 w-3" />
+            ¿Problemas para ver el formulario? Abrilo en una pestaña nueva
+            <ExternalLink className="h-3 w-3" />
           </a>
         </div>
-      )}
-
-      {/* Mobile: redirect button */}
-      {!isDesktop && (
-        <a
-          href={transakUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-violet-600 px-4 py-4 text-sm font-bold text-white shadow-lg shadow-violet-900/30 transition-all hover:bg-violet-500 active:scale-[0.98]"
-        >
-          <Smartphone className="h-4 w-4" />
-          Pagar con tarjeta — Transak
-        </a>
       )}
     </section>
   );

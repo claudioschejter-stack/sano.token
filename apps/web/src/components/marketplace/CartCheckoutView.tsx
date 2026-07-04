@@ -273,6 +273,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [batchId, setBatchId] = useState<string | null>(batchFromQuery);
   const [checkout, setCheckout] = useState<CartCheckoutResult | null>(null);
   const [deposit, setDeposit] = useState<DepositResponse | null>(null);
+  const [simplifiedRefCache, setSimplifiedRefCache] = useState<
+    Partial<Record<string, { referenceId: string; payToAddress: string | null }>>
+  >({});
   const [status, setStatus] = useState<
     | 'idle'
     | 'processing'
@@ -965,6 +968,85 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     }
   };
 
+  /**
+   * Ensures a real backend PlatformDeposit (mode=deposit) or cart checkout batch
+   * (mode=purchase) exists for the given method, independent of the legacy lane
+   * selector state machine. Used by the QR-based SimplifiedCheckout panels
+   * (crypto wallet, fiat wallet) so they have a persisted reference to watch/poll
+   * for automatic payment detection, without touching handleConfirm's flow.
+   */
+  const ensureSimplifiedCheckoutReference = useCallback(
+    async (
+      method: PaymentMethod,
+      rail?: string
+    ): Promise<{ referenceId: string; payToAddress: string | null } | null> => {
+      const cacheKey = `${method}:${rail ?? ''}`;
+      const cached = simplifiedRefCache[cacheKey];
+      if (cached) {
+        return cached;
+      }
+
+      try {
+        if (mode === 'deposit') {
+          if (!Number.isFinite(totalUsd) || totalUsd <= 0) {
+            return null;
+          }
+          const response = await fetch('/api/wallet/deposit-intents', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amountUsd: totalUsd,
+              method,
+              auto: false,
+              stablecoinNetwork: method === 'USDC_ONCHAIN' ? 'BASE' : undefined,
+              walletAddress: linkedWalletAddress,
+              paymentOptionRail: rail
+            })
+          });
+          const data = (await response.json()) as { error?: string; deposit?: DepositResponse };
+          if (!response.ok || !data.deposit) {
+            return null;
+          }
+          setDeposit(data.deposit);
+          const resolved = { referenceId: data.deposit.id, payToAddress: data.deposit.payToAddress ?? null };
+          setSimplifiedRefCache((prev) => ({ ...prev, [cacheKey]: resolved }));
+          return resolved;
+        }
+
+        if (mode === 'purchase') {
+          if (items.length === 0) {
+            return null;
+          }
+          const response = await fetch('/api/marketplace/cart/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              items: items.map((row) => ({ projectId: row.projectId, tokenCount: row.tokenCount })),
+              method,
+              walletAddress: address,
+              stablecoinNetwork: method === 'USDC_ONCHAIN' ? 'BASE' : undefined,
+              paymentOptionRail: rail
+            })
+          });
+          const data = (await response.json()) as { error?: string; checkout?: CartCheckoutResult };
+          if (!response.ok || !data.checkout) {
+            return null;
+          }
+          setCheckout(data.checkout);
+          setBatchId(data.checkout.batchId);
+          const resolved = { referenceId: data.checkout.batchId, payToAddress: data.checkout.payToAddress ?? null };
+          setSimplifiedRefCache((prev) => ({ ...prev, [cacheKey]: resolved }));
+          return resolved;
+        }
+
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    [address, items, linkedWalletAddress, mode, simplifiedRefCache, totalUsd]
+  );
+
   const applyCartPostPurchaseStatus = (intents: PublicPaymentIntent[]) => {
     const vaultIntents = intents.filter(
       (row) => (row.metadata as Record<string, unknown> | null)?.purchaseMode === 'ERC4626_DEPOSIT'
@@ -1572,6 +1654,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               referenceId={deposit?.id ?? batchId ?? ''}
               investorName={investorName}
               country={depositCountry}
+              mode={mode === 'purchase' ? 'purchase' : 'deposit'}
+              ensureReference={ensureSimplifiedCheckoutReference}
               className="py-[1mm]"
               onFunded={() => setStatus('done')}
               onError={(message) => setError(message)}

@@ -1061,3 +1061,26 @@ model MercadoPagoQrOrder {
   @@index([status])
   @@index([externalReference])
 }
+
+model MercadoPagoPixPayment {
+  id                String    @id @default(cuid())
+  userId            String
+  mpPaymentId       String    @unique
+  externalReference String
+  amountBrl         Decimal   @db.Decimal(20, 2)
+  description       String?
+  status            String    @default("pending")
+  statusDetail      String?
+  qrCode            String?   @db.Text
+  qrCodeBase64      String?   @db.Text
+  expiresAt         DateTime?
+  idempotencyKey    String    @unique
+  metadata          Json      @default("{}")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@unique([userId, externalReference])
+  @@index([userId])
+  @@index([status])
+  @@index([externalReference])
+}

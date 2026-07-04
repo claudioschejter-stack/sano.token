@@ -18,6 +18,7 @@
     "db:rwa-automation": "node scripts/apply-rwa-automation-migration.mjs",
     "db:stablecoin-payments": "node scripts/apply-stablecoin-payments-migration.mjs",
     "db:project-yield": "node scripts/apply-project-yield-migration.mjs",
+    "db:mercadopago-pix": "node scripts/apply-mercadopago-pix-migration.mjs",
     "vercel:check-payments": "node scripts/vercel/check-payments-env.mjs",
     "vercel:audit-production-env": "node scripts/vercel/audit-production-env.mjs",
     "vercel:sync-payments": "node scripts/vercel/sync-payments-env.mjs",

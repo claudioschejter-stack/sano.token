@@ -14,6 +14,22 @@ import type { PaymentRouteQuote } from './cheapestPaymentRouter';
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = ['event Transfer(address indexed from,address indexed to,uint256 value)'];
 
+/**
+ * Derives a deterministic "dust" amount (0.0001–0.0099) from a seed string (e.g. the
+ * deposit's idempotency key), so each QR-based on-chain deposit can be told apart from
+ * others of the same nominal amount by watching for an exact micro-amount on-chain,
+ * without requiring the user to paste a transaction hash.
+ */
+export function computeCryptoQrWatchAmountUsd(seed: string, amountUsd: number): number {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+  }
+  const dustSteps = (hash % 99) + 1; // 1..99 -> 0.0001..0.0099
+  const dust = dustSteps / 10_000;
+  return Number((amountUsd + dust).toFixed(6));
+}
+
 type WalletAccount = {
   id: string;
   userId: string;
@@ -246,7 +262,12 @@ export async function createPlatformDeposit(input: {
     selectedRoute: input.routeQuote ?? null,
     paymentOptionId: input.paymentOptionId ?? null,
     providerRail: checkoutRow?.providerRail ?? null,
-    paymentLabel: checkoutRow?.label ?? null
+    paymentLabel: checkoutRow?.label ?? null,
+    // Watermarked amount for QR "scan to pay" auto-detection (see scanTreasuryForPendingUsdcDeposit).
+    qrWatchAmountUsd:
+      resolvedMethod.method === 'USDC_ONCHAIN'
+        ? computeCryptoQrWatchAmountUsd(baseIdempotencyKey, input.amountUsd)
+        : null
   };
 
   const checkoutInput = {
@@ -526,4 +547,96 @@ export async function verifyPlatformStablecoinDeposit(input: {
     provider: `${network.id.toLowerCase()}_stablecoin`,
     metadata: { network: network.id }
   });
+}
+
+/** How far back (in blocks) to scan for an incoming treasury transfer. ~50 min on Base (2s/block). */
+const CRYPTO_QR_WATCH_LOOKBACK_BLOCKS = 1500;
+
+/**
+ * Scans the treasury's recent USDC Transfer logs for a payment matching this deposit's
+ * watermarked amount (see computeCryptoQrWatchAmountUsd), and auto-confirms it without
+ * requiring the user to paste a transaction hash. Used by both the client-side polling
+ * in CryptoWalletPanel and the backup cron sweep.
+ */
+export async function scanTreasuryForPendingUsdcDeposit(depositId: string) {
+  const deposit = await prisma.platformDeposit.findUnique({ where: { id: depositId } });
+  if (!deposit || deposit.status !== 'PENDING' || deposit.method !== 'USDC_ONCHAIN') {
+    return deposit ? serializeDeposit(deposit) : null;
+  }
+  if (deposit.expiresAt <= new Date()) {
+    return serializeDeposit(deposit);
+  }
+
+  const network = getStablecoinNetwork(deposit.stablecoinNetwork);
+  if (!network.rpcUrl || !network.tokenAddress || !network.treasuryAddress || network.kind !== 'EVM') {
+    return serializeDeposit(deposit);
+  }
+
+  const metadata = (deposit.metadata as Record<string, unknown>) ?? {};
+  const watchAmountUsd =
+    typeof metadata.qrWatchAmountUsd === 'number' ? metadata.qrWatchAmountUsd : Number(deposit.amountUsd);
+  if (!Number.isFinite(watchAmountUsd) || watchAmountUsd <= 0) {
+    return serializeDeposit(deposit);
+  }
+
+  const provider = new ethers.JsonRpcProvider(network.rpcUrl);
+  const iface = new ethers.Interface(ERC20_TRANSFER_ABI);
+  const expectedTo = ethers.getAddress(network.treasuryAddress);
+  const expectedAmount = ethers.parseUnits(watchAmountUsd.toFixed(network.decimals), network.decimals);
+
+  const latestBlock = await provider.getBlockNumber();
+  const fromBlock = Math.max(0, latestBlock - CRYPTO_QR_WATCH_LOOKBACK_BLOCKS);
+
+  const logs = await provider.getLogs({
+    address: network.tokenAddress,
+    topics: [USDC_TRANSFER_TOPIC, null, ethers.zeroPadValue(expectedTo, 32)],
+    fromBlock,
+    toBlock: latestBlock
+  });
+
+  const match = logs.find((log) => {
+    const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
+    if (!parsed) return false;
+    const value = parsed.args.value as bigint;
+    return value === expectedAmount;
+  });
+
+  if (!match) {
+    return serializeDeposit(deposit);
+  }
+
+  const receipt = await provider.getTransactionReceipt(match.transactionHash);
+  const confirmations = receipt ? latestBlock - receipt.blockNumber + 1 : 0;
+  if (!receipt || receipt.status !== 1 || confirmations < paymentMinimumConfirmations()) {
+    return serializeDeposit(deposit);
+  }
+
+  const confirmed = await confirmPlatformDeposit({
+    depositId: deposit.id,
+    txHash: match.transactionHash,
+    provider: `${network.id.toLowerCase()}_stablecoin_qr_watch`,
+    metadata: { network: network.id, watchAmountUsd, autoDetected: true }
+  });
+  return confirmed;
+}
+
+/** Sweeps all pending USDC-on-chain QR deposits (safety net for the client-side poller). */
+export async function scanAllPendingCryptoQrDeposits() {
+  const pending = await prisma.platformDeposit.findMany({
+    where: { status: 'PENDING', method: 'USDC_ONCHAIN', expiresAt: { gt: new Date() } },
+    select: { id: true }
+  });
+
+  const confirmedIds: string[] = [];
+  for (const row of pending) {
+    try {
+      const result = await scanTreasuryForPendingUsdcDeposit(row.id);
+      if (result?.status === 'CONFIRMED') {
+        confirmedIds.push(row.id);
+      }
+    } catch (error) {
+      console.error('[scanAllPendingCryptoQrDeposits]', row.id, error);
+    }
+  }
+  return { scanned: pending.length, confirmed: confirmedIds };
 }

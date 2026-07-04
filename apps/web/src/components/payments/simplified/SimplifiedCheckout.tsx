@@ -11,12 +11,25 @@ import { CryptoWalletPanel } from './CryptoWalletPanel';
 import { CardPaymentPanel } from './CardPaymentPanel';
 import { WireTransferPanel } from './WireTransferPanel';
 
+export type EnsureCheckoutReference = (
+  method: 'USDC_ONCHAIN' | 'LOCAL_RAIL',
+  rail?: string
+) => Promise<{ referenceId: string; payToAddress: string | null } | null>;
+
 export type SimplifiedCheckoutProps = {
   amountUsd: number;
   referenceId: string;
   investorName?: string;
   /** ISO-2 country code (or from IP detection) */
   country?: string;
+  /** Whether this checkout funds the platform wallet or pays for a cart purchase */
+  mode?: 'deposit' | 'purchase';
+  /**
+   * Creates (or reuses) a real backend PlatformDeposit / cart checkout batch for a
+   * given method, so QR-based panels (crypto, fiat wallet) have a persisted
+   * reference to poll/watch for automatic payment detection.
+   */
+  ensureReference?: EnsureCheckoutReference;
   className?: string;
   onFunded?: () => void;
   onError?: (message: string) => void;
@@ -42,6 +55,8 @@ export function SimplifiedCheckout({
   referenceId,
   investorName,
   country = 'US',
+  mode = 'deposit',
+  ensureReference,
   className = '',
   onFunded,
   onError
@@ -116,6 +131,7 @@ export function SimplifiedCheckout({
           country={routes.country}
           onFunded={onFunded}
           amountUsd={amountUsd}
+          ensureReference={ensureReference}
         />
       )}
 
@@ -125,6 +141,8 @@ export function SimplifiedCheckout({
           treasuryAddress={routes.treasuryAddress}
           country={routes.country}
           amountUsd={amountUsd}
+          onFunded={onFunded}
+          ensureReference={ensureReference}
         />
       )}
 
@@ -134,6 +152,7 @@ export function SimplifiedCheckout({
           referenceId={referenceId}
           country={routes.country}
           onFunded={onFunded}
+          onError={onError}
           amountUsd={amountUsd}
         />
       )}

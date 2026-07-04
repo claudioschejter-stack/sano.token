@@ -6,6 +6,7 @@ import {
   handleMercadoPagoQrOrderWebhook,
   isMercadoPagoQrOrderWebhookEvent
 } from '../../../../lib/payments/mercadoPagoQr/webhookHandler';
+import { handleMercadoPagoPixWebhookIfTracked } from '../../../../lib/payments/mercadoPagoPix/webhookHandler';
 import { verifyMercadoPagoSignature } from '../../../../lib/payments/webhookSecurity';
 
 export const dynamic = 'force-dynamic';
@@ -111,6 +112,16 @@ export async function POST(request: Request) {
   if (isMercadoPagoQrOrderWebhookEvent(event)) {
     const qrResult = await handleMercadoPagoQrOrderWebhook(event);
     return NextResponse.json(qrResult);
+  }
+
+  // Pix payments (Brazil) are created via mercadoPagoPix and tracked locally by
+  // mpPaymentId; handle them separately since they use external_reference (not
+  // payment.metadata) to carry the deposit/cart batch reference.
+  if (event.data?.id && (event.type === 'payment' || event.action === 'payment.updated')) {
+    const pixResult = await handleMercadoPagoPixWebhookIfTracked(String(event.data.id));
+    if (!('ignored' in pixResult)) {
+      return NextResponse.json(pixResult);
+    }
   }
 
   let payment = event;

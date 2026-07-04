@@ -1,13 +1,14 @@
 'use client';
 
-import { Copy, ExternalLink, Wallet, CheckCircle2, QrCode } from 'lucide-react';
-import { useState } from 'react';
+import { Copy, ExternalLink, Wallet, CheckCircle2, QrCode, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
 import { useMobileWalletDetection } from '../../../hooks/useMobileWalletDetection';
 import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
 import { MobileAppRow } from './MobileAppRow';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
+import type { EnsureCheckoutReference } from './SimplifiedCheckout';
 
 const QR_SIZE = 220;
 
@@ -53,9 +54,18 @@ type Props = {
   treasuryAddress: string | null;
   country: string;
   amountUsd: number;
+  onFunded?: () => void;
+  ensureReference?: EnsureCheckoutReference;
 };
 
-export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amountUsd }: Props) {
+export function CryptoWalletPanel({
+  cryptoWallet,
+  treasuryAddress,
+  country,
+  amountUsd,
+  onFunded,
+  ensureReference
+}: Props) {
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
   const { isDesktop } = useDeviceDetection();
@@ -65,12 +75,79 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
   const [copiedUri, setCopiedUri] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
+  const [depositId, setDepositId] = useState<string | null>(null);
+  const [resolvedTreasury, setResolvedTreasury] = useState<string | null>(treasuryAddress);
+  const [watchAmountUsdc, setWatchAmountUsdc] = useState<number | null>(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const onFundedRef = useRef(onFunded);
+  onFundedRef.current = onFunded;
+
   const amountUsdc = cryptoWallet.totalUsd;
-  const eip681Uri = treasuryAddress ? buildEip681Uri(treasuryAddress, amountUsdc) : null;
+
+  // Create (or reuse) a real backend deposit for this QR, watermarked with a unique
+  // micro-amount so the payment can be detected automatically once it lands on-chain.
+  useEffect(() => {
+    let cancelled = false;
+    if (!ensureReference) return;
+    void ensureReference('USDC_ONCHAIN').then((result) => {
+      if (cancelled || !result) return;
+      setDepositId(result.referenceId);
+      if (result.payToAddress) setResolvedTreasury(result.payToAddress);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ensureReference]);
+
+  // Fetch the watermarked "watch amount" for the created deposit, once available.
+  useEffect(() => {
+    let cancelled = false;
+    if (!depositId) return;
+    void fetch(`/api/wallet/deposit-intents?id=${encodeURIComponent(depositId)}`, { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((data: { deposit?: { metadata?: { qrWatchAmountUsd?: number | null } | null } }) => {
+        if (cancelled) return;
+        const watch = data.deposit?.metadata?.qrWatchAmountUsd;
+        if (typeof watch === 'number' && Number.isFinite(watch)) {
+          setWatchAmountUsdc(watch);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [depositId]);
+
+  // Poll for automatic on-chain payment detection every 5s while the deposit is pending.
+  useEffect(() => {
+    if (!depositId || confirmed) return;
+    let cancelled = false;
+    const interval = window.setInterval(() => {
+      void fetch(`/api/wallet/deposit-intents/watch?id=${encodeURIComponent(depositId)}`, { cache: 'no-store' })
+        .then((res) => res.json())
+        .then((data: { deposit?: { status?: string } }) => {
+          if (cancelled) return;
+          if (data.deposit?.status === 'CONFIRMED') {
+            setConfirmed(true);
+            onFundedRef.current?.();
+          }
+        })
+        .catch(() => undefined);
+    }, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [depositId, confirmed]);
+
+  const treasuryForQr = resolvedTreasury ?? treasuryAddress;
+  const qrAmount = watchAmountUsdc ?? amountUsdc;
+  const eip681Uri = treasuryForQr ? buildEip681Uri(treasuryForQr, qrAmount) : null;
 
   const handleCopyAddr = () => {
-    if (!treasuryAddress) return;
-    void navigator.clipboard.writeText(treasuryAddress);
+    if (!treasuryForQr) return;
+    void navigator.clipboard.writeText(treasuryForQr);
     setCopiedAddr(true);
     setTimeout(() => setCopiedAddr(false), 1500);
   };
@@ -111,9 +188,12 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
           Monto exacto a pagar
         </p>
         <p className="mt-1 text-2xl font-bold text-terminal-primary">
-          {amountUsdc.toFixed(2)} <span className="text-base font-semibold">USDC</span>
+          {qrAmount.toFixed(4)} <span className="text-base font-semibold">USDC</span>
         </p>
-        <p className="mt-0.5 text-xs text-terminal-muted">en Base Network · sin conversión</p>
+        <p className="mt-0.5 text-xs text-terminal-muted">
+          en Base Network · sin conversión
+          {watchAmountUsdc ? ' · incluye centavos de seguimiento para detectar tu pago automáticamente' : ''}
+        </p>
       </div>
 
       {/* Network badge */}
@@ -121,8 +201,21 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
         <p className="text-xs font-medium text-terminal-primary">{sc.cryptoWalletNetwork}</p>
       </div>
 
-      {treasuryAddress && eip681Uri ? (
+      {confirmed ? (
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-terminal-success/40 bg-terminal-success/10 px-4 py-6 text-center">
+          <CheckCircle2 size={28} className="text-terminal-success" />
+          <p className="text-sm font-bold text-terminal-success">¡Pago recibido!</p>
+          <p className="text-xs text-terminal-muted">Detectamos tu transferencia en Base automáticamente.</p>
+        </div>
+      ) : treasuryForQr && eip681Uri ? (
         <>
+          {depositId && (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg/60 px-3 py-2 text-[11px] text-terminal-muted">
+              <Loader2 size={12} className="animate-spin text-terminal-primary" />
+              Esperando tu pago · se confirma solo, sin pegar el hash
+            </div>
+          )}
+
           {/* ── PRIMARY ACTION: Pay Now button (mobile) ── */}
           {isMobile && (
             <button
@@ -131,7 +224,7 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3.5 text-sm font-bold text-white shadow-lg active:opacity-90"
             >
               <ExternalLink size={16} />
-              Pagar {amountUsdc.toFixed(2)} USDC ahora
+              Pagar {qrAmount.toFixed(4)} USDC ahora
             </button>
           )}
 
@@ -142,7 +235,7 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
               <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
-                  alt={`QR pago ${amountUsdc.toFixed(2)} USDC`}
+                  alt={`QR pago ${qrAmount.toFixed(4)} USDC`}
                   width={QR_SIZE}
                   height={QR_SIZE}
                   className="block rounded"
@@ -152,7 +245,7 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
                 Escaneá con MetaMask, Trust, Coinbase Wallet o cualquier wallet EVM
                 <br />
                 <span className="font-semibold text-terminal-primary">
-                  El monto ({amountUsdc.toFixed(2)} USDC) se pre-llena automáticamente
+                  El monto ({qrAmount.toFixed(4)} USDC) se pre-llena automáticamente
                 </span>
               </p>
             </div>
@@ -172,14 +265,14 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
                   <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
-                      alt={`QR pago ${amountUsdc.toFixed(2)} USDC`}
+                      alt={`QR pago ${qrAmount.toFixed(4)} USDC`}
                       width={QR_SIZE}
                       height={QR_SIZE}
                       className="block rounded"
                     />
                   </div>
                   <p className="text-center text-[11px] text-terminal-muted">
-                    Monto pre-llenado: {amountUsdc.toFixed(2)} USDC · Base
+                    Monto pre-llenado: {qrAmount.toFixed(4)} USDC · Base
                   </p>
                 </div>
               )}
@@ -193,7 +286,7 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
             </p>
             <div className="mt-2 flex items-center justify-between gap-3">
               <p className="break-all font-mono text-xs text-terminal-text leading-relaxed">
-                {treasuryAddress}
+                {treasuryForQr}
               </p>
               <button
                 type="button"
@@ -241,7 +334,7 @@ export function CryptoWalletPanel({ cryptoWallet, treasuryAddress, country, amou
                   <MobileAppRow
                     key={app.id}
                     app={app}
-                    actionDeepLink={buildCryptoDeepLink(app.id, treasuryAddress, amountUsdc)}
+                    actionDeepLink={buildCryptoDeepLink(app.id, treasuryForQr, qrAmount)}
                   />
                 ))
               )}
