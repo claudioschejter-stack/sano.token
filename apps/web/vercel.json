@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/watch-crypto-deposits",
-      "schedule": "* * * * *"
+      "schedule": "0 11 * * *"
     }
   ]
 }
