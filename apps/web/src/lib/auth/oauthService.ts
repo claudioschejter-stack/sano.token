@@ -8,6 +8,7 @@ import {
 import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 import { provisionAdvisorRecordOnRolePromotion } from '../advisor/provisionAdvisorOnRolePromotion';
 import { isPreApprovedInvestorEmail, resolveRoleForEmail, resolveRoleForExistingUser } from './roleAllowlist';
+import { isInvestorOpenRegistration } from './investorAccess';
 
 type OAuthLoginInput = {
   email: string;
@@ -19,7 +20,7 @@ type OAuthLoginInput = {
 
 async function resolveInvestorAccessForOAuth(email: string): Promise<boolean> {
   return (
-    process.env.INVESTOR_OPEN_REGISTRATION === 'true' ||
+    isInvestorOpenRegistration() ||
     isPreApprovedInvestorEmail(email) ||
     (await hasValidInvestorInviteForEmail(email))
   );

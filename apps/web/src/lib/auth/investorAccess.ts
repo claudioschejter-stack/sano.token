@@ -1,18 +1,10 @@
 export function isInvestorOpenRegistration(): boolean {
-  const isProduction =
-    process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
-
-  if (isProduction && process.env.INVESTOR_OPEN_REGISTRATION === 'true') {
-    // Log a critical warning but fail-safe to false so the invite-code gate is
-    // never bypassed silently. Remove or set to 'false' in Vercel.
-    console.error(
-      '[SECURITY] INVESTOR_OPEN_REGISTRATION=true in production — ' +
-        'all users bypass the invite-code gate. Defaulting to closed registration.'
-    );
-    return false;
-  }
-
-  return process.env.INVESTOR_OPEN_REGISTRATION === 'true';
+  // Investor registration no longer requires an invite code (policy change 2026-07):
+  // the admin "Inversores" invite panel is kept for marketing/outreach and tracking
+  // purposes only, not as an access gate. Do not reintroduce the invite-code
+  // requirement here — use `assertInvestorAccessEnabled` / the admin access toggle
+  // if a specific investor account needs to be disabled.
+  return true;
 }
 
 const OPEN_REGISTRATION = isInvestorOpenRegistration();
@@ -49,10 +41,9 @@ export function assertInvestorAccessEnabled(user: { investorAccessEnabled?: bool
     return;
   }
 
-  if (OPEN_REGISTRATION) {
-    return;
-  }
-
+  // Note: registration being open does NOT bypass this check. It stays keyed off
+  // the per-user `investorAccessEnabled` flag so admins can still disable a
+  // specific investor's access from the "Inversores" panel.
   if (!user.investorAccessEnabled) {
     throw new Error('INVESTOR_ACCESS_NOT_ENABLED');
   }
