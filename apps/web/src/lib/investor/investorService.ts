@@ -270,6 +270,15 @@ export async function purchaseProjectTokens(input: {
     result.purchasePriceUsd
   );
 
+  const { createNotification } = await import('../notifications/notificationService');
+  void createNotification({
+    userId: input.userId,
+    type: 'purchase_confirmed',
+    title: 'Inversión confirmada',
+    body: `Confirmamos tu inversión en ${projectMeta?.title ?? 'Asset'} por USD ${result.purchasePriceUsd.toFixed(2)}.`,
+    link: '/dashboard/portfolio'
+  });
+
   return { ...result, commissionSplit };
 }
 

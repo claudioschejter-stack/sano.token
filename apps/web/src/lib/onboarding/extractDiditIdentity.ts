@@ -29,7 +29,7 @@ function readString(value: unknown): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function firstIdVerification(
+export function firstIdVerification(
   payload: Record<string, unknown>
 ): Record<string, unknown> | undefined {
   const decision = payload.decision as Record<string, unknown> | undefined;

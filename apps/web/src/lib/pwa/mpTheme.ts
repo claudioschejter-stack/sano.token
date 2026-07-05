@@ -1,5 +1,7 @@
 /** Mercado Pago–style accent (celeste Sanova, replaces MP yellow). */
 export const MP_ACCENT = '#009EE3';
+/** Light "celeste" tone, replaces MP's light-yellow secondary buttons. */
+export const MP_ACCENT_SOFT = '#E5F4FC';
 export const MP_BG = '#FFFFFF';
 export const MP_CARD = '#FFFFFF';
 

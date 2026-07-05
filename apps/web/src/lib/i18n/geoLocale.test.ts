@@ -6,18 +6,40 @@ import {
 } from './geoLocale';
 
 describe('geoLocale', () => {
-  it('forces Spanish for Argentina even when a stale Swahili preference exists', () => {
+  it('prefers the device/browser language over a stale stored preference', () => {
     expect(
       resolveGeoLocale({
         stored: 'sw',
         countryHint: 'AR',
-        browserLanguages: ['sw-KE'],
+        browserLanguages: ['es-AR'],
         manual: false
       })
     ).toBe('es');
   });
 
-  it('keeps a manual locale choice', () => {
+  it('keeps the browser language even when the IP-derived country is misdetected (AR mobile carrier resolving as BR)', () => {
+    expect(
+      resolveGeoLocale({
+        stored: null,
+        countryHint: 'BR',
+        browserLanguages: ['es-AR', 'es'],
+        manual: false
+      })
+    ).toBe('es');
+  });
+
+  it('falls back to the country hint only when there is no usable browser language', () => {
+    expect(
+      resolveGeoLocale({
+        stored: null,
+        countryHint: 'BR',
+        browserLanguages: [],
+        manual: false
+      })
+    ).toBe('pt');
+  });
+
+  it('keeps a manual locale choice regardless of browser or country signals', () => {
     expect(
       resolveGeoLocale({
         stored: 'en',

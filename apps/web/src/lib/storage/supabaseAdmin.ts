@@ -51,8 +51,11 @@ export function getLaunchStorageBucket(): string {
   return process.env.SUPABASE_STORAGE_BUCKET?.trim() || 'launches';
 }
 
-export function getPublicStorageUrl(objectPath: string): string {
+export function getAvatarStorageBucket(): string {
+  return process.env.SUPABASE_AVATAR_BUCKET?.trim() || 'avatars';
+}
+
+export function getPublicStorageUrl(objectPath: string, bucket: string = getLaunchStorageBucket()): string {
   const base = getSupabaseUrl();
-  const bucket = getLaunchStorageBucket();
   return `${base}/storage/v1/object/public/${bucket}/${objectPath}`;
 }

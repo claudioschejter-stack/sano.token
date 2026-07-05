@@ -6,12 +6,8 @@ import type { SystemRole } from './lib/auth/roles';
 import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
 import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
 import { applySecurityHeaders } from './lib/security/securityHeaders';
-import {
-  isLocaleCompatibleWithCountry,
-  resolveGeoLocale
-} from './lib/i18n/geoLocale';
+import { resolveGeoLocale } from './lib/i18n/geoLocale';
 import { LOCALE_MANUAL_KEY } from './lib/i18n/mobileLocalePreference';
-import type { Locale } from './i18n';
 import {
   isLocalePrefixablePath,
   LOCALE_HEADER,
@@ -75,25 +71,23 @@ function withLocaleAndCountryHints(
     : [];
 
   const countryCode = country?.toUpperCase() ?? null;
-  const shouldRefreshLocale =
-    !manualLocale ||
-    (storedLocale &&
-      countryCode &&
-      !isLocaleCompatibleWithCountry(storedLocale as Locale, countryCode));
+  // A manual choice is never recalculated automatically — once the user (or a past
+  // detection) picks a language on purpose, it sticks across the whole platform.
+  const shouldRefreshLocale = !manualLocale;
 
   if (!storedLocale || shouldRefreshLocale) {
     const detected = resolveGeoLocale({
       stored: storedLocale,
       countryHint: countryCode,
       browserLanguages,
-      manual: manualLocale && !shouldRefreshLocale
+      manual: manualLocale
     });
     response.cookies.set(LOCALE_STORAGE_KEY, detected, {
       maxAge: 60 * 60 * 24 * 365,
       path: '/',
       sameSite: 'lax'
     });
-    if (shouldRefreshLocale && !manualLocale) {
+    if (!manualLocale) {
       response.cookies.delete(LOCALE_MANUAL_KEY);
     }
   }

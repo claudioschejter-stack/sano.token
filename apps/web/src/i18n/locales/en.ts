@@ -21,7 +21,7 @@ export const en = {
     backToMarketplace: "Return to the marketplace",
     whatsappLabel: "Write to us on WhatsApp",
     whatsappMessage: "Hello, I am contacting you from the Sanova Global website.",
-    loadingGeneric: "Charging…"
+    loadingGeneric: "Loading…"
   },
   propertyCard: {
     kycRequired: "Identity verification is required prior to purchase.",
@@ -188,7 +188,9 @@ export const en = {
     collectionWallet: "Collection wallet",
     secondaryMarket: "Secondary Market",
     settings: "Settings",
-    signOut: "Sign Out"
+    signOut: "Sign Out",
+    globalPosition: "Global position",
+    loans: "Loans"
   },
   adminNav: {
     panel: "Control panel",
@@ -1851,6 +1853,9 @@ export const en = {
     mobileGateActivateBiometric: "Activate fingerprint or Face ID",
     mobileGateActivateBiometricDesc: "You'll sign in once with your password to activate it on this phone.",
     mobileGateSkip: "Sign in with username and password",
+    mobileAppBadge: "Mobile app",
+    registerTab: "Create account",
+    availableProperties: "Available properties",
     signingIn: "Entering…",
     signedInAs: "Active session:",
     roleLabel: "Role",
@@ -2458,6 +2463,35 @@ export const en = {
     goMarketplace: "Go to the marketplace",
     globalTitle: "Unexpected error",
     globalHint: "A crash occurred in the application.Your session and data are protected."
+  },
+  pwaHome: {
+    searchAria: "Search properties",
+    walletAria: "My wallet",
+    notificationsAria: "Notifications",
+    sectionTabsAria: "Platform sections",
+    comingSoonTitle: "Coming soon",
+    comingSoonBody: "We're preparing this section. You'll be able to see it here very soon.",
+    backToPanel: "Back to panel",
+    depositAction: "Deposit",
+    withdrawAction: "Withdraw",
+    marketplaceAction: "Marketplace",
+    myMoneyTitle: "Your money",
+    hideBalance: "Hide balance",
+    showBalance: "Show balance",
+    yieldLabel: "Yields {percent} APY",
+    recentActivityTitle: "Recent activity",
+    recentActivityEmpty: "You don't have any recent activity yet.",
+    viewAllActivity: "View all",
+    investNowTitle: "Invest now"
+  },
+  notifications: {
+    title: "Notifications",
+    empty: "You don't have any notifications yet.",
+    markAllRead: "Mark all as read",
+    kycApprovedTitle: "Your account was approved!",
+    kycApprovedBody: "You can now invest in the Sanova Capital marketplace.",
+    purchaseConfirmedTitle: "Investment confirmed",
+    purchaseConfirmedBody: "We confirmed your investment in {projectTitle} for {amount}."
   }
 };
 

@@ -1,7 +1,7 @@
-'use client';
+import { requireInvestorPortalPage } from '../../../../lib/onboarding/requireInvestorPortalPage';
+import { LoansPageClient } from './LoansPageClient';
 
-import { AdminLoansView } from '../../../../components/admin/AdminLoansView';
-
-export default function AdminLoansPage() {
-  return <AdminLoansView />;
+export default async function LoansPage() {
+  await requireInvestorPortalPage('/dashboard/loans');
+  return <LoansPageClient />;
 }

@@ -11,9 +11,10 @@ import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 type Props = {
   listing: MarketplaceListing;
   compact?: boolean;
+  variant?: 'default' | 'feed';
 };
 
-export function PwaPropertyCard({ listing, compact = false }: Props) {
+export function PwaPropertyCard({ listing, compact = false, variant = 'default' }: Props) {
   const { intlLocale } = useLocale();
   const { formatUsd, formatPercent } = useMemo(
     () => createIntlFormatters(intlLocale),
@@ -21,6 +22,41 @@ export function PwaPropertyCard({ listing, compact = false }: Props) {
   );
 
   const href = `/marketplace/${listing.id}/agregar`;
+
+  if (variant === 'feed') {
+    return (
+      <Link
+        href={href}
+        className="block overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100 transition active:bg-slate-50"
+      >
+        <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
+          {listing.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={listing.imageUrl} alt={listing.title} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full items-center justify-center text-slate-400">RWA</div>
+          )}
+        </div>
+        <div className="p-4">
+          <h4 className="line-clamp-1 text-base font-bold text-slate-900">{listing.title}</h4>
+          <p className="mt-1 flex items-center gap-1 text-xs text-slate-500">
+            <MapPin size={12} />
+            {listing.location}
+          </p>
+          <div className="mt-3 flex items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600">
+              <TrendingUp size={14} />
+              {formatPercent(listing.apyPercent / 100)} APY
+            </span>
+            <span className="text-xs text-slate-500">{listing.availableTokens} tokens</span>
+          </div>
+          <p className="mt-1 text-xs text-slate-600">
+            Desde {formatUsd(listing.pricePerTokenUsd)} / token
+          </p>
+        </div>
+      </Link>
+    );
+  }
 
   if (compact) {
     return (

@@ -105,31 +105,16 @@ export function resolveGeoLocale(options: {
 }): Locale {
   const stored = options.stored?.trim();
   const validStored = stored && locales.includes(stored as Locale) ? (stored as Locale) : null;
-  const country = options.countryHint?.trim().toUpperCase() || null;
-  const fromCountry = mapCountryToLocaleHint(country);
 
+  // An explicit user choice always wins — automatic detection never overrides it.
   if (options.manual && validStored) {
     return validStored;
   }
 
-  if (
-    validStored &&
-    country &&
-    isLocaleCompatibleWithCountry(validStored, country)
-  ) {
-    return validStored;
-  }
-
-  if (fromCountry && country && STRICT_GEO_LOCALE_COUNTRIES.has(country)) {
-    for (const language of options.browserLanguages ?? []) {
-      const browserLocale = mapBrowserLanguageToLocale(language);
-      if (browserLocale === fromCountry) {
-        return browserLocale;
-      }
-    }
-    return fromCountry;
-  }
-
+  // Primary automatic signal: the device/browser language. This is what the user
+  // actually configured on their phone/computer, and is far more reliable than IP
+  // geolocation (mobile carriers routing through a neighboring country's IP ranges
+  // is common in South America and used to force the wrong language here).
   for (const language of options.browserLanguages ?? []) {
     const browserLocale = mapBrowserLanguageToLocale(language);
     if (browserLocale) {
@@ -137,6 +122,15 @@ export function resolveGeoLocale(options: {
     }
   }
 
+  // No usable browser-language signal: keep whatever locale was already resolved.
+  if (validStored) {
+    return validStored;
+  }
+
+  // Last resort: IP-based country hint (kept mainly so country data stays available
+  // for other uses, e.g. picking a default local payment method).
+  const country = options.countryHint?.trim().toUpperCase() || null;
+  const fromCountry = mapCountryToLocaleHint(country);
   if (fromCountry) {
     return fromCountry;
   }

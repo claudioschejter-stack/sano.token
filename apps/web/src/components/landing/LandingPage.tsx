@@ -2,6 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import {
   ArrowLeftRight,
   Building2,
@@ -12,6 +14,7 @@ import {
   Wallet
 } from 'lucide-react';
 import { getLinkedInUrl, getYouTubeUrl } from '../../config/social';
+import { useIsPwa } from '../../hooks/useIsPwa';
 import { useLocalePath } from '../../hooks/useLocalePath';
 import { useTranslation } from '../../i18n/LocaleProvider';
 
@@ -138,6 +141,21 @@ export function LandingPage({ initialFeed, youtubeVideos }: LandingPageProps) {
   const t = useTranslation();
   const l = t.landing;
   const localePath = useLocalePath();
+  const router = useRouter();
+  const isPwa = useIsPwa();
+
+  // Installed PWA icons can keep an older cached `start_url` pointing at "/".
+  // If we're ever launched standalone on the marketing home, bounce straight
+  // to the app entry instead of showing the full landing page.
+  useEffect(() => {
+    if (isPwa) {
+      router.replace('/acceso');
+    }
+  }, [isPwa, router]);
+
+  if (isPwa) {
+    return <div className="min-h-screen bg-white" />;
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">

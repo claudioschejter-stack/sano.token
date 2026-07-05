@@ -14,14 +14,17 @@ type Props = {
   limit?: number;
   compact?: boolean;
   showViewAll?: boolean;
+  layout?: 'horizontal' | 'list' | 'feed';
 };
 
 export function PwaPropertyCarousel({
   title = 'Propiedades disponibles',
   limit = 6,
   compact = true,
-  showViewAll = true
+  showViewAll = true,
+  layout
 }: Props) {
+  const resolvedLayout = layout ?? (compact ? 'horizontal' : 'list');
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -70,7 +73,7 @@ export function PwaPropertyCarousel({
     );
   }
 
-  if (compact) {
+  if (resolvedLayout === 'horizontal') {
     return (
       <div>
         <div className="flex items-center justify-between px-4">
@@ -84,6 +87,26 @@ export function PwaPropertyCarousel({
         <div className="hide-scrollbar mt-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2">
           {listings.map((listing) => (
             <PwaPropertyCard key={listing.id} listing={listing} compact />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (resolvedLayout === 'feed') {
+    return (
+      <div className="space-y-3 px-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-bold text-slate-900">{title}</h3>
+          {showViewAll ? (
+            <Link href="/marketplace" className="text-sm font-medium" style={{ color: MP_ACCENT }}>
+              Ver todas <ChevronRight size={14} className="inline" />
+            </Link>
+          ) : null}
+        </div>
+        <div className="space-y-4">
+          {listings.map((listing) => (
+            <PwaPropertyCard key={listing.id} listing={listing} variant="feed" />
           ))}
         </div>
       </div>

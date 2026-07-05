@@ -4,15 +4,19 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
+  Bell,
   Building2,
   ScanLine,
-  Settings,
+  Search,
   TrendingUp,
   Wallet
 } from 'lucide-react';
 import { useEffect } from 'react';
-import { ThemeToggleButton } from '../layout/ThemeToggleButton';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { useProfilePhoto } from '../../hooks/useProfilePhoto';
+import { useNotifications } from '../../hooks/useNotifications';
+import { MP_ACCENT, MP_ACCENT_SOFT } from '../../lib/pwa/mpTheme';
+import { PwaSectionTabs } from './PwaSectionTabs';
 
 type Props = {
   children: React.ReactNode;
@@ -31,6 +35,8 @@ export function PwaShell({ children }: Props) {
   const { data: session } = useSession();
   const t = useTranslation();
   const firstName = session?.user?.name?.split(' ')[0]?.toUpperCase() ?? 'INVERSOR';
+  const photoUrl = useProfilePhoto();
+  const { unreadCount } = useNotifications();
 
   useEffect(() => {
     document.body.classList.add('mobile-portal-active');
@@ -42,8 +48,13 @@ export function PwaShell({ children }: Props) {
       <header className="sticky top-0 z-40 bg-[#009EE3] px-4 pb-4 pt-safe-top shadow-sm">
         <div className="flex items-center justify-between pt-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-sm font-bold text-white">
-              {firstName.charAt(0)}
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white/20 text-sm font-bold text-white">
+              {photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                firstName.charAt(0)
+              )}
             </div>
             <div>
               <p className="text-xs font-medium text-white/80">Sanova Capital</p>
@@ -51,17 +62,40 @@ export function PwaShell({ children }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <ThemeToggleButton variant="compact" />
             <Link
-              href="/dashboard/settings/security"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white"
-              aria-label={t.nav.settings}
+              href="/marketplace"
+              className="flex h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: MP_ACCENT_SOFT, color: MP_ACCENT }}
+              aria-label={t.pwaHome.searchAria}
             >
-              <Settings size={20} />
+              <Search size={18} />
+            </Link>
+            <Link
+              href="/dashboard/portfolio"
+              className="flex h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: MP_ACCENT_SOFT, color: MP_ACCENT }}
+              aria-label={t.pwaHome.walletAria}
+            >
+              <Wallet size={18} />
+            </Link>
+            <Link
+              href="/dashboard/notifications"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: MP_ACCENT_SOFT, color: MP_ACCENT }}
+              aria-label={t.pwaHome.notificationsAria}
+            >
+              <Bell size={18} />
+              {unreadCount > 0 ? (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              ) : null}
             </Link>
           </div>
         </div>
       </header>
+
+      <PwaSectionTabs />
 
       <main className="mobile-portal-main min-h-0 flex-1 overflow-y-auto px-4 pb-[5.5rem] pt-4">{children}</main>
 
@@ -109,8 +143,13 @@ export function PwaShell({ children }: Props) {
               isActive(pathname, '/dashboard/settings/security') ? 'text-[#009EE3]' : 'text-slate-400'
             }`}
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs font-bold text-slate-600">
-              {firstName.charAt(0)}
+            <div className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-bold text-slate-600">
+              {photoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                firstName.charAt(0)
+              )}
             </div>
             <span className="text-[10px] font-medium">Perfil</span>
           </Link>

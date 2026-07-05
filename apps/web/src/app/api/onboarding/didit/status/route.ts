@@ -5,6 +5,7 @@ import { mapDiditStatusToKyc, retrieveDiditDecision } from '../../../../../lib/o
 import { requireAuthenticatedSession } from '../../../../../lib/onboarding/requireAuthenticatedSession';
 import { syncUserAccountStatus } from '../../../../../lib/onboarding/syncUserAccount';
 import { provisionInvestorProfileOnKycApproval } from '../../../../../lib/investor/provisionInvestorProfile';
+import { storeDiditProfilePhoto } from '../../../../../lib/onboarding/diditPhoto';
 
 export async function POST() {
   const ctx = await requireAuthenticatedSession();
@@ -55,6 +56,19 @@ export async function POST() {
           '../../../../../lib/investor/investorNotificationService'
         );
         void notifyInvestorOfKycApproved(ctx.userId);
+
+        const { createNotification } = await import(
+          '../../../../../lib/notifications/notificationService'
+        );
+        void createNotification({
+          userId: ctx.userId,
+          type: 'kyc_approved',
+          title: '¡Tu cuenta fue aprobada!',
+          body: 'Ya podés invertir en el marketplace de Sanova Capital.',
+          link: '/dashboard'
+        });
+
+        void storeDiditProfilePhoto(ctx.userId, decision);
       }
     }
 

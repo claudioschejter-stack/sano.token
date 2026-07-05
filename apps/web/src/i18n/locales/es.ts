@@ -194,7 +194,9 @@ export const es = {
     collectionWallet: 'Wallet de cobro',
     secondaryMarket: 'Mercado Secundario',
     settings: 'Configuración',
-    signOut: 'Cerrar Sesión'
+    signOut: 'Cerrar Sesión',
+    globalPosition: 'Posición global',
+    loans: 'Préstamos'
   },
   adminNav: {
     panel: 'Panel de control',
@@ -1877,6 +1879,9 @@ export const es = {
     mobileGateActivateBiometric: 'Activar huella o Face ID',
     mobileGateActivateBiometricDesc: 'Vas a iniciar sesión una vez con tu contraseña para activarla en este celular.',
     mobileGateSkip: 'Ingresar con usuario y contraseña',
+    mobileAppBadge: 'App móvil',
+    registerTab: 'Crear cuenta',
+    availableProperties: 'Propiedades disponibles',
     signingIn: 'Ingresando…',
     signedInAs: 'Sesión activa:',
     roleLabel: 'Rol',
@@ -2497,5 +2502,34 @@ export const es = {
     goMarketplace: 'Ir al marketplace',
     globalTitle: 'Error inesperado',
     globalHint: 'Ocurrió un fallo en la aplicación. Tu sesión y datos están protegidos.'
+  },
+  pwaHome: {
+    searchAria: 'Buscar propiedades',
+    walletAria: 'Mi wallet',
+    notificationsAria: 'Notificaciones',
+    sectionTabsAria: 'Secciones de la plataforma',
+    comingSoonTitle: 'Próximamente',
+    comingSoonBody: 'Estamos preparando esta sección. Muy pronto vas a poder verla desde aquí.',
+    backToPanel: 'Volver al panel',
+    depositAction: 'Ingresar',
+    withdrawAction: 'Retirar',
+    marketplaceAction: 'Marketplace',
+    myMoneyTitle: 'Tu dinero',
+    hideBalance: 'Ocultar saldo',
+    showBalance: 'Mostrar saldo',
+    yieldLabel: 'Rinde {percent} APY',
+    recentActivityTitle: 'Últimas actividades',
+    recentActivityEmpty: 'Aún no tenés movimientos recientes.',
+    viewAllActivity: 'Consultar todas',
+    investNowTitle: 'Invertir ahora'
+  },
+  notifications: {
+    title: 'Notificaciones',
+    empty: 'No tenés notificaciones todavía.',
+    markAllRead: 'Marcar todas como leídas',
+    kycApprovedTitle: '¡Tu cuenta fue aprobada!',
+    kycApprovedBody: 'Ya podés invertir en el marketplace de Sanova Capital.',
+    purchaseConfirmedTitle: 'Inversión confirmada',
+    purchaseConfirmedBody: 'Confirmamos tu inversión en {projectTitle} por {amount}.'
   }
 };

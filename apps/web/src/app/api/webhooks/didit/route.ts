@@ -6,6 +6,7 @@ import { isContactVerificationComplete } from '../../../../lib/onboarding/contac
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
 import { provisionInvestorProfileOnKycApproval } from '../../../../lib/investor/provisionInvestorProfile';
 import { autoAllowlistInvestorWallet } from '../../../../lib/blockchain/autoAllowlistInvestorWallet';
+import { storeDiditProfilePhoto } from '../../../../lib/onboarding/diditPhoto';
 
 /** Max age in seconds for Didit webhook replay-protection (X-Timestamp header). */
 const WEBHOOK_MAX_AGE_SEC = 300;
@@ -101,8 +102,20 @@ export async function POST(request: Request) {
       '../../../../lib/investor/investorNotificationService'
     );
     void notifyInvestorOfKycApproved(vendorData);
+
+    const { createNotification } = await import('../../../../lib/notifications/notificationService');
+    void createNotification({
+      userId: vendorData,
+      type: 'kyc_approved',
+      title: '¡Tu cuenta fue aprobada!',
+      body: 'Ya podés invertir en el marketplace de Sanova Capital.',
+      link: '/dashboard'
+    });
+
     // Auto-whitelist investor wallet on all active on-chain token contracts
     void autoAllowlistInvestorWallet(vendorData);
+    // Best-effort: copy the KYC portrait into our own storage as the profile photo
+    void storeDiditProfilePhoto(vendorData, payload);
   }
 
   return NextResponse.json({ ok: true });

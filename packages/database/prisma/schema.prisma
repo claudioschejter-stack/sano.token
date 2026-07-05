@@ -258,6 +258,7 @@ model User {
   verificationCodes     VerificationCode[]
   secondaryListingsSold SecondaryMarketListing[] @relation("SecondarySeller")
   secondaryListingsBought SecondaryMarketListing[] @relation("SecondaryBuyer")
+  notifications         Notification[]
 
   @@index([walletAddress])
   @@index([investorId])
@@ -297,6 +298,23 @@ model UserPasskey {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  link      String?
+  read      Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
 
 model BackupCode {

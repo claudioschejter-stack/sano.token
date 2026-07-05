@@ -128,7 +128,7 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
             tab === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
           }`}
         >
-          Ingresar
+          {a.signInButton}
         </button>
         <button
           type="button"
@@ -137,7 +137,7 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
             tab === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
           }`}
         >
-          Crear cuenta
+          {a.registerTab}
         </button>
       </div>
 
@@ -181,7 +181,7 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
 
       {tab === 'login' ? (
         <div className="-mx-6 mt-8">
-          <PwaPropertyCarousel title="Propiedades disponibles" limit={4} compact showViewAll={false} />
+          <PwaPropertyCarousel title={a.availableProperties} limit={4} compact showViewAll={false} />
         </div>
       ) : null}
     </MobileAuthShell>
@@ -189,11 +189,13 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
 }
 
 export function MobileAccessLanding({ defaultTab = 'login' }: MobileAccessLandingProps) {
+  const t = useTranslation();
+
   return (
     <Suspense
       fallback={
         <MobileAuthShell>
-          <p className="py-16 text-center text-sm text-slate-500">Cargando…</p>
+          <p className="py-16 text-center text-sm text-slate-500">{t.common.loadingGeneric}</p>
         </MobileAuthShell>
       }
     >

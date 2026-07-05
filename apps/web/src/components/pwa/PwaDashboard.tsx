@@ -7,17 +7,18 @@ import {
   Download,
   Eye,
   EyeOff,
+  ShoppingBag,
   TrendingUp,
-  Upload,
-  Wallet
+  Upload
 } from 'lucide-react';
 import { useTranslation, useLocale } from '../../i18n/LocaleProvider';
 import { createIntlFormatters } from '../../i18n/formatters';
+import { formatMessage } from '../../i18n';
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
 import { useDividendStore } from '../../store/useDividendStore';
 import { translateDistributionConcept } from '../../i18n/demoLabels';
 import { PwaPropertyCarousel } from './PwaPropertyCarousel';
-import { MP_ACCENT } from '../../lib/pwa/mpTheme';
+import { MP_ACCENT, MP_ACCENT_SOFT } from '../../lib/pwa/mpTheme';
 
 type Props = {
   portfolio: AggregatedPortfolio | null;
@@ -26,6 +27,7 @@ type Props = {
 
 export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
   const t = useTranslation();
+  const h = t.pwaHome;
   const { intlLocale } = useLocale();
   const { formatUsd: formatUsdc, formatPercent, formatDateTime } = useMemo(
     () => createIntlFormatters(intlLocale),
@@ -43,7 +45,7 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
       <div className="px-4">
         <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-900">Tu dinero</span>
+            <span className="text-sm font-medium text-slate-900">{h.myMoneyTitle}</span>
             <Link href="/dashboard/portfolio" className="text-slate-400" aria-label="Ver wallet">
               <ChevronRight size={20} />
             </Link>
@@ -57,7 +59,7 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
               type="button"
               onClick={() => setShowBalance(!showBalance)}
               style={{ color: MP_ACCENT }}
-              aria-label={showBalance ? 'Ocultar saldo' : 'Mostrar saldo'}
+              aria-label={showBalance ? h.hideBalance : h.showBalance}
             >
               {showBalance ? <Eye size={20} /> : <EyeOff size={20} />}
             </button>
@@ -65,47 +67,40 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
 
           <div className="mt-1 flex items-center gap-1 text-sm font-medium text-emerald-600">
             <TrendingUp size={14} />
-            <span>Rinde {formatPercent(displayTargetYield / 100)} APY</span>
+            <span>{formatMessage(h.yieldLabel, { percent: formatPercent(displayTargetYield / 100) })}</span>
           </div>
 
           <div className="mt-6 grid grid-cols-3 gap-3">
             <Link
               href="/marketplace/carrito?mode=deposit"
               className="flex flex-col items-center justify-center gap-2 rounded-2xl py-4 transition-colors active:opacity-80"
-              style={{ backgroundColor: `${MP_ACCENT}15` }}
+              style={{ backgroundColor: MP_ACCENT_SOFT }}
             >
               <Download size={24} strokeWidth={1.5} style={{ color: MP_ACCENT }} />
-              <span className="text-xs font-medium text-slate-900">Ingresar</span>
+              <span className="text-xs font-medium text-slate-900">{h.depositAction}</span>
             </Link>
             <Link
               href="/dashboard/portfolio"
               className="flex flex-col items-center justify-center gap-2 rounded-2xl py-4 transition-colors active:opacity-80"
-              style={{ backgroundColor: `${MP_ACCENT}15` }}
+              style={{ backgroundColor: MP_ACCENT_SOFT }}
             >
               <Upload size={24} strokeWidth={1.5} style={{ color: MP_ACCENT }} />
-              <span className="text-xs font-medium text-slate-900">Retirar</span>
+              <span className="text-xs font-medium text-slate-900">{h.withdrawAction}</span>
             </Link>
             <Link
-              href="/dashboard/portfolio"
+              href="/marketplace"
               className="flex flex-col items-center justify-center gap-2 rounded-2xl py-4 transition-colors active:opacity-80"
-              style={{ backgroundColor: `${MP_ACCENT}15` }}
+              style={{ backgroundColor: MP_ACCENT_SOFT }}
             >
-              <Wallet size={24} strokeWidth={1.5} style={{ color: MP_ACCENT }} />
-              <span className="text-xs font-medium text-slate-900">Wallet</span>
+              <ShoppingBag size={24} strokeWidth={1.5} style={{ color: MP_ACCENT }} />
+              <span className="text-xs font-medium text-slate-900">{h.marketplaceAction}</span>
             </Link>
           </div>
         </div>
       </div>
 
-      <PwaPropertyCarousel title="Invertir ahora" limit={5} />
-
       <div className="px-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-slate-900">Últimas actividades</h3>
-          <Link href="/dashboard/cash-flow" className="text-sm font-medium" style={{ color: MP_ACCENT }}>
-            Ver todo <ChevronRight size={14} className="inline" />
-          </Link>
-        </div>
+        <h3 className="text-lg font-bold text-slate-900">{h.recentActivityTitle}</h3>
 
         <div className="mt-4 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100">
           {distributions.slice(0, 3).map((dist, idx) => (
@@ -129,11 +124,30 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
             </div>
           ))}
           {distributions.length === 0 && (
-            <div className="p-6 text-center text-sm text-slate-500">
-              Aún no tenés movimientos recientes.
-            </div>
+            <div className="p-6 text-center text-sm text-slate-500">{h.recentActivityEmpty}</div>
           )}
         </div>
+
+        <Link
+          href="/dashboard/cash-flow"
+          className="mt-3 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold"
+          style={{ backgroundColor: MP_ACCENT_SOFT, color: MP_ACCENT }}
+        >
+          {h.viewAllActivity}
+          <ChevronRight size={16} />
+        </Link>
+      </div>
+
+      <PwaPropertyCarousel title={h.investNowTitle} limit={5} layout="feed" />
+
+      <div className="px-4 pt-2 text-center text-xs text-slate-400">
+        <Link href="/terminos" className="font-medium" style={{ color: MP_ACCENT }}>
+          {t.legal.portalFooterTerms}
+        </Link>
+        {' · '}
+        <Link href="/privacidad" className="font-medium" style={{ color: MP_ACCENT }}>
+          {t.legal.portalFooterPrivacy}
+        </Link>
       </div>
     </div>
   );
