@@ -317,6 +317,20 @@ model Notification {
   @@index([userId, createdAt])
 }
 
+model RegistrationAttempt {
+  id        String   @id @default(cuid())
+  email     String
+  success   Boolean
+  errorCode String?
+  channel   String?
+  ipCountry String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([success, createdAt])
+}
+
 model BackupCode {
   id        String    @id @default(cuid())
   userId    String

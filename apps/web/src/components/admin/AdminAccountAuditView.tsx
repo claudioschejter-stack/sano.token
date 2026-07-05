@@ -14,10 +14,15 @@ import {
   Copy
 } from 'lucide-react';
 import { AdminGate } from './AdminGate';
-import type { AccountAuditUser, PlatformConfig } from '../../app/api/admin/account-audit/route';
+import type {
+  AccountAuditUser,
+  PlatformConfig,
+  RegistrationAttemptRow
+} from '../../app/api/admin/account-audit/route';
 
 type AuditData = {
   ok: boolean;
+  query: string | null;
   summary: {
     total: number;
     byRole: Record<string, number>;
@@ -27,9 +32,13 @@ type AuditData = {
     needingWalletProvisioning: number;
     kycApproved: number;
     kycPending: number;
+    withPassword: number;
+    suspended: number;
+    failedRegistrationAttempts: number;
   };
   platformConfig: PlatformConfig;
   accounts: AccountAuditUser[];
+  registrationAttempts: RegistrationAttemptRow[];
   auditedAt: string;
 };
 
@@ -130,16 +139,25 @@ export function AdminAccountAuditView() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [appliedQuery, setAppliedQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'accounts' | 'attempts'>('accounts');
   const [copied, setCopied] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (query = '') => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/admin/account-audit');
+      const params = new URLSearchParams();
+      const trimmed = query.trim();
+      if (trimmed) {
+        params.set('q', trimmed);
+      }
+      const res = await fetch(`/api/admin/account-audit?${params.toString()}`);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Error');
       setData(json as AuditData);
+      setAppliedQuery(trimmed);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cargar auditoría');
     } finally {
@@ -148,8 +166,8 @@ export function AdminAccountAuditView() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load('');
+  }, []);
 
   const copyAddress = (addr: string) => {
     void navigator.clipboard.writeText(addr);
@@ -178,7 +196,7 @@ export function AdminAccountAuditView() {
             )}
           </div>
           <button
-            onClick={() => void load()}
+            onClick={() => void load(searchQuery)}
             disabled={loading}
             className="flex items-center gap-2 rounded-md border border-terminal-border px-3 py-1.5 text-sm text-terminal-dim hover:text-terminal-bright hover:border-terminal-primary/50 transition-colors disabled:opacity-50"
           >
@@ -187,11 +205,53 @@ export function AdminAccountAuditView() {
           </button>
         </div>
 
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                void load(searchQuery);
+              }
+            }}
+            placeholder="Buscar por nombre, email o teléfono (ej. bragadin)"
+            className="w-full rounded-md border border-terminal-border bg-terminal-surface px-3 py-2 text-sm text-terminal-bright placeholder:text-terminal-muted"
+          />
+          <button
+            onClick={() => void load(searchQuery)}
+            disabled={loading}
+            className="rounded-md border border-terminal-primary/40 bg-terminal-primary/10 px-4 py-2 text-sm font-medium text-terminal-primary hover:bg-terminal-primary/20 disabled:opacity-50"
+          >
+            Buscar
+          </button>
+        </div>
+
+        {appliedQuery ? (
+          <p className="text-xs text-terminal-muted">
+            Filtro activo: <span className="font-mono text-terminal-primary">{appliedQuery}</span>
+          </p>
+        ) : null}
+
         {error && (
           <div className="rounded-md border border-terminal-danger/30 bg-terminal-danger/10 p-3 text-sm text-terminal-danger">
             {error}
           </div>
         )}
+
+        {data && !data.platformConfig.turnstileKeysInSync ? (
+          <div className="rounded-md border border-terminal-warning/30 bg-terminal-warning/10 p-3 text-sm text-terminal-warning">
+            Turnstile está parcialmente configurado: el secret del servidor y la site key del cliente deben
+            estar ambos activos o ambos ausentes. Un mismatch bloquea registros nuevos con CAPTCHA_INVALIDO.
+          </div>
+        ) : null}
+
+        {data && appliedQuery && activeTab === 'accounts' && filteredAccounts.some((u) => u.hasPassword) ? (
+          <div className="rounded-md border border-terminal-primary/30 bg-terminal-primary/10 p-3 text-sm text-terminal-primary">
+            Una o más cuentas encontradas ya tienen contraseña. Si el usuario intentó registrarse de nuevo,
+            debe usar <span className="font-mono">/acceso/olvidar</span> para recuperar acceso, no crear otra cuenta.
+          </div>
+        ) : null}
 
         {data && (
           <>
@@ -221,6 +281,14 @@ export function AdminAccountAuditView() {
                 <p className="text-2xl font-bold text-terminal-warning">{data.summary.kycPending}</p>
                 <p className="text-xs text-terminal-muted mt-0.5">KYC pendiente</p>
               </div>
+              <div className="rounded-lg border border-terminal-border bg-terminal-surface p-3 text-center">
+                <p className="text-2xl font-bold text-terminal-bright">{data.summary.withPassword}</p>
+                <p className="text-xs text-terminal-muted mt-0.5">Con contraseña</p>
+              </div>
+              <div className="rounded-lg border border-terminal-danger/30 bg-terminal-danger/5 p-3 text-center">
+                <p className="text-2xl font-bold text-terminal-danger">{data.summary.failedRegistrationAttempts}</p>
+                <p className="text-xs text-terminal-muted mt-0.5">Registros fallidos</p>
+              </div>
             </div>
 
             {/* Platform Config */}
@@ -246,6 +314,25 @@ export function AdminAccountAuditView() {
                     label="Privy Embedded Wallets"
                     ok={data.platformConfig.privyEmbeddedWalletEnabled}
                     value="createOnLogin: users-without-wallets"
+                  />
+                  <ConfigRow
+                    label="Turnstile secret (server)"
+                    ok={data.platformConfig.turnstileSecretConfigured}
+                    value={data.platformConfig.turnstileSecretConfigured ? 'Configurado' : 'No configurado'}
+                  />
+                  <ConfigRow
+                    label="Turnstile site key (client)"
+                    ok={data.platformConfig.turnstileSiteKeyConfigured}
+                    value={data.platformConfig.turnstileSiteKeyConfigured ? 'Configurado' : 'No configurado'}
+                  />
+                  <ConfigRow
+                    label="Turnstile keys sincronizadas"
+                    ok={data.platformConfig.turnstileKeysInSync}
+                    value={
+                      data.platformConfig.turnstileKeysInSync
+                        ? 'Secret y site key alineados'
+                        : 'Mismatch: uno configurado y el otro no'
+                    }
                   />
                 </div>
                 <div className="sm:pl-4 sm:border-l sm:border-terminal-border/30 mt-3 sm:mt-0">
@@ -305,13 +392,39 @@ export function AdminAccountAuditView() {
               </div>
             </div>
 
-            {/* Accounts Table */}
+            {/* Tabs */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('accounts')}
+                className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === 'accounts'
+                    ? 'border-terminal-primary text-terminal-primary bg-terminal-primary/10'
+                    : 'border-terminal-border text-terminal-muted hover:border-terminal-primary/50'
+                }`}
+              >
+                Cuentas ({filteredAccounts.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('attempts')}
+                className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
+                  activeTab === 'attempts'
+                    ? 'border-terminal-primary text-terminal-primary bg-terminal-primary/10'
+                    : 'border-terminal-border text-terminal-muted hover:border-terminal-primary/50'
+                }`}
+              >
+                Intentos de registro ({data.registrationAttempts.length})
+              </button>
+            </div>
+
+            {activeTab === 'accounts' ? (
+            <div className="space-y-6">
             <div className="rounded-lg border border-terminal-border bg-terminal-surface overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-terminal-border/50 bg-terminal-surface/50">
                       <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Usuario</th>
+                      <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Cuenta</th>
                       <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Rol</th>
                       <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">KYC</th>
                       <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Verificación</th>
@@ -323,7 +436,7 @@ export function AdminAccountAuditView() {
                   <tbody className="divide-y divide-terminal-border/20">
                     {filteredAccounts.length === 0 ? (
                       <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-terminal-muted text-sm">
+                        <td colSpan={8} className="px-4 py-8 text-center text-terminal-muted text-sm">
                           No hay usuarios con este filtro.
                         </td>
                       </tr>
@@ -336,6 +449,21 @@ export function AdminAccountAuditView() {
                           <td className="px-4 py-3">
                             <p className="font-medium text-terminal-bright text-xs">{u.email}</p>
                             {u.name && <p className="text-xs text-terminal-muted mt-0.5">{u.name}</p>}
+                            {u.phone ? <p className="text-xs text-terminal-dim mt-0.5">{u.phone}</p> : null}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex flex-col gap-1 text-xs">
+                              <span className={u.hasPassword ? 'text-terminal-success' : 'text-terminal-warning'}>
+                                {u.hasPassword ? '✓ Contraseña' : '○ Sin contraseña'}
+                              </span>
+                              <span className="text-terminal-muted">{u.accountStatus}</span>
+                              <span className={u.investorAccessEnabled ? 'text-terminal-success' : 'text-terminal-muted'}>
+                                {u.investorAccessEnabled ? 'Acceso inversor' : 'Sin acceso inversor'}
+                              </span>
+                              <span className="text-terminal-dim">
+                                {new Date(u.updatedAt).toLocaleString('es-AR')}
+                              </span>
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <RoleBadge role={u.systemRole} />
@@ -422,7 +550,6 @@ export function AdminAccountAuditView() {
               </div>
             </div>
 
-            {/* Info panel for accounts needing wallets */}
             {data.summary.needingWalletProvisioning > 0 && (
               <div className="rounded-lg border border-terminal-warning/30 bg-terminal-warning/5 p-4">
                 <h3 className="flex items-center gap-2 text-sm font-medium text-terminal-warning mb-2">
@@ -441,6 +568,55 @@ export function AdminAccountAuditView() {
                   Wallet&quot; → la wallet Privy se vincula automáticamente a su perfil de inversor.
                 </p>
               </div>
+            )}
+            </div>
+            ) : (
+            <div className="rounded-lg border border-terminal-border bg-terminal-surface overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-terminal-border/50 bg-terminal-surface/50">
+                      <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Fecha</th>
+                      <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Email</th>
+                      <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Resultado</th>
+                      <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Error</th>
+                      <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">Canal</th>
+                      <th className="px-4 py-3 text-left text-xs text-terminal-muted font-medium">País IP</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-terminal-border/20">
+                    {data.registrationAttempts.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-terminal-muted text-sm">
+                          No hay intentos de registro registrados todavía.
+                        </td>
+                      </tr>
+                    ) : (
+                      data.registrationAttempts.map((attempt) => (
+                        <tr key={attempt.id} className="hover:bg-terminal-surface/70 transition-colors">
+                          <td className="px-4 py-3 text-xs text-terminal-dim">
+                            {new Date(attempt.createdAt).toLocaleString('es-AR')}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-terminal-bright">{attempt.email}</td>
+                          <td className="px-4 py-3">
+                            {attempt.success ? (
+                              <span className="text-xs text-terminal-success">OK</span>
+                            ) : (
+                              <span className="text-xs text-terminal-danger">Falló</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-xs font-mono text-terminal-warning">
+                            {attempt.errorCode ?? '—'}
+                          </td>
+                          <td className="px-4 py-3 text-xs text-terminal-muted">{attempt.channel ?? '—'}</td>
+                          <td className="px-4 py-3 text-xs text-terminal-muted">{attempt.ipCountry ?? '—'}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
             )}
 
             {/* Treasury info */}

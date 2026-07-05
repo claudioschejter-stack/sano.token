@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { buildAndValidateE164Phone, normalizeEmail } from '../../lib/auth/contactValidation';
+import { useIsPwa } from '../../hooks/useIsPwa';
 import {
   COUNTRY_DIAL_CODES,
   DEFAULT_DIAL_CODE,
@@ -54,7 +55,11 @@ export function RegisterForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [registrationErrorCode, setRegistrationErrorCode] = useState<string | null>(null);
+  const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const turnstile = useTurnstile();
+  const isPwa = useIsPwa();
 
   const readOnly = Boolean(profileProp);
   const phoneLocked = readOnly && Boolean(profileProp?.phone);
@@ -122,6 +127,50 @@ export function RegisterForm({
     return { email: normalizedEmail, phone };
   }
 
+  async function checkEmailAvailability(rawEmail: string) {
+    const normalized = normalizeEmail(rawEmail);
+    if (!normalized || readOnly) {
+      return;
+    }
+
+    setCheckingEmail(true);
+    try {
+      const response = await fetch('/api/auth/register/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalized })
+      });
+      const data = (await response.json()) as { available?: boolean; reason?: string };
+
+      if (response.ok && data.available === false && data.reason === 'EMAIL_IN_USE') {
+        setEmailAlreadyRegistered(true);
+        setRegistrationErrorCode('EMAIL_IN_USE');
+        setError(null);
+        return;
+      }
+
+      setEmailAlreadyRegistered(false);
+      setRegistrationErrorCode((current) => (current === 'EMAIL_IN_USE' ? null : current));
+    } catch {
+      // Non-blocking: registration API remains the source of truth.
+    } finally {
+      setCheckingEmail(false);
+    }
+  }
+
+  function renderExistingAccountActions() {
+    return (
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm font-medium">
+        <Link href={loginHref ?? '/acceso'} className="text-blue-700 hover:text-blue-600">
+          {r.signInLink}
+        </Link>
+        <Link href="/acceso/olvidar" className="text-blue-700 hover:text-blue-600">
+          {r.forgotPasswordLink}
+        </Link>
+      </div>
+    );
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -130,6 +179,7 @@ export function RegisterForm({
     }
 
     setError(null);
+    setRegistrationErrorCode(null);
 
     if (!acceptedLegal) {
       setError(r.termsAcceptRequired);
@@ -138,6 +188,12 @@ export function RegisterForm({
 
     const contact = validateContactFields();
     if (!contact) {
+      return;
+    }
+
+    if (emailAlreadyRegistered) {
+      setRegistrationErrorCode('EMAIL_IN_USE');
+      setError(r.errors.EMAIL_IN_USE);
       return;
     }
 
@@ -159,7 +215,8 @@ export function RegisterForm({
           phone: contact.phone,
           termsAccepted: true,
           inviteCode: inviteCode.trim() || undefined,
-          turnstileToken: turnstile.token
+          turnstileToken: turnstile.token,
+          channel: isPwa ? 'pwa' : 'desktop'
         })
       });
 
@@ -169,6 +226,10 @@ export function RegisterForm({
 
       if (!response.ok) {
         const key = data.error ?? 'GENERIC';
+        setRegistrationErrorCode(key);
+        if (key === 'EMAIL_IN_USE') {
+          setEmailAlreadyRegistered(true);
+        }
         turnstile.reset();
         const message = r.errors[key as keyof typeof r.errors] ?? r.errors.GENERIC;
         if (key === 'INVALID_EMAIL') {
@@ -189,6 +250,7 @@ export function RegisterForm({
       });
 
       if (signInResult?.error) {
+        setRegistrationErrorCode('SIGN_IN_FAILED');
         setError(r.errors.SIGN_IN_FAILED);
         setLoading(false);
         return;
@@ -196,6 +258,7 @@ export function RegisterForm({
 
       const sessionReady = await waitForAccessToken();
       if (!sessionReady) {
+        setRegistrationErrorCode('SIGN_IN_FAILED');
         setError(r.errors.SIGN_IN_FAILED);
         setLoading(false);
         return;
@@ -232,6 +295,7 @@ export function RegisterForm({
           value={email}
           onChange={(event) => {
             setEmail(event.target.value);
+            setEmailAlreadyRegistered(false);
             if (fieldErrors.email) {
               setFieldErrors((current) => ({ ...current, email: undefined }));
             }
@@ -239,6 +303,10 @@ export function RegisterForm({
           onBlur={() => {
             if (!readOnly && email.trim() && !normalizeEmail(email)) {
               setFieldErrors((current) => ({ ...current, email: r.errors.INVALID_EMAIL }));
+              return;
+            }
+            if (!readOnly && email.trim()) {
+              void checkEmailAvailability(email);
             }
           }}
           aria-invalid={Boolean(fieldErrors.email)}
@@ -247,6 +315,15 @@ export function RegisterForm({
         />
         {fieldErrors.email ? (
           <p className="mt-1.5 text-xs text-red-600">{fieldErrors.email}</p>
+        ) : null}
+        {checkingEmail ? (
+          <p className="mt-1.5 text-xs text-slate-500">{r.checkingEmail}</p>
+        ) : null}
+        {emailAlreadyRegistered ? (
+          <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+            <p>{r.emailAlreadyRegisteredHint}</p>
+            {renderExistingAccountActions()}
+          </div>
         ) : null}
       </div>
 
@@ -319,7 +396,20 @@ export function RegisterForm({
       </div>
 
       {error ? (
-        <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p>{error}</p>
+          {registrationErrorCode === 'EMAIL_IN_USE' ? renderExistingAccountActions() : null}
+          {registrationErrorCode === 'SIGN_IN_FAILED' ? (
+            <p className="mt-2">
+              <Link
+                href={loginHref ?? '/acceso'}
+                className="font-semibold text-blue-700 hover:text-blue-600"
+              >
+                {r.signInAfterRegisterLink}
+              </Link>
+            </p>
+          ) : null}
+        </div>
       ) : null}
 
       {!readOnly ? (
@@ -353,7 +443,7 @@ export function RegisterForm({
           {turnstile.widget}
           <button
           type="submit"
-          disabled={loading || !acceptedLegal}
+          disabled={loading || !acceptedLegal || emailAlreadyRegistered}
           className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? r.submitting : r.submitButton}

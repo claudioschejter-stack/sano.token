@@ -1940,7 +1940,7 @@ export const es = {
       passwordHint: 'Usá al menos 8 caracteres. Podés mostrar u ocultar la contraseña con el ícono del ojo.',
       phoneLabel: 'Teléfono móvil',
       phonePlaceholder: '2617513426',
-      phoneHint: '',
+      phoneHint: 'Sin 0 ni 15 al inicio. Ejemplo Mendoza: 2617513426',
       countryLabel: 'Código de país',
       submitButton: 'Crear cuenta y verificar',
       submitting: 'Creando cuenta…',
@@ -1950,11 +1950,17 @@ export const es = {
       termsAcceptRequired: 'Debés aceptar los Términos Legales y la Política de Privacidad para continuar.',
       termsLinkLabel: 'Términos Legales',
       privacyLinkLabel: 'Política de Privacidad',
+      forgotPasswordLink: '¿Olvidaste tu contraseña? Recuperar acceso',
+      signInLink: 'Iniciar sesión',
+      signInAfterRegisterLink: 'Ir a iniciar sesión',
+      emailAlreadyRegisteredHint:
+        'Este correo ya tiene cuenta. No hace falta registrarte de nuevo: iniciá sesión o recuperá tu contraseña.',
+      checkingEmail: 'Verificando correo…',
       devCodes: 'Códigos de verificación',
       codesOnScreenHint: 'Usá estos códigos en el siguiente paso (email/WhatsApp aún sin proveedor):',
       errors: {
         GENERIC: 'No pudimos crear la cuenta. Intentá de nuevo.',
-        EMAIL_IN_USE: 'Este email ya está registrado. Iniciá sesión.',
+        EMAIL_IN_USE: 'Este email ya está registrado. Iniciá sesión o recuperá tu contraseña.',
         WEAK_PASSWORD: 'La contraseña debe tener al menos 8 caracteres.',
         INVALID_EMAIL: 'Ingresá un correo electrónico válido (ej. tu@email.com).',
         INVALID_PHONE: 'Ingresá un teléfono móvil válido con código de país.',
@@ -1966,7 +1972,7 @@ export const es = {
           'Este correo debe registrarse mediante la invitación de equipo enviada por Sanova.',
         VERIFICATION_DELIVERY_FAILED:
           'No pudimos enviar los códigos de email y WhatsApp. La cuenta no fue dada de alta; intentá de nuevo en unos minutos.',
-        SIGN_IN_FAILED: 'Cuenta creada, pero no pudimos iniciar sesión automáticamente.',
+        SIGN_IN_FAILED: 'Tu cuenta se creó correctamente, pero no pudimos iniciar sesión automáticamente. Probá ingresar manualmente.',
         CAPTCHA_REQUIRED: 'Completá la verificación de seguridad e intentá de nuevo.',
         CAPTCHA_INVALIDO: 'Verificación de seguridad inválida. Recargá la página e intentá de nuevo.'
       }

@@ -146,6 +146,12 @@ export function MobileLoginFlow({
             {t.access.mobileGateSkip}
           </button>
           <Link
+            href="/acceso/olvidar"
+            className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
+          >
+            {t.access.forgotPassword}
+          </Link>
+          <Link
             href={registerHref}
             className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
           >
@@ -175,7 +181,13 @@ export function MobileLoginFlow({
         {/* Soft, non-blocking reminder: biometric login never requires the app to be
             installed, but we keep nudging until it is (see plan: "incentivo, no bloqueo"). */}
         <InstallAppBanner />
-        <div className="flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center gap-2">
+          <Link
+            href="/acceso/olvidar"
+            className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
+          >
+            {t.access.forgotPassword}
+          </Link>
           <Link
             href={registerHref}
             className="text-sm font-medium text-blue-600 transition hover:text-blue-500"

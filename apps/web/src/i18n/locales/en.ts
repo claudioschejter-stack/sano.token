@@ -1909,7 +1909,7 @@ export const en = {
       passwordHint: "Use at least 8 characters.You can show or hide the password with the eye icon.",
       phoneLabel: "mobile phone",
       phonePlaceholder: "2617513426",
-      phoneHint: "",
+      phoneHint: "No leading 0 or 15. Mendoza example: 2617513426",
       countryLabel: "country code",
       submitButton: "Create account and verify",
       submitting: "Creating account…",
@@ -1919,11 +1919,17 @@ export const en = {
       termsAcceptRequired: "You must accept the Legal Terms and Privacy Policy to continue.",
       termsLinkLabel: "Legal Terms",
       privacyLinkLabel: "Privacy Policy",
+      forgotPasswordLink: "Forgot your password? Recover access",
+      signInLink: "Sign in",
+      signInAfterRegisterLink: "Go to sign in",
+      emailAlreadyRegisteredHint:
+        "This email already has an account. You don't need to register again: sign in or reset your password.",
+      checkingEmail: "Checking email…",
       devCodes: "Verification codes",
       codesOnScreenHint: "Use these codes in the next step (email/SMS even without provider):",
       errors: {
         GENERIC: "We couldn't create the account.Try again.",
-        EMAIL_IN_USE: "This email is already registered.Sign in.",
+        EMAIL_IN_USE: "This email is already registered. Sign in or reset your password.",
         WEAK_PASSWORD: "The password must be at least 8 characters.",
         INVALID_EMAIL: "Enter a valid email (en. your@email.com).",
         INVALID_PHONE: "Enter a valid mobile phone number with country code.",
@@ -1933,7 +1939,7 @@ export const en = {
         STAFF_INVITE_REQUIRED:
           "This email must complete registration through the team invitation sent by Sanova.",
         VERIFICATION_DELIVERY_FAILED: "We were unable to send the email and SMS codes.The account was not registered;Try again in a few minutes.",
-        SIGN_IN_FAILED: "Account created, but we couldn't log in automatically.",
+        SIGN_IN_FAILED: "Your account was created, but we couldn't sign you in automatically. Try signing in manually.",
         CAPTCHA_REQUIRED: 'Complete the security verification and try again.',
         CAPTCHA_INVALIDO: 'Security verification failed. Reload the page and try again.'
       }
