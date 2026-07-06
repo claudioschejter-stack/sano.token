@@ -65,7 +65,7 @@ export function OnboardingResumeCard({
 
   const completedCount = steps.filter((step) => step.done).length;
   const nextStep = steps.find((step) => !step.done);
-  const remainingMinutes = Math.max((steps.length - completedCount) * 2, 0);
+  const remainingMinutes = Math.max(Math.ceil((steps.length - completedCount) * 2.5), 0);
 
   return (
     <div className={`space-y-5 ${className}`}>

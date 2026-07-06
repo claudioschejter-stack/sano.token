@@ -27,6 +27,9 @@ type RegisterFormProps = {
   onAcceptedLegalChange?: (accepted: boolean) => void;
   hideTermsCheckbox?: boolean;
   hidePhaseLabel?: boolean;
+  /** When true, omits the "already registered" link (e.g. parent page shows it). */
+  hideLoginLink?: boolean;
+  onAccessErrorChange?: (code: string | null) => void;
 };
 
 type FieldErrors = {
@@ -42,7 +45,9 @@ export function RegisterForm({
   acceptedLegal: controlledAcceptedLegal,
   onAcceptedLegalChange,
   hideTermsCheckbox = false,
-  hidePhaseLabel = false
+  hidePhaseLabel = false,
+  hideLoginLink = false,
+  onAccessErrorChange
 }: RegisterFormProps) {
   const t = useTranslation();
   const r = t.access.register;
@@ -87,6 +92,10 @@ export function RegisterForm({
     registrationErrorCode === 'OAUTH_ONLY_DISABLED' ||
     registrationErrorCode === 'REGION_NOT_AVAILABLE' ||
     registrationErrorCode === 'EMAIL_CHECK_FAILED';
+
+  useEffect(() => {
+    onAccessErrorChange?.(registrationErrorCode);
+  }, [onAccessErrorChange, registrationErrorCode]);
 
   function applyProfile(profile: OnboardingProfile) {
     setEmail(profile.email);
@@ -307,12 +316,19 @@ export function RegisterForm({
       }
 
       router.refresh();
-      router.push(buildKycUrl(returnTo, undefined, undefined, { registered: true }));
+      router.replace(buildKycUrl(returnTo, undefined, undefined, { registered: true }));
     } catch {
       setError(r.errors.GENERIC);
       setLoading(false);
     }
   }
+
+  const showLoginLink =
+    !readOnly &&
+    loginHref &&
+    !hideLoginLink &&
+    registrationErrorCode !== 'OAUTH_ONLY_DISABLED' &&
+    registrationErrorCode !== 'INVESTOR_ACCESS_NOT_ENABLED';
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -448,7 +464,7 @@ export function RegisterForm({
         </>
       ) : null}
 
-      {!readOnly && loginHref ? (
+      {showLoginLink ? (
         <p>
           <Link
             href={loginHref}

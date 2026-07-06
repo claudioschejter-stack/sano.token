@@ -85,7 +85,7 @@ function MobileAccessLandingContent() {
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (
       <MobileAuthShell>
-        <p className="py-16 text-center text-sm text-slate-500">{a.continueButton}…</p>
+        <p className="py-16 text-center text-sm text-slate-500">{t.common.loadingGeneric}</p>
       </MobileAuthShell>
     );
   }

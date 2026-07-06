@@ -1965,7 +1965,7 @@ export const en = {
         INVALID_INVITE_CODE:
           "The invitation code is not valid. Contact Sanova to access the private placement.",
         INVESTOR_ACCESS_NOT_ENABLED:
-          'Investor access is not enabled for this email. Contact Sanova or sign in if you already have an account.',
+          'Investor access is not enabled for this email. Contact Sanova to restore access.',
         OAUTH_ONLY_DISABLED:
           'This email uses Google or Apple sign-in and investor access is disabled. Contact Sanova to restore access.',
         STAFF_INVITE_REQUIRED:

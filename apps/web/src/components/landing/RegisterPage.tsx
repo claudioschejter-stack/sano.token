@@ -61,6 +61,7 @@ function RegisterPageContent() {
   const isPwa = useIsPwa();
   const [acceptedLegal, setAcceptedLegal] = useState(false);
   const [termsError, setTermsError] = useState<string | null>(null);
+  const [registerAccessError, setRegisterAccessError] = useState<string | null>(null);
 
   const { isOperational, loading: accountLoading } = useAccountStatus();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
@@ -166,6 +167,8 @@ function RegisterPageContent() {
           onAcceptedLegalChange={setAcceptedLegal}
           hideTermsCheckbox
           hidePhaseLabel
+          hideLoginLink
+          onAccessErrorChange={setRegisterAccessError}
         />
 
         <OAuthSignInButtons
@@ -189,11 +192,14 @@ function RegisterPageContent() {
         </Link>
       </p>
 
-      <p className="text-center text-sm text-slate-500">
-        <Link href={loginHref} className="font-medium text-blue-600 hover:text-blue-500">
-          {a.alreadyRegistered}
-        </Link>
-      </p>
+      {registerAccessError !== 'OAUTH_ONLY_DISABLED' &&
+      registerAccessError !== 'INVESTOR_ACCESS_NOT_ENABLED' ? (
+        <p className="text-center text-sm text-slate-500">
+          <Link href={loginHref} className="font-medium text-blue-600 hover:text-blue-500">
+            {a.alreadyRegistered}
+          </Link>
+        </p>
+      ) : null}
     </>
   );
 
