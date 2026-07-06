@@ -89,6 +89,8 @@ export async function registerInvestor(input: RegisterInput) {
   const inviteCodeGrant =
     !openRegistration && resolveInvestorAccessOnRegister(input.inviteCode);
 
+  const ghostUserWithoutCredential = isGhostUserWithoutCredential(existing);
+
   const investorAccessEnabled = resolveInvestorAccessForRegistration({
     existing,
     openRegistration,
@@ -101,8 +103,6 @@ export async function registerInvestor(input: RegisterInput) {
   if (!staffOnboarding && !openRegistration && !investorAccessEnabled && !existing) {
     throw new Error('INVALID_INVITE_CODE');
   }
-
-  const ghostUserWithoutCredential = isGhostUserWithoutCredential(existing);
 
   if (
     shouldRejectDisabledAccountRegistration({
