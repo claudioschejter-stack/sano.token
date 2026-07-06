@@ -1,8 +1,4 @@
-import { locales, type Locale } from '../../i18n';
-
-const LOCALE_SET = new Set<string>(locales);
-
-/** Public marketing paths that support a `/{locale}` prefix (portal routes excluded). */
+import { isLocaleCode, type Locale } from './localeCodes';
 export const LOCALE_PREFIXABLE_PATHS = new Set([
   '/',
   '/acceso',
@@ -17,9 +13,7 @@ export const LOCALE_PREFIXABLE_PREFIXES = [
   '/blog/'
 ] as const;
 
-export function isLocaleCode(value: string): value is Locale {
-  return LOCALE_SET.has(value);
-}
+export { isLocaleCode } from './localeCodes';
 
 export function isLocalePrefixablePath(pathname: string): boolean {
   if (LOCALE_PREFIXABLE_PATHS.has(pathname)) {

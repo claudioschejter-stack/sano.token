@@ -1,13 +1,10 @@
-import NextAuth from 'next-auth';
-import { NextResponse } from 'next/server';
-import authConfig from './auth.config';
+import { NextResponse, type NextRequest } from 'next/server';
 import { canAccessPath, redirectPathForRole } from './lib/auth/routeAccess';
 import type { SystemRole } from './lib/auth/roles';
-import { resolveLocaleFromRequest } from './i18n/detectLocaleServer';
-import { LOCALE_STORAGE_KEY } from './lib/i18n/mobileLocalePreference';
+import { readMiddlewareSession } from './lib/auth/middlewareSession';
+import { LOCALE_STORAGE_KEY, LOCALE_MANUAL_KEY } from './lib/i18n/mobileLocalePreference';
 import { applySecurityHeaders } from './lib/security/securityHeaders';
-import { resolveGeoLocale } from './lib/i18n/geoLocale';
-import { LOCALE_MANUAL_KEY } from './lib/i18n/mobileLocalePreference';
+import { resolveGeoLocaleForMiddleware } from './lib/i18n/middlewareLocale';
 import {
   isLocalePrefixablePath,
   LOCALE_HEADER,
@@ -15,8 +12,6 @@ import {
 } from './lib/i18n/localeRouting';
 import { requiresOnboardingGatePath, shouldRedirectToOnboarding } from './lib/auth/middlewarePolicy';
 import { isCountryBlockedForRegistration } from './lib/security/blockedCountries';
-
-const { auth } = NextAuth(authConfig);
 
 const LOGIN_GATE_PATHS = new Set(['/mercado-secundario']);
 
@@ -65,12 +60,10 @@ function withLocaleAndCountryHints(
     : [];
 
   const countryCode = country?.toUpperCase() ?? null;
-  // A manual choice is never recalculated automatically — once the user (or a past
-  // detection) picks a language on purpose, it sticks across the whole platform.
   const shouldRefreshLocale = !manualLocale;
 
   if (!storedLocale || shouldRefreshLocale) {
-    const detected = resolveGeoLocale({
+    const detected = resolveGeoLocaleForMiddleware({
       stored: storedLocale,
       countryHint: countryCode,
       browserLanguages,
@@ -89,11 +82,7 @@ function withLocaleAndCountryHints(
   return applySecurityHeaders(response);
 }
 
-function maybeRewriteLocalePrefix(request: {
-  nextUrl: URL;
-  headers: Headers;
-  cookies: { get: (name: string) => { value: string } | undefined };
-}): NextResponse | null {
+function maybeRewriteLocalePrefix(request: NextRequest): NextResponse | null {
   const parsed = parseLocalePath(request.nextUrl.pathname);
   if (!parsed.locale) {
     return null;
@@ -114,7 +103,7 @@ function maybeRewriteLocalePrefix(request: {
   return withLocaleAndCountryHints(response, request, parsed.locale);
 }
 
-export default auth((request) => {
+export async function middleware(request: NextRequest) {
   const localeRewrite = maybeRewriteLocalePrefix(request);
   if (localeRewrite) {
     return localeRewrite;
@@ -145,7 +134,7 @@ export default auth((request) => {
     }
   }
 
-  const sessionUser = request.auth?.user;
+  const sessionUser = await readMiddlewareSession(request);
   const totpPending = Boolean(sessionUser?.totpPending && sessionUser?.pendingTotpToken);
 
   if (totpPending && pathname !== '/acceso/verificar-2fa') {
@@ -216,7 +205,7 @@ export default auth((request) => {
     NextResponse.next({ request: { headers: request.headers } }),
     request
   );
-});
+}
 
 export const config = {
   matcher: [
