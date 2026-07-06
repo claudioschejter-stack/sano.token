@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   resolveInvestorAccessForRegistration,
   shouldRejectDisabledAccountRegistration,
-  isGhostUserWithoutCredential
+  isGhostUserWithoutCredential,
+  wouldRejectForMissingInviteCode
 } from './registerService';
+import { isInvestorOpenRegistration } from './investorAccess';
 
 describe('register investor access policy', () => {
   it('does not re-enable disabled accounts through open registration alone', () => {
@@ -119,6 +121,29 @@ describe('register investor access policy', () => {
         explicitAccessGrant: false,
         inviteCodeGrant: false,
         openRegistration: true
+      })
+    ).toBe(true);
+  });
+
+  it('never rejects new investors for missing invite when open registration is enabled', () => {
+    expect(isInvestorOpenRegistration()).toBe(true);
+    expect(
+      wouldRejectForMissingInviteCode({
+        staffOnboarding: false,
+        openRegistration: true,
+        investorAccessEnabled: false,
+        existing: null
+      })
+    ).toBe(false);
+  });
+
+  it('would reject new investors without invite only when registration is closed', () => {
+    expect(
+      wouldRejectForMissingInviteCode({
+        staffOnboarding: false,
+        openRegistration: false,
+        investorAccessEnabled: false,
+        existing: null
       })
     ).toBe(true);
   });

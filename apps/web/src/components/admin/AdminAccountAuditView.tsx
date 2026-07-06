@@ -239,6 +239,19 @@ export function AdminAccountAuditView() {
           </div>
         )}
 
+        {data && !data.platformConfig.investorOpenRegistration ? (
+          <div className="rounded-md border border-terminal-warning/30 bg-terminal-warning/10 p-3 text-sm text-terminal-warning">
+            Registro de inversores cerrado: se exige invitación válida para altas nuevas.
+          </div>
+        ) : null}
+
+        {data && data.platformConfig.investorOpenRegistration ? (
+          <div className="rounded-md border border-terminal-success/30 bg-terminal-success/10 p-3 text-sm text-terminal-success">
+            Registro abierto: ON — la invitación es opcional (marketing/atribución). Los errores{' '}
+            <span className="font-mono">INVALID_INVITE_CODE</span> no deberían aparecer en altas nuevas.
+          </div>
+        ) : null}
+
         {data && !data.platformConfig.turnstileKeysInSync ? (
           <div className="rounded-md border border-terminal-warning/30 bg-terminal-warning/10 p-3 text-sm text-terminal-warning">
             Turnstile está parcialmente configurado: el secret del servidor y la site key del cliente deben
@@ -300,6 +313,11 @@ export function AdminAccountAuditView() {
               <div className="grid gap-0 sm:grid-cols-2">
                 <div className="sm:pr-4">
                   <p className="text-xs text-terminal-muted font-medium mb-2 uppercase tracking-wide">Admin & Auth</p>
+                  <ConfigRow
+                    label="Registro inversores abierto"
+                    ok={data.platformConfig.investorOpenRegistration}
+                    value={data.platformConfig.investorOpenRegistration ? 'ON (sin invite obligatorio)' : 'OFF'}
+                  />
                   <ConfigRow
                     label="AUTH_ADMIN_EMAILS"
                     ok={data.platformConfig.adminEmails.startsWith('✓')}

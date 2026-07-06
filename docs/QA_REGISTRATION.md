@@ -84,6 +84,31 @@ Esperado: todos los tests passing, `tsc` sin errores. Cubre pre-check email, cue
 - [ ] JWT API se renueva en sesión activa (>11h) — onboarding no falla por token expirado mid-flujo
 - [ ] Completar onboarding sin TOTP no marca cuenta operativa (polling fallback eliminado)
 
+## Códigos de error de registro (API → UI ES)
+
+Usar esta tabla para distinguir **invitación** vs **otros fallos** en Admin → Auditoría de cuentas → Intentos de registro (`errorCode`) o en Network → `POST /api/auth/register` → `{ error }`.
+
+| errorCode | Mensaje ES (aprox.) | ¿Invite? |
+|-----------|---------------------|----------|
+| `INVALID_INVITE_CODE` | El código de invitación no es válido… | Sí (solo si registro cerrado) |
+| `INVESTOR_ACCESS_NOT_ENABLED` | El acceso de inversor no está habilitado… | No (cuenta deshabilitada por admin) |
+| `EMAIL_IN_USE` | Este email ya está registrado… | No |
+| `REGION_NOT_AVAILABLE` | Registro no disponible en tu región… | No |
+| `CAPTCHA_INVALID` / Turnstile | Verificación de seguridad fallida… | No |
+| `REGISTRATION_FAILED` | No pudimos completar el registro… | No |
+| `DATABASE_UNAVAILABLE` | Servicio temporalmente no disponible… | No |
+| `SIGN_IN_FAILED` | Cuenta creada pero no pudimos iniciar sesión… | No |
+| `NETWORK_ERROR` / `INVALID_RESPONSE` | Error de conexión / respuesta inválida (cliente) | No |
+| `GENERIC` | No pudimos crear la cuenta. Intentá de nuevo. | No (causa opaca; revisar logs) |
+
+**Registro abierto:** con `isInvestorOpenRegistration() === true`, `INVALID_INVITE_CODE` no debería aparecer en altas nuevas. Badge visible en Admin → Auditoría → Configuración de Plataforma.
+
+**Diagnóstico por email:**
+
+```bash
+node scripts/diagnose-user-registration.mjs bragadin67@gmail.com
+```
+
 ## Invitaciones
 
 - [ ] Admin invite persiste `phone` en `TeamInvite` (validación E.164 al crear)

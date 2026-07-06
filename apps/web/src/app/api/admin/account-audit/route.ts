@@ -4,6 +4,7 @@ import { prisma } from '@sanova/database';
 import { isPendingInvestorWallet } from '../../../../lib/investor/provisionInvestorProfile';
 import { isPrivyOperatorConfigured } from '../../../../lib/privy/config';
 import { listRegistrationAttempts } from '../../../../lib/auth/registrationAttemptService';
+import { isInvestorOpenRegistration } from '../../../../lib/auth/investorAccess';
 
 export const dynamic = 'force-dynamic';
 
@@ -58,6 +59,7 @@ export type PlatformConfig = {
   turnstileSecretConfigured: boolean;
   turnstileSiteKeyConfigured: boolean;
   turnstileKeysInSync: boolean;
+  investorOpenRegistration: boolean;
 };
 
 function resolveWalletStatus(address: string | null | undefined): WalletStatus {
@@ -178,7 +180,8 @@ export async function GET(request: NextRequest) {
       turnstileSecretConfigured,
       turnstileSiteKeyConfigured,
       turnstileKeysInSync:
-        turnstileSecretConfigured === turnstileSiteKeyConfigured
+        turnstileSecretConfigured === turnstileSiteKeyConfigured,
+      investorOpenRegistration: isInvestorOpenRegistration()
     };
 
     const registrationAttemptsRaw = await listRegistrationAttempts({

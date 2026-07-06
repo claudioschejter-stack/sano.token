@@ -100,7 +100,14 @@ export async function registerInvestor(input: RegisterInput) {
     ghostUserWithoutCredential
   });
 
-  if (!staffOnboarding && !openRegistration && !investorAccessEnabled && !existing) {
+  if (
+    wouldRejectForMissingInviteCode({
+      staffOnboarding,
+      openRegistration,
+      investorAccessEnabled,
+      existing
+    })
+  ) {
     throw new Error('INVALID_INVITE_CODE');
   }
 
@@ -193,6 +200,21 @@ export function isGhostUserWithoutCredential(
   existing: { passwordHash: string | null; oauthProvider?: string | null } | null
 ): boolean {
   return Boolean(existing && !existing.passwordHash && !existing.oauthProvider);
+}
+
+/** Dead when `openRegistration` is true — kept for closed-registration rollback only. */
+export function wouldRejectForMissingInviteCode(input: {
+  staffOnboarding: boolean;
+  openRegistration: boolean;
+  investorAccessEnabled: boolean;
+  existing: unknown | null;
+}): boolean {
+  return (
+    !input.staffOnboarding &&
+    !input.openRegistration &&
+    !input.investorAccessEnabled &&
+    !input.existing
+  );
 }
 
 /** Pure policy helper — mirrors investorAccessEnabled resolution in registerInvestor(). */
