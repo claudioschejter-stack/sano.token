@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const query = process.argv[2]?.trim().toLowerCase() ?? 'bragadin';
 
-function buildUserWhere(queryText: string) {
+function buildUserWhere(queryText) {
   const phoneDigits = queryText.replace(/\D/g, '');
   const orFilters = [
     { email: { contains: queryText, mode: 'insensitive' } },
