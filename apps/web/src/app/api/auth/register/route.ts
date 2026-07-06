@@ -5,6 +5,7 @@ import {
   type RegistrationChannel
 } from '../../../../lib/auth/registrationAttemptService';
 import { normalizeEmail } from '../../../../lib/auth/contactValidation';
+import { mapRegisterRouteError } from '../../../../lib/auth/registerRouteErrors';
 import { requireTurnstile } from '../../../../lib/security/requireTurnstile';
 import { isCountryBlockedForRegistration } from '../../../../lib/security/blockedCountries';
 
@@ -91,13 +92,15 @@ export async function POST(request: Request) {
       phone: result.phone
     });
   } catch (error) {
-    const code = error instanceof Error ? error.message : 'UNKNOWN';
+    const { code, status } = mapRegisterRouteError(error);
 
     console.error('[auth/register]', {
       email: emailForLog,
       errorCode: code,
       channel,
-      ipCountry
+      ipCountry,
+      cause: error instanceof Error ? error.message : String(error),
+      meta: error && typeof error === 'object' && 'meta' in error ? error.meta : undefined
     });
 
     if (emailForLog) {
@@ -109,22 +112,6 @@ export async function POST(request: Request) {
         ipCountry
       });
     }
-
-    const status =
-      code === 'EMAIL_IN_USE'
-        ? 409
-        : code === 'WEAK_PASSWORD' ||
-            code === 'INVALID_PHONE' ||
-            code === 'INVALID_EMAIL' ||
-            code === 'INVALID_INPUT' ||
-            code === 'TERMS_NOT_ACCEPTED' ||
-            code === 'INVALID_INVITE_CODE' ||
-            code === 'INVESTOR_ACCESS_NOT_ENABLED' ||
-            code === 'STAFF_INVITE_REQUIRED'
-          ? 400
-          : code === 'RATE_LIMIT'
-            ? 429
-            : 500;
 
     return NextResponse.json({ error: code }, { status });
   }

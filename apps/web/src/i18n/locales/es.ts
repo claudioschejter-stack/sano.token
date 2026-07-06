@@ -2007,7 +2007,15 @@ export const es = {
         CAPTCHA_INVALIDO: 'Verificación de seguridad inválida. Recargá la página e intentá de nuevo.',
         REGION_NOT_AVAILABLE: 'El registro no está disponible desde tu región en este momento.',
         EMAIL_CHECK_FAILED:
-          'No pudimos verificar tu correo. Revisá tu conexión e intentá de nuevo.'
+          'No pudimos verificar tu correo. Revisá tu conexión e intentá de nuevo.',
+        NETWORK_ERROR:
+          'No pudimos conectar con el servidor. Revisá tu conexión e intentá de nuevo.',
+        INVALID_RESPONSE:
+          'El servidor respondió de forma inesperada. Recargá la página e intentá de nuevo.',
+        REGISTRATION_FAILED:
+          'No pudimos completar el alta por un error interno. Intentá de nuevo en unos minutos o contactá a Sanova.',
+        DATABASE_UNAVAILABLE:
+          'El servicio está temporalmente no disponible. Intentá de nuevo en unos minutos.'
       }
     },
     kycTitle: 'Verificación de identidad (KYC)',

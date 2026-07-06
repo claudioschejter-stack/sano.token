@@ -28,12 +28,21 @@ export async function recordRegistrationAttempt(input: {
       }
     });
   } catch (error) {
+    const details =
+      error instanceof Error
+        ? { message: error.message, name: error.name, stack: error.stack }
+        : { message: String(error) };
+
     console.error('[registrationAttempt] failed to persist attempt', {
       email: normalized,
       success: input.success,
       errorCode: input.errorCode,
-      error
+      ...details
     });
+
+    if (process.env.NODE_ENV !== 'production') {
+      throw error;
+    }
   }
 }
 

@@ -270,9 +270,16 @@ export function RegisterForm({
         })
       });
 
-      const data = (await response.json()) as {
-        error?: string;
-      };
+      let data: { error?: string };
+      try {
+        data = (await response.json()) as { error?: string };
+      } catch {
+        setRegistrationErrorCode('INVALID_RESPONSE');
+        setError(r.errors.INVALID_RESPONSE ?? r.errors.GENERIC);
+        turnstile.reset();
+        setLoading(false);
+        return;
+      }
 
       if (!response.ok) {
         const key = data.error ?? 'GENERIC';
@@ -294,7 +301,15 @@ export function RegisterForm({
         setLoading(false);
         return;
       }
+    } catch {
+      setRegistrationErrorCode('NETWORK_ERROR');
+      setError(r.errors.NETWORK_ERROR ?? r.errors.GENERIC);
+      turnstile.reset();
+      setLoading(false);
+      return;
+    }
 
+    try {
       const signInResult = await signIn('credentials', {
         email: normalizedEmail,
         password,
@@ -319,7 +334,8 @@ export function RegisterForm({
       router.refresh();
       router.replace(buildKycUrl(returnTo, undefined, undefined, { registered: true }));
     } catch {
-      setError(r.errors.GENERIC);
+      setRegistrationErrorCode('SIGN_IN_FAILED');
+      setError(r.errors.SIGN_IN_FAILED);
       setLoading(false);
     }
   }
@@ -456,7 +472,12 @@ export function RegisterForm({
           {turnstile.widget}
           <button
             type="submit"
-            disabled={loading || !acceptedLegal || precheckBlocksSubmit}
+            disabled={
+              loading ||
+              !acceptedLegal ||
+              precheckBlocksSubmit ||
+              (turnstile.enabled && !turnstile.token)
+            }
             className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? r.submitting : r.submitButton}

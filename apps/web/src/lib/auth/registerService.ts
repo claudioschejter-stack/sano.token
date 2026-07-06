@@ -89,23 +89,28 @@ export async function registerInvestor(input: RegisterInput) {
   const inviteCodeGrant =
     !openRegistration && resolveInvestorAccessOnRegister(input.inviteCode);
 
-  const investorAccessEnabled =
-    staffOnboarding ||
-    (!existing && openRegistration) ||
-    explicitAccessGrant ||
-    inviteCodeGrant ||
-    Boolean(existing?.investorAccessEnabled);
+  const investorAccessEnabled = resolveInvestorAccessForRegistration({
+    existing,
+    openRegistration,
+    explicitAccessGrant,
+    inviteCodeGrant,
+    staffOnboarding,
+    ghostUserWithoutCredential
+  });
 
   if (!staffOnboarding && !openRegistration && !investorAccessEnabled && !existing) {
     throw new Error('INVALID_INVITE_CODE');
   }
+
+  const ghostUserWithoutCredential = isGhostUserWithoutCredential(existing);
 
   if (
     shouldRejectDisabledAccountRegistration({
       existing,
       staffOnboarding,
       explicitAccessGrant,
-      inviteCodeGrant
+      inviteCodeGrant,
+      openRegistration
     })
   ) {
     throw new Error('INVESTOR_ACCESS_NOT_ENABLED');
@@ -156,13 +161,25 @@ export async function registerInvestor(input: RegisterInput) {
           accountStatus:
             existing.accountStatus === 'SUSPENDED' ? 'SUSPENDED' : existing.accountStatus,
           kycStatus: existing.kycStatus,
-          investorAccessEnabled: existing.investorAccessEnabled || explicitAccessGrant || inviteCodeGrant
+          investorAccessEnabled:
+            investorAccessEnabled ||
+            existing.investorAccessEnabled ||
+            explicitAccessGrant ||
+            inviteCodeGrant
         }
   });
 
   if (user.systemRole === 'INVESTOR' && (await hasValidInvestorInviteForEmail(email))) {
-    await markInvestorInviteAcceptedForEmail(email);
-    await applyInvestorInviteAdvisorForUser(user.id, email);
+    try {
+      await markInvestorInviteAcceptedForEmail(email);
+      await applyInvestorInviteAdvisorForUser(user.id, email);
+    } catch (inviteError) {
+      console.error('[registerService] invite side-effects failed after user upsert', {
+        email,
+        userId: user.id,
+        inviteError
+      });
+    }
   }
 
   return {
@@ -172,6 +189,12 @@ export async function registerInvestor(input: RegisterInput) {
   };
 }
 
+export function isGhostUserWithoutCredential(
+  existing: { passwordHash: string | null; oauthProvider?: string | null } | null
+): boolean {
+  return Boolean(existing && !existing.passwordHash && !existing.oauthProvider);
+}
+
 /** Pure policy helper — mirrors investorAccessEnabled resolution in registerInvestor(). */
 export function resolveInvestorAccessForRegistration(input: {
   existing: { investorAccessEnabled: boolean } | null;
@@ -179,6 +202,7 @@ export function resolveInvestorAccessForRegistration(input: {
   explicitAccessGrant: boolean;
   inviteCodeGrant: boolean;
   staffOnboarding?: boolean;
+  ghostUserWithoutCredential?: boolean;
 }): boolean {
   if (input.staffOnboarding) {
     return true;
@@ -186,6 +210,7 @@ export function resolveInvestorAccessForRegistration(input: {
 
   return (
     (!input.existing && input.openRegistration) ||
+    (input.ghostUserWithoutCredential && input.openRegistration) ||
     input.explicitAccessGrant ||
     input.inviteCodeGrant ||
     Boolean(input.existing?.investorAccessEnabled)
@@ -193,16 +218,23 @@ export function resolveInvestorAccessForRegistration(input: {
 }
 
 export function shouldRejectDisabledAccountRegistration(input: {
-  existing: { investorAccessEnabled: boolean; passwordHash: string | null } | null;
+  existing: { investorAccessEnabled: boolean; passwordHash: string | null; oauthProvider?: string | null } | null;
   staffOnboarding: boolean;
   explicitAccessGrant: boolean;
   inviteCodeGrant: boolean;
+  openRegistration?: boolean;
 }): boolean {
-  return Boolean(
-    input.existing &&
-      !input.staffOnboarding &&
-      !input.existing.investorAccessEnabled &&
-      !input.explicitAccessGrant &&
-      !input.inviteCodeGrant
+  if (!input.existing || input.staffOnboarding) {
+    return false;
+  }
+
+  if (isGhostUserWithoutCredential(input.existing) && input.openRegistration) {
+    return false;
+  }
+
+  return (
+    !input.existing.investorAccessEnabled &&
+    !input.explicitAccessGrant &&
+    !input.inviteCodeGrant
   );
 }

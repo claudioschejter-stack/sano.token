@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   resolveInvestorAccessForRegistration,
-  shouldRejectDisabledAccountRegistration
+  shouldRejectDisabledAccountRegistration,
+  isGhostUserWithoutCredential
 } from './registerService';
 
 describe('register investor access policy', () => {
@@ -80,5 +81,45 @@ describe('register investor access policy', () => {
         inviteCodeGrant: false
       })
     ).toBe(false);
+  });
+
+  it('allows ghost users to complete registration when open registration is enabled', () => {
+    const existing = {
+      investorAccessEnabled: false,
+      passwordHash: null,
+      oauthProvider: null
+    };
+
+    expect(isGhostUserWithoutCredential(existing)).toBe(true);
+    expect(
+      shouldRejectDisabledAccountRegistration({
+        existing,
+        staffOnboarding: false,
+        explicitAccessGrant: false,
+        inviteCodeGrant: false,
+        openRegistration: true
+      })
+    ).toBe(false);
+    expect(
+      resolveInvestorAccessForRegistration({
+        existing,
+        openRegistration: true,
+        explicitAccessGrant: false,
+        inviteCodeGrant: false,
+        ghostUserWithoutCredential: true
+      })
+    ).toBe(true);
+  });
+
+  it('still rejects disabled accounts with password when open registration alone', () => {
+    expect(
+      shouldRejectDisabledAccountRegistration({
+        existing: { investorAccessEnabled: false, passwordHash: 'hash', oauthProvider: null },
+        staffOnboarding: false,
+        explicitAccessGrant: false,
+        inviteCodeGrant: false,
+        openRegistration: true
+      })
+    ).toBe(true);
   });
 });

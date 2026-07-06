@@ -1976,7 +1976,12 @@ export const en = {
         CAPTCHA_REQUIRED: 'Complete the security verification and try again.',
         CAPTCHA_INVALIDO: 'Security verification failed. Reload the page and try again.',
         REGION_NOT_AVAILABLE: 'Registration is not available from your region right now.',
-        EMAIL_CHECK_FAILED: 'We could not verify your email. Check your connection and try again.'
+        EMAIL_CHECK_FAILED: 'We could not verify your email. Check your connection and try again.',
+        NETWORK_ERROR: 'We could not reach the server. Check your connection and try again.',
+        INVALID_RESPONSE: 'The server returned an unexpected response. Reload the page and try again.',
+        REGISTRATION_FAILED:
+          'We could not complete signup due to an internal error. Try again in a few minutes or contact Sanova.',
+        DATABASE_UNAVAILABLE: 'The service is temporarily unavailable. Try again in a few minutes.'
       }
     },
     kycTitle: "Identity verification (KYC)",
