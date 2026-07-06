@@ -1,7 +1,8 @@
 import { cookies, headers } from 'next/headers';
 import { isCountryBlockedForRegistration } from '../security/blockedCountries';
+import { OAUTH_TERMS_COOKIE } from './oauthRegistrationConstants';
 
-export const OAUTH_TERMS_COOKIE = 'sanova.oauth_terms';
+export { OAUTH_TERMS_COOKIE };
 
 /** IP header country for registration gates — same source as password register routes. */
 export function resolveRegistrationCountryFromIp(

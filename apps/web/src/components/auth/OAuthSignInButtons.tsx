@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { OAUTH_TERMS_COOKIE } from '../../lib/auth/oauthRegistrationPolicy';
+import { OAUTH_TERMS_COOKIE } from '../../lib/auth/oauthRegistrationConstants';
 import { isRegisterOAuthBlocked } from '../../lib/auth/registerAccessBlock';
 
 type OAuthProvidersResponse = {
