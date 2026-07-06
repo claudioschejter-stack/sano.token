@@ -112,7 +112,9 @@ export function buildDiditIdentityUpdate(identity: DiditIdentityFields) {
       : {}),
     ...(identity.documentType ? { kycDocumentType: identity.documentType } : {}),
     ...(identity.documentExpiry ? { kycDocumentExpiry: identity.documentExpiry } : {}),
-    ...(identity.gender ? { kycGender: identity.gender } : {})
+    ...(identity.gender ? { kycGender: identity.gender } : {}),
+    ...(identity.personalNumber ? { kycPersonalNumber: identity.personalNumber } : {}),
+    ...(identity.issuingState ? { kycIssuingState: identity.issuingState } : {})
   };
 }
 

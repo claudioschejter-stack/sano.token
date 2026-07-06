@@ -47,8 +47,10 @@ export default function AccessCallbackClient() {
 
     if (status === 'unauthenticated' || session?.authError) {
       const errorCode =
-        session?.authError === 'CUENTA_BLOQUEADA' ? 'CUENTA_BLOQUEADA' : 'auth';
-      router.replace(`/acceso?error=${errorCode}`);
+        session?.authError === 'CUENTA_BLOQUEADA'
+          ? 'CUENTA_BLOQUEADA'
+          : session?.authError ?? 'auth';
+      router.replace(`/acceso?error=${encodeURIComponent(errorCode)}`);
       return;
     }
 
@@ -66,6 +68,7 @@ export default function AccessCallbackClient() {
     }
 
     const returnTo = searchParams.get('returnTo');
+    const justRegistered = searchParams.get('registered') === '1';
     const role = (session?.user?.role ?? 'INVESTOR') as SystemRole;
 
     const needsTotpStep =
@@ -80,9 +83,12 @@ export default function AccessCallbackClient() {
 
     const destination = needsTotpStep
       ? buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH, 'totp', {
-          totpMode: totpPendingSetup ? 'confirm' : undefined
+          totpMode: totpPendingSetup ? 'confirm' : undefined,
+          registered: justRegistered
         })
-      : resolveAuthenticatedDestination(role, returnTo, isOperational);
+      : resolveAuthenticatedDestination(role, returnTo, isOperational, {
+          registered: justRegistered
+        });
 
     // First successful login on this phone with email/password (not needing KYC/TOTP
     // setup): offer to enable biometric unlock once, like Mercado Pago does.

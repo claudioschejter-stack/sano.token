@@ -20,7 +20,13 @@ function detectMobileViewport(): boolean {
 }
 
 export function useDeviceDetection() {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return detectMobileUserAgent() || detectMobileViewport();
+  });
 
   useEffect(() => {
     const sync = () => {

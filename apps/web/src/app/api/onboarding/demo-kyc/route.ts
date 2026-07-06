@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { assertInvestorAccessEnabled } from '../../../../lib/auth/investorAccess';
 import { requireContactVerifiedUser } from '../../../../lib/onboarding/contactVerification';
-import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
-import { provisionInvestorProfileOnKycApproval } from '../../../../lib/investor/provisionInvestorProfile';
+import { approveDemoKycForUser } from '../../../../lib/onboarding/demoKycService';
 import { allowDemoKyc } from '../../../../lib/runtime/environment';
 
 /** Demo only — never available in production. Use Didit for real KYC. */
@@ -42,13 +41,7 @@ export async function POST() {
     return NextResponse.json({ error: 'INVESTOR_ACCESS_NOT_ENABLED' }, { status: 403 });
   }
 
-  await prisma.user.update({
-    where: { id: ctx.userId },
-    data: { kycStatus: 'APPROVED' }
-  });
-
-  await syncUserAccountStatus(ctx.userId);
-  await provisionInvestorProfileOnKycApproval(ctx.userId);
+  await approveDemoKycForUser(ctx.userId);
 
   return NextResponse.json({ ok: true });
 }

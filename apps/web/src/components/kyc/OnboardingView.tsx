@@ -9,6 +9,12 @@ import {
   Smartphone
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { buildAndValidateE164Phone } from '../../lib/auth/contactValidation';
+import {
+  COUNTRY_DIAL_CODES,
+  DEFAULT_DIAL_CODE,
+  parseE164Phone
+} from '../../lib/auth/countryDialCodes';
 import { defersEmailVerificationToPrivy } from '../../lib/onboarding/emailVerificationPolicy';
 import { safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
@@ -18,6 +24,7 @@ import { isPrivyEnabled } from '../../lib/privy/config';
 
 import { TotpOnboardingStep } from '../auth/TotpOnboardingStep';
 import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
+import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 
 type Step = 'email' | 'identity' | 'wallet' | 'totp' | 'done';
 
@@ -73,11 +80,13 @@ function OnboardingContent() {
   const searchParams = useSearchParams();
   const returnTo = safeReturnTo(searchParams.get('returnTo'), '/marketplace');
   const diditReturn = searchParams.get('didit') === '1';
+  const justRegistered = searchParams.get('registered') === '1';
   const requestedStepParam = searchParams.get('step');
   const totpPreferConfirm = searchParams.get('totpMode') === 'confirm';
 
   const { data: session, status, update: updateSession } = useSession();
-  const { checklist, loading, refresh, isOperational, systemRole } = useAccountStatus();
+  const { checklist, loading, refresh, isOperational, systemRole, fetchError, profile } =
+    useAccountStatus();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = Boolean(systemRole);
   const deferEmailToPrivy = defersEmailVerificationToPrivy(systemRole);
@@ -90,6 +99,26 @@ function OnboardingContent() {
   const emailCodeSent = useRef(false);
   const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
   const [resending, setResending] = useState(false);
+  const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
+  const [phoneLocal, setPhoneLocal] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [savingPhone, setSavingPhone] = useState(false);
+
+  const needsPhoneCapture = Boolean(
+    checklist && isMarketplaceTradingRole(systemRole ?? undefined) && !checklist.phone?.trim()
+  );
+
+  useEffect(() => {
+    if (!checklist?.phone) {
+      return;
+    }
+
+    const parsed = parseE164Phone(checklist.phone);
+    if (parsed) {
+      setDialCode(parsed.dialCode);
+      setPhoneLocal(parsed.local);
+    }
+  }, [checklist?.phone]);
 
   // Once the session/checklist have hydrated successfully, later transient
   // `status === 'loading'` flips (triggered by `session.update()` when the
@@ -113,8 +142,15 @@ function OnboardingContent() {
     [checklist, deferEmailToPrivy, diditReturn, requireWallet, systemRole]
   );
 
+  const normalizedRequestedStep = useMemo(() => {
+    if (requestedStepParam === 'contact' || requestedStepParam === 'phone') {
+      return 'email';
+    }
+    return requestedStepParam;
+  }, [requestedStepParam]);
+
   const step = useMemo(() => {
-    if (!requestedStepParam || !ONBOARDING_STEPS.includes(requestedStepParam as Step)) {
+    if (!normalizedRequestedStep || !ONBOARDING_STEPS.includes(normalizedRequestedStep as Step)) {
       return computedStep;
     }
 
@@ -122,7 +158,7 @@ function OnboardingContent() {
       return 'done';
     }
 
-    const requestedStep = requestedStepParam as Step;
+    const requestedStep = normalizedRequestedStep as Step;
     const requestedIndex = ONBOARDING_STEPS.indexOf(requestedStep);
     const computedIndex = ONBOARDING_STEPS.indexOf(computedStep);
 
@@ -140,12 +176,12 @@ function OnboardingContent() {
     }
 
     return computedStep;
-  }, [checklist?.operational, computedStep, requestedStepParam]);
+  }, [checklist?.operational, computedStep, normalizedRequestedStep]);
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);
 
   const handleTotpComplete = useCallback(async () => {
-    for (let attempt = 0; attempt < 5; attempt += 1) {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
       const response = await fetch('/api/onboarding/status', { cache: 'no-store' });
       if (response.ok) {
         const data = (await response.json()) as {
@@ -154,7 +190,7 @@ function OnboardingContent() {
         if (data.checklist?.totpEnabled) {
           await refresh({ silent: true });
           if (data.checklist.operational) {
-            await updateSession({ accountOperational: true });
+            await updateSession({});
           }
           // Hard navigation: by the time updateSession() resolves, the browser
           // already applied the refreshed JWT cookie, so a full page load lets
@@ -168,9 +204,8 @@ function OnboardingContent() {
     }
 
     await refresh({ silent: true });
-    await updateSession({ accountOperational: true });
-    window.location.assign(returnTo);
-  }, [refresh, returnTo, updateSession]);
+    setError(o.errors.TOTP_ACTIVATION_PENDING);
+  }, [refresh, returnTo, updateSession, o.errors]);
 
   useEffect(() => {
     if (!isOperational) {
@@ -221,6 +256,32 @@ function OnboardingContent() {
       void syncDiditStatus();
     }
   }, [diditReturn, syncDiditStatus]);
+
+  const kycPending =
+    checklist?.kycStatus === 'PENDING' && !checklist?.kycApproved;
+  const showDiditProcessing = kycPending;
+
+  useEffect(() => {
+    if (!showDiditProcessing) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void syncDiditStatus();
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [showDiditProcessing, syncDiditStatus]);
+
+  useEffect(() => {
+    if (!checklist?.phone && profile?.suggestedPhone) {
+      const parsed = parseE164Phone(profile.suggestedPhone);
+      if (parsed) {
+        setDialCode(parsed.dialCode);
+        setPhoneLocal(parsed.local);
+      }
+    }
+  }, [checklist?.phone, profile?.suggestedPhone]);
 
   useEffect(() => {
     if (checklist?.emailVerified) {
@@ -286,6 +347,7 @@ function OnboardingContent() {
       !checklist ||
       step !== 'email' ||
       checklist.emailVerified ||
+      needsPhoneCapture ||
       emailCodeSent.current
     ) {
       return;
@@ -297,7 +359,41 @@ function OnboardingContent() {
         emailCodeSent.current = false;
       }
     });
-  }, [checklist, loading, requestVerificationCode, sessionReady, step]);
+  }, [checklist, loading, needsPhoneCapture, requestVerificationCode, sessionReady, step]);
+
+  const savePhone = useCallback(async () => {
+    setPhoneError(null);
+    setSavingPhone(true);
+
+    const phone = buildAndValidateE164Phone(dialCode, phoneLocal);
+    if (!phone) {
+      setPhoneError(o.errors.INVALID_PHONE);
+      setSavingPhone(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/onboarding/contact', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
+
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        const errorKey = data.error ?? 'GENERIC';
+        setPhoneError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.INVALID_PHONE);
+        return;
+      }
+
+      await refresh({ silent: true });
+    } catch {
+      setPhoneError(o.errors.GENERIC);
+    } finally {
+      setSavingPhone(false);
+    }
+  }, [dialCode, o.errors, phoneLocal, refresh]);
 
   const resendCurrentCode = useCallback(async () => {
     setResending(true);
@@ -384,8 +480,17 @@ function OnboardingContent() {
         method: 'POST',
         credentials: 'same-origin'
       });
+      const data = (await response.json()) as { error?: string };
+
       if (!response.ok) {
-        setError(o.errors.GENERIC);
+        const key = data.error ?? 'GENERIC';
+        const onboardingMessage = o.errors[key as keyof typeof o.errors];
+        const apiMessage = t.apiErrors[key as keyof typeof t.apiErrors];
+        setError(
+          onboardingMessage ??
+            (typeof apiMessage === 'string' ? apiMessage : undefined) ??
+            o.errors.GENERIC
+        );
         return;
       }
 
@@ -395,7 +500,7 @@ function OnboardingContent() {
     } finally {
       setBusy(false);
     }
-  }, [o.errors, refresh]);
+  }, [o.errors, refresh, t.apiErrors]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -419,6 +524,26 @@ function OnboardingContent() {
     );
   }
 
+  if (!checklist) {
+    return (
+      <div className="flex min-h-[100dvh] flex-col items-center justify-center gap-4 bg-white px-4 text-center text-slate-600">
+        <p className="text-sm font-medium">
+          {fetchError ? o.statusLoadFailed : o.loading}
+        </p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500"
+        >
+          {o.statusRetry}
+        </button>
+        <Link href="/acceso" className="text-sm font-semibold text-blue-600 hover:text-blue-500">
+          {o.backToAccess}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[100dvh] flex-col bg-white text-slate-900">
       <header className="sticky top-0 z-10 border-b border-slate-100 bg-white/95 px-4 py-4 backdrop-blur-md safe-top">
@@ -430,6 +555,9 @@ function OnboardingContent() {
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{o.eyebrow}</p>
               <h1 className="text-lg font-bold">{o.title}</h1>
+              <p className="mt-0.5 text-xs font-medium text-blue-600">
+                {o.stepProgressLabel.replace('{current}', String(Math.min(progressIndex + 2, 5)))}
+              </p>
             </div>
           </div>
           <Link href="/acceso" className="shrink-0 text-sm font-medium text-blue-600 hover:text-blue-500">
@@ -447,9 +575,25 @@ function OnboardingContent() {
             />
           ))}
         </div>
+        <div className="mx-auto mt-2 grid w-full max-w-md grid-cols-4 gap-1 text-[10px] font-medium text-slate-500">
+          <span className={progressIndex >= 0 ? 'text-blue-700' : ''}>{o.stepLabels.contact}</span>
+          <span className={progressIndex >= 1 ? 'text-blue-700' : ''}>{o.stepLabels.identity}</span>
+          <span className={progressIndex >= 2 ? 'text-blue-700' : ''}>{o.stepLabels.wallet}</span>
+          <span className={progressIndex >= 3 ? 'text-blue-700' : ''}>{o.stepLabels.security}</span>
+        </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col px-4 py-6 pb-28">
+        <p className="mb-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          {o.introBanner}
+        </p>
+
+        {justRegistered ? (
+          <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            {o.accountCreatedBanner}
+          </p>
+        ) : null}
+
         {error ? (
           <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
@@ -476,9 +620,62 @@ function OnboardingContent() {
 
         {step === 'email' ? (
           <section className="space-y-4">
-            <h2 className="text-xl font-bold">{o.steps.emailTitle}</h2>
+            {needsPhoneCapture ? (
+              <>
+            <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
+                <p className="text-sm text-slate-600">{o.steps.contactDesc}</p>
+                <div>
+                  <label htmlFor="onboarding-dial" className="mb-1.5 block text-sm font-medium text-slate-700">
+                    {o.fields.countryLabel}
+                  </label>
+                  <select
+                    id="onboarding-dial"
+                    value={dialCode}
+                    onChange={(event) => setDialCode(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none ring-blue-500 focus:ring-2"
+                  >
+                    {COUNTRY_DIAL_CODES.map((entry) => (
+                      <option key={entry.code} value={entry.code}>
+                        {entry.label} ({entry.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="onboarding-phone" className="mb-1.5 block text-sm font-medium text-slate-700">
+                    {o.fields.phone}
+                  </label>
+                  <input
+                    id="onboarding-phone"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    value={phoneLocal}
+                    onChange={(event) => setPhoneLocal(event.target.value.replace(/\D/g, ''))}
+                    placeholder={o.fields.phonePlaceholder}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none ring-blue-500 focus:ring-2"
+                  />
+                  <p className="mt-1.5 text-xs text-slate-500">{o.fields.phoneHint}</p>
+                </div>
+                {phoneError ? (
+                  <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {phoneError}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  disabled={savingPhone || busy}
+                  onClick={() => void savePhone()}
+                  className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white disabled:opacity-60"
+                >
+                  {savingPhone ? o.continuing : o.savePhoneContinue}
+                </button>
+              </>
+            ) : (
+              <>
+            <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
             <p className="text-sm text-slate-600">
-              {(deferEmailToPrivy ? o.steps.emailDescPrivyFallback : o.steps.emailDesc)}{' '}
+              {o.steps.emailCodeDesc}{' '}
               <span className="font-medium text-slate-800">{checklist.email}</span>
             </p>
             {deferEmailToPrivy ? (
@@ -505,6 +702,8 @@ function OnboardingContent() {
             >
               {resending ? o.steps.resendingCode : o.steps.resendCode}
             </button>
+              </>
+            )}
           </section>
         ) : null}
 
@@ -512,19 +711,34 @@ function OnboardingContent() {
           <section className="space-y-5">
             <h2 className="text-xl font-bold">{o.steps.identityTitle}</h2>
 
-            <div className="space-y-2 text-sm text-slate-700">
-              <p className="font-medium text-slate-900">{o.steps.identityDesc}</p>
-              <p>{o.steps.identityStep1}</p>
-              <p>{o.steps.identityStep2}</p>
-              <p className="text-xs leading-relaxed text-slate-500">
-                {o.steps.identityPrivacyNotice}{' '}
-                <Link href="/privacidad" className="font-semibold text-blue-600 hover:text-blue-500">
-                  {t.legal.privacyLink}
-                </Link>
+            {checklist.kycStatus === 'REJECTED' ? (
+              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {t.accountStatus.stepKycRejected}
               </p>
-            </div>
+            ) : null}
 
-            {checklist?.diditEnabled ? (
+            {showDiditProcessing ? (
+              <p className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                {diditReturn ? o.steps.diditProcessing : o.steps.kycPendingReview}
+              </p>
+            ) : null}
+
+            {!showDiditProcessing ? (
+              <>
+            <ul className="list-disc space-y-2 pl-5 text-sm text-slate-700">
+              <li>{o.steps.identityStep1}</li>
+              <li>{o.steps.identityStep2}</li>
+            </ul>
+            <p className="text-xs leading-relaxed text-slate-500">
+              {o.steps.identityPrivacyNotice}{' '}
+              <Link href="/privacidad" className="font-semibold text-blue-600 hover:text-blue-500">
+                {t.legal.privacyLink}
+              </Link>
+            </p>
+              </>
+            ) : null}
+
+            {checklist?.diditEnabled && !showDiditProcessing ? (
               <>
                 <button
                   type="button"
@@ -538,7 +752,7 @@ function OnboardingContent() {
                   {requireWallet ? o.steps.identityWalletNote : o.steps.identityOperationalNote}
                 </p>
               </>
-            ) : checklist?.allowDemoKyc ? (
+            ) : checklist?.allowDemoKyc && systemRole === 'INVESTOR' ? (
               <button
                 type="button"
                 disabled={busy || !checklist?.kycEnabled}
@@ -558,6 +772,8 @@ function OnboardingContent() {
         {step === 'wallet' ? (
           isPrivyEnabled() ? (
             <PrivyOnboardingWallet
+              kycApproved={Boolean(checklist?.kycApproved)}
+              refresh={refresh}
               onLinked={async () => {
                 await refresh({ silent: true });
               }}
@@ -586,7 +802,7 @@ function OnboardingContent() {
         ) : null}
       </main>
 
-      {step !== 'done' && step !== 'identity' && step !== 'wallet' && step !== 'totp' ? (
+      {step !== 'done' && step !== 'identity' && step !== 'wallet' && step !== 'totp' && !(step === 'email' && needsPhoneCapture) ? (
         <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-md safe-bottom">
           <div className="mx-auto w-full max-w-md">
             <button

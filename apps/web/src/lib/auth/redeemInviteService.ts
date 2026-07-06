@@ -1,5 +1,5 @@
 import { prisma } from '@sanova/database';
-import { resolveInvestorAccessOnRegister } from './investorAccess';
+import { isInvestorOpenRegistration, resolveInvestorAccessOnRegister } from './investorAccess';
 import { isPreApprovedInvestorEmail } from './roleAllowlist';
 
 export async function redeemInvestorInviteCode(userId: string, email: string, inviteCode: string) {
@@ -24,7 +24,7 @@ export async function redeemInvestorInviteCode(userId: string, email: string, in
   }
 
   const enabled =
-    process.env.INVESTOR_OPEN_REGISTRATION === 'true' ||
+    isInvestorOpenRegistration() ||
     isPreApprovedInvestorEmail(normalizedEmail) ||
     resolveInvestorAccessOnRegister(code);
 

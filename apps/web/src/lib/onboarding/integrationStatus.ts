@@ -14,7 +14,7 @@ export function getOnboardingIntegrations(): IntegrationStatus[] {
       id: 'open-registration',
       label: 'Registro abierto inversores',
       configured: isInvestorOpenRegistration(),
-      envKeys: ['INVESTOR_OPEN_REGISTRATION']
+      envKeys: ['(política en código — isInvestorOpenRegistration)']
     },
     {
       id: 'resend',

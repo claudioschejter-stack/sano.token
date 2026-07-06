@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 import { formFieldClassName } from '../../lib/ui/formFieldClassName';
+import { OAuthSignInButtons } from './OAuthSignInButtons';
 import { PasswordInput } from './PasswordInput';
 
 type DesktopLoginFlowProps = {
@@ -63,7 +64,15 @@ export function DesktopLoginFlow({
     if (!step1Res.ok || !step1Data.ok) {
       setLoading(false);
       if (step1Data.error === 'CUENTA_BLOQUEADA') {
-        setError(t.access.accountLocked ?? 'Cuenta bloqueada temporalmente. Intentá más tarde.');
+        setError(t.access.accountLocked);
+        return;
+      }
+      if (step1Data.error === 'INVESTOR_ACCESS_NOT_ENABLED') {
+        setError(t.access.investorAccessNotEnabled);
+        return;
+      }
+      if (step1Data.error === 'OAUTH_ONLY_SIGN_IN_REQUIRED') {
+        setError(t.access.oauthOnlySignInRequired);
         return;
       }
       setError(t.access.invalidCredentials);
@@ -101,7 +110,10 @@ export function DesktopLoginFlow({
   }
 
   return (
-    <form onSubmit={handleSubmit} className={`space-y-4 ${className}`}>
+    <div className={`space-y-4 ${className}`}>
+      <OAuthSignInButtons callbackUrl={callbackUrl} />
+
+      <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label htmlFor="access-email" className="mb-1.5 block text-sm font-medium text-slate-700">
           {t.access.emailLabel}
@@ -166,5 +178,6 @@ export function DesktopLoginFlow({
         </Link>
       </p>
     </form>
+    </div>
   );
 }

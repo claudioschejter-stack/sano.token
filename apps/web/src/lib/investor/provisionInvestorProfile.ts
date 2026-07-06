@@ -26,6 +26,26 @@ export function resolveOperationalWalletAddress(
   return null;
 }
 
+function buildInvestorIdentityFields(user: {
+  email: string;
+  phone: string | null;
+  kycFullName: string | null;
+  kycDocumentId: string | null;
+  kycDateOfBirth: string | null;
+  kycNationality: string | null;
+  kycPortraitPath: string | null;
+  image: string | null;
+}) {
+  return {
+    fullName: user.kycFullName?.trim() || user.email.split('@')[0],
+    cuit: user.kycDocumentId?.trim() || undefined,
+    phone: user.phone?.trim() || null,
+    dateOfBirth: user.kycDateOfBirth?.trim() || null,
+    nationality: user.kycNationality?.trim() || null,
+    portraitPath: user.kycPortraitPath?.trim() || user.image?.trim() || null
+  };
+}
+
 /**
  * Creates Investor + Portfolio when KYC is approved for an INVESTOR user.
  * Uses a deterministic pending wallet until the user links an on-chain address.
@@ -36,8 +56,13 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     select: {
       id: true,
       email: true,
+      phone: true,
+      image: true,
       kycFullName: true,
       kycDocumentId: true,
+      kycDateOfBirth: true,
+      kycNationality: true,
+      kycPortraitPath: true,
       kycStatus: true,
       systemRole: true,
       investorId: true,
@@ -54,12 +79,21 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     return null;
   }
 
+  const identity = buildInvestorIdentityFields(user);
+  const now = new Date();
+
   if (user.investorId) {
     await prisma.investor.update({
       where: { id: user.investorId },
       data: {
+        fullName: identity.fullName,
+        ...(identity.cuit ? { cuit: identity.cuit } : {}),
+        phone: identity.phone,
+        dateOfBirth: identity.dateOfBirth,
+        nationality: identity.nationality,
+        portraitPath: identity.portraitPath,
         kycStatus: 'APPROVED',
-        kycVerifiedAt: new Date()
+        kycVerifiedAt: now
       }
     });
 
@@ -76,17 +110,18 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     return user.investorId;
   }
 
-  const fullName = user.kycFullName?.trim() || user.email.split('@')[0];
-  const cuit = user.kycDocumentId?.trim() || `TMP-${user.id.slice(0, 8)}`;
   const linkedWallet = user.walletAddress?.trim().toLowerCase();
   const walletAddress = linkedWallet || buildPendingInvestorWalletAddress(user.id);
-  const now = new Date();
 
   const investor = await prisma.investor.create({
     data: {
       email: user.email,
-      fullName,
-      cuit,
+      fullName: identity.fullName,
+      cuit: identity.cuit || `TMP-${user.id.slice(0, 8)}`,
+      phone: identity.phone,
+      dateOfBirth: identity.dateOfBirth,
+      nationality: identity.nationality,
+      portraitPath: identity.portraitPath,
       walletAddress,
       kycStatus: 'APPROVED',
       kycVerifiedAt: now

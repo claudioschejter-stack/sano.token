@@ -26,7 +26,8 @@ export function resolveRoleHomePath(role: SystemRole | undefined, accountOperati
 export function resolveAuthenticatedDestination(
   role: SystemRole | undefined,
   returnTo: string | null | undefined,
-  accountOperational = false
+  accountOperational = false,
+  options?: { registered?: boolean }
 ): string {
   if (canAccessPortalWithoutInvestorOnboarding(role)) {
     const home = resolveRoleHomePath(role, true);
@@ -39,7 +40,9 @@ export function resolveAuthenticatedDestination(
   }
 
   if (!accountOperational) {
-    return buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH);
+    return buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH, undefined, {
+      registered: options?.registered
+    });
   }
 
   const home = resolveRoleHomePath(role, accountOperational);

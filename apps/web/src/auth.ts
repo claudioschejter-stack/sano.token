@@ -88,6 +88,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             accountOperational: await loadAccountOperational(result.id)
           };
         } catch (error) {
+          if (error instanceof Error && error.message === 'INVESTOR_ACCESS_NOT_ENABLED') {
+            throw error;
+          }
           console.error('[auth] credentials login failed:', error);
           return null;
         }
@@ -98,11 +101,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     ...authConfig.callbacks,
     async jwt({ token, user, account, trigger, session }) {
       if (trigger === 'update') {
-        const updateSession = session as { accountOperational?: boolean } | undefined;
-        if (typeof updateSession?.accountOperational === 'boolean') {
-          token.accountOperational = updateSession.accountOperational;
-        } else if (typeof token.sub === 'string') {
+        if (typeof token.sub === 'string') {
           token.accountOperational = await loadAccountOperational(token.sub);
+          const { maybeRefreshSessionAccessToken } = await import('./lib/auth/refreshSessionAccessToken');
+          return maybeRefreshSessionAccessToken(token);
         }
         return token;
       }
@@ -137,6 +139,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.accountOperational = gated.accountOperational;
           token.totpPending = gated.totpPending;
           token.pendingTotpToken = gated.pendingTotpToken;
+          token.accessTokenIssuedAt = Date.now();
           return token;
         } catch (error) {
           if (error instanceof OAuthTotpLockedError) {
@@ -145,8 +148,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           token.authError =
-            error instanceof Error && error.message === 'INVESTOR_ACCESS_NOT_ENABLED'
-              ? 'AccessDenied'
+            error instanceof Error
+              ? error.message === 'INVESTOR_ACCESS_NOT_ENABLED'
+                ? 'INVESTOR_ACCESS_NOT_ENABLED'
+                : error.message === 'REGION_NOT_AVAILABLE'
+                  ? 'REGION_NOT_AVAILABLE'
+                  : error.message === 'TERMS_NOT_ACCEPTED'
+                    ? 'TERMS_NOT_ACCEPTED'
+                    : 'auth'
               : 'auth';
           return token;
         }

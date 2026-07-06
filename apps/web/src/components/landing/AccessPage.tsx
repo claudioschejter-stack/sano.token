@@ -7,10 +7,11 @@ import { signOut, useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { AdaptiveLoginFlow } from '../auth/AdaptiveLoginFlow';
 import { MobileAccessLanding } from '../auth/MobileAccessLanding';
+import { resolveAccessPageError } from '../../lib/auth/accessPageErrors';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
-import { RegisterForm } from '../auth/RegisterForm';
+import { OnboardingResumeCard } from '../auth/OnboardingResumeCard';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useIsPwa } from '../../hooks/useIsPwa';
 import { LandingHeader } from './LandingHeader';
@@ -44,17 +45,22 @@ function AccessPageContent() {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const authError = searchParams.get('error');
+  const accessErrorMessage = resolveAccessPageError(authError, {
+    authError: a.authError,
+    investorAccessNotEnabled: a.investorAccessNotEnabled,
+    accountLocked: a.accountLocked,
+    register: a.register
+  });
   const inviteEmail = searchParams.get('email')?.trim() ?? '';
   const staffInvite = searchParams.get('staffInvite') === '1';
   const investorInviteAccepted = searchParams.get('investorInvite') === '1';
   const inviteError = searchParams.get('inviteError');
   const investorInvite = searchParams.get('invite')?.trim() ?? '';
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
-  const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}`;
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
   const registerHref = buildRegisterHref(returnTo, inviteEmail, investorInvite, staffInvite);
 
-  const { isOperational, loading: accountLoading, profile } = useAccountStatus();
+  const { isOperational, loading: accountLoading } = useAccountStatus();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
   const role = session?.user?.role;
   const registered = searchParams.get('registered') === '1';
@@ -79,7 +85,7 @@ function AccessPageContent() {
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white text-slate-700">
-        <p className="text-sm font-medium">{a.continueButton}…</p>
+        <p className="text-sm font-medium">{t.common.loadingGeneric}</p>
       </div>
     );
   }
@@ -96,16 +102,10 @@ function AccessPageContent() {
               {registered ? a.sessionRegisteredDesc : a.sessionPendingDesc}
             </p>
             <div className="mt-6">
-              <RegisterForm profile={profile} returnTo={returnTo} />
+              <OnboardingResumeCard returnTo={returnTo} registered={registered} />
             </div>
 
             <div className="mt-6 flex flex-col gap-3">
-              <Link
-                href={onboardingHref}
-                className="flex min-h-12 items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-center text-sm font-semibold text-white hover:bg-blue-500"
-              >
-                {a.continueVerification}
-              </Link>
               <button
                 type="button"
                 onClick={() => void signOut({ callbackUrl: '/acceso' })}
@@ -136,9 +136,9 @@ function AccessPageContent() {
           <p className="mt-4 text-sm text-slate-600 md:text-base">{a.loginDesc}</p>
         </div>
 
-        {authError ? (
+        {accessErrorMessage ? (
           <p className="mx-auto mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {a.authError}
+            {accessErrorMessage}
           </p>
         ) : null}
 

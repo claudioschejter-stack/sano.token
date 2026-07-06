@@ -14,21 +14,15 @@ import {
   parseLocalePath
 } from './lib/i18n/localeRouting';
 import { requiresOnboardingGatePath, shouldRedirectToOnboarding } from './lib/auth/middlewarePolicy';
+import { isCountryBlockedForRegistration } from './lib/security/blockedCountries';
 
 const { auth } = NextAuth(authConfig);
 
-const LOGIN_GATE_PATHS = new Set(['/marketplace', '/mercado-secundario']);
+const LOGIN_GATE_PATHS = new Set(['/mercado-secundario']);
 
-const DEFAULT_BLOCKED_COUNTRIES = 'IR,RU,KP,SY,CU,VE,MM,SD,BY,AF,SO,YE,LY,SS';
-
-function buildBlockedCountriesSet(): Set<string> {
-  const raw =
-    process.env.BLOCKED_REGISTRATION_COUNTRIES?.trim() || DEFAULT_BLOCKED_COUNTRIES;
-  return new Set(raw.split(',').map((c) => c.trim().toUpperCase()).filter(Boolean));
-}
-
-const BLOCKED_REGISTRATION_COUNTRIES = buildBlockedCountriesSet();
-
+// Page-level redirect only. The actual server-side enforcement for the API
+// itself (including PWA registration, which never hits this page) lives in
+// isCountryBlockedForRegistration(), called from /api/auth/register directly.
 const GEO_BLOCKED_PATHS = new Set(['/acceso/registro', '/acceso/registro/']);
 
 function withLocaleAndCountryHints(
@@ -128,9 +122,22 @@ export default auth((request) => {
 
   const { pathname } = request.nextUrl;
 
+  if (
+    pathname === '/acceso' &&
+    request.nextUrl.searchParams.get('tab') === 'register'
+  ) {
+    const redirectUrl = new URL('/acceso/registro', request.url);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      if (key !== 'tab') {
+        redirectUrl.searchParams.set(key, value);
+      }
+    });
+    return withLocaleAndCountryHints(NextResponse.redirect(redirectUrl), request);
+  }
+
   if (GEO_BLOCKED_PATHS.has(pathname)) {
-    const country = request.headers.get('x-vercel-ip-country')?.toUpperCase();
-    if (country && BLOCKED_REGISTRATION_COUNTRIES.has(country)) {
+    const country = request.headers.get('x-vercel-ip-country');
+    if (isCountryBlockedForRegistration(country)) {
       return withLocaleAndCountryHints(
         NextResponse.redirect(new URL('/acceso?error=REGION_NOT_AVAILABLE', request.url)),
         request

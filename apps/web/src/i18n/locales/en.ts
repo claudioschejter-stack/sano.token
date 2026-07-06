@@ -1861,11 +1861,35 @@ export const en = {
     roleLabel: "Role",
     continueButton: "Continue",
     sessionActiveTitle: "You already have an active session",
-    sessionPendingDesc: "Your account is not yet operational.Verify your email and complete your KYC to continue.",
-    sessionRegisteredDesc: "Account created successfully.Verify your email and complete your KYC to activate your account.",
-    continueVerification: "Continue onboarding",
+    sessionPendingDesc:
+      'Your account is not yet operational. Complete the 5 steps below to continue (~10 min).',
+    sessionRegisteredDesc:
+      'Account created. Complete the 5 steps below to start investing (~10 min).',
+    continueVerification: "Continue activation",
     switchAccount: "Log out and log in with another account",
-    authError: "We could not complete the entry.Please check your OAuth configuration or try again.",
+    onboardingResume: {
+      phaseLabel: "Steps 2–5: Activate your account",
+      progressHint: "Complete the checklist below to operate on the platform.",
+      stepContact: 'Contact',
+      stepEmail: 'Contact: phone and email',
+      stepKyc: 'Identity',
+      stepWallet: 'Payments',
+      stepTotp: 'Security on your phone',
+      continueCta: "Continue activation",
+      nextStepHint: 'Next: {step}',
+      registeredBanner:
+        "Account created. Complete the next steps when you're ready (~10 min).",
+      checklistAria: "Account activation checklist",
+      stepsCompleted: "{done} of {total} steps completed",
+      timeRemaining: "Estimated time remaining: ~{minutes} min"
+    },
+    authError: 'We could not complete sign-in. Please try again or use email and password.',
+    oauthTermsRequired: 'Accept the Legal Terms and Privacy Policy before continuing with Google or Apple.',
+    investorAccessNotEnabled:
+      'Investor access is not enabled for this email. Contact Sanova or use a valid invitation.',
+    oauthOnlySignInRequired:
+      'This account uses Google or Apple. Sign in with the Google or Apple button above.',
+    backButton: 'Back',
     staffInviteAccepted:
       "Invitation accepted. Sign in or register with the same email to continue with KYC verification.",
     investorInviteAccepted:
@@ -1891,9 +1915,11 @@ export const en = {
     },
     staffPanelHint: "Operational panel according to your role permissions.",
     registerTitle: "Create new account",
-    registerDesc: "Here we are going to validate your email and register your phone.\nThen we go through a KYC to make sure it is really you.",
-    registerButton: "Create account and continue",
+    registerDesc:
+      "Create your account with email and password.\nYou'll confirm contact, identity, payments and security in the next steps (~10 min).",
+    registerButton: 'Create account',
     register: {
+      phaseLabel: "Step 1 of 5: Create account",
       fullNameLabel: "Full name",
       fullNamePlaceholder: "As it appears on your ID or passport",
       taxIdLabel: "Tax identification number",
@@ -1901,19 +1927,21 @@ export const en = {
       emailLabel: "Email",
       emailPlaceholder: "you@email.com",
       verifiedLabel: "Verified",
-      pendingLabel: "Earring",
+      pendingLabel: 'Pending',
       kycPrefillHint: "Name and tax ID automatically filled in from your Didit verification.",
-      profileHint: "Your account details.Complete the verification to operate on the platform.",
+      profileHint: 'Your account details. Complete verification to operate on the platform.',
       passwordLabel: "Password",
       passwordPlaceholder: "Minimum 8 characters",
-      passwordHint: "Use at least 8 characters.You can show or hide the password with the eye icon.",
+      passwordHint: 'Use at least 8 characters. You can show or hide the password with the eye icon.',
       phoneLabel: "mobile phone",
       phonePlaceholder: "2617513426",
       phoneHint: "No leading 0 or 15. Mendoza example: 2617513426",
       countryLabel: "country code",
-      submitButton: "Create account and verify",
+      submitButton: 'Create account',
       submitting: "Creating account…",
-      flowHint: "Step 1: Registration Step 2: Confirm email Step 3: KYC",
+      oauthOrContinue: 'Or continue with Google or Apple',
+      flowHint:
+        'Step 1: account · Steps 2–5: contact, identity, payments and security in onboarding',
       termsAcceptLabel:
         "I accept the Legal Terms and Privacy Policy, and acknowledge private placement under the Sanova Global RWA Trust.",
       termsAcceptRequired: "You must accept the Legal Terms and Privacy Policy to continue.",
@@ -1926,28 +1954,36 @@ export const en = {
         "This email already has an account. You don't need to register again: sign in or reset your password.",
       checkingEmail: "Checking email…",
       devCodes: "Verification codes",
-      codesOnScreenHint: "Use these codes in the next step (email/SMS even without provider):",
+      codesOnScreenHint: 'Use these codes in the next step (email even without provider):',
       errors: {
-        GENERIC: "We couldn't create the account.Try again.",
+        GENERIC: "We couldn't create the account. Try again.",
         EMAIL_IN_USE: "This email is already registered. Sign in or reset your password.",
         WEAK_PASSWORD: "The password must be at least 8 characters.",
-        INVALID_EMAIL: "Enter a valid email (en. your@email.com).",
+        INVALID_EMAIL: 'Enter a valid email (e.g. your@email.com).',
         INVALID_PHONE: "Enter a valid mobile phone number with country code.",
-        TERMS_NOT_ACCEPTED: "You must accept the Legal Terms and Privacy Policy to continue.",
+        TERMS_NOT_ACCEPTED: 'You must accept the Legal Terms and Privacy Policy to continue.',
         INVALID_INVITE_CODE:
           "The invitation code is not valid. Contact Sanova to access the private placement.",
+        INVESTOR_ACCESS_NOT_ENABLED:
+          'Investor access is not enabled for this email. Contact Sanova or sign in if you already have an account.',
+        OAUTH_ONLY_DISABLED:
+          'This email uses Google or Apple sign-in and investor access is disabled. Contact Sanova to restore access.',
         STAFF_INVITE_REQUIRED:
           "This email must complete registration through the team invitation sent by Sanova.",
-        VERIFICATION_DELIVERY_FAILED: "We were unable to send the email and SMS codes.The account was not registered;Try again in a few minutes.",
+        VERIFICATION_DELIVERY_FAILED:
+          'We were unable to send the email code. The account was not registered; try again in a few minutes.',
         SIGN_IN_FAILED: "Your account was created, but we couldn't sign you in automatically. Try signing in manually.",
         CAPTCHA_REQUIRED: 'Complete the security verification and try again.',
-        CAPTCHA_INVALIDO: 'Security verification failed. Reload the page and try again.'
+        CAPTCHA_INVALIDO: 'Security verification failed. Reload the page and try again.',
+        REGION_NOT_AVAILABLE: 'Registration is not available from your region right now.',
+        EMAIL_CHECK_FAILED: 'We could not verify your email. Check your connection and try again.'
       }
     },
     kycTitle: "Identity verification (KYC)",
-    kycDesc: "Available after verifying email and charging phone.Didit manages identity with document and proof of life.",
+    kycDesc:
+      'Available after verifying email and phone. Didit verifies your document and selfie.',
     kycButton: "Go to onboarding",
-    backHome: "Back to top"
+    backHome: "Back to home"
   },
   legal: {
     bannerTitle: "Private placement · Not a CNV public offering",
@@ -1962,7 +1998,8 @@ export const en = {
   },
   kyc: {
     title: "KYC Verification",
-    description: "Integration with Sumsub provider.Upon automatic approval, the webhook will update your status to verified.",
+    description:
+      'Identity verification with Didit. After approval, your status is updated automatically.',
     simulateButton: "Simulate KYC approval (demo)",
     cancel: "Cancel",
     loading: "Loading KYC…"
@@ -1970,9 +2007,24 @@ export const en = {
   onboarding: {
     eyebrow: "Mobile registration",
     title: "Activate your account",
+    phaseLabel: 'Steps 2–5: Activate your account',
+    stepProgressLabel: 'Step {current} of 5',
+    introBanner:
+      'This takes about 10 minutes. You need your ID or passport and your mobile phone handy.',
+    stepLabels: {
+      contact: 'Contact',
+      identity: 'Identity',
+      wallet: 'Payments',
+      security: 'Security'
+    },
+    accountCreatedBanner:
+      'Step 2 of 5: confirm your contact (~10 min total).',
+    savePhoneContinue: "Save phone and continue",
     backHome: "Start",
     backToAccess: "Return to access",
     loading: "Loading onboarding…",
+    statusLoadFailed: 'We could not load your activation progress. Check your connection and try again.',
+    statusRetry: 'Try again',
     continue: "Continue",
     continuing: "Processing…",
     devCodes: "Test codes",
@@ -1985,64 +2037,125 @@ export const en = {
       phonePlaceholder: "2617513426",
       countryLabel: "country code",
       phoneHint: "Without 0 or 15. Example Mendoza: 2617513426 with +54. No verification code is sent.",
-      phoneHintAdmin: "Without 0 or 15. We will send an SMS/WhatsApp code to verify your phone."
+      phoneHintAdmin: 'Without 0 or 15. We save your number for contact and prizes; verification is by email code.'
     },
     steps: {
-      contactTitle: "Contact details",
-      contactDesc: "We will use your session email and save your phone number for contact.",
+      contactTitle: 'Confirm your contact',
+      contactDesc: 'We use your session email and save your phone number for contact and prizes.',
       emailTitle: "Check your email",
+      emailCodeDesc: 'Enter the code we sent to your email.',
       emailDesc: "Enter the 6-digit code that we sent to your email.",
       emailDescPrivyFallback:
         "Verify your email with the 6-digit code we sent you. This is required before you can continue.",
       emailPrivyWalletNote:
-        "When you activate your Privy wallet later we also confirm the same email. If Privy cannot verify it, return here and use the Sanova code.",
-      phoneTitle: "Check your phone",
-      phoneDesc: "Enter the 6-digit code we sent via WhatsApp.",
-      codeSentEmail: "We send a code to your email.Check your inbox and spam.",
-      codeSentPhone: "We sent a code via WhatsApp to your phone.",
-      emailApproved: "approved mail",
+        'We activate your wallet using the same email as your account. If it does not verify automatically, return here and use the Sanova code.',
+      phoneTitle: 'Phone number saved',
+      phoneDesc: 'We use your mobile number for contact and prizes. Verification is done by email code.',
+      codeSentEmail: 'We sent a code to your email. Check your inbox and spam.',
+      codeSentPhone: 'Your phone number is saved. Continue with the email verification code.',
+      emailApproved: "Email verified",
       change: "Change",
       codeExpiredHint: "If it hasn't arrived or expired, you can order a new one.",
       resendCode: "Resend code",
-      resendingCode: "Forwarding…",
-      identityTitle: "What's next?",
-      identityDesc: "With your cell phone",
-      identityStep1: "1- We are going to take photos of your official document.",
-      identityStep2: "2- We are going to take a selfie of you to verify your identity.",
+      resendingCode: 'Resending…',
+      identityTitle: 'Verify your identity',
+      identityDesc: 'With your mobile phone',
+      identityStep1: 'Photo of your ID or passport',
+      identityStep2: 'Selfie to confirm it is really you',
       identityPrivacyNotice:
         "Identity data is processed by our KYC provider under our Privacy Policy. See",
       startDidit: "Validate identity with cell phone",
       diditRedirecting: "Connecting…",
+      diditProcessing: "Processing identity verification…",
+      kycPendingReview:
+        "Your verification is under review. We'll notify you when it's ready — no need to start again.",
       identityOperationalNote:
-        "After identity verification, link your Base wallet to become an approved investor.",
+        'After verifying your identity, we set up payments automatically so you can invest.',
       identityWalletNote:
-        "After KYC you will activate your Privy wallet with the same email as your Sanova account.",
+        'After identity verification, we activate payments automatically with the same email as your account.',
       demoKyc: "Simulate verification (demo only)",
       kycProviderUnavailable:
         "Identity verification is not available right now. Contact support or try again later.",
-      walletTitle: "Activate your wallet",
-      walletDesc: "Required to become an approved investor: receive USDC, buy RWA tokens and operate on Base.",
-      walletBullet1: "Coinbase Wallet: connect or create your Smart Wallet on Base.",
-      walletBullet2: "Use a separate Coinbase account per role (investor, admin, operator).",
-      walletBullet3: "Base mainnet — your address is linked to your Sanova account.",
-      createCoinbaseWallet: "Connect Coinbase Wallet",
-      connectExistingWallet: "Connect Coinbase Wallet",
-      walletConnectUnavailable: "WalletConnect is not configured. Contact support.",
-      walletConnect: "Coinbase Wallet",
+      walletTitle: 'Set up payments',
+      walletDesc:
+        'We create your wallet automatically so you can receive USDC and buy RWA tokens on Base.',
+      walletBullet1: 'We create your embedded wallet on Base automatically with the same email as your account.',
+      walletBullet2: 'You can receive USDC and buy RWA tokens without installing another app.',
+      walletBullet3: 'Base mainnet — your address is linked to your Sanova account.',
       walletSaving: "Saving wallet…",
+      walletRetry: 'Retry payment setup',
       walletLinked: "Wallet linked",
       walletHint: "We save your address to match on-chain purchases and repayments with your account.",
       walletSkip: "Skip for now",
       doneTitle: "Approved investor",
       doneDesc: "Identity verified and wallet linked. You can now operate in the marketplace."
     },
+    totp: {
+      title: 'Sanova Capital in Google Authenticator',
+      descConfirm:
+        'Enter the 6-digit code from Sanova Capital in Google Authenticator to activate your account.',
+      descMobile:
+        'To protect your account, add Sanova Capital in Google Authenticator and confirm the 6-digit code.',
+      descDesktop:
+        'To protect your account, set up the 6-digit code from Sanova Capital before entering the platform.',
+      preparing: 'Preparing Sanova Capital in Google Authenticator…',
+      openingGa: 'Opening Google Authenticator…',
+      openGaFallback:
+        'If the app did not open, tap the button to install Google Authenticator and add Sanova Capital.',
+      openGa: 'Open Google Authenticator',
+      installGa: 'Install Google Authenticator',
+      preparingShort: 'Preparing…',
+      alreadyHaveGa: 'I already have Sanova Capital in Google Authenticator',
+      instructionsDesc:
+        'Download Google Authenticator on your phone. Authy or another TOTP app also works.',
+      continue: 'Continue',
+      qrDesc:
+        'Scan the QR with Google Authenticator. The entry will appear as Sanova Capital.',
+      manualScanTitle: "Can't scan? Enter the code manually",
+      copySecretAria: 'Copy setup key',
+      scannedQr: 'I scanned the QR',
+      welcomeBack: 'Welcome back — enter the 6-digit code you see in Google Authenticator.',
+      enterCodeHint:
+        'Open Google Authenticator, choose the newest Sanova Capital entry and enter the 6-digit code below.',
+      enterCodeDefaultPrefix: 'Enter the 6-digit code from',
+      enterCodeDefaultSuffix: 'in Google Authenticator.',
+      duplicateHint:
+        'If you see more than one Sanova Capital entry, use the newest one or delete duplicates and enter the code from the remaining entry.',
+      verifying: 'Verifying…',
+      activate: 'Activate authenticator',
+      resetting: 'Resetting authenticator…',
+      resetCta: 'Start over (clears the previous key on the server)',
+      manualTitle: 'Manual setup (recommended if the code does not validate)',
+      manualActiveKey: 'Active server key ends in',
+      manualStep1: 'Delete all Sanova Capital entries in Google Authenticator.',
+      manualStep2: 'Open Google Authenticator → + → Enter a setup key.',
+      manualStep3: 'Account: Sanova Capital · Type: Time-based · Key: (copy below).',
+      manualStep4: 'Return here and enter the 6-digit code from the new entry.',
+      copyKeyAria: 'Copy setup key',
+      resetFailed: 'We could not reset the authenticator. Sign out and try again.',
+      regenerateFailed: 'We could not generate a new key. Try again.',
+      wrongCodePrefix: 'Incorrect code. The server expects the key ending in',
+      wrongCodeSuffix:
+        'Tap "Start over", delete old entries in Google Authenticator and paste the key from the blue box.',
+      wrongCodeUiMismatch: '(on screen it showed',
+      configInvalid: 'Server configuration error. Contact support: the TOTP key could not be read.',
+      genericError: 'Something went wrong. Try again.',
+      backupTitle: '2FA enabled!',
+      backupDesc: 'Save these recovery codes in a safe place.',
+      copied: 'Copied',
+      copy: 'Copy',
+      download: 'Download',
+      continuePlatform: 'Continue to the platform'
+    },
     errors: {
-      GENERIC: "We couldn't complete the step.Try again.",
+      TOTP_ACTIVATION_PENDING:
+        'We could not confirm your authenticator yet. Enter the 6-digit code again or tap Start over.',
+      GENERIC: "We couldn't complete the step. Try again.",
       INVALID_CODE: "Incorrect or expired code.",
       INVALID_PHONE: "Enter a valid phone number with country code.",
       RATE_LIMIT: "Too many attempts.Wait a few minutes.",
       VERIFICATION_DELIVERY_FAILED:
-        "We were unable to send the email and WhatsApp codes. Please check your settings or try again.",
+        'We were unable to send the email code. Please check your settings or try again.',
       EMAIL_DELIVERY_FAILED: "We couldn't send the code to your email.Check spam or verify the sender in Resend.",
       WHATSAPP_DELIVERY_FAILED:
         "We could not send the WhatsApp code. Check the phone number or Twilio WhatsApp settings.",
@@ -2054,7 +2167,7 @@ export const en = {
         "WhatsApp requires an approved template or Twilio Verify. Set TWILIO_VERIFY_SERVICE_SID in Vercel.",
       TWILIO_AUTH_FAILED: "Invalid Twilio credentials. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.",
       DIDIT_NOT_CONFIGURED: "Didit is not configured on the server yet.Contact support.",
-      CONTACT_NOT_VERIFIED: "First verify your email and charge your phone before starting the KYC.",
+      CONTACT_NOT_VERIFIED: 'First verify your email and save your phone number before starting identity verification.',
       UNAUTHORIZED: "Your session is not ready yet.Wait a moment and try again.",
       INVALID_WALLET: "The wallet address is not valid.",
       WALLET_REQUIRED: "Connect a wallet before continuing.",
@@ -2066,6 +2179,9 @@ export const en = {
         'The Privy email does not match your Sanova account email. Sign in to Privy with the same address.',
       PRIVY_EMAIL_NOT_VERIFIED:
         'Privy could not verify your email. Go back to the email step and use the code we sent from Sanova.',
+      PRIVY_NOT_CONFIGURED: 'Payment wallet setup is not configured on the server. Contact support.',
+      PRIVY_PROVISION_REQUIRED: 'Complete the Privy sign-in step before linking your wallet.',
+      STATUS_FETCH_FAILED: 'We could not load your activation progress. Try again.',
       EMAIL_VERIFICATION_REQUIRED:
         'Verify your email address before continuing with this step.',
       INVESTOR_ROLE_REQUIRED: "Only investor accounts can link a wallet.",
@@ -2094,8 +2210,15 @@ export const en = {
     registering: "Setting up…",
     registerSuccess: "Biometrics enabled. You can now sign in with one tap.",
     registerFailed: "Could not enable biometrics on this device.",
-    registerCancelled: "Biometric setup was cancelled.",
-    registerLater: "Not now"
+    registerCancelled: 'Biometric setup was cancelled.',
+    registerLater: 'Not now',
+    registerFingerprintTitle: 'Fingerprint sign-in',
+    registerActivated: 'Enabled on this device',
+    registerSlideHint: 'Slide to enable',
+    registerToggleAria: 'Enable biometric sign-in',
+    registerContinue: 'Continue',
+    registerLaterWithPassword: 'Not now, sign in with email and password',
+    registerLaterHint: 'You can enable it later from Profile → Security'
   },
   mobileAppPrompt: {
     title: 'The platform works best with the app',

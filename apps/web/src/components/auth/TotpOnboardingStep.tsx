@@ -12,12 +12,14 @@ import {
 } from '../../lib/auth/totpAuthenticatorLink';
 import { initialTotpOnboardingStep, shouldStartTotpOnConfirmStep } from '../../lib/auth/totpOnboardingFlow';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
+import { useTranslation } from '../../i18n/LocaleProvider';
 
 type Step = 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
 type PersistedStep = 'confirm' | 'backup';
 
 const TOTP_ONBOARDING_STORAGE_KEY = 'sanova:totp-onboarding:v1';
 const TOTP_PROVISIONED_SECRET_KEY = 'sanova:totp-provisioned-secret:v1';
+const TOTP_BACKUP_CODES_KEY = 'sanova:totp-backup-codes:v1';
 
 function clearTotpOnboardingStorage() {
   if (typeof window === 'undefined') {
@@ -26,6 +28,37 @@ function clearTotpOnboardingStorage() {
 
   window.sessionStorage.removeItem(TOTP_ONBOARDING_STORAGE_KEY);
   window.sessionStorage.removeItem(TOTP_PROVISIONED_SECRET_KEY);
+  window.sessionStorage.removeItem(TOTP_BACKUP_CODES_KEY);
+}
+
+function readStoredBackupCodes(): string[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  const raw = window.sessionStorage.getItem(TOTP_BACKUP_CODES_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter((code): code is string => typeof code === 'string' && code.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function persistBackupCodes(codes: string[]) {
+  if (typeof window === 'undefined' || codes.length === 0) {
+    return;
+  }
+
+  window.sessionStorage.setItem(TOTP_BACKUP_CODES_KEY, JSON.stringify(codes));
 }
 
 function markProvisionedSecret(secret: string) {
@@ -39,27 +72,38 @@ function markProvisionedSecret(secret: string) {
 function ManualTotpSetupKey({
   secret,
   secretHint,
-  onCopied
+  onCopied,
+  labels
 }: {
   secret: string;
   secretHint?: string;
   onCopied?: () => void;
+  labels: {
+    title: string;
+    activeKey: string;
+    step1: string;
+    step2: string;
+    step3: string;
+    step4: string;
+    copyAria: string;
+  };
 }) {
   const [copied, setCopied] = useState(false);
 
   return (
     <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-left">
-      <p className="text-sm font-semibold text-blue-950">Configuración manual (recomendada si el código no valida)</p>
+      <p className="text-sm font-semibold text-blue-950">{labels.title}</p>
       {secretHint ? (
         <p className="mt-2 rounded-lg bg-white px-3 py-2 text-xs font-semibold text-blue-950 ring-1 ring-blue-200">
-          Clave activa del servidor: termina en <span className="font-mono tracking-widest">{secretHint}</span>
+          {labels.activeKey}{' '}
+          <span className="font-mono tracking-widest">{secretHint}</span>
         </p>
       ) : null}
       <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-blue-900">
-        <li>Eliminá todas las entradas &quot;Sanova Capital&quot; en Google Authenticator.</li>
-        <li>Abrí Google Authenticator → + → Introducir clave de configuración.</li>
-        <li>Cuenta: Sanova Capital · Tipo: Basada en el tiempo · Clave: (copiá abajo).</li>
-        <li>Volvé acá e ingresá el código de 6 dígitos que muestra la entrada nueva.</li>
+        <li>{labels.step1}</li>
+        <li>{labels.step2}</li>
+        <li>{labels.step3}</li>
+        <li>{labels.step4}</li>
       </ol>
       <div className="mt-3 flex items-center gap-2">
         <code className="flex-1 break-all rounded-lg bg-white px-3 py-2 font-mono text-xs text-slate-800 ring-1 ring-blue-200">
@@ -78,7 +122,7 @@ function ManualTotpSetupKey({
             });
           }}
           className="shrink-0 rounded-lg border border-blue-200 bg-white p-2 text-slate-600 hover:bg-blue-50"
-          aria-label="Copiar clave de configuración"
+          aria-label={labels.copyAria}
         >
           {copied ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
         </button>
@@ -120,26 +164,43 @@ function persistStep(step: Step | null) {
 }
 
 export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props) {
+  const t = useTranslation();
+  const totp = t.onboarding.totp;
+  const manualLabels = {
+    title: totp.manualTitle,
+    activeKey: totp.manualActiveKey,
+    step1: totp.manualStep1,
+    step2: totp.manualStep2,
+    step3: totp.manualStep3,
+    step4: totp.manualStep4,
+    copyAria: totp.copyKeyAria
+  };
   const { isMobile } = useDeviceDetection();
   const storedStep = readStoredStep();
+  const storedBackupCodes = readStoredBackupCodes();
   const [pendingSetup, setPendingSetup] = useState(false);
-  const [step, setStep] = useState<Step>(() =>
-    initialTotpOnboardingStep({
+  const [step, setStep] = useState<Step>(() => {
+    if (storedStep === 'backup') {
+      return 'backup';
+    }
+
+    return initialTotpOnboardingStep({
       isMobile,
-      storedStep
-    })
-  );
+      storedStep,
+      preferConfirm
+    });
+  });
   const [setupUri, setSetupUri] = useState('');
   const [setupSecret, setSetupSecret] = useState('');
   const [setupSecretHint, setSetupSecretHint] = useState('');
   const [confirmCode, setConfirmCode] = useState('');
   const [confirmError, setConfirmError] = useState('');
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [backupCodes, setBackupCodes] = useState<string[]>([]);
+  const [backupCodes, setBackupCodes] = useState<string[]>(() => storedBackupCodes);
   const [copied, setCopied] = useState(false);
   const [loadingSetup, setLoadingSetup] = useState(false);
   const [provisionAttempted, setProvisionAttempted] = useState(
-    shouldStartTotpOnConfirmStep({ storedStep }) || storedStep === 'confirm'
+    shouldStartTotpOnConfirmStep({ storedStep, preferConfirm }) || storedStep === 'confirm'
   );
   const [resettingSetup, setResettingSetup] = useState(false);
   const [justReturned, setJustReturned] = useState(false);
@@ -176,6 +237,10 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
           setPendingSetup(true);
           return { uri: data.uri, hint };
         }
+
+        setConfirmError(data.error ? totp.configInvalid : totp.regenerateFailed);
+      } catch {
+        setConfirmError(totp.regenerateFailed);
       } finally {
         setLoadingSetup(false);
         setupInflightRef.current = null;
@@ -196,7 +261,20 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
       if (statusRes.ok) {
         const status = (await statusRes.json()) as { totpEnabled?: boolean; pendingSetup?: boolean };
         if (status.totpEnabled) {
-          persistStep(null);
+          const resumeBackupStep =
+            storedStep === 'backup' || readStoredStep() === 'backup' || readStoredBackupCodes().length > 0;
+
+          if (resumeBackupStep) {
+            const codes = readStoredBackupCodes();
+            if (codes.length > 0) {
+              setBackupCodes(codes);
+            }
+            setStep('backup');
+            persistStep('backup');
+            return;
+          }
+
+          clearTotpOnboardingStorage();
           await onCompleteRef.current();
           return;
         }
@@ -207,7 +285,8 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
         if (
           shouldStartTotpOnConfirmStep({
             pendingSetup: hasPendingSetup,
-            storedStep
+            storedStep,
+            preferConfirm
           })
         ) {
           setStep('confirm');
@@ -228,7 +307,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     return () => {
       cancelled = true;
     };
-  }, [isMobile, storedStep]);
+  }, [isMobile, preferConfirm, storedStep]);
 
   useEffect(() => {
     const onPageShow = () => {
@@ -242,6 +321,19 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     window.addEventListener('pageshow', onPageShow);
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
+
+  useEffect(() => {
+    if (!isMobile || autoProvisionedRef.current) {
+      return;
+    }
+
+    if (
+      step === 'instructions' &&
+      !shouldStartTotpOnConfirmStep({ pendingSetup, storedStep: readStoredStep() })
+    ) {
+      setStep('provision');
+    }
+  }, [isMobile, pendingSetup, step]);
 
   // Auto-open Google Authenticator on mobile as soon as the setup URI is ready —
   // the user doesn't have to tap "Abrir Google Authenticator" manually.
@@ -317,7 +409,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     });
 
     if (!resetRes.ok) {
-      setConfirmError('No pudimos reiniciar el autenticador. Cerrá sesión e intentá de nuevo.');
+      setConfirmError(totp.resetFailed);
       setResettingSetup(false);
       return;
     }
@@ -328,7 +420,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
       setProvisionAttempted(false);
       setConfirmError('');
     } else {
-      setConfirmError('No pudimos generar una clave nueva. Intentá de nuevo.');
+      setConfirmError(totp.regenerateFailed);
     }
 
     setResettingSetup(false);
@@ -358,7 +450,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
 
     if (data.ok && data.backupCodes) {
       setBackupCodes(data.backupCodes);
-      clearTotpOnboardingStorage();
+      persistBackupCodes(data.backupCodes);
       goToStep('backup');
       return;
     }
@@ -372,9 +464,9 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
         setSetupSecretHint(serverHint);
       }
       setConfirmError(
-        `Código incorrecto. El servidor espera la clave que termina en ${hint}${
-          uiHint && serverHint && uiHint !== serverHint ? ` (en pantalla decía ${uiHint})` : ''
-        }. Tocá "Empezar de cero", borrá entradas viejas en Google Authenticator y pegá la clave del recuadro azul.`
+        `${totp.wrongCodePrefix} ${hint}${
+          uiHint && serverHint && uiHint !== serverHint ? ` ${totp.wrongCodeUiMismatch} ${uiHint})` : ''
+        }. ${totp.wrongCodeSuffix}`
       );
       setConfirmCode('');
       return;
@@ -382,8 +474,8 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
 
     setConfirmError(
       data.error === 'TOTP_CONFIG_INVALIDO'
-        ? 'Error de configuración del servidor. Contactá soporte: la clave TOTP no pudo leerse.'
-        : 'Ocurrió un error. Intentá de nuevo.'
+        ? totp.configInvalid
+        : totp.genericError
     );
     setConfirmCode('');
   }
@@ -412,13 +504,13 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
   return (
     <section className="space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">Sanova Capital en Google Authenticator</h2>
+        <h2 className="text-xl font-bold text-slate-900">{totp.title}</h2>
         <p className="mt-2 text-sm text-slate-600">
           {step === 'confirm' && (provisionAttempted || pendingSetup || preferConfirm)
-            ? 'Ingresá el código de 6 dígitos de Sanova Capital en Google Authenticator para activar tu cuenta.'
+            ? totp.descConfirm
             : isMobile
-              ? 'Para proteger tu cuenta, agregá Sanova Capital en Google Authenticator y confirmá el código de 6 dígitos.'
-              : 'Para proteger tu cuenta, configurá el código de 6 dígitos de Sanova Capital antes de ingresar a la plataforma.'}
+              ? totp.descMobile
+              : totp.descDesktop}
         </p>
       </div>
 
@@ -459,10 +551,10 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
             </div>
             <p className="text-sm text-slate-600">
               {loadingSetup
-                ? 'Preparando Sanova Capital en Google Authenticator…'
+                ? totp.preparing
                 : provisionAttempted
-                  ? 'Si no se abrió la app, tocá el botón para instalar Google Authenticator y agregar Sanova Capital.'
-                  : 'Abriendo Google Authenticator…'}
+                  ? totp.openGaFallback
+                  : totp.openingGa}
             </p>
             <button
               type="button"
@@ -471,7 +563,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
               style={{ backgroundColor: MP_ACCENT }}
             >
-              {loadingSetup ? 'Preparando…' : 'Abrir Google Authenticator'}
+              {loadingSetup ? totp.preparingShort : totp.openGa}
               <ChevronRight size={16} />
             </button>
             <a
@@ -480,9 +572,11 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
               rel="noopener noreferrer"
               className="block text-sm font-medium text-slate-500 underline-offset-2 hover:underline"
             >
-              Instalar Google Authenticator
+              {totp.installGa}
             </a>
-            {setupSecret ? <ManualTotpSetupKey secret={setupSecret} secretHint={setupSecretHint} /> : null}
+            {setupSecret ? (
+              <ManualTotpSetupKey secret={setupSecret} secretHint={setupSecretHint} labels={manualLabels} />
+            ) : null}
             <button
               type="button"
               onClick={() => {
@@ -495,8 +589,9 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
               }}
               className="block w-full text-sm font-medium text-slate-600 underline-offset-2 hover:underline"
             >
-              Ya tengo Sanova Capital en Google Authenticator
+              {totp.alreadyHaveGa}
             </button>
+            {confirmError ? <p className="text-center text-sm text-red-600">{confirmError}</p> : null}
           </div>
         ) : null}
 
@@ -507,15 +602,13 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 <Smartphone size={36} />
               </div>
             </div>
-            <p className="text-sm text-slate-500">
-              Descargá Google Authenticator en tu teléfono. También funciona con Authy u otra app TOTP.
-            </p>
+            <p className="text-sm text-slate-500">{totp.instructionsDesc}</p>
             <button
               type="button"
               onClick={() => goToStep('qr')}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
             >
-              Continuar
+              {totp.continue}
               <ChevronRight size={16} />
             </button>
           </div>
@@ -523,10 +616,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
 
         {step === 'qr' ? (
           <div className="space-y-6">
-            <p className="text-center text-sm text-slate-500">
-              Escaneá el QR con Google Authenticator. La entrada aparecerá como{' '}
-              <strong>Sanova Capital</strong>.
-            </p>
+            <p className="text-center text-sm text-slate-500">{totp.qrDesc}</p>
             {loadingSetup || !setupUri ? (
               <div className="flex h-52 items-center justify-center">
                 <div className="h-48 w-48 animate-pulse rounded-xl bg-slate-100" />
@@ -541,7 +631,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
             {setupSecret ? (
               <details className="rounded-xl border border-slate-200 bg-white p-4">
                 <summary className="cursor-pointer text-sm font-medium text-slate-600">
-                  ¿No podés escanear? Ingresá el código manualmente
+                  {totp.manualScanTitle}
                 </summary>
                 <div className="mt-3 flex items-center gap-2">
                   <code className="flex-1 break-all rounded-lg bg-white px-3 py-2 font-mono text-xs text-slate-800 ring-1 ring-slate-200">
@@ -551,7 +641,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                     type="button"
                     onClick={() => void navigator.clipboard.writeText(setupSecret)}
                     className="shrink-0 rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white"
-                    aria-label="Copiar secret"
+                    aria-label={totp.copySecretAria}
                   >
                     <Copy size={14} />
                   </button>
@@ -564,9 +654,10 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
               disabled={!setupUri}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
             >
-              Ya escaneé el QR
+              {totp.scannedQr}
               <ChevronRight size={16} />
             </button>
+            {confirmError ? <p className="text-center text-sm text-red-600">{confirmError}</p> : null}
           </div>
         ) : null}
 
@@ -580,21 +671,18 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
               </div>
               <p className="text-sm text-slate-500">
                 {justReturned
-                  ? 'Volviste — ingresá el código de 6 dígitos que ves en Google Authenticator.'
+                  ? totp.welcomeBack
                   : provisionAttempted || pendingSetup || preferConfirm
-                    ? 'Abrí Google Authenticator, elegí la entrada Sanova Capital más reciente e ingresá el código de 6 dígitos abajo.'
-                    : 'Ingresá el código de 6 dígitos de '}
+                    ? totp.enterCodeHint
+                    : totp.enterCodeDefaultPrefix}{' '}
                 {!justReturned && !(provisionAttempted || pendingSetup || preferConfirm) ? (
                   <>
-                    <strong>Sanova Capital</strong> en Google Authenticator.
+                    <strong>Sanova Capital</strong> {totp.enterCodeDefaultSuffix}
                   </>
                 ) : null}
               </p>
               {(provisionAttempted || pendingSetup) && (
-                <p className="mt-2 text-xs text-amber-700">
-                  Si ves más de una entrada Sanova Capital, usá la más reciente o eliminá las duplicadas e ingresá el
-                  código de la que quede activa.
-                </p>
+                <p className="mt-2 text-xs text-amber-700">{totp.duplicateHint}</p>
               )}
             </div>
             {isMobile && setupUri ? (
@@ -605,11 +693,13 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
                 style={{ backgroundColor: MP_ACCENT }}
               >
-                {loadingSetup ? 'Preparando…' : 'Abrir Google Authenticator'}
+                {loadingSetup ? totp.preparingShort : totp.openGa}
                 <ChevronRight size={16} />
               </button>
             ) : null}
-            {setupSecret ? <ManualTotpSetupKey secret={setupSecret} secretHint={setupSecretHint} /> : null}
+            {setupSecret ? (
+              <ManualTotpSetupKey secret={setupSecret} secretHint={setupSecretHint} labels={manualLabels} />
+            ) : null}
             <OTPInput
               value={confirmCode}
               onChange={(value) => {
@@ -632,20 +722,16 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
               className="flex min-h-14 w-full items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
               style={{ backgroundColor: MP_ACCENT }}
             >
-              {confirmLoading ? 'Verificando…' : 'Activar autenticador'}
+              {confirmLoading ? totp.verifying : totp.activate}
             </button>
-            {isMobile ? (
-              <button
-                type="button"
-                disabled={resettingSetup || loadingSetup}
-                onClick={() => void resetTotpSetup()}
-                className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 disabled:opacity-60"
-              >
-                {resettingSetup
-                  ? 'Reiniciando autenticador…'
-                  : 'Empezar de cero (borra clave anterior en el servidor)'}
-              </button>
-            ) : null}
+            <button
+              type="button"
+              disabled={resettingSetup || loadingSetup}
+              onClick={() => void resetTotpSetup()}
+              className="w-full rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900 disabled:opacity-60"
+            >
+              {resettingSetup ? totp.resetting : totp.resetCta}
+            </button>
           </div>
         ) : null}
 
@@ -657,10 +743,8 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                   <ShieldCheck size={28} />
                 </div>
               </div>
-              <h3 className="text-lg font-bold text-slate-900">¡2FA activado!</h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Guardá estos códigos de recuperación en un lugar seguro.
-              </p>
+              <h3 className="text-lg font-bold text-slate-900">{totp.backupTitle}</h3>
+              <p className="mt-2 text-sm text-slate-500">{totp.backupDesc}</p>
             </div>
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
               <div className="grid grid-cols-2 gap-2">
@@ -681,7 +765,7 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 {copied ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
-                {copied ? 'Copiado' : 'Copiar'}
+                {copied ? totp.copied : totp.copy}
               </button>
               <button
                 type="button"
@@ -689,19 +773,19 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 <Download size={14} />
-                Descargar
+                {totp.download}
               </button>
             </div>
             <button
               type="button"
               onClick={() => {
-                persistStep(null);
+                clearTotpOnboardingStorage();
                 void onComplete();
               }}
               className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white hover:bg-emerald-500"
             >
               <CheckCircle2 size={16} />
-              Continuar a la plataforma
+              {totp.continuePlatform}
             </button>
           </div>
         ) : null}

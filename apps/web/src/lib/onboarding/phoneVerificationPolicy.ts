@@ -1,7 +1,7 @@
 import { isMarketplaceTradingRole, type SystemRole } from '../auth/roles';
 import { isEmailVerificationSatisfied } from './emailVerificationPolicy';
 
-/** OTP phone verification is disabled for all roles; phone is captured at registration only. */
+/** OTP phone verification is disabled for all roles; phone is captured during /kyc contact step. */
 export function requiresPhoneVerification(_role: SystemRole | string | null | undefined): boolean {
   return false;
 }

@@ -22,12 +22,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'CREDENCIALES_INCOMPLETAS' }, { status: 400 });
   }
 
-  const authUser = await verifyCredentials(email, password);
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { oauthProvider: true, passwordHash: true }
+  });
+
+  if (existingUser?.oauthProvider && !existingUser.passwordHash) {
+    return NextResponse.json({ error: 'OAUTH_ONLY_SIGN_IN_REQUIRED' }, { status: 401 });
+  }
+
+  let authUser;
+  try {
+    authUser = await verifyCredentials(email, password);
+  } catch (error) {
+    if (error instanceof Error && error.message === 'INVESTOR_ACCESS_NOT_ENABLED') {
+      return NextResponse.json({ error: 'INVESTOR_ACCESS_NOT_ENABLED' }, { status: 403 });
+    }
+
+    throw error;
+  }
+
   if (!authUser) {
     return NextResponse.json({ error: 'CREDENCIALES_INVALIDAS' }, { status: 401 });
   }
 
-  // Verificar si tiene TOTP activo
   const user = await prisma.user.findUnique({
     where: { id: authUser.id },
     select: { totpEnabled: true, locked2faUntil: true, kycStatus: true, walletAddress: true, systemRole: true }
@@ -41,7 +59,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, requiresTOTP: false });
   }
 
-  // Verificar bloqueo
   if (is2faLocked(user)) {
     return NextResponse.json(
       { error: 'CUENTA_BLOQUEADA', remainingSeconds: lockoutRemainingSeconds(user) },
@@ -49,7 +66,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Emitir token temporal para el paso 2
   const tempToken = await issueTempTotpToken(authUser.id);
   return NextResponse.json({ ok: true, requiresTOTP: true, tempToken });
 }

@@ -24,12 +24,11 @@ export default {
   secret: process.env.AUTH_SECRET,
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      if (trigger === 'update' && session) {
-        const updateData = session as { accountOperational?: boolean };
-        if (typeof updateData.accountOperational === 'boolean') {
-          token.accountOperational = updateData.accountOperational;
-        }
-        return token;
+      if (trigger === 'update' && typeof token.sub === 'string') {
+        const { loadAccountOperational } = await import('./lib/auth/sessionClaims');
+        const { maybeRefreshSessionAccessToken } = await import('./lib/auth/refreshSessionAccessToken');
+        token.accountOperational = await loadAccountOperational(token.sub);
+        return maybeRefreshSessionAccessToken(token);
       }
 
       if (user) {
@@ -63,9 +62,14 @@ export default {
         } else if (typeof enrichedUser.accountOperational === 'boolean') {
           token.accountOperational = enrichedUser.accountOperational;
         }
+
+        if (authUser.accessToken && !enrichedUser.totpPending) {
+          token.accessTokenIssuedAt = Date.now();
+        }
       }
 
-      return token;
+      const { maybeRefreshSessionAccessToken } = await import('./lib/auth/refreshSessionAccessToken');
+      return maybeRefreshSessionAccessToken(token);
     },
     async session({ session, token }) {
       const authToken = token as AuthToken & { authError?: string; sub?: string };

@@ -1,19 +1,29 @@
 import { NextResponse } from 'next/server';
 import { registerInvestor } from '../../../../lib/auth/registerService';
-import { recordRegistrationAttempt } from '../../../../lib/auth/registrationAttemptService';
+import {
+  recordRegistrationAttempt,
+  type RegistrationChannel
+} from '../../../../lib/auth/registrationAttemptService';
 import { normalizeEmail } from '../../../../lib/auth/contactValidation';
 import { requireTurnstile } from '../../../../lib/security/requireTurnstile';
+import { isCountryBlockedForRegistration } from '../../../../lib/security/blockedCountries';
 
-function resolveChannel(raw: unknown): 'desktop' | 'pwa' | 'unknown' {
-  if (raw === 'pwa' || raw === 'desktop') {
-    return raw;
+const KNOWN_CHANNELS: RegistrationChannel[] = ['pwa', 'mobile-web', 'desktop-web'];
+
+function resolveChannel(raw: unknown): RegistrationChannel {
+  if (typeof raw === 'string' && (KNOWN_CHANNELS as string[]).includes(raw)) {
+    return raw as RegistrationChannel;
+  }
+  // Back-compat with the older binary value sent before mobile-web detection existed.
+  if (raw === 'desktop') {
+    return 'desktop-web';
   }
   return 'unknown';
 }
 
 export async function POST(request: Request) {
   let emailForLog = '';
-  let channel: 'desktop' | 'pwa' | 'unknown' = 'unknown';
+  let channel: RegistrationChannel = 'unknown';
   const ipCountry = request.headers.get('x-vercel-ip-country')?.trim() || null;
 
   try {
@@ -31,6 +41,20 @@ export async function POST(request: Request) {
 
     channel = resolveChannel(body.channel);
     emailForLog = normalizeEmail(body.email ?? '') ?? body.email?.trim().toLowerCase() ?? '';
+
+    // Server-side enforcement: the middleware only redirects the /acceso/registro
+    // *page*, so without this check the API stayed reachable directly (curl/devtools)
+    // and fully bypassable from the PWA, which never hits that page at all.
+    if (isCountryBlockedForRegistration(ipCountry)) {
+      await recordRegistrationAttempt({
+        email: emailForLog,
+        success: false,
+        errorCode: 'REGION_NOT_AVAILABLE',
+        channel,
+        ipCountry
+      });
+      return NextResponse.json({ error: 'REGION_NOT_AVAILABLE' }, { status: 403 });
+    }
 
     const captchaError = await requireTurnstile(body.turnstileToken);
     if (captchaError) {
@@ -95,6 +119,7 @@ export async function POST(request: Request) {
             code === 'INVALID_INPUT' ||
             code === 'TERMS_NOT_ACCEPTED' ||
             code === 'INVALID_INVITE_CODE' ||
+            code === 'INVESTOR_ACCESS_NOT_ENABLED' ||
             code === 'STAFF_INVITE_REQUIRED'
           ? 400
           : code === 'RATE_LIMIT'

@@ -5,8 +5,10 @@ import { AlertTriangle, CheckCircle2, ShieldAlert, ShieldCheck } from 'lucide-re
 import { usePathname } from 'next/navigation';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
+import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import type { KycStatus } from '@sanova/database';
 import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
+import { resolveOnboardingStepParam } from '../../lib/onboarding/resolveOnboardingStepParam';
 
 type AccountStatusBannerProps = {
   className?: string;
@@ -41,8 +43,14 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
 
   const kycLabels = a.kycLabels as Record<KycStatus, string>;
   const kycLabel = kycLabels[checklist.kycStatus] ?? checklist.kycStatus;
-  const returnTo = encodeURIComponent(pathname);
-  const kycHref = `/kyc?returnTo=${returnTo}`;
+  const investorOnboarding = requiresInvestorStyleOnboarding(systemRole);
+  const pendingStep = resolveOnboardingStepParam(checklist, investorOnboarding);
+
+  function onboardingHref(step = pendingStep) {
+    return step
+      ? buildKycUrl(pathname, DEFAULT_POST_ONBOARDING_PATH, step)
+      : buildKycUrl(pathname);
+  }
 
   if (checklist.accountStatus === 'SUSPENDED') {
     return (
@@ -75,7 +83,7 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
           </div>
         </div>
         <Link
-          href={kycHref}
+          href={onboardingHref('wallet')}
           className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
         >
           <ShieldCheck size={16} />
@@ -91,7 +99,7 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
     !checklist.totpEnabled &&
     requiresInvestorStyleOnboarding(systemRole)
   ) {
-    const totpHref = `/kyc?returnTo=${returnTo}&step=totp`;
+    const totpHref = onboardingHref('totp');
 
     return (
       <div
@@ -159,9 +167,9 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
       className={`flex flex-wrap items-start gap-3 rounded-xl border px-4 py-3 md:items-center md:justify-between ${borderClass} ${className}`}
       role="status"
     >
-      <div className="flex items-start gap-3">
+      <div className="flex min-w-0 flex-1 items-start gap-3">
         <Icon className={`mt-0.5 shrink-0 ${iconClass}`} size={20} />
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-terminal-text">{a.pendingTitle}</p>
             <span
@@ -171,10 +179,28 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
             </span>
           </div>
           <p className="mt-1 text-sm text-terminal-muted">{nextStep}</p>
+          <div className="mt-3 flex gap-1" aria-hidden>
+            <div
+              className={`h-1 flex-1 rounded-full ${checklist.contactVerified ? 'bg-terminal-primary' : 'bg-terminal-muted/30'}`}
+            />
+            <div
+              className={`h-1 flex-1 rounded-full ${checklist.kycApproved ? 'bg-terminal-primary' : 'bg-terminal-muted/30'}`}
+            />
+            {requiresInvestorStyleOnboarding(systemRole) ? (
+              <>
+                <div
+                  className={`h-1 flex-1 rounded-full ${checklist.walletLinked ? 'bg-terminal-primary' : 'bg-terminal-muted/30'}`}
+                />
+                <div
+                  className={`h-1 flex-1 rounded-full ${checklist.totpEnabled ? 'bg-terminal-primary' : 'bg-terminal-muted/30'}`}
+                />
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
       <Link
-        href={kycHref}
+        href={onboardingHref()}
         className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
       >
         <ShieldCheck size={16} />

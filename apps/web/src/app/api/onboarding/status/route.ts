@@ -7,6 +7,7 @@ import { getOnboardingIntegrations } from '../../../../lib/onboarding/integratio
 import { isDiditConfigured } from '../../../../lib/onboarding/diditService';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
+import { resolveInvestorInvitePhoneForEmail } from '../../../../lib/admin/investorInviteService';
 
 export async function GET() {
   const ctx = await requireAuthenticatedSession();
@@ -51,6 +52,15 @@ export async function GET() {
     user.investor?.walletAddress
   );
 
+  const suggestedPhone = user.phone?.trim()
+    ? null
+    : await resolveInvestorInvitePhoneForEmail(user.email);
+
+  const profile = buildOnboardingProfile(user);
+  if (suggestedPhone) {
+    profile.suggestedPhone = suggestedPhone;
+  }
+
   return NextResponse.json({
     checklist: buildOnboardingChecklist(
       {
@@ -67,7 +77,7 @@ export async function GET() {
       },
       isDiditConfigured()
     ),
-    profile: buildOnboardingProfile(user),
+    profile,
     diditSessionId: user.diditSessionId,
     integrations: getOnboardingIntegrations(),
     systemRole: user.systemRole

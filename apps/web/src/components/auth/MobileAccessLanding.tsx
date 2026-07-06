@@ -2,24 +2,19 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { AdaptiveLoginFlow } from './AdaptiveLoginFlow';
-import { RegisterForm } from './RegisterForm';
+import { OnboardingResumeCard } from './OnboardingResumeCard';
 import { MobileAuthShell } from './MobileAuthShell';
+import { resolveAccessPageError } from '../../lib/auth/accessPageErrors';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { PwaPropertyCarousel } from '../pwa/PwaPropertyCarousel';
-import { MP_ACCENT } from '../../lib/pwa/mpTheme';
-
-type Tab = 'login' | 'register';
-
-type MobileAccessLandingProps = {
-  defaultTab?: Tab;
-};
+import { TrustBadges } from '../landing/TrustBadges';
 
 function buildRegisterHref(
   returnTo: string,
@@ -29,42 +24,46 @@ function buildRegisterHref(
 ) {
   const params = new URLSearchParams();
   params.set('returnTo', returnTo);
-  params.set('tab', 'register');
   if (email) params.set('email', email);
   if (investorInvite) params.set('invite', investorInvite);
   if (staffInvite) params.set('staffInvite', '1');
-  return `/acceso?${params.toString()}`;
+  return `/acceso/registro?${params.toString()}`;
 }
 
-function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandingProps) {
+function MobileAccessLandingContent() {
   const router = useRouter();
   const t = useTranslation();
   const a = t.access;
+  const legal = t.legal;
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
-  const initialTab =
-    searchParams.get('tab') === 'register' || defaultTab === 'register' ? 'register' : 'login';
-  const [tab, setTab] = useState<Tab>(initialTab);
 
   const authError = searchParams.get('error');
+  const accessErrorMessage = resolveAccessPageError(authError, {
+    authError: a.authError,
+    investorAccessNotEnabled: a.investorAccessNotEnabled,
+    accountLocked: a.accountLocked,
+    register: a.register
+  });
   const inviteEmail = searchParams.get('email')?.trim() ?? '';
   const staffInvite = searchParams.get('staffInvite') === '1';
   const investorInviteAccepted = searchParams.get('investorInvite') === '1';
   const inviteError = searchParams.get('inviteError');
   const investorInvite = searchParams.get('invite')?.trim() ?? '';
   const returnTo = safeReturnTo(searchParams.get('returnTo'), DEFAULT_POST_ONBOARDING_PATH);
-  const onboardingHref = `/kyc?returnTo=${encodeURIComponent(returnTo)}`;
   const callbackUrl = `/acceso/callback?returnTo=${encodeURIComponent(returnTo)}`;
   const registerHref = buildRegisterHref(returnTo, inviteEmail, investorInvite, staffInvite);
   const registered = searchParams.get('registered') === '1';
 
-  const { isOperational, loading: accountLoading, profile } = useAccountStatus();
+  const { isOperational, loading: accountLoading } = useAccountStatus();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
   const role = session?.user?.role;
 
   useEffect(() => {
-    setTab(initialTab);
-  }, [initialTab]);
+    if (searchParams.get('tab') === 'register') {
+      router.replace(registerHref);
+    }
+  }, [registerHref, router, searchParams]);
 
   useEffect(() => {
     if (status !== 'authenticated' || !session?.user?.accessToken || !role) {
@@ -94,15 +93,8 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
   if (isAuthenticated && role && !isOperational && !canAccessPortalWithoutInvestorOnboarding(role)) {
     return (
       <MobileAuthShell title={a.sessionActiveTitle} subtitle={registered ? a.sessionRegisteredDesc : a.sessionPendingDesc}>
-        <RegisterForm profile={profile} returnTo={returnTo} />
+        <OnboardingResumeCard returnTo={returnTo} registered={registered} />
         <div className="mt-6 flex flex-col gap-3">
-          <Link
-            href={onboardingHref}
-            className="flex min-h-14 items-center justify-center rounded-2xl px-4 py-3 text-sm font-semibold text-white"
-            style={{ backgroundColor: MP_ACCENT }}
-          >
-            {a.continueVerification}
-          </Link>
           <button
             type="button"
             onClick={() => void signOut({ callbackUrl: '/acceso' })}
@@ -116,34 +108,10 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
   }
 
   return (
-    <MobileAuthShell
-      title={tab === 'login' ? a.title : a.registerTitle}
-      subtitle={tab === 'login' ? a.loginDesc : a.registerDesc}
-    >
-      <div className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1">
-        <button
-          type="button"
-          onClick={() => setTab('login')}
-          className={`min-h-12 rounded-xl text-sm font-semibold transition ${
-            tab === 'login' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-          }`}
-        >
-          {a.signInButton}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('register')}
-          className={`min-h-12 rounded-xl text-sm font-semibold transition ${
-            tab === 'register' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'
-          }`}
-        >
-          {a.registerTab}
-        </button>
-      </div>
-
-      {authError ? (
+    <MobileAuthShell title={a.title} subtitle={a.loginDesc}>
+      {accessErrorMessage ? (
         <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {a.authError}
+          {accessErrorMessage}
         </p>
       ) : null}
       {inviteError ? (
@@ -163,32 +131,33 @@ function MobileAccessLandingContent({ defaultTab = 'login' }: MobileAccessLandin
       ) : null}
 
       <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm ring-1 ring-slate-100">
-        {tab === 'login' ? (
-          <AdaptiveLoginFlow
-            callbackUrl={callbackUrl}
-            initialEmail={inviteEmail}
-            registerHref={registerHref}
-          />
-        ) : (
-          <RegisterForm
-            returnTo={returnTo}
-            initialEmail={inviteEmail}
-            inviteCode={investorInvite}
-            loginHref={`/acceso?returnTo=${encodeURIComponent(returnTo)}`}
-          />
-        )}
+        <AdaptiveLoginFlow
+          callbackUrl={callbackUrl}
+          initialEmail={inviteEmail}
+          registerHref={registerHref}
+        />
       </div>
 
-      {tab === 'login' ? (
-        <div className="-mx-6 mt-8">
-          <PwaPropertyCarousel title={a.availableProperties} limit={4} compact showViewAll={false} />
-        </div>
-      ) : null}
+      <TrustBadges className="mt-6 justify-center" />
+
+      <p className="mt-6 text-center text-xs leading-relaxed text-slate-500">
+        <Link href="/terminos" className="font-medium text-blue-600 hover:text-blue-500">
+          {legal.termsLink}
+        </Link>
+        {' · '}
+        <Link href="/privacidad" className="font-medium text-blue-600 hover:text-blue-500">
+          {legal.privacyLink}
+        </Link>
+      </p>
+
+      <div className="-mx-6 mt-8">
+        <PwaPropertyCarousel title={a.availableProperties} limit={4} compact showViewAll={false} />
+      </div>
     </MobileAuthShell>
   );
 }
 
-export function MobileAccessLanding({ defaultTab = 'login' }: MobileAccessLandingProps) {
+export function MobileAccessLanding() {
   const t = useTranslation();
 
   return (
@@ -199,7 +168,7 @@ export function MobileAccessLanding({ defaultTab = 'login' }: MobileAccessLandin
         </MobileAuthShell>
       }
     >
-      <MobileAccessLandingContent defaultTab={defaultTab} />
+      <MobileAccessLandingContent />
     </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 import { prisma, Prisma, type KycStatus, type AccountStatus } from '@sanova/database';
 import { calculatePurchaseCommissionSplit } from '../commission/commissionService';
-import { isAccountOperational } from '../onboarding/accountStatus';
+import { isAccountOperational, canAccessMarketplaceCheckout, requiresTotpSetup } from '../onboarding/accountStatus';
 import { assertInvestorAccessEnabled } from '../auth/investorAccess';
 import { buildTxExplorerUrl, buildVaultExplorerUrl, readVaultPositionsForProjects } from '../portfolio/onChainVaultReader';
 import { resolveMorphoDebtForUser } from '../portfolio/morphoDebtForUser';
@@ -75,26 +75,19 @@ export function assertOperationalInvestor(user: UserPurchaseContext) {
 }
 
 export function assertInvestorCheckoutEligible(user: UserPurchaseContext) {
-  if (user.kycStatus !== 'APPROVED') {
-    throw new Error('KYC_NOT_APPROVED');
-  }
-
-  if (
-    !user.emailVerifiedAt ||
-    !user.phone?.trim() ||
-    user.accountStatus === 'SUSPENDED'
-  ) {
-    throw new Error('ACCOUNT_NOT_OPERATIONAL');
-  }
-
-  if (
-    user.systemRole === 'INVESTOR' ||
-    user.systemRole === 'ADVISOR' ||
-    user.systemRole === 'ADVISOR_MANAGER'
-  ) {
-    if (!user.walletAddress?.trim()) {
-      throw new Error('INVESTOR_WALLET_REQUIRED');
+  if (!canAccessMarketplaceCheckout(user)) {
+    if (user.kycStatus !== 'APPROVED') {
+      throw new Error('KYC_NOT_APPROVED');
     }
+
+    if (
+      requiresTotpSetup(user) &&
+      !user.totpEnabled
+    ) {
+      throw new Error('TOTP_REQUIRED');
+    }
+
+    throw new Error('ACCOUNT_NOT_OPERATIONAL');
   }
 
   assertInvestorAccessEnabled(user);

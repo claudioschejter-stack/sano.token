@@ -2,7 +2,11 @@ import bcrypt from 'bcryptjs';
 import { prisma, SystemRole as PrismaSystemRole } from '@sanova/database';
 import { normalizeEmail, normalizePhoneE164 } from './contactValidation';
 import { isInvestorOpenRegistration, resolveInvestorAccessOnRegister } from './investorAccess';
-import { hasValidInvestorInviteForEmail, markInvestorInviteAcceptedForEmail } from '../admin/investorInviteService';
+import {
+  hasValidInvestorInviteForEmail,
+  markInvestorInviteAcceptedForEmail,
+  resolveInvestorInvitePhoneForEmail
+} from '../admin/investorInviteService';
 import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 import {
   isPreApprovedInvestorEmail,
@@ -16,7 +20,7 @@ const MIN_PASSWORD_LENGTH = 8;
 export type RegisterInput = {
   email: string;
   password: string;
-  phone: string;
+  phone?: string;
   fullName?: string;
   taxId?: string;
   termsAccepted?: boolean;
@@ -26,7 +30,13 @@ export type RegisterInput = {
 export async function registerInvestor(input: RegisterInput) {
   const email = normalizeEmail(input.email);
   const password = input.password;
-  const phoneE164 = normalizePhoneE164(input.phone);
+  const phoneRaw = input.phone?.trim() ?? '';
+  const invitePhone = await resolveInvestorInvitePhoneForEmail(email);
+  const phoneE164 = phoneRaw
+    ? normalizePhoneE164(phoneRaw)
+    : invitePhone
+      ? normalizePhoneE164(invitePhone)
+      : null;
   const fullName = input.fullName?.trim() || null;
   const taxId = input.taxId?.trim().replace(/\s/g, '') || null;
 
@@ -42,7 +52,7 @@ export async function registerInvestor(input: RegisterInput) {
     throw new Error('WEAK_PASSWORD');
   }
 
-  if (!phoneE164) {
+  if (phoneRaw && !phoneE164) {
     throw new Error('INVALID_PHONE');
   }
 
@@ -71,15 +81,34 @@ export async function registerInvestor(input: RegisterInput) {
 
   const openRegistration = isInvestorOpenRegistration();
 
-  const investorAccessEnabled =
+  const explicitAccessGrant =
     staffOnboarding ||
-    openRegistration ||
     isPreApprovedInvestorEmail(email) ||
-    resolveInvestorAccessOnRegister(input.inviteCode) ||
     (await hasValidInvestorInviteForEmail(email));
 
-  if (!staffOnboarding && !openRegistration && !investorAccessEnabled) {
+  const inviteCodeGrant =
+    !openRegistration && resolveInvestorAccessOnRegister(input.inviteCode);
+
+  const investorAccessEnabled =
+    staffOnboarding ||
+    (!existing && openRegistration) ||
+    explicitAccessGrant ||
+    inviteCodeGrant ||
+    Boolean(existing?.investorAccessEnabled);
+
+  if (!staffOnboarding && !openRegistration && !investorAccessEnabled && !existing) {
     throw new Error('INVALID_INVITE_CODE');
+  }
+
+  if (
+    shouldRejectDisabledAccountRegistration({
+      existing,
+      staffOnboarding,
+      explicitAccessGrant,
+      inviteCodeGrant
+    })
+  ) {
+    throw new Error('INVESTOR_ACCESS_NOT_ENABLED');
   }
 
   const termsAcceptedAt = new Date();
@@ -99,7 +128,7 @@ export async function registerInvestor(input: RegisterInput) {
 
   const sharedProfile = {
     passwordHash,
-    phone: phoneE164,
+    ...(phoneE164 ? { phone: phoneE164 } : {}),
     name: fullName ?? email.split('@')[0],
     kycFullName: fullName,
     kycDocumentId: taxId,
@@ -121,20 +150,59 @@ export async function registerInvestor(input: RegisterInput) {
         }
       : {
           ...sharedProfile,
-          emailVerifiedAt: null,
-          phoneVerifiedAt: null,
-          accountStatus: 'ONBOARDING',
-          kycStatus: 'PENDING',
-          investorAccessEnabled: existing.investorAccessEnabled || investorAccessEnabled
+          phone: phoneE164 ?? existing.phone,
+          emailVerifiedAt: existing.emailVerifiedAt,
+          phoneVerifiedAt: existing.phoneVerifiedAt,
+          accountStatus:
+            existing.accountStatus === 'SUSPENDED' ? 'SUSPENDED' : existing.accountStatus,
+          kycStatus: existing.kycStatus,
+          investorAccessEnabled: existing.investorAccessEnabled || explicitAccessGrant || inviteCodeGrant
         }
   });
 
-  await markInvestorInviteAcceptedForEmail(email);
-  await applyInvestorInviteAdvisorForUser(user.id, email);
+  if (user.systemRole === 'INVESTOR' && (await hasValidInvestorInviteForEmail(email))) {
+    await markInvestorInviteAcceptedForEmail(email);
+    await applyInvestorInviteAdvisorForUser(user.id, email);
+  }
 
   return {
     userId: user.id,
     email,
-    phone: phoneE164
+    phone: user.phone
   };
+}
+
+/** Pure policy helper — mirrors investorAccessEnabled resolution in registerInvestor(). */
+export function resolveInvestorAccessForRegistration(input: {
+  existing: { investorAccessEnabled: boolean } | null;
+  openRegistration: boolean;
+  explicitAccessGrant: boolean;
+  inviteCodeGrant: boolean;
+  staffOnboarding?: boolean;
+}): boolean {
+  if (input.staffOnboarding) {
+    return true;
+  }
+
+  return (
+    (!input.existing && input.openRegistration) ||
+    input.explicitAccessGrant ||
+    input.inviteCodeGrant ||
+    Boolean(input.existing?.investorAccessEnabled)
+  );
+}
+
+export function shouldRejectDisabledAccountRegistration(input: {
+  existing: { investorAccessEnabled: boolean; passwordHash: string | null } | null;
+  staffOnboarding: boolean;
+  explicitAccessGrant: boolean;
+  inviteCodeGrant: boolean;
+}): boolean {
+  return Boolean(
+    input.existing &&
+      !input.staffOnboarding &&
+      !input.existing.investorAccessEnabled &&
+      !input.explicitAccessGrant &&
+      !input.inviteCodeGrant
+  );
 }

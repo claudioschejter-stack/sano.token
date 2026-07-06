@@ -55,6 +55,10 @@ export function getAvatarStorageBucket(): string {
   return process.env.SUPABASE_AVATAR_BUCKET?.trim() || 'avatars';
 }
 
+export function getKycDocumentStorageBucket(): string {
+  return process.env.SUPABASE_KYC_BUCKET?.trim() || 'kyc-documents';
+}
+
 export function getPublicStorageUrl(objectPath: string, bucket: string = getLaunchStorageBucket()): string {
   const base = getSupabaseUrl();
   return `${base}/storage/v1/object/public/${bucket}/${objectPath}`;

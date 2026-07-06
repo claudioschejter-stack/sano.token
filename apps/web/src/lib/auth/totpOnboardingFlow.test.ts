@@ -16,7 +16,17 @@ describe('totpOnboardingFlow', () => {
     ).toBe('confirm');
   });
 
-  it('shows provision first for brand-new mobile setup even with totpMode hint in URL', () => {
+  it('starts on confirm when totpMode=confirm is requested', () => {
+    expect(
+      initialTotpOnboardingStep({
+        isMobile: true,
+        pendingSetup: false,
+        preferConfirm: true
+      })
+    ).toBe('confirm');
+  });
+
+  it('shows provision first for brand-new mobile setup without confirm hint', () => {
     expect(
       initialTotpOnboardingStep({
         isMobile: true,

@@ -4,8 +4,10 @@ import type { SystemRole } from './roles';
 import {
   parseEmailAllowlist,
   resolveRoleForEmail,
-  resolveRoleForExistingUser
+  resolveRoleForExistingUser,
+  isPreApprovedInvestorEmail
 } from './roleAllowlist';
+import { hasValidInvestorInviteForEmail } from '../admin/investorInviteService';
 import { issueAuthUser, type AuthUser } from './issueAuthUser';
 import { provisionAdvisorRecordOnRolePromotion } from '../advisor/provisionAdvisorOnRolePromotion';
 
@@ -28,6 +30,16 @@ export async function verifyCredentials(email: string, password: string): Promis
     }
 
     const role = resolveRoleForExistingUser(normalizedEmail, existingUser.systemRole as SystemRole);
+
+    if (
+      role === 'INVESTOR' &&
+      !existingUser.investorAccessEnabled &&
+      !isPreApprovedInvestorEmail(normalizedEmail) &&
+      !(await hasValidInvestorInviteForEmail(normalizedEmail))
+    ) {
+      throw new Error('INVESTOR_ACCESS_NOT_ENABLED');
+    }
+
     const updatedUser =
       role === existingUser.systemRole
         ? existingUser

@@ -3,15 +3,11 @@
 import { signIn, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { buildAndValidateE164Phone, normalizeEmail } from '../../lib/auth/contactValidation';
+import { normalizeEmail } from '../../lib/auth/contactValidation';
 import { useIsPwa } from '../../hooks/useIsPwa';
-import {
-  COUNTRY_DIAL_CODES,
-  DEFAULT_DIAL_CODE,
-  parseE164Phone
-} from '../../lib/auth/countryDialCodes';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import type { OnboardingProfile } from '../../lib/onboarding/profile';
 import { buildKycUrl } from '../../lib/auth/kycPaths';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
@@ -27,11 +23,14 @@ type RegisterFormProps = {
   initialEmail?: string;
   inviteCode?: string;
   loginHref?: string;
+  acceptedLegal?: boolean;
+  onAcceptedLegalChange?: (accepted: boolean) => void;
+  hideTermsCheckbox?: boolean;
+  hidePhaseLabel?: boolean;
 };
 
 type FieldErrors = {
   email?: string;
-  phone?: string;
 };
 
 export function RegisterForm({
@@ -39,7 +38,11 @@ export function RegisterForm({
   returnTo,
   initialEmail = '',
   inviteCode = '',
-  loginHref
+  loginHref,
+  acceptedLegal: controlledAcceptedLegal,
+  onAcceptedLegalChange,
+  hideTermsCheckbox = false,
+  hidePhaseLabel = false
 }: RegisterFormProps) {
   const t = useTranslation();
   const r = t.access.register;
@@ -48,31 +51,46 @@ export function RegisterForm({
 
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
-  const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
-  const [phoneLocal, setPhoneLocal] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [acceptedLegal, setAcceptedLegal] = useState(false);
+  const [acceptedLegalInternal, setAcceptedLegalInternal] = useState(false);
+  const acceptedLegal = controlledAcceptedLegal ?? acceptedLegalInternal;
+  const setAcceptedLegal = onAcceptedLegalChange ?? setAcceptedLegalInternal;
   const [registrationErrorCode, setRegistrationErrorCode] = useState<string | null>(null);
   const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
   const turnstile = useTurnstile();
   const isPwa = useIsPwa();
-
+  const { isMobile } = useDeviceDetection();
+  const channel = isPwa ? 'pwa' : isMobile ? 'mobile-web' : 'desktop-web';
   const readOnly = Boolean(profileProp);
-  const phoneLocked = readOnly && Boolean(profileProp?.phone);
+
+  const emailRef = useRef(email);
+  useEffect(() => {
+    emailRef.current = email;
+  }, [email]);
+
+  useEffect(() => {
+    if (readOnly || !initialEmail.trim()) {
+      return;
+    }
+
+    void checkEmailAvailability(initialEmail);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialEmail, readOnly]);
+
+  const precheckBlocksSubmit =
+    emailAlreadyRegistered ||
+    registrationErrorCode === 'INVESTOR_ACCESS_NOT_ENABLED' ||
+    registrationErrorCode === 'OAUTH_ONLY_DISABLED' ||
+    registrationErrorCode === 'REGION_NOT_AVAILABLE' ||
+    registrationErrorCode === 'EMAIL_CHECK_FAILED';
 
   function applyProfile(profile: OnboardingProfile) {
     setEmail(profile.email);
     setEmailVerified(profile.emailVerified);
-
-    const parsed = parseE164Phone(profile.phone);
-    if (parsed) {
-      setDialCode(parsed.dialCode);
-      setPhoneLocal(parsed.local);
-    }
   }
 
   useEffect(() => {
@@ -105,32 +123,22 @@ export function RegisterForm({
     };
   }, [profileProp, session?.user?.accessToken, status]);
 
-  function validateContactFields(): { email: string; phone: string } | null {
-    const nextErrors: FieldErrors = {};
+  function validateEmailField(): string | null {
     const normalizedEmail = normalizeEmail(email);
 
     if (!normalizedEmail) {
-      nextErrors.email = r.errors.INVALID_EMAIL;
-    }
-
-    const phone = buildAndValidateE164Phone(dialCode, phoneLocal);
-    if (!phone) {
-      nextErrors.phone = r.errors.INVALID_PHONE;
-    }
-
-    setFieldErrors(nextErrors);
-
-    if (!normalizedEmail || !phone) {
+      setFieldErrors({ email: r.errors.INVALID_EMAIL });
       return null;
     }
 
-    return { email: normalizedEmail, phone };
+    setFieldErrors({});
+    return normalizedEmail;
   }
 
-  async function checkEmailAvailability(rawEmail: string) {
+  async function checkEmailAvailability(rawEmail: string): Promise<boolean> {
     const normalized = normalizeEmail(rawEmail);
     if (!normalized || readOnly) {
-      return;
+      return true;
     }
 
     setCheckingEmail(true);
@@ -138,23 +146,57 @@ export function RegisterForm({
       const response = await fetch('/api/auth/register/check-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalized })
+        body: JSON.stringify({ email: normalized, channel })
       });
       const data = (await response.json()) as { available?: boolean; reason?: string };
+
+      if (normalizeEmail(emailRef.current) !== normalized) {
+        return true;
+      }
+
+      if (response.status === 403) {
+        setRegistrationErrorCode('REGION_NOT_AVAILABLE');
+        setError(r.errors.REGION_NOT_AVAILABLE);
+        return false;
+      }
 
       if (response.ok && data.available === false && data.reason === 'EMAIL_IN_USE') {
         setEmailAlreadyRegistered(true);
         setRegistrationErrorCode('EMAIL_IN_USE');
         setError(null);
-        return;
+        return false;
+      }
+
+      if (response.ok && data.available === false && data.reason === 'INVESTOR_ACCESS_NOT_ENABLED') {
+        setEmailAlreadyRegistered(false);
+        setRegistrationErrorCode('INVESTOR_ACCESS_NOT_ENABLED');
+        setError(r.errors.INVESTOR_ACCESS_NOT_ENABLED ?? r.errors.GENERIC);
+        return false;
+      }
+
+      if (response.ok && data.available === false && data.reason === 'OAUTH_ONLY_DISABLED') {
+        setEmailAlreadyRegistered(false);
+        setRegistrationErrorCode('OAUTH_ONLY_DISABLED');
+        setError(r.errors.OAUTH_ONLY_DISABLED ?? r.errors.INVESTOR_ACCESS_NOT_ENABLED ?? r.errors.GENERIC);
+        return false;
       }
 
       setEmailAlreadyRegistered(false);
-      setRegistrationErrorCode((current) => (current === 'EMAIL_IN_USE' ? null : current));
+      setRegistrationErrorCode(null);
+      setError(null);
+      return true;
     } catch {
-      // Non-blocking: registration API remains the source of truth.
+      if (normalizeEmail(emailRef.current) !== normalized) {
+        return true;
+      }
+
+      setRegistrationErrorCode('EMAIL_CHECK_FAILED');
+      setError(r.errors.EMAIL_CHECK_FAILED ?? r.errors.GENERIC);
+      return false;
     } finally {
-      setCheckingEmail(false);
+      if (normalizeEmail(emailRef.current) === normalized) {
+        setCheckingEmail(false);
+      }
     }
   }
 
@@ -186,14 +228,13 @@ export function RegisterForm({
       return;
     }
 
-    const contact = validateContactFields();
-    if (!contact) {
+    const normalizedEmail = validateEmailField();
+    if (!normalizedEmail) {
       return;
     }
 
-    if (emailAlreadyRegistered) {
-      setRegistrationErrorCode('EMAIL_IN_USE');
-      setError(r.errors.EMAIL_IN_USE);
+    const emailAvailable = await checkEmailAvailability(normalizedEmail);
+    if (!emailAvailable) {
       return;
     }
 
@@ -201,7 +242,7 @@ export function RegisterForm({
 
     if (turnstile.enabled && !turnstile.token) {
       setLoading(false);
-      setError(r.errors.CAPTCHA_REQUIRED ?? 'Completá la verificación de seguridad.');
+      setError(r.errors.CAPTCHA_REQUIRED ?? r.errors.GENERIC);
       return;
     }
 
@@ -210,13 +251,12 @@ export function RegisterForm({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: contact.email,
+          email: normalizedEmail,
           password,
-          phone: contact.phone,
           termsAccepted: true,
           inviteCode: inviteCode.trim() || undefined,
           turnstileToken: turnstile.token,
-          channel: isPwa ? 'pwa' : 'desktop'
+          channel
         })
       });
 
@@ -227,15 +267,17 @@ export function RegisterForm({
       if (!response.ok) {
         const key = data.error ?? 'GENERIC';
         setRegistrationErrorCode(key);
+        turnstile.reset();
+
         if (key === 'EMAIL_IN_USE') {
           setEmailAlreadyRegistered(true);
+          setLoading(false);
+          return;
         }
-        turnstile.reset();
+
         const message = r.errors[key as keyof typeof r.errors] ?? r.errors.GENERIC;
         if (key === 'INVALID_EMAIL') {
           setFieldErrors({ email: message });
-        } else if (key === 'INVALID_PHONE') {
-          setFieldErrors({ phone: message });
         } else {
           setError(message);
         }
@@ -244,7 +286,7 @@ export function RegisterForm({
       }
 
       const signInResult = await signIn('credentials', {
-        email: contact.email,
+        email: normalizedEmail,
         password,
         redirect: false
       });
@@ -265,7 +307,7 @@ export function RegisterForm({
       }
 
       router.refresh();
-      router.push(buildKycUrl(returnTo));
+      router.push(buildKycUrl(returnTo, undefined, undefined, { registered: true }));
     } catch {
       setError(r.errors.GENERIC);
       setLoading(false);
@@ -274,6 +316,11 @@ export function RegisterForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      {!readOnly && !hidePhaseLabel ? (
+        <p className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
+          {r.phaseLabel}
+        </p>
+      ) : null}
       <div>
         <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
           <label htmlFor="register-email" className="text-sm font-medium text-slate-700">
@@ -296,6 +343,8 @@ export function RegisterForm({
           onChange={(event) => {
             setEmail(event.target.value);
             setEmailAlreadyRegistered(false);
+            setRegistrationErrorCode(null);
+            setError(null);
             if (fieldErrors.email) {
               setFieldErrors((current) => ({ ...current, email: undefined }));
             }
@@ -343,58 +392,6 @@ export function RegisterForm({
         </>
       ) : null}
 
-      <div>
-        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-          <label htmlFor="register-phone" className="text-sm font-medium text-slate-700">
-            {r.phoneLabel}
-          </label>
-        </div>
-        <div className="flex gap-2">
-          <select
-            id="register-dial"
-            aria-label={r.countryLabel}
-            value={dialCode}
-            disabled={readOnly || phoneLocked}
-            onChange={(event) => setDialCode(event.target.value)}
-            className="min-h-12 w-[8.5rem] shrink-0 rounded-lg border border-slate-300 bg-white px-2 py-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-white disabled:text-slate-600"
-          >
-            {COUNTRY_DIAL_CODES.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.flag} {country.iso} {country.code}
-              </option>
-            ))}
-          </select>
-          <input
-            id="register-phone"
-            name="phone"
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel-national"
-            required
-            readOnly={readOnly || phoneLocked}
-            value={phoneLocal}
-            onChange={(event) => {
-              setPhoneLocal(event.target.value.replace(/\D/g, ''));
-              if (fieldErrors.phone) {
-                setFieldErrors((current) => ({ ...current, phone: undefined }));
-              }
-            }}
-            onBlur={() => {
-              if (!readOnly && phoneLocal.trim() && !buildAndValidateE164Phone(dialCode, phoneLocal)) {
-                setFieldErrors((current) => ({ ...current, phone: r.errors.INVALID_PHONE }));
-              }
-            }}
-            aria-invalid={Boolean(fieldErrors.phone)}
-            className={`${formFieldClassName} min-w-0 flex-1 ${fieldErrors.phone ? formFieldErrorClassName : ''}`}
-            placeholder={r.phonePlaceholder}
-          />
-        </div>
-        {r.phoneHint ? <p className="mt-1.5 text-xs text-slate-500">{r.phoneHint}</p> : null}
-        {fieldErrors.phone ? (
-          <p className="mt-1.5 text-xs text-red-600">{fieldErrors.phone}</p>
-        ) : null}
-      </div>
-
       {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <p>{error}</p>
@@ -412,7 +409,7 @@ export function RegisterForm({
         </div>
       ) : null}
 
-      {!readOnly ? (
+      {!readOnly && !hideTermsCheckbox ? (
         <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-xs leading-relaxed text-slate-600">
           <input
             type="checkbox"
@@ -442,12 +439,12 @@ export function RegisterForm({
         <>
           {turnstile.widget}
           <button
-          type="submit"
-          disabled={loading || !acceptedLegal || emailAlreadyRegistered}
-          className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {loading ? r.submitting : r.submitButton}
-        </button>
+            type="submit"
+            disabled={loading || !acceptedLegal || precheckBlocksSubmit}
+            className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? r.submitting : r.submitButton}
+          </button>
         </>
       ) : null}
 

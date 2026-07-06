@@ -3,6 +3,7 @@ import { prisma } from '@sanova/database';
 import { consumeVerificationCode } from '../../../../lib/onboarding/verification';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
+import { maybeReprocessPendingKyc } from '../../../../lib/onboarding/kycIngestionService';
 import { requiresPhoneVerification } from '../../../../lib/onboarding/phoneVerificationPolicy';
 
 export async function POST(request: Request) {
@@ -44,6 +45,7 @@ export async function POST(request: Request) {
   });
 
   await syncUserAccountStatus(ctx.userId);
+  await maybeReprocessPendingKyc(ctx.userId);
 
   return NextResponse.json({ ok: true });
 }

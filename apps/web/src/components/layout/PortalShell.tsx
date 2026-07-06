@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
+import { allowsMarketplaceBrowse } from '../../lib/auth/middlewarePolicy';
 import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
 
 export function PortalShell({ children }: { children: React.ReactNode }) {
@@ -23,6 +24,10 @@ export function PortalShell({ children }: { children: React.ReactNode }) {
     }
 
     if (pathname.startsWith('/kyc')) {
+      return;
+    }
+
+    if (allowsMarketplaceBrowse(pathname)) {
       return;
     }
 

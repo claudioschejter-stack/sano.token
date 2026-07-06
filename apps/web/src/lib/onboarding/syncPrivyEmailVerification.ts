@@ -3,6 +3,7 @@ import { normalizeEmail } from '../auth/contactValidation';
 import { extractVerifiedPrivyEmails, fetchPrivyUser } from '../privy/privyUserApi';
 import { verifyPrivyAccessToken } from '../privy/verifyAccessToken';
 import { syncUserAccountStatus } from './syncUserAccount';
+import { maybeReprocessPendingKyc } from './kycIngestionService';
 
 export type SyncPrivyEmailResult = {
   synced: boolean;
@@ -54,6 +55,7 @@ export async function syncPrivyEmailVerification(
     data: { emailVerifiedAt }
   });
   await syncUserAccountStatus(userId);
+  await maybeReprocessPendingKyc(userId);
 
   return {
     synced: true,

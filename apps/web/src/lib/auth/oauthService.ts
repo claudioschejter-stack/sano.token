@@ -3,12 +3,14 @@ import { SignJWT } from 'jose';
 import type { SystemRole } from './roles';
 import {
   hasValidInvestorInviteForEmail,
-  markInvestorInviteAcceptedForEmail
+  markInvestorInviteAcceptedForEmail,
+  applyInvestorInvitePhoneForUser
 } from '../admin/investorInviteService';
 import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 import { provisionAdvisorRecordOnRolePromotion } from '../advisor/provisionAdvisorOnRolePromotion';
 import { isPreApprovedInvestorEmail, resolveRoleForEmail, resolveRoleForExistingUser } from './roleAllowlist';
 import { isInvestorOpenRegistration } from './investorAccess';
+import { isOAuthTermsAccepted, isRegistrationCountryBlocked } from './oauthRegistrationPolicy';
 
 type OAuthLoginInput = {
   email: string;
@@ -30,20 +32,45 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
   const email = input.email.trim().toLowerCase();
   const existingUser = await prisma.user.findUnique({
     where: { email },
-    select: { systemRole: true, investorAccessEnabled: true }
+    select: {
+      systemRole: true,
+      investorAccessEnabled: true,
+      termsAcceptedAt: true
+    }
   });
 
   const role = existingUser
     ? resolveRoleForExistingUser(email, existingUser.systemRole as SystemRole)
     : resolveRoleForEmail(email);
 
+  if (!existingUser && (await isRegistrationCountryBlocked())) {
+    throw new Error('REGION_NOT_AVAILABLE');
+  }
+
   const investorAccessForOAuth = await resolveInvestorAccessForOAuth(email);
+  const hadValidInvestorInvite = await hasValidInvestorInviteForEmail(email);
+  const explicitInvestorGrant =
+    isPreApprovedInvestorEmail(email) || hadValidInvestorInvite;
 
   if (!existingUser && role === 'INVESTOR' && !investorAccessForOAuth) {
     throw new Error('INVESTOR_ACCESS_NOT_ENABLED');
   }
 
-  const hadValidInvestorInvite = await hasValidInvestorInviteForEmail(email);
+  if (
+    existingUser &&
+    role === 'INVESTOR' &&
+    !existingUser.investorAccessEnabled &&
+    !explicitInvestorGrant
+  ) {
+    throw new Error('INVESTOR_ACCESS_NOT_ENABLED');
+  }
+
+  const needsTermsAcceptance = !existingUser?.termsAcceptedAt;
+  if (needsTermsAcceptance && !(await isOAuthTermsAccepted())) {
+    throw new Error('TERMS_NOT_ACCEPTED');
+  }
+
+  const termsAcceptedAt = existingUser?.termsAcceptedAt ?? (needsTermsAcceptance ? new Date() : undefined);
 
   const user = await prisma.user.upsert({
     where: { email },
@@ -54,7 +81,8 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
       oauthProvider: input.provider,
       oauthProviderId: input.providerAccountId,
       systemRole: role as PrismaSystemRole,
-      investorAccessEnabled: role === 'INVESTOR' ? investorAccessForOAuth : false
+      investorAccessEnabled: role === 'INVESTOR' ? investorAccessForOAuth : false,
+      termsAcceptedAt: termsAcceptedAt ?? new Date()
     },
     update: {
       name: input.name ?? undefined,
@@ -62,7 +90,11 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
       oauthProvider: input.provider,
       oauthProviderId: input.providerAccountId,
       systemRole: role as PrismaSystemRole,
-      ...(role === 'INVESTOR' && !existingUser?.investorAccessEnabled && investorAccessForOAuth
+      ...(termsAcceptedAt ? { termsAcceptedAt } : {}),
+      ...(role === 'INVESTOR' &&
+      !existingUser?.investorAccessEnabled &&
+      investorAccessForOAuth &&
+      (isPreApprovedInvestorEmail(email) || hadValidInvestorInvite)
         ? { investorAccessEnabled: true }
         : {})
     }
@@ -71,6 +103,7 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
   if (user.systemRole === 'INVESTOR' && hadValidInvestorInvite) {
     await markInvestorInviteAcceptedForEmail(email);
     await applyInvestorInviteAdvisorForUser(user.id, email);
+    await applyInvestorInvitePhoneForUser(user.id, email);
   }
 
   const advisorRole = user.systemRole as SystemRole;

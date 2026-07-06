@@ -8,7 +8,7 @@ export function buildKycUrl(
   returnTo: string | null | undefined,
   fallback = DEFAULT_POST_ONBOARDING_PATH,
   step?: OnboardingStepParam,
-  options?: { totpMode?: 'confirm' }
+  options?: { totpMode?: 'confirm'; registered?: boolean }
 ): string {
   const destination = normalizeReturnPath(returnTo, fallback);
   const params = new URLSearchParams({ returnTo: destination });
@@ -19,6 +19,10 @@ export function buildKycUrl(
 
   if (options?.totpMode === 'confirm') {
     params.set('totpMode', 'confirm');
+  }
+
+  if (options?.registered) {
+    params.set('registered', '1');
   }
 
   return `/kyc?${params.toString()}`;

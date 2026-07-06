@@ -19,6 +19,23 @@ enum KycStatus {
   REJECTED
 }
 
+enum KycMediaKind {
+  PORTRAIT
+  DOCUMENT_FRONT
+  DOCUMENT_BACK
+  SELFIE
+}
+
+enum KycVerificationProvider {
+  DIDIT
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  CLOSED
+}
+
 enum SecondaryListingStatus {
   OPEN
   FILLED
@@ -229,6 +246,9 @@ model User {
   kycDocumentType   String?
   kycDocumentExpiry String?
   kycGender         String?
+  kycPersonalNumber String?
+  kycIssuingState   String?
+  kycPortraitPath   String?
   diditSessionId    String?
   emailVerifiedAt   DateTime?
   phoneVerifiedAt   DateTime?
@@ -259,6 +279,8 @@ model User {
   secondaryListingsSold SecondaryMarketListing[] @relation("SecondarySeller")
   secondaryListingsBought SecondaryMarketListing[] @relation("SecondaryBuyer")
   notifications         Notification[]
+  kycVerifications      KycVerification[]
+  prizeEntries          PrizeEntry[]
 
   @@index([walletAddress])
   @@index([investorId])
@@ -410,6 +432,7 @@ model TeamInvite {
   id              String           @id @default(cuid())
   email           String
   name            String?
+  phone           String?
   role            SystemRole
   uplineAdvisorId String?
   tokenHash       String           @unique
@@ -433,6 +456,10 @@ model Investor {
   email              String       @unique
   fullName           String
   cuit               String       @unique
+  phone              String?
+  dateOfBirth        String?
+  nationality        String?
+  portraitPath       String?
   walletAddress      String       @unique
   investorType       InvestorType @default(RETAIL)
   kycStatus          KycStatus    @default(PENDING)
@@ -454,6 +481,7 @@ model Investor {
   payoutReceipts        PayoutReceipt[]
   dividendDistributions DividendDistribution[]
   user                  User?
+  prizeEntries          PrizeEntry[]
 
   @@index([kycStatus])
   @@index([walletAddress])
@@ -1115,4 +1143,81 @@ model MercadoPagoPixPayment {
   @@index([userId])
   @@index([status])
   @@index([externalReference])
+}
+
+model KycVerification {
+  id                 String                  @id @default(cuid())
+  userId             String
+  provider           KycVerificationProvider @default(DIDIT)
+  sessionId          String
+  status             KycStatus               @default(PENDING)
+  pendingContact     Boolean                 @default(false)
+  rawWebhookPayload  Json?
+  rawDecisionPayload Json?
+  approvedAt         DateTime?
+  rejectedAt         DateTime?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents    KycDocument[]
+  prizeEntries PrizeEntry[]
+
+  @@unique([userId, sessionId])
+  @@index([userId])
+  @@index([sessionId])
+  @@index([pendingContact])
+}
+
+model KycDocument {
+  id                String        @id @default(cuid())
+  kycVerificationId String
+  kind              KycMediaKind
+  storageBucket     String
+  storagePath       String
+  mimeType          String?
+  checksum          String?
+  sourceUrl         String?
+  createdAt         DateTime      @default(now())
+
+  verification KycVerification @relation(fields: [kycVerificationId], references: [id], onDelete: Cascade)
+
+  @@index([kycVerificationId])
+  @@index([kind])
+}
+
+model Campaign {
+  id        String         @id @default(cuid())
+  name      String
+  status    CampaignStatus @default(DRAFT)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  entries PrizeEntry[]
+
+  @@index([status])
+}
+
+model PrizeEntry {
+  id                String   @id @default(cuid())
+  campaignId        String
+  userId            String
+  investorId        String?
+  kycVerificationId String?
+  email             String
+  phone             String?
+  fullName          String?
+  portraitPath      String?
+  createdAt         DateTime @default(now())
+
+  campaign        Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  investor        Investor?        @relation(fields: [investorId], references: [id], onDelete: SetNull)
+  kycVerification KycVerification? @relation(fields: [kycVerificationId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, userId])
+  @@index([campaignId])
+  @@index([userId])
 }

@@ -40,7 +40,9 @@ export function BiometricOnboardingStep({ onComplete }: Props) {
     }
 
     setChecked(true);
-    const ok = await register({ deviceName: isIos ? 'Face ID' : 'Huella / biometría' });
+    const ok = await register({
+      deviceName: isIos ? p.registerFaceTitle : p.registerFingerprintTitle
+    });
     if (!ok) {
       setChecked(false);
     }
@@ -49,10 +51,10 @@ export function BiometricOnboardingStep({ onComplete }: Props) {
   return (
     <section className="space-y-5">
       <div>
-        <h2 className="text-xl font-bold text-slate-900">Activá tu huella o Face ID</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          Configurá biometría para ingresar como en Mercado Pago, sin contraseña cada vez.
-        </p>
+        <h2 className="text-xl font-bold text-slate-900">
+          {isIos ? p.registerFaceTitle : p.registerTitle}
+        </h2>
+        <p className="mt-2 text-sm text-slate-600">{p.registerDesc}</p>
       </div>
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -65,14 +67,14 @@ export function BiometricOnboardingStep({ onComplete }: Props) {
           </div>
           <div className="flex-1">
             <p className="font-semibold text-slate-900">
-              {isIos ? 'Ingreso con Face ID' : 'Ingreso con huella dactilar'}
+              {isIos ? p.loginFaceId : p.registerFingerprintTitle}
             </p>
             <p className="mt-0.5 text-sm text-slate-500">
               {done
-                ? 'Activado en este dispositivo'
+                ? p.registerActivated
                 : loading
-                  ? 'Confirmá en el diálogo de tu teléfono…'
-                  : 'Deslizá para activar'}
+                  ? p.registering
+                  : p.registerSlideHint}
             </p>
           </div>
           {done ? (
@@ -83,7 +85,7 @@ export function BiometricOnboardingStep({ onComplete }: Props) {
               onChange={(next) => void handleToggle(next)}
               disabled={loading}
               accentColor={MP_ACCENT}
-              label="Activar ingreso por biometría"
+              label={p.registerToggleAria}
             />
           )}
         </div>
@@ -96,15 +98,10 @@ export function BiometricOnboardingStep({ onComplete }: Props) {
         disabled={loading}
         className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 disabled:opacity-60"
       >
-        {done ? 'Continuar' : 'Ahora no, ingresar con correo y contraseña'}
+        {done ? p.registerContinue : p.registerLaterWithPassword}
       </button>
 
-      <p className="text-center text-xs text-slate-400">
-        Podés activarla más tarde desde{' '}
-        <span className="font-medium" style={{ color: MP_ACCENT }}>
-          Perfil → Seguridad
-        </span>
-      </p>
+      <p className="text-center text-xs text-slate-400">{p.registerLaterHint}</p>
     </section>
   );
 }

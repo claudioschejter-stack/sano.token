@@ -4,6 +4,7 @@ import { ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import { useCartStore } from '../../store/useCartStore';
 
@@ -14,11 +15,12 @@ type MarketplaceCartButtonProps = {
 export function MarketplaceCartButton({ className = '' }: MarketplaceCartButtonProps) {
   const { data: session } = useSession();
   const t = useTranslation();
+  const { isOperational } = useAccountStatus();
   const cartItemCount = useCartStore((state) => state.itemCount());
   const role = session?.user?.role;
   const capabilities = getMarketplaceCapabilities(role);
 
-  if (!session?.user || !capabilities.showPurchaseActions) {
+  if (!session?.user || !capabilities.showPurchaseActions || !isOperational) {
     return null;
   }
 

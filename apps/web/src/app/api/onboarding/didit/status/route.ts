@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
-import { extractDiditIdentity, buildDiditIdentityUpdate } from '../../../../../lib/onboarding/extractDiditIdentity';
 import { mapDiditStatusToKyc, retrieveDiditDecision } from '../../../../../lib/onboarding/diditService';
 import { requireAuthenticatedSession } from '../../../../../lib/onboarding/requireAuthenticatedSession';
-import { syncUserAccountStatus } from '../../../../../lib/onboarding/syncUserAccount';
-import { provisionInvestorProfileOnKycApproval } from '../../../../../lib/investor/provisionInvestorProfile';
-import { storeDiditProfilePhoto } from '../../../../../lib/onboarding/diditPhoto';
+import { ingestDiditDecision } from '../../../../../lib/onboarding/kycIngestionService';
 
 export async function POST() {
   const ctx = await requireAuthenticatedSession();
@@ -32,44 +29,12 @@ export async function POST() {
     const kycStatus = mapDiditStatusToKyc(status);
 
     if (kycStatus !== user.kycStatus && kycStatus !== 'PENDING') {
-      const identity = extractDiditIdentity(decision);
-
-      await prisma.user.update({
-        where: { id: ctx.userId },
-        data: {
-          kycStatus,
-          kycProviderId: user.diditSessionId,
-          ...buildDiditIdentityUpdate(identity)
-        }
+      await ingestDiditDecision({
+        userId: ctx.userId,
+        sessionId: user.diditSessionId,
+        kycStatus,
+        decisionPayload: decision
       });
-
-      await syncUserAccountStatus(ctx.userId);
-
-      if (kycStatus === 'APPROVED') {
-        await provisionInvestorProfileOnKycApproval(ctx.userId);
-        const { notifyAdvisorOfClientKycApproved } = await import(
-          '../../../../../lib/advisor/advisorNotificationService'
-        );
-        void notifyAdvisorOfClientKycApproved(ctx.userId);
-
-        const { notifyInvestorOfKycApproved } = await import(
-          '../../../../../lib/investor/investorNotificationService'
-        );
-        void notifyInvestorOfKycApproved(ctx.userId);
-
-        const { createNotification } = await import(
-          '../../../../../lib/notifications/notificationService'
-        );
-        void createNotification({
-          userId: ctx.userId,
-          type: 'kyc_approved',
-          title: '¡Tu cuenta fue aprobada!',
-          body: 'Ya podés invertir en el marketplace de Sanova Capital.',
-          link: '/dashboard'
-        });
-
-        void storeDiditProfilePhoto(ctx.userId, decision);
-      }
     }
 
     return NextResponse.json({ ok: true, kycStatus, diditStatus: status ?? null });

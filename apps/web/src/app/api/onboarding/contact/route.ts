@@ -3,6 +3,7 @@ import { prisma } from '@sanova/database';
 import { normalizePhoneE164, issueVerificationCode } from '../../../../lib/onboarding/verification';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
 import { requiresPhoneVerification } from '../../../../lib/onboarding/phoneVerificationPolicy';
+import { maybeReprocessPendingKyc } from '../../../../lib/onboarding/kycIngestionService';
 
 export async function POST(request: Request) {
   const ctx = await requireAuthenticatedSession();
@@ -37,6 +38,8 @@ export async function POST(request: Request) {
   });
 
   if (!needsPhoneOtp) {
+    await maybeReprocessPendingKyc(ctx.userId);
+
     return NextResponse.json({
       ok: true,
       email: user.email,

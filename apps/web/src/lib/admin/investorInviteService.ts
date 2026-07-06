@@ -1,7 +1,7 @@
 import { createHash, randomBytes } from 'crypto';
 import { prisma } from '@sanova/database';
 import { buildKycUrl } from '../auth/kycPaths';
-import { normalizeEmail } from '../auth/contactValidation';
+import { normalizeEmail, normalizePhoneE164 } from '../auth/contactValidation';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
 import { resolveSiteUrl } from '../invite/resolveSiteUrl';
 import { buildInvestorInviteWhatsAppMessage } from '../invite/whatsappInvite';
@@ -25,6 +25,54 @@ export type InvestorInviteRecord = {
   whatsappMessage: string;
 };
 
+export async function resolveInvestorInvitePhoneForEmail(email: string): Promise<string | null> {
+  const normalized = normalizeEmail(email);
+  if (!normalized) {
+    return null;
+  }
+
+  const invite = await prisma.teamInvite.findFirst({
+    where: {
+      email: normalized,
+      role: 'INVESTOR',
+      OR: [
+        { status: 'ACCEPTED' },
+        { status: 'PENDING', expiresAt: { gt: new Date() } }
+      ]
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { phone: true }
+  });
+
+  return invite?.phone?.trim() || null;
+}
+
+export async function applyInvestorInvitePhoneForUser(userId: string, email: string): Promise<void> {
+  const phone = await resolveInvestorInvitePhoneForEmail(email);
+  if (!phone) {
+    return;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { phone: true }
+  });
+
+  if (user?.phone?.trim()) {
+    return;
+  }
+
+  const normalized = normalizePhoneE164(phone);
+  if (!normalized) {
+    return;
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { phone: normalized }
+  });
+}
+
 export async function hasValidInvestorInviteForEmail(email: string): Promise<boolean> {
   const normalized = normalizeEmail(email);
   if (!normalized) {
@@ -35,8 +83,10 @@ export async function hasValidInvestorInviteForEmail(email: string): Promise<boo
     where: {
       email: normalized,
       role: 'INVESTOR',
-      status: { in: ['PENDING', 'ACCEPTED'] },
-      expiresAt: { gt: new Date() }
+      OR: [
+        { status: 'ACCEPTED' },
+        { status: 'PENDING', expiresAt: { gt: new Date() } }
+      ]
     }
   });
 
@@ -107,10 +157,19 @@ export async function inviteInvestor(input: {
   const rawToken = randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + INVITE_TTL_MS);
 
+  let invitePhone: string | null = null;
+  if (input.phone?.trim()) {
+    invitePhone = normalizePhoneE164(input.phone);
+    if (!invitePhone) {
+      throw new Error('INVALID_PHONE');
+    }
+  }
+
   const invite = await prisma.teamInvite.create({
     data: {
       email,
       name: input.name?.trim() || null,
+      phone: invitePhone,
       role: 'INVESTOR',
       uplineAdvisorId: input.incorporatedByAdvisorId ?? null,
       tokenHash: hashToken(rawToken),
@@ -206,13 +265,18 @@ export async function acceptInvestorInvite(token: string): Promise<{ redirectUrl
 
   const existingUser = await prisma.user.findUnique({
     where: { email: invite.email },
-    select: { passwordHash: true, systemRole: true }
+    select: { passwordHash: true, systemRole: true, phone: true }
   });
 
   if (existingUser) {
     await prisma.user.update({
       where: { email: invite.email },
-      data: { investorAccessEnabled: true }
+      data: {
+        investorAccessEnabled: true,
+        ...(invite.phone?.trim() && !existingUser.phone
+          ? { phone: normalizePhoneE164(invite.phone) ?? undefined }
+          : {})
+      }
     });
   }
 
@@ -228,6 +292,7 @@ export async function listPendingInvestorInvites(): Promise<
     id: string;
     email: string;
     name: string | null;
+    phone: string | null;
     status: string;
     expiresAt: string;
     createdAt: string;
@@ -249,6 +314,7 @@ export async function listPendingInvestorInvites(): Promise<
     id: row.id,
     email: row.email,
     name: row.name,
+    phone: row.phone,
     status: row.status,
     expiresAt: row.expiresAt.toISOString(),
     createdAt: row.createdAt.toISOString(),

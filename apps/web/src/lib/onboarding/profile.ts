@@ -9,6 +9,8 @@ export type OnboardingProfile = {
   identification: string | null;
   email: string;
   phone: string | null;
+  /** Phone from a valid investor invite when the user record has none yet. */
+  suggestedPhone?: string | null;
   emailVerified: boolean;
   phoneVerified: boolean;
   kycApproved: boolean;

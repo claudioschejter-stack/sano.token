@@ -1,13 +1,14 @@
 'use client';
 
-import { Loader2, ShieldCheck, Wallet } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Loader2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
-import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { isPrivyEnabled } from '../../lib/privy/config';
 
 type PrivyOnboardingWalletProps = {
+  kycApproved: boolean;
+  refresh: (options?: { silent?: boolean }) => Promise<void>;
   onLinked: () => void | Promise<void>;
   onError: (message: string) => void;
 };
@@ -16,25 +17,50 @@ type PrivyOnboardingWalletProps = {
  * Post-Didit wallet step: silently provisions Privy embedded wallet on Base
  * and links it to the KYC-approved NextAuth session (Web2 UX).
  */
-export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWalletProps) {
+export function PrivyOnboardingWallet({
+  kycApproved,
+  refresh,
+  onLinked,
+  onError
+}: PrivyOnboardingWalletProps) {
   const t = useTranslation();
   const o = t.onboarding.steps;
-  const { refresh, checklist } = useAccountStatus();
+  const errors = t.onboarding.errors;
   const { enabled, ready, authenticated, login, ensureReady, getAccessToken } = usePrivyEmbeddedWallet();
   const [busy, setBusy] = useState(false);
-  const [phase, setPhase] = useState<'idle' | 'login' | 'linking' | 'done'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'login' | 'linking' | 'done' | 'failed'>('idle');
+  const [localError, setLocalError] = useState<string | null>(null);
+  const autoStartRef = useRef(false);
+  const manualRetryRef = useRef(false);
+
+  const resolveErrorMessage = useCallback(
+    (key: string) => errors[key as keyof typeof errors] ?? errors.GENERIC,
+    [errors]
+  );
+
+  const fail = useCallback(
+    (key: string) => {
+      const message = resolveErrorMessage(key);
+      setLocalError(message);
+      setPhase('failed');
+      autoStartRef.current = false;
+      onError(message);
+    },
+    [onError, resolveErrorMessage]
+  );
 
   const provisionAndLink = useCallback(async () => {
     if (!enabled) {
-      onError(t.onboarding.errors.DIDIT_NOT_CONFIGURED ?? 'Privy not configured');
+      fail('PRIVY_NOT_CONFIGURED');
       return;
     }
 
-    if (checklist && !checklist.kycApproved) {
-      onError(t.onboarding.errors.KYC_NOT_APPROVED ?? 'Complete identity verification first');
+    if (!kycApproved) {
+      fail('KYC_NOT_APPROVED');
       return;
     }
 
+    setLocalError(null);
     setBusy(true);
     setPhase('login');
 
@@ -62,10 +88,7 @@ export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWall
       const data = (await response.json()) as { error?: string; walletAddress?: string };
 
       if (!response.ok) {
-        const key = data.error ?? 'GENERIC';
-        onError(
-          t.onboarding.errors[key as keyof typeof t.onboarding.errors] ?? t.onboarding.errors.GENERIC
-        );
+        fail(data.error ?? 'GENERIC');
         return;
       }
 
@@ -73,29 +96,36 @@ export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWall
       await refresh({ silent: true });
       await onLinked();
     } catch {
-      onError(t.onboarding.errors.GENERIC);
+      fail('GENERIC');
     } finally {
       setBusy(false);
     }
   }, [
     authenticated,
-    checklist,
     enabled,
     ensureReady,
+    fail,
     getAccessToken,
+    kycApproved,
     login,
-    onError,
     onLinked,
     ready,
-    refresh,
-    t.onboarding.errors
+    refresh
   ]);
 
   useEffect(() => {
-    if (isPrivyEnabled() && checklist?.kycApproved && phase === 'idle') {
-      void provisionAndLink();
+    if (!isPrivyEnabled() || !kycApproved || phase !== 'idle' || busy) {
+      return;
     }
-  }, [checklist?.kycApproved, phase, provisionAndLink]);
+
+    if (autoStartRef.current && !manualRetryRef.current) {
+      return;
+    }
+
+    autoStartRef.current = true;
+    manualRetryRef.current = false;
+    void provisionAndLink();
+  }, [busy, kycApproved, phase, provisionAndLink]);
 
   if (!isPrivyEnabled()) {
     return (
@@ -104,6 +134,9 @@ export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWall
       </p>
     );
   }
+
+  const showRetry = phase === 'failed' && !busy;
+  const showSpinner = busy || (phase !== 'done' && phase !== 'failed');
 
   return (
     <section className="space-y-5">
@@ -122,24 +155,35 @@ export function PrivyOnboardingWallet({ onLinked, onError }: PrivyOnboardingWall
         <p>{o.walletBullet1}</p>
       </div>
 
-      <div className="flex min-h-14 items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white">
-        {busy || phase !== 'done' ? (
-          <>
-            <Loader2 className="mr-2 animate-spin" size={20} />
-            {phase === 'login'
-              ? o.walletSaving
-              : phase === 'linking'
-                ? o.walletSaving
-                : o.walletSaving}
-          </>
-        ) : (
-          o.walletLinked
-        )}
-      </div>
+      {localError ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{localError}</p>
+      ) : null}
 
-      <p className="text-center text-xs text-slate-500">
-        {o.walletHint}
-      </p>
+      {showRetry ? (
+        <button
+          type="button"
+          onClick={() => {
+            manualRetryRef.current = true;
+            autoStartRef.current = false;
+            setPhase('idle');
+          }}
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white hover:bg-blue-500"
+        >
+          <RefreshCw size={20} />
+          {o.walletRetry}
+        </button>
+      ) : showSpinner ? (
+        <div className="flex min-h-14 items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white">
+          <Loader2 className="mr-2 animate-spin" size={20} />
+          {o.walletSaving}
+        </div>
+      ) : (
+        <div className="flex min-h-14 items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white">
+          {o.walletLinked}
+        </div>
+      )}
+
+      <p className="text-center text-xs text-slate-500">{o.walletHint}</p>
     </section>
   );
 }

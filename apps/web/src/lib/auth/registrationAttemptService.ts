@@ -1,7 +1,9 @@
 import { prisma } from '@sanova/database';
 import { normalizeEmail } from './contactValidation';
 
-export type RegistrationChannel = 'desktop' | 'pwa' | 'unknown';
+// 'desktop' kept only for backward-compatibility with rows written before
+// mobile-web detection existed; new writes use 'desktop-web' | 'mobile-web' | 'pwa'.
+export type RegistrationChannel = 'desktop' | 'desktop-web' | 'mobile-web' | 'pwa' | 'unknown';
 
 export async function recordRegistrationAttempt(input: {
   email: string;
