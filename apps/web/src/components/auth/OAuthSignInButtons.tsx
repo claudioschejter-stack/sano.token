@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { OAUTH_TERMS_COOKIE } from '../../lib/auth/oauthRegistrationPolicy';
+import { isRegisterOAuthBlocked } from '../../lib/auth/registerAccessBlock';
 
 type OAuthProvidersResponse = {
   google: boolean;
@@ -19,6 +20,8 @@ type OAuthSignInButtonsProps = {
   hideTermsCheckbox?: boolean;
   onTermsRequired?: () => void;
   onProvidersLoaded?: (hasProviders: boolean) => void;
+  /** When set, disables OAuth buttons on register (mirrors password pre-check blocks). */
+  registerAccessError?: string | null;
 };
 
 function setOAuthTermsCookie() {
@@ -32,7 +35,8 @@ export function OAuthSignInButtons({
   termsAccepted: controlledTermsAccepted,
   hideTermsCheckbox = false,
   onTermsRequired,
-  onProvidersLoaded
+  onProvidersLoaded,
+  registerAccessError = null
 }: OAuthSignInButtonsProps) {
   const t = useTranslation();
   const a = t.access;
@@ -44,6 +48,7 @@ export function OAuthSignInButtons({
 
   const termsAccepted = controlledTermsAccepted ?? internalTermsAccepted;
   const showTermsCheckbox = !hideTermsCheckbox;
+  const oauthBlocked = mode === 'register' && isRegisterOAuthBlocked(registerAccessError);
 
   useEffect(() => {
     void fetch('/api/auth/oauth-providers', { cache: 'no-store' })
@@ -74,6 +79,10 @@ export function OAuthSignInButtons({
   }
 
   async function handleOAuthSignIn(provider: 'google' | 'apple') {
+    if (oauthBlocked) {
+      return;
+    }
+
     if (!termsAccepted) {
       if (onTermsRequired) {
         onTermsRequired();
@@ -141,7 +150,7 @@ export function OAuthSignInButtons({
       {providers.google ? (
         <button
           type="button"
-          disabled={loadingProvider !== null}
+          disabled={loadingProvider !== null || oauthBlocked}
           onClick={() => void handleOAuthSignIn('google')}
           className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -152,7 +161,7 @@ export function OAuthSignInButtons({
       {providers.apple ? (
         <button
           type="button"
-          disabled={loadingProvider !== null}
+          disabled={loadingProvider !== null || oauthBlocked}
           onClick={() => void handleOAuthSignIn('apple')}
           className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-900 bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
         >

@@ -11,6 +11,7 @@ import { OAuthSignInButtons } from '../auth/OAuthSignInButtons';
 import { DEFAULT_POST_ONBOARDING_PATH, buildKycUrl } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
+import { isRegisterOAuthBlocked } from '../../lib/auth/registerAccessBlock';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useIsPwa } from '../../hooks/useIsPwa';
 import { MobileAuthShell } from '../auth/MobileAuthShell';
@@ -176,6 +177,7 @@ function RegisterPageContent() {
           mode="register"
           termsAccepted={acceptedLegal}
           hideTermsCheckbox
+          registerAccessError={registerAccessError}
           onTermsRequired={() => setTermsError(a.register.termsAcceptRequired)}
         />
       </article>
@@ -192,8 +194,7 @@ function RegisterPageContent() {
         </Link>
       </p>
 
-      {registerAccessError !== 'OAUTH_ONLY_DISABLED' &&
-      registerAccessError !== 'INVESTOR_ACCESS_NOT_ENABLED' ? (
+      {!isRegisterOAuthBlocked(registerAccessError) ? (
         <p className="text-center text-sm text-slate-500">
           <Link href={loginHref} className="font-medium text-blue-600 hover:text-blue-500">
             {a.alreadyRegistered}

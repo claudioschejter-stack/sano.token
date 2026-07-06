@@ -61,7 +61,8 @@ Esperado: todos los tests passing, `tsc` sin errores. Cubre pre-check email, cue
 - [ ] Cuenta deshabilitada **tampoco** entra por login password (`INVESTOR_ACCESS_NOT_ENABLED` en step1)
 - [ ] Registro password de cuenta deshabilitada muestra `INVESTOR_ACCESS_NOT_ENABLED` (no “código inválido”)
 - [ ] **Invite ACCEPTED + cuenta deshabilitada:** pre-check email **no** bloquea falsamente (submit permitido)
-- [ ] **OAuth-only deshabilitada:** pre-check muestra mensaje accionable (`OAUTH_ONLY_DISABLED`); **sin** link “Iniciá sesión” ni “Ya tengo cuenta” (form ni footer página)
+- [ ] **OAuth-only deshabilitada:** pre-check muestra mensaje accionable (`OAUTH_ONLY_DISABLED`); **sin** link “Iniciá sesión” ni “Ya tengo cuenta”; **botones Google/Apple deshabilitados**
+- [ ] Pre-check bloqueado (`REGION_NOT_AVAILABLE`, `INVESTOR_ACCESS_NOT_ENABLED`, `EMAIL_CHECK_FAILED`): submit password y OAuth **ambos** deshabilitados
 - [ ] Email invite `?email=` dispara pre-check al cargar (sin esperar blur)
 - [ ] Submit registro ejecuta pre-check aunque el usuario no haya hecho blur en el email
 - [ ] Pre-check falla **cerrado** si hay error de red (`EMAIL_CHECK_FAILED`; botón Crear cuenta deshabilitado)

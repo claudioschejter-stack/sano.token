@@ -10,6 +10,7 @@ import { useIsPwa } from '../../hooks/useIsPwa';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import type { OnboardingProfile } from '../../lib/onboarding/profile';
 import { buildKycUrl } from '../../lib/auth/kycPaths';
+import { isRegisterOAuthBlocked } from '../../lib/auth/registerAccessBlock';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { useTurnstile } from '../../lib/security/useTurnstile';
 import { formFieldClassName, formFieldErrorClassName } from '../../lib/ui/formFieldClassName';
@@ -327,8 +328,7 @@ export function RegisterForm({
     !readOnly &&
     loginHref &&
     !hideLoginLink &&
-    registrationErrorCode !== 'OAUTH_ONLY_DISABLED' &&
-    registrationErrorCode !== 'INVESTOR_ACCESS_NOT_ENABLED';
+    !isRegisterOAuthBlocked(registrationErrorCode);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
