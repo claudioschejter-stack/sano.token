@@ -2015,7 +2015,9 @@ export const es = {
         REGISTRATION_FAILED:
           'No pudimos completar el alta por un error interno. Intentá de nuevo en unos minutos o contactá a Sanova.',
         DATABASE_UNAVAILABLE:
-          'El servicio está temporalmente no disponible. Intentá de nuevo en unos minutos.'
+          'El servicio está temporalmente no disponible. Intentá de nuevo en unos minutos.',
+        ACCOUNT_STATE_CONFLICT:
+          'Ya hay una cuenta en proceso con este email. Contactá a Sanova para completar el acceso o usá recuperar contraseña.'
       }
     },
     kycTitle: 'Verificación de identidad (KYC)',

@@ -1,6 +1,11 @@
 import { prisma } from '@sanova/database';
 import { hasValidInvestorInviteForEmail } from '../admin/investorInviteService';
+import { isInvestorOpenRegistration } from './investorAccess';
 import { isPreApprovedInvestorEmail } from './roleAllowlist';
+import {
+  isGhostUserWithoutCredential,
+  shouldRejectDisabledAccountRegistration
+} from './registerService';
 
 export type RegisterEmailPrecheckReason =
   | 'EMAIL_IN_USE'
@@ -32,12 +37,21 @@ export async function evaluateRegisterEmailPrecheck(
     return { available: true };
   }
 
+  const openRegistration = isInvestorOpenRegistration();
   const explicitAccessGrant = await hasExplicitInvestorAccessGrant(email);
 
+  if (user.passwordHash) {
+    return { available: false, reason: 'EMAIL_IN_USE' };
+  }
+
   if (
-    user.systemRole === 'INVESTOR' &&
-    !user.investorAccessEnabled &&
-    !explicitAccessGrant
+    shouldRejectDisabledAccountRegistration({
+      existing: user,
+      staffOnboarding: false,
+      explicitAccessGrant,
+      inviteCodeGrant: false,
+      openRegistration
+    })
   ) {
     if (user.oauthProvider && !user.passwordHash) {
       return { available: false, reason: 'OAUTH_ONLY_DISABLED' };
@@ -46,7 +60,11 @@ export async function evaluateRegisterEmailPrecheck(
     return { available: false, reason: 'INVESTOR_ACCESS_NOT_ENABLED' };
   }
 
-  if (user.passwordHash || user.oauthProvider) {
+  if (openRegistration && (isGhostUserWithoutCredential(user) || user.oauthProvider)) {
+    return { available: true };
+  }
+
+  if (user.oauthProvider) {
     return { available: false, reason: 'EMAIL_IN_USE' };
   }
 

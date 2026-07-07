@@ -17,6 +17,10 @@ vi.mock('./roleAllowlist', () => ({
   isPreApprovedInvestorEmail: vi.fn()
 }));
 
+vi.mock('./investorAccess', () => ({
+  isInvestorOpenRegistration: vi.fn(() => true)
+}));
+
 import { prisma } from '@sanova/database';
 import { hasValidInvestorInviteForEmail } from '../admin/investorInviteService';
 import { isPreApprovedInvestorEmail } from './roleAllowlist';
@@ -68,7 +72,7 @@ describe('evaluateRegisterEmailPrecheck', () => {
     });
   });
 
-  it('returns INVESTOR_ACCESS_NOT_ENABLED for disabled investor without grant', async () => {
+  it('returns EMAIL_IN_USE for disabled investor that already has a password', async () => {
     findUnique.mockResolvedValue({
       passwordHash: 'hash',
       oauthProvider: null,
@@ -78,7 +82,7 @@ describe('evaluateRegisterEmailPrecheck', () => {
 
     await expect(evaluateRegisterEmailPrecheck('disabled@example.com')).resolves.toEqual({
       available: false,
-      reason: 'INVESTOR_ACCESS_NOT_ENABLED'
+      reason: 'EMAIL_IN_USE'
     });
   });
 
@@ -93,6 +97,32 @@ describe('evaluateRegisterEmailPrecheck', () => {
     await expect(evaluateRegisterEmailPrecheck('oauth@example.com')).resolves.toEqual({
       available: false,
       reason: 'OAUTH_ONLY_DISABLED'
+    });
+  });
+
+  it('allows ghost investor without credentials under open registration', async () => {
+    findUnique.mockResolvedValue({
+      passwordHash: null,
+      oauthProvider: null,
+      investorAccessEnabled: false,
+      systemRole: 'INVESTOR'
+    } as never);
+
+    await expect(evaluateRegisterEmailPrecheck('ghost@example.com')).resolves.toEqual({
+      available: true
+    });
+  });
+
+  it('allows OAuth account without password under open registration', async () => {
+    findUnique.mockResolvedValue({
+      passwordHash: null,
+      oauthProvider: 'google',
+      investorAccessEnabled: true,
+      systemRole: 'INVESTOR'
+    } as never);
+
+    await expect(evaluateRegisterEmailPrecheck('oauth-enabled@example.com')).resolves.toEqual({
+      available: true
     });
   });
 });

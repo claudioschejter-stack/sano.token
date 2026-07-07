@@ -60,7 +60,20 @@ export async function registerInvestor(input: RegisterInput) {
     throw new Error('TERMS_NOT_ACCEPTED');
   }
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      passwordHash: true,
+      oauthProvider: true,
+      investorAccessEnabled: true,
+      systemRole: true,
+      phone: true,
+      emailVerifiedAt: true,
+      phoneVerifiedAt: true,
+      accountStatus: true,
+      kycStatus: true
+    }
+  });
   const allowlistRole = resolveRoleFromAllowlist(email);
 
   if (
@@ -148,19 +161,39 @@ export async function registerInvestor(input: RegisterInput) {
     termsAcceptedAt
   };
 
-  const user = await prisma.user.upsert({
-    where: { email },
-    create: {
-      email,
-      ...sharedProfile,
-      investorAccessEnabled
-    },
-    update: preserveStaffRole
-      ? {
+  const accessEnabledOnCreate =
+    systemRole === 'INVESTOR' && openRegistration ? true : investorAccessEnabled;
+
+  let user;
+  try {
+    if (!existing) {
+      user = await prisma.user.create({
+        data: {
+          email,
+          ...sharedProfile,
+          investorAccessEnabled: accessEnabledOnCreate
+        }
+      });
+    } else if (preserveStaffRole) {
+      user = await prisma.user.update({
+        where: { email },
+        data: {
           ...sharedProfile,
           investorAccessEnabled: existing.investorAccessEnabled
         }
-      : {
+      });
+    } else {
+      const accessEnabledOnUpdate =
+        systemRole === 'INVESTOR' && openRegistration
+          ? true
+          : investorAccessEnabled ||
+            existing.investorAccessEnabled ||
+            explicitAccessGrant ||
+            inviteCodeGrant;
+
+      user = await prisma.user.update({
+        where: { email },
+        data: {
           ...sharedProfile,
           phone: phoneE164 ?? existing.phone,
           emailVerifiedAt: existing.emailVerifiedAt,
@@ -168,13 +201,16 @@ export async function registerInvestor(input: RegisterInput) {
           accountStatus:
             existing.accountStatus === 'SUSPENDED' ? 'SUSPENDED' : existing.accountStatus,
           kycStatus: existing.kycStatus,
-          investorAccessEnabled:
-            investorAccessEnabled ||
-            existing.investorAccessEnabled ||
-            explicitAccessGrant ||
-            inviteCodeGrant
+          investorAccessEnabled: accessEnabledOnUpdate
         }
-  });
+      });
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('REGISTER_UPSERT_FAILED');
+  }
 
   if (user.systemRole === 'INVESTOR' && (await hasValidInvestorInviteForEmail(email))) {
     try {

@@ -5,7 +5,7 @@ import {
   type RegistrationChannel
 } from '../../../../lib/auth/registrationAttemptService';
 import { normalizeEmail } from '../../../../lib/auth/contactValidation';
-import { mapRegisterRouteError } from '../../../../lib/auth/registerRouteErrors';
+import { mapRegisterRouteError, formatRegistrationAttemptErrorCode } from '../../../../lib/auth/registerRouteErrors';
 import { requireTurnstile } from '../../../../lib/security/requireTurnstile';
 import { isCountryBlockedForRegistration } from '../../../../lib/security/blockedCountries';
 
@@ -93,10 +93,12 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const { code, status } = mapRegisterRouteError(error);
+    const attemptErrorCode = formatRegistrationAttemptErrorCode(error, code);
 
     console.error('[auth/register]', {
       email: emailForLog,
       errorCode: code,
+      attemptErrorCode,
       channel,
       ipCountry,
       cause: error instanceof Error ? error.message : String(error),
@@ -107,7 +109,7 @@ export async function POST(request: Request) {
       await recordRegistrationAttempt({
         email: emailForLog,
         success: false,
-        errorCode: code,
+        errorCode: attemptErrorCode,
         channel,
         ipCountry
       });

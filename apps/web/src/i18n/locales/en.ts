@@ -1981,7 +1981,9 @@ export const en = {
         INVALID_RESPONSE: 'The server returned an unexpected response. Reload the page and try again.',
         REGISTRATION_FAILED:
           'We could not complete signup due to an internal error. Try again in a few minutes or contact Sanova.',
-        DATABASE_UNAVAILABLE: 'The service is temporarily unavailable. Try again in a few minutes.'
+        DATABASE_UNAVAILABLE: 'The service is temporarily unavailable. Try again in a few minutes.',
+        ACCOUNT_STATE_CONFLICT:
+          'An account is already in progress for this email. Contact Sanova to complete access or use password recovery.'
       }
     },
     kycTitle: "Identity verification (KYC)",
