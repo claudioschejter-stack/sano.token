@@ -1855,7 +1855,7 @@ export const en = {
     mobileGateSkip: "Sign in with username and password",
     mobileAppBadge: "Mobile app",
     activation: {
-      pendingTitle: "Activate your account from your email",
+      pendingTitle: "Check your email to activate your account",
       pendingDesc:
         "We sent you a link. Open it and tap “Activate your account” to continue. Check spam too.",
       activating: "Activating your account…",

@@ -250,7 +250,11 @@ export function RegisterForm({
 
     setLoading(true);
 
-    if (turnstile.enabled && !turnstile.token) {
+    let captchaToken = turnstile.token;
+    if (turnstile.enabled && !captchaToken) {
+      captchaToken = await turnstile.execute();
+    }
+    if (turnstile.enabled && !captchaToken) {
       setLoading(false);
       setError(r.errors.CAPTCHA_REQUIRED ?? r.errors.GENERIC);
       return;
@@ -267,7 +271,7 @@ export function RegisterForm({
           password,
           termsAccepted: true,
           inviteCode: inviteCode.trim() || undefined,
-          turnstileToken: turnstile.token,
+          turnstileToken: captchaToken,
           channel
         })
       });
