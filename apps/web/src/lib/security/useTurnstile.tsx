@@ -4,19 +4,22 @@ import { useCallback, useRef, useState, type RefObject } from 'react';
 import { TurnstileWidget, type TurnstileWidgetHandle } from '../../components/auth/TurnstileWidget';
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
-const WIDGET_WAIT_MS = 3_000;
+const WIDGET_WAIT_MS = 10_000;
 const WIDGET_POLL_MS = 100;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForWidgetRef(
+async function waitForWidgetHandle(
   widgetRef: RefObject<TurnstileWidgetHandle | null>
 ): Promise<TurnstileWidgetHandle | null> {
   const deadline = Date.now() + WIDGET_WAIT_MS;
 
   while (Date.now() < deadline) {
+    if (widgetRef.current?.isReady()) {
+      return widgetRef.current;
+    }
     if (widgetRef.current) {
       return widgetRef.current;
     }
@@ -38,7 +41,7 @@ export function useTurnstile() {
       return token;
     }
 
-    const widget = widgetRef.current ?? (await waitForWidgetRef(widgetRef));
+    const widget = (await waitForWidgetHandle(widgetRef)) ?? widgetRef.current;
     if (!widget) {
       return null;
     }
