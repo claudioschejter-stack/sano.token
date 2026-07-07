@@ -1,9 +1,30 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, type RefObject } from 'react';
 import { TurnstileWidget, type TurnstileWidgetHandle } from '../../components/auth/TurnstileWidget';
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? '';
+const WIDGET_WAIT_MS = 3_000;
+const WIDGET_POLL_MS = 100;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForWidgetRef(
+  widgetRef: RefObject<TurnstileWidgetHandle | null>
+): Promise<TurnstileWidgetHandle | null> {
+  const deadline = Date.now() + WIDGET_WAIT_MS;
+
+  while (Date.now() < deadline) {
+    if (widgetRef.current) {
+      return widgetRef.current;
+    }
+    await sleep(WIDGET_POLL_MS);
+  }
+
+  return widgetRef.current;
+}
 
 export function useTurnstile() {
   const [token, setToken] = useState<string | null>(null);
@@ -16,10 +37,13 @@ export function useTurnstile() {
     if (token) {
       return token;
     }
-    if (!widgetRef.current) {
+
+    const widget = widgetRef.current ?? (await waitForWidgetRef(widgetRef));
+    if (!widget) {
       return null;
     }
-    const result = await widgetRef.current.execute();
+
+    const result = await widget.execute();
     if (result) {
       setToken(result);
     }

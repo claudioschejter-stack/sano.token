@@ -6,9 +6,11 @@ type TurnstileOptions = {
   sitekey: string;
   callback: (token: string) => void;
   'expired-callback': () => void;
-  'error-callback': () => void;
+  'error-callback': () => boolean | void;
   theme?: 'light' | 'dark' | 'auto';
   size?: 'normal' | 'compact' | 'invisible';
+  execution?: 'render' | 'execute';
+  appearance?: 'always' | 'execute' | 'interaction-only';
 };
 
 type TurnstileInstance = {
@@ -54,6 +56,19 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, Props>(function
     pendingExecuteRef.current = null;
   }, []);
 
+  const resetWidget = useCallback((widgetId: string) => {
+    const ts = getTurnstile();
+    if (!ts) {
+      return;
+    }
+
+    try {
+      ts.reset(widgetId);
+    } catch {
+      // ignore reset failures
+    }
+  }, []);
+
   const handleVerify = useCallback(
     (token: string) => {
       onVerify(token);
@@ -63,46 +78,26 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, Props>(function
   );
 
   const handleExpire = useCallback(() => {
-    widgetIdRef.current = null;
     resolvePendingExecute(null);
     onExpire?.();
-  }, [onExpire, resolvePendingExecute]);
 
-  const handleError = useCallback(() => {
-    widgetIdRef.current = null;
+    const widgetId = widgetIdRef.current;
+    if (widgetId) {
+      resetWidget(widgetId);
+    }
+  }, [onExpire, resetWidget, resolvePendingExecute]);
+
+  const handleError = useCallback((): boolean => {
     resolvePendingExecute(null);
     onError?.();
-  }, [onError, resolvePendingExecute]);
 
-  const execute = useCallback((): Promise<string | null> => {
-    const ts = getTurnstile();
     const widgetId = widgetIdRef.current;
-    if (!ts || !widgetId) {
-      return Promise.resolve(null);
+    if (widgetId) {
+      resetWidget(widgetId);
     }
 
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        pendingExecuteRef.current = null;
-        resolve(null);
-      }, EXECUTE_TIMEOUT_MS);
-
-      pendingExecuteRef.current = (token) => {
-        clearTimeout(timeout);
-        resolve(token);
-      };
-
-      try {
-        ts.execute(widgetId);
-      } catch {
-        clearTimeout(timeout);
-        pendingExecuteRef.current = null;
-        resolve(null);
-      }
-    });
-  }, []);
-
-  useImperativeHandle(ref, () => ({ execute }), [execute]);
+    return true;
+  }, [onError, resetWidget, resolvePendingExecute]);
 
   const renderWidget = useCallback(() => {
     const ts = getTurnstile();
@@ -119,9 +114,50 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, Props>(function
       'expired-callback': handleExpire,
       'error-callback': handleError,
       theme,
-      size: 'invisible'
+      size: 'invisible',
+      execution: 'execute',
+      appearance: 'interaction-only'
     });
   }, [handleVerify, handleExpire, handleError, theme]);
+
+  const execute = useCallback((): Promise<string | null> => {
+    const ts = getTurnstile();
+    if (!ts) {
+      return Promise.resolve(null);
+    }
+
+    if (!widgetIdRef.current) {
+      renderWidget();
+    }
+
+    const widgetId = widgetIdRef.current;
+    if (!widgetId) {
+      return Promise.resolve(null);
+    }
+
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        pendingExecuteRef.current = null;
+        resolve(null);
+      }, EXECUTE_TIMEOUT_MS);
+
+      pendingExecuteRef.current = (token) => {
+        clearTimeout(timeout);
+        resolve(token);
+      };
+
+      try {
+        ts.reset(widgetId);
+        ts.execute(widgetId);
+      } catch {
+        clearTimeout(timeout);
+        pendingExecuteRef.current = null;
+        resolve(null);
+      }
+    });
+  }, [renderWidget]);
+
+  useImperativeHandle(ref, () => ({ execute }), [execute]);
 
   useEffect(() => {
     if (!SITE_KEY) return;
