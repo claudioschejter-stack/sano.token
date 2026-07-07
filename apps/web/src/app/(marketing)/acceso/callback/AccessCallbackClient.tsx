@@ -8,7 +8,7 @@ import { resolveAuthenticatedDestination } from '../../../../lib/auth/redirects'
 import type { SystemRole } from '../../../../lib/auth/roles';
 import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from '../../../../lib/auth/kycPaths';
 import { useAccountStatus } from '../../../../hooks/useAccountStatus';
-import { useDeviceDetection } from '../../../../hooks/useDeviceDetection';
+import { useMobilePortal } from '../../../../hooks/useMobilePortal';
 import { getDevicePasskeyHint } from '../../../../lib/auth/devicePasskeyStorage';
 import { hasBiometricPromptBeenShown, markBiometricPromptShown } from '../../../../lib/auth/biometricPromptStorage';
 import { BiometricOnboardingStep } from '../../../../components/auth/BiometricOnboardingStep';
@@ -18,8 +18,8 @@ export default function AccessCallbackClient() {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const access = useTranslation().access;
-  const { isOperational, loading, refresh, checklist } = useAccountStatus();
-  const { isMobile } = useDeviceDetection();
+  const { isOperational, loading, refresh, checklist, registrationChannel } = useAccountStatus();
+  const isMobilePortal = useMobilePortal();
   const diditSyncStarted = useRef(false);
   const [diditSyncing, setDiditSyncing] = useState(false);
   const [totpPendingSetup, setTotpPendingSetup] = useState<boolean | null>(null);
@@ -87,15 +87,16 @@ export default function AccessCallbackClient() {
           registered: justRegistered
         })
       : resolveAuthenticatedDestination(role, returnTo, isOperational, {
-          registered: justRegistered
+          registered: justRegistered,
+          isMobile: isMobilePortal,
+          registrationChannel
         });
 
-    // First successful login on this phone with email/password (not needing KYC/TOTP
-    // setup): offer to enable biometric unlock once, like Mercado Pago does.
+    // Post-login biometric prompt on mobile (legacy path — onboarding now enrolls during /kyc).
     const email = session?.user?.email?.trim().toLowerCase() ?? '';
     if (
       !needsTotpStep &&
-      isMobile &&
+      isMobilePortal &&
       email &&
       !getDevicePasskeyHint()?.credentialId &&
       !hasBiometricPromptBeenShown(email)
@@ -112,7 +113,8 @@ export default function AccessCallbackClient() {
     checklist?.walletLinked,
     diditSyncing,
     hasDiditStatus,
-    isMobile,
+    isMobilePortal,
+    registrationChannel,
     isOperational,
     loading,
     router,

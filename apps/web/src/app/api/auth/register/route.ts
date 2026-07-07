@@ -8,6 +8,7 @@ import { normalizeEmail } from '../../../../lib/auth/contactValidation';
 import { mapRegisterRouteError, formatRegistrationAttemptErrorCode } from '../../../../lib/auth/registerRouteErrors';
 import { requireTurnstile } from '../../../../lib/security/requireTurnstile';
 import { isCountryBlockedForRegistration } from '../../../../lib/security/blockedCountries';
+import { sendAccountActivationEmail } from '../../../../lib/onboarding/accountActivationService';
 
 const KNOWN_CHANNELS: RegistrationChannel[] = ['pwa', 'mobile-web', 'desktop-web'];
 
@@ -76,7 +77,14 @@ export async function POST(request: Request) {
       fullName: body.fullName ?? '',
       taxId: body.taxId ?? '',
       termsAccepted: body.termsAccepted === true,
-      inviteCode: body.inviteCode ?? ''
+      inviteCode: body.inviteCode ?? '',
+      registrationChannel: channel !== 'unknown' ? channel : undefined
+    });
+
+    const activation = await sendAccountActivationEmail({
+      userId: result.userId,
+      email: result.email,
+      channel
     });
 
     await recordRegistrationAttempt({
@@ -89,7 +97,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       email: result.email,
-      phone: result.phone
+      phone: result.phone,
+      activationSent: activation.delivered,
+      devActivationUrl: activation.devActivationUrl
     });
   } catch (error) {
     const { code, status } = mapRegisterRouteError(error);

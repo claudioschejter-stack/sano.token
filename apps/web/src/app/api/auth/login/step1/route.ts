@@ -14,9 +14,11 @@ import { prisma } from '@sanova/database';
  *  - { error: ... } → credenciales inválidas
  */
 export async function POST(request: Request) {
-  const body = (await request.json()) as { email?: string; password?: string };
+  const body = (await request.json()) as { email?: string; password?: string; channel?: string };
   const email = body.email?.trim().toLowerCase();
   const password = body.password;
+  const channel = body.channel?.trim();
+  const isMobileChannel = channel === 'pwa' || channel === 'mobile-web';
 
   if (!email || !password) {
     return NextResponse.json({ error: 'CREDENCIALES_INCOMPLETAS' }, { status: 400 });
@@ -55,7 +57,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'CREDENCIALES_INVALIDAS' }, { status: 401 });
   }
 
-  if (!user.totpEnabled) {
+  if (!user.totpEnabled || isMobileChannel) {
     return NextResponse.json({ ok: true, requiresTOTP: false });
   }
 

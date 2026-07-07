@@ -18,6 +18,7 @@ type OAuthLoginInput = {
   image?: string | null;
   provider: string;
   providerAccountId: string;
+  registrationChannel?: string;
 };
 
 async function resolveInvestorAccessForOAuth(email: string): Promise<boolean> {
@@ -35,7 +36,8 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
     select: {
       systemRole: true,
       investorAccessEnabled: true,
-      termsAcceptedAt: true
+      termsAcceptedAt: true,
+      emailVerifiedAt: true
     }
   });
 
@@ -82,7 +84,9 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
       oauthProviderId: input.providerAccountId,
       systemRole: role as PrismaSystemRole,
       investorAccessEnabled: role === 'INVESTOR' ? investorAccessForOAuth : false,
-      termsAcceptedAt: termsAcceptedAt ?? new Date()
+      termsAcceptedAt: termsAcceptedAt ?? new Date(),
+      emailVerifiedAt: new Date(),
+      ...(input.registrationChannel ? { registrationChannel: input.registrationChannel } : {})
     },
     update: {
       name: input.name ?? undefined,
@@ -91,6 +95,7 @@ export async function handleOAuthLogin(input: OAuthLoginInput) {
       oauthProviderId: input.providerAccountId,
       systemRole: role as PrismaSystemRole,
       ...(termsAcceptedAt ? { termsAcceptedAt } : {}),
+      ...(!existingUser?.emailVerifiedAt ? { emailVerifiedAt: new Date() } : {}),
       ...(role === 'INVESTOR' &&
       !existingUser?.investorAccessEnabled &&
       investorAccessForOAuth &&

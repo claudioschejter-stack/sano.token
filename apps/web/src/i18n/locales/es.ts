@@ -1880,6 +1880,41 @@ export const es = {
     mobileGateActivateBiometricDesc: 'Vas a iniciar sesión una vez con tu contraseña para activarla en este celular.',
     mobileGateSkip: 'Ingresar con usuario y contraseña',
     mobileAppBadge: 'App móvil',
+    activation: {
+      pendingTitle: 'Activá tu cuenta desde tu correo electrónico',
+      pendingDesc:
+        'Te enviamos un enlace a tu correo. Abrilo y tocá «Activá tu cuenta» para continuar. Revisá también spam.',
+      activating: 'Activando tu cuenta…',
+      subtitleActivating: 'Un momento',
+      subtitleError: 'No pudimos activar la cuenta',
+      title: 'Activación de cuenta',
+      resendButton: 'Reenviar email de activación',
+      resending: 'Reenviando…',
+      resentOk: 'Email reenviado. Revisá tu bandeja de entrada.',
+      backToAccess: 'Volver al acceso',
+      errors: {
+        GENERIC: 'No pudimos completar la activación. Intentá de nuevo.',
+        INVALID_OR_EXPIRED_TOKEN: 'El enlace no es válido o venció. Solicitá uno nuevo desde el registro.',
+        SIGN_IN_FAILED: 'Tu cuenta se activó, pero no pudimos iniciar sesión. Probá ingresar manualmente.'
+      }
+    },
+    continueOnMobile: {
+      title: 'Continuá en tu celular',
+      desc: 'Escaneá el código QR con la cámara de tu teléfono para completar identidad, pagos y seguridad (~3 min).',
+      loadingQr: 'Generando código QR…',
+      phoneDoneHint: 'Teléfono guardado. Seguí en tu celular con el QR.',
+      footerHint: 'Mantené esta pantalla abierta hasta que termines en el teléfono.',
+      errors: {
+        GENERIC: 'No pudimos generar el código QR. Intentá de nuevo.',
+        INVALID_OR_EXPIRED_TOKEN: 'El enlace expiró. Volvé a iniciar sesión en la computadora.'
+      }
+    },
+    registrationSuccess: {
+      title: '¡Registro exitoso!',
+      desc: 'Tu cuenta ya está operativa. A partir de ahora, en el celular entrás con huella o Face ID.',
+      continueButton: 'Ir a la app',
+      continuing: 'Abriendo…'
+    },
     registerTab: 'Crear cuenta',
     availableProperties: 'Propiedades disponibles',
     signingIn: 'Ingresando…',
@@ -2061,6 +2096,7 @@ export const es = {
     accountCreatedBanner:
       'Paso 2 de 5: confirmá tu contacto (~10 min en total).',
     savePhoneContinue: 'Guardar teléfono y continuar',
+    continueWithKyc: 'Continuar con el KYC',
     backHome: 'Inicio',
     backToAccess: 'Volver a acceso',
     loading: 'Cargando onboarding…',
@@ -2083,6 +2119,7 @@ export const es = {
     steps: {
       contactTitle: 'Confirmá tu contacto',
       contactDesc: 'Usamos tu email de sesión y guardamos tu teléfono para contacto y premios.',
+      biometricRequired: 'Activá huella o Face ID para continuar.',
       emailTitle: 'Verificá tu email',
       emailCodeDesc: 'Ingresá el código que enviamos a tu correo.',
       emailDesc: 'Ingresá el código de 6 dígitos que enviamos a tu correo.',
@@ -2164,6 +2201,11 @@ export const es = {
         'Si ves más de una entrada Sanova Capital, usá la más reciente o eliminá las duplicadas e ingresá el código de la que quede activa.',
       verifying: 'Verificando…',
       activate: 'Activar autenticador',
+      mobileSilentTitle: 'Google Authenticator para ingresos desde la computadora',
+      mobileSilentDesc:
+        'Configuramos Sanova Capital en Google Authenticator en tu celular. Lo usarás solo cuando ingreses desde la PC.',
+      mobileSilentContinue: 'Listo, continuar',
+      openGoogleAuthenticator: 'Abrir Google Authenticator',
       resetting: 'Reiniciando autenticador…',
       resetCta: 'Empezar de cero (borra clave anterior en el servidor)',
       manualTitle: 'Configuración manual (recomendada si el código no valida)',

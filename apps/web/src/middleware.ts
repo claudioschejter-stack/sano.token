@@ -11,6 +11,12 @@ import {
   parseLocalePath
 } from './lib/i18n/localeRouting';
 import { requiresOnboardingGatePath, shouldRedirectToOnboarding } from './lib/auth/middlewarePolicy';
+import { isMobileUserAgent } from './lib/auth/isMobileUserAgent';
+import {
+  isMobileEntryRedirectPath,
+  resolveMobileInvestorHome
+} from './lib/auth/mobileDestinations';
+import { isMarketplaceTradingRole } from './lib/auth/roles';
 import { isCountryBlockedForRegistration } from './lib/security/blockedCountries';
 
 const LOGIN_GATE_PATHS = new Set(['/mercado-secundario']);
@@ -147,6 +153,24 @@ export async function middleware(request: NextRequest) {
 
   const isAuthenticated = Boolean(sessionUser?.accessToken);
 
+  const userAgent = request.headers.get('user-agent');
+  const isMobileRequest = isMobileUserAgent(userAgent);
+  const role = sessionUser?.role as SystemRole | undefined;
+
+  if (
+    isAuthenticated &&
+    isMobileRequest &&
+    sessionUser?.accountOperational &&
+    role &&
+    isMarketplaceTradingRole(role) &&
+    isMobileEntryRedirectPath(pathname)
+  ) {
+    return withLocaleAndCountryHints(
+      NextResponse.redirect(new URL(resolveMobileInvestorHome(role), request.url)),
+      request
+    );
+  }
+
   if (LOGIN_GATE_PATHS.has(pathname) && !isAuthenticated) {
     const returnTo = encodeURIComponent(pathname);
     return withLocaleAndCountryHints(
@@ -177,8 +201,6 @@ export async function middleware(request: NextRequest) {
       request
     );
   }
-
-  const role = sessionUser?.role as SystemRole | undefined;
 
   if (pathname.startsWith('/dashboard') && !canAccessPath(role, pathname)) {
     return withLocaleAndCountryHints(

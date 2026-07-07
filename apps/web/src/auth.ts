@@ -4,6 +4,7 @@ import { prisma } from '@sanova/database';
 import authConfig from './auth.config';
 import { verifyCredentials } from './lib/auth/credentialsService';
 import { verifyPasskeyLoginToken } from './lib/auth/passkeyService';
+import { verifyActivationLoginGrant } from './lib/onboarding/accountActivationService';
 import { handleOAuthLogin } from './lib/auth/oauthService';
 import { buildOAuthProviders } from './lib/auth/oauthProviders';
 import {
@@ -16,6 +17,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ...authConfig,
   providers: [
     ...buildOAuthProviders(),
+    Credentials({
+      id: 'activation',
+      name: 'activation',
+      credentials: {
+        loginToken: { label: 'Login Token', type: 'text' }
+      },
+      async authorize(credentials) {
+        const loginToken = credentials?.loginToken;
+        if (typeof loginToken !== 'string' || !loginToken.trim()) {
+          return null;
+        }
+
+        try {
+          const result = await verifyActivationLoginGrant(loginToken.trim());
+          if (!result) {
+            return null;
+          }
+
+          return {
+            id: result.id,
+            email: result.email,
+            role: result.role,
+            roles: result.roles,
+            accessToken: result.accessToken,
+            accountOperational: result.accountOperational
+          };
+        } catch (error) {
+          console.error('[auth] activation login failed:', error);
+          return null;
+        }
+      }
+    }),
     Credentials({
       id: 'passkey',
       name: 'passkey',

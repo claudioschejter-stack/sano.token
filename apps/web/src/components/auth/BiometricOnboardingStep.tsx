@@ -8,7 +8,7 @@ import { ToggleSwitch } from '../ui/ToggleSwitch';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
 type Props = {
-  onComplete: () => void | Promise<void>;
+  onComplete: (passkeyRegistered: boolean) => void | Promise<void>;
 };
 
 function isIosDevice(): boolean {
@@ -94,7 +94,7 @@ export function BiometricOnboardingStep({ onComplete }: Props) {
 
       <button
         type="button"
-        onClick={() => void onComplete()}
+        onClick={() => void onComplete(done)}
         disabled={loading}
         className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 disabled:opacity-60"
       >

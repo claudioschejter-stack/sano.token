@@ -12,6 +12,7 @@ import { resolveAccessPageError } from '../../lib/auth/accessPageErrors';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
+import { useMobilePortal } from '../../hooks/useMobilePortal';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { PwaPropertyCarousel } from '../pwa/PwaPropertyCarousel';
 import { TrustBadges } from '../landing/TrustBadges';
@@ -56,6 +57,7 @@ function MobileAccessLandingContent() {
   const registered = searchParams.get('registered') === '1';
 
   const { isOperational, loading: accountLoading } = useAccountStatus();
+  const isMobilePortal = useMobilePortal();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
   const role = session?.user?.role;
 
@@ -77,10 +79,11 @@ function MobileAccessLandingContent() {
     const destination = resolveAuthenticatedDestination(
       role,
       returnTo,
-      isOperational || canAccessPortalWithoutInvestorOnboarding(role)
+      isOperational || canAccessPortalWithoutInvestorOnboarding(role),
+      { isMobile: isMobilePortal }
     );
     router.replace(destination);
-  }, [isOperational, returnTo, router, role, session?.user?.accessToken, status]);
+  }, [isMobilePortal, isOperational, returnTo, router, role, session?.user?.accessToken, status]);
 
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (

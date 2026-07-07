@@ -12,6 +12,7 @@ import {
 } from '../../lib/auth/totpAuthenticatorLink';
 import { initialTotpOnboardingStep, shouldStartTotpOnConfirmStep } from '../../lib/auth/totpOnboardingFlow';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
+import { InstallAppBanner } from '../pwa/InstallAppBanner';
 import { useTranslation } from '../../i18n/LocaleProvider';
 
 type Step = 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
@@ -135,6 +136,8 @@ type Props = {
   onComplete: () => void | Promise<void>;
   /** Skip opening GA automatically — user already added Sanova Capital. */
   preferConfirm?: boolean;
+  /** Mobile onboarding: provision GA silently for future desktop login. */
+  mobileSilent?: boolean;
 };
 
 function readStoredStep(): PersistedStep | null {
@@ -163,7 +166,11 @@ function persistStep(step: Step | null) {
   window.sessionStorage.removeItem(TOTP_ONBOARDING_STORAGE_KEY);
 }
 
-export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props) {
+export function TotpOnboardingStep({
+  onComplete,
+  preferConfirm = false,
+  mobileSilent = false
+}: Props) {
   const t = useTranslation();
   const totp = t.onboarding.totp;
   const manualLabels = {
@@ -495,6 +502,68 @@ export function TotpOnboardingStep({ onComplete, preferConfirm = false }: Props)
     a.download = 'sanova-backup-codes.txt';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  const [mobileSilentBusy, setMobileSilentBusy] = useState(false);
+  const [mobileSilentError, setMobileSilentError] = useState('');
+  const [mobileSilentUri, setMobileSilentUri] = useState('');
+
+  useEffect(() => {
+    if (!mobileSilent || autoProvisionedRef.current) {
+      return;
+    }
+
+    autoProvisionedRef.current = true;
+    setMobileSilentBusy(true);
+
+    void fetch('/api/onboarding/provision-mobile-totp', { method: 'POST', credentials: 'same-origin' })
+      .then((res) => res.json())
+      .then((data: { uri?: string; error?: string }) => {
+        if (data.uri) {
+          setMobileSilentUri(data.uri);
+          if (isMobile) {
+            void provisionGoogleAuthenticator(data.uri);
+          }
+        } else if (data.error) {
+          setMobileSilentError(totp.regenerateFailed);
+        }
+      })
+      .catch(() => setMobileSilentError(totp.regenerateFailed))
+      .finally(() => setMobileSilentBusy(false));
+  }, [isMobile, mobileSilent, totp.regenerateFailed]);
+
+  if (mobileSilent) {
+    return (
+      <section className="space-y-5">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">{totp.mobileSilentTitle}</h2>
+          <p className="mt-2 text-sm text-slate-600">{totp.mobileSilentDesc}</p>
+        </div>
+        {mobileSilentError ? (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {mobileSilentError}
+          </p>
+        ) : null}
+        {mobileSilentUri && isMobile ? (
+          <button
+            type="button"
+            onClick={() => void provisionGoogleAuthenticator(mobileSilentUri)}
+            className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-800"
+          >
+            {totp.openGoogleAuthenticator}
+          </button>
+        ) : null}
+        <InstallAppBanner />
+        <button
+          type="button"
+          disabled={mobileSilentBusy}
+          onClick={() => void onComplete()}
+          className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 text-base font-semibold text-white disabled:opacity-60"
+        >
+          {mobileSilentBusy ? totp.verifying : totp.mobileSilentContinue}
+        </button>
+      </section>
+    );
   }
 
   const stepIndicators: Step[] = isMobile

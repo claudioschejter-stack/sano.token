@@ -11,9 +11,11 @@ import { resolveAccessPageError } from '../../lib/auth/accessPageErrors';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../lib/onboarding/onboardingGate';
+import { useMobilePortal } from '../../hooks/useMobilePortal';
 import { OnboardingResumeCard } from '../auth/OnboardingResumeCard';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useIsPwa } from '../../hooks/useIsPwa';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { LandingHeader } from './LandingHeader';
 import { TrustBadges } from './TrustBadges';
 
@@ -61,6 +63,7 @@ function AccessPageContent() {
   const registerHref = buildRegisterHref(returnTo, inviteEmail, investorInvite, staffInvite);
 
   const { isOperational, loading: accountLoading } = useAccountStatus();
+  const isMobilePortal = useMobilePortal();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
   const role = session?.user?.role;
   const registered = searchParams.get('registered') === '1';
@@ -77,10 +80,11 @@ function AccessPageContent() {
     const destination = resolveAuthenticatedDestination(
       role,
       returnTo,
-      isOperational || canAccessPortalWithoutInvestorOnboarding(role)
+      isOperational || canAccessPortalWithoutInvestorOnboarding(role),
+      { isMobile: isMobilePortal }
     );
     router.replace(destination);
-  }, [isOperational, returnTo, router, role, session?.user?.accessToken, status]);
+  }, [isMobilePortal, isOperational, returnTo, router, role, session?.user?.accessToken, status]);
 
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return (
@@ -196,10 +200,10 @@ function AccessPageContent() {
 
 export function AccessPage() {
   const isPwa = useIsPwa();
+  const { isMobile } = useDeviceDetection();
 
-  // Launched from the home-screen icon (or "Abrir la app"): show the app-style
-  // login/register shell with a properties teaser instead of the marketing landing.
-  if (isPwa) {
+  // Mobile browser + PWA: Mercado Pago-style shell (always, not only when installed).
+  if (isPwa || isMobile) {
     return <MobileAccessLanding />;
   }
 

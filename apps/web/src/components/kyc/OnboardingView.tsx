@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   CheckCircle2,
@@ -18,6 +18,11 @@ import {
 import { defersEmailVerificationToPrivy } from '../../lib/onboarding/emailVerificationPolicy';
 import { safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
+import { useMobilePortal } from '../../hooks/useMobilePortal';
+import { MOBILE_INVESTOR_HOME_PATH } from '../../lib/auth/mobileDestinations';
+import { BiometricOnboardingStep } from '../auth/BiometricOnboardingStep';
+import { RegistrationSuccessModal } from '../auth/RegistrationSuccessModal';
 import { ActivateWalletStep } from './ActivateWalletStep';
 import { PrivyOnboardingWallet } from './PrivyOnboardingWallet';
 import { isPrivyEnabled } from '../../lib/privy/config';
@@ -75,6 +80,7 @@ function stepFromChecklist(
 
 function OnboardingContent() {
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslation();
   const o = t.onboarding;
   const searchParams = useSearchParams();
@@ -85,24 +91,24 @@ function OnboardingContent() {
   const totpPreferConfirm = searchParams.get('totpMode') === 'confirm';
 
   const { data: session, status, update: updateSession } = useSession();
-  const { checklist, loading, refresh, isOperational, systemRole, fetchError, profile } =
+  const { checklist, loading, refresh, isOperational, systemRole, fetchError, profile, registrationChannel, onboardingSuccessShownAt } =
     useAccountStatus();
+  const { isMobile } = useDeviceDetection();
+  const isMobilePortal = useMobilePortal();
   const sessionReady = status === 'authenticated' && Boolean(session?.user?.accessToken);
   const requireWallet = Boolean(systemRole);
   const deferEmailToPrivy = defersEmailVerificationToPrivy(systemRole);
 
-  const [emailCode, setEmailCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [devHint, setDevHint] = useState<string | null>(null);
   const [diditLaunching, setDiditLaunching] = useState(false);
-  const emailCodeSent = useRef(false);
-  const [deliveryHint, setDeliveryHint] = useState<string | null>(null);
-  const [resending, setResending] = useState(false);
   const [dialCode, setDialCode] = useState(DEFAULT_DIAL_CODE);
   const [phoneLocal, setPhoneLocal] = useState('');
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [savingPhone, setSavingPhone] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [passkeyReady, setPasskeyReady] = useState(false);
 
   const needsPhoneCapture = Boolean(
     checklist && isMarketplaceTradingRole(systemRole ?? undefined) && !checklist.phone?.trim()
@@ -196,7 +202,7 @@ function OnboardingContent() {
           // already applied the refreshed JWT cookie, so a full page load lets
           // the middleware read it immediately instead of racing a soft
           // client-side transition against the cookie write.
-          window.location.assign(returnTo);
+          window.location.assign(isMobilePortal ? MOBILE_INVESTOR_HOME_PATH : returnTo);
           return;
         }
       }
@@ -205,7 +211,7 @@ function OnboardingContent() {
 
     await refresh({ silent: true });
     setError(o.errors.TOTP_ACTIVATION_PENDING);
-  }, [refresh, returnTo, updateSession, o.errors]);
+  }, [isMobilePortal, refresh, returnTo, updateSession, o.errors]);
 
   useEffect(() => {
     if (!isOperational) {
@@ -284,84 +290,28 @@ function OnboardingContent() {
   }, [checklist?.phone, profile?.suggestedPhone]);
 
   useEffect(() => {
-    if (checklist?.emailVerified) {
-      setDeliveryHint(null);
-    }
-  }, [checklist?.emailVerified]);
-
-  const requestVerificationCode = useCallback(async () => {
-    setError(null);
-    setDevHint(null);
-
-    const maxAttempts = 5;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-      try {
-        const response = await fetch('/api/onboarding/resend-code', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const data = (await response.json()) as {
-          error?: string;
-          devCode?: string;
-        };
-
-        if (response.status === 401 && attempt < maxAttempts - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
-          continue;
-        }
-
-        if (!response.ok) {
-          const errorKey = data.error ?? 'GENERIC';
-          setError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.GENERIC);
-          return false;
-        }
-
-        setDeliveryHint(o.steps.codeSentEmail);
-
-        if (data.devCode) {
-          setDevHint(`Email: ${data.devCode}`);
-        }
-
-        return true;
-      } catch {
-        if (attempt < maxAttempts - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 150 * (attempt + 1)));
-          continue;
-        }
-
-        setError(o.errors.GENERIC);
-        return false;
-      }
-    }
-
-    setError(o.errors.UNAUTHORIZED);
-    return false;
-  }, [o.errors, o.steps.codeSentEmail]);
-
-  useEffect(() => {
-    if (
-      !sessionReady ||
-      loading ||
-      !checklist ||
-      step !== 'email' ||
-      checklist.emailVerified ||
-      needsPhoneCapture ||
-      emailCodeSent.current
-    ) {
+    if (!sessionReady || loading || isMobile) {
       return;
     }
 
-    emailCodeSent.current = true;
-    void requestVerificationCode().then((ok) => {
-      if (!ok) {
-        emailCodeSent.current = false;
-      }
-    });
-  }, [checklist, loading, needsPhoneCapture, requestVerificationCode, sessionReady, step]);
+    if (pathname.startsWith('/kyc/continuar-en-celular')) {
+      return;
+    }
 
-  const savePhone = useCallback(async () => {
+    router.replace(
+      `/kyc/continuar-en-celular?returnTo=${encodeURIComponent(returnTo)}${justRegistered ? '&registered=1' : ''}`
+    );
+  }, [isMobile, justRegistered, loading, pathname, returnTo, router, sessionReady]);
+
+  useEffect(() => {
+    if (!isOperational || onboardingSuccessShownAt) {
+      return;
+    }
+
+    setShowSuccessModal(true);
+  }, [isOperational, onboardingSuccessShownAt]);
+
+  const savePhone = useCallback(async (): Promise<boolean> => {
     setPhoneError(null);
     setSavingPhone(true);
 
@@ -369,7 +319,7 @@ function OnboardingContent() {
     if (!phone) {
       setPhoneError(o.errors.INVALID_PHONE);
       setSavingPhone(false);
-      return;
+      return false;
     }
 
     try {
@@ -384,50 +334,18 @@ function OnboardingContent() {
         const data = (await response.json()) as { error?: string };
         const errorKey = data.error ?? 'GENERIC';
         setPhoneError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.INVALID_PHONE);
-        return;
+        return false;
       }
 
       await refresh({ silent: true });
+      return true;
     } catch {
       setPhoneError(o.errors.GENERIC);
+      return false;
     } finally {
       setSavingPhone(false);
     }
   }, [dialCode, o.errors, phoneLocal, refresh]);
-
-  const resendCurrentCode = useCallback(async () => {
-    setResending(true);
-    await requestVerificationCode();
-    setResending(false);
-  }, [requestVerificationCode]);
-
-  const verifyEmail = useCallback(async () => {
-    setBusy(true);
-    setError(null);
-
-    try {
-      const response = await fetch('/api/onboarding/verify-email', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: emailCode })
-      });
-
-      const data = (await response.json()) as { error?: string };
-
-      if (!response.ok) {
-        const errorKey = data.error ?? 'INVALID_CODE';
-        setError(o.errors[errorKey as keyof typeof o.errors] ?? o.errors.INVALID_CODE);
-        return;
-      }
-
-      await refresh({ silent: true });
-    } catch {
-      setError(o.errors.GENERIC);
-    } finally {
-      setBusy(false);
-    }
-  }, [emailCode, o.errors, refresh]);
 
   const startDidit = useCallback(async () => {
     setBusy(true);
@@ -470,6 +388,22 @@ function OnboardingContent() {
       setBusy(false);
     }
   }, [o.errors, refresh, returnTo]);
+
+  const continueWithKyc = useCallback(async () => {
+    if (needsPhoneCapture) {
+      const saved = await savePhone();
+      if (!saved) {
+        return;
+      }
+    }
+
+    if (isMobilePortal && !passkeyReady) {
+      setError(o.steps.biometricRequired);
+      return;
+    }
+
+    await startDidit();
+  }, [isMobilePortal, needsPhoneCapture, passkeyReady, savePhone, startDidit, o.steps.biometricRequired]);
 
   const completeDemoKyc = useCallback(async () => {
     setBusy(true);
@@ -606,23 +540,17 @@ function OnboardingContent() {
           </p>
         ) : null}
 
-        {deliveryHint && !checklist.emailVerified ? (
-          <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {deliveryHint}
-          </p>
-        ) : null}
-
-        {checklist.emailVerified && step === 'identity' ? (
-          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-            <p className="text-sm font-semibold text-emerald-800">{o.steps.emailApproved}</p>
-          </div>
-        ) : null}
-
         {step === 'email' ? (
           <section className="space-y-4">
-            {needsPhoneCapture ? (
+            {!checklist.emailVerified ? (
               <>
-            <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
+                <h2 className="text-xl font-bold">{t.access.activation.pendingTitle}</h2>
+                <p className="text-sm text-slate-600">{t.access.activation.pendingDesc}</p>
+                <p className="text-sm font-semibold text-slate-900">{checklist.email}</p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
                 <p className="text-sm text-slate-600">{o.steps.contactDesc}</p>
                 <div>
                   <label htmlFor="onboarding-dial" className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -662,46 +590,23 @@ function OnboardingContent() {
                     {phoneError}
                   </p>
                 ) : null}
+                {isMobilePortal ? (
+                  <BiometricOnboardingStep
+                    onComplete={async (passkeyRegistered) => {
+                      if (passkeyRegistered) {
+                        setPasskeyReady(true);
+                      }
+                    }}
+                  />
+                ) : null}
                 <button
                   type="button"
-                  disabled={savingPhone || busy}
-                  onClick={() => void savePhone()}
+                  disabled={savingPhone || busy || diditLaunching}
+                  onClick={() => void continueWithKyc()}
                   className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white disabled:opacity-60"
                 >
-                  {savingPhone ? o.continuing : o.savePhoneContinue}
+                  {busy || diditLaunching ? o.continuing : o.continueWithKyc}
                 </button>
-              </>
-            ) : (
-              <>
-            <h2 className="text-xl font-bold">{o.steps.contactTitle}</h2>
-            <p className="text-sm text-slate-600">
-              {o.steps.emailCodeDesc}{' '}
-              <span className="font-medium text-slate-800">{checklist.email}</span>
-            </p>
-            {deferEmailToPrivy ? (
-              <p className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-xs leading-relaxed text-blue-900">
-                {o.steps.emailPrivyWalletNote}
-              </p>
-            ) : null}
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="000000"
-              value={emailCode}
-              onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, ''))}
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-5 text-center text-2xl font-semibold tracking-[0.4em] outline-none ring-blue-500 focus:ring-2"
-            />
-            <p className="text-center text-xs text-slate-500">{o.steps.codeExpiredHint}</p>
-            <button
-              type="button"
-              disabled={resending || busy}
-              onClick={() => void resendCurrentCode()}
-              className="mx-auto block text-sm font-semibold text-blue-600 hover:text-blue-500 disabled:opacity-60"
-            >
-              {resending ? o.steps.resendingCode : o.steps.resendCode}
-            </button>
               </>
             )}
           </section>
@@ -790,7 +695,11 @@ function OnboardingContent() {
         ) : null}
 
         {step === 'totp' ? (
-          <TotpOnboardingStep preferConfirm={totpPreferConfirm} onComplete={handleTotpComplete} />
+          <TotpOnboardingStep
+            preferConfirm={totpPreferConfirm}
+            mobileSilent={isMobilePortal}
+            onComplete={handleTotpComplete}
+          />
         ) : null}
 
         {step === 'done' ? (
@@ -802,22 +711,13 @@ function OnboardingContent() {
         ) : null}
       </main>
 
-      {step !== 'done' && step !== 'identity' && step !== 'wallet' && step !== 'totp' && !(step === 'email' && needsPhoneCapture) ? (
-        <footer className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-md safe-bottom">
-          <div className="mx-auto w-full max-w-md">
-            <button
-              type="button"
-              disabled={busy || (step === 'email' && emailCode.length !== 6)}
-              onClick={() => {
-                if (step === 'email') void verifyEmail();
-              }}
-              className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 text-base font-semibold text-white disabled:opacity-60"
-            >
-              {busy ? o.continuing : o.continue}
-            </button>
-          </div>
-        </footer>
-      ) : null}
+      <RegistrationSuccessModal
+        visible={showSuccessModal}
+        onDismiss={() => {
+          setShowSuccessModal(false);
+          void refresh({ silent: true });
+        }}
+      />
     </div>
   );
 }

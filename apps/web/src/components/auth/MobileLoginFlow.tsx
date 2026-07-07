@@ -8,6 +8,8 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
+import { useIsPwa } from '../../hooks/useIsPwa';
+import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 import { OAuthSignInButtons } from './OAuthSignInButtons';
 import { InstallAppBanner } from '../pwa/InstallAppBanner';
@@ -36,6 +38,9 @@ export function MobileLoginFlow({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const passkeyHint = useMemo(() => getDevicePasskeyHint(), []);
+  const isPwa = useIsPwa();
+  const { isMobile } = useDeviceDetection();
+  const loginChannel = isPwa ? 'pwa' : isMobile ? 'mobile-web' : 'desktop-web';
   const hasConfiguredPasskey = Boolean(passkeyHint?.credentialId);
   // Users with a passkey already enabled on this phone see it first (like Mercado Pago).
   // Everyone else lands on the "gate" screen (activate biometrics / download the app)
@@ -59,7 +64,7 @@ export function MobileLoginFlow({
     const step1Res = await fetch('/api/auth/login/step1', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), password })
+      body: JSON.stringify({ email: email.trim(), password, channel: loginChannel })
     });
 
     const step1Data = (await step1Res.json()) as {

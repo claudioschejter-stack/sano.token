@@ -3,6 +3,8 @@ import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from './kycPaths';
 import { normalizeReturnPath } from './returnPath';
 import { resolvePostLoginPath } from './roles';
 import { canAccessPortalWithoutInvestorOnboarding } from '../onboarding/onboardingGate';
+import { isMarketplaceTradingRole } from './roles';
+import { MOBILE_INVESTOR_HOME_PATH } from './mobileDestinations';
 
 export function safeReturnTo(value: string | null | undefined, fallback: string): string {
   return normalizeReturnPath(value, fallback);
@@ -27,7 +29,7 @@ export function resolveAuthenticatedDestination(
   role: SystemRole | undefined,
   returnTo: string | null | undefined,
   accountOperational = false,
-  options?: { registered?: boolean }
+  options?: { registered?: boolean; isMobile?: boolean; registrationChannel?: string | null }
 ): string {
   if (canAccessPortalWithoutInvestorOnboarding(role)) {
     const home = resolveRoleHomePath(role, true);
@@ -40,15 +42,32 @@ export function resolveAuthenticatedDestination(
   }
 
   if (!accountOperational) {
+    const channel = options?.registrationChannel;
+    const isDesktopRegistration = channel === 'desktop-web';
+    const onMobile = options?.isMobile === true;
+
+    if (isDesktopRegistration && !onMobile) {
+      return `/kyc/continuar-en-celular?returnTo=${encodeURIComponent(
+        safeReturnTo(returnTo, DEFAULT_POST_ONBOARDING_PATH)
+      )}${options?.registered ? '&registered=1' : ''}`;
+    }
+
     return buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH, undefined, {
       registered: options?.registered
     });
   }
 
-  const home = resolveRoleHomePath(role, accountOperational);
+  const home =
+    options?.isMobile && role && isMarketplaceTradingRole(role)
+      ? MOBILE_INVESTOR_HOME_PATH
+      : resolveRoleHomePath(role, accountOperational);
 
   if (!shouldHonorReturnTo(role, returnTo)) {
     return home;
+  }
+
+  if (options?.isMobile && role && isMarketplaceTradingRole(role)) {
+    return MOBILE_INVESTOR_HOME_PATH;
   }
 
   return safeReturnTo(returnTo, home);

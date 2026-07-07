@@ -260,6 +260,8 @@ model User {
   preferredTheme    String?
   pwaInstalledAt    DateTime?
   pwaDismissedAt    DateTime?
+  registrationChannel String?
+  onboardingSuccessShownAt DateTime?
   totpSecret        String?
   totpEnabled       Boolean       @default(false)
   failed2faAttempts Int           @default(0)

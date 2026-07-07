@@ -39,6 +39,8 @@ export async function GET() {
       systemRole: true,
       diditSessionId: true,
       totpEnabled: true,
+      registrationChannel: true,
+      onboardingSuccessShownAt: true,
       investor: { select: { fullName: true, cuit: true, walletAddress: true } }
     }
   });
@@ -80,6 +82,8 @@ export async function GET() {
     profile,
     diditSessionId: user.diditSessionId,
     integrations: getOnboardingIntegrations(),
-    systemRole: user.systemRole
+    systemRole: user.systemRole,
+    registrationChannel: user.registrationChannel,
+    onboardingSuccessShownAt: user.onboardingSuccessShownAt
   });
 }

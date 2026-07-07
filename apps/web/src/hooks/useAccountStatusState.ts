@@ -12,6 +12,8 @@ export type AccountStatusState = {
   checklist: OnboardingChecklist | null;
   profile: OnboardingProfile | null;
   systemRole: SystemRole;
+  registrationChannel: string | null;
+  onboardingSuccessShownAt: string | null;
   loading: boolean;
   fetchError: string | null;
   refresh: (options?: { silent?: boolean }) => Promise<void>;
@@ -24,6 +26,8 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
   const [checklist, setChecklist] = useState<OnboardingChecklist | null>(null);
   const [profile, setProfile] = useState<OnboardingProfile | null>(null);
   const [systemRole, setSystemRole] = useState<SystemRole>(null);
+  const [registrationChannel, setRegistrationChannel] = useState<string | null>(null);
+  const [onboardingSuccessShownAt, setOnboardingSuccessShownAt] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -48,6 +52,8 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
       setChecklist(null);
       setProfile(null);
       setSystemRole(null);
+      setRegistrationChannel(null);
+      setOnboardingSuccessShownAt(null);
       setFetchError(null);
       setLoading(status === 'authenticated');
       return;
@@ -69,12 +75,16 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
           checklist: OnboardingChecklist;
           profile?: OnboardingProfile;
           systemRole?: SystemRole;
+          registrationChannel?: string | null;
+          onboardingSuccessShownAt?: string | null;
         };
 
         setFetchError(null);
         setChecklist(data.checklist);
         setProfile(data.profile ?? null);
         setSystemRole(data.systemRole ?? null);
+        setRegistrationChannel(data.registrationChannel ?? null);
+        setOnboardingSuccessShownAt(data.onboardingSuccessShownAt ?? null);
 
         if (data.checklist.operational && accountOperational !== true) {
           await updateRef.current({});
@@ -119,6 +129,8 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
     checklist,
     profile,
     systemRole,
+    registrationChannel,
+    onboardingSuccessShownAt,
     loading,
     fetchError,
     refresh,

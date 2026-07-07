@@ -21,14 +21,18 @@ Esperado: todos los tests passing, `tsc` sin errores. Cubre pre-check email, cue
 
 ## Desktop
 
-- [ ] `/acceso/registro` → email + password + **un solo checkbox** de términos → auto-login → `/kyc?registered=1`
-- [ ] Registro **OAuth** desde `/acceso/registro` → mismo banner paso 2/5 (`registered=1` en callback)
+- [ ] `/acceso/registro` → email + password + **un solo checkbox** de términos → pantalla **“Activá tu cuenta desde tu correo electrónico”** (sin sesión, sin auto-login)
+- [ ] Clic en email de activación en PC → login automático → redirect a **`/kyc/continuar-en-celular`** (QR “Continuá en tu celular”)
+- [ ] Escaneo QR → `/kyc/movil?resume=` → onboarding completo **en el celular** (teléfono + huella → Didit → Privy → GA silencioso → PWA)
+- [ ] PC **no** muestra Didit ni pasos KYC en navegador de escritorio (solo QR de handoff)
+- [ ] Reenviar activación: cooldown **60s** entre reenvíos
+- [ ] Registro **OAuth** desde `/acceso/registro` → email ya verificado por provider; desktop OAuth → QR handoff igual que password
 - [ ] `/acceso/registro` **sin OAuth configurado** → no aparece divider huérfano “O continuá con Google…”
 - [ ] `/acceso/registro` **con OAuth** → un checkbox de términos; divider solo si hay Google/Apple; OAuth funciona tras aceptar términos
 - [ ] Onboarding banner: ~10 min + DNI/pasaporte + celular
 - [ ] Post-registro: banner **“Paso 2 de 5: confirmá tu contacto (~10 min en total)”**
-- [ ] Onboarding contacto: titular **“Confirmá tu contacto”** también en sub-paso OTP email (no cambia a “Verificá tu email” como H1)
-- [ ] Onboarding: teléfono → OTP email → Didit → pagos Privy → TOTP (QR → confirm → backup codes)
+- [ ] Onboarding contacto: titular **“Confirmá tu contacto”** — teléfono + huella (móvil); **sin OTP email 6 dígitos**
+- [ ] Onboarding: teléfono + huella (móvil) → Didit → pagos Privy → TOTP silencioso (deep link GA en móvil; QR+confirm en desktop si aplica)
 - [ ] Paso Pagos Privy: cerrar modal o error API → botón **Reintentar configuración de pagos** (no spinner infinito)
 - [ ] Resume card en `/acceso` enlaza al sub-paso pendiente (`?step=email|identity|wallet|totp`)
 - [ ] **Banner marketplace** (`AccountStatusBanner`) enlaza al **mismo sub-paso pendiente** que resume card
@@ -43,6 +47,10 @@ Esperado: todos los tests passing, `tsc` sin errores. Cubre pre-check email, cue
 
 ## Móvil / PWA
 
+- [ ] Registro móvil: activación por email → onboarding **sin QR** en el mismo dispositivo
+- [ ] “Continuar con el KYC” exige huella/passkey registrada (no basta “continuar con contraseña”)
+- [ ] Login diario móvil/PWA: huella → **`/dashboard`** (MobileAccessLanding); **sin TOTP**
+- [ ] Usuario operativo en móvil: `/`, `/marketplace`, `/acceso` redirigen a **`/dashboard`**
 - [ ] Mismo flujo de registro desde `/acceso/registro`
 - [ ] PWA registro muestra TrustBadges + links legales + link "Volver al inicio"
 - [ ] TOTP abre Google Authenticator en paso `provision` (no flujo desktop QR)

@@ -25,6 +25,7 @@ export type RegisterInput = {
   taxId?: string;
   termsAccepted?: boolean;
   inviteCode?: string;
+  registrationChannel?: string;
 };
 
 export async function registerInvestor(input: RegisterInput) {
@@ -171,7 +172,8 @@ export async function registerInvestor(input: RegisterInput) {
         data: {
           email,
           ...sharedProfile,
-          investorAccessEnabled: accessEnabledOnCreate
+          investorAccessEnabled: accessEnabledOnCreate,
+          ...(input.registrationChannel ? { registrationChannel: input.registrationChannel } : {})
         }
       });
     } else if (preserveStaffRole) {

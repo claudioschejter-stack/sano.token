@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { handleOAuthLogin } from '../../../../../lib/auth/oauthService';
+import { isMobileUserAgent } from '../../../../../lib/auth/isMobileUserAgent';
 
 export async function POST(request: Request) {
   const internalSecret = process.env.AUTH_INTERNAL_SECRET;
@@ -22,12 +23,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Invalid OAuth payload.' }, { status: 400 });
     }
 
+    const userAgent = request.headers.get('user-agent');
+    const registrationChannel = isMobileUserAgent(userAgent) ? 'mobile-web' : 'desktop-web';
+
     const result = await handleOAuthLogin({
       email: body.email,
       name: body.name,
       image: body.image,
       provider: body.provider,
-      providerAccountId: body.providerAccountId
+      providerAccountId: body.providerAccountId,
+      registrationChannel
     });
 
     return NextResponse.json(result);

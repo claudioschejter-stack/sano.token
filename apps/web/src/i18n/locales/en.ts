@@ -1854,6 +1854,41 @@ export const en = {
     mobileGateActivateBiometricDesc: "You'll sign in once with your password to activate it on this phone.",
     mobileGateSkip: "Sign in with username and password",
     mobileAppBadge: "Mobile app",
+    activation: {
+      pendingTitle: "Activate your account from your email",
+      pendingDesc:
+        "We sent you a link. Open it and tap “Activate your account” to continue. Check spam too.",
+      activating: "Activating your account…",
+      subtitleActivating: "One moment",
+      subtitleError: "We couldn't activate your account",
+      title: "Account activation",
+      resendButton: "Resend activation email",
+      resending: "Resending…",
+      resentOk: "Email resent. Check your inbox.",
+      backToAccess: "Back to sign in",
+      errors: {
+        GENERIC: "We couldn't complete activation. Try again.",
+        INVALID_OR_EXPIRED_TOKEN: "This link is invalid or expired. Request a new one from registration.",
+        SIGN_IN_FAILED: "Your account was activated but sign-in failed. Try signing in manually."
+      }
+    },
+    continueOnMobile: {
+      title: "Continue on your phone",
+      desc: "Scan the QR code with your phone camera to complete identity, payments and security (~3 min).",
+      loadingQr: "Generating QR code…",
+      phoneDoneHint: "Phone saved. Continue on your phone with the QR.",
+      footerHint: "Keep this screen open until you finish on your phone.",
+      errors: {
+        GENERIC: "We couldn't generate the QR code. Try again.",
+        INVALID_OR_EXPIRED_TOKEN: "This link expired. Sign in again on your computer."
+      }
+    },
+    registrationSuccess: {
+      title: "Registration successful!",
+      desc: "Your account is ready. On mobile you'll sign in with fingerprint or Face ID.",
+      continueButton: "Open the app",
+      continuing: "Opening…"
+    },
     registerTab: "Create account",
     availableProperties: "Available properties",
     signingIn: "Entering…",
@@ -2027,6 +2062,7 @@ export const en = {
     accountCreatedBanner:
       'Step 2 of 5: confirm your contact (~10 min total).',
     savePhoneContinue: "Save phone and continue",
+    continueWithKyc: "Continue with KYC",
     backHome: "Start",
     backToAccess: "Return to access",
     loading: "Loading onboarding…",
@@ -2049,6 +2085,7 @@ export const en = {
     steps: {
       contactTitle: 'Confirm your contact',
       contactDesc: 'We use your session email and save your phone number for contact and prizes.',
+      biometricRequired: 'Enable fingerprint or Face ID to continue.',
       emailTitle: "Check your email",
       emailCodeDesc: 'Enter the code we sent to your email.',
       emailDesc: "Enter the 6-digit code that we sent to your email.",
@@ -2130,6 +2167,11 @@ export const en = {
         'If you see more than one Sanova Capital entry, use the newest one or delete duplicates and enter the code from the remaining entry.',
       verifying: 'Verifying…',
       activate: 'Activate authenticator',
+      mobileSilentTitle: 'Google Authenticator for desktop sign-in',
+      mobileSilentDesc:
+        'We set up Sanova Capital in Google Authenticator on your phone. You only need it when signing in from a computer.',
+      mobileSilentContinue: 'Done, continue',
+      openGoogleAuthenticator: 'Open Google Authenticator',
       resetting: 'Resetting authenticator…',
       resetCta: 'Start over (clears the previous key on the server)',
       manualTitle: 'Manual setup (recommended if the code does not validate)',

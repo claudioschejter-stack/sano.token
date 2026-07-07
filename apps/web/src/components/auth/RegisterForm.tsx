@@ -1,21 +1,19 @@
 'use client';
 
-import { signIn, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { normalizeEmail } from '../../lib/auth/contactValidation';
 import { useIsPwa } from '../../hooks/useIsPwa';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import type { OnboardingProfile } from '../../lib/onboarding/profile';
-import { buildKycUrl } from '../../lib/auth/kycPaths';
 import { isRegisterOAuthBlocked } from '../../lib/auth/registerAccessBlock';
-import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { useTurnstile } from '../../lib/security/useTurnstile';
 import { formFieldClassName, formFieldErrorClassName } from '../../lib/ui/formFieldClassName';
 import { PasswordInput } from './PasswordInput';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
+import { RegisterActivationPending } from './RegisterActivationPending';
 
 type RegisterFormProps = {
   /** When set, shows contact fields as read-only with onboarding data. */
@@ -52,7 +50,6 @@ export function RegisterForm({
 }: RegisterFormProps) {
   const t = useTranslation();
   const r = t.access.register;
-  const router = useRouter();
   const { data: session, status } = useSession();
 
   const [email, setEmail] = useState(initialEmail);
@@ -67,6 +64,9 @@ export function RegisterForm({
   const [registrationErrorCode, setRegistrationErrorCode] = useState<string | null>(null);
   const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [activationPending, setActivationPending] = useState<{ email: string; devActivationUrl?: string } | null>(
+    null
+  );
   const turnstile = useTurnstile();
   const isPwa = useIsPwa();
   const { isMobile } = useDeviceDetection();
@@ -256,6 +256,8 @@ export function RegisterForm({
       return;
     }
 
+    let registerData: { error?: string; devActivationUrl?: string } | null = null;
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
@@ -270,9 +272,9 @@ export function RegisterForm({
         })
       });
 
-      let data: { error?: string };
+      let data: { error?: string; devActivationUrl?: string };
       try {
-        data = (await response.json()) as { error?: string };
+        data = (await response.json()) as { error?: string; devActivationUrl?: string };
       } catch {
         setRegistrationErrorCode('INVALID_RESPONSE');
         setError(r.errors.INVALID_RESPONSE ?? r.errors.GENERIC);
@@ -301,6 +303,8 @@ export function RegisterForm({
         setLoading(false);
         return;
       }
+
+      registerData = data;
     } catch {
       setRegistrationErrorCode('NETWORK_ERROR');
       setError(r.errors.NETWORK_ERROR ?? r.errors.GENERIC);
@@ -309,35 +313,21 @@ export function RegisterForm({
       return;
     }
 
-    try {
-      const signInResult = await signIn('credentials', {
-        email: normalizedEmail,
-        password,
-        redirect: false
-      });
+    setLoading(false);
+    setActivationPending({
+      email: normalizedEmail,
+      devActivationUrl: registerData?.devActivationUrl
+    });
+  }
 
-      if (signInResult?.error) {
-        setRegistrationErrorCode('SIGN_IN_FAILED');
-        setError(r.errors.SIGN_IN_FAILED);
-        setLoading(false);
-        return;
-      }
-
-      const sessionReady = await waitForAccessToken();
-      if (!sessionReady) {
-        setRegistrationErrorCode('SIGN_IN_FAILED');
-        setError(r.errors.SIGN_IN_FAILED);
-        setLoading(false);
-        return;
-      }
-
-      router.refresh();
-      router.replace(buildKycUrl(returnTo, undefined, undefined, { registered: true }));
-    } catch {
-      setRegistrationErrorCode('SIGN_IN_FAILED');
-      setError(r.errors.SIGN_IN_FAILED);
-      setLoading(false);
-    }
+  if (activationPending) {
+    return (
+      <RegisterActivationPending
+        email={activationPending.email}
+        devActivationUrl={activationPending.devActivationUrl}
+        loginHref={loginHref}
+      />
+    );
   }
 
   const showLoginLink =
