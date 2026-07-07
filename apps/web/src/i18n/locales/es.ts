@@ -1892,6 +1892,7 @@ export const es = {
       resending: 'Reenviando…',
       resentOk: 'Email reenviado. Revisá tu bandeja de entrada.',
       backToAccess: 'Volver al acceso',
+      continueAfterActivation: 'Ya activé mi cuenta → Continuar',
       errors: {
         GENERIC: 'No pudimos completar la activación. Intentá de nuevo.',
         INVALID_OR_EXPIRED_TOKEN: 'El enlace no es válido o venció. Solicitá uno nuevo desde el registro.',
@@ -2096,7 +2097,7 @@ export const es = {
     accountCreatedBanner:
       'Paso 2 de 5: confirmá tu contacto (~10 min en total).',
     savePhoneContinue: 'Guardar teléfono y continuar',
-    continueWithKyc: 'Continuar con el KYC',
+    continueWithKyc: 'Continuar con el proceso de identificación',
     backHome: 'Inicio',
     backToAccess: 'Volver a acceso',
     loading: 'Cargando onboarding…',

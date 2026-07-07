@@ -14,6 +14,7 @@ export type AccountStatusState = {
   systemRole: SystemRole;
   registrationChannel: string | null;
   onboardingSuccessShownAt: string | null;
+  diditSessionId: string | null;
   loading: boolean;
   fetchError: string | null;
   refresh: (options?: { silent?: boolean }) => Promise<void>;
@@ -28,6 +29,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
   const [systemRole, setSystemRole] = useState<SystemRole>(null);
   const [registrationChannel, setRegistrationChannel] = useState<string | null>(null);
   const [onboardingSuccessShownAt, setOnboardingSuccessShownAt] = useState<string | null>(null);
+  const [diditSessionId, setDiditSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -54,6 +56,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
       setSystemRole(null);
       setRegistrationChannel(null);
       setOnboardingSuccessShownAt(null);
+      setDiditSessionId(null);
       setFetchError(null);
       setLoading(status === 'authenticated');
       return;
@@ -77,6 +80,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
           systemRole?: SystemRole;
           registrationChannel?: string | null;
           onboardingSuccessShownAt?: string | null;
+          diditSessionId?: string | null;
         };
 
         setFetchError(null);
@@ -85,6 +89,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
         setSystemRole(data.systemRole ?? null);
         setRegistrationChannel(data.registrationChannel ?? null);
         setOnboardingSuccessShownAt(data.onboardingSuccessShownAt ?? null);
+        setDiditSessionId(data.diditSessionId ?? null);
 
         if (data.checklist.operational && accountOperational !== true) {
           await updateRef.current({});
@@ -131,6 +136,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
     systemRole,
     registrationChannel,
     onboardingSuccessShownAt,
+    diditSessionId,
     loading,
     fetchError,
     refresh,

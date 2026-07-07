@@ -91,7 +91,7 @@ function OnboardingContent() {
   const totpPreferConfirm = searchParams.get('totpMode') === 'confirm';
 
   const { data: session, status, update: updateSession } = useSession();
-  const { checklist, loading, refresh, isOperational, systemRole, fetchError, profile, registrationChannel, onboardingSuccessShownAt } =
+  const { checklist, loading, refresh, isOperational, systemRole, fetchError, profile, registrationChannel, onboardingSuccessShownAt, diditSessionId } =
     useAccountStatus();
   const { isMobile } = useDeviceDetection();
   const isMobilePortal = useMobilePortal();
@@ -263,9 +263,10 @@ function OnboardingContent() {
     }
   }, [diditReturn, syncDiditStatus]);
 
-  const kycPending =
-    checklist?.kycStatus === 'PENDING' && !checklist?.kycApproved;
-  const showDiditProcessing = kycPending;
+  const showDiditProcessing =
+    checklist?.kycStatus === 'PENDING' &&
+    !checklist?.kycApproved &&
+    (Boolean(diditSessionId) || diditReturn);
 
   useEffect(() => {
     if (!showDiditProcessing) {

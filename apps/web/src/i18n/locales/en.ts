@@ -1866,6 +1866,7 @@ export const en = {
       resending: "Resending…",
       resentOk: "Email resent. Check your inbox.",
       backToAccess: "Back to sign in",
+      continueAfterActivation: "I already activated my account → Continue",
       errors: {
         GENERIC: "We couldn't complete activation. Try again.",
         INVALID_OR_EXPIRED_TOKEN: "This link is invalid or expired. Request a new one from registration.",
@@ -2062,7 +2063,7 @@ export const en = {
     accountCreatedBanner:
       'Step 2 of 5: confirm your contact (~10 min total).',
     savePhoneContinue: "Save phone and continue",
-    continueWithKyc: "Continue with KYC",
+    continueWithKyc: "Continue with identity verification",
     backHome: "Start",
     backToAccess: "Return to access",
     loading: "Loading onboarding…",
