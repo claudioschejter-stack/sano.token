@@ -4,10 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Mail } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { buildKycUrl } from '../../lib/auth/kycPaths';
-
 const RESEND_COOLDOWN_SECONDS = 60;
-const CONTINUE_AFTER_ACTIVATION_HREF = `/acceso/callback?returnTo=${encodeURIComponent(buildKycUrl(undefined, undefined, undefined, { registered: true }))}`;
 
 type Props = {
   email: string;
@@ -95,12 +92,6 @@ export function RegisterActivationPending({ email, devActivationUrl, loginHref }
       >
         {resendLabel}
       </button>
-      <Link
-        href={CONTINUE_AFTER_ACTIVATION_HREF}
-        className="flex min-h-12 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500"
-      >
-        {a.continueAfterActivation}
-      </Link>
       <p className="pt-2">
         <Link href={loginHref ?? '/acceso'} className="text-sm font-medium text-blue-600 hover:text-blue-500">
           {a.backToAccess}
