@@ -6,7 +6,6 @@ import {
 } from '../../../../lib/auth/registrationAttemptService';
 import { normalizeEmail } from '../../../../lib/auth/contactValidation';
 import { mapRegisterRouteError, formatRegistrationAttemptErrorCode } from '../../../../lib/auth/registerRouteErrors';
-import { requireTurnstile } from '../../../../lib/security/requireTurnstile';
 import { isCountryBlockedForRegistration } from '../../../../lib/security/blockedCountries';
 import { sendAccountActivationEmail } from '../../../../lib/onboarding/accountActivationService';
 
@@ -56,18 +55,6 @@ export async function POST(request: Request) {
         ipCountry
       });
       return NextResponse.json({ error: 'REGION_NOT_AVAILABLE' }, { status: 403 });
-    }
-
-    const captchaError = await requireTurnstile(body.turnstileToken);
-    if (captchaError) {
-      await recordRegistrationAttempt({
-        email: emailForLog,
-        success: false,
-        errorCode: 'CAPTCHA_INVALIDO',
-        channel,
-        ipCountry
-      });
-      return captchaError;
     }
 
     const result = await registerInvestor({

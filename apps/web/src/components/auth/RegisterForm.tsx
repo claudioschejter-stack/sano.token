@@ -9,7 +9,6 @@ import { useIsPwa } from '../../hooks/useIsPwa';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import type { OnboardingProfile } from '../../lib/onboarding/profile';
 import { isRegisterOAuthBlocked } from '../../lib/auth/registerAccessBlock';
-import { useTurnstile } from '../../lib/security/useTurnstile';
 import { formFieldClassName, formFieldErrorClassName } from '../../lib/ui/formFieldClassName';
 import { PasswordInput } from './PasswordInput';
 import { VerificationStatusBadge } from './VerificationStatusBadge';
@@ -67,7 +66,6 @@ export function RegisterForm({
   const [activationPending, setActivationPending] = useState<{ email: string; devActivationUrl?: string } | null>(
     null
   );
-  const turnstile = useTurnstile();
   const isPwa = useIsPwa();
   const { isMobile } = useDeviceDetection();
   const channel = isPwa ? 'pwa' : isMobile ? 'mobile-web' : 'desktop-web';
@@ -250,16 +248,6 @@ export function RegisterForm({
 
     setLoading(true);
 
-    let captchaToken = turnstile.token;
-    if (turnstile.enabled && !captchaToken) {
-      captchaToken = await turnstile.execute();
-    }
-    if (turnstile.enabled && !captchaToken) {
-      setLoading(false);
-      setError(r.errors.CAPTCHA_REQUIRED ?? r.errors.GENERIC);
-      return;
-    }
-
     let registerData: { error?: string; devActivationUrl?: string } | null = null;
 
     try {
@@ -271,7 +259,6 @@ export function RegisterForm({
           password,
           termsAccepted: true,
           inviteCode: inviteCode.trim() || undefined,
-          turnstileToken: captchaToken,
           channel
         })
       });
@@ -282,7 +269,6 @@ export function RegisterForm({
       } catch {
         setRegistrationErrorCode('INVALID_RESPONSE');
         setError(r.errors.INVALID_RESPONSE ?? r.errors.GENERIC);
-        turnstile.reset();
         setLoading(false);
         return;
       }
@@ -290,7 +276,6 @@ export function RegisterForm({
       if (!response.ok) {
         const key = data.error ?? 'GENERIC';
         setRegistrationErrorCode(key);
-        turnstile.reset();
 
         if (key === 'EMAIL_IN_USE') {
           setEmailAlreadyRegistered(true);
@@ -312,7 +297,6 @@ export function RegisterForm({
     } catch {
       setRegistrationErrorCode('NETWORK_ERROR');
       setError(r.errors.NETWORK_ERROR ?? r.errors.GENERIC);
-      turnstile.reset();
       setLoading(false);
       return;
     }
@@ -463,10 +447,6 @@ export function RegisterForm({
 
       {!readOnly ? (
         <>
-          {turnstile.widget}
-          {turnstile.enabled && !turnstile.token && !loading ? (
-            <p className="text-center text-xs text-slate-500">{r.securityVerifying}</p>
-          ) : null}
           <button
             type="submit"
             disabled={loading || !acceptedLegal || precheckBlocksSubmit}
