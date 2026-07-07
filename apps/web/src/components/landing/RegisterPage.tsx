@@ -129,48 +129,28 @@ function RegisterPageContent() {
           </div>
         </div>
 
-        <label className="mb-4 flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-xs leading-relaxed text-slate-600">
-          <input
-            type="checkbox"
-            checked={acceptedLegal}
-            onChange={(event) => {
-              setAcceptedLegal(event.target.checked);
-              if (event.target.checked) {
-                setTermsError(null);
-              }
-            }}
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
-          />
-          <span>
-            {a.register.termsAcceptLabel}{' '}
-            <Link href="/terminos" className="font-semibold text-blue-600 hover:text-blue-500">
-              {a.register.termsLinkLabel}
-            </Link>
-            {' · '}
-            <Link href="/privacidad" className="font-semibold text-blue-600 hover:text-blue-500">
-              {a.register.privacyLinkLabel}
-            </Link>
-          </span>
-        </label>
-
-        {termsError ? (
-          <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            {termsError}
-          </p>
-        ) : null}
-
         <RegisterForm
           returnTo={returnTo}
           initialEmail={inviteEmail}
           inviteCode={investorInvite}
           loginHref={loginHref}
           acceptedLegal={acceptedLegal}
-          onAcceptedLegalChange={setAcceptedLegal}
-          hideTermsCheckbox
+          onAcceptedLegalChange={(accepted) => {
+            setAcceptedLegal(accepted);
+            if (accepted) {
+              setTermsError(null);
+            }
+          }}
           hidePhaseLabel
           hideLoginLink
           onAccessErrorChange={setRegisterAccessError}
         />
+
+        {termsError ? (
+          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+            {termsError}
+          </p>
+        ) : null}
 
         <OAuthSignInButtons
           callbackUrl={oauthCallbackUrl}

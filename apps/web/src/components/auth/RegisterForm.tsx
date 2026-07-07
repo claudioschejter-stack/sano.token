@@ -432,7 +432,7 @@ export function RegisterForm({
       ) : null}
 
       {!readOnly && !hideTermsCheckbox ? (
-        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-xs leading-relaxed text-slate-600">
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-3 text-xs leading-relaxed text-slate-600 shadow-sm">
           <input
             type="checkbox"
             checked={acceptedLegal}
@@ -442,7 +442,7 @@ export function RegisterForm({
                 setError(null);
               }
             }}
-            className="mt-0.5 size-4 shrink-0 rounded border-slate-300"
+            className="mt-0.5 size-4 shrink-0 rounded border-slate-300 bg-white accent-blue-600"
           />
           <span>
             {r.termsAcceptLabel}{' '}
@@ -460,15 +460,13 @@ export function RegisterForm({
       {!readOnly ? (
         <>
           {turnstile.widget}
+          {turnstile.enabled && !turnstile.token && !loading ? (
+            <p className="text-center text-xs text-slate-500">{r.securityVerifying}</p>
+          ) : null}
           <button
             type="submit"
-            disabled={
-              loading ||
-              !acceptedLegal ||
-              precheckBlocksSubmit ||
-              (turnstile.enabled && !turnstile.token)
-            }
-            className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={loading || !acceptedLegal || precheckBlocksSubmit}
+            className="flex min-h-12 w-full items-center justify-center rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {loading ? r.submitting : r.submitButton}
           </button>

@@ -1975,6 +1975,7 @@ export const en = {
       countryLabel: "country code",
       submitButton: 'Create account',
       submitting: "Creating account…",
+      securityVerifying: 'Verifying security…',
       oauthOrContinue: 'Or continue with Google or Apple',
       flowHint:
         'Step 1: account · Steps 2–5: contact, identity, payments and security in onboarding',

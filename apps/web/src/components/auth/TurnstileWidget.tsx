@@ -102,5 +102,5 @@ export function TurnstileWidget({ onVerify, onExpire, onError, theme = 'auto' }:
 
   if (!SITE_KEY) return null;
 
-  return <div ref={containerRef} className="hidden" aria-hidden="true" />;
+  return <div ref={containerRef} className="sr-only" aria-hidden="true" />;
 }

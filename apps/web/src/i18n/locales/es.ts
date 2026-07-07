@@ -2004,6 +2004,7 @@ export const es = {
       countryLabel: 'Código de país',
       submitButton: 'Crear cuenta',
       submitting: 'Creando cuenta…',
+      securityVerifying: 'Verificando seguridad…',
       oauthOrContinue: 'O continuá con Google o Apple',
       flowHint:
         'Paso 1: cuenta · Pasos 2–5: contacto, identidad, pagos y seguridad en el onboarding',
