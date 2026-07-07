@@ -2254,6 +2254,8 @@ export const es = {
         'WhatsApp requiere plantilla aprobada o Twilio Verify. Configurá TWILIO_VERIFY_SERVICE_SID en Vercel.',
       TWILIO_AUTH_FAILED: 'Credenciales Twilio inválidas. Revisá TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN.',
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
+      DIDIT_SESSION_FAILED:
+        'No pudimos iniciar la verificación de identidad. Revisá tu conexión e intentá de nuevo en unos segundos.',
       CONTACT_NOT_VERIFIED: 'Primero verificá tu email y cargá tu teléfono antes de iniciar el KYC.',
       UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.',
       INVALID_WALLET: 'La dirección de billetera no es válida.',

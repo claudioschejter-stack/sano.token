@@ -111,7 +111,9 @@ function OnboardingContent() {
   const [passkeyReady, setPasskeyReady] = useState(false);
 
   const needsPhoneCapture = Boolean(
-    checklist && isMarketplaceTradingRole(systemRole ?? undefined) && !checklist.phone?.trim()
+    checklist &&
+      isMarketplaceTradingRole((systemRole ?? session?.user?.role) as typeof systemRole) &&
+      !checklist.phone?.trim()
   );
 
   useEffect(() => {
@@ -348,7 +350,40 @@ function OnboardingContent() {
     }
   }, [dialCode, o.errors, phoneLocal, refresh]);
 
+  const resolveStepError = useCallback(
+    (errorCode?: string) => {
+      const key = errorCode ?? 'GENERIC';
+      if (key === 'DIDIT_NOT_CONFIGURED') {
+        return o.errors.DIDIT_NOT_CONFIGURED;
+      }
+      if (key === 'CONTACT_NOT_VERIFIED') {
+        return o.errors.CONTACT_NOT_VERIFIED;
+      }
+      if (key === 'UNAUTHORIZED') {
+        return o.errors.UNAUTHORIZED;
+      }
+      if (key.startsWith('DIDIT_')) {
+        return o.errors.DIDIT_SESSION_FAILED ?? o.errors.GENERIC;
+      }
+      return o.errors[key as keyof typeof o.errors] ?? o.errors.GENERIC;
+    },
+    [o.errors]
+  );
+
   const startDidit = useCallback(async () => {
+    if (!checklist?.contactVerified) {
+      setError(o.errors.CONTACT_NOT_VERIFIED);
+      return;
+    }
+
+    if (needsPhoneCapture) {
+      const saved = await savePhone();
+      if (!saved) {
+        setError(o.errors.INVALID_PHONE);
+        return;
+      }
+    }
+
     setBusy(true);
     setDiditLaunching(true);
     setError(null);
@@ -360,35 +395,30 @@ function OnboardingContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ returnTo })
       });
-      const data = (await response.json()) as { url?: string; error?: string };
+      const raw = await response.text();
+      let data: { url?: string; error?: string } = {};
+      try {
+        data = raw ? (JSON.parse(raw) as { url?: string; error?: string }) : {};
+      } catch {
+        setError(o.errors.DIDIT_SESSION_FAILED ?? o.errors.GENERIC);
+        setDiditLaunching(false);
+        return;
+      }
 
-      if (data.url) {
+      if (response.ok && data.url) {
         window.location.href = data.url;
         return;
       }
 
-      if (data.error === 'DIDIT_NOT_CONFIGURED') {
-        setError(o.errors.DIDIT_NOT_CONFIGURED);
-        setDiditLaunching(false);
-        return;
-      }
-
-      if (data.error === 'CONTACT_NOT_VERIFIED') {
-        setError(o.errors.CONTACT_NOT_VERIFIED);
-        setDiditLaunching(false);
-        await refresh({ silent: true });
-        return;
-      }
-
-      setError(o.errors.GENERIC);
+      setError(resolveStepError(data.error));
       setDiditLaunching(false);
     } catch {
-      setError(o.errors.GENERIC);
+      setError(o.errors.DIDIT_SESSION_FAILED ?? o.errors.GENERIC);
       setDiditLaunching(false);
     } finally {
       setBusy(false);
     }
-  }, [o.errors, refresh, returnTo]);
+  }, [checklist?.contactVerified, needsPhoneCapture, o.errors, resolveStepError, returnTo, savePhone]);
 
   const continueWithKyc = useCallback(async () => {
     if (needsPhoneCapture) {

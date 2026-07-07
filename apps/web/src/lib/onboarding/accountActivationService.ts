@@ -22,10 +22,21 @@ function authSecret(): Uint8Array {
 }
 
 export function siteBaseUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://sano-token-web.vercel.app')
-  ).replace(/\/$/, '');
+  const fromPublic = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (fromPublic) {
+    return fromPublic.replace(/\/$/, '');
+  }
+
+  const fromAuth = process.env.AUTH_URL?.trim();
+  if (fromAuth) {
+    return fromAuth.replace(/\/$/, '');
+  }
+
+  if (process.env.VERCEL_URL?.trim()) {
+    return `https://${process.env.VERCEL_URL.trim()}`;
+  }
+
+  return 'https://www.sanovacapital.com';
 }
 
 async function signActivationToken(userId: string): Promise<string> {

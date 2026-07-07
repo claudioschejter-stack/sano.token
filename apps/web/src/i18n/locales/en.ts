@@ -2218,6 +2218,8 @@ export const en = {
         "WhatsApp requires an approved template or Twilio Verify. Set TWILIO_VERIFY_SERVICE_SID in Vercel.",
       TWILIO_AUTH_FAILED: "Invalid Twilio credentials. Check TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.",
       DIDIT_NOT_CONFIGURED: "Didit is not configured on the server yet.Contact support.",
+      DIDIT_SESSION_FAILED:
+        "We couldn't start identity verification. Check your connection and try again in a few seconds.",
       CONTACT_NOT_VERIFIED: 'First verify your email and save your phone number before starting identity verification.',
       UNAUTHORIZED: "Your session is not ready yet.Wait a moment and try again.",
       INVALID_WALLET: "The wallet address is not valid.",

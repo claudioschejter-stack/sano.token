@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'crypto';
+import { siteBaseUrl } from './accountActivationService';
 
 const DIDIT_SESSION_URL = 'https://verification.didit.me/v3/session/';
 
@@ -55,41 +56,49 @@ export async function createDiditSession(input: {
     throw new Error('DIDIT_NOT_CONFIGURED');
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') ?? 'http://localhost:3000';
+  const siteUrl = siteBaseUrl();
   const callback = input.callbackUrl.startsWith('http')
     ? input.callbackUrl
-    : `${siteUrl}${input.callbackUrl}`;
+    : `${siteUrl}${input.callbackUrl.startsWith('/') ? '' : '/'}${input.callbackUrl}`;
 
   const response = await fetch(DIDIT_SESSION_URL, {
     method: 'POST',
     headers: {
       'x-api-key': apiKey,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      accept: 'application/json'
     },
     body: JSON.stringify({
       workflow_id: workflowId,
       vendor_data: input.userId,
       callback,
-      callback_method: 'both'
+      callback_method: 'both',
+      language: 'es'
     })
   });
 
   if (!response.ok) {
     const detail = await response.text().catch(() => '');
-    throw new Error(`DIDIT_SESSION_FAILED:${response.status}:${detail}`);
+    throw new Error(`DIDIT_SESSION_FAILED:${response.status}:${detail.slice(0, 500)}`);
   }
 
   const payload = (await response.json()) as {
     session_id?: string;
     id?: string;
     url?: string;
+    verification_url?: string;
+    session_url?: string;
     session_token?: string;
   };
 
   const sessionId = payload.session_id ?? payload.id;
-  const url = payload.url;
+  const url = payload.url ?? payload.verification_url ?? payload.session_url;
 
   if (!sessionId || !url) {
+    throw new Error('DIDIT_SESSION_INVALID_RESPONSE');
+  }
+
+  if (!/^https?:\/\//i.test(url)) {
     throw new Error('DIDIT_SESSION_INVALID_RESPONSE');
   }
 
