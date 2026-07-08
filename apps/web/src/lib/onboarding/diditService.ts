@@ -127,6 +127,13 @@ export function diditErrorI18nKey(parsed: ParsedDiditSessionError): string {
   if (parsed.httpStatus === 402 || parsed.httpStatus === 429) {
     return 'DIDIT_QUOTA_EXCEEDED';
   }
+  const creditHint = (parsed.diditMessage ?? parsed.detailPreview ?? '').toLowerCase();
+  if (
+    parsed.httpStatus === 400 &&
+    (creditHint.includes('enough credits') || creditHint.includes('top up'))
+  ) {
+    return 'DIDIT_QUOTA_EXCEEDED';
+  }
   if (parsed.code.startsWith('DIDIT_')) {
     return 'DIDIT_SESSION_FAILED';
   }

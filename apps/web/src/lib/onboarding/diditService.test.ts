@@ -19,6 +19,13 @@ describe('parseDiditSessionError', () => {
     expect(diditErrorI18nKey(parsed)).toBe('DIDIT_QUOTA_EXCEEDED');
   });
 
+  it('maps zero-credit 400 responses to DIDIT_QUOTA_EXCEEDED', () => {
+    const parsed = parseDiditSessionError(
+      'DIDIT_SESSION_FAILED:400:{"detail":"You don\'t have enough credits to perform this request. Please top up at https://business.didit.me"}'
+    );
+    expect(diditErrorI18nKey(parsed)).toBe('DIDIT_QUOTA_EXCEEDED');
+  });
+
   it('handles static Didit codes', () => {
     expect(parseDiditSessionError('DIDIT_NOT_CONFIGURED').code).toBe('DIDIT_NOT_CONFIGURED');
     expect(parseDiditSessionError('DIDIT_SESSION_INVALID_RESPONSE').code).toBe(
