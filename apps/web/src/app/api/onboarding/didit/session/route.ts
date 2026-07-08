@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { safeReturnTo } from '../../../../../lib/auth/redirects';
 import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from '../../../../../lib/auth/kycPaths';
-import { createDiditSession, isDiditConfigured } from '../../../../../lib/onboarding/diditService';
+import {
+  createDiditSession,
+  isDiditConfigured,
+  parseDiditSessionError
+} from '../../../../../lib/onboarding/diditService';
 import { requireContactVerifiedUser } from '../../../../../lib/onboarding/contactVerification';
 import { siteBaseUrl } from '../../../../../lib/onboarding/accountActivationService';
 
@@ -59,7 +63,15 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN';
-    console.error('[onboarding/didit/session]', message);
+    const parsed = parseDiditSessionError(message);
+    console.error('[onboarding/didit/session]', {
+      userId: ctx.userId,
+      callbackUrl,
+      errorCode: parsed.code,
+      httpStatus: parsed.httpStatus,
+      diditMessage: parsed.diditMessage,
+      detailPreview: parsed.detailPreview
+    });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -72,6 +72,15 @@ export function AdminSettingsView() {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [diditTesting, setDiditTesting] = useState(false);
+  const [diditTestResult, setDiditTestResult] = useState<{
+    ok: boolean;
+    message: string;
+    siteUrl?: string;
+    callbackUrl?: string;
+    httpStatus?: number;
+    diditMessage?: string;
+  } | null>(null);
 
   const [whatsappPhone, setWhatsappPhone] = useState('');
   const [contactEmail, setContactEmail] = useState('');
@@ -103,6 +112,49 @@ export function AdminSettingsView() {
   useEffect(() => {
     void loadSettings();
   }, [loadSettings]);
+
+  async function handleDiditTest() {
+    setDiditTesting(true);
+    setDiditTestResult(null);
+
+    try {
+      const response = await fetch('/api/admin/integrations/didit-test', { method: 'POST' });
+      const data = (await response.json()) as {
+        ok?: boolean;
+        siteUrl?: string;
+        callbackUrl?: string;
+        httpStatus?: number;
+        diditMessage?: string;
+        urlHost?: string;
+      };
+
+      if (response.ok && data.ok) {
+        setDiditTestResult({
+          ok: true,
+          message: `${t.adminSettings.diditTestSuccess} (${data.urlHost ?? 'verify.didit.me'})`,
+          siteUrl: data.siteUrl,
+          callbackUrl: data.callbackUrl
+        });
+        return;
+      }
+
+      setDiditTestResult({
+        ok: false,
+        message: t.adminSettings.diditTestFailed,
+        siteUrl: data.siteUrl,
+        callbackUrl: data.callbackUrl,
+        httpStatus: data.httpStatus,
+        diditMessage: data.diditMessage
+      });
+    } catch {
+      setDiditTestResult({
+        ok: false,
+        message: t.adminSettings.diditTestFailed
+      });
+    } finally {
+      setDiditTesting(false);
+    }
+  }
 
   async function handleSave(event: React.FormEvent) {
     event.preventDefault();
@@ -361,6 +413,53 @@ export function AdminSettingsView() {
                       </li>
                     ))}
                   </ul>
+                </div>
+              ) : null}
+            </section>
+
+            <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+              <h2 className="text-lg font-semibold text-terminal-text">Didit KYC</h2>
+              <p className="mt-1 text-sm text-terminal-muted">{t.adminSettings.diditTestHint}</p>
+              <button
+                type="button"
+                disabled={diditTesting}
+                onClick={() => void handleDiditTest()}
+                className="mt-4 inline-flex items-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg px-4 py-2 text-sm font-medium text-terminal-text hover:border-terminal-primary disabled:opacity-60"
+              >
+                <RefreshCw size={16} className={diditTesting ? 'animate-spin' : undefined} />
+                {diditTesting ? t.adminSettings.diditTestRunning : t.adminSettings.diditTestButton}
+              </button>
+              {diditTestResult ? (
+                <div
+                  className={`mt-4 rounded-lg border px-4 py-3 text-sm ${
+                    diditTestResult.ok
+                      ? 'border-terminal-success/30 bg-terminal-success/5 text-terminal-success'
+                      : 'border-red-500/30 bg-red-500/5 text-red-300'
+                  }`}
+                >
+                  <p className="font-medium">{diditTestResult.message}</p>
+                  {diditTestResult.siteUrl ? (
+                    <p className="mt-2 text-xs text-terminal-muted">
+                      {t.adminSettings.diditTestSiteUrl}:{' '}
+                      <span className="font-mono text-terminal-text">{diditTestResult.siteUrl}</span>
+                    </p>
+                  ) : null}
+                  {diditTestResult.callbackUrl ? (
+                    <p className="mt-1 break-all text-xs text-terminal-muted">
+                      {t.adminSettings.diditTestCallback}:{' '}
+                      <span className="font-mono text-terminal-text">{diditTestResult.callbackUrl}</span>
+                    </p>
+                  ) : null}
+                  {diditTestResult.httpStatus ? (
+                    <p className="mt-1 text-xs text-terminal-muted">
+                      {t.adminSettings.diditTestHttpStatus}: {diditTestResult.httpStatus}
+                    </p>
+                  ) : null}
+                  {diditTestResult.diditMessage ? (
+                    <p className="mt-1 text-xs text-terminal-muted">
+                      {t.adminSettings.diditTestDiditMessage}: {diditTestResult.diditMessage}
+                    </p>
+                  ) : null}
                 </div>
               ) : null}
             </section>

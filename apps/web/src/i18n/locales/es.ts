@@ -982,9 +982,19 @@ export const es = {
     integrationsOptionalMissingDesc: 'No son obligatorias para el funcionamiento base. Configuralas cuando necesites estas funciones.',
     integrationsAllConfigured: 'Todas las integraciones obligatorias están configuradas.',
     integrationEnvKeys: 'Variables de entorno',
+    diditTestButton: 'Probar Didit',
+    diditTestRunning: 'Probando Didit…',
+    diditTestSuccess: 'Didit OK — sesión creada correctamente.',
+    diditTestFailed: 'Didit falló al crear la sesión.',
+    diditTestHint:
+      'Ejecutá esta prueba desde la PC para ver el error real de Didit (API key, workflow UUID o cuota) sin DevTools en el celular.',
+    diditTestSiteUrl: 'URL del sitio usada',
+    diditTestCallback: 'Callback configurado',
+    diditTestHttpStatus: 'HTTP Didit',
+    diditTestDiditMessage: 'Mensaje Didit',
     integrationSetupHints: {
       email: 'Clave API de Resend y remitente para emails de onboarding.',
-      kyc: 'Credenciales Didit y secreto de webhook para verificación de identidad.',
+      kyc: 'Credenciales Didit y secreto de webhook para verificación de identidad. Usá DIDIT_WORKFLOW_ID (UUID del workflow KYC), no DIDIT_BIOMETRIC_WORKFLOW_ID.',
       googleOAuth: 'Habilitá Google en Privy Dashboard y agregá google a NEXT_PUBLIC_PRIVY_LOGIN_METHODS, o definí AUTH_GOOGLE_ID y AUTH_GOOGLE_SECRET.',
       appleOAuth: 'Habilitá Apple en Privy Dashboard y agregá apple a NEXT_PUBLIC_PRIVY_LOGIN_METHODS, o definí AUTH_APPLE_ID y AUTH_APPLE_SECRET.',
       walletConnect: 'Project ID de WalletConnect Cloud para wallets externas.',
@@ -2256,6 +2266,16 @@ export const es = {
       DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
       DIDIT_SESSION_FAILED:
         'No pudimos iniciar la verificación de identidad. Revisá tu conexión e intentá de nuevo en unos segundos.',
+      DIDIT_AUTH_FAILED:
+        'La configuración de Didit en el servidor no es válida. Contactá a soporte para revisar DIDIT_API_KEY.',
+      DIDIT_WORKFLOW_NOT_FOUND:
+        'No encontramos el workflow KYC configurado. Contactá a soporte para revisar DIDIT_WORKFLOW_ID en Vercel.',
+      DIDIT_QUOTA_EXCEEDED:
+        'La cuenta Didit no tiene verificaciones disponibles. Contactá a soporte o revisá tu plan en business.didit.me.',
+      DIDIT_SESSION_INVALID_RESPONSE:
+        'Didit respondió de forma inesperada al iniciar la verificación. Intentá de nuevo o contactá a soporte.',
+      DIDIT_CALLBACK_INVALID:
+        'La URL de retorno del KYC no está bien configurada en el servidor. Contactá a soporte.',
       CONTACT_NOT_VERIFIED: 'Primero verificá tu email y cargá tu teléfono antes de iniciar el KYC.',
       UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.',
       INVALID_WALLET: 'La dirección de billetera no es válida.',

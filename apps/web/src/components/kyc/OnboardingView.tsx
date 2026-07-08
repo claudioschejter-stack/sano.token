@@ -30,6 +30,7 @@ import { isPrivyEnabled } from '../../lib/privy/config';
 import { TotpOnboardingStep } from '../auth/TotpOnboardingStep';
 import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
 import { isMarketplaceTradingRole } from '../../lib/auth/roles';
+import { diditErrorI18nKey, parseDiditSessionError } from '../../lib/onboarding/diditService';
 
 type Step = 'email' | 'identity' | 'wallet' | 'totp' | 'done';
 
@@ -352,20 +353,21 @@ function OnboardingContent() {
 
   const resolveStepError = useCallback(
     (errorCode?: string) => {
-      const key = errorCode ?? 'GENERIC';
-      if (key === 'DIDIT_NOT_CONFIGURED') {
-        return o.errors.DIDIT_NOT_CONFIGURED;
+      if (!errorCode) {
+        return o.errors.GENERIC;
       }
-      if (key === 'CONTACT_NOT_VERIFIED') {
+
+      if (errorCode === 'CONTACT_NOT_VERIFIED') {
         return o.errors.CONTACT_NOT_VERIFIED;
       }
-      if (key === 'UNAUTHORIZED') {
+
+      if (errorCode === 'UNAUTHORIZED') {
         return o.errors.UNAUTHORIZED;
       }
-      if (key.startsWith('DIDIT_')) {
-        return o.errors.DIDIT_SESSION_FAILED ?? o.errors.GENERIC;
-      }
-      return o.errors[key as keyof typeof o.errors] ?? o.errors.GENERIC;
+
+      const parsed = parseDiditSessionError(errorCode);
+      const key = diditErrorI18nKey(parsed) as keyof typeof o.errors;
+      return o.errors[key] ?? o.errors.DIDIT_SESSION_FAILED ?? o.errors.GENERIC;
     },
     [o.errors]
   );

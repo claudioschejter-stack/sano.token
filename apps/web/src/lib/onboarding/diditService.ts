@@ -41,8 +41,96 @@ export type DiditSessionResult = {
   sessionToken?: string;
 };
 
+export type ParsedDiditSessionError = {
+  code: string;
+  httpStatus?: number;
+  diditMessage?: string;
+  detailPreview?: string;
+};
+
 export function isDiditConfigured(): boolean {
   return Boolean(process.env.DIDIT_API_KEY?.trim() && process.env.DIDIT_WORKFLOW_ID?.trim());
+}
+
+function extractDiditErrorDetail(detail: string): string | undefined {
+  const trimmed = detail.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    const candidate = parsed.detail ?? parsed.message ?? parsed.error ?? parsed.title;
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim().slice(0, 200);
+    }
+    if (candidate && typeof candidate === 'object') {
+      return JSON.stringify(candidate).slice(0, 200);
+    }
+  } catch {
+    /* plain text body */
+  }
+
+  return trimmed.replace(/\s+/g, ' ').slice(0, 200);
+}
+
+/** Parses server-side Didit errors for admin diagnostics and onboarding UI. */
+export function parseDiditSessionError(message: string): ParsedDiditSessionError {
+  if (message === 'DIDIT_NOT_CONFIGURED') {
+    return { code: 'DIDIT_NOT_CONFIGURED' };
+  }
+
+  if (message === 'DIDIT_SESSION_INVALID_RESPONSE') {
+    return { code: 'DIDIT_SESSION_INVALID_RESPONSE' };
+  }
+
+  if (message === 'DIDIT_CALLBACK_INVALID') {
+    return { code: 'DIDIT_CALLBACK_INVALID' };
+  }
+
+  const failedMatch = message.match(/^DIDIT_SESSION_FAILED:(\d+):(.*)$/s);
+  if (failedMatch) {
+    const httpStatus = Number(failedMatch[1]);
+    const detail = failedMatch[2] ?? '';
+    return {
+      code: 'DIDIT_SESSION_FAILED',
+      httpStatus: Number.isFinite(httpStatus) ? httpStatus : undefined,
+      diditMessage: extractDiditErrorDetail(detail),
+      detailPreview: detail.slice(0, 200)
+    };
+  }
+
+  if (message.startsWith('DIDIT_')) {
+    return { code: message.split(':')[0] ?? message, detailPreview: message.slice(0, 200) };
+  }
+
+  return { code: 'GENERIC', detailPreview: message.slice(0, 200) };
+}
+
+/** Maps parsed Didit errors to onboarding i18n keys. */
+export function diditErrorI18nKey(parsed: ParsedDiditSessionError): string {
+  if (parsed.code === 'DIDIT_NOT_CONFIGURED') {
+    return 'DIDIT_NOT_CONFIGURED';
+  }
+  if (parsed.code === 'DIDIT_SESSION_INVALID_RESPONSE') {
+    return 'DIDIT_SESSION_INVALID_RESPONSE';
+  }
+  if (parsed.code === 'DIDIT_CALLBACK_INVALID') {
+    return 'DIDIT_CALLBACK_INVALID';
+  }
+  if (parsed.httpStatus === 401 || parsed.httpStatus === 403) {
+    return 'DIDIT_AUTH_FAILED';
+  }
+  if (parsed.httpStatus === 404) {
+    return 'DIDIT_WORKFLOW_NOT_FOUND';
+  }
+  if (parsed.httpStatus === 402 || parsed.httpStatus === 429) {
+    return 'DIDIT_QUOTA_EXCEEDED';
+  }
+  if (parsed.code.startsWith('DIDIT_')) {
+    return 'DIDIT_SESSION_FAILED';
+  }
+  return 'GENERIC';
 }
 
 export async function createDiditSession(input: {
@@ -84,6 +172,7 @@ export async function createDiditSession(input: {
 
   const payload = (await response.json()) as {
     session_id?: string;
+    sessionId?: string;
     id?: string;
     url?: string;
     verification_url?: string;
@@ -91,7 +180,7 @@ export async function createDiditSession(input: {
     session_token?: string;
   };
 
-  const sessionId = payload.session_id ?? payload.id;
+  const sessionId = payload.session_id ?? payload.sessionId ?? payload.id;
   const url = payload.url ?? payload.verification_url ?? payload.session_url;
 
   if (!sessionId || !url) {

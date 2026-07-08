@@ -2,40 +2,64 @@
 
 ## Objetivo
 
-La plataforma está pensada **primero para celular**: onboarding con teléfono grande, botones fijos abajo y flujo guiado. La cuenta queda **operativa** solo cuando se cumplen las tres condiciones:
-
-1. **Email verificado** (código de 6 dígitos por Resend)
-2. **Teléfono verificado** (código SMS por Twilio)
-3. **Identidad aprobada** (DNI / pasaporte + prueba de vida vía [Didit](https://didit.me/products/free-kyc/))
+La plataforma está pensada **primero para celular**: onboarding con teléfono grande, botones fijos abajo y flujo guiado. La cuenta queda **operativa** solo cuando se cumplen las condiciones de identidad, wallet y TOTP (inversores).
 
 Hasta entonces el inversor se redirige a `/kyc?returnTo=/marketplace`.
 
 ## Didit (recomendado — 500 verificaciones gratis/mes)
 
-1. Crear organización en [business.didit.me](https://business.didit.me/)
-2. Crear workflow **KYC** con: OCR (documento), Liveness pasivo, Face Match
-3. En **API & Webhooks** copiar API Key y registrar webhook:
-   - URL: `https://sano-token-web.vercel.app/api/webhooks/didit`
-   - Eventos: `status.updated`, `data.updated` (v3)
-4. Variables en Vercel:
+### Checklist de configuración (Didit + Vercel)
 
-```env
-DIDIT_API_KEY=""
-DIDIT_WORKFLOW_ID=""
-DIDIT_WEBHOOK_SECRET=""
+**Consola Didit — [business.didit.me](https://business.didit.me/)**
+
+1. Crear workflow **KYC** activo con: OCR (documento), Liveness pasivo, Face Match
+2. Copiar el **UUID** del workflow (no el nombre). El código usa **`DIDIT_WORKFLOW_ID`**, no `DIDIT_BIOMETRIC_WORKFLOW_ID`
+3. En **API & Webhooks**:
+   - Copiar **API Key** del mismo proyecto/app
+   - Webhook URL: `https://www.sanovacapital.com/api/webhooks/didit`
+   - Eventos: `status.updated`, `data.updated` (v3)
+   - Copiar **Webhook Secret**
+4. Verificar créditos/plan disponibles en la cuenta Didit
+
+**Vercel Production — proyecto `sano-token-web`**
+
+| Variable | Valor esperado |
+|----------|----------------|
+| `NEXT_PUBLIC_SITE_URL` | `https://www.sanovacapital.com` |
+| `AUTH_URL` | `https://www.sanovacapital.com` |
+| `DIDIT_API_KEY` | API Key de Didit |
+| `DIDIT_WORKFLOW_ID` | UUID del workflow KYC |
+| `DIDIT_WEBHOOK_SECRET` | Secret del webhook Didit |
+| `ALLOW_DEMO_KYC` | `false` |
+
+Redeploy obligatorio después de cambiar variables.
+
+### Probar Didit sin DevTools en el celular
+
+1. **Admin → Configuración → Probar Didit** (desktop, sesión admin)
+2. O desde CLI con secretos de producción:
+
+```bash
+cd apps/web
+npx vercel env run --environment production -- node ../../scripts/vercel/test-didit-session.mjs
 ```
 
-5. El usuario inicia sesión → `/kyc` → pasos email/teléfono → **Verificar con Didit** → Didit abre cámara en el móvil (DNI, pasaporte, selfie).
-6. El webhook guarda en `User`: `kycFullName`, `kycDocumentId` (desde `decision.id_verifications`). El admin los ve en `/dashboard/team` junto con email/teléfono verificados.
+Si la prueba falla con HTTP 401 → revisar `DIDIT_API_KEY`. Si falla con 404 → revisar `DIDIT_WORKFLOW_ID`.
+
+### Flujo del inversor
+
+1. Registro desktop → activación por email → QR **Continuá en tu celular**
+2. Móvil: `/kyc` → contacto (teléfono + huella) → **Validar identidad con teléfono celular**
+3. Didit abre cámara (DNI/pasaporte + selfie) → retorno a `/kyc?didit=1`
+4. Webhook actualiza KYC en `User` (`kycFullName`, `kycDocumentId`, etc.)
 
 Documentación: [Quick Start Didit](https://docs.didit.me/getting-started/quick-start)
 
-## Email y SMS
+## Email
 
 | Canal | Proveedor | Variable |
 |-------|-----------|----------|
-| Email OTP | [Resend](https://resend.com) | `RESEND_API_KEY`, `ONBOARDING_FROM_EMAIL` |
-| SMS OTP | [Twilio](https://www.twilio.com) | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` |
+| Email transaccional / activación | [Resend](https://resend.com) | `RESEND_API_KEY`, `ONBOARDING_FROM_EMAIL` |
 
 En desarrollo, con `ONBOARDING_DEV_EXPOSE_CODE=true` los códigos se muestran en pantalla (no usar en producción).
 
@@ -45,7 +69,7 @@ La web ya es **PWA** (`manifest.json`, service worker). Para tiendas:
 
 ### Opción A — Rápida (recomendada para MVP)
 
-- **Android**: [Trusted Web Activity (TWA)](https://developer.chrome.com/docs/android/trusted-web-activity/) con [PWABuilder](https://www.pwabuilder.com/) apuntando a `https://sano-token-web.vercel.app`
+- **Android**: [Trusted Web Activity (TWA)](https://developer.chrome.com/docs/android/trusted-web-activity/) con [PWABuilder](https://www.pwabuilder.com/) apuntando a `https://www.sanovacapital.com`
 - **iOS**: “Add to Home Screen” + más adelante envoltorio **Capacitor** si necesitás App Store
 
 ### Opción B — Nativa híbrida
@@ -53,37 +77,16 @@ La web ya es **PWA** (`manifest.json`, service worker). Para tiendas:
 - [Capacitor](https://capacitorjs.com/) sobre el build Next.js: mismo onboarding y Didit en WebView/fullscreen
 - Didit también ofrece SDK móvil si más adelante querés UI 100% nativa
 
-Pasos típicos Capacitor:
-
-```bash
-npm install @capacitor/core @capacitor/cli @capacitor/ios @capacitor/android
-npx cap init "Sanova RWA" com.sanova.rwa
-npx cap add ios
-npx cap add android
-```
-
-Configurar `server.url` a producción o empaquetar estático según estrategia de deploy.
-
-## Migración de base de datos
-
-Tras actualizar el schema Prisma:
-
-```bash
-npm run db:generate
-npx prisma db push --schema=packages/database/prisma/schema.prisma
-```
-
-## Rutas API nuevas
+## Rutas API relevantes
 
 | Método | Ruta | Uso |
 |--------|------|-----|
 | GET | `/api/onboarding/status` | Checklist del inversor logueado |
-| POST | `/api/onboarding/contact` | Guardar teléfono y enviar códigos |
-| POST | `/api/onboarding/verify-email` | Validar código email |
-| POST | `/api/onboarding/verify-phone` | Validar código SMS |
+| POST | `/api/onboarding/contact` | Guardar teléfono |
 | POST | `/api/onboarding/didit/session` | Crear sesión Didit y obtener URL |
 | POST | `/api/webhooks/didit` | Webhook de resultado KYC |
-| POST | `/api/onboarding/demo-kyc` | Solo demo (deshabilitado en prod salvo `ALLOW_DEMO_KYC=true`) |
+| POST | `/api/admin/integrations/didit-test` | Diagnóstico Didit (solo admin) |
+| POST | `/api/onboarding/demo-kyc` | Solo demo (deshabilitado en prod) |
 
 ## Configuración móvil (portal + PWA)
 
@@ -99,12 +102,3 @@ Implementado en `apps/web`:
 | Iconos PWA | `npm run pwa:icons` (genera PNG desde `public/icons/icon.svg`) |
 
 **Barra inferior (solo móvil):** Panel · Marketplace · Mis activos · Flujo de caja (inversor) o Clientes · Cartera (asesor). Admin sigue con menú hamburger.
-
-**Pendiente siguiente fase:** checkout con CTA fijo abajo, tablas admin en cards, PWABuilder/Capacitor para tiendas.
-
-## Próximos pasos sugeridos
-
-- Ejecutar `cd apps/web && npm run pwa:icons` y commitear los PNG generados
-- Sumar `phone` al registro OAuth / creación de inversor en admin
-- Bloquear checkout en servidor si `accountStatus !== OPERATIONAL`
-- Integrar estado KYC de Didit también en `Investor` para on-chain whitelist automática

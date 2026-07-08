@@ -69,6 +69,13 @@ npm run build -w @sanova/web
 
 Webhook Didit debe apuntar a: `https://www.sanovacapital.com/api/webhooks/didit`
 
+Diagnóstico rápido en producción:
+
+- Admin → Configuración → **Probar Didit**
+- O: `cd apps/web && npx vercel env run --environment production -- node ../../scripts/vercel/test-didit-session.mjs`
+
+Usar **`DIDIT_WORKFLOW_ID`** (UUID del workflow KYC). No confundir con `DIDIT_BIOMETRIC_WORKFLOW_ID`.
+
 ## 5. Email / OTP
 
 | Variable | Requerida |
