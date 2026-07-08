@@ -8,7 +8,7 @@
  *
  * También podés usar el botón "Probar Didit" en Admin → Configuración en producción.
  */
-const INVESTOR_KYC_WORKFLOW_ID = '1fabc54a-646c-474a-abad-7f164ff2c33f';
+const INVESTOR_KYC_WORKFLOW_ID = 'b722c869-04ad-4b6c-bf4c-e22ded12575d';
 
 const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL?.trim() ||

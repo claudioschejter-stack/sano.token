@@ -13,7 +13,7 @@ Hasta entonces el inversor se redirige a `/kyc?returnTo=/marketplace`.
 **Consola Didit — [business.didit.me](https://business.didit.me/)**
 
 1. Crear workflow **KYC** activo con: OCR (documento), Liveness pasivo, Face Match
-2. El UUID del workflow **KYC + AML** está en código (`INVESTOR_KYC_WORKFLOW_ID` = `1fabc54a-646c-474a-abad-7f164ff2c33f` en `diditWorkflows.ts`), no en variables de entorno
+2. El UUID del workflow **Custom KYC** (tier gratuito) está en código (`INVESTOR_KYC_WORKFLOW_ID` = `b722c869-04ad-4b6c-bf4c-e22ded12575d` en `diditWorkflows.ts`), no en variables de entorno
 3. En **API & Webhooks**:
    - Copiar **API Key** del mismo proyecto/app
    - Webhook URL: `https://www.sanovacapital.com/api/webhooks/didit`

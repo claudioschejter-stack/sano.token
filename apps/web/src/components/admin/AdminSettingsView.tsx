@@ -125,6 +125,7 @@ export function AdminSettingsView() {
         callbackUrl?: string;
         httpStatus?: number;
         diditMessage?: string;
+        i18nKey?: string;
         urlHost?: string;
       };
 
@@ -138,9 +139,13 @@ export function AdminSettingsView() {
         return;
       }
 
+      const diditDetail =
+        data.i18nKey &&
+        (t.onboarding.errors[data.i18nKey as keyof typeof t.onboarding.errors] as string | undefined);
+
       setDiditTestResult({
         ok: false,
-        message: t.adminSettings.diditTestFailed,
+        message: diditDetail ?? t.adminSettings.diditTestFailed,
         siteUrl: data.siteUrl,
         callbackUrl: data.callbackUrl,
         httpStatus: data.httpStatus,

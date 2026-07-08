@@ -3,11 +3,11 @@
  * @see https://docs.didit.me/sessions-api/create-session
  */
 
-/** KYC + AML — first-time investor identity verification (ID, liveness, face match, AML). */
-export const INVESTOR_KYC_WORKFLOW_ID = '1fabc54a-646c-474a-abad-7f164ff2c33f';
+/** Custom KYC — free-tier onboarding (ID, liveness, face match, IP). */
+export const INVESTOR_KYC_WORKFLOW_ID = 'b722c869-04ad-4b6c-bf4c-e22ded12575d';
 
-/** Legacy Custom KYC workflow (superseded by KYC + AML). */
-export const LEGACY_CUSTOM_KYC_WORKFLOW_ID = 'b722c869-04ad-4b6c-bf4c-e22ded12575d';
+/** KYC + AML — includes paid AML module; use when workspace has prepaid credits. */
+export const KYC_AML_WORKFLOW_ID = '1fabc54a-646c-474a-abad-7f164ff2c33f';
 
 /**
  * Biometric Authentication — re-auth against a prior portrait (requires `portrait_image` on create).
