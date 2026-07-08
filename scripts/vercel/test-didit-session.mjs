@@ -8,6 +8,8 @@
  *
  * También podés usar el botón "Probar Didit" en Admin → Configuración en producción.
  */
+const INVESTOR_KYC_WORKFLOW_ID = '1fabc54a-646c-474a-abad-7f164ff2c33f';
+
 const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
   process.env.AUTH_URL?.trim() ||
@@ -15,17 +17,17 @@ const siteUrl = (
 ).replace(/\/$/, '');
 
 const apiKey = process.env.DIDIT_API_KEY?.trim();
-const workflowId = process.env.DIDIT_WORKFLOW_ID?.trim();
+const workflowId = process.env.DIDIT_WORKFLOW_ID?.trim() || INVESTOR_KYC_WORKFLOW_ID;
 const callback = `${siteUrl}/kyc?returnTo=%2Fmarketplace&registered=1&didit=1`;
 
 console.log('=== Didit session smoke test ===');
 console.log('siteUrl:', siteUrl);
 console.log('callback:', callback);
 console.log('apiKey configured:', Boolean(apiKey));
-console.log('workflowId configured:', Boolean(workflowId));
+console.log('workflowId:', workflowId);
 
-if (!apiKey || !workflowId) {
-  console.error('Missing DIDIT_API_KEY or DIDIT_WORKFLOW_ID');
+if (!apiKey) {
+  console.error('Missing DIDIT_API_KEY');
   process.exit(1);
 }
 

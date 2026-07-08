@@ -26,7 +26,7 @@ const CRITICAL = [
   },
   {
     group: 'Didit KYC',
-    keys: ['DIDIT_API_KEY', 'DIDIT_WORKFLOW_ID', 'DIDIT_WEBHOOK_SECRET']
+    keys: ['DIDIT_API_KEY', 'DIDIT_WEBHOOK_SECRET']
   },
   {
     group: 'WebAuthn (PWA)',

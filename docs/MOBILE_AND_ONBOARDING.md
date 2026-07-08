@@ -13,7 +13,7 @@ Hasta entonces el inversor se redirige a `/kyc?returnTo=/marketplace`.
 **Consola Didit — [business.didit.me](https://business.didit.me/)**
 
 1. Crear workflow **KYC** activo con: OCR (documento), Liveness pasivo, Face Match
-2. Copiar el **UUID** del workflow (no el nombre). El código usa **`DIDIT_WORKFLOW_ID`**, no `DIDIT_BIOMETRIC_WORKFLOW_ID`
+2. El UUID del workflow **KYC + AML** está en código (`INVESTOR_KYC_WORKFLOW_ID` = `1fabc54a-646c-474a-abad-7f164ff2c33f` en `diditWorkflows.ts`), no en variables de entorno
 3. En **API & Webhooks**:
    - Copiar **API Key** del mismo proyecto/app
    - Webhook URL: `https://www.sanovacapital.com/api/webhooks/didit`
@@ -28,7 +28,6 @@ Hasta entonces el inversor se redirige a `/kyc?returnTo=/marketplace`.
 | `NEXT_PUBLIC_SITE_URL` | `https://www.sanovacapital.com` |
 | `AUTH_URL` | `https://www.sanovacapital.com` |
 | `DIDIT_API_KEY` | API Key de Didit |
-| `DIDIT_WORKFLOW_ID` | UUID del workflow KYC |
 | `DIDIT_WEBHOOK_SECRET` | Secret del webhook Didit |
 | `ALLOW_DEMO_KYC` | `false` |
 
@@ -44,7 +43,7 @@ cd apps/web
 npx vercel env run --environment production -- node ../../scripts/vercel/test-didit-session.mjs
 ```
 
-Si la prueba falla con HTTP 401 → revisar `DIDIT_API_KEY`. Si falla con 404 → revisar `DIDIT_WORKFLOW_ID`.
+Si la prueba falla con HTTP 401 → revisar `DIDIT_API_KEY`. Si falla con 404 → revisar el workflow KYC en `diditWorkflows.ts`. Si falla con 400 y mensaje de créditos → recargar en business.didit.me.
 
 ### Flujo del inversor
 

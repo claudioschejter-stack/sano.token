@@ -63,7 +63,6 @@ npm run build -w @sanova/web
 | Variable | Requerida |
 |----------|-----------|
 | `DIDIT_API_KEY` | Sí |
-| `DIDIT_WORKFLOW_ID` | Sí |
 | `DIDIT_WEBHOOK_SECRET` | Sí |
 | `ALLOW_DEMO_KYC` | `false` en prod |
 
@@ -74,7 +73,7 @@ Diagnóstico rápido en producción:
 - Admin → Configuración → **Probar Didit**
 - O: `cd apps/web && npx vercel env run --environment production -- node ../../scripts/vercel/test-didit-session.mjs`
 
-Usar **`DIDIT_WORKFLOW_ID`** (UUID del workflow KYC). No confundir con `DIDIT_BIOMETRIC_WORKFLOW_ID`.
+El workflow KYC está en código (`INVESTOR_KYC_WORKFLOW_ID` en `apps/web/src/lib/onboarding/diditWorkflows.ts`), no en variables de entorno.
 
 ## 5. Email / OTP
 

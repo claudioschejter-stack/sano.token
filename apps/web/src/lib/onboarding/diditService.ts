@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { siteBaseUrl } from './accountActivationService';
+import { INVESTOR_KYC_WORKFLOW_ID } from './diditWorkflows';
 
 const DIDIT_SESSION_URL = 'https://verification.didit.me/v3/session/';
 
@@ -49,7 +50,7 @@ export type ParsedDiditSessionError = {
 };
 
 export function isDiditConfigured(): boolean {
-  return Boolean(process.env.DIDIT_API_KEY?.trim() && process.env.DIDIT_WORKFLOW_ID?.trim());
+  return Boolean(process.env.DIDIT_API_KEY?.trim());
 }
 
 function extractDiditErrorDetail(detail: string): string | undefined {
@@ -143,11 +144,14 @@ export function diditErrorI18nKey(parsed: ParsedDiditSessionError): string {
 export async function createDiditSession(input: {
   userId: string;
   callbackUrl: string;
+  workflowId?: string;
+  /** Raw base64 face image — required for Biometric Authentication workflow only. */
+  portraitImage?: string;
 }): Promise<DiditSessionResult> {
   const apiKey = process.env.DIDIT_API_KEY?.trim();
-  const workflowId = process.env.DIDIT_WORKFLOW_ID?.trim();
+  const workflowId = input.workflowId?.trim() || INVESTOR_KYC_WORKFLOW_ID;
 
-  if (!apiKey || !workflowId) {
+  if (!apiKey) {
     throw new Error('DIDIT_NOT_CONFIGURED');
   }
 
@@ -168,7 +172,8 @@ export async function createDiditSession(input: {
       vendor_data: input.userId,
       callback,
       callback_method: 'both',
-      language: 'es'
+      language: 'es',
+      ...(input.portraitImage ? { portrait_image: input.portraitImage } : {})
     })
   });
 

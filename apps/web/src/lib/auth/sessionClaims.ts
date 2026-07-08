@@ -1,4 +1,5 @@
 import { prisma } from '@sanova/database';
+import { bypassesTotpGateForRole } from './adminAuthPolicy';
 import { isAccountOperational } from '../onboarding/accountStatus';
 import { resolveOperationalWalletAddress } from '../investor/provisionInvestorProfile';
 import { is2faLocked, issueTempTotpToken, lockoutRemainingSeconds } from './totpService';
@@ -63,6 +64,16 @@ export async function applyOAuthTotpGate(
     accessToken: string;
   }
 ): Promise<SessionAuthClaims> {
+  if (bypassesTotpGateForRole(session.role)) {
+    return {
+      accessToken: session.accessToken,
+      role: session.role,
+      roles: session.roles,
+      accountOperational: true,
+      totpPending: false
+    };
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { totpEnabled: true, locked2faUntil: true }

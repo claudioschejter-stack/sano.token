@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { prisma } from '@sanova/database';
 import authConfig from './auth.config';
 import { verifyCredentials } from './lib/auth/credentialsService';
+import { bypassesTotpGateForRole } from './lib/auth/adminAuthPolicy';
 import { verifyPasskeyLoginToken } from './lib/auth/passkeyService';
 import { verifyActivationLoginGrant } from './lib/onboarding/accountActivationService';
 import { handleOAuthLogin } from './lib/auth/oauthService';
@@ -106,9 +107,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             select: { totpEnabled: true }
           });
 
-          // TOTP-enabled accounts must complete /api/auth/login/step1 + login-verify
-          // and sign in via the passkey provider + loginToken — not raw credentials.
-          if (user?.totpEnabled) {
+          // TOTP-enabled accounts must complete login-verify — except ADMIN (password-only).
+          if (user?.totpEnabled && !bypassesTotpGateForRole(result.role)) {
             return null;
           }
 
@@ -118,7 +118,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             role: result.role,
             roles: result.roles,
             accessToken: result.accessToken,
-            accountOperational: await loadAccountOperational(result.id)
+            accountOperational: bypassesTotpGateForRole(result.role)
+              ? true
+              : await loadAccountOperational(result.id)
           };
         } catch (error) {
           if (error instanceof Error && error.message === 'INVESTOR_ACCESS_NOT_ENABLED') {

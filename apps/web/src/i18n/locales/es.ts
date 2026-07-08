@@ -994,7 +994,7 @@ export const es = {
     diditTestDiditMessage: 'Mensaje Didit',
     integrationSetupHints: {
       email: 'Clave API de Resend y remitente para emails de onboarding.',
-      kyc: 'Credenciales Didit y secreto de webhook para verificación de identidad. Usá DIDIT_WORKFLOW_ID (UUID del workflow KYC), no DIDIT_BIOMETRIC_WORKFLOW_ID.',
+      kyc: 'Credenciales Didit (API key + webhook secret). El workflow KYC está definido en código, no en variables de entorno.',
       googleOAuth: 'Habilitá Google en Privy Dashboard y agregá google a NEXT_PUBLIC_PRIVY_LOGIN_METHODS, o definí AUTH_GOOGLE_ID y AUTH_GOOGLE_SECRET.',
       appleOAuth: 'Habilitá Apple en Privy Dashboard y agregá apple a NEXT_PUBLIC_PRIVY_LOGIN_METHODS, o definí AUTH_APPLE_ID y AUTH_APPLE_SECRET.',
       walletConnect: 'Project ID de WalletConnect Cloud para wallets externas.',
@@ -2269,9 +2269,9 @@ export const es = {
       DIDIT_AUTH_FAILED:
         'La configuración de Didit en el servidor no es válida. Contactá a soporte para revisar DIDIT_API_KEY.',
       DIDIT_WORKFLOW_NOT_FOUND:
-        'No encontramos el workflow KYC configurado. Contactá a soporte para revisar DIDIT_WORKFLOW_ID en Vercel.',
+        'No encontramos el workflow KYC configurado. Contactá a soporte para revisar la integración Didit.',
       DIDIT_QUOTA_EXCEEDED:
-        'La cuenta Didit no tiene verificaciones disponibles. Contactá a soporte o revisá tu plan en business.didit.me.',
+        'Didit no pudo crear la sesión: cuota mensual gratuita agotada (500/mes) o el workflow incluye módulos de pago (ej. AML). Revisá el uso en business.didit.me.',
       DIDIT_SESSION_INVALID_RESPONSE:
         'Didit respondió de forma inesperada al iniciar la verificación. Intentá de nuevo o contactá a soporte.',
       DIDIT_CALLBACK_INVALID:

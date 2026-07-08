@@ -42,12 +42,8 @@ export function getOnboardingIntegrations(): IntegrationStatus[] {
     {
       id: 'didit',
       label: 'KYC (Didit)',
-      configured: Boolean(
-        process.env.DIDIT_API_KEY &&
-          process.env.DIDIT_WORKFLOW_ID &&
-          process.env.DIDIT_WEBHOOK_SECRET
-      ),
-      envKeys: ['DIDIT_API_KEY', 'DIDIT_WORKFLOW_ID', 'DIDIT_WEBHOOK_SECRET']
+      configured: Boolean(process.env.DIDIT_API_KEY && process.env.DIDIT_WEBHOOK_SECRET),
+      envKeys: ['DIDIT_API_KEY', 'DIDIT_WEBHOOK_SECRET']
     },
     {
       id: 'walletconnect',

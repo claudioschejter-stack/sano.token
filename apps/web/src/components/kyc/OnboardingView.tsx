@@ -31,6 +31,7 @@ import { TotpOnboardingStep } from '../auth/TotpOnboardingStep';
 import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
 import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 import { diditErrorI18nKey, parseDiditSessionError } from '../../lib/onboarding/diditService';
+import { openDiditVerification } from '../../lib/onboarding/diditSdkClient';
 
 type Step = 'email' | 'identity' | 'wallet' | 'totp' | 'done';
 
@@ -408,7 +409,10 @@ function OnboardingContent() {
       }
 
       if (response.ok && data.url) {
-        window.location.href = data.url;
+        openDiditVerification(data.url, () => {
+          void syncDiditStatus();
+        });
+        setDiditLaunching(false);
         return;
       }
 
@@ -420,7 +424,7 @@ function OnboardingContent() {
     } finally {
       setBusy(false);
     }
-  }, [checklist?.contactVerified, needsPhoneCapture, o.errors, resolveStepError, returnTo, savePhone]);
+  }, [checklist?.contactVerified, needsPhoneCapture, o.errors, resolveStepError, returnTo, savePhone, syncDiditStatus]);
 
   const continueWithKyc = useCallback(async () => {
     if (needsPhoneCapture) {

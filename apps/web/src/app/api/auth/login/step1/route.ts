@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifyCredentials } from '../../../../../lib/auth/credentialsService';
+import { bypassesTotpGateForRole } from '../../../../../lib/auth/adminAuthPolicy';
 import { is2faLocked, issueTempTotpToken, lockoutRemainingSeconds } from '../../../../../lib/auth/totpService';
 import { prisma } from '@sanova/database';
 
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'CREDENCIALES_INVALIDAS' }, { status: 401 });
   }
 
-  if (!user.totpEnabled || isMobileChannel) {
+  if (!user.totpEnabled || isMobileChannel || bypassesTotpGateForRole(authUser.role)) {
     return NextResponse.json({ ok: true, requiresTOTP: false });
   }
 

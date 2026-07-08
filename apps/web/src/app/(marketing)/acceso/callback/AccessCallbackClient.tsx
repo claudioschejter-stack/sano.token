@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../../i18n/LocaleProvider';
 import { resolveAuthenticatedDestination } from '../../../../lib/auth/redirects';
 import type { SystemRole } from '../../../../lib/auth/roles';
+import { canAccessPortalWithoutInvestorOnboarding } from '../../../../lib/onboarding/onboardingGate';
 import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from '../../../../lib/auth/kycPaths';
 import { useAccountStatus } from '../../../../hooks/useAccountStatus';
 import { useMobilePortal } from '../../../../hooks/useMobilePortal';
@@ -98,6 +99,7 @@ export default function AccessCallbackClient() {
       !needsTotpStep &&
       isMobilePortal &&
       email &&
+      !canAccessPortalWithoutInvestorOnboarding(role) &&
       !getDevicePasskeyHint()?.credentialId &&
       !hasBiometricPromptBeenShown(email)
     ) {
