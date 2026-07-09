@@ -15,11 +15,9 @@ import { prisma } from '@sanova/database';
  *  - { error: ... } → credenciales inválidas
  */
 export async function POST(request: Request) {
-  const body = (await request.json()) as { email?: string; password?: string; channel?: string };
+  const body = (await request.json()) as { email?: string; password?: string };
   const email = body.email?.trim().toLowerCase();
   const password = body.password;
-  const channel = body.channel?.trim();
-  const isMobileChannel = channel === 'pwa' || channel === 'mobile-web';
 
   if (!email || !password) {
     return NextResponse.json({ error: 'CREDENCIALES_INCOMPLETAS' }, { status: 400 });
@@ -58,7 +56,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'CREDENCIALES_INVALIDAS' }, { status: 401 });
   }
 
-  if (!user.totpEnabled || isMobileChannel || bypassesTotpGateForRole(authUser.role)) {
+  // NOTE: this must stay consistent with the `credentials` provider's authorize()
+  // gate in auth.ts, which unconditionally blocks sign-in when totpEnabled is true
+  // (except for roles that bypass the gate). A previous "skip TOTP on mobile/PWA"
+  // shortcut here caused mobile logins to silently fail: this endpoint would say
+  // requiresTOTP: false, the client would call signIn('credentials'), and NextAuth
+  // would reject it anyway — surfacing as a generic "invalid credentials" error.
+  if (!user.totpEnabled || bypassesTotpGateForRole(authUser.role)) {
     return NextResponse.json({ ok: true, requiresTOTP: false });
   }
 
