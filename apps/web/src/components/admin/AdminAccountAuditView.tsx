@@ -145,6 +145,8 @@ export function AdminAccountAuditView() {
   const [copied, setCopied] = useState<string | null>(null);
   const [backfilling, setBackfilling] = useState(false);
   const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
+  const [migrating, setMigrating] = useState(false);
+  const [migrateMessage, setMigrateMessage] = useState<string | null>(null);
 
   const load = useCallback(async (query = '') => {
     setLoading(true);
@@ -190,6 +192,22 @@ export function AdminAccountAuditView() {
       setBackfillMessage(e instanceof Error ? `Error: ${e.message}` : 'Error al generar wallets');
     } finally {
       setBackfilling(false);
+    }
+  };
+
+  const runNotificationsMigration = async () => {
+    setMigrating(true);
+    setMigrateMessage(null);
+    try {
+      const res = await fetch('/api/admin/run-notifications-migration', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Error');
+      setMigrateMessage('Tabla de notificaciones creada correctamente.');
+      await load(appliedQuery);
+    } catch (e) {
+      setMigrateMessage(e instanceof Error ? `Error: ${e.message}` : 'Error al aplicar la migración');
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -274,6 +292,25 @@ export function AdminAccountAuditView() {
           <div className="rounded-md border border-terminal-warning/30 bg-terminal-warning/10 p-3 text-sm text-terminal-warning">
             Turnstile está parcialmente configurado: el secret del servidor y la site key del cliente deben
             estar ambos activos o ambos ausentes. Un mismatch bloquea registros nuevos con CAPTCHA_INVALIDO.
+          </div>
+        ) : null}
+
+        {data && !data.platformConfig.notificationsTableReady ? (
+          <div className="rounded-md border border-terminal-warning/30 bg-terminal-warning/10 p-3 text-sm text-terminal-warning">
+            <p>
+              Falta aplicar la migración de la tabla de notificaciones in-app. Hasta que se aplique, la
+              campanita de notificaciones y el aviso de &quot;cuenta aprobada&quot; fallan en silencio (el correo
+              de bienvenida sigue funcionando igual).
+            </p>
+            <button
+              onClick={() => void runNotificationsMigration()}
+              disabled={migrating}
+              className="mt-3 flex items-center gap-2 rounded-md border border-terminal-warning/40 bg-terminal-warning/10 px-3 py-1.5 text-xs font-medium text-terminal-warning hover:bg-terminal-warning/20 disabled:opacity-50"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${migrating ? 'animate-spin' : ''}`} />
+              {migrating ? 'Aplicando migración…' : 'Crear tabla de notificaciones ahora'}
+            </button>
+            {migrateMessage && <p className="mt-2 text-xs text-terminal-bright">{migrateMessage}</p>}
           </div>
         ) : null}
 

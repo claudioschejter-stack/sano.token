@@ -62,7 +62,19 @@ export type PlatformConfig = {
   turnstileSiteKeyConfigured: boolean;
   turnstileKeysInSync: boolean;
   investorOpenRegistration: boolean;
+  notificationsTableReady: boolean;
 };
+
+async function checkNotificationsTableReady(): Promise<boolean> {
+  try {
+    const [row] = await prisma.$queryRawUnsafe<[{ exists: boolean }]>(
+      `SELECT to_regclass('"Notification"') IS NOT NULL AS exists`
+    );
+    return Boolean(row?.exists);
+  } catch {
+    return false;
+  }
+}
 
 function resolveWalletStatus(address: string | null | undefined): WalletStatus {
   if (!address) return 'NONE';
@@ -168,6 +180,7 @@ export async function GET(request: NextRequest) {
     const turnstileSiteKeyConfigured = Boolean(
       process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim()
     );
+    const notificationsTableReady = await checkNotificationsTableReady();
 
     const platformConfig: PlatformConfig = {
       adminEmails: process.env.AUTH_ADMIN_EMAILS ? '✓ configured' : '✗ NOT SET',
@@ -183,7 +196,8 @@ export async function GET(request: NextRequest) {
       turnstileSiteKeyConfigured,
       turnstileKeysInSync:
         turnstileSecretConfigured === turnstileSiteKeyConfigured,
-      investorOpenRegistration: isInvestorOpenRegistration()
+      investorOpenRegistration: isInvestorOpenRegistration(),
+      notificationsTableReady
     };
 
     const registrationAttemptsRaw = await listRegistrationAttempts({
