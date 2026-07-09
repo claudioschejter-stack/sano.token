@@ -2146,8 +2146,9 @@ export const en = {
       walletLinked: "Wallet linked",
       walletHint: "We save your address to match on-chain purchases and repayments with your account.",
       walletSkip: "Skip for now",
-      doneTitle: "Approved investor",
-      doneDesc: "Identity verified and wallet linked. You can now operate in the marketplace."
+      doneTitle: "Account approved successfully",
+      doneDesc: "Identity verified and wallet linked. You can now operate in the marketplace.",
+      doneEnterPlatform: "Enter platform"
     },
     totp: {
       title: 'Sanova Capital in Google Authenticator',
@@ -2257,6 +2258,9 @@ export const en = {
         'Privy could not verify your email. Go back to the email step and use the code we sent from Sanova.',
       PRIVY_NOT_CONFIGURED: 'Payment wallet setup is not configured on the server. Contact support.',
       PRIVY_PROVISION_REQUIRED: 'Complete the Privy sign-in step before linking your wallet.',
+      PRIVY_PROVISION_FAILED: "We couldn't create your wallet yet. We're retrying automatically.",
+      DOCUMENT_ALREADY_REGISTERED:
+        'Your ID document is already linked to another Sanova account. Sign in with that account or contact support.',
       STATUS_FETCH_FAILED: 'We could not load your activation progress. Try again.',
       EMAIL_VERIFICATION_REQUIRED:
         'Verify your email address before continuing with this step.',

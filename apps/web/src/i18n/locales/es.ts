@@ -2180,8 +2180,9 @@ export const es = {
       walletLinked: 'Billetera vinculada',
       walletHint: 'Guardamos tu dirección para asociar compras y repagos on-chain con tu cuenta.',
       walletSkip: 'Omitir por ahora',
-      doneTitle: 'Inversor aprobado',
-      doneDesc: 'Identidad verificada y billetera vinculada. Ya podés operar en el marketplace.'
+      doneTitle: 'Cuenta aprobada exitosamente',
+      doneDesc: 'Identidad verificada y billetera vinculada. Ya podés operar en el marketplace.',
+      doneEnterPlatform: 'Ingresar a plataforma'
     },
     totp: {
       title: 'Sanova Capital en Google Authenticator',
@@ -2300,6 +2301,8 @@ export const es = {
       PRIVY_NOT_READY: 'Estamos preparando tu billetera. Esperá unos segundos e intentá de nuevo.',
       PRIVY_WALLET_NOT_READY:
         'Estamos preparando tu billetera. Esperá unos segundos e intentá de nuevo.',
+      PRIVY_PROVISION_FAILED:
+        'No pudimos crear tu billetera todavía. Estamos reintentando automáticamente.',
       STATUS_FETCH_FAILED: 'No pudimos cargar tu progreso de activación. Intentá de nuevo.',
       EMAIL_VERIFICATION_REQUIRED:
         'Verificá tu correo electrónico antes de continuar con este paso.',

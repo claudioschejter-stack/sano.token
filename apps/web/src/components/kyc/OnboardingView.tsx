@@ -699,6 +699,13 @@ function OnboardingContent() {
             <CheckCircle2 className="text-emerald-500" size={56} />
             <h2 className="mt-4 text-2xl font-bold">{o.steps.doneTitle}</h2>
             <p className="mt-2 text-sm text-slate-600">{o.steps.doneDesc}</p>
+            <button
+              type="button"
+              onClick={() => router.replace(returnTo)}
+              className="mt-6 flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white hover:bg-blue-500"
+            >
+              {o.steps.doneEnterPlatform}
+            </button>
           </section>
         ) : null}
       </main>

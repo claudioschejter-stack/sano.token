@@ -2,7 +2,6 @@
 
 import { Loader2, RefreshCw, ShieldCheck, Wallet } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { isPrivyEnabled } from '../../lib/privy/config';
 
@@ -13,9 +12,30 @@ type PrivyOnboardingWalletProps = {
   onError: (message: string) => void;
 };
 
+const MAX_AUTO_RETRIES = 5;
+const RETRY_DELAY_MS = [1500, 2500, 4000, 6000, 9000];
+
+// Errors that are worth retrying automatically (transient Privy API hiccups,
+// not fixable by the investor) vs. errors that need a clear, non-retryable
+// message (e.g. a duplicate identity document).
+const NON_RETRYABLE_ERRORS = new Set([
+  'DOCUMENT_ALREADY_REGISTERED',
+  'WALLET_ALREADY_LINKED',
+  'PRIVY_NOT_CONFIGURED',
+  'KYC_NOT_APPROVED',
+  'EMAIL_VERIFICATION_REQUIRED',
+  'UNAUTHORIZED'
+]);
+
 /**
- * Post-Didit wallet step: silently provisions Privy embedded wallet on Base
- * and links it to the KYC-approved NextAuth session (Web2 UX).
+ * Post-Didit wallet step: silently provisions the Privy embedded wallet on
+ * Base entirely server-side and links it to the KYC-approved session.
+ *
+ * Deliberately never touches the Privy client SDK (`usePrivy().login()`)
+ * here — without paid Custom Auth, that call pops Privy's own "log in with
+ * email" modal, forcing the investor through a second, redundant login.
+ * The wallet is created via Privy's REST API (server-side, by email) and
+ * simply linked to the account through our own backend.
  */
 export function PrivyOnboardingWallet({
   kycApproved,
@@ -26,37 +46,17 @@ export function PrivyOnboardingWallet({
   const t = useTranslation();
   const o = t.onboarding.steps;
   const errors = t.onboarding.errors;
-  const { enabled, ready, walletsReady, authenticated, login, ensureReady, getAccessToken } =
-    usePrivyEmbeddedWallet();
   const [busy, setBusy] = useState(false);
-  const [phase, setPhase] = useState<'idle' | 'login' | 'linking' | 'done' | 'failed'>('idle');
+  const [phase, setPhase] = useState<'idle' | 'provisioning' | 'done' | 'failed'>('idle');
   const [localError, setLocalError] = useState<string | null>(null);
   const autoStartRef = useRef(false);
   const manualRetryRef = useRef(false);
   const autoRetryCountRef = useRef(0);
-  const MAX_AUTO_RETRIES = 3;
 
   const resolveErrorMessage = useCallback(
     (key: string) => errors[key as keyof typeof errors] ?? errors.GENERIC,
     [errors]
   );
-
-  const reportClientError = useCallback((context: string, err: unknown) => {
-    const payload = {
-      context,
-      message: err instanceof Error ? err.message : String(err),
-      stack: err instanceof Error ? err.stack : undefined
-    };
-    // Best-effort beacon — this is currently our only visibility into
-    // client-only failures (e.g. Privy SDK errors) that never hit a backend
-    // route. Never let this block the actual error handling.
-    void fetch('/api/onboarding/client-error', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).catch(() => undefined);
-  }, []);
 
   const fail = useCallback(
     (key: string) => {
@@ -69,8 +69,8 @@ export function PrivyOnboardingWallet({
     [onError, resolveErrorMessage]
   );
 
-  const provisionAndLink = useCallback(async () => {
-    if (!enabled) {
+  const provisionWallet = useCallback(async () => {
+    if (!isPrivyEnabled()) {
       fail('PRIVY_NOT_CONFIGURED');
       return;
     }
@@ -82,101 +82,57 @@ export function PrivyOnboardingWallet({
 
     setLocalError(null);
     setBusy(true);
-    setPhase('login');
+    setPhase('provisioning');
 
     try {
-      if (!ready || !authenticated) {
-        try {
-          await login();
-        } catch (err) {
-          console.error('[PrivyOnboardingWallet] login() failed', err);
-          reportClientError('login', err);
-          throw new Error('PRIVY_LOGIN_FAILED');
-        }
-      }
-
-      setPhase('linking');
-      const address = await ensureReady();
-
-      let privyAccessToken: string | null = null;
-      try {
-        privyAccessToken = await getAccessToken();
-      } catch (err) {
-        // Best-effort: the token is only used to sync email verification.
-        // A failure here shouldn't block wallet linking itself.
-        console.warn('[PrivyOnboardingWallet] getAccessToken failed, continuing without it', err);
-      }
-
-      const response = await fetch('/api/investor/wallet', {
+      const response = await fetch('/api/investor/wallet/provision', {
         method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          walletAddress: address,
-          walletProvider: 'Privy Wallet',
-          privyProvisioned: true,
-          ...(privyAccessToken ? { privyAccessToken } : {})
-        })
+        credentials: 'same-origin'
       });
 
       const data = (await response.json()) as { error?: string; walletAddress?: string };
 
       if (!response.ok) {
-        fail(data.error ?? 'GENERIC');
+        const key = data.error ?? 'GENERIC';
+
+        if (!NON_RETRYABLE_ERRORS.has(key) && autoRetryCountRef.current < MAX_AUTO_RETRIES) {
+          const delay = RETRY_DELAY_MS[autoRetryCountRef.current] ?? RETRY_DELAY_MS[RETRY_DELAY_MS.length - 1];
+          autoRetryCountRef.current += 1;
+          setBusy(false);
+          setTimeout(() => {
+            autoStartRef.current = false;
+            setPhase('idle');
+          }, delay);
+          return;
+        }
+
+        fail(key);
         return;
       }
 
       setPhase('done');
       await refresh({ silent: true });
       await onLinked();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'GENERIC';
-      console.error('[PrivyOnboardingWallet] provisioning failed', err);
-      if (message !== 'PRIVY_LOGIN_FAILED') {
-        reportClientError('provisionAndLink', err);
-      }
-
-      // PRIVY_NOT_READY / PRIVY_WALLET_NOT_READY are transient SDK-initialization
-      // races (the Privy client hasn't finished mounting/authenticating yet, or
-      // the embedded wallet takes a beat longer than our poll window to appear)
-      // — not a real failure. Retry silently a few times before ever bothering
-      // the investor with an error screen, instead of failing on the very first
-      // attempt every single time.
-      const isTransient = message === 'PRIVY_NOT_READY' || message === 'PRIVY_WALLET_NOT_READY';
-      if (isTransient && autoRetryCountRef.current < MAX_AUTO_RETRIES) {
+    } catch {
+      if (autoRetryCountRef.current < MAX_AUTO_RETRIES) {
+        const delay = RETRY_DELAY_MS[autoRetryCountRef.current] ?? RETRY_DELAY_MS[RETRY_DELAY_MS.length - 1];
         autoRetryCountRef.current += 1;
         setBusy(false);
         setTimeout(() => {
           autoStartRef.current = false;
           setPhase('idle');
-        }, 1200);
+        }, delay);
         return;
       }
 
-      fail(message);
+      fail('GENERIC');
     } finally {
       setBusy(false);
     }
-  }, [
-    authenticated,
-    enabled,
-    ensureReady,
-    fail,
-    getAccessToken,
-    kycApproved,
-    login,
-    onLinked,
-    ready,
-    refresh,
-    reportClientError
-  ]);
+  }, [fail, kycApproved, onLinked, refresh]);
 
   useEffect(() => {
-    // Wait for the Privy SDK (and its wallet list) to actually finish
-    // initializing before attempting silent login/provisioning — starting too
-    // early is what previously made this step fail for virtually everyone,
-    // every time, on the very first render.
-    if (!isPrivyEnabled() || !kycApproved || !ready || !walletsReady || phase !== 'idle' || busy) {
+    if (!isPrivyEnabled() || !kycApproved || phase !== 'idle' || busy) {
       return;
     }
 
@@ -186,8 +142,8 @@ export function PrivyOnboardingWallet({
 
     autoStartRef.current = true;
     manualRetryRef.current = false;
-    void provisionAndLink();
-  }, [busy, kycApproved, phase, provisionAndLink, ready, walletsReady]);
+    void provisionWallet();
+  }, [busy, kycApproved, phase, provisionWallet]);
 
   if (!isPrivyEnabled()) {
     return (
@@ -236,7 +192,10 @@ export function PrivyOnboardingWallet({
           {o.walletRetry}
         </button>
       ) : showSpinner ? (
-        <div className="flex min-h-14 items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white">
+        // Deliberately NOT the same solid blue as a real button — this is a
+        // status indicator, not something to tap, and the two were getting
+        // confused with each other.
+        <div className="flex min-h-14 items-center justify-center rounded-2xl bg-sky-500 px-4 py-4 text-base font-semibold text-white">
           <Loader2 className="mr-2 animate-spin" size={20} />
           {o.walletSaving}
         </div>
