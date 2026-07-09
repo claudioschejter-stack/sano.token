@@ -41,10 +41,10 @@ export async function syncUserAccountStatus(userId: string) {
     }
   });
 
-  // Also requires the Sanova app installed on mobile (`pwaInstalledAt`), not
-  // just KYC + wallet + TOTP — see `maybeSendAccountApprovedEmail` for the
-  // full gating logic. Safe to call unconditionally: it's a no-op unless
-  // every condition is met and it hasn't already fired.
+  // See `maybeSendAccountApprovedEmail` for the full gating logic (KYC +
+  // wallet only — installing the app is never required). Safe to call
+  // unconditionally: it's a no-op unless every condition is met and it
+  // hasn't already fired.
   if (nextStatus === 'OPERATIONAL') {
     void maybeSendAccountApprovedEmail(userId);
   }

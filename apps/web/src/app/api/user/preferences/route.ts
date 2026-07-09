@@ -98,9 +98,10 @@ export async function PATCH(request: Request) {
     }
   });
 
-  // The "your account is approved" email also waits for the app to be
-  // installed on mobile — check now in case KYC/wallet/TOTP were already
-  // done and this was the last missing piece.
+  // Installing the app never gates the "account approved" email (that only
+  // requires KYC + wallet, see accountOperationalNotification.ts) — this is
+  // just a harmless, idempotent safety-net re-check in case it hasn't fired
+  // yet for any other reason.
   if (data.pwaInstalledAt) {
     void maybeSendAccountApprovedEmail(userId);
   }

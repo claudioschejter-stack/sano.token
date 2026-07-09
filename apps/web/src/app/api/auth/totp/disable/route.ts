@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { auth } from '../../../../../auth';
 import { decryptTotpSecret, verifyTotpCode } from '../../../../../lib/auth/totpService';
 import { prisma } from '@sanova/database';
-import { requiresInvestorStyleOnboarding } from '../../../../../lib/onboarding/onboardingGate';
 
 /**
  * POST /api/auth/totp/disable
  * Desactiva el 2FA TOTP del usuario tras verificar el código actual.
+ * TOTP es 100% opt-in (solo desde la computadora), por lo que siempre puede
+ * desactivarse con el código correcto — no hay estado "obligatorio".
  * Body: { code: string }
  */
 export async function POST(request: Request) {
@@ -24,15 +25,11 @@ export async function POST(request: Request) {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { totpSecret: true, totpEnabled: true, kycStatus: true, systemRole: true }
+    select: { totpSecret: true, totpEnabled: true }
   });
 
   if (!user?.totpEnabled || !user.totpSecret) {
     return NextResponse.json({ error: 'TOTP_NO_ACTIVO' }, { status: 400 });
-  }
-
-  if (requiresInvestorStyleOnboarding(user.systemRole) && user.kycStatus === 'APPROVED') {
-    return NextResponse.json({ error: 'TOTP_OBLIGATORIO' }, { status: 403 });
   }
 
   const secret = decryptTotpSecret(user.totpSecret);

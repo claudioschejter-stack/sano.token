@@ -322,7 +322,15 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
   // stronger than password+TOTP. So unlike password login, a passkey login never asks
   // for the TOTP code, even when `totpEnabled` is true — TOTP stays required only for
   // the password-based desktop login path.
-  const loginToken = await new SignJWT({ sub: passkey.user.id, purpose: 'passkey-login' })
+  const loginToken = await issueLoginToken(passkey.user.id, passkey.user.email, 'passkey-login');
+
+  return { requiresTOTP: false as const, loginToken, email };
+}
+
+type LoginTokenPurpose = 'passkey-login' | 'mobile-password-login';
+
+async function issueLoginToken(userId: string, email: string, purpose: LoginTokenPurpose): Promise<string> {
+  const loginToken = await new SignJWT({ sub: userId, purpose })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime(LOGIN_TOKEN_TTL)
@@ -332,18 +340,32 @@ export async function verifyPasskeyLogin(response: AuthenticationResponseJSON, w
     data: {
       challenge: hashLoginToken(loginToken),
       type: 'LOGIN_TOKEN',
-      userId: passkey.user.id,
-      email: passkey.user.email,
+      userId,
+      email,
       expiresAt: new Date(Date.now() + 2 * 60 * 1000)
     }
   });
 
-  return { requiresTOTP: false as const, loginToken, email };
+  return loginToken;
+}
+
+/**
+ * Mobile/PWA channel never uses TOTP — biometric (passkey) is the only second
+ * factor on mobile. When a mobile user signs in with password instead (no
+ * passkey registered on this device yet), step1 mints this token so the
+ * client can redeem it via the same `'passkey'` NextAuth provider, skipping
+ * the `credentials` provider's TOTP gate entirely (which stays desktop-only).
+ */
+export async function issueMobilePasswordLoginToken(userId: string, email: string): Promise<string> {
+  return issueLoginToken(userId, email, 'mobile-password-login');
 }
 
 export async function verifyPasskeyLoginToken(loginToken: string) {
   const { payload } = await jwtVerify(loginToken, passkeyLoginSecret());
-  if (payload.purpose !== 'passkey-login' || typeof payload.sub !== 'string') {
+  if (
+    (payload.purpose !== 'passkey-login' && payload.purpose !== 'mobile-password-login') ||
+    typeof payload.sub !== 'string'
+  ) {
     return null;
   }
 

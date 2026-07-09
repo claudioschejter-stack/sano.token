@@ -1,6 +1,8 @@
 import { prisma } from '@sanova/database';
 import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 import { isCuitUniqueConflict, resolveOrphanedInvestorByCuit } from './investorCuitConflict';
+import { pregenerateOrFetchPrivyWallet } from '../privy/privyWalletProvisioning';
+import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
 
 export const PENDING_INVESTOR_WALLET_PREFIX = 'pending:';
 
@@ -45,6 +47,43 @@ function buildInvestorIdentityFields(user: {
     nationality: user.kycNationality?.trim() || null,
     portraitPath: user.kycPortraitPath?.trim() || user.image?.trim() || null
   };
+}
+
+/**
+ * Server-side safety net: if the investor still has the `pending:*` placeholder
+ * wallet, pre-generate a real Privy embedded wallet by email and persist it —
+ * without waiting for the user to open the "Configurá pagos" onboarding step.
+ * Best-effort: never throws, so a Privy hiccup never blocks KYC approval (the
+ * client-driven wallet step remains as a fallback either way).
+ */
+async function backfillPrivyWalletIfPending(userId: string, investorId: string, email: string): Promise<void> {
+  try {
+    const investor = await prisma.investor.findUnique({
+      where: { id: investorId },
+      select: { walletAddress: true }
+    });
+
+    if (investor?.walletAddress && !isPendingInvestorWallet(investor.walletAddress)) {
+      return;
+    }
+
+    const address = await pregenerateOrFetchPrivyWallet(email);
+    if (!address) {
+      return;
+    }
+
+    await prisma.$transaction([
+      prisma.investor.update({ where: { id: investorId }, data: { walletAddress: address } }),
+      prisma.user.update({
+        where: { id: userId },
+        data: { walletAddress: address, walletProvider: 'Privy Wallet' }
+      })
+    ]);
+
+    await syncUserAccountStatus(userId);
+  } catch (error) {
+    console.error('[provisionInvestorProfile] backfillPrivyWalletIfPending failed', error);
+  }
 }
 
 /**
@@ -108,6 +147,8 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
       await applyInvestorInviteAdvisorForUser(user.id, user.email);
     }
 
+    await backfillPrivyWalletIfPending(user.id, user.investorId, user.email);
+
     return user.investorId;
   }
 
@@ -169,6 +210,8 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     create: { userId: user.id },
     update: {}
   });
+
+  await backfillPrivyWalletIfPending(user.id, investorId, user.email);
 
   return investorId;
 }

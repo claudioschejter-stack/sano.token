@@ -77,8 +77,14 @@ export function SecuritySettingsView() {
   }, []);
 
   async function startSetup() {
+    // Google Authenticator setup is desktop-only — mobile login is
+    // fingerprint/passkey-only and never uses TOTP.
+    if (isMobile) {
+      return;
+    }
+
     setView('setup');
-    setStep(isMobile ? 'provision' : 'instructions');
+    setStep('instructions');
     setConfirmCode('');
     setConfirmError('');
     setBackupCodes([]);
@@ -91,15 +97,12 @@ export function SecuritySettingsView() {
     if (data.uri && data.secret) {
       setSetupUri(data.uri);
       setSetupSecret(data.secret);
-
-      if (isMobile) {
-        syncGoogleAuthenticator(data.uri);
-      } else {
-        setStep('qr');
-      }
+      setStep('qr');
     }
   }
 
+  // Kept for the (desktop-only) manual "Open Google Authenticator" link on the
+  // QR/confirm steps — never auto-triggered on mobile.
   function syncGoogleAuthenticator(uri = setupUri) {
     if (!uri) {
       return;
@@ -299,6 +302,10 @@ export function SecuritySettingsView() {
                     )}
                   </div>
                 </div>
+              ) : isMobile ? (
+                <p className="mt-4 text-sm text-slate-500">
+                  Disponible solo desde la computadora. Iniciá sesión en la versión de escritorio para activarlo.
+                </p>
               ) : (
                 <button
                   onClick={() => void startSetup()}

@@ -143,6 +143,8 @@ export function AdminAccountAuditView() {
   const [appliedQuery, setAppliedQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'accounts' | 'attempts'>('accounts');
   const [copied, setCopied] = useState<string | null>(null);
+  const [backfilling, setBackfilling] = useState(false);
+  const [backfillMessage, setBackfillMessage] = useState<string | null>(null);
 
   const load = useCallback(async (query = '') => {
     setLoading(true);
@@ -173,6 +175,22 @@ export function AdminAccountAuditView() {
     void navigator.clipboard.writeText(addr);
     setCopied(addr);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const backfillWallets = async () => {
+    setBackfilling(true);
+    setBackfillMessage(null);
+    try {
+      const res = await fetch('/api/admin/account-audit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'Error');
+      setBackfillMessage(`Wallets generadas: ${json.linked} de ${json.processed} cuenta(s) procesada(s).`);
+      await load(appliedQuery);
+    } catch (e) {
+      setBackfillMessage(e instanceof Error ? `Error: ${e.message}` : 'Error al generar wallets');
+    } finally {
+      setBackfilling(false);
+    }
   };
 
   const filteredAccounts = data?.accounts.filter(
@@ -575,16 +593,21 @@ export function AdminAccountAuditView() {
                   Inversores KYC aprobados sin wallet vinculada ({data.summary.needingWalletProvisioning})
                 </h3>
                 <p className="text-xs text-terminal-muted leading-relaxed">
-                  Estos inversores tienen KYC aprobado pero no han completado el paso de vinculación de wallet.
-                  Deben iniciar sesión en la plataforma y completar el paso de activación de wallet en la sección
-                  de onboarding. La wallet Privy se crea automáticamente al iniciar sesión (
-                  <code className="text-terminal-warning">createOnLogin: users-without-wallets</code>).
+                  Estos inversores tienen KYC aprobado pero nunca se generó su wallet embebida de Privy. Desde
+                  ahora esto se resuelve automáticamente al aprobar el KYC (pre-generación server-side), pero para
+                  las cuentas que quedaron atrás antes de ese cambio, generalas manualmente acá:
                 </p>
-                <p className="text-xs text-terminal-muted mt-2">
-                  <strong className="text-terminal-bright">Acción requerida por el inversor:</strong> Acceder a{' '}
-                  <span className="text-terminal-primary font-mono">/kyc</span> → completar paso &quot;Activar
-                  Wallet&quot; → la wallet Privy se vincula automáticamente a su perfil de inversor.
-                </p>
+                <button
+                  onClick={() => void backfillWallets()}
+                  disabled={backfilling}
+                  className="mt-3 flex items-center gap-2 rounded-md border border-terminal-warning/40 bg-terminal-warning/10 px-3 py-1.5 text-xs font-medium text-terminal-warning hover:bg-terminal-warning/20 disabled:opacity-50"
+                >
+                  <Wallet className={`h-3.5 w-3.5 ${backfilling ? 'animate-pulse' : ''}`} />
+                  {backfilling ? 'Generando wallets…' : 'Generar wallets Privy ahora'}
+                </button>
+                {backfillMessage && (
+                  <p className="mt-2 text-xs text-terminal-bright">{backfillMessage}</p>
+                )}
               </div>
             )}
             </div>

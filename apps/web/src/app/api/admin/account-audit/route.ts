@@ -5,6 +5,8 @@ import { isPendingInvestorWallet } from '../../../../lib/investor/provisionInves
 import { isPrivyOperatorConfigured } from '../../../../lib/privy/config';
 import { listRegistrationAttempts } from '../../../../lib/auth/registrationAttemptService';
 import { isInvestorOpenRegistration } from '../../../../lib/auth/investorAccess';
+import { pregenerateOrFetchPrivyWallet } from '../../../../lib/privy/privyWalletProvisioning';
+import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
 
 export const dynamic = 'force-dynamic';
 
@@ -235,4 +237,86 @@ export async function GET(request: NextRequest) {
     console.error('[admin/account-audit]', error);
     return NextResponse.json({ error: 'Audit failed' }, { status: 500 });
   }
+}
+
+export type BackfillWalletResult = {
+  userId: string;
+  email: string;
+  status: 'LINKED' | 'FAILED' | 'ALREADY_LINKED';
+  walletAddress?: string | null;
+};
+
+/**
+ * One-off remediation for investors stuck on the `pending:*` placeholder
+ * wallet (KYC approved before server-side Privy pre-generation existed).
+ * Going forward this happens automatically on KYC approval — see
+ * `provisionInvestorProfileOnKycApproval`. Admin-only, idempotent: safe to
+ * re-run any time from the account audit view.
+ */
+export async function POST(request: NextRequest) {
+  if (!(await requireAdminSession())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  const body = (await request.json().catch(() => ({}))) as { userId?: string };
+
+  const users = await prisma.user.findMany({
+    where: {
+      systemRole: 'INVESTOR',
+      kycStatus: 'APPROVED',
+      ...(body.userId ? { id: body.userId } : {})
+    },
+    select: {
+      id: true,
+      email: true,
+      walletAddress: true,
+      investorId: true,
+      investor: { select: { id: true, walletAddress: true } }
+    }
+  });
+
+  const targets = users.filter((u) => {
+    const hasRealWallet =
+      (u.walletAddress && !isPendingInvestorWallet(u.walletAddress)) ||
+      (u.investor?.walletAddress && !isPendingInvestorWallet(u.investor.walletAddress));
+    return !hasRealWallet;
+  });
+
+  const results: BackfillWalletResult[] = [];
+
+  for (const user of targets) {
+    try {
+      const address = await pregenerateOrFetchPrivyWallet(user.email);
+      if (!address) {
+        results.push({ userId: user.id, email: user.email, status: 'FAILED' });
+        continue;
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { walletAddress: address, walletProvider: 'Privy Wallet' }
+      });
+
+      if (user.investorId) {
+        await prisma.investor.update({
+          where: { id: user.investorId },
+          data: { walletAddress: address }
+        });
+      }
+
+      await syncUserAccountStatus(user.id);
+
+      results.push({ userId: user.id, email: user.email, status: 'LINKED', walletAddress: address });
+    } catch (error) {
+      console.error('[admin/account-audit] backfill failed for', user.email, error);
+      results.push({ userId: user.id, email: user.email, status: 'FAILED' });
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    processed: targets.length,
+    linked: results.filter((r) => r.status === 'LINKED').length,
+    results
+  });
 }

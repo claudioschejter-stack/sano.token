@@ -20,28 +20,24 @@ import { safeReturnTo } from '../../lib/auth/redirects';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { useMobilePortal } from '../../hooks/useMobilePortal';
-import { MOBILE_INVESTOR_HOME_PATH } from '../../lib/auth/mobileDestinations';
 import { BiometricOnboardingStep } from '../auth/BiometricOnboardingStep';
 import { RegistrationSuccessModal } from '../auth/RegistrationSuccessModal';
 import { ActivateWalletStep } from './ActivateWalletStep';
 import { PrivyOnboardingWallet } from './PrivyOnboardingWallet';
 import { isPrivyEnabled } from '../../lib/privy/config';
 
-import { TotpOnboardingStep } from '../auth/TotpOnboardingStep';
-import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
 import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 import { diditErrorI18nKey, parseDiditSessionError } from '../../lib/onboarding/diditService';
 
-type Step = 'email' | 'identity' | 'wallet' | 'totp' | 'done';
+type Step = 'email' | 'identity' | 'wallet' | 'done';
 
-const ONBOARDING_STEPS: Step[] = ['email', 'identity', 'wallet', 'totp', 'done'];
+const ONBOARDING_STEPS: Step[] = ['email', 'identity', 'wallet', 'done'];
 
 function stepFromChecklist(
   checklist: ReturnType<typeof useAccountStatus>['checklist'],
   diditReturn: boolean,
   requireWallet: boolean,
-  deferEmailToPrivy: boolean,
-  systemRole: ReturnType<typeof useAccountStatus>['systemRole']
+  deferEmailToPrivy: boolean
 ): Step {
   if (!checklist) {
     return 'email';
@@ -63,15 +59,6 @@ function stepFromChecklist(
     return 'wallet';
   }
 
-  if (
-    requiresInvestorStyleOnboarding(systemRole) &&
-    checklist.kycApproved &&
-    checklist.walletLinked &&
-    !checklist.totpEnabled
-  ) {
-    return 'totp';
-  }
-
   if (checklist.operational) {
     return 'done';
   }
@@ -89,9 +76,8 @@ function OnboardingContent() {
   const diditReturn = searchParams.get('didit') === '1';
   const justRegistered = searchParams.get('registered') === '1';
   const requestedStepParam = searchParams.get('step');
-  const totpPreferConfirm = searchParams.get('totpMode') === 'confirm';
 
-  const { data: session, status, update: updateSession } = useSession();
+  const { data: session, status } = useSession();
   const { checklist, loading, refresh, isOperational, systemRole, fetchError, profile, registrationChannel, onboardingSuccessShownAt, diditSessionId } =
     useAccountStatus();
   const { isMobile } = useDeviceDetection();
@@ -145,10 +131,9 @@ function OnboardingContent() {
         checklist,
         diditReturn && !checklist?.kycApproved,
         requireWallet,
-        deferEmailToPrivy,
-        systemRole
+        deferEmailToPrivy
       ),
-    [checklist, deferEmailToPrivy, diditReturn, requireWallet, systemRole]
+    [checklist, deferEmailToPrivy, diditReturn, requireWallet]
   );
 
   const normalizedRequestedStep = useMemo(() => {
@@ -175,10 +160,6 @@ function OnboardingContent() {
       return requestedStep;
     }
 
-    if (requestedStep === 'totp' && computedStep === 'totp') {
-      return 'totp';
-    }
-
     // Allow revisiting an earlier step only (?step=email while already on wallet).
     if (requestedIndex < computedIndex) {
       return requestedStep;
@@ -188,33 +169,6 @@ function OnboardingContent() {
   }, [checklist?.operational, computedStep, normalizedRequestedStep]);
 
   const progressIndex = ONBOARDING_STEPS.indexOf(step);
-
-  const handleTotpComplete = useCallback(async () => {
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const response = await fetch('/api/onboarding/status', { cache: 'no-store' });
-      if (response.ok) {
-        const data = (await response.json()) as {
-          checklist?: { totpEnabled?: boolean; operational?: boolean };
-        };
-        if (data.checklist?.totpEnabled) {
-          await refresh({ silent: true });
-          if (data.checklist.operational) {
-            await updateSession({});
-          }
-          // Hard navigation: by the time updateSession() resolves, the browser
-          // already applied the refreshed JWT cookie, so a full page load lets
-          // the middleware read it immediately instead of racing a soft
-          // client-side transition against the cookie write.
-          window.location.assign(isMobilePortal ? MOBILE_INVESTOR_HOME_PATH : returnTo);
-          return;
-        }
-      }
-      await new Promise((resolve) => window.setTimeout(resolve, 250));
-    }
-
-    await refresh({ silent: true });
-    setError(o.errors.TOTP_ACTIVATION_PENDING);
-  }, [isMobilePortal, refresh, returnTo, updateSession, o.errors]);
 
   useEffect(() => {
     if (!isOperational) {
@@ -738,14 +692,6 @@ function OnboardingContent() {
               onError={setError}
             />
           )
-        ) : null}
-
-        {step === 'totp' ? (
-          <TotpOnboardingStep
-            preferConfirm={totpPreferConfirm}
-            mobileSilent={isMobilePortal}
-            onComplete={handleTotpComplete}
-          />
         ) : null}
 
         {step === 'done' ? (

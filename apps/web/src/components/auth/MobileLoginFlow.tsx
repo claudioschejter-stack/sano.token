@@ -71,6 +71,7 @@ export function MobileLoginFlow({
       ok?: boolean;
       requiresTOTP?: boolean;
       tempToken?: string;
+      loginToken?: string;
       error?: string;
       remainingSeconds?: number;
     };
@@ -102,11 +103,12 @@ export function MobileLoginFlow({
       return;
     }
 
-    const result = await signIn('credentials', {
-      email: email.trim(),
-      password,
-      redirect: false
-    });
+    // Mobile/PWA never uses TOTP: when the account has 2FA enabled (from
+    // desktop), step1 issues a one-time login token instead, redeemed here
+    // through the same safe path as a real passkey login.
+    const result = step1Data.loginToken
+      ? await signIn('passkey', { loginToken: step1Data.loginToken, redirect: false })
+      : await signIn('credentials', { email: email.trim(), password, redirect: false });
 
     if (result?.error) {
       setLoading(false);

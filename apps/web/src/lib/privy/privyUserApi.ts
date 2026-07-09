@@ -20,7 +20,7 @@ function privyHeaders(): HeadersInit {
   };
 }
 
-type PrivyLinkedAccount = {
+export type PrivyLinkedAccount = {
   id?: string | null;
   type?: string;
   address?: string;

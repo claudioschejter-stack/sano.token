@@ -9,7 +9,6 @@ import {
   requiresPhoneVerification
 } from './phoneVerificationPolicy';
 import { isEmailVerificationSatisfied } from './emailVerificationPolicy';
-import { requiresInvestorStyleOnboarding } from './onboardingGate';
 
 export type OnboardingChecklist = {
   emailVerified: boolean;
@@ -54,12 +53,13 @@ function resolveLinkedWallet(walletAddress?: string | null): string | null {
   return trimmed;
 }
 
-export function requiresTotpSetup(user: UserOnboardingFields): boolean {
-  if (!requiresInvestorStyleOnboarding(user.systemRole)) {
-    return false;
-  }
-
-  return user.kycStatus === 'APPROVED' && Boolean(resolveLinkedWallet(user.walletAddress));
+/**
+ * TOTP (Google Authenticator) is now a fully opt-in security feature, enabled
+ * only from account settings on desktop — never a requirement to become
+ * operational. Mobile login is passkey/biometric-only and never uses TOTP.
+ */
+export function requiresTotpSetup(_user: UserOnboardingFields): boolean {
+  return false;
 }
 
 export function isAccountOperational(user: UserOnboardingFields): boolean {
