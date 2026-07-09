@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Fingerprint, ScanFace } from 'lucide-react';
 import { usePasskeyRegistration } from '../../lib/auth/usePasskeyRegistration';
 import { useTranslation } from '../../i18n/LocaleProvider';
@@ -25,6 +25,15 @@ export function BiometricOnboardingStep({ onComplete }: Props) {
   const Icon = isIos ? ScanFace : Fingerprint;
   const { register, loading, done, errorCode } = usePasskeyRegistration();
   const [checked, setChecked] = useState(false);
+
+  // Propagate success immediately so the primary CTA below unlocks the moment
+  // the fingerprint/Face ID is registered — the user shouldn't have to find
+  // and tap a second, separate "continue" control to make it count.
+  useEffect(() => {
+    if (done) {
+      void onComplete(true);
+    }
+  }, [done, onComplete]);
 
   const error = errorCode
     ? errorCode === 'NOT_SUPPORTED'
@@ -92,16 +101,20 @@ export function BiometricOnboardingStep({ onComplete }: Props) {
         {error ? <p className="mt-3 text-xs text-amber-700">{error}</p> : null}
       </div>
 
-      <button
-        type="button"
-        onClick={() => void onComplete(done)}
-        disabled={loading}
-        className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 disabled:opacity-60"
-      >
-        {done ? p.registerContinue : p.registerLaterWithPassword}
-      </button>
+      {!done ? (
+        <>
+          <button
+            type="button"
+            onClick={() => void onComplete(false)}
+            disabled={loading}
+            className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-slate-700 disabled:opacity-60"
+          >
+            {p.registerLaterWithPassword}
+          </button>
 
-      <p className="text-center text-xs text-slate-400">{p.registerLaterHint}</p>
+          <p className="text-center text-xs text-slate-400">{p.registerLaterHint}</p>
+        </>
+      ) : null}
     </section>
   );
 }
