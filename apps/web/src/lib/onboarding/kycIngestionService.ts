@@ -58,21 +58,15 @@ async function upsertDiditVerification(input: {
   });
 }
 
+// Only notifies the advisor here — the customer-facing "your account is
+// approved, go invest" email/notification is intentionally NOT sent on KYC
+// approval alone, since the user still needs to link a wallet and set up
+// security before they can actually use the platform. That notification
+// fires from `syncUserAccountStatus` once the full pipeline is complete.
+// See `notifyAccountFullyOperational`.
 async function notifyKycApproved(userId: string): Promise<void> {
   const { notifyAdvisorOfClientKycApproved } = await import('../advisor/advisorNotificationService');
   void notifyAdvisorOfClientKycApproved(userId);
-
-  const { notifyInvestorOfKycApproved } = await import('../investor/investorNotificationService');
-  void notifyInvestorOfKycApproved(userId);
-
-  const { createNotification } = await import('../notifications/notificationService');
-  void createNotification({
-    userId,
-    type: 'kyc_approved',
-    title: '¡Tu cuenta fue aprobada!',
-    body: 'Ya podés invertir en el marketplace de Sanova Capital.',
-    link: '/dashboard'
-  });
 }
 
 export async function finalizeApprovedKyc(input: {

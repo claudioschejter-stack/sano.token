@@ -5,6 +5,7 @@ import { assertInvestorAccessEnabled } from '../auth/investorAccess';
 import { buildTxExplorerUrl, buildVaultExplorerUrl, readVaultPositionsForProjects } from '../portfolio/onChainVaultReader';
 import { resolveMorphoDebtForUser } from '../portfolio/morphoDebtForUser';
 import { getInvestorIdForPlatformUser } from './projectYieldService';
+import { isCuitUniqueConflict, resolveOrphanedInvestorByCuit } from './investorCuitConflict';
 
 const DEFAULT_MAX_LTV = 0.6;
 const LIQUIDATED_CASH_STATUS = 'LIQUIDATED_CASH';
@@ -119,21 +120,37 @@ export async function ensureInvestorForUser(
   const fullName = user.kycFullName?.trim() || user.email.split('@')[0];
   const cuit = user.kycDocumentId?.trim() || `TMP-${user.id.slice(0, 8)}`;
 
-  const investor = await prisma.investor.create({
-    data: {
-      email: user.email,
-      fullName,
-      cuit,
-      walletAddress: normalizedWallet,
-      kycStatus: 'APPROVED',
-      kycVerifiedAt: new Date()
+  let investorId: string;
+  try {
+    const investor = await prisma.investor.create({
+      data: {
+        email: user.email,
+        fullName,
+        cuit,
+        walletAddress: normalizedWallet,
+        kycStatus: 'APPROVED',
+        kycVerifiedAt: new Date()
+      }
+    });
+    investorId = investor.id;
+  } catch (error) {
+    if (!isCuitUniqueConflict(error)) {
+      throw error;
     }
-  });
+    // Same identity document already has an Investor row. Adopt it if it's an
+    // orphaned record (no owning user); otherwise this is a genuine duplicate
+    // identity across two accounts and callers must surface a clear message.
+    investorId = await resolveOrphanedInvestorByCuit(cuit, user.id);
+    await prisma.investor.update({
+      where: { id: investorId },
+      data: { fullName, walletAddress: normalizedWallet, kycStatus: 'APPROVED', kycVerifiedAt: new Date() }
+    });
+  }
 
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      investorId: investor.id,
+      investorId,
       walletAddress: normalizedWallet,
       ...providerData
     }
@@ -145,7 +162,7 @@ export async function ensureInvestorForUser(
     update: {}
   });
 
-  return investor.id;
+  return investorId;
 }
 
 export async function purchaseProjectTokens(input: {

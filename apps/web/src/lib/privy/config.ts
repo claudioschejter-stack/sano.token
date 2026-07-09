@@ -1,7 +1,10 @@
 import { base } from 'viem/chains';
 import type { PrivyClientConfig } from '@privy-io/react-auth';
 
-const DEFAULT_PRIVY_LOGIN_METHODS = ['email', 'sms'] as const;
+// Must be a subset of what's enabled in Privy Dashboard → User management →
+// Authentication. Requesting a method that isn't enabled there (e.g. 'sms'
+// when SMS auth is off) breaks Privy SDK initialization for every user.
+const DEFAULT_PRIVY_LOGIN_METHODS = ['email'] as const;
 
 export type PrivyLoginMethod = 'email' | 'sms' | 'google' | 'apple' | 'wallet';
 

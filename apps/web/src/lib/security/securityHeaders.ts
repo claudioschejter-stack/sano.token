@@ -2,16 +2,46 @@ import type { NextResponse } from 'next/server';
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
+/** Didit hosted KYC (full-page redirect) needs camera/mic on a same-origin/top-level navigation. */
+const DIDIT_MEDIA_ORIGINS = [
+  'https://verify.didit.me',
+  'https://verification.didit.me'
+] as const;
+
+export function pathNeedsKycCamera(pathname: string): boolean {
+  return pathname === '/kyc' || pathname.startsWith('/kyc/');
+}
+
+function buildPermissionsPolicy(allowKycCamera: boolean): string {
+  if (!allowKycCamera) {
+    return 'camera=(), microphone=(), geolocation=(), payment=(self)';
+  }
+
+  const mediaOrigins = ['self', ...DIDIT_MEDIA_ORIGINS.map((origin) => `"${origin}"`)].join(' ');
+
+  return `camera=(${mediaOrigins}), microphone=(${mediaOrigins}), geolocation=(), payment=(self)`;
+}
+
+export type SecurityHeaderOptions = {
+  allowKycCamera?: boolean;
+};
+
 /**
  * Apply HTTP security headers on every HTML/navigation response.
  * Real authorization and data integrity remain server-side (API routes + auth).
  */
-export function applySecurityHeaders(response: NextResponse): NextResponse {
+export function applySecurityHeaders(
+  response: NextResponse,
+  options?: SecurityHeaderOptions
+): NextResponse {
   response.headers.set('X-Frame-Options', 'SAMEORIGIN');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('X-DNS-Prefetch-Control', 'off');
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self)');
+  response.headers.set(
+    'Permissions-Policy',
+    buildPermissionsPolicy(Boolean(options?.allowKycCamera))
+  );
   response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   response.headers.set('Cross-Origin-Resource-Policy', 'same-site');
 

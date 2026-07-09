@@ -1,5 +1,6 @@
 import { prisma } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { siteBaseUrl } from '../onboarding/accountActivationService';
 
 async function loadInvestorContext(investorUserId: string) {
   const user = await prisma.user.findUnique({
@@ -27,18 +28,41 @@ async function loadInvestorContext(investorUserId: string) {
   };
 }
 
-export async function notifyInvestorOfKycApproved(investorUserId: string): Promise<void> {
+/**
+ * Sends the "your account has been approved" email. Only call this once the
+ * FULL registration pipeline is complete (KYC + wallet + security/TOTP —
+ * see `isAccountOperational`), not merely on KYC approval, since the user
+ * can't actually access the platform or invest until every step is done.
+ */
+export async function notifyInvestorAccountOperational(investorUserId: string): Promise<void> {
   const context = await loadInvestorContext(investorUserId);
   if (!context) return;
 
+  const platformUrl = `${siteBaseUrl()}/dashboard`;
+
   const subject = `¡Tu cuenta en Sanova Capital ha sido aprobada!`;
-  const text = `Hola ${context.clientName},\n\nTu proceso de verificación de identidad (KYC) ha sido aprobado exitosamente.\n\nYa puedes acceder a la plataforma y comenzar a invertir en el marketplace de Sanova Capital.\n\nSaludos,\nEl equipo de Sanova Global`;
-  
+  const text = [
+    `Hola ${context.clientName},`,
+    '',
+    'Tu proceso de verificación de identidad (KYC) ha sido aprobado exitosamente y tu cuenta ya está lista.',
+    '',
+    'Ya puedes acceder a la plataforma y comenzar a invertir en el marketplace de Sanova Capital:',
+    platformUrl,
+    '',
+    'Saludos,',
+    'El equipo de Sanova Global'
+  ].join('\n');
+
   const html = `
     <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
       <p>Hola <strong>${context.clientName}</strong>,</p>
-      <p>Tu proceso de verificación de identidad (KYC) ha sido <strong>aprobado exitosamente</strong>.</p>
+      <p>Tu proceso de verificación de identidad (KYC) ha sido <strong>aprobado exitosamente</strong> y tu cuenta ya está lista.</p>
       <p>Ya puedes acceder a la plataforma y comenzar a invertir en el marketplace de Sanova Capital.</p>
+      <p style="margin:24px 0">
+        <a href="${platformUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:700">
+          Ir a la plataforma
+        </a>
+      </p>
       <p style="margin-top:24px;color:#475569;font-size:14px">Saludos,<br>El equipo de Sanova Global</p>
     </div>
   `;

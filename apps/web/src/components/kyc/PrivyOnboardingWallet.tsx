@@ -38,6 +38,23 @@ export function PrivyOnboardingWallet({
     [errors]
   );
 
+  const reportClientError = useCallback((context: string, err: unknown) => {
+    const payload = {
+      context,
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined
+    };
+    // Best-effort beacon — this is currently our only visibility into
+    // client-only failures (e.g. Privy SDK errors) that never hit a backend
+    // route. Never let this block the actual error handling.
+    void fetch('/api/onboarding/client-error', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).catch(() => undefined);
+  }, []);
+
   const fail = useCallback(
     (key: string) => {
       const message = resolveErrorMessage(key);
@@ -66,12 +83,26 @@ export function PrivyOnboardingWallet({
 
     try {
       if (!ready || !authenticated) {
-        await login();
+        try {
+          await login();
+        } catch (err) {
+          console.error('[PrivyOnboardingWallet] login() failed', err);
+          reportClientError('login', err);
+          throw new Error('PRIVY_LOGIN_FAILED');
+        }
       }
 
       setPhase('linking');
       const address = await ensureReady();
-      const privyAccessToken = await getAccessToken();
+
+      let privyAccessToken: string | null = null;
+      try {
+        privyAccessToken = await getAccessToken();
+      } catch (err) {
+        // Best-effort: the token is only used to sync email verification.
+        // A failure here shouldn't block wallet linking itself.
+        console.warn('[PrivyOnboardingWallet] getAccessToken failed, continuing without it', err);
+      }
 
       const response = await fetch('/api/investor/wallet', {
         method: 'POST',
@@ -95,8 +126,12 @@ export function PrivyOnboardingWallet({
       setPhase('done');
       await refresh({ silent: true });
       await onLinked();
-    } catch {
-      fail('GENERIC');
+    } catch (err) {
+      console.error('[PrivyOnboardingWallet] provisioning failed', err);
+      if (!(err instanceof Error && err.message === 'PRIVY_LOGIN_FAILED')) {
+        reportClientError('provisionAndLink', err);
+      }
+      fail(err instanceof Error ? err.message : 'GENERIC');
     } finally {
       setBusy(false);
     }
@@ -110,7 +145,8 @@ export function PrivyOnboardingWallet({
     login,
     onLinked,
     ready,
-    refresh
+    refresh,
+    reportClientError
   ]);
 
   useEffect(() => {

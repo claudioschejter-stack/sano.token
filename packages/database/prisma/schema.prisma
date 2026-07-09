@@ -262,6 +262,7 @@ model User {
   pwaDismissedAt    DateTime?
   registrationChannel String?
   onboardingSuccessShownAt DateTime?
+  accountApprovedEmailSentAt DateTime?
   totpSecret        String?
   totpEnabled       Boolean       @default(false)
   failed2faAttempts Int           @default(0)

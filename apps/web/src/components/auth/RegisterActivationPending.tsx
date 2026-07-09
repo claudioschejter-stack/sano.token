@@ -8,11 +8,17 @@ const RESEND_COOLDOWN_SECONDS = 60;
 
 type Props = {
   email: string;
+  activationSent?: boolean;
   devActivationUrl?: string;
   loginHref?: string;
 };
 
-export function RegisterActivationPending({ email, devActivationUrl, loginHref }: Props) {
+export function RegisterActivationPending({
+  email,
+  activationSent = true,
+  devActivationUrl,
+  loginHref
+}: Props) {
   const t = useTranslation();
   const a = t.access.activation;
   const [resending, setResending] = useState(false);
@@ -73,6 +79,11 @@ export function RegisterActivationPending({ email, devActivationUrl, loginHref }
       <h2 className="text-xl font-bold text-slate-900">{a.pendingTitle}</h2>
       <p className="text-sm text-slate-600">{a.pendingDesc}</p>
       <p className="text-sm font-semibold text-slate-900">{email}</p>
+      {!activationSent ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          {a.emailNotSent}
+        </p>
+      ) : null}
       {devActivationUrl ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs break-all text-amber-900">
           Dev: {devActivationUrl}

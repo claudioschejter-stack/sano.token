@@ -1,5 +1,6 @@
 import { prisma } from '@sanova/database';
 import { deriveAccountStatus } from './accountStatus';
+import { maybeSendAccountApprovedEmail } from './accountOperationalNotification';
 
 export async function syncUserAccountStatus(userId: string) {
   const user = await prisma.user.findUnique({
@@ -27,7 +28,7 @@ export async function syncUserAccountStatus(userId: string) {
     return user;
   }
 
-  return prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: userId },
     data: { accountStatus: nextStatus },
     select: {
@@ -39,4 +40,14 @@ export async function syncUserAccountStatus(userId: string) {
       accountStatus: true
     }
   });
+
+  // Also requires the Sanova app installed on mobile (`pwaInstalledAt`), not
+  // just KYC + wallet + TOTP — see `maybeSendAccountApprovedEmail` for the
+  // full gating logic. Safe to call unconditionally: it's a no-op unless
+  // every condition is met and it hasn't already fired.
+  if (nextStatus === 'OPERATIONAL') {
+    void maybeSendAccountApprovedEmail(userId);
+  }
+
+  return updated;
 }

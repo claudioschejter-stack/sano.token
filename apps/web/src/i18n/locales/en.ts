@@ -1875,6 +1875,8 @@ export const en = {
       resendButton: "Resend activation email",
       resending: "Resending…",
       resentOk: "Email resent. Check your inbox.",
+      emailNotSent:
+        "We couldn't send the activation email (RESEND_API_KEY is not configured on the server). Contact support or try again later.",
       backToAccess: "Back to sign in",
       continueAfterActivation: "I already activated my account → Continue",
       errors: {
@@ -2121,6 +2123,7 @@ export const en = {
       identityPrivacyNotice:
         "Identity data is processed by our KYC provider under our Privacy Policy. See",
       startDidit: "Validate identity with cell phone",
+      retryDidit: "Retry Didit verification",
       diditRedirecting: "Connecting…",
       diditProcessing: "Processing identity verification…",
       kycPendingReview:

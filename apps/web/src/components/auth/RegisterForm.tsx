@@ -63,7 +63,11 @@ export function RegisterForm({
   const [registrationErrorCode, setRegistrationErrorCode] = useState<string | null>(null);
   const [emailAlreadyRegistered, setEmailAlreadyRegistered] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
-  const [activationPending, setActivationPending] = useState<{ email: string; devActivationUrl?: string } | null>(
+  const [activationPending, setActivationPending] = useState<{
+    email: string;
+    activationSent: boolean;
+    devActivationUrl?: string;
+  } | null>(
     null
   );
   const isPwa = useIsPwa();
@@ -248,7 +252,7 @@ export function RegisterForm({
 
     setLoading(true);
 
-    let registerData: { error?: string; devActivationUrl?: string } | null = null;
+    let registerData: { error?: string; activationSent?: boolean; devActivationUrl?: string } | null = null;
 
     try {
       const response = await fetch('/api/auth/register', {
@@ -263,9 +267,13 @@ export function RegisterForm({
         })
       });
 
-      let data: { error?: string; devActivationUrl?: string };
+      let data: { error?: string; activationSent?: boolean; devActivationUrl?: string };
       try {
-        data = (await response.json()) as { error?: string; devActivationUrl?: string };
+        data = (await response.json()) as {
+          error?: string;
+          activationSent?: boolean;
+          devActivationUrl?: string;
+        };
       } catch {
         setRegistrationErrorCode('INVALID_RESPONSE');
         setError(r.errors.INVALID_RESPONSE ?? r.errors.GENERIC);
@@ -304,6 +312,7 @@ export function RegisterForm({
     setLoading(false);
     setActivationPending({
       email: normalizedEmail,
+      activationSent: registerData?.activationSent !== false,
       devActivationUrl: registerData?.devActivationUrl
     });
   }
@@ -312,6 +321,7 @@ export function RegisterForm({
     return (
       <RegisterActivationPending
         email={activationPending.email}
+        activationSent={activationPending.activationSent}
         devActivationUrl={activationPending.devActivationUrl}
         loginHref={loginHref}
       />

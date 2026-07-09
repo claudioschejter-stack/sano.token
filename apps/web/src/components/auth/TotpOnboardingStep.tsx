@@ -815,6 +815,7 @@ export function TotpOnboardingStep({
               <h3 className="text-lg font-bold text-slate-900">{totp.backupTitle}</h3>
               <p className="mt-2 text-sm text-slate-500">{totp.backupDesc}</p>
             </div>
+            <InstallAppBanner />
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
               <div className="grid grid-cols-2 gap-2">
                 {backupCodes.map((code) => (

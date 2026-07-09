@@ -1,5 +1,6 @@
 import { prisma } from '@sanova/database';
 import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
+import { isCuitUniqueConflict, resolveOrphanedInvestorByCuit } from './investorCuitConflict';
 
 export const PENDING_INVESTOR_WALLET_PREFIX = 'pending:';
 
@@ -112,25 +113,51 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
 
   const linkedWallet = user.walletAddress?.trim().toLowerCase();
   const walletAddress = linkedWallet || buildPendingInvestorWalletAddress(user.id);
+  const cuit = identity.cuit || `TMP-${user.id.slice(0, 8)}`;
 
-  const investor = await prisma.investor.create({
-    data: {
-      email: user.email,
-      fullName: identity.fullName,
-      cuit: identity.cuit || `TMP-${user.id.slice(0, 8)}`,
-      phone: identity.phone,
-      dateOfBirth: identity.dateOfBirth,
-      nationality: identity.nationality,
-      portraitPath: identity.portraitPath,
-      walletAddress,
-      kycStatus: 'APPROVED',
-      kycVerifiedAt: now
+  let investorId: string;
+  try {
+    const investor = await prisma.investor.create({
+      data: {
+        email: user.email,
+        fullName: identity.fullName,
+        cuit,
+        phone: identity.phone,
+        dateOfBirth: identity.dateOfBirth,
+        nationality: identity.nationality,
+        portraitPath: identity.portraitPath,
+        walletAddress,
+        kycStatus: 'APPROVED',
+        kycVerifiedAt: now
+      }
+    });
+    investorId = investor.id;
+  } catch (error) {
+    if (!isCuitUniqueConflict(error)) {
+      throw error;
     }
-  });
+    // Same identity document already has an Investor row. Adopt it if it's an
+    // orphaned record (no owning user); otherwise this is a genuine duplicate
+    // identity across two accounts and callers must surface a clear message.
+    investorId = await resolveOrphanedInvestorByCuit(cuit, user.id);
+    await prisma.investor.update({
+      where: { id: investorId },
+      data: {
+        fullName: identity.fullName,
+        phone: identity.phone,
+        dateOfBirth: identity.dateOfBirth,
+        nationality: identity.nationality,
+        portraitPath: identity.portraitPath,
+        walletAddress,
+        kycStatus: 'APPROVED',
+        kycVerifiedAt: now
+      }
+    });
+  }
 
   await prisma.user.update({
     where: { id: user.id },
-    data: { investorId: investor.id }
+    data: { investorId }
   });
 
   if (user.systemRole === 'INVESTOR') {
@@ -143,5 +170,5 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     update: {}
   });
 
-  return investor.id;
+  return investorId;
 }

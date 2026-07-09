@@ -31,7 +31,6 @@ import { TotpOnboardingStep } from '../auth/TotpOnboardingStep';
 import { requiresInvestorStyleOnboarding } from '../../lib/onboarding/onboardingGate';
 import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 import { diditErrorI18nKey, parseDiditSessionError } from '../../lib/onboarding/diditService';
-import { openDiditVerification } from '../../lib/onboarding/diditSdkClient';
 
 type Step = 'email' | 'identity' | 'wallet' | 'totp' | 'done';
 
@@ -409,10 +408,12 @@ function OnboardingContent() {
       }
 
       if (response.ok && data.url) {
-        openDiditVerification(data.url, () => {
-          void syncDiditStatus();
-        });
-        setDiditLaunching(false);
+        // Full-page navigation (not an embedded iframe/modal): WebKit and many
+        // mobile in-app browsers block getUserMedia() inside iframes even with
+        // correct Permissions-Policy/allow attributes. Didit's own hosted page
+        // redirects back to `callbackUrl` (?didit=1), which the effects below
+        // already handle via polling — no SDK modal needed.
+        window.location.assign(data.url);
         return;
       }
 
@@ -424,7 +425,7 @@ function OnboardingContent() {
     } finally {
       setBusy(false);
     }
-  }, [checklist?.contactVerified, needsPhoneCapture, o.errors, resolveStepError, returnTo, savePhone, syncDiditStatus]);
+  }, [checklist?.contactVerified, needsPhoneCapture, o.errors, resolveStepError, returnTo, savePhone]);
 
   const continueWithKyc = useCallback(async () => {
     if (needsPhoneCapture) {
@@ -559,13 +560,13 @@ function OnboardingContent() {
           {o.introBanner}
         </p>
 
-        {justRegistered ? (
+        {justRegistered && step === 'email' ? (
           <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {o.accountCreatedBanner}
           </p>
         ) : null}
 
-        {error ? (
+        {error && !(step === 'wallet' && isPrivyEnabled()) ? (
           <p className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </p>
@@ -680,7 +681,7 @@ function OnboardingContent() {
               </>
             ) : null}
 
-            {checklist?.diditEnabled && !showDiditProcessing ? (
+            {checklist?.diditEnabled ? (
               <>
                 <button
                   type="button"
@@ -688,13 +689,19 @@ function OnboardingContent() {
                   onClick={() => void startDidit()}
                   className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white disabled:opacity-60"
                 >
-                  {diditLaunching || busy ? o.steps.diditRedirecting : o.steps.startDidit}
+                  {diditLaunching || busy
+                    ? o.steps.diditRedirecting
+                    : showDiditProcessing
+                      ? o.steps.retryDidit
+                      : o.steps.startDidit}
                 </button>
-                <p className="text-center text-sm text-slate-600">
-                  {requireWallet ? o.steps.identityWalletNote : o.steps.identityOperationalNote}
-                </p>
+                {!showDiditProcessing ? (
+                  <p className="text-center text-sm text-slate-600">
+                    {requireWallet ? o.steps.identityWalletNote : o.steps.identityOperationalNote}
+                  </p>
+                ) : null}
               </>
-            ) : checklist?.allowDemoKyc && systemRole === 'INVESTOR' ? (
+            ) : !showDiditProcessing && checklist?.allowDemoKyc && systemRole === 'INVESTOR' ? (
               <button
                 type="button"
                 disabled={busy || !checklist?.kycEnabled}
@@ -703,11 +710,13 @@ function OnboardingContent() {
               >
                 {o.steps.demoKyc}
               </button>
-            ) : (
+            ) : !showDiditProcessing ? (
               <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                {o.steps.kycProviderUnavailable}
+                {checklist?.kycEnabled
+                  ? o.steps.kycProviderUnavailable
+                  : o.errors.CONTACT_NOT_VERIFIED}
               </p>
-            )}
+            ) : null}
           </section>
         ) : null}
 

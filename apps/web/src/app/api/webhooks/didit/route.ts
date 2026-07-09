@@ -53,12 +53,26 @@ export async function POST(request: Request) {
 
   const kycStatus = mapDiditStatusToKyc(status);
 
-  const result = await ingestDiditWebhook({
-    userId: vendorData,
-    sessionId,
-    kycStatus,
-    payload
-  });
+  try {
+    const result = await ingestDiditWebhook({
+      userId: vendorData,
+      sessionId,
+      kycStatus,
+      payload
+    });
 
-  return NextResponse.json(result);
+    return NextResponse.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'UNKNOWN';
+
+    if (message === 'DOCUMENT_ALREADY_REGISTERED') {
+      // Same identity document already owns another account — this needs
+      // human review, not more webhook retries. Ack so Didit stops resending.
+      console.error('[webhooks/didit] document already registered for another account', vendorData);
+      return NextResponse.json({ ok: true, skipped: 'document_already_registered' });
+    }
+
+    console.error('[webhooks/didit] ingestion failed', error);
+    return NextResponse.json({ error: 'INGESTION_FAILED' }, { status: 500 });
+  }
 }

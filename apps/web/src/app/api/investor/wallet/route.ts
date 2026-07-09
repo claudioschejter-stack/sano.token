@@ -79,6 +79,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: message }, { status: 404 });
     }
 
+    if (message === 'DOCUMENT_ALREADY_REGISTERED') {
+      return NextResponse.json({ error: message }, { status: 409 });
+    }
+
     if (
       message === 'KYC_NOT_APPROVED' ||
       message === 'INVESTOR_ROLE_REQUIRED' ||
@@ -155,6 +159,10 @@ export async function PATCH(request: Request) {
 
     if (message === 'USER_NOT_FOUND') {
       return NextResponse.json({ error: message }, { status: 404 });
+    }
+
+    if (message === 'DOCUMENT_ALREADY_REGISTERED') {
+      return NextResponse.json({ error: message }, { status: 409 });
     }
 
     if (

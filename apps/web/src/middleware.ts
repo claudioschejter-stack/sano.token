@@ -3,7 +3,7 @@ import { canAccessPath, redirectPathForRole } from './lib/auth/routeAccess';
 import type { SystemRole } from './lib/auth/roles';
 import { readMiddlewareSession } from './lib/auth/middlewareSession';
 import { LOCALE_STORAGE_KEY, LOCALE_MANUAL_KEY } from './lib/i18n/mobileLocalePreference';
-import { applySecurityHeaders } from './lib/security/securityHeaders';
+import { applySecurityHeaders, pathNeedsKycCamera } from './lib/security/securityHeaders';
 import { resolveGeoLocaleForMiddleware } from './lib/i18n/middlewareLocale';
 import {
   isLocalePrefixablePath,
@@ -28,9 +28,14 @@ const GEO_BLOCKED_PATHS = new Set(['/acceso/registro', '/acceso/registro/']);
 
 function withLocaleAndCountryHints(
   response: NextResponse,
-  request: { cookies: { get: (name: string) => { value: string } | undefined }; headers: Headers },
+  request: {
+    cookies: { get: (name: string) => { value: string } | undefined };
+    headers: Headers;
+    nextUrl?: { pathname: string };
+  },
   forcedLocale?: string
 ) {
+  const allowKycCamera = pathNeedsKycCamera(request.nextUrl?.pathname ?? '');
   const country = request.headers.get('x-vercel-ip-country');
 
   if (country && country.length === 2) {
@@ -52,7 +57,7 @@ function withLocaleAndCountryHints(
       path: '/',
       sameSite: 'lax'
     });
-    return applySecurityHeaders(response);
+    return applySecurityHeaders(response, { allowKycCamera });
   }
 
   const storedLocale = request.cookies.get(LOCALE_STORAGE_KEY)?.value;
@@ -85,7 +90,7 @@ function withLocaleAndCountryHints(
     }
   }
 
-  return applySecurityHeaders(response);
+  return applySecurityHeaders(response, { allowKycCamera });
 }
 
 function maybeRewriteLocalePrefix(request: NextRequest): NextResponse | null {

@@ -1901,6 +1901,8 @@ export const es = {
       resendButton: 'Reenviar email de activación',
       resending: 'Reenviando…',
       resentOk: 'Email reenviado. Revisá tu bandeja de entrada.',
+      emailNotSent:
+        'No pudimos enviar el email de activación (falta configurar RESEND_API_KEY en el servidor). Contactá a soporte o reintentá más tarde.',
       backToAccess: 'Volver al acceso',
       continueAfterActivation: 'Ya activé mi cuenta → Continuar',
       errors: {
@@ -2155,6 +2157,7 @@ export const es = {
       identityPrivacyNotice:
         'Los datos de identidad son tratados por nuestro proveedor KYC conforme a la Política de Privacidad. Consultá la',
       startDidit: 'Validar identidad con teléfono celular',
+      retryDidit: 'Continuar con la verificación de identidad',
       diditRedirecting: 'Conectando…',
       diditProcessing: 'Procesando verificación de identidad…',
       kycPendingReview:
@@ -2284,12 +2287,19 @@ export const es = {
       WALLET_ALREADY_LINKED: 'Esta billetera ya está vinculada a otra cuenta.',
       WALLET_MISMATCH: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
       KYC_NOT_APPROVED: 'Tu KYC debe estar aprobado antes de vincular la billetera.',
+      PRIVY_LOGIN_FAILED:
+        'No pudimos iniciar tu billetera. Verificá tu conexión e intentá de nuevo en unos segundos.',
+      DOCUMENT_ALREADY_REGISTERED:
+        'Tu documento de identidad ya está vinculado a otra cuenta de Sanova. Iniciá sesión con esa cuenta o contactá a soporte.',
       PRIVY_EMAIL_MISMATCH:
         'El email de Privy no coincide con el de tu cuenta Sanova. Iniciá sesión en Privy con el mismo correo.',
       PRIVY_EMAIL_NOT_VERIFIED:
         'Privy no pudo verificar tu correo. Volvé al paso de email y usá el código que te enviamos desde Sanova.',
       PRIVY_NOT_CONFIGURED: 'La configuración de pagos no está disponible en el servidor. Contactá a soporte.',
       PRIVY_PROVISION_REQUIRED: 'Completá el inicio de sesión con Privy antes de vincular la billetera.',
+      PRIVY_NOT_READY: 'Estamos preparando tu billetera. Esperá unos segundos e intentá de nuevo.',
+      PRIVY_WALLET_NOT_READY:
+        'Estamos preparando tu billetera. Esperá unos segundos e intentá de nuevo.',
       STATUS_FETCH_FAILED: 'No pudimos cargar tu progreso de activación. Intentá de nuevo.',
       EMAIL_VERIFICATION_REQUIRED:
         'Verificá tu correo electrónico antes de continuar con este paso.',

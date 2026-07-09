@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { auth } from '../../../../auth';
 import { locales, type Locale } from '../../../../i18n';
+import { maybeSendAccountApprovedEmail } from '../../../../lib/onboarding/accountOperationalNotification';
 
 export async function GET() {
   const session = await auth();
@@ -96,6 +97,13 @@ export async function PATCH(request: Request) {
       pwaDismissedAt: true
     }
   });
+
+  // The "your account is approved" email also waits for the app to be
+  // installed on mobile — check now in case KYC/wallet/TOTP were already
+  // done and this was the last missing piece.
+  if (data.pwaInstalledAt) {
+    void maybeSendAccountApprovedEmail(userId);
+  }
 
   return NextResponse.json({ ok: true, ...user });
 }
