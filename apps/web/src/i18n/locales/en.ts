@@ -2261,6 +2261,7 @@ export const en = {
       PRIVY_PROVISION_FAILED: "We couldn't create your wallet yet. We're retrying automatically.",
       DOCUMENT_ALREADY_REGISTERED:
         'Your ID document is already linked to another Sanova account. Sign in with that account or contact support.',
+      DUPLICATE_ACCOUNT_DETECTED: 'You already have an account with Sanova. Contact support.',
       STATUS_FETCH_FAILED: 'We could not load your activation progress. Try again.',
       EMAIL_VERIFICATION_REQUIRED:
         'Verify your email address before continuing with this step.',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { resolveOperationalWalletAddress } from '../../../../lib/investor/provisionInvestorProfile';
+import { findDuplicateAccountWithRealWallet } from '../../../../lib/investor/investorCuitConflict';
 import { buildOnboardingChecklist } from '../../../../lib/onboarding/accountStatus';
 import { buildOnboardingProfile } from '../../../../lib/onboarding/profile';
 import { getOnboardingIntegrations } from '../../../../lib/onboarding/integrationStatus';
@@ -63,6 +64,14 @@ export async function GET() {
     profile.suggestedPhone = suggestedPhone;
   }
 
+  // Recomputed live (not persisted) so the UI can show the specific
+  // "you already have an account" message instead of the generic KYC
+  // rejection message when that's actually why this attempt was rejected.
+  const duplicateAccountDetected =
+    user.kycStatus === 'REJECTED' && user.kycDocumentId
+      ? Boolean(await findDuplicateAccountWithRealWallet(user.kycDocumentId, ctx.userId))
+      : false;
+
   return NextResponse.json({
     checklist: buildOnboardingChecklist(
       {
@@ -84,6 +93,7 @@ export async function GET() {
     integrations: getOnboardingIntegrations(),
     systemRole: user.systemRole,
     registrationChannel: user.registrationChannel,
-    onboardingSuccessShownAt: user.onboardingSuccessShownAt
+    onboardingSuccessShownAt: user.onboardingSuccessShownAt,
+    duplicateAccountDetected
   });
 }

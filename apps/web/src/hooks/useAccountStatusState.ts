@@ -15,6 +15,7 @@ export type AccountStatusState = {
   registrationChannel: string | null;
   onboardingSuccessShownAt: string | null;
   diditSessionId: string | null;
+  duplicateAccountDetected: boolean;
   loading: boolean;
   fetchError: string | null;
   refresh: (options?: { silent?: boolean }) => Promise<void>;
@@ -30,6 +31,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
   const [registrationChannel, setRegistrationChannel] = useState<string | null>(null);
   const [onboardingSuccessShownAt, setOnboardingSuccessShownAt] = useState<string | null>(null);
   const [diditSessionId, setDiditSessionId] = useState<string | null>(null);
+  const [duplicateAccountDetected, setDuplicateAccountDetected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
@@ -57,6 +59,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
       setRegistrationChannel(null);
       setOnboardingSuccessShownAt(null);
       setDiditSessionId(null);
+      setDuplicateAccountDetected(false);
       setFetchError(null);
       setLoading(status === 'authenticated');
       return;
@@ -81,6 +84,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
           registrationChannel?: string | null;
           onboardingSuccessShownAt?: string | null;
           diditSessionId?: string | null;
+          duplicateAccountDetected?: boolean;
         };
 
         setFetchError(null);
@@ -90,6 +94,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
         setRegistrationChannel(data.registrationChannel ?? null);
         setOnboardingSuccessShownAt(data.onboardingSuccessShownAt ?? null);
         setDiditSessionId(data.diditSessionId ?? null);
+        setDuplicateAccountDetected(Boolean(data.duplicateAccountDetected));
 
         if (data.checklist.operational && accountOperational !== true) {
           await updateRef.current({});
@@ -137,6 +142,7 @@ export function useAccountStatusState(options?: { enabled?: boolean }): AccountS
     registrationChannel,
     onboardingSuccessShownAt,
     diditSessionId,
+    duplicateAccountDetected,
     loading,
     fetchError,
     refresh,

@@ -2,6 +2,7 @@ import type { KycStatus, Prisma } from '@prisma/client';
 import { prisma } from '@sanova/database';
 import { autoAllowlistInvestorWallet } from '../blockchain/autoAllowlistInvestorWallet';
 import { provisionInvestorProfileOnKycApproval } from '../investor/provisionInvestorProfile';
+import { findDuplicateAccountWithRealWallet } from '../investor/investorCuitConflict';
 import { buildDiditIdentityUpdate, extractDiditIdentity } from './extractDiditIdentity';
 import { retrieveDiditDecision } from './diditService';
 import { persistDiditMedia } from './diditMedia';
@@ -99,10 +100,22 @@ export async function applyDiditToUser(input: {
 
   const identity = extractDiditIdentity(input.payload);
 
+  // Someone else already has a fully set-up account (same document, real
+  // wallet) — never approve a second one under the same identity. An
+  // existing account that only has KYC approved but no wallet yet is NOT
+  // considered "established" and must not block this attempt.
+  let effectiveStatus = input.kycStatus;
+  if (effectiveStatus === 'APPROVED' && identity.documentId) {
+    const duplicate = await findDuplicateAccountWithRealWallet(identity.documentId, input.userId);
+    if (duplicate) {
+      effectiveStatus = 'REJECTED';
+    }
+  }
+
   await prisma.user.update({
     where: { id: input.userId },
     data: {
-      kycStatus: input.kycStatus,
+      kycStatus: effectiveStatus,
       kycProviderId: input.sessionId !== 'unknown' ? input.sessionId : undefined,
       diditSessionId: input.sessionId !== 'unknown' ? input.sessionId : undefined,
       ...buildDiditIdentityUpdate(identity)
@@ -111,13 +124,13 @@ export async function applyDiditToUser(input: {
 
   await syncUserAccountStatus(input.userId);
 
-  if (input.kycStatus === 'APPROVED' && !wasApproved) {
+  if (effectiveStatus === 'APPROVED' && !wasApproved) {
     await finalizeApprovedKyc({
       userId: input.userId,
       kycVerificationId: input.kycVerificationId,
       payload: input.payload
     });
-  } else if (input.kycStatus === 'APPROVED' && wasApproved) {
+  } else if (effectiveStatus === 'APPROVED' && wasApproved) {
     await persistDiditMedia({
       userId: input.userId,
       kycVerificationId: input.kycVerificationId,

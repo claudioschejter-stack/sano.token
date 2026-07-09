@@ -78,7 +78,7 @@ function OnboardingContent() {
   const requestedStepParam = searchParams.get('step');
 
   const { data: session, status } = useSession();
-  const { checklist, loading, refresh, isOperational, systemRole, fetchError, profile, registrationChannel, onboardingSuccessShownAt, diditSessionId } =
+  const { checklist, loading, refresh, isOperational, systemRole, fetchError, profile, registrationChannel, onboardingSuccessShownAt, diditSessionId, duplicateAccountDetected } =
     useAccountStatus();
   const { isMobile } = useDeviceDetection();
   const isMobilePortal = useMobilePortal();
@@ -610,7 +610,7 @@ function OnboardingContent() {
 
             {checklist.kycStatus === 'REJECTED' ? (
               <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                {t.accountStatus.stepKycRejected}
+                {duplicateAccountDetected ? o.errors.DUPLICATE_ACCOUNT_DETECTED : t.accountStatus.stepKycRejected}
               </p>
             ) : null}
 

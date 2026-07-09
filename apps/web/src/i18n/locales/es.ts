@@ -2292,6 +2292,7 @@ export const es = {
         'No pudimos iniciar tu billetera. Verificá tu conexión e intentá de nuevo en unos segundos.',
       DOCUMENT_ALREADY_REGISTERED:
         'Tu documento de identidad ya está vinculado a otra cuenta de Sanova. Iniciá sesión con esa cuenta o contactá a soporte.',
+      DUPLICATE_ACCOUNT_DETECTED: 'Ya tenés una cuenta en Sanova. Contactá a soporte.',
       PRIVY_EMAIL_MISMATCH:
         'El email de Privy no coincide con el de tu cuenta Sanova. Iniciá sesión en Privy con el mismo correo.',
       PRIVY_EMAIL_NOT_VERIFIED:
