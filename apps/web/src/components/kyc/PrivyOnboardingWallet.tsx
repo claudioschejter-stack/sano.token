@@ -26,12 +26,15 @@ export function PrivyOnboardingWallet({
   const t = useTranslation();
   const o = t.onboarding.steps;
   const errors = t.onboarding.errors;
-  const { enabled, ready, authenticated, login, ensureReady, getAccessToken } = usePrivyEmbeddedWallet();
+  const { enabled, ready, walletsReady, authenticated, login, ensureReady, getAccessToken } =
+    usePrivyEmbeddedWallet();
   const [busy, setBusy] = useState(false);
   const [phase, setPhase] = useState<'idle' | 'login' | 'linking' | 'done' | 'failed'>('idle');
   const [localError, setLocalError] = useState<string | null>(null);
   const autoStartRef = useRef(false);
   const manualRetryRef = useRef(false);
+  const autoRetryCountRef = useRef(0);
+  const MAX_AUTO_RETRIES = 3;
 
   const resolveErrorMessage = useCallback(
     (key: string) => errors[key as keyof typeof errors] ?? errors.GENERIC,
@@ -127,11 +130,30 @@ export function PrivyOnboardingWallet({
       await refresh({ silent: true });
       await onLinked();
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'GENERIC';
       console.error('[PrivyOnboardingWallet] provisioning failed', err);
-      if (!(err instanceof Error && err.message === 'PRIVY_LOGIN_FAILED')) {
+      if (message !== 'PRIVY_LOGIN_FAILED') {
         reportClientError('provisionAndLink', err);
       }
-      fail(err instanceof Error ? err.message : 'GENERIC');
+
+      // PRIVY_NOT_READY / PRIVY_WALLET_NOT_READY are transient SDK-initialization
+      // races (the Privy client hasn't finished mounting/authenticating yet, or
+      // the embedded wallet takes a beat longer than our poll window to appear)
+      // — not a real failure. Retry silently a few times before ever bothering
+      // the investor with an error screen, instead of failing on the very first
+      // attempt every single time.
+      const isTransient = message === 'PRIVY_NOT_READY' || message === 'PRIVY_WALLET_NOT_READY';
+      if (isTransient && autoRetryCountRef.current < MAX_AUTO_RETRIES) {
+        autoRetryCountRef.current += 1;
+        setBusy(false);
+        setTimeout(() => {
+          autoStartRef.current = false;
+          setPhase('idle');
+        }, 1200);
+        return;
+      }
+
+      fail(message);
     } finally {
       setBusy(false);
     }
@@ -150,7 +172,11 @@ export function PrivyOnboardingWallet({
   ]);
 
   useEffect(() => {
-    if (!isPrivyEnabled() || !kycApproved || phase !== 'idle' || busy) {
+    // Wait for the Privy SDK (and its wallet list) to actually finish
+    // initializing before attempting silent login/provisioning — starting too
+    // early is what previously made this step fail for virtually everyone,
+    // every time, on the very first render.
+    if (!isPrivyEnabled() || !kycApproved || !ready || !walletsReady || phase !== 'idle' || busy) {
       return;
     }
 
@@ -161,7 +187,7 @@ export function PrivyOnboardingWallet({
     autoStartRef.current = true;
     manualRetryRef.current = false;
     void provisionAndLink();
-  }, [busy, kycApproved, phase, provisionAndLink]);
+  }, [busy, kycApproved, phase, provisionAndLink, ready, walletsReady]);
 
   if (!isPrivyEnabled()) {
     return (
@@ -201,6 +227,7 @@ export function PrivyOnboardingWallet({
           onClick={() => {
             manualRetryRef.current = true;
             autoStartRef.current = false;
+            autoRetryCountRef.current = 0;
             setPhase('idle');
           }}
           className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-4 text-base font-semibold text-white hover:bg-blue-500"
