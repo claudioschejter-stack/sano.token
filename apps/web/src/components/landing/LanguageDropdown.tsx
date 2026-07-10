@@ -25,7 +25,7 @@ export function LanguageDropdown({ variant = 'light', className = '' }: Language
   return (
     // fix: 10 aria-label on label container and select for full a11y coverage
     <label
-      aria-label="Seleccionar idioma"
+      aria-label={t.landing.languageSelectAria}
       className={`flex w-full flex-col gap-2 text-sm font-medium sm:flex-row sm:items-center lg:ml-[0.5cm] lg:w-auto ${labelClass} ${className}`.trim()}
     >
       <span className="whitespace-nowrap">{t.landing.languageLabel}</span>
@@ -33,7 +33,7 @@ export function LanguageDropdown({ variant = 'light', className = '' }: Language
         value={locale}
         onChange={(event) => setLocale(event.target.value as Locale, { manual: true })}
         className={`min-h-12 w-full cursor-pointer rounded-lg border px-3 py-3 text-base font-medium shadow-sm outline-none focus:ring-2 sm:min-h-0 sm:w-auto sm:py-2 sm:text-sm ${selectClass}`}
-        aria-label="Seleccionar idioma"
+        aria-label={t.landing.languageSelectAria}
       >
         {localeOptions.map((option) => (
           <option key={option.value} value={option.value}>
@@ -71,7 +71,7 @@ export function LanguageMobilePanel({ menuOpen = false, onLocaleSelected }: Lang
       {/* fix: 10 aria-label on mobile trigger button */}
       <button
         type="button"
-        aria-label="Seleccionar idioma"
+        aria-label={t.landing.languageSelectAria}
         className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-base font-medium text-slate-700 transition hover:bg-slate-50 hover:text-slate-900"
         aria-expanded={languagesOpen}
         onClick={() => setLanguagesOpen(true)}

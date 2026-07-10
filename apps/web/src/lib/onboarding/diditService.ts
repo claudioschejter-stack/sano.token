@@ -53,6 +53,29 @@ export function isDiditConfigured(): boolean {
   return Boolean(process.env.DIDIT_API_KEY?.trim());
 }
 
+/**
+ * Didit's hosted verification UI accepts an ISO 639-1 `language` code from a
+ * fixed enum of ~54 languages (see docs.didit.me/integration/supported-languages).
+ * Most of the 15 locales we support map 1:1, but `mr`, `sw`, and `ur` aren't in
+ * Didit's list — those fall back to English rather than leaving the field unset
+ * (which would otherwise rely on browser auto-detection instead of the user's
+ * actual platform preference).
+ */
+const DIDIT_SUPPORTED_LANGUAGES = new Set([
+  'en', 'ar', 'bg', 'bn', 'bs', 'ca', 'cnr', 'cs', 'da', 'de', 'el', 'es', 'et', 'fa', 'fi', 'fr',
+  'he', 'hi', 'hr', 'hu', 'hy', 'id', 'it', 'ja', 'ka', 'kk', 'ko', 'ky', 'lt', 'lv', 'mk', 'mn',
+  'ms', 'nl', 'no', 'pl', 'pt-br', 'pt', 'ro', 'ru', 'sk', 'sl', 'so', 'sq', 'sr', 'sv', 'th', 'tr',
+  'uk', 'uz', 'vi', 'zh-cn', 'zh-tw', 'zh'
+]);
+
+export function mapLocaleToDiditLanguage(locale?: string | null): string {
+  const normalized = locale?.trim().toLowerCase();
+  if (normalized && DIDIT_SUPPORTED_LANGUAGES.has(normalized)) {
+    return normalized;
+  }
+  return 'en';
+}
+
 function extractDiditErrorDetail(detail: string): string | undefined {
   const trimmed = detail.trim();
   if (!trimmed) {
@@ -147,6 +170,8 @@ export async function createDiditSession(input: {
   workflowId?: string;
   /** Raw base64 face image — required for Biometric Authentication workflow only. */
   portraitImage?: string;
+  /** User's platform locale — mapped to a Didit-supported language for the hosted UI. */
+  locale?: string | null;
 }): Promise<DiditSessionResult> {
   const apiKey = process.env.DIDIT_API_KEY?.trim();
   const workflowId = input.workflowId?.trim() || INVESTOR_KYC_WORKFLOW_ID;
@@ -172,7 +197,7 @@ export async function createDiditSession(input: {
       vendor_data: input.userId,
       callback,
       callback_method: 'both',
-      language: 'es',
+      language: mapLocaleToDiditLanguage(input.locale),
       ...(input.portraitImage ? { portrait_image: input.portraitImage } : {})
     })
   });

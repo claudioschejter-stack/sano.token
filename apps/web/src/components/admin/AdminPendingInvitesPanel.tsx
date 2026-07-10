@@ -22,7 +22,7 @@ type AdminPendingInvitesPanelProps = {
 export function AdminPendingInvitesPanel({ kind, onChanged }: AdminPendingInvitesPanelProps) {
   const t = useTranslation();
   const labels = t.adminInvites;
-  const { intlLocale } = useLocale();
+  const { locale, intlLocale } = useLocale();
   const { formatDateTime } = createIntlFormatters(intlLocale);
 
   const [invites, setInvites] = useState<PendingInvite[]>([]);
@@ -83,7 +83,11 @@ export function AdminPendingInvitesPanel({ kind, onChanged }: AdminPendingInvite
     setBusyId(id);
     setMessage(null);
     try {
-      const response = await fetch(resendUrl(id), { method: 'POST' });
+      const response = await fetch(resendUrl(id), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale })
+      });
       const data = (await response.json()) as { warning?: string };
       if (!response.ok) {
         throw new Error('resend failed');

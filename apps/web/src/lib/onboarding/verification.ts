@@ -1,6 +1,8 @@
 import { createHash, randomInt } from 'crypto';
 import { prisma, VerificationChannel } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { renderEmailShell } from '../email/emailTemplate';
+import { getEmailMessages } from '../email/emailMessages';
 import { normalizePhoneE164 } from '../auth/contactValidation';
 import { checkTwilioVerifyCode, sendTwilioVerifyCode, twilioVerifyConfigured } from '../twilio/twilioVerify';
 
@@ -90,26 +92,29 @@ export async function issueVerificationCode(
     }
   });
 
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { preferredLocale: true } });
+  const m = getEmailMessages(user?.preferredLocale);
+
   const result = await sendTransactionalEmail({
     to: target,
-    subject: `Tu código de verificación Sanova es ${code}`,
+    subject: m.verificationCode.subject,
     text: [
-      `Tu código de verificación Sanova es: ${code}`,
+      `${m.verificationCode.label} ${code}`,
       '',
-      'Este código vence en 10 minutos.',
-      'Si no solicitaste este acceso, podés ignorar este mensaje.',
+      m.verificationCode.expiry,
+      m.verificationCode.ignore,
       '',
-      'Sanova Capital'
+      m.common.brand
     ].join('\n'),
-    html: `
-      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
-        <p>Tu código de verificación Sanova es:</p>
+    html: renderEmailShell({
+      locale: user?.preferredLocale,
+      bodyHtml: `
+        <p>${m.verificationCode.label}</p>
         <p style="font-size:28px;font-weight:700;letter-spacing:4px;margin:16px 0">${code}</p>
-        <p>Este código vence en 10 minutos.</p>
-        <p style="color:#475569;font-size:14px">Si no solicitaste este acceso, podés ignorar este mensaje.</p>
-        <p style="color:#475569;font-size:14px">Sanova Capital</p>
-      </div>
-    `
+        <p>${m.verificationCode.expiry}</p>
+        <p style="color:#475569;font-size:14px">${m.verificationCode.ignore}</p>
+      `
+    })
   });
 
   if (!result.ok) {

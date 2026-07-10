@@ -2,7 +2,7 @@
 
 import { MessageCircle, Smartphone, Loader2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { useTranslation } from '../../i18n/LocaleProvider';
+import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import {
   isContactPickerAvailable,
   openWhatsAppInvite,
@@ -36,6 +36,7 @@ export function WhatsAppContactInvitePanel({
   onInviteCreated
 }: WhatsAppContactInvitePanelProps) {
   const t = useTranslation();
+  const { locale } = useLocale();
   const labels = t.adminInviteWhatsApp;
   const [rows, setRows] = useState<InviteRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -99,14 +100,16 @@ export function WhatsAppContactInvitePanel({
               email,
               name: row.name || undefined,
               phone: row.tel?.trim() || undefined,
-              incorporatedByAdvisorId: advisorId || null
+              incorporatedByAdvisorId: advisorId || null,
+              locale
             }
           : {
               email,
               name: row.name || undefined,
               phone: row.tel?.trim() || undefined,
               role: teamRole,
-              uplineAdvisorId: teamRole === 'ADVISOR' ? teamUplineId : null
+              uplineAdvisorId: teamRole === 'ADVISOR' ? teamUplineId : null,
+              locale
             };
 
       const response = await fetch(endpoint, {

@@ -5,7 +5,7 @@ import { requireAdminSession } from '../../../../../../../lib/admin/requireAdmin
 export const dynamic = 'force-dynamic';
 
 export async function POST(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ inviteId: string }> }
 ) {
   if (!(await requireAdminSession())) {
@@ -13,9 +13,10 @@ export async function POST(
   }
 
   const { inviteId } = await context.params;
+  const body = (await request.json().catch(() => ({}))) as { locale?: string | null };
 
   try {
-    const invite = await resendTeamInvite(inviteId);
+    const invite = await resendTeamInvite(inviteId, body.locale);
     if (!invite.emailSent) {
       return NextResponse.json(
         { invite, warning: 'INVITE_CREATED_EMAIL_NOT_SENT' },

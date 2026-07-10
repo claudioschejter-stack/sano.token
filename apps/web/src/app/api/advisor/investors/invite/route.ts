@@ -17,6 +17,7 @@ export async function POST(request: Request) {
       name?: string;
       phone?: string;
       incorporatedByAdvisorId?: string | null;
+      locale?: string | null;
     };
 
     if (!body.email?.trim()) {
@@ -38,7 +39,8 @@ export async function POST(request: Request) {
       name: body.name,
       phone: body.phone,
       incorporatedByAdvisorId,
-      invitedByUserId: ctx.session.user.id
+      invitedByUserId: ctx.session.user.id,
+      locale: body.locale
     });
 
     if (!invite.emailSent) {

@@ -185,14 +185,14 @@ export function CryptoWalletPanel({
       {/* Amount to pay — prominent */}
       <div className="rounded-xl border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-center">
         <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
-          Monto exacto a pagar
+          {sc.cryptoWalletExactAmountLabel}
         </p>
         <p className="mt-1 text-2xl font-bold text-terminal-primary">
           {qrAmount.toFixed(4)} <span className="text-base font-semibold">USDC</span>
         </p>
         <p className="mt-0.5 text-xs text-terminal-muted">
-          en Base Network · sin conversión
-          {watchAmountUsdc ? ' · incluye centavos de seguimiento para detectar tu pago automáticamente' : ''}
+          {sc.cryptoWalletOnBaseNote}
+          {watchAmountUsdc ? sc.cryptoWalletTrackingCentsNote : ''}
         </p>
       </div>
 
@@ -204,15 +204,15 @@ export function CryptoWalletPanel({
       {confirmed ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-terminal-success/40 bg-terminal-success/10 px-4 py-6 text-center">
           <CheckCircle2 size={28} className="text-terminal-success" />
-          <p className="text-sm font-bold text-terminal-success">¡Pago recibido!</p>
-          <p className="text-xs text-terminal-muted">Detectamos tu transferencia en Base automáticamente.</p>
+          <p className="text-sm font-bold text-terminal-success">{sc.cryptoWalletPaymentReceivedTitle}</p>
+          <p className="text-xs text-terminal-muted">{sc.cryptoWalletPaymentReceivedBody}</p>
         </div>
       ) : treasuryForQr && eip681Uri ? (
         <>
           {depositId && (
             <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg/60 px-3 py-2 text-[11px] text-terminal-muted">
               <Loader2 size={12} className="animate-spin text-terminal-primary" />
-              Esperando tu pago · se confirma solo, sin pegar el hash
+              {sc.cryptoWalletWaitingPayment}
             </div>
           )}
 
@@ -224,7 +224,7 @@ export function CryptoWalletPanel({
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3.5 text-sm font-bold text-white shadow-lg active:opacity-90"
             >
               <ExternalLink size={16} />
-              Pagar {qrAmount.toFixed(4)} USDC ahora
+              {sc.cryptoWalletPayNowButton.replace('{amount}', qrAmount.toFixed(4))}
             </button>
           )}
 
@@ -235,17 +235,17 @@ export function CryptoWalletPanel({
               <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
                 <img
                   src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
-                  alt={`QR pago ${qrAmount.toFixed(4)} USDC`}
+                  alt={sc.cryptoWalletQrAlt.replace('{amount}', qrAmount.toFixed(4))}
                   width={QR_SIZE}
                   height={QR_SIZE}
                   className="block rounded"
                 />
               </div>
               <p className="text-center text-[11px] text-terminal-muted">
-                Escaneá con MetaMask, Trust, Coinbase Wallet o cualquier wallet EVM
+                {sc.cryptoWalletScanHint}
                 <br />
                 <span className="font-semibold text-terminal-primary">
-                  El monto ({qrAmount.toFixed(4)} USDC) se pre-llena automáticamente
+                  {sc.cryptoWalletAmountPrefillNote.replace('{amount}', qrAmount.toFixed(4))}
                 </span>
               </p>
             </div>
@@ -258,21 +258,21 @@ export function CryptoWalletPanel({
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-terminal-border bg-terminal-bg py-2.5 text-xs font-semibold text-terminal-muted"
               >
                 <QrCode size={14} />
-                {showQr ? 'Ocultar QR' : 'Ver QR (para escanear desde otro celular)'}
+                {showQr ? sc.cryptoWalletHideQr : sc.cryptoWalletShowQr}
               </button>
               {showQr && (
                 <div className="mt-3 flex flex-col items-center gap-2 rounded-xl border border-terminal-border bg-terminal-bg p-4">
                   <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
-                      alt={`QR pago ${qrAmount.toFixed(4)} USDC`}
+                      alt={sc.cryptoWalletQrAlt.replace('{amount}', qrAmount.toFixed(4))}
                       width={QR_SIZE}
                       height={QR_SIZE}
                       className="block rounded"
                     />
                   </div>
                   <p className="text-center text-[11px] text-terminal-muted">
-                    Monto pre-llenado: {qrAmount.toFixed(4)} USDC · Base
+                    {sc.cryptoWalletAmountPrefilledShort.replace('{amount}', qrAmount.toFixed(4))}
                   </p>
                 </div>
               )}
@@ -292,7 +292,7 @@ export function CryptoWalletPanel({
                 type="button"
                 onClick={handleCopyAddr}
                 className="shrink-0 rounded-lg border border-terminal-border bg-terminal-card p-2 text-terminal-muted transition-colors hover:border-terminal-primary hover:text-terminal-primary"
-                title="Copiar dirección"
+                title={sc.cryptoWalletCopyAddressTitle}
               >
                 {copiedAddr ? <CheckCircle2 size={14} className="text-green-500" /> : <Copy size={14} />}
               </button>
@@ -311,9 +311,9 @@ export function CryptoWalletPanel({
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-terminal-border bg-transparent py-2 text-[11px] text-terminal-muted transition-colors hover:border-terminal-primary hover:text-terminal-primary"
           >
             {copiedUri ? (
-              <><CheckCircle2 size={12} className="text-green-500" /> URI de pago copiada</>
+              <><CheckCircle2 size={12} className="text-green-500" /> {sc.cryptoWalletUriCopied}</>
             ) : (
-              <><Copy size={12} /> Copiar URI de pago (EIP-681)</>
+              <><Copy size={12} /> {sc.cryptoWalletCopyUri}</>
             )}
           </button>
 
@@ -327,7 +327,7 @@ export function CryptoWalletPanel({
                 <p className="text-xs text-terminal-muted">{sc.probing}</p>
               ) : visibleApps.length === 0 ? (
                 <p className="text-xs text-terminal-muted">
-                  Usá el botón "Pagar ahora" para abrir tu wallet.
+                  {sc.cryptoWalletUsePayNowHint}
                 </p>
               ) : (
                 visibleApps.map((app) => (

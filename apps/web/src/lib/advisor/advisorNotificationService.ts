@@ -1,5 +1,7 @@
 import { prisma } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { renderEmailShell } from '../email/emailTemplate';
+import { getEmailMessages, applyEmailTemplate } from '../email/emailMessages';
 
 async function loadIncorporatingAdvisor(investorUserId: string) {
   const user = await prisma.user.findUnique({
@@ -12,7 +14,7 @@ async function loadIncorporatingAdvisor(investorUserId: string) {
           fullName: true,
           incorporatedBy: {
             select: {
-              user: { select: { email: true, name: true } }
+              user: { select: { email: true, name: true, preferredLocale: true } }
             }
           }
         }
@@ -30,6 +32,7 @@ async function loadIncorporatingAdvisor(investorUserId: string) {
 
   return {
     advisorEmail,
+    advisorLocale: user.investor?.incorporatedBy?.user.preferredLocale ?? null,
     clientName,
     clientEmail: user.email
   };
@@ -41,14 +44,18 @@ export async function notifyAdvisorOfClientKycApproved(investorUserId: string): 
     return;
   }
 
-  const subject = `Cliente KYC aprobado: ${context.clientName}`;
-  const text = `Tu cliente ${context.clientName} (${context.clientEmail}) completó KYC y fue aprobado. Ya puede operar en el marketplace.`;
+  const m = getEmailMessages(context.advisorLocale);
+  const subject = applyEmailTemplate(m.advisorClientApproved.subject, { clientName: context.clientName });
+  const text = applyEmailTemplate(m.advisorClientApproved.body, {
+    clientName: context.clientName,
+    clientEmail: context.clientEmail
+  });
 
   await sendTransactionalEmail({
     to: context.advisorEmail,
     subject,
     text,
-    html: `<p>${text}</p>`
+    html: renderEmailShell({ locale: context.advisorLocale, bodyHtml: `<p>${text}</p>` })
   });
 }
 
@@ -62,13 +69,19 @@ export async function notifyAdvisorOfClientPurchase(
     return;
   }
 
-  const subject = `Compra de tu cliente: ${context.clientName}`;
-  const text = `${context.clientName} (${context.clientEmail}) compró tokens en "${projectTitle}" por USD ${amountUsd.toFixed(2)}. Las comisiones se acumulan según la política vigente.`;
+  const m = getEmailMessages(context.advisorLocale);
+  const subject = applyEmailTemplate(m.advisorClientPurchase.subject, { clientName: context.clientName });
+  const text = applyEmailTemplate(m.advisorClientPurchase.body, {
+    clientName: context.clientName,
+    clientEmail: context.clientEmail,
+    project: projectTitle,
+    amount: amountUsd.toFixed(2)
+  });
 
   await sendTransactionalEmail({
     to: context.advisorEmail,
     subject,
     text,
-    html: `<p>${text}</p>`
+    html: renderEmailShell({ locale: context.advisorLocale, bodyHtml: `<p>${text}</p>` })
   });
 }

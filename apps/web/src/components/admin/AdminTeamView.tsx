@@ -38,7 +38,7 @@ function VerificationCell({
 
 export function AdminTeamView() {
   const t = useTranslation();
-  const { intlLocale } = useLocale();
+  const { locale, intlLocale } = useLocale();
   const { formatDateTime } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
   const roleLabels = t.access.roles;
 
@@ -235,7 +235,8 @@ export function AdminTeamView() {
           name: designateForm.name || undefined,
           role: designateForm.role,
           uplineAdvisorId:
-            designateForm.role === 'ADVISOR' ? designateForm.uplineAdvisorId || undefined : null
+            designateForm.role === 'ADVISOR' ? designateForm.uplineAdvisorId || undefined : null,
+          locale
         })
       });
 

@@ -43,10 +43,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'DIDIT_CALLBACK_INVALID' }, { status: 500 });
   }
 
+  const userForLocale = await prisma.user.findUnique({
+    where: { id: ctx.userId },
+    select: { preferredLocale: true }
+  });
+
   try {
     const session = await createDiditSession({
       userId: ctx.userId,
-      callbackUrl
+      callbackUrl,
+      locale: userForLocale?.preferredLocale
     });
 
     await prisma.user.update({

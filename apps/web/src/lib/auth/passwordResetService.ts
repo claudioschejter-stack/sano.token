@@ -2,6 +2,8 @@ import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { renderEmailShell, renderEmailButton } from '../email/emailTemplate';
+import { getEmailMessages } from '../email/emailMessages';
 import { normalizeEmail } from './contactValidation';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -35,7 +37,7 @@ export async function requestPasswordReset(
 
   const user = await prisma.user.findUnique({
     where: { email: normalized },
-    select: { id: true, email: true, passwordHash: true }
+    select: { id: true, email: true, passwordHash: true, preferredLocale: true }
   });
 
   if (!user?.passwordHash) {
@@ -50,31 +52,28 @@ export async function requestPasswordReset(
     .sign(resetSecret());
 
   const resetUrl = `${siteBaseUrl()}/acceso/restablecer?token=${encodeURIComponent(token)}`;
+  const m = getEmailMessages(user.preferredLocale);
 
   const result = await sendTransactionalEmail({
     to: user.email,
-    subject: 'Restablecé tu contraseña — Sanova Global',
+    subject: m.passwordReset.subject,
     text: [
-      'Recibimos una solicitud para restablecer la contraseña de tu cuenta Sanova.',
+      m.passwordReset.intro,
       '',
-      `Abrí este enlace (válido 1 hora): ${resetUrl}`,
+      `${m.passwordReset.cta}: ${resetUrl}`,
       '',
-      'Si no solicitaste este cambio, ignorá este mensaje.',
+      m.passwordReset.expiry,
       '',
-      'Sanova Global'
+      m.common.brand
     ].join('\n'),
-    html: `
-      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
-        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta Sanova.</p>
-        <p style="margin:24px 0">
-          <a href="${resetUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">
-            Restablecer contraseña
-          </a>
-        </p>
-        <p style="color:#475569;font-size:14px">El enlace vence en 1 hora. Si no solicitaste este cambio, ignorá este mensaje.</p>
-        <p style="color:#475569;font-size:14px">Sanova Global</p>
-      </div>
-    `
+    html: renderEmailShell({
+      locale: user.preferredLocale,
+      bodyHtml: `
+        <p>${m.passwordReset.intro}</p>
+        ${renderEmailButton(resetUrl, m.passwordReset.cta)}
+        <p style="color:#475569;font-size:14px">${m.passwordReset.expiry}</p>
+      `
+    })
   });
 
   const exposeDev =

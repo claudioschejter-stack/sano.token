@@ -7,8 +7,11 @@ import { ShieldCheck, X } from 'lucide-react';
 import { OTPInput } from './OTPInput';
 import { waitForAccessToken } from '../../lib/auth/waitForAccessToken';
 import { formFieldClassName } from '../../lib/ui/formFieldClassName';
+import { useTranslation } from '../../i18n/LocaleProvider';
 
 export function TOTPVerificationPage() {
+  const t = useTranslation();
+  const tv = t.totpVerify;
   const router = useRouter();
   const searchParams = useSearchParams();
   const tempToken = searchParams.get('t') ?? '';
@@ -47,13 +50,17 @@ export function TOTPVerificationPage() {
 
       if (data.remainingSeconds) {
         setLockedSeconds(data.remainingSeconds);
-        setError(`Cuenta bloqueada por ${Math.ceil(data.remainingSeconds / 60)} min por demasiados intentos fallidos.`);
+        setError(
+          tv.accountLockedMinutes.replace('{minutes}', String(Math.ceil(data.remainingSeconds / 60)))
+        );
       } else {
         setRemainingAttempts(data.remainingAttempts ?? null);
         setError(
           data.remainingAttempts != null
-            ? `Código incorrecto. Te quedan ${data.remainingAttempts} intento${data.remainingAttempts !== 1 ? 's' : ''}.`
-            : 'Código incorrecto o expirado.'
+            ? tv.wrongCodeAttempts
+                .replace('{count}', String(data.remainingAttempts))
+                .replace('{plural}', data.remainingAttempts !== 1 ? 's' : '')
+            : tv.wrongCodeExpired
         );
       }
       return;
@@ -67,7 +74,7 @@ export function TOTPVerificationPage() {
 
     if (result?.error) {
       setLoading(false);
-      setError('Error al crear la sesión. Intentá de nuevo.');
+      setError(tv.sessionCreationError);
       return;
     }
 
@@ -80,10 +87,10 @@ export function TOTPVerificationPage() {
       <div className="flex min-h-screen items-center justify-center bg-white px-4">
         <div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
           <X className="mx-auto mb-3 text-red-500" size={32} />
-          <p className="font-semibold text-red-700">Sesión inválida</p>
-          <p className="mt-1 text-sm text-slate-500">Volvé al inicio de sesión para intentar de nuevo.</p>
+          <p className="font-semibold text-red-700">{tv.invalidSessionTitle}</p>
+          <p className="mt-1 text-sm text-slate-500">{tv.invalidSessionDesc}</p>
           <a href="/acceso" className="mt-4 inline-block text-sm font-medium text-blue-600 hover:underline">
-            Ir al login
+            {tv.goToLogin}
           </a>
         </div>
       </div>
@@ -102,11 +109,9 @@ export function TOTPVerificationPage() {
                 <ShieldCheck size={28} />
               </div>
             </div>
-            <h1 className="text-xl font-bold text-slate-900">Verificación de seguridad</h1>
+            <h1 className="text-xl font-bold text-slate-900">{tv.title}</h1>
             <p className="mt-2 text-sm text-slate-500">
-              {showBackupInput
-                ? 'Ingresá uno de tus códigos de recuperación.'
-                : 'Abrí Google Authenticator e ingresá el código de 6 dígitos.'}
+              {showBackupInput ? tv.descBackup : tv.descTotp}
             </p>
           </div>
 
@@ -121,7 +126,7 @@ export function TOTPVerificationPage() {
                 type="text"
                 value={backupCode}
                 onChange={(e) => setBackupCode(e.target.value.toUpperCase())}
-                placeholder="XXXXX-XXXXX"
+                placeholder={tv.backupPlaceholder}
                 className={`${formFieldClassName} text-center font-mono text-lg font-bold tracking-widest`}
                 disabled={loading}
               />
@@ -131,13 +136,13 @@ export function TOTPVerificationPage() {
                 disabled={loading || backupCode.length < 5}
                 className="flex min-h-12 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
               >
-                {loading ? 'Verificando…' : 'Usar código de recuperación'}
+                {loading ? tv.verifying : tv.useBackupCode}
               </button>
               <button
                 onClick={() => { setShowBackupInput(false); setError(null); }}
                 className="w-full text-center text-sm text-slate-500 hover:text-slate-800"
               >
-                ← Volver al código del autenticador
+                {tv.backToAuthenticatorCode}
               </button>
             </div>
           ) : (
@@ -156,7 +161,9 @@ export function TOTPVerificationPage() {
                 <p className="text-center text-sm text-red-600">{error}</p>
               ) : remainingAttempts != null ? (
                 <p className="text-center text-xs text-amber-600">
-                  {remainingAttempts} intento{remainingAttempts !== 1 ? 's' : ''} restante{remainingAttempts !== 1 ? 's' : ''}
+                  {tv.attemptsRemaining
+                    .replace('{count}', String(remainingAttempts))
+                    .replace(/\{plural\}/g, remainingAttempts !== 1 ? 's' : '')}
                 </p>
               ) : null}
 
@@ -165,23 +172,23 @@ export function TOTPVerificationPage() {
                 disabled={loading || code.length < 6}
                 className="flex min-h-12 w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-60"
               >
-                {loading ? 'Verificando…' : 'Confirmar'}
+                {loading ? tv.verifying : tv.confirm}
               </button>
 
               <button
                 onClick={() => { setShowBackupInput(true); setError(null); setCode(''); }}
                 className="w-full text-center text-sm text-slate-500 transition hover:text-slate-800"
               >
-                Usar código de recuperación
+                {tv.useBackupCode}
               </button>
             </div>
           )}
         </div>
 
         <p className="mt-4 text-center text-xs text-slate-400">
-          ¿Problemas para acceder?{' '}
+          {tv.troubleSigningIn}{' '}
           <a href="/contacto" className="font-medium text-blue-600 hover:underline">
-            Contactar soporte
+            {tv.contactSupport}
           </a>
         </p>
       </div>

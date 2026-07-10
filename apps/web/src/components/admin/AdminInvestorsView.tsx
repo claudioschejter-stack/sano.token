@@ -32,7 +32,7 @@ function statusBadgeClass(status: string): string {
 
 export function AdminInvestorsView() {
   const t = useTranslation();
-  const { intlLocale } = useLocale();
+  const { locale, intlLocale } = useLocale();
   const { formatDateTime } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
 
   const [filter, setFilter] = useState<KycFilter>('PENDING');
@@ -98,7 +98,8 @@ export function AdminInvestorsView() {
         body: JSON.stringify({
           email: inviteEmail.trim(),
           name: inviteName.trim() || undefined,
-          incorporatedByAdvisorId: inviteAdvisorId || null
+          incorporatedByAdvisorId: inviteAdvisorId || null,
+          locale
         })
       });
 

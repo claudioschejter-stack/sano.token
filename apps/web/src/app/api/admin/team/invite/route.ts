@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       phone?: string;
       role?: 'ADVISOR' | 'ADVISOR_MANAGER';
       uplineAdvisorId?: string | null;
+      locale?: string | null;
     };
 
     if (!body.email || !body.role) {
@@ -33,7 +34,8 @@ export async function POST(request: Request) {
       phone: body.phone,
       role: body.role,
       uplineAdvisorId: body.uplineAdvisorId,
-      invitedByUserId: adminUserId
+      invitedByUserId: adminUserId,
+      locale: body.locale
     });
 
     if (!invite.emailSent) {

@@ -12,7 +12,6 @@ import { useIsPwa } from '../../hooks/useIsPwa';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { formFieldClassName } from '../../lib/ui/formFieldClassName';
 import { OAuthSignInButtons } from './OAuthSignInButtons';
-import { InstallAppBanner } from '../pwa/InstallAppBanner';
 import { PasswordInput } from './PasswordInput';
 import { PasskeyLoginButton } from './PasskeyLoginButton';
 
@@ -151,8 +150,6 @@ export function MobileLoginFlow({
         </button>
         <p className="-mt-3 text-center text-xs text-slate-500">{t.access.mobileGateActivateBiometricDesc}</p>
 
-        <InstallAppBanner />
-
         <OAuthSignInButtons callbackUrl={callbackUrl} className="pt-1" />
 
         <div className="flex flex-col items-center gap-2 pt-1">
@@ -196,9 +193,6 @@ export function MobileLoginFlow({
         >
           {t.access.signInWithPassword ?? 'Ingresar con email y contraseña'}
         </button>
-        {/* Soft, non-blocking reminder: biometric login never requires the app to be
-            installed, but we keep nudging until it is (see plan: "incentivo, no bloqueo"). */}
-        <InstallAppBanner />
         <div className="flex flex-col items-center justify-center gap-2">
           <Link
             href="/acceso/olvidar"

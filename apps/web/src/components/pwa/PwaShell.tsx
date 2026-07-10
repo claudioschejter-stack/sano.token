@@ -79,7 +79,9 @@ export function PwaShell({ children }: Props) {
             </div>
             <div>
               <p className="text-xs font-medium text-white/80">Sanova Capital</p>
-              <p className="text-sm font-semibold text-white">Hola, {firstName}</p>
+              <p className="text-sm font-semibold text-white">
+                {t.pwaHome.greeting.replace('{name}', firstName)}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -96,13 +98,11 @@ export function PwaShell({ children }: Props) {
                 href={whatsappHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#25D366] text-white"
-                aria-label="Contactar por WhatsApp"
-                title="Contactar por WhatsApp"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#25D366] text-white"
+                aria-label={t.pwaHome.whatsappAria}
+                title={t.pwaHome.whatsappAria}
               >
-                <span className="h-[18px] w-[18px]">
-                  <WhatsAppIcon />
-                </span>
+                <WhatsAppIcon size={18} />
               </a>
             ) : null}
             <Link
@@ -158,7 +158,7 @@ export function PwaShell({ children }: Props) {
             <Link
               href="/marketplace/carrito"
               className="flex h-16 w-16 items-center justify-center rounded-full bg-[#009EE3] text-white shadow-lg shadow-[#009EE3]/30 ring-4 ring-white"
-              aria-label="Pagar / QR"
+              aria-label={t.pwaHome.payQrAria}
             >
               <ScanLine size={28} />
             </Link>
@@ -186,7 +186,7 @@ export function PwaShell({ children }: Props) {
                 firstName.charAt(0)
               )}
             </div>
-            <span className="text-[10px] font-medium">Perfil</span>
+            <span className="text-[10px] font-medium">{t.pwaHome.profileNavLabel}</span>
           </Link>
         </div>
       </nav>

@@ -43,7 +43,7 @@ export function PasskeyRegisterInline({
     : null;
 
   async function handleRegister() {
-    const ok = await register({ deviceName: isIos ? 'Face ID' : 'Huella / biometría' });
+    const ok = await register({ deviceName: isIos ? p.deviceNameFaceId : p.deviceNameGeneric });
     if (ok) {
       onRegistered?.();
     }
@@ -77,9 +77,7 @@ export function PasskeyRegisterInline({
             {isIos ? p.registerFaceTitle : p.registerTitle}
           </h3>
           <p className="mt-2 text-sm text-slate-600">
-            {isOnboarding
-              ? 'Activá huella o Face ID para ingresar más rápido la próxima vez, como en Mercado Pago.'
-              : p.registerDesc}
+            {isOnboarding ? p.registerOnboardingDesc : p.registerDesc}
           </p>
         </div>
         <button
@@ -97,7 +95,7 @@ export function PasskeyRegisterInline({
             onClick={onSkip}
             className="text-sm font-medium text-slate-500 underline-offset-2 hover:underline"
           >
-            Configurar después
+            {p.registerLater}
           </button>
         ) : null}
         {error ? <p className="text-xs text-amber-700">{error}</p> : null}

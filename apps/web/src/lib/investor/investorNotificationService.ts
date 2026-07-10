@@ -1,5 +1,7 @@
 import { prisma } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { renderEmailShell, renderEmailButton } from '../email/emailTemplate';
+import { getEmailMessages, applyEmailTemplate } from '../email/emailMessages';
 import { siteBaseUrl } from '../onboarding/accountActivationService';
 
 async function loadInvestorContext(investorUserId: string) {
@@ -8,6 +10,7 @@ async function loadInvestorContext(investorUserId: string) {
     select: {
       email: true,
       name: true,
+      preferredLocale: true,
       investor: {
         select: {
           fullName: true
@@ -24,7 +27,8 @@ async function loadInvestorContext(investorUserId: string) {
 
   return {
     clientEmail: user.email,
-    clientName
+    clientName,
+    preferredLocale: user.preferredLocale
   };
 }
 
@@ -39,33 +43,32 @@ export async function notifyInvestorAccountOperational(investorUserId: string): 
   if (!context) return;
 
   const platformUrl = `${siteBaseUrl()}/dashboard`;
+  const m = getEmailMessages(context.preferredLocale);
+  const greeting = applyEmailTemplate(m.accountApproved.greeting, { name: context.clientName });
 
-  const subject = `¡Tu cuenta en Sanova Capital ha sido aprobada!`;
+  const subject = m.accountApproved.subject;
   const text = [
-    `Hola ${context.clientName},`,
+    greeting,
     '',
-    'Tu proceso de verificación de identidad (KYC) ha sido aprobado exitosamente y tu cuenta ya está lista.',
+    m.accountApproved.approvedLine,
     '',
-    'Ya puedes acceder a la plataforma y comenzar a invertir en el marketplace de Sanova Capital:',
+    `${m.accountApproved.accessLine}`,
     platformUrl,
     '',
-    'Saludos,',
-    'El equipo de Sanova Global'
+    m.accountApproved.closing,
+    m.common.teamSignature
   ].join('\n');
 
-  const html = `
-    <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
-      <p>Hola <strong>${context.clientName}</strong>,</p>
-      <p>Tu proceso de verificación de identidad (KYC) ha sido <strong>aprobado exitosamente</strong> y tu cuenta ya está lista.</p>
-      <p>Ya puedes acceder a la plataforma y comenzar a invertir en el marketplace de Sanova Capital.</p>
-      <p style="margin:24px 0">
-        <a href="${platformUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:700">
-          Ir a la plataforma
-        </a>
-      </p>
-      <p style="margin-top:24px;color:#475569;font-size:14px">Saludos,<br>El equipo de Sanova Global</p>
-    </div>
-  `;
+  const html = renderEmailShell({
+    locale: context.preferredLocale,
+    bodyHtml: `
+      <p>${applyEmailTemplate(m.accountApproved.greeting, { name: `<strong>${context.clientName}</strong>` })}</p>
+      <p>${m.accountApproved.approvedLine}</p>
+      <p>${m.accountApproved.accessLine}</p>
+      ${renderEmailButton(platformUrl, m.accountApproved.cta)}
+      <p style="margin-top:24px;color:#475569;font-size:14px">${m.accountApproved.closing}<br>${m.common.teamSignature}</p>
+    `
+  });
 
   await sendTransactionalEmail({
     to: context.clientEmail,
@@ -83,21 +86,40 @@ export async function notifyInvestorOfPurchase(
   const context = await loadInvestorContext(investorUserId);
   if (!context) return;
 
-  const subject = `Confirmación de inversión: ${projectTitle}`;
-  const text = `Hola ${context.clientName},\n\nHemos recibido tu inversión de USD ${amountUsd.toFixed(2)} en el proyecto "${projectTitle}".\n\nPuedes hacer seguimiento de tus activos y rendimientos desde el panel de control de tu cuenta.\n\nGracias por confiar en Sanova Capital.\n\nSaludos,\nEl equipo de Sanova Global`;
-  
-  const html = `
-    <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
-      <p>Hola <strong>${context.clientName}</strong>,</p>
-      <p>Hemos confirmado tu inversión en la plataforma.</p>
+  const m = getEmailMessages(context.preferredLocale);
+  const subject = applyEmailTemplate(m.purchaseConfirmation.subject, { project: projectTitle });
+  const greeting = applyEmailTemplate(m.purchaseConfirmation.greeting, { name: context.clientName });
+  const receivedLine = applyEmailTemplate(m.purchaseConfirmation.receivedLine, {
+    amount: amountUsd.toFixed(2),
+    project: projectTitle
+  });
+
+  const text = [
+    greeting,
+    '',
+    receivedLine,
+    '',
+    m.purchaseConfirmation.trackingLine,
+    '',
+    m.purchaseConfirmation.thanks,
+    '',
+    m.accountApproved.closing,
+    m.common.teamSignature
+  ].join('\n');
+
+  const html = renderEmailShell({
+    locale: context.preferredLocale,
+    bodyHtml: `
+      <p>${applyEmailTemplate(m.purchaseConfirmation.greeting, { name: `<strong>${context.clientName}</strong>` })}</p>
+      <p>${m.purchaseConfirmation.confirmedLine}</p>
       <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px;margin:16px 0">
-        <p style="margin:0 0 8px 0"><strong>Proyecto:</strong> ${projectTitle}</p>
-        <p style="margin:0"><strong>Monto invertido:</strong> USD ${amountUsd.toFixed(2)}</p>
+        <p style="margin:0 0 8px 0"><strong>${m.purchaseConfirmation.projectLabel}</strong> ${projectTitle}</p>
+        <p style="margin:0"><strong>${m.purchaseConfirmation.amountLabel}</strong> USD ${amountUsd.toFixed(2)}</p>
       </div>
-      <p>Puedes hacer seguimiento de tus activos y rendimientos desde el panel de control de tu cuenta.</p>
-      <p style="margin-top:24px;color:#475569;font-size:14px">Gracias por confiar en Sanova Capital.<br>El equipo de Sanova Global</p>
-    </div>
-  `;
+      <p>${m.purchaseConfirmation.trackingLine}</p>
+      <p style="margin-top:24px;color:#475569;font-size:14px">${m.purchaseConfirmation.thanks}<br>${m.common.teamSignature}</p>
+    `
+  });
 
   await sendTransactionalEmail({
     to: context.clientEmail,

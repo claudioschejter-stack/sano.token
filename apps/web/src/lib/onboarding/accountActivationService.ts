@@ -1,6 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from '@sanova/database';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { renderEmailShell, renderEmailButton } from '../email/emailTemplate';
+import { getEmailMessages } from '../email/emailMessages';
 import type { RegistrationChannel } from '../auth/registrationAttemptService';
 import { issueAuthUserById } from '../auth/issueAuthUser';
 import { loadAccountOperational } from '../auth/sessionClaims';
@@ -65,31 +67,33 @@ export async function sendAccountActivationEmail(input: {
   const token = await signActivationToken(input.userId);
   const activationUrl = `${siteBaseUrl()}/acceso/activar?token=${encodeURIComponent(token)}`;
 
+  const user = await prisma.user.findUnique({
+    where: { id: input.userId },
+    select: { preferredLocale: true }
+  });
+  const m = getEmailMessages(user?.preferredLocale);
+
   const result = await sendTransactionalEmail({
     to: input.email,
-    subject: 'Activá tu cuenta — Sanova Global',
+    subject: m.activation.subject,
     text: [
-      'Gracias por registrarte en Sanova Global.',
+      m.activation.intro,
       '',
-      'Activá tu cuenta con este enlace (válido 24 horas):',
+      `${m.activation.cta}:`,
       activationUrl,
       '',
-      'Si no creaste esta cuenta, ignorá este mensaje.',
+      m.activation.expiry,
       '',
-      'Sanova Global'
+      m.common.brand
     ].join('\n'),
-    html: `
-      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5">
-        <p>Gracias por registrarte en Sanova Global.</p>
-        <p style="margin:24px 0">
-          <a href="${activationUrl}" style="display:inline-block;background:#2563eb;color:#fff;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:700">
-            Activá tu cuenta
-          </a>
-        </p>
-        <p style="color:#475569;font-size:14px">El enlace vence en 24 horas. Si no creaste esta cuenta, ignorá este mensaje.</p>
-        <p style="color:#475569;font-size:14px">Sanova Global</p>
-      </div>
-    `
+    html: renderEmailShell({
+      locale: user?.preferredLocale,
+      bodyHtml: `
+        <p>${m.activation.intro}</p>
+        ${renderEmailButton(activationUrl, m.activation.cta)}
+        <p style="color:#475569;font-size:14px">${m.activation.expiry}</p>
+      `
+    })
   });
 
   const exposeDev =

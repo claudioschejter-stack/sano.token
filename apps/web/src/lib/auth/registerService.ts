@@ -26,6 +26,8 @@ export type RegisterInput = {
   termsAccepted?: boolean;
   inviteCode?: string;
   registrationChannel?: string;
+  /** Locale detected server-side at registration time (cookie/Accept-Language/geo) — seeds the first (activation) email's language. */
+  preferredLocale?: string;
 };
 
 export async function registerInvestor(input: RegisterInput) {
@@ -72,7 +74,8 @@ export async function registerInvestor(input: RegisterInput) {
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
       accountStatus: true,
-      kycStatus: true
+      kycStatus: true,
+      preferredLocale: true
     }
   });
   const allowlistRole = resolveRoleFromAllowlist(email);
@@ -173,7 +176,8 @@ export async function registerInvestor(input: RegisterInput) {
           email,
           ...sharedProfile,
           investorAccessEnabled: accessEnabledOnCreate,
-          ...(input.registrationChannel ? { registrationChannel: input.registrationChannel } : {})
+          ...(input.registrationChannel ? { registrationChannel: input.registrationChannel } : {}),
+          ...(input.preferredLocale ? { preferredLocale: input.preferredLocale } : {})
         }
       });
     } else if (preserveStaffRole) {
@@ -181,7 +185,10 @@ export async function registerInvestor(input: RegisterInput) {
         where: { email },
         data: {
           ...sharedProfile,
-          investorAccessEnabled: existing.investorAccessEnabled
+          investorAccessEnabled: existing.investorAccessEnabled,
+          ...(!existing.preferredLocale && input.preferredLocale
+            ? { preferredLocale: input.preferredLocale }
+            : {})
         }
       });
     } else {
@@ -203,7 +210,10 @@ export async function registerInvestor(input: RegisterInput) {
           accountStatus:
             existing.accountStatus === 'SUSPENDED' ? 'SUSPENDED' : existing.accountStatus,
           kycStatus: existing.kycStatus,
-          investorAccessEnabled: accessEnabledOnUpdate
+          investorAccessEnabled: accessEnabledOnUpdate,
+          ...(!existing.preferredLocale && input.preferredLocale
+            ? { preferredLocale: input.preferredLocale }
+            : {})
         }
       });
     }

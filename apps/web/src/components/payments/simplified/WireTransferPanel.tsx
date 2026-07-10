@@ -47,13 +47,13 @@ export function WireTransferPanel({ wire, amountUsd }: Props) {
       {/* Amount */}
       <div className="rounded-xl border border-terminal-border bg-terminal-bg px-4 py-3.5">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted">
-          Total a pagar
+          {sc.wireTotalToPay}
         </p>
         <p className="mt-1 text-2xl font-bold text-terminal-text">
           USD {wire.totalUsd.toFixed(2)}
         </p>
         <p className="mt-0.5 text-[11px] text-terminal-muted">
-          Recibirás {amountUsd.toFixed(2)} USDC en tu cuenta
+          {sc.wireReceiveNote.replace('{amount}', amountUsd.toFixed(2))}
         </p>
       </div>
 
@@ -66,14 +66,14 @@ export function WireTransferPanel({ wire, amountUsd }: Props) {
           <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(transakUrl)}`}
-              alt="QR Transak — transferencia bancaria"
+              alt={sc.wireQrAlt}
               width={QR_SIZE}
               height={QR_SIZE}
               className="block rounded"
             />
           </div>
           <p className="text-center text-[11px] text-terminal-muted">
-            Escaneá con el celular para iniciar la transferencia
+            {sc.wireScanToStart}
           </p>
           <a
             href={transakUrl}
@@ -81,7 +81,7 @@ export function WireTransferPanel({ wire, amountUsd }: Props) {
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 text-xs font-medium text-terminal-primary hover:underline"
           >
-            Abrir en el navegador <ExternalLink className="h-3 w-3" />
+            {sc.wireOpenInBrowser} <ExternalLink className="h-3 w-3" />
           </a>
         </div>
       )}
@@ -95,7 +95,7 @@ export function WireTransferPanel({ wire, amountUsd }: Props) {
           className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-amber-600 px-4 py-4 text-sm font-bold text-white shadow-lg shadow-amber-900/30 transition-all hover:bg-amber-500 active:scale-[0.98]"
         >
           <Smartphone className="h-4 w-4" />
-          Iniciar transferencia bancaria — Transak
+          {sc.wireStartTransferMobile}
         </a>
       )}
     </section>

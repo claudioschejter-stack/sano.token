@@ -15,15 +15,16 @@ type Props = {
 
 function MobileLanguageSwitch() {
   const { locale, setLocale } = useLocale();
+  const t = useTranslation();
 
   return (
     <label className="flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-1.5 text-slate-600">
       <Globe size={14} aria-hidden />
-      <span className="sr-only">Seleccionar idioma</span>
+      <span className="sr-only">{t.landing.languageSelectAria}</span>
       <select
         value={locale}
         onChange={(event) => setLocale(event.target.value as Locale, { manual: true })}
-        aria-label="Seleccionar idioma"
+        aria-label={t.landing.languageSelectAria}
         className="cursor-pointer bg-transparent text-xs font-semibold text-slate-700 outline-none"
       >
         {localeOptions.map((option) => (

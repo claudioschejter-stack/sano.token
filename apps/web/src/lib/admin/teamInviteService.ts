@@ -3,6 +3,8 @@ import { prisma, type SystemRole as PrismaSystemRole } from '@sanova/database';
 import { buildKycUrl } from '../auth/kycPaths';
 import { normalizeEmail } from '../auth/contactValidation';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { renderEmailShell, renderEmailButton } from '../email/emailTemplate';
+import { getEmailMessages, applyEmailTemplate } from '../email/emailMessages';
 import { resolveSiteUrl } from '../invite/resolveSiteUrl';
 import { buildTeamInviteWhatsAppMessage } from '../invite/whatsappInvite';
 import { designateAdvisor } from './teamService';
@@ -13,8 +15,9 @@ function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-function roleLabel(role: 'ADVISOR' | 'ADVISOR_MANAGER'): string {
-  return role === 'ADVISOR_MANAGER' ? 'Gerente' : 'Asesor';
+function roleLabel(role: 'ADVISOR' | 'ADVISOR_MANAGER', locale?: string | null): string {
+  const m = getEmailMessages(locale);
+  return role === 'ADVISOR_MANAGER' ? m.invite.roleAdvisorManager : m.invite.roleAdvisor;
 }
 
 function postOnboardingPath(role: 'ADVISOR' | 'ADVISOR_MANAGER'): string {
@@ -42,6 +45,7 @@ export async function inviteTeamMember(input: {
   role: 'ADVISOR' | 'ADVISOR_MANAGER';
   uplineAdvisorId?: string | null;
   invitedByUserId: string;
+  locale?: string | null;
 }): Promise<TeamInviteRecord> {
   const email = normalizeEmail(input.email);
   if (!email) {
@@ -114,36 +118,35 @@ export async function inviteTeamMember(input: {
   });
 
   const acceptUrl = `${resolveSiteUrl()}/api/team/invite/accept?token=${encodeURIComponent(rawToken)}`;
-  const roleText = roleLabel(input.role);
+  const roleText = roleLabel(input.role, input.locale);
+  const m = getEmailMessages(input.locale);
+  const namePart = input.name?.trim() ? ` ${input.name.trim()}` : '';
+  const greeting = applyEmailTemplate(m.invite.greeting, { name: namePart });
+  const subject = applyEmailTemplate(m.invite.teamSubject, { roleLabel: roleText });
+  const body = applyEmailTemplate(m.invite.teamBody, { roleLabel: roleText });
 
   const emailResult = await sendTransactionalEmail({
     to: email,
-    subject: `Invitación Sanova Global — ${roleText}`,
+    subject,
     text: [
-      `Hola${input.name?.trim() ? ` ${input.name.trim()}` : ''},`,
+      greeting,
       '',
-      `Fuiste invitado a unirte a Sanova Global como ${roleText}.`,
-      'Para aceptar la invitación y continuar con la verificación KYC, abrí este enlace:',
+      body,
       acceptUrl,
       '',
-      'El enlace vence en 7 días.',
+      m.invite.expiry,
       '',
-      'Sanova Global'
+      m.common.brand
     ].join('\n'),
-    html: `
-      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:520px">
-        <p>Hola${input.name?.trim() ? ` ${input.name.trim()}` : ''},</p>
-        <p>Fuiste invitado a unirte a <strong>Sanova Global</strong> como <strong>${roleText}</strong>.</p>
-        <p>Al aceptar, serás dirigido al proceso de verificación KYC con el rol asignado.</p>
-        <p style="margin:28px 0">
-          <a href="${acceptUrl}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:8px">
-            Aceptar invitación
-          </a>
-        </p>
-        <p style="color:#64748b;font-size:14px">El enlace vence en 7 días. Si no esperabas este correo, podés ignorarlo.</p>
-        <p style="color:#64748b;font-size:14px">Sanova Global</p>
-      </div>
-    `
+    html: renderEmailShell({
+      locale: input.locale,
+      bodyHtml: `
+        <p>${greeting}</p>
+        <p>${body}</p>
+        ${renderEmailButton(acceptUrl, m.invite.cta)}
+        <p style="color:#64748b;font-size:14px">${m.invite.expiry} ${m.invite.ignore}</p>
+      `
+    })
   });
 
   const whatsappMessage = buildTeamInviteWhatsAppMessage({
@@ -267,7 +270,7 @@ export async function cancelPendingInvite(inviteId: string): Promise<void> {
   }
 }
 
-export async function resendTeamInvite(inviteId: string): Promise<TeamInviteRecord> {
+export async function resendTeamInvite(inviteId: string, locale?: string | null): Promise<TeamInviteRecord> {
   const invite = await prisma.teamInvite.findUnique({
     where: { id: inviteId },
     include: { upline: true }
@@ -298,33 +301,35 @@ export async function resendTeamInvite(inviteId: string): Promise<TeamInviteReco
   });
 
   const acceptUrl = `${resolveSiteUrl()}/api/team/invite/accept?token=${encodeURIComponent(rawToken)}`;
-  const roleText = roleLabel(role);
+  const roleText = roleLabel(role, locale);
+  const m = getEmailMessages(locale);
+  const namePart = invite.name?.trim() ? ` ${invite.name.trim()}` : '';
+  const greeting = applyEmailTemplate(m.invite.greeting, { name: namePart });
+  const subject = applyEmailTemplate(m.invite.teamSubject, { roleLabel: roleText });
+  const body = applyEmailTemplate(m.invite.teamBody, { roleLabel: roleText });
 
   const emailResult = await sendTransactionalEmail({
     to: invite.email,
-    subject: `Invitación Sanova Global — ${roleText}`,
+    subject,
     text: [
-      `Hola${invite.name?.trim() ? ` ${invite.name.trim()}` : ''},`,
+      greeting,
       '',
-      `Recordatorio: fuiste invitado a unirte a Sanova Global como ${roleText}.`,
+      `${m.invite.reminderPrefix}${body}`,
       acceptUrl,
       '',
-      'El enlace vence en 7 días.',
+      m.invite.expiry,
       '',
-      'Sanova Global'
+      m.common.brand
     ].join('\n'),
-    html: `
-      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:520px">
-        <p>Hola${invite.name?.trim() ? ` ${invite.name.trim()}` : ''},</p>
-        <p>Recordatorio: fuiste invitado a unirte a <strong>Sanova Global</strong> como <strong>${roleText}</strong>.</p>
-        <p style="margin:28px 0">
-          <a href="${acceptUrl}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:8px">
-            Aceptar invitación
-          </a>
-        </p>
-        <p style="color:#64748b;font-size:14px">El enlace vence en 7 días.</p>
-      </div>
-    `
+    html: renderEmailShell({
+      locale,
+      bodyHtml: `
+        <p>${greeting}</p>
+        <p>${m.invite.reminderPrefix}${body}</p>
+        ${renderEmailButton(acceptUrl, m.invite.cta)}
+        <p style="color:#64748b;font-size:14px">${m.invite.expiry}</p>
+      `
+    })
   });
 
   return {

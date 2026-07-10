@@ -8,6 +8,7 @@ import { normalizeEmail } from '../../../../lib/auth/contactValidation';
 import { mapRegisterRouteError, formatRegistrationAttemptErrorCode } from '../../../../lib/auth/registerRouteErrors';
 import { isCountryBlockedForRegistration } from '../../../../lib/security/blockedCountries';
 import { sendAccountActivationEmail } from '../../../../lib/onboarding/accountActivationService';
+import { resolveServerLocale } from '../../../../i18n/detectLocaleServer';
 
 const KNOWN_CHANNELS: RegistrationChannel[] = ['pwa', 'mobile-web', 'desktop-web'];
 
@@ -57,6 +58,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'REGION_NOT_AVAILABLE' }, { status: 403 });
     }
 
+    const preferredLocale = await resolveServerLocale().catch(() => undefined);
+
     const result = await registerInvestor({
       email: body.email ?? '',
       password: body.password ?? '',
@@ -65,7 +68,8 @@ export async function POST(request: Request) {
       taxId: body.taxId ?? '',
       termsAccepted: body.termsAccepted === true,
       inviteCode: body.inviteCode ?? '',
-      registrationChannel: channel !== 'unknown' ? channel : undefined
+      registrationChannel: channel !== 'unknown' ? channel : undefined,
+      preferredLocale
     });
 
     const activation = await sendAccountActivationEmail({

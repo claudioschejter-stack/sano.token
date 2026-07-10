@@ -83,7 +83,7 @@ export function FiatWalletPanel({
       const ref = await ensureReference('LOCAL_RAIL', 'mercadopago_qr');
       if (cancelled) return;
       if (!ref) {
-        setQrError('No pudimos preparar el pago. Intentá nuevamente.');
+        setQrError(sc.fiatWalletErrorPreparing);
         setQrLoading(false);
         return;
       }
@@ -166,7 +166,7 @@ export function FiatWalletPanel({
       const ref = await ensureReference('LOCAL_RAIL', 'pix');
       if (cancelled) return;
       if (!ref) {
-        setPixError('No pudimos preparar el pago. Intentá nuevamente.');
+        setPixError(sc.fiatWalletErrorPreparing);
         setPixLoading(false);
         return;
       }
@@ -248,8 +248,8 @@ export function FiatWalletPanel({
   const confirmedBanner = (
     <div className="flex flex-col items-center gap-2 rounded-xl border border-terminal-success/40 bg-terminal-success/10 px-4 py-6 text-center">
       <CheckCircle2 size={28} className="text-terminal-success" />
-      <p className="text-sm font-bold text-terminal-success">¡Pago recibido!</p>
-      <p className="text-xs text-terminal-muted">Estamos confirmando la acreditación en tu cuenta.</p>
+      <p className="text-sm font-bold text-terminal-success">{sc.fiatWalletPaymentReceivedTitle}</p>
+      <p className="text-xs text-terminal-muted">{sc.fiatWalletPaymentReceivedBody}</p>
     </div>
   );
 
@@ -278,14 +278,17 @@ export function FiatWalletPanel({
         ) : qrLoading ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="h-6 w-6 animate-spin text-terminal-primary" />
-            <span className="text-sm text-terminal-muted">Generando tu QR de pago…</span>
+            <span className="text-sm text-terminal-muted">{sc.fiatWalletGeneratingQr}</span>
           </div>
         ) : qrOrder?.qrData ? (
           <div className="space-y-3">
             <div className="rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-2.5">
-              <p className="text-xs font-semibold text-terminal-primary">✓ QR Interoperable — acepta MODO y Mercado Pago</p>
+              <p className="text-xs font-semibold text-terminal-primary">{sc.fiatWalletMpInteroperableBadge}</p>
               <p className="mt-0.5 text-[11px] text-terminal-muted">
-                El monto ({formatLocalAmount(fiatWallet.totalLocal, fiatWallet.displayCurrency)}) ya está cargado — solo tenés que confirmar el pago en tu billetera.
+                {sc.fiatWalletAmountPrefilledNote.replace(
+                  '{amount}',
+                  formatLocalAmount(fiatWallet.totalLocal, fiatWallet.displayCurrency)
+                )}
               </p>
             </div>
 
@@ -301,20 +304,22 @@ export function FiatWalletPanel({
               </div>
               <div className="flex items-center gap-2 text-[11px] text-terminal-muted">
                 <Loader2 size={12} className="animate-spin text-terminal-primary" />
-                Esperando confirmación del pago…
+                {sc.fiatWalletWaitingConfirmation}
               </div>
             </div>
 
             <p className="text-center text-[11px] text-terminal-muted">
-              Abrí MODO, Mercado Pago o tu billetera preferida · Escaneá · Apretá Pagar
+              {sc.fiatWalletMpInstructions}
             </p>
           </div>
         ) : qrNotConfigured ? (
           <div className="space-y-3">
             <div className="rounded-lg border border-amber-500/30 bg-amber-900/10 px-3 py-2.5">
-              <p className="text-xs font-semibold text-amber-400">⏳ QR Interoperable no configurado aún</p>
+              <p className="text-xs font-semibold text-amber-400">{sc.fiatWalletQrNotConfiguredTitle}</p>
               <p className="mt-0.5 text-[11px] text-terminal-muted">
-                Configurá <code className="rounded bg-terminal-border/40 px-1 font-mono text-[10px]">MP_EXTERNAL_POS_ID</code> en el servidor para habilitarlo.
+                {sc.fiatWalletQrNotConfiguredBodyPrefix}
+                <code className="rounded bg-terminal-border/40 px-1 font-mono text-[10px]">MP_EXTERNAL_POS_ID</code>
+                {sc.fiatWalletQrNotConfiguredBodySuffix}
               </p>
             </div>
             {transakUrl && (
@@ -325,7 +330,7 @@ export function FiatWalletPanel({
                 className="flex items-center gap-2 text-xs font-medium text-terminal-primary hover:underline"
               >
                 <ExternalLink className="h-3 w-3" />
-                Pagar con tarjeta mientras tanto (Transak)
+                {sc.fiatWalletPayWithCardMeanwhile}
               </a>
             )}
           </div>
@@ -382,14 +387,17 @@ export function FiatWalletPanel({
         ) : pixLoading ? (
           <div className="flex flex-col items-center gap-3 py-8">
             <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
-            <span className="text-sm text-terminal-muted">Gerando seu QR Pix…</span>
+            <span className="text-sm text-terminal-muted">{sc.fiatWalletGeneratingPix}</span>
           </div>
         ) : pixPayment?.qrCodeBase64 ? (
           <div className="space-y-3">
             <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2.5">
-              <p className="text-xs font-semibold text-emerald-500">✓ Pix — aceito por qualquer banco</p>
+              <p className="text-xs font-semibold text-emerald-500">{sc.fiatWalletPixBadge}</p>
               <p className="mt-0.5 text-[11px] text-terminal-muted">
-                O valor ({formatLocalAmount(fiatWallet.totalLocal, fiatWallet.displayCurrency)}) já está preenchido — só falta confirmar no seu app.
+                {sc.fiatWalletPixAmountNote.replace(
+                  '{amount}',
+                  formatLocalAmount(fiatWallet.totalLocal, fiatWallet.displayCurrency)
+                )}
               </p>
             </div>
 
@@ -405,7 +413,7 @@ export function FiatWalletPanel({
               </div>
               <div className="flex items-center gap-2 text-[11px] text-terminal-muted">
                 <Loader2 size={12} className="animate-spin text-emerald-500" />
-                Aguardando confirmação do pagamento…
+                {sc.fiatWalletWaitingConfirmation}
               </div>
             </div>
 
@@ -416,9 +424,9 @@ export function FiatWalletPanel({
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-terminal-border bg-transparent py-2 text-[11px] text-terminal-muted transition-colors hover:border-emerald-500 hover:text-emerald-500"
               >
                 {copiedPix ? (
-                  <><CheckCircle2 size={12} className="text-green-500" /> Código Pix copiado</>
+                  <><CheckCircle2 size={12} className="text-green-500" /> {sc.fiatWalletPixCodeCopied}</>
                 ) : (
-                  'Copiar código Pix (Copia e Cola)'
+                  sc.fiatWalletPixCopyCode
                 )}
               </button>
             )}
@@ -426,9 +434,9 @@ export function FiatWalletPanel({
         ) : pixNotConfigured ? (
           <div className="space-y-3">
             <div className="rounded-lg border border-amber-500/30 bg-amber-900/10 px-3 py-2.5">
-              <p className="text-xs font-semibold text-amber-400">⏳ Pix ainda não configurado</p>
+              <p className="text-xs font-semibold text-amber-400">{sc.fiatWalletPixNotConfiguredTitle}</p>
               <p className="mt-0.5 text-[11px] text-terminal-muted">
-                Requer uma conta Mercado Pago Brasil habilitada no servidor.
+                {sc.fiatWalletPixNotConfiguredBody}
               </p>
             </div>
             {transakUrl && (
@@ -439,7 +447,7 @@ export function FiatWalletPanel({
                 className="flex items-center gap-2 text-xs font-medium text-terminal-primary hover:underline"
               >
                 <ExternalLink className="h-3 w-3" />
-                Pagar com cartão por enquanto (Transak)
+                {sc.fiatWalletPayWithCardMeanwhile}
               </a>
             )}
           </div>
@@ -494,7 +502,7 @@ export function FiatWalletPanel({
               className="block rounded"
             />
           </div>
-          <p className="text-[11px] text-terminal-muted">Escaneá con tu billetera digital para pagar</p>
+          <p className="text-[11px] text-terminal-muted">{sc.fiatWalletScanToPay}</p>
           <a
             href={transakUrl}
             target="_blank"

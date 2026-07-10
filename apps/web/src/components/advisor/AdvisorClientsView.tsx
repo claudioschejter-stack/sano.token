@@ -27,7 +27,7 @@ function statusBadgeClass(status: string): string {
 
 export function AdvisorClientsView() {
   const t = useTranslation();
-  const { intlLocale } = useLocale();
+  const { locale, intlLocale } = useLocale();
   const { formatDateTime } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
   const { data: session } = useSession();
   const role = session?.user?.role;
@@ -133,7 +133,8 @@ export function AdvisorClientsView() {
           email: inviteEmail,
           name: inviteName || undefined,
           phone: invitePhone.trim() || undefined,
-          incorporatedByAdvisorId: inviteAdvisorId || undefined
+          incorporatedByAdvisorId: inviteAdvisorId || undefined,
+          locale
         })
       });
 

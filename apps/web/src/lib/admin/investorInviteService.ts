@@ -3,6 +3,8 @@ import { prisma } from '@sanova/database';
 import { buildKycUrl } from '../auth/kycPaths';
 import { normalizeEmail, normalizePhoneE164 } from '../auth/contactValidation';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+import { renderEmailShell, renderEmailButton } from '../email/emailTemplate';
+import { getEmailMessages, applyEmailTemplate } from '../email/emailMessages';
 import { resolveSiteUrl } from '../invite/resolveSiteUrl';
 import { buildInvestorInviteWhatsAppMessage } from '../invite/whatsappInvite';
 
@@ -119,6 +121,7 @@ export async function inviteInvestor(input: {
   phone?: string | null;
   incorporatedByAdvisorId?: string | null;
   invitedByUserId: string;
+  locale?: string | null;
 }): Promise<InvestorInviteRecord> {
   const email = normalizeEmail(input.email);
   if (!email) {
@@ -179,35 +182,32 @@ export async function inviteInvestor(input: {
   });
 
   const acceptUrl = `${resolveSiteUrl()}/api/investor/invite/accept?token=${encodeURIComponent(rawToken)}`;
+  const m = getEmailMessages(input.locale);
+  const namePart = input.name?.trim() ? ` ${input.name.trim()}` : '';
+  const greeting = applyEmailTemplate(m.invite.greeting, { name: namePart });
 
   const emailResult = await sendTransactionalEmail({
     to: email,
-    subject: 'Invitación Sanova Global — Inversor',
+    subject: m.invite.investorSubject,
     text: [
-      `Hola${input.name?.trim() ? ` ${input.name.trim()}` : ''},`,
+      greeting,
       '',
-      'Fuiste invitado a invertir en activos tokenizados de Sanova Global.',
-      'Para aceptar la invitación y comenzar tu verificación KYC:',
+      m.invite.investorBody,
       acceptUrl,
       '',
-      'El enlace vence en 7 días.',
+      m.invite.expiry,
       '',
-      'Sanova Global'
+      m.common.brand
     ].join('\n'),
-    html: `
-      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:520px">
-        <p>Hola${input.name?.trim() ? ` ${input.name.trim()}` : ''},</p>
-        <p>Fuiste invitado a unirte a <strong>Sanova Global</strong> como <strong>inversor</strong>.</p>
-        <p>Al aceptar, podrás registrarte, completar KYC y acceder al marketplace privado.</p>
-        <p style="margin:28px 0">
-          <a href="${acceptUrl}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:8px">
-            Aceptar invitación
-          </a>
-        </p>
-        <p style="color:#64748b;font-size:14px">El enlace vence en 7 días. Si no esperabas este correo, podés ignorarlo.</p>
-        <p style="color:#64748b;font-size:14px">Sanova Global</p>
-      </div>
-    `
+    html: renderEmailShell({
+      locale: input.locale,
+      bodyHtml: `
+        <p>${greeting}</p>
+        <p>${m.invite.investorBody}</p>
+        ${renderEmailButton(acceptUrl, m.invite.cta)}
+        <p style="color:#64748b;font-size:14px">${m.invite.expiry} ${m.invite.ignore}</p>
+      `
+    })
   });
 
   if (existingUser?.systemRole === 'INVESTOR') {
@@ -334,7 +334,7 @@ export async function cancelInvestorInvite(inviteId: string): Promise<void> {
   }
 }
 
-export async function resendInvestorInvite(inviteId: string): Promise<InvestorInviteRecord> {
+export async function resendInvestorInvite(inviteId: string, locale?: string | null): Promise<InvestorInviteRecord> {
   const invite = await prisma.teamInvite.findUnique({
     where: { id: inviteId }
   });
@@ -363,32 +363,32 @@ export async function resendInvestorInvite(inviteId: string): Promise<InvestorIn
   });
 
   const acceptUrl = `${resolveSiteUrl()}/api/investor/invite/accept?token=${encodeURIComponent(rawToken)}`;
+  const m = getEmailMessages(locale);
+  const namePart = invite.name?.trim() ? ` ${invite.name.trim()}` : '';
+  const greeting = applyEmailTemplate(m.invite.greeting, { name: namePart });
 
   const emailResult = await sendTransactionalEmail({
     to: invite.email,
-    subject: 'Invitación Sanova Global — Inversor',
+    subject: m.invite.investorSubject,
     text: [
-      `Hola${invite.name?.trim() ? ` ${invite.name.trim()}` : ''},`,
+      greeting,
       '',
-      'Recordatorio: fuiste invitado a invertir en activos tokenizados de Sanova Global.',
+      `${m.invite.reminderPrefix}${m.invite.investorBody}`,
       acceptUrl,
       '',
-      'El enlace vence en 7 días.',
+      m.invite.expiry,
       '',
-      'Sanova Global'
+      m.common.brand
     ].join('\n'),
-    html: `
-      <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.6;max-width:520px">
-        <p>Hola${invite.name?.trim() ? ` ${invite.name.trim()}` : ''},</p>
-        <p>Recordatorio: fuiste invitado a unirte a <strong>Sanova Global</strong> como <strong>inversor</strong>.</p>
-        <p style="margin:28px 0">
-          <a href="${acceptUrl}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;font-weight:600;padding:12px 24px;border-radius:8px">
-            Aceptar invitación
-          </a>
-        </p>
-        <p style="color:#64748b;font-size:14px">El enlace vence en 7 días.</p>
-      </div>
-    `
+    html: renderEmailShell({
+      locale,
+      bodyHtml: `
+        <p>${greeting}</p>
+        <p>${m.invite.reminderPrefix}${m.invite.investorBody}</p>
+        ${renderEmailButton(acceptUrl, m.invite.cta)}
+        <p style="color:#64748b;font-size:14px">${m.invite.expiry}</p>
+      `
+    })
   });
 
   return {
