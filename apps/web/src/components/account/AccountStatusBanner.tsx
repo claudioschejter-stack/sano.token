@@ -93,37 +93,6 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
     );
   }
 
-  if (
-    checklist.kycApproved &&
-    checklist.walletLinked &&
-    !checklist.totpEnabled &&
-    requiresInvestorStyleOnboarding(systemRole)
-  ) {
-    const totpHref = onboardingHref('totp');
-
-    return (
-      <div
-        className={`flex flex-wrap items-start gap-3 rounded-xl border border-terminal-warning/40 bg-terminal-warning/10 px-4 py-3 md:items-center md:justify-between ${className}`}
-        role="status"
-      >
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-0.5 shrink-0 text-terminal-warning" size={20} />
-          <div>
-            <p className="text-sm font-semibold text-terminal-text">{a.totpRequiredTitle}</p>
-            <p className="mt-1 text-sm text-terminal-muted">{a.totpRequiredDesc}</p>
-          </div>
-        </div>
-        <Link
-          href={totpHref}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-2 text-sm font-semibold text-terminal-primary transition hover:bg-terminal-primary/20"
-        >
-          <ShieldCheck size={16} />
-          {a.totpRequiredCta}
-        </Link>
-      </div>
-    );
-  }
-
   if (isOperational) {
     if (!showWhenOperational) {
       return null;
@@ -187,14 +156,9 @@ export function AccountStatusBanner({ className = '', showWhenOperational = fals
               className={`h-1 flex-1 rounded-full ${checklist.kycApproved ? 'bg-terminal-primary' : 'bg-terminal-muted/30'}`}
             />
             {requiresInvestorStyleOnboarding(systemRole) ? (
-              <>
-                <div
-                  className={`h-1 flex-1 rounded-full ${checklist.walletLinked ? 'bg-terminal-primary' : 'bg-terminal-muted/30'}`}
-                />
-                <div
-                  className={`h-1 flex-1 rounded-full ${checklist.totpEnabled ? 'bg-terminal-primary' : 'bg-terminal-muted/30'}`}
-                />
-              </>
+              <div
+                className={`h-1 flex-1 rounded-full ${checklist.walletLinked ? 'bg-terminal-primary' : 'bg-terminal-muted/30'}`}
+              />
             ) : null}
           </div>
         </div>

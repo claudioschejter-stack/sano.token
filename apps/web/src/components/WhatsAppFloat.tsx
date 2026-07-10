@@ -5,10 +5,11 @@ import { usePathname } from 'next/navigation';
 import { useTranslation } from '../i18n/LocaleProvider';
 import { getWhatsAppPhone, getWhatsAppUrl } from '../config/site';
 import { isPortalRoute, shouldHideWhatsAppFab } from '../lib/mobile/deviceConfig';
+import { useMobilePortal } from '../hooks/useMobilePortal';
 
 const LANDING_BLINK_DELAY_MS = 5000;
 
-function WhatsAppIcon() {
+export function WhatsAppIcon() {
   return (
     <span className="grid h-full w-full place-items-center">
       <svg viewBox="0 0 24 24" aria-hidden className="h-7 w-7 translate-x-px fill-current">
@@ -21,6 +22,7 @@ function WhatsAppIcon() {
 export function WhatsAppFloat() {
   const t = useTranslation();
   const pathname = usePathname();
+  const isMobilePortal = useMobilePortal();
   const [phone, setPhone] = useState(() => getWhatsAppPhone());
   const [blink, setBlink] = useState(false);
   const userInteractedRef = useRef(false);
@@ -70,10 +72,12 @@ export function WhatsAppFloat() {
   }, [isLanding, pathname]);
 
   const href = getWhatsAppUrl(t.common.whatsappMessage, phone);
-
-  if (!href || shouldHideWhatsAppFab(pathname)) return null;
-
   const portalOffset = isPortalRoute(pathname);
+
+  // The PwaShell mobile header already renders its own WhatsApp button, so the
+  // floating button only makes sense outside of that shell (desktop, or mobile
+  // outside the portal, e.g. the public landing pages).
+  if (!href || shouldHideWhatsAppFab(pathname) || (isMobilePortal && portalOffset)) return null;
 
   // fix: 9 accessibility — aria-label, title, rel, target all present
   return (

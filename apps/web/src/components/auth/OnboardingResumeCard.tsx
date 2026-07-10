@@ -55,12 +55,7 @@ export function OnboardingResumeCard({
   const steps = [
     { label: r.stepContact, done: checklist.emailVerified && checklist.contactVerified },
     { label: r.stepKyc, done: checklist.kycApproved },
-    ...(investorOnboarding
-      ? [
-          { label: r.stepWallet, done: checklist.walletLinked },
-          { label: r.stepTotp, done: checklist.totpEnabled }
-        ]
-      : [])
+    ...(investorOnboarding ? [{ label: r.stepWallet, done: checklist.walletLinked }] : [])
   ];
 
   const completedCount = steps.filter((step) => step.done).length;

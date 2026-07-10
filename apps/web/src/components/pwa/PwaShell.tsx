@@ -11,11 +11,14 @@ import {
   TrendingUp,
   Wallet
 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useProfilePhoto } from '../../hooks/useProfilePhoto';
 import { useNotifications } from '../../hooks/useNotifications';
+import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { MP_ACCENT, MP_ACCENT_SOFT } from '../../lib/pwa/mpTheme';
+import { getWhatsAppPhone, getWhatsAppUrl } from '../../config/site';
+import { WhatsAppIcon } from '../WhatsAppFloat';
 import { PwaSectionTabs } from './PwaSectionTabs';
 
 type Props = {
@@ -34,14 +37,32 @@ export function PwaShell({ children }: Props) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const t = useTranslation();
-  const firstName = session?.user?.name?.split(' ')[0]?.toUpperCase() ?? 'INVERSOR';
+  const { profile } = useAccountStatus();
+  const firstName =
+    profile?.fullName?.split(' ')[0]?.toUpperCase() ??
+    session?.user?.name?.split(' ')[0]?.toUpperCase() ??
+    'INVERSOR';
   const photoUrl = useProfilePhoto();
   const { unreadCount } = useNotifications();
+  const [whatsappPhone, setWhatsappPhone] = useState(() => getWhatsAppPhone());
 
   useEffect(() => {
     document.body.classList.add('mobile-portal-active');
     return () => document.body.classList.remove('mobile-portal-active');
   }, []);
+
+  useEffect(() => {
+    void fetch('/api/site-config')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { whatsappPhone?: string } | null) => {
+        if (data?.whatsappPhone) {
+          setWhatsappPhone(data.whatsappPhone.replace(/\D/g, ''));
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const whatsappHref = getWhatsAppUrl(t.common.whatsappMessage, whatsappPhone);
 
   return (
     <div className="flex min-h-dvh flex-col bg-white">
@@ -70,6 +91,20 @@ export function PwaShell({ children }: Props) {
             >
               <Search size={18} />
             </Link>
+            {whatsappHref ? (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-[#25D366] text-white"
+                aria-label="Contactar por WhatsApp"
+                title="Contactar por WhatsApp"
+              >
+                <span className="h-[18px] w-[18px]">
+                  <WhatsAppIcon />
+                </span>
+              </a>
+            ) : null}
             <Link
               href="/dashboard/portfolio"
               className="flex h-10 w-10 items-center justify-center rounded-full"

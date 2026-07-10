@@ -17,9 +17,5 @@ export function resolveOnboardingStepParam(
     return 'wallet';
   }
 
-  if (investorOnboarding && !checklist.totpEnabled) {
-    return 'totp';
-  }
-
   return null;
 }

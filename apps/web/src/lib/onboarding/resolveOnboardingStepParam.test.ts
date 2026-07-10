@@ -41,13 +41,13 @@ describe('resolveOnboardingStepParam', () => {
     ).toBe('wallet');
   });
 
-  it('returns totp when security is pending', () => {
+  it('returns null once KYC and wallet are complete (2FA is optional, desktop-only)', () => {
     expect(
       resolveOnboardingStepParam(
         { ...baseChecklist, kycApproved: true, walletLinked: true },
         true
       )
-    ).toBe('totp');
+    ).toBeNull();
   });
 
   it('returns null when all investor steps are complete', () => {
