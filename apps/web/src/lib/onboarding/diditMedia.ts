@@ -42,9 +42,14 @@ const MEDIA_FIELDS: MediaField[] = [
   },
   {
     kind: 'SELFIE',
+    // The live liveness selfie doubles as the public avatar source whenever
+    // Didit doesn't return a separate `portrait_image` (the ID-document face
+    // crop) — the user explicitly wants their own selfie used as profile photo,
+    // not just the document scan. It's uploaded to the same public bucket as
+    // PORTRAIT below, so it is never treated as private-only.
     keys: ['selfie_image', 'selfieImage', 'selfie', 'liveness_image', 'livenessImage'],
-    bucket: getKycDocumentStorageBucket,
-    publicUrl: false
+    bucket: getAvatarStorageBucket,
+    publicUrl: true
   }
 ];
 
@@ -217,7 +222,11 @@ export async function persistDiditMedia(input: {
       sourceUrl
     });
 
-    if (field.kind === 'PORTRAIT') {
+    // PORTRAIT (the ID-document face crop) wins if present; SELFIE (the live
+    // liveness capture) is only promoted to the avatar as a fallback when no
+    // portrait was returned for this verification.
+    const isAvatarSource = field.kind === 'PORTRAIT' || (field.kind === 'SELFIE' && !portraitPath);
+    if (isAvatarSource) {
       portraitPath = `${bucket}/${storagePath}`;
 
       if (field.publicUrl) {

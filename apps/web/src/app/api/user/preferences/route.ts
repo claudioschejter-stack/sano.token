@@ -19,7 +19,9 @@ export async function GET() {
       preferredTheme: true,
       jurisdiction: true,
       pwaInstalledAt: true,
-      pwaDismissedAt: true
+      pwaDismissedAt: true,
+      pwaPortalGateInstalledAt: true,
+      pwaPortalGateDismissedAt: true
     }
   });
 
@@ -44,6 +46,8 @@ export async function PATCH(request: Request) {
     jurisdiction?: string | null;
     pwaInstalled?: boolean;
     pwaDismissed?: boolean;
+    pwaPortalGateInstalled?: boolean;
+    pwaPortalGateDismissed?: boolean;
   };
 
   const data: {
@@ -52,6 +56,8 @@ export async function PATCH(request: Request) {
     jurisdiction?: string | null;
     pwaInstalledAt?: Date;
     pwaDismissedAt?: Date;
+    pwaPortalGateInstalledAt?: Date;
+    pwaPortalGateDismissedAt?: Date;
   } = {};
 
   if (body.preferredLocale !== undefined) {
@@ -82,6 +88,14 @@ export async function PATCH(request: Request) {
     data.pwaDismissedAt = new Date();
   }
 
+  if (body.pwaPortalGateInstalled) {
+    data.pwaPortalGateInstalledAt = new Date();
+  }
+
+  if (body.pwaPortalGateDismissed) {
+    data.pwaPortalGateDismissedAt = new Date();
+  }
+
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: 'NO_CHANGES' }, { status: 400 });
   }
@@ -94,7 +108,9 @@ export async function PATCH(request: Request) {
       preferredTheme: true,
       jurisdiction: true,
       pwaInstalledAt: true,
-      pwaDismissedAt: true
+      pwaDismissedAt: true,
+      pwaPortalGateInstalledAt: true,
+      pwaPortalGateDismissedAt: true
     }
   });
 

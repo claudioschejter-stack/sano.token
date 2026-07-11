@@ -63,3 +63,28 @@ export function getPublicStorageUrl(objectPath: string, bucket: string = getLaun
   const base = getSupabaseUrl();
   return `${base}/storage/v1/object/public/${bucket}/${objectPath}`;
 }
+
+/**
+ * `kycPortraitPath`/`Investor.portraitPath` are persisted as `${bucket}/${objectPath}`
+ * (see diditMedia.ts). This turns that stored value back into a public URL so
+ * callers (e.g. /api/profile) don't need to know the storage layout.
+ */
+export function resolveStoredMediaPathToPublicUrl(storedPath: string): string | null {
+  const trimmed = storedPath.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const separatorIndex = trimmed.indexOf('/');
+  if (separatorIndex === -1) {
+    return null;
+  }
+
+  const bucket = trimmed.slice(0, separatorIndex);
+  const objectPath = trimmed.slice(separatorIndex + 1);
+  if (!bucket || !objectPath) {
+    return null;
+  }
+
+  return getPublicStorageUrl(objectPath, bucket);
+}

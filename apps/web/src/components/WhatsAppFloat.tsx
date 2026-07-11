@@ -89,7 +89,7 @@ export function WhatsAppFloat() {
         userInteractedRef.current = true;
         setBlink(false);
       }}
-      className={`fixed right-4 z-30 grid h-14 w-14 min-h-12 min-w-12 place-items-center overflow-hidden rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-900/30 transition hover:scale-105 hover:bg-[#20bd5a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 sm:right-6 ${
+      className={`whatsapp-fab-float fixed right-4 z-30 grid h-14 w-14 min-h-12 min-w-12 place-items-center overflow-hidden rounded-full bg-[#25D366] text-white shadow-lg shadow-emerald-900/30 transition hover:scale-105 hover:bg-[#20bd5a] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2 sm:right-6 ${
         blink ? 'whatsapp-fab-blink' : ''
       } ${
         portalOffset

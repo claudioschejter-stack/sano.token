@@ -466,6 +466,14 @@ body.mobile-portal-active .portal-brand-frames-mobile-header {
   display: none !important;
 }
 
+/* PwaShell renders its own WhatsApp button in the mobile header, so the
+   floating FAB must never coexist with it. This CSS rule is a hard
+   guarantee independent of any JS device-detection timing/hydration race —
+   as soon as PwaShell mounts and tags <body>, the floating button disappears. */
+body.mobile-portal-active .whatsapp-fab-float {
+  display: none !important;
+}
+
 /* Mercado Pago mobile portal — light theme overrides for legacy terminal components */
 .mobile-portal-main .bg-terminal-bg {
   background-color: transparent !important;

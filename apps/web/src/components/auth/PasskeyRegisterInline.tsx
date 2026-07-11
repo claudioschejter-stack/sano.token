@@ -37,9 +37,13 @@ export function PasskeyRegisterInline({
   const error = errorCode
     ? errorCode === 'NOT_SUPPORTED'
       ? p.notSupported
-      : errorCode === 'CANCELLED'
-        ? p.registerCancelled
-        : p.registerFailed
+      : errorCode === 'NO_AUTHENTICATOR'
+        ? p.registerNoAuthenticator
+        : errorCode === 'CANCELLED'
+          ? p.registerCancelled
+          : errorCode === 'CHALLENGE_EXPIRED'
+            ? p.registerChallengeExpired
+            : p.registerFailed
     : null;
 
   async function handleRegister() {

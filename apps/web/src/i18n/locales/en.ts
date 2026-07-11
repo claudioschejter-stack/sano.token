@@ -2307,6 +2307,8 @@ export const en = {
     registerSuccess: "Biometrics enabled. You can now sign in with one tap.",
     registerFailed: "Could not enable biometrics on this device.",
     registerCancelled: 'Biometric setup was cancelled.',
+    registerNoAuthenticator: 'This device has no fingerprint or Face ID set up. Enable it in your phone settings and try again.',
+    registerChallengeExpired: 'Verification expired. Tap "Enable now" to try again.',
     registerLater: 'Not now',
     registerFingerprintTitle: 'Fingerprint sign-in',
     registerActivated: 'Enabled on this device',
