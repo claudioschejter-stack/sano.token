@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useDeviceDetection } from './useDeviceDetection';
 import { useIsPwa } from './useIsPwa';
-import { usePwaPreferences } from './usePwaPreferences';
+import { usePortalGatePreferences } from './usePortalGatePreferences';
 
 const SESSION_SEEN_KEY = 'sanova.pwa.installGate.seenSession';
 
@@ -13,12 +13,14 @@ const SESSION_SEEN_KEY = 'sanova.pwa.installGate.seenSession';
  * install, so future users default into the installed app instead of a
  * browser tab. Never re-appears within the same browser session once
  * dismissed, and never again on this device once installed or permanently
- * dismissed (tracked via usePwaPreferences).
+ * dismissed (tracked via usePortalGatePreferences — deliberately separate
+ * from the legacy desktop InstallAppBanner's usePwaPreferences, so a past
+ * interaction with that other surface can't permanently suppress this gate).
  */
 export function usePortalInstallGate() {
   const isPwa = useIsPwa();
   const { isMobile } = useDeviceDetection();
-  const { dismissed, installed, loaded, setInstalled } = usePwaPreferences();
+  const { dismissed, installed, loaded, setInstalled } = usePortalGatePreferences();
   const [seenThisSession, setSeenThisSession] = useState(true);
   const [checkedSession, setCheckedSession] = useState(false);
 

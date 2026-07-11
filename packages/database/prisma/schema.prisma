@@ -260,6 +260,13 @@ model User {
   preferredTheme    String?
   pwaInstalledAt    DateTime?
   pwaDismissedAt    DateTime?
+  // Separate from pwaInstalledAt/pwaDismissedAt above, which are owned by the
+  // legacy desktop InstallAppBanner. The mobile-browser post-login install
+  // gate (usePortalInstallGate/MobileAppDownloadModal) needs its own fields
+  // so a past interaction with one surface never permanently suppresses the
+  // other.
+  pwaPortalGateInstalledAt DateTime?
+  pwaPortalGateDismissedAt DateTime?
   registrationChannel String?
   onboardingSuccessShownAt DateTime?
   accountApprovedEmailSentAt DateTime?

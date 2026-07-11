@@ -27,6 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[passkey/register/verify]', error);
-    return NextResponse.json({ error: 'PASSKEY_REGISTER_FAILED' }, { status: 400 });
+    const code = error instanceof Error ? error.message : 'PASSKEY_REGISTER_FAILED';
+    return NextResponse.json({ error: code }, { status: 400 });
   }
 }

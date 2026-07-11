@@ -2349,6 +2349,8 @@ export const es = {
     registerSuccess: 'Biometría activada. Ya podés ingresar con un toque.',
     registerFailed: 'No se pudo activar la biometría en este dispositivo.',
     registerCancelled: 'Activación biométrica cancelada.',
+    registerNoAuthenticator: 'Este dispositivo no tiene huella ni Face ID configurados. Activalo en los ajustes del teléfono e intentá de nuevo.',
+    registerChallengeExpired: 'La verificación expiró. Tocá "Activar ahora" para intentar de nuevo.',
     registerLater: 'Ahora no',
     registerFingerprintTitle: 'Ingreso con huella dactilar',
     registerActivated: 'Activado en este dispositivo',

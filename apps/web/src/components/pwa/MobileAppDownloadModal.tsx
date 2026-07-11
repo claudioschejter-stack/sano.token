@@ -30,12 +30,20 @@ export function MobileAppDownloadModal({
   async function handleInstall() {
     const outcome = await promptInstall();
     if (outcome === 'accepted') {
+      // Genuinely confirmed by the native browser prompt — safe to persist
+      // "installed" permanently.
       onInstallAccepted();
       return;
     }
 
     if (outcome === 'unavailable' && isIos) {
-      onInstallAccepted();
+      // iOS Safari has no native install prompt — we only show manual "Add
+      // to Home Screen" instructions above and can't confirm the user
+      // actually completed them, so this must NOT permanently mark the
+      // device as installed (that would suppress this gate forever even if
+      // they never finish the manual steps). Just stop nagging for the rest
+      // of this browser session, same as "continuar en la web".
+      onContinueWeb();
     }
   }
 
