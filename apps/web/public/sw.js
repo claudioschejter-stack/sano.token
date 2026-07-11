@@ -1,4 +1,5 @@
-const CACHE = 'sanova-rwa-v2';
+// APP_VERSION_CACHE_NAME — rewritten on every build by scripts/generate-app-version.mjs
+const CACHE = 'sanova-rwa-v3.1.647';
 const OFFLINE_URLS = ['/marketplace', '/dashboard'];
 
 self.addEventListener('install', (event) => {

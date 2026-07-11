@@ -2381,7 +2381,7 @@ export const es = {
   mobileAppPrompt: {
     title: 'La plataforma funciona mejor con la app',
     description:
-      'Descargá Sanova en tu celular para biometría, Google Authenticator y una mejor experiencia. También podés continuar en el navegador.',
+      'Instalá Sanova en tu celular para ingresar con huella o Face ID, y una experiencia más rápida y segura. También podés continuar en el navegador.',
     downloadYes: 'Descargar la app',
     downloadNo: 'Continuar en la web'
   },
@@ -2404,7 +2404,10 @@ export const es = {
     onboardingDesc: 'Tené la experiencia completa: acceso rápido e ingreso con biometría, directo desde tu pantalla de inicio.',
     onboardingInstallCta: 'Instalar app',
     onboardingIosContinue: 'Continuar a la plataforma',
-    onboardingContinueWithoutInstalling: 'Continuar sin instalar'
+    onboardingContinueWithoutInstalling: 'Continuar sin instalar',
+    updateAvailableTitle: 'Hay una nueva versión disponible',
+    updateAvailableDesc: 'Actualizá para tener las últimas mejoras y correcciones.',
+    updateReloadCta: 'Actualizar'
   },
   walletActivation: {
     title: 'Activá tu wallet de pagos',

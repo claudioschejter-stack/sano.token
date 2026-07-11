@@ -65,6 +65,9 @@ yarn-error.log*
 next-env.d.ts
 apps/web/next-env.d.ts
 
+# app build version — regenerated on every build (scripts/generate-app-version.mjs)
+apps/web/src/generated/appVersion.ts
+
 # IDE
 .idea/
 .vscode/

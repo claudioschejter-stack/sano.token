@@ -6,14 +6,23 @@ import { PortalMobileNav } from './PortalMobileNav';
 import { PortalAccountStatusBar } from '../account/PortalAccountStatusBar';
 import { PortalShell } from './PortalShell';
 import { PwaShell } from '../pwa/PwaShell';
+import { MobileAppDownloadModal } from '../pwa/MobileAppDownloadModal';
 import { useMobilePortal } from '../../hooks/useMobilePortal';
+import { usePortalInstallGate } from '../../hooks/usePortalInstallGate';
 
 export function PortalLayoutClient({ children }: { children: ReactNode }) {
   const isMobilePortal = useMobilePortal();
+  const { shouldGate, markSeenThisSession, acceptInstall } = usePortalInstallGate();
 
   if (isMobilePortal) {
     return (
       <>
+        <MobileAppDownloadModal
+          open={shouldGate}
+          onClose={markSeenThisSession}
+          onContinueWeb={markSeenThisSession}
+          onInstallAccepted={acceptInstall}
+        />
         <PwaShell>
           <PortalAccountStatusBar />
           <PortalShell>{children}</PortalShell>

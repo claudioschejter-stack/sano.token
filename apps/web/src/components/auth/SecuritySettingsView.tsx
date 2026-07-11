@@ -19,6 +19,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { resetMobileLocaleOnSignOut } from '../../lib/i18n/mobileLocalePreference';
 import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { googleAuthenticatorStoreUrl, provisionGoogleAuthenticator } from '../../lib/auth/totpAuthenticatorLink';
+import { APP_VERSION } from '../../generated/appVersion';
 import { OTPInput } from './OTPInput';
 
 type Step = 'idle' | 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
@@ -330,6 +331,8 @@ export function SecuritySettingsView() {
             {t.nav.signOut}
           </button>
         </section>
+
+        <p className="text-center text-xs text-slate-400">Sanova Capital · Versión {APP_VERSION}</p>
       </div>
     );
   }
