@@ -2378,6 +2378,9 @@ export const es = {
     troubleSigningIn: '¿Problemas para acceder?',
     contactSupport: 'Contactar soporte'
   },
+  authSplash: {
+    tagline: 'Tokens Inmobiliarios'
+  },
   mobileAppPrompt: {
     title: 'La plataforma funciona mejor con la app',
     description:

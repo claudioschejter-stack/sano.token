@@ -2336,6 +2336,9 @@ export const en = {
     troubleSigningIn: "Trouble signing in?",
     contactSupport: "Contact support"
   },
+  authSplash: {
+    tagline: 'Real Estate Tokens'
+  },
   mobileAppPrompt: {
     title: 'The platform works best with the app',
     description:

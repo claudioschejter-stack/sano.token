@@ -24,6 +24,53 @@ const ANDROID_CANVAS = 512;
 const MASTER_SIZE = 4096;
 const WATERMARK_INSET = 28;
 
+// Manifest background_color (#06101F) — the maskable icon must be composited
+// on this so it matches the native OS splash/launcher background exactly.
+const MANIFEST_BG = { r: 6, g: 16, b: 31, alpha: 1 };
+// Per the maskable-icon safe-zone spec, content should stay within an ~80%
+// centered safe zone; keeping the mark at ~68% leaves a comfortable margin
+// so Android/iOS circular or squircle masks never clip the logo.
+const MASKABLE_SAFE_RATIO = 0.68;
+const WHITE_KEY_GAIN = 2.2;
+
+/** Turns the master's flat white background into a real alpha channel (soft "white key" matte). */
+async function keyOutWhiteBackground(input) {
+  const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const { width, height, channels } = info;
+  const out = Buffer.from(data);
+
+  for (let i = 0; i < width * height; i++) {
+    const idx = i * channels;
+    const minChannel = Math.min(out[idx], out[idx + 1], out[idx + 2]);
+    const alpha = Math.max(0, Math.min(255, Math.round((255 - minChannel) * WHITE_KEY_GAIN)));
+    out[idx + 3] = alpha;
+  }
+
+  return sharp(out, { raw: { width, height, channels } }).png().toBuffer();
+}
+
+/** Builds icon-maskable-512.png: transparent logo, safely inset, on the manifest's own background. */
+async function buildMaskableIcon(master) {
+  const transparentMark = await keyOutWhiteBackground(master);
+  const markSize = Math.round(ANDROID_CANVAS * MASKABLE_SAFE_RATIO);
+  const mark = await sharp(transparentMark)
+    .resize(markSize, markSize, {
+      kernel: sharp.kernel.lanczos3,
+      fit: 'contain',
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    })
+    .png()
+    .toBuffer();
+  const offset = Math.round((ANDROID_CANVAS - markSize) / 2);
+
+  return sharp({
+    create: { width: ANDROID_CANVAS, height: ANDROID_CANVAS, channels: 4, background: MANIFEST_BG }
+  })
+    .composite([{ input: mark, left: offset, top: offset }])
+    .png()
+    .toBuffer();
+}
+
 /** Detect blue squircle bounds; ignore white bg and faint Gemini star. */
 async function detectLogoBounds(input) {
   const { data, info } = await sharp(input).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -138,7 +185,10 @@ async function main() {
   ];
 
   for (const { name, size } of webSizes) {
-    const buffer = await upscaleFromMaster(master4096, size);
+    const buffer =
+      name === 'icon-maskable-512.png'
+        ? await buildMaskableIcon(master4096)
+        : await upscaleFromMaster(master4096, size);
     await writeFile(path.join(iconsDir, name), buffer);
     console.log(`ok icons/${name}`);
   }

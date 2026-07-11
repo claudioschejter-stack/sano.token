@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n/LocaleProvider';
 import { AdaptiveLoginFlow } from './AdaptiveLoginFlow';
 import { OnboardingResumeCard } from './OnboardingResumeCard';
 import { MobileAuthShell } from './MobileAuthShell';
+import { AuthSplash } from './AuthSplash';
 import { resolveAccessPageError } from '../../lib/auth/accessPageErrors';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
@@ -86,11 +87,7 @@ function MobileAccessLandingContent() {
   }, [isMobilePortal, isOperational, returnTo, router, role, session?.user?.accessToken, status]);
 
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
-    return (
-      <MobileAuthShell>
-        <p className="py-16 text-center text-sm text-slate-500">{t.common.loadingGeneric}</p>
-      </MobileAuthShell>
-    );
+    return <AuthSplash />;
   }
 
   if (isAuthenticated && role && !isOperational && !canAccessPortalWithoutInvestorOnboarding(role)) {
@@ -161,16 +158,8 @@ function MobileAccessLandingContent() {
 }
 
 export function MobileAccessLanding() {
-  const t = useTranslation();
-
   return (
-    <Suspense
-      fallback={
-        <MobileAuthShell>
-          <p className="py-16 text-center text-sm text-slate-500">{t.common.loadingGeneric}</p>
-        </MobileAuthShell>
-      }
-    >
+    <Suspense fallback={<AuthSplash />}>
       <MobileAccessLandingContent />
     </Suspense>
   );
