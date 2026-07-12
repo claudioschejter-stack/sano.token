@@ -20,15 +20,10 @@ export function AuthSplash() {
 
   return (
     <div
-      className={`relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_22%_16%,#7DD3FC_0%,#38BDF8_16%,#22A9E5_36%,#1278BE_62%,#0B2240_100%)] px-6 transition-opacity duration-700 ${
+      className={`relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-[#22A9E5] via-[#1278BE] via-[45%] to-[#0B2240] px-6 transition-opacity duration-700 ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
     >
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: 'linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 30%, rgba(2,16,31,0.28) 100%)' }}
-        aria-hidden="true"
-      />
       <SplashArtwork />
 
       <p
@@ -41,21 +36,18 @@ export function AuthSplash() {
         v{APP_VERSION}
       </p>
 
-      <div className="relative z-10 flex flex-col items-center gap-5">
-        <div className="relative flex items-center justify-center">
-          <div className="absolute h-44 w-44 rounded-full bg-white/25 blur-3xl" aria-hidden="true" />
-          <img
-            src="/brand/sanova-mark-rwa.svg"
-            alt="Sanova"
-            className="relative h-28 w-28 drop-shadow-[0_8px_28px_rgba(2,16,31,0.35)]"
-          />
-        </div>
+      <div className="relative z-10 flex flex-col items-center gap-6">
+        <img
+          src="/brand/sanova-mark-rwa.svg"
+          alt="Sanova"
+          className="relative h-32 w-32 drop-shadow-[0_8px_28px_rgba(2,16,31,0.35)]"
+        />
 
         <div className="flex flex-col items-center gap-2">
-          <p className="text-2xl font-bold tracking-[0.18em] text-white drop-shadow-[0_2px_8px_rgba(2,16,31,0.35)]">
-            SANOVA GLOBAL
+          <p className="text-3xl font-bold tracking-[0.15em] text-white drop-shadow-[0_2px_8px_rgba(2,16,31,0.35)]">
+            SANOVA
           </p>
-          <p className="text-xs font-medium uppercase tracking-[0.2em] text-white/80">
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/80">
             {t.authSplash.tagline}
           </p>
         </div>

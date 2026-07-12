@@ -72,7 +72,6 @@ function MobileAccessLandingContent() {
   const showBiometricSplash =
     status === 'unauthenticated' &&
     isMobilePortal &&
-    hasConfiguredPasskey &&
     !biometricSplashSkipped &&
     !hasContextualMessage;
 
@@ -109,15 +108,14 @@ function MobileAccessLandingContent() {
       <div className="relative min-h-[100dvh] w-full">
         <AuthSplash />
         <div
-          className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3 px-8"
-          style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}
+          className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-4 px-8"
+          style={{ paddingBottom: 'max(3rem, env(safe-area-inset-bottom))' }}
         >
-          <p className="text-center text-sm font-medium text-white/90">{a.mobileGateDesc}</p>
           <PasskeyLoginButton
             email={passkeyHint?.email ?? ''}
             callbackUrl={callbackUrl}
-            autoTrigger
-            hideWhenConfigured
+            autoTrigger={hasConfiguredPasskey}
+            hideWhenConfigured={false}
             className="w-full max-w-xs"
           />
           <button
