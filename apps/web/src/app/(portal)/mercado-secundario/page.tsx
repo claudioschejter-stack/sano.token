@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { SecondaryMarketView } from '../../../components/secondaryMarket/SecondaryMarketView';
 import { getSecondaryMarketFeed } from '../../../lib/secondaryMarket/secondaryMarketService';
+import { SecondaryMarketPageClient } from './SecondaryMarketPageClient';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export default async function SecondaryMarketPage() {
 
   return (
     <Suspense fallback={null}>
-      <SecondaryMarketView initialFeed={initialFeed} />
+      <SecondaryMarketPageClient initialFeed={initialFeed} />
     </Suspense>
   );
 }
