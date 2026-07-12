@@ -1927,7 +1927,7 @@ export const en = {
       'Account created. Complete the 5 steps below to start investing (~10 min).',
     continueVerification: "Continue activation",
     switchAccount: "Log out and log in with another account",
-    sessionClosed: "Signed out",
+    sessionClosed: "Signed out successfully",
     onboardingResume: {
       phaseLabel: "Steps 2–5: Activate your account",
       progressHint: "Complete the checklist below to operate on the platform.",

@@ -111,15 +111,18 @@ function MobileAccessLandingContent() {
     return (
       <div className="relative min-h-[100dvh] w-full">
         <AuthSplash />
+        {signedOut ? (
+          <p
+            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6 text-center font-semibold text-white"
+            style={{ fontSize: 'calc(0.875rem * 2.5)' }}
+          >
+            {a.sessionClosed}
+          </p>
+        ) : null}
         <div
           className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-4 px-8"
           style={{ paddingBottom: 'max(3rem, env(safe-area-inset-bottom))' }}
         >
-          {signedOut ? (
-            <p className="text-center text-sm font-medium text-white/85">
-            {a.sessionClosed}
-            </p>
-          ) : null}
           <PasskeyLoginButton
             email={passkeyHint?.email ?? ''}
             callbackUrl={callbackUrl}
