@@ -2381,7 +2381,7 @@ export const es = {
     contactSupport: 'Contactar soporte'
   },
   authSplash: {
-    tagline: 'Tokens Inmobiliarios'
+    tagline: 'RWA Tokenization'
   },
   mobileAppPrompt: {
     title: 'La plataforma funciona mejor con la app',

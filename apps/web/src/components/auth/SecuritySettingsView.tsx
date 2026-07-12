@@ -21,6 +21,7 @@ import { useDeviceDetection } from '../../hooks/useDeviceDetection';
 import { googleAuthenticatorStoreUrl, provisionGoogleAuthenticator } from '../../lib/auth/totpAuthenticatorLink';
 import { APP_VERSION } from '../../generated/appVersion';
 import { OTPInput } from './OTPInput';
+import { PasskeyRegisterInline } from './PasskeyRegisterInline';
 
 type Step = 'idle' | 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
 type View = 'overview' | 'setup' | 'disable' | 'backup-codes';
@@ -263,6 +264,14 @@ export function SecuritySettingsView() {
                   <span className="text-sm font-medium text-slate-500">No registrado</span>
                 )}
               </div>
+
+              {!passkeyStatus.loading && !passkeyStatus.hasPasskeys ? (
+                <PasskeyRegisterInline
+                  variant="card"
+                  className="mt-4"
+                  onRegistered={() => setPasskeyStatus({ hasPasskeys: true, loading: false })}
+                />
+              ) : null}
             </div>
           </div>
         </section>

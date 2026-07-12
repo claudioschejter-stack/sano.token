@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { AdaptiveLoginFlow } from './AdaptiveLoginFlow';
 import { OnboardingResumeCard } from './OnboardingResumeCard';
 import { MobileAuthShell } from './MobileAuthShell';
 import { AuthSplash } from './AuthSplash';
+import { PasskeyLoginButton } from './PasskeyLoginButton';
+import { getDevicePasskeyHint } from '../../lib/auth/devicePasskeyStorage';
 import { resolveAccessPageError } from '../../lib/auth/accessPageErrors';
 import { DEFAULT_POST_ONBOARDING_PATH } from '../../lib/auth/kycPaths';
 import { resolveAuthenticatedDestination, safeReturnTo } from '../../lib/auth/redirects';
@@ -61,6 +63,18 @@ function MobileAccessLandingContent() {
   const isMobilePortal = useMobilePortal();
   const isAuthenticated = status === 'authenticated' && session?.user?.accessToken;
   const role = session?.user?.role;
+  const passkeyHint = useMemo(() => getDevicePasskeyHint(), []);
+  const hasConfiguredPasskey = Boolean(passkeyHint?.credentialId);
+  const [biometricSplashSkipped, setBiometricSplashSkipped] = useState(false);
+  const hasContextualMessage = Boolean(
+    accessErrorMessage || inviteError || staffInvite || investorInviteAccepted || registered
+  );
+  const showBiometricSplash =
+    status === 'unauthenticated' &&
+    isMobilePortal &&
+    hasConfiguredPasskey &&
+    !biometricSplashSkipped &&
+    !hasContextualMessage;
 
   useEffect(() => {
     if (searchParams.get('tab') === 'register') {
@@ -88,6 +102,34 @@ function MobileAccessLandingContent() {
 
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
     return <AuthSplash />;
+  }
+
+  if (showBiometricSplash) {
+    return (
+      <div className="relative min-h-[100dvh] w-full">
+        <AuthSplash />
+        <div
+          className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-3 px-8"
+          style={{ paddingBottom: 'max(2.5rem, env(safe-area-inset-bottom))' }}
+        >
+          <p className="text-center text-sm font-medium text-white/90">{a.mobileGateDesc}</p>
+          <PasskeyLoginButton
+            email={passkeyHint?.email ?? ''}
+            callbackUrl={callbackUrl}
+            autoTrigger
+            hideWhenConfigured
+            className="w-full max-w-xs"
+          />
+          <button
+            type="button"
+            onClick={() => setBiometricSplashSkipped(true)}
+            className="text-sm font-medium text-white/70 transition hover:text-white"
+          >
+            {a.mobileGateSkip}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (isAuthenticated && role && !isOperational && !canAccessPortalWithoutInvestorOnboarding(role)) {
@@ -135,6 +177,7 @@ function MobileAccessLandingContent() {
           callbackUrl={callbackUrl}
           initialEmail={inviteEmail}
           registerHref={registerHref}
+          skipPasskeyAutoTrigger={biometricSplashSkipped}
         />
       </div>
 

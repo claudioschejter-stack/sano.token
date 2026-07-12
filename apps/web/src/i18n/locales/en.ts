@@ -2339,7 +2339,7 @@ export const en = {
     contactSupport: "Contact support"
   },
   authSplash: {
-    tagline: 'Real Estate Tokens'
+    tagline: 'RWA Tokenization'
   },
   mobileAppPrompt: {
     title: 'The platform works best with the app',

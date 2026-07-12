@@ -20,6 +20,8 @@ type MobileLoginFlowProps = {
   className?: string;
   initialEmail?: string;
   registerHref?: string;
+  /** Skip the auto passkey view (e.g. the user just dismissed the biometric splash). */
+  skipPasskeyAutoTrigger?: boolean;
 };
 
 type MobileLoginView = 'passkey' | 'password' | 'gate';
@@ -28,7 +30,8 @@ export function MobileLoginFlow({
   callbackUrl = '/acceso/callback',
   className = '',
   initialEmail = '',
-  registerHref = '/acceso/registro'
+  registerHref = '/acceso/registro',
+  skipPasskeyAutoTrigger = false
 }: MobileLoginFlowProps) {
   const t = useTranslation();
   const router = useRouter();
@@ -44,8 +47,12 @@ export function MobileLoginFlow({
   // Users with a passkey already enabled on this phone see it first (like Mercado Pago).
   // Everyone else lands on the "gate" screen (activate biometrics / download the app)
   // instead of jumping straight to email/password — logging in with password is still
-  // available from there as a fallback.
-  const [view, setView] = useState<MobileLoginView>(hasConfiguredPasskey ? 'passkey' : 'gate');
+  // available from there as a fallback. When the caller already tried (and the user
+  // dismissed) the biometric splash, skip straight to the password form so we don't
+  // prompt for the fingerprint a second time in a row.
+  const [view, setView] = useState<MobileLoginView>(
+    hasConfiguredPasskey && !skipPasskeyAutoTrigger ? 'passkey' : skipPasskeyAutoTrigger ? 'password' : 'gate'
+  );
 
   useEffect(() => {
     const hint = getDevicePasskeyHint();

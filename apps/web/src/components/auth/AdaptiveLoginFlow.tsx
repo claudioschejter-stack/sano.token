@@ -9,6 +9,8 @@ type AdaptiveLoginFlowProps = {
   className?: string;
   initialEmail?: string;
   registerHref?: string;
+  /** Skip the auto passkey view (e.g. the user just dismissed the biometric splash). */
+  skipPasskeyAutoTrigger?: boolean;
 };
 
 export function AdaptiveLoginFlow(props: AdaptiveLoginFlowProps) {
