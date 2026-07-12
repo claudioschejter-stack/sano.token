@@ -9,6 +9,7 @@ import { formatMessage } from '../../i18n';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
+import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
 type WalletSummary = {
@@ -242,9 +243,18 @@ export function PwaWalletView() {
       </div>
 
       {error ? (
-        <p className="mx-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {error}
-        </p>
+        <div className="mx-4 space-y-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p>{error}</p>
+          {error === tw.walletNotLinked ? (
+            <Link
+              href={collectionWalletHref({ returnTo: '/dashboard/portfolio?tab=wallet' })}
+              className="inline-flex font-semibold underline"
+              style={{ color: MP_ACCENT }}
+            >
+              {t.pwaHome.collectionWalletTitle}
+            </Link>
+          ) : null}
+        </div>
       ) : null}
       {success ? (
         <p className="mx-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

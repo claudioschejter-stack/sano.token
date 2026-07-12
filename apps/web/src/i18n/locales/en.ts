@@ -1525,7 +1525,7 @@ export const en = {
     currentWalletLinkedName: "Linked wallet",
     linkedWalletLabel: "Linked",
     connectedWalletLabel: "Connected",
-    walletNotLinked: "Link your wallet during onboarding before operating.",
+    walletNotLinked: "Link your collection wallet on the Panel before withdrawing.",
     buyOneClick: "Buy shares (USDC → Vault)",
     buyChecking: "Checking allowance…",
     buyApproving: "Approving USDC…",
@@ -2672,7 +2672,8 @@ export const en = {
     wire: "Bank transfer",
     selectMethod: "Choose how to pay",
     probing: "Detecting installed apps…",
-    feesNote: "Fees included in price",
+    feesNote: "Price includes gateway fee, conversion to USDC (Base), and gas. Paid by the buyer.",
+    cheapestBadge: "Cheapest",
     localAmount: "{amount} {currency}",
     usdcAmount: "{amount} USDC",
     feeDetail: "Fee: {bps}‱ (~{pct}%)",
@@ -2745,10 +2746,13 @@ export const en = {
     feeBreakdown: {
       title: 'Cost breakdown',
       investment: 'Investment amount',
-      providerFee: 'Provider fee',
+      providerFee: 'Provider fee + FX',
       networkFee: 'Network gas (Base)',
+      conversionNote: 'Conversion to USDC Base',
+      conversionValue: 'Included in total',
+      included: 'Included',
       total: 'Total to pay',
-      paidByBuyer: 'Costs are paid by the buyer'
+      paidByBuyer: 'Gas, gateway fees, and conversion are paid by the buyer.'
     },
     notConfigured: "This payment method is unavailable right now. Please try another.",
     loadingRoutes: "Preparing payment methods…",
@@ -2788,7 +2792,14 @@ export const en = {
     recentActivityTitle: "Recent activity",
     recentActivityEmpty: "You don't have any recent activity yet.",
     viewAllActivity: "View all",
-    investNowTitle: "Invest now"
+    investNowTitle: "Invest now",
+    collectionWalletTitle: "Collection wallet",
+    collectionWalletConnectHint:
+      "Connect your Base wallet to withdraw and receive rent in USDC. Coinbase Wallet is recommended.",
+    collectionWalletLinkedHint: "Wallet linked for withdrawals and USDC rent payouts.",
+    collectionWalletManage: "Manage",
+    collectionWalletCollapse: "Close",
+    collectionWalletWithdrawNote: "Without a collection wallet you can't withdraw. You can still deposit."
   },
   notifications: {
     title: "Notifications",

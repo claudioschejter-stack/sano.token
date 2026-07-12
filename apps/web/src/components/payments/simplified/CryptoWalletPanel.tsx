@@ -15,9 +15,6 @@ const QR_SIZE = 220;
 /** USDC token contract on Base (chainId 8453) */
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-/** Gas on Base is ~$0.001 */
-const BASE_GAS_USD = 0.001;
-
 /**
  * EIP-681 payment request URI.
  * Encodes: recipient, token (USDC/Base), amount.
@@ -350,7 +347,8 @@ export function CryptoWalletPanel({
         totalUsd={cryptoWallet.totalUsd}
         feeBps={cryptoWallet.feeBps}
         providerLabel="Base USDC"
-        networkFeeUsd={BASE_GAS_USD}
+        networkFeeUsd={cryptoWallet.networkFeeUsd}
+        networkFeeIncluded
       />
     </section>
   );

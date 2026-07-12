@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { CheckoutBestRoutes } from '../../../lib/payments/checkoutBestRouteService';
 import type { SimplifiedMethod } from './SimplifiedMethodSelector';
-import { SimplifiedMethodSelector } from './SimplifiedMethodSelector';
+import { getCheapestConfiguredMethod, SimplifiedMethodSelector } from './SimplifiedMethodSelector';
 import { FiatWalletPanel } from './FiatWalletPanel';
 import { CryptoWalletPanel } from './CryptoWalletPanel';
 import { CardPaymentPanel } from './CardPaymentPanel';
@@ -75,8 +75,7 @@ export function SimplifiedCheckout({
     try {
       const data = await fetchRoutes({ amountUsd, referenceId, country, investorName });
       setRoutes(data);
-      // Do not pre-select any method
-      // if (!selectedMethod) setSelectedMethod('fiat_wallet');
+      setSelectedMethod((current) => current ?? getCheapestConfiguredMethod(data));
     } catch (err) {
       const msg = err instanceof Error ? err.message : sc.errorRoutes;
       setFetchError(msg);

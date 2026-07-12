@@ -1539,7 +1539,7 @@ export const es = {
     currentWalletLinkedName: 'Billetera vinculada',
     linkedWalletLabel: 'Vinculada',
     connectedWalletLabel: 'Conectada',
-    walletNotLinked: 'Vinculá tu wallet en el onboarding antes de operar.',
+    walletNotLinked: 'Vinculá tu billetera de cobro en el Panel antes de retirar.',
     buyOneClick: 'Comprar cuotapartes (USDC → Vault)',
     buyChecking: 'Verificando allowance…',
     buyApproving: 'Aprobando USDC…',
@@ -2716,7 +2716,8 @@ export const es = {
     wire: 'Transferencia Bancaria',
     selectMethod: 'Elegí cómo pagar',
     probing: 'Detectando apps instaladas…',
-    feesNote: 'Comisiones incluidas en el precio',
+    feesNote: 'El precio incluye comisión, conversión a USDC (Base) y costos de gas. Los paga el comprador.',
+    cheapestBadge: 'Más barata',
     localAmount: '{amount} {currency}',
     usdcAmount: '{amount} USDC',
     feeDetail: 'Comisión: {bps}‱ (~{pct}%)',
@@ -2789,10 +2790,13 @@ export const es = {
     feeBreakdown: {
       title: 'Detalle de costos',
       investment: 'Monto de inversión',
-      providerFee: 'Comisión del proveedor',
+      providerFee: 'Comisión del proveedor + FX',
       networkFee: 'Gas de red (Base)',
+      conversionNote: 'Conversión a USDC Base',
+      conversionValue: 'Incluida en el total',
+      included: 'Incluido',
       total: 'Total a pagar',
-      paidByBuyer: 'Los costos son pagados por el comprador'
+      paidByBuyer: 'Los costos de gas, comisión y conversión los paga el comprador.'
     },
     notConfigured: 'Este método de pago no está disponible ahora. Intentá otro.',
     loadingRoutes: 'Preparando métodos de pago…',
@@ -2832,7 +2836,15 @@ export const es = {
     recentActivityTitle: 'Últimas actividades',
     recentActivityEmpty: 'Aún no tenés movimientos recientes.',
     viewAllActivity: 'Consultar todas',
-    investNowTitle: 'Invertir ahora'
+    investNowTitle: 'Invertir ahora',
+    collectionWalletTitle: 'Billetera de cobro',
+    collectionWalletConnectHint:
+      'Conectá tu wallet en Base para retirar y recibir rentas en USDC. Coinbase Wallet es la opción recomendada.',
+    collectionWalletLinkedHint: 'Wallet vinculada para retiros y cobro de rentas en USDC.',
+    collectionWalletManage: 'Administrar',
+    collectionWalletCollapse: 'Cerrar',
+    collectionWalletWithdrawNote:
+      'Sin billetera de cobro no podés retirar. Sí podés ingresar fondos.'
   },
   notifications: {
     title: 'Notificaciones',

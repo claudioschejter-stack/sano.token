@@ -1,12 +1,7 @@
 import { getStablecoinNetwork } from './stablecoinNetworks';
 import { resolveMercadoPagoChargeAmount } from './mercadoPagoCharge';
-import {
-  isMercadoPagoEmbeddedConfigured,
-  mercadoPagoPublicKey
-} from './mercadoPagoEmbeddedService';
-import { mercadoPagoAccessToken, isMercadoPagoSandbox } from './mercadoPagoClient';
-import { buildBridgeVirtualAccountInstructions } from '../checkout/bridgeVirtualAccountService';
-import type { BridgeVirtualAccountInstructions } from '../checkout/paymentRouteTypes';
+import { mercadoPagoAccessToken } from './mercadoPagoClient';
+import { isMercadoPagoPixConfigured } from './mercadoPagoPix/config';
 
 // ---------------------------------------------------------------------------
 // FX table (fallback rates; production should use MERCADOPAGO_FX_ARS / DLOCAL env)
@@ -26,6 +21,15 @@ const FX_TABLE: Record<string, { currency: string; rate: number }> = {
   IN: { currency: 'INR', rate: 83.5 }
 };
 
+/** Estimated Base network gas paid by the buyer (included in crypto all-in total). */
+export const CRYPTO_BASE_GAS_USD = 0.001;
+
+/**
+ * Small FX buffer (bps) baked into local-currency methods so the displayed total
+ * covers gateway FX + conversion to USDC on Base.
+ */
+const FX_BUFFER_BPS = 20;
+
 function resolveLocalAmount(
   amountUsd: number,
   country: string,
@@ -34,7 +38,7 @@ function resolveLocalAmount(
   const totalUsd = amountUsd * (1 + feesBps / 10_000);
 
   if (country === 'AR') {
-    const mpCharge = resolveMercadoPagoChargeAmount(amountUsd * (1 + feesBps / 10_000), 'AR');
+    const mpCharge = resolveMercadoPagoChargeAmount(totalUsd, 'AR');
     return { totalLocal: mpCharge.amount, displayCurrency: mpCharge.currency, totalUsd };
   }
 
@@ -113,9 +117,12 @@ export type SimplifiedFiatWalletMethod = {
 };
 
 export type SimplifiedCryptoWalletMethod = {
+  configured: boolean;
   totalUsd: number;
   displayCurrency: 'USDC';
   feeBps: number;
+  /** Gas estimate already included in totalUsd (shown in fee breakdown). */
+  networkFeeUsd: number;
   stablecoinNetwork: string;
 };
 
@@ -151,17 +158,33 @@ export type CheckoutBestRoutes = {
 };
 
 // ---------------------------------------------------------------------------
-// Fee table per method/provider
+// Fee table per method/provider (buyer-paid; all-in totals use these + FX buffer)
 // ---------------------------------------------------------------------------
 
 const FEES: Record<string, number> = {
-  mercado_pago_fiat: 280,       // AR, ~2.8%
-  transak_fiat: 180,            // ~1.8% global
-  crypto_usdc: 10,              // gas only (~0.1%)
-  mercado_pago_card: 350,       // card + MP ~3.5%
-  transak_card: 199,            // Transak card ~1.99%
-  bridge_wire: 80               // Bridge ~0.8%
+  mercado_pago_fiat: 280, // AR, ~2.8%
+  pix_br: 25, // Pix BR ~0.25%
+  transak_fiat: 180, // ~1.8% global
+  transak_card: 199, // Transak card ~1.99%
+  transak_wire: 80 // Transak bank transfer ~0.8%
 };
+
+function fiatFeeBpsForCountry(country: string): number {
+  if (country === 'AR') return FEES.mercado_pago_fiat + FX_BUFFER_BPS;
+  if (country === 'BR') return FEES.pix_br + FX_BUFFER_BPS;
+  return FEES.transak_fiat + FX_BUFFER_BPS;
+}
+
+function fiatConfiguredForCountry(country: string): boolean {
+  if (country === 'AR') return Boolean(mercadoPagoAccessToken());
+  if (country === 'BR') return isMercadoPagoPixConfigured();
+  return Boolean(process.env.TRANSAK_API_KEY?.trim());
+}
+
+function fiatProviderForCountry(country: string): 'mercado_pago' | 'transak' {
+  if (country === 'AR' || country === 'BR') return 'mercado_pago';
+  return 'transak';
+}
 
 // ---------------------------------------------------------------------------
 // Main resolver
@@ -175,40 +198,36 @@ export function resolveCheckoutBestRoutes(input: {
 }): CheckoutBestRoutes {
   const { amountUsd, country, referenceId } = input;
   const c = country.toUpperCase();
+  const treasuryAddress = getStablecoinNetwork('BASE').treasuryAddress;
 
-  // --- Fiat wallet ---
-  const fiatFeeBps = c === 'AR' ? FEES.mercado_pago_fiat : FEES.transak_fiat;
+  // --- Fiat wallet (AR = Mercado Pago, BR = Pix, else Transak) ---
+  const fiatFeeBps = fiatFeeBpsForCountry(c);
   const fiatLocal = resolveLocalAmount(amountUsd, c, fiatFeeBps);
   const fiatWallet: SimplifiedFiatWalletMethod = {
-    provider: c === 'AR' ? 'mercado_pago' : 'transak',
-    configured: c === 'AR'
-      ? Boolean(mercadoPagoAccessToken())
-      : Boolean(process.env.TRANSAK_API_KEY?.trim()),
-    totalUsd: fiatLocal.totalUsd,
+    provider: fiatProviderForCountry(c),
+    configured: fiatConfiguredForCountry(c),
+    totalUsd: Number(fiatLocal.totalUsd.toFixed(2)),
     totalLocal: fiatLocal.totalLocal,
     displayCurrency: fiatLocal.displayCurrency,
     feeBps: fiatFeeBps,
-    // Always populate widgetUrl with Transak URL when available (used as web-based
-    // universal fallback for AR users in addition to the native MP QR).
     widgetUrl: transakWidgetUrl({ amountUsd: fiatLocal.totalUsd, country: c, referenceId }),
     mpPreferenceId: null,
-    // Static interoperable QR data from MODO / BCRA merchant registration.
-    // When set, this is shown as the primary universal QR that all Argentine wallets accept.
     staticQrData: process.env.FIAT_STATIC_QR_DATA?.trim() || null
   };
 
-  // --- Crypto wallet ---
-  const cryptoFeeBps = FEES.crypto_usdc;
-  const cryptoTotal = amountUsd * (1 + cryptoFeeBps / 10_000);
+  // --- Crypto wallet: amount + Base gas only (no duplicate bps markup) ---
+  const cryptoTotalUsd = Number((amountUsd + CRYPTO_BASE_GAS_USD).toFixed(2));
   const cryptoWallet: SimplifiedCryptoWalletMethod = {
-    totalUsd: Number(cryptoTotal.toFixed(2)),
+    configured: Boolean(treasuryAddress),
+    totalUsd: cryptoTotalUsd,
     displayCurrency: 'USDC',
-    feeBps: cryptoFeeBps,
+    feeBps: 0,
+    networkFeeUsd: CRYPTO_BASE_GAS_USD,
     stablecoinNetwork: 'BASE'
   };
 
-  // --- Card (always Privy: routes Stripe, MoonPay, Coinbase, Bridge) ---
-  const cardFeeBps = FEES.transak_card; // ~1.99% fee estimate for Privy on-ramp
+  // --- Card ---
+  const cardFeeBps = FEES.transak_card + FX_BUFFER_BPS;
   const cardLocal = resolveLocalAmount(amountUsd, c, cardFeeBps);
   const cardWidgetUrl = transakWidgetUrl({
     amountUsd: cardLocal.totalUsd,
@@ -219,7 +238,7 @@ export function resolveCheckoutBestRoutes(input: {
   const card: SimplifiedCardMethod = {
     provider: 'transak',
     configured: Boolean(cardWidgetUrl),
-    totalUsd: cardLocal.totalUsd,
+    totalUsd: Number(cardLocal.totalUsd.toFixed(2)),
     totalLocal: cardLocal.totalLocal,
     displayCurrency: cardLocal.displayCurrency,
     feeBps: cardFeeBps,
@@ -228,8 +247,9 @@ export function resolveCheckoutBestRoutes(input: {
     mpSandbox: false
   };
 
-  // --- Wire ---
-  const wireTotal = amountUsd * (1 + FEES.bridge_wire / 10_000);
+  // --- Wire (Transak bank transfer) ---
+  const wireFeeBps = FEES.transak_wire + FX_BUFFER_BPS;
+  const wireTotal = amountUsd * (1 + wireFeeBps / 10_000);
   const wireWidgetUrl = transakWidgetUrl({
     amountUsd: Number(wireTotal.toFixed(2)),
     country: c,
@@ -241,7 +261,7 @@ export function resolveCheckoutBestRoutes(input: {
     configured: Boolean(wireWidgetUrl),
     totalUsd: Number(wireTotal.toFixed(2)),
     displayCurrency: 'USD',
-    feeBps: FEES.bridge_wire,
+    feeBps: wireFeeBps,
     widgetUrl: wireWidgetUrl
   };
 
@@ -250,7 +270,7 @@ export function resolveCheckoutBestRoutes(input: {
     cryptoWallet,
     card,
     wire,
-    treasuryAddress: getStablecoinNetwork('BASE').treasuryAddress,
+    treasuryAddress,
     country: c
   };
 }

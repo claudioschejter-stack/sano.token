@@ -10,6 +10,8 @@ type Props = {
   feeBps?: number;
   providerLabel?: string;
   networkFeeUsd?: number;
+  /** When true, networkFeeUsd is already included in totalUsd (do not add again). */
+  networkFeeIncluded?: boolean;
 };
 
 function Row({
@@ -38,14 +40,15 @@ function Row({
 export function PaymentFeeBreakdown({
   amountUsd,
   totalUsd,
-  networkFeeUsd = 0
+  networkFeeUsd = 0,
+  networkFeeIncluded = false
 }: Props) {
   const t = useTranslation();
   const fb = t.simplifiedCheckout.feeBreakdown;
   const [open, setOpen] = useState(false);
 
-  const feeUsd = totalUsd - amountUsd;
-  const grandTotal = totalUsd + networkFeeUsd;
+  const providerFeeUsd = Math.max(0, totalUsd - amountUsd - (networkFeeIncluded ? networkFeeUsd : 0));
+  const grandTotal = networkFeeIncluded ? totalUsd : totalUsd + networkFeeUsd;
 
   return (
     <div className="rounded-xl border border-terminal-border bg-terminal-bg overflow-hidden">
@@ -68,12 +71,14 @@ export function PaymentFeeBreakdown({
           <Row label={fb.investment} value={`USD ${amountUsd.toFixed(2)}`} />
           <Row
             label={fb.providerFee}
-            value={feeUsd > 0.005 ? `+ USD ${feeUsd.toFixed(2)}` : 'Incluido'}
+            value={providerFeeUsd > 0.005 ? `+ USD ${providerFeeUsd.toFixed(2)}` : fb.included}
             muted
           />
           {networkFeeUsd > 0 && (
             <Row label={fb.networkFee} value={`≈ USD ${networkFeeUsd.toFixed(3)}`} muted />
           )}
+          <Row label={fb.conversionNote} value={fb.conversionValue} muted />
+          <p className="text-[10px] text-terminal-muted">{fb.paidByBuyer}</p>
           <div className="border-t border-terminal-border pt-2.5">
             <Row label={fb.total} value={`USD ${grandTotal.toFixed(2)}`} bold />
           </div>
