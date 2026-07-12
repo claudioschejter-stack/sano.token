@@ -248,7 +248,7 @@ export function AppSidebar() {
   async function handleSignOut() {
     window.localStorage.removeItem('sanova.jwt');
     resetMobileLocaleOnSignOut();
-    await signOut({ callbackUrl: '/acceso' });
+    await signOut({ callbackUrl: '/acceso?signedOut=1' });
   }
 
   function renderNavItem(item: NavItem, onNavigate?: () => void) {

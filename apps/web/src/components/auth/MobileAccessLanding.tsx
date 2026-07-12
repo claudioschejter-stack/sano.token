@@ -43,6 +43,7 @@ function MobileAccessLandingContent() {
   const { data: session, status } = useSession();
 
   const authError = searchParams.get('error');
+  const signedOut = searchParams.get('signedOut') === '1';
   const accessErrorMessage = resolveAccessPageError(authError, {
     authError: a.authError,
     investorAccessNotEnabled: a.investorAccessNotEnabled,
@@ -69,6 +70,7 @@ function MobileAccessLandingContent() {
   const hasContextualMessage = Boolean(
     accessErrorMessage || inviteError || staffInvite || investorInviteAccepted || registered
   );
+  // After logout we stay on splash quietly — never auto-trigger WebAuthn (that caused the loop).
   const showBiometricSplash =
     status === 'unauthenticated' &&
     isMobilePortal &&
@@ -104,6 +106,8 @@ function MobileAccessLandingContent() {
   }
 
   if (showBiometricSplash) {
+    const autoTrigger = hasConfiguredPasskey && !signedOut;
+
     return (
       <div className="relative min-h-[100dvh] w-full">
         <AuthSplash />
@@ -111,11 +115,17 @@ function MobileAccessLandingContent() {
           className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center gap-4 px-8"
           style={{ paddingBottom: 'max(3rem, env(safe-area-inset-bottom))' }}
         >
+          {signedOut ? (
+            <p className="text-center text-sm font-medium text-white/85">
+            {a.sessionClosed}
+            </p>
+          ) : null}
           <PasskeyLoginButton
             email={passkeyHint?.email ?? ''}
             callbackUrl={callbackUrl}
-            autoTrigger={hasConfiguredPasskey}
+            autoTrigger={autoTrigger}
             hideWhenConfigured={false}
+            variant="splash"
             className="w-full max-w-xs"
           />
           <button
@@ -137,7 +147,7 @@ function MobileAccessLandingContent() {
         <div className="mt-6 flex flex-col gap-3">
           <button
             type="button"
-            onClick={() => void signOut({ callbackUrl: '/acceso' })}
+            onClick={() => void signOut({ callbackUrl: '/acceso?signedOut=1' })}
             className="flex min-h-14 items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800"
           >
             {a.switchAccount}
@@ -173,9 +183,9 @@ function MobileAccessLandingContent() {
       <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm ring-1 ring-slate-100">
         <AdaptiveLoginFlow
           callbackUrl={callbackUrl}
-          initialEmail={inviteEmail}
+          initialEmail={inviteEmail || passkeyHint?.email || ''}
           registerHref={registerHref}
-          skipPasskeyAutoTrigger={biometricSplashSkipped}
+          skipPasskeyAutoTrigger
         />
       </div>
 

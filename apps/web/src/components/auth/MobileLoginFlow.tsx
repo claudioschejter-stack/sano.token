@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { Fingerprint } from 'lucide-react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
@@ -24,7 +23,7 @@ type MobileLoginFlowProps = {
   skipPasskeyAutoTrigger?: boolean;
 };
 
-type MobileLoginView = 'passkey' | 'password' | 'gate';
+type MobileLoginView = 'passkey' | 'password';
 
 export function MobileLoginFlow({
   callbackUrl = '/acceso/callback',
@@ -44,14 +43,11 @@ export function MobileLoginFlow({
   const { isMobile } = useDeviceDetection();
   const loginChannel = isPwa ? 'pwa' : isMobile ? 'mobile-web' : 'desktop-web';
   const hasConfiguredPasskey = Boolean(passkeyHint?.credentialId);
-  // Users with a passkey already enabled on this phone see it first (like Mercado Pago).
-  // Everyone else lands on the "gate" screen (activate biometrics / download the app)
-  // instead of jumping straight to email/password — logging in with password is still
-  // available from there as a fallback. When the caller already tried (and the user
-  // dismissed) the biometric splash, skip straight to the password form so we don't
-  // prompt for the fingerprint a second time in a row.
+  // Mobile splash already owns the biometric CTA. This flow never shows the
+  // white "Antes de ingresar / Activar huella" gate — only passkey (return
+  // visits) or the password form (first time / after splash skip).
   const [view, setView] = useState<MobileLoginView>(
-    hasConfiguredPasskey && !skipPasskeyAutoTrigger ? 'passkey' : skipPasskeyAutoTrigger ? 'password' : 'gate'
+    hasConfiguredPasskey && !skipPasskeyAutoTrigger ? 'passkey' : 'password'
   );
 
   useEffect(() => {
@@ -139,51 +135,6 @@ export function MobileLoginFlow({
     await completePasswordLogin();
   }
 
-  if (view === 'gate') {
-    return (
-      <div className={`space-y-5 ${className}`}>
-        <div className="text-center">
-          <h2 className="text-base font-semibold text-slate-900">{t.access.mobileGateTitle}</h2>
-          <p className="mt-1 text-sm text-slate-600">{t.access.mobileGateDesc}</p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setView('password')}
-          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-600"
-        >
-          <Fingerprint size={18} aria-hidden />
-          {t.access.mobileGateActivateBiometric}
-        </button>
-        <p className="-mt-3 text-center text-xs text-slate-500">{t.access.mobileGateActivateBiometricDesc}</p>
-
-        <OAuthSignInButtons callbackUrl={callbackUrl} className="pt-1" />
-
-        <div className="flex flex-col items-center gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => setView('password')}
-            className="text-sm font-medium text-slate-500 hover:text-slate-700"
-          >
-            {t.access.mobileGateSkip}
-          </button>
-          <Link
-            href="/acceso/olvidar"
-            className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
-          >
-            {t.access.forgotPassword}
-          </Link>
-          <Link
-            href={registerHref}
-            className="text-sm font-medium text-blue-600 transition hover:text-blue-500"
-          >
-            {t.access.notRegisteredYet}
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
   if (view === 'passkey' && hasConfiguredPasskey) {
     return (
       <div className={`space-y-4 ${className}`}>
@@ -223,16 +174,18 @@ export function MobileLoginFlow({
       <OAuthSignInButtons callbackUrl={callbackUrl} />
 
       <form onSubmit={handlePasswordLogin} className="space-y-4">
-      <button
-        type="button"
-        onClick={() => {
-          setView(hasConfiguredPasskey ? 'passkey' : 'gate');
-          setError(null);
-        }}
-        className="text-sm font-medium text-slate-500 hover:text-slate-700"
-      >
-        ← {t.access.backButton}
-      </button>
+      {hasConfiguredPasskey ? (
+        <button
+          type="button"
+          onClick={() => {
+            setView('passkey');
+            setError(null);
+          }}
+          className="text-sm font-medium text-slate-500 hover:text-slate-700"
+        >
+          ← {t.access.backButton}
+        </button>
+      ) : null}
 
       <div>
         <label htmlFor="access-email-mobile" className="mb-1.5 block text-sm font-medium text-slate-700">

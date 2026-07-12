@@ -112,7 +112,7 @@ function AccessPageContent() {
             <div className="mt-6 flex flex-col gap-3">
               <button
                 type="button"
-                onClick={() => void signOut({ callbackUrl: '/acceso' })}
+                onClick={() => void signOut({ callbackUrl: '/acceso?signedOut=1' })}
                 className="flex min-h-12 items-center justify-center rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-800 hover:border-slate-400"
               >
                 {a.switchAccount}

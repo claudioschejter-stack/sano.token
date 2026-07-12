@@ -1953,6 +1953,7 @@ export const es = {
       'Cuenta creada. Completá los 5 pasos siguientes para empezar a invertir (~10 min).',
     continueVerification: 'Continuar activación',
     switchAccount: 'Cerrar sesión e ingresar con otra cuenta',
+    sessionClosed: 'Sesión cerrada',
     onboardingResume: {
       phaseLabel: 'Pasos 2–5: Activá tu cuenta',
       progressHint: 'Completá el checklist para operar en la plataforma.',

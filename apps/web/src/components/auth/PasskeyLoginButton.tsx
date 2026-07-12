@@ -21,6 +21,8 @@ type PasskeyLoginButtonProps = {
   autoTrigger?: boolean;
   /** Hide the biometric button once passkey is configured on this device. */
   hideWhenConfigured?: boolean;
+  /** Visual style for the biometric splash (dark/blue background). */
+  variant?: 'default' | 'splash';
 };
 
 function isIosDevice(): boolean {
@@ -35,7 +37,8 @@ export function PasskeyLoginButton({
   callbackUrl = '/acceso/callback',
   className = '',
   autoTrigger = false,
-  hideWhenConfigured = false
+  hideWhenConfigured = false,
+  variant = 'default'
 }: PasskeyLoginButtonProps) {
   const t = useTranslation();
   const p = t.passkey;
@@ -176,7 +179,13 @@ export function PasskeyLoginButton({
   if (hideButton && loading) {
     return (
       <div className={className}>
-        <p className="py-3 text-center text-sm text-slate-500">{p.signingIn}</p>
+        <p
+          className={`py-3 text-center text-sm ${
+            variant === 'splash' ? 'text-white/80' : 'text-slate-500'
+          }`}
+        >
+          {p.signingIn}
+        </p>
       </div>
     );
   }
@@ -185,6 +194,11 @@ export function PasskeyLoginButton({
     return null;
   }
 
+  const buttonClassName =
+    variant === 'splash'
+      ? 'flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/35 bg-white/15 px-4 py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/25 disabled:cursor-not-allowed disabled:opacity-60'
+      : 'flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-blue-400 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60';
+
   return (
     <div className={className}>
       {!hideButton ? (
@@ -192,14 +206,20 @@ export function PasskeyLoginButton({
           type="button"
           disabled={loading}
           onClick={() => void handlePasskeyLogin()}
-          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:border-blue-400 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className={buttonClassName}
         >
           <Icon size={18} aria-hidden />
           {loading ? p.signingIn : isIos ? p.loginFaceId : p.loginBiometric}
         </button>
       ) : null}
       {error ? (
-        <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <p
+          className={`mt-2 rounded-lg px-3 py-2 text-xs ${
+            variant === 'splash'
+              ? 'border border-white/25 bg-black/25 text-white/90'
+              : 'border border-amber-200 bg-amber-50 text-amber-800'
+          }`}
+        >
           {error}
         </p>
       ) : null}

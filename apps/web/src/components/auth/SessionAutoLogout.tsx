@@ -61,11 +61,11 @@ export function SessionAutoLogout() {
       broadcastLogout();
 
       if (reason === 'broadcast') {
-        await signOut({ callbackUrl: '/acceso' });
+        await signOut({ callbackUrl: '/acceso?signedOut=1' });
         return;
       }
 
-      await signOut({ callbackUrl: '/acceso' });
+      await signOut({ callbackUrl: '/acceso?signedOut=1' });
     },
     [broadcastLogout, clearClientSession, status]
   );
