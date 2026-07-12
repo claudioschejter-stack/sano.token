@@ -1,13 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import { Suspense } from 'react';
 import { Building } from 'lucide-react';
 import { InvestorPortfolioPanel } from '../../../../components/dashboard/investor/InvestorPortfolioPanel';
 import { InvestorPageHeader } from '../../../../components/dashboard/investor/InvestorPageHeader';
 import { PlatformWalletView } from '../../../../components/wallet/PlatformWalletView';
-import { PwaWalletView } from '../../../../components/pwa/PwaWalletView';
+import { PwaAssetsView } from '../../../../components/pwa/PwaAssetsView';
 import { useTranslation } from '../../../../i18n/LocaleProvider';
 import { useMobilePortal } from '../../../../hooks/useMobilePortal';
+
+function PwaAssetsViewFallback() {
+  return <div className="min-h-40 animate-pulse rounded-2xl bg-slate-100" />;
+}
 
 export function PortfolioPageClient() {
   const t = useTranslation();
@@ -15,7 +20,11 @@ export function PortfolioPageClient() {
   const isMobilePortal = useMobilePortal();
 
   if (isMobilePortal) {
-    return <PwaWalletView />;
+    return (
+      <Suspense fallback={<PwaAssetsViewFallback />}>
+        <PwaAssetsView />
+      </Suspense>
+    );
   }
 
   return (

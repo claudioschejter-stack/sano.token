@@ -106,7 +106,7 @@ export function PwaShell({ children }: Props) {
               </a>
             ) : null}
             <Link
-              href="/dashboard/portfolio"
+              href="/dashboard/portfolio?tab=wallet"
               className="flex h-10 w-10 items-center justify-center rounded-full"
               style={{ backgroundColor: MP_ACCENT_SOFT, color: MP_ACCENT }}
               aria-label={t.pwaHome.walletAria}

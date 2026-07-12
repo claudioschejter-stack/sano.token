@@ -46,7 +46,7 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
         <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-slate-900">{h.myMoneyTitle}</span>
-            <Link href="/dashboard/portfolio" className="text-slate-400" aria-label="Ver wallet">
+            <Link href="/dashboard/portfolio" className="text-slate-400" aria-label={t.nav.myAssets}>
               <ChevronRight size={20} />
             </Link>
           </div>
@@ -80,7 +80,7 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
               <span className="text-xs font-medium text-slate-900">{h.depositAction}</span>
             </Link>
             <Link
-              href="/dashboard/portfolio"
+              href="/dashboard/portfolio?tab=wallet"
               className="flex flex-col items-center justify-center gap-2 rounded-2xl py-4 transition-colors active:opacity-80"
               style={{ backgroundColor: MP_ACCENT_SOFT }}
             >

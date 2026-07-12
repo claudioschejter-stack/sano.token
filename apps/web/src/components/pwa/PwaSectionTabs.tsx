@@ -21,7 +21,7 @@ export function PwaSectionTabs() {
   const tabs: SectionTab[] = [
     { href: '/dashboard', label: t.nav.globalPosition },
     { href: '/marketplace', label: t.nav.marketplace },
-    { href: '/dashboard/portfolio', label: t.nav.investments },
+    { href: '/dashboard/portfolio', label: t.nav.myAssets },
     { href: '/dashboard/loans', label: t.nav.loans }
   ];
 
