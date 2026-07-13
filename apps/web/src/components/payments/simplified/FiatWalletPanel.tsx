@@ -292,25 +292,85 @@ export function FiatWalletPanel({
               </p>
             </div>
 
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
-              <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(qrOrder.qrData)}`}
-                  alt="QR Mercado Pago"
-                  width={QR_SIZE}
-                  height={QR_SIZE}
-                  className="block rounded"
-                />
-              </div>
-              <div className="flex items-center gap-2 text-[11px] text-terminal-muted">
-                <Loader2 size={12} className="animate-spin text-terminal-primary" />
-                {sc.fiatWalletWaitingConfirmation}
-              </div>
-            </div>
+            {isMobile ? (
+              <div className="space-y-3">
+                {(() => {
+                  const primaryApp =
+                    fiatApps.find((a) => a.installed === true) ??
+                    fiatApps.find((a) => a.installed !== false) ??
+                    null;
+                  return primaryApp ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.href = primaryApp.deepLink;
+                      }}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary px-4 py-3.5 text-sm font-semibold text-white"
+                    >
+                      <Smartphone size={16} />
+                      {sc.fiatWalletPayNowCta.replace(
+                        '{amount}',
+                        formatLocalAmount(fiatWallet.totalLocal, fiatWallet.displayCurrency)
+                      )}
+                    </button>
+                  ) : null;
+                })()}
 
-            <p className="text-center text-[11px] text-terminal-muted">
-              {sc.fiatWalletMpInstructions}
-            </p>
+                <div className="space-y-2">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
+                    {sc.fiatWalletAppsTitle}
+                  </p>
+                  {probing ? (
+                    <p className="text-xs text-terminal-muted">{sc.probing}</p>
+                  ) : (
+                    fiatApps
+                      .filter((a) => a.installed !== false)
+                      .map((app) => <MobileAppRow key={app.id} app={app} />)
+                  )}
+                </div>
+
+                <details className="rounded-xl border border-terminal-border bg-terminal-bg p-3">
+                  <summary className="cursor-pointer text-xs font-semibold text-terminal-muted">
+                    {sc.fiatWalletQrBackup}
+                  </summary>
+                  <div className="mt-3 flex flex-col items-center gap-3">
+                    <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(qrOrder.qrData)}`}
+                        alt="QR Mercado Pago"
+                        width={QR_SIZE}
+                        height={QR_SIZE}
+                        className="block rounded"
+                      />
+                    </div>
+                  </div>
+                </details>
+
+                <div className="flex items-center justify-center gap-2 text-[11px] text-terminal-muted">
+                  <Loader2 size={12} className="animate-spin text-terminal-primary" />
+                  {sc.fiatWalletWaitingConfirmation}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
+                  <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(qrOrder.qrData)}`}
+                      alt="QR Mercado Pago"
+                      width={QR_SIZE}
+                      height={QR_SIZE}
+                      className="block rounded"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-[11px] text-terminal-muted">
+                    <Loader2 size={12} className="animate-spin text-terminal-primary" />
+                    {sc.fiatWalletWaitingConfirmation}
+                  </div>
+                </div>
+                <p className="text-center text-[11px] text-terminal-muted">{sc.fiatWalletMpInstructions}</p>
+              </div>
+            )}
           </div>
         ) : qrNotConfigured ? (
           <div className="space-y-3">
@@ -340,7 +400,7 @@ export function FiatWalletPanel({
           </div>
         ) : null}
 
-        {isMobile && !confirmed && (
+        {isMobile && !confirmed && !qrOrder?.qrData ? (
           <div className="space-y-2">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
               {sc.fiatWalletAppsTitle}
@@ -351,13 +411,15 @@ export function FiatWalletPanel({
               fiatApps.filter((a) => a.installed !== false).map((app) => <MobileAppRow key={app.id} app={app} />)
             )}
           </div>
-        )}
+        ) : null}
 
         <PaymentFeeBreakdown
           amountUsd={amountUsd}
           totalUsd={fiatWallet.totalUsd}
           feeBps={fiatWallet.feeBps}
           providerLabel="Mercado Pago"
+          gatewayChargedBy="Mercado Pago"
+          fxChargedBy="Mercado Pago FX"
         />
       </section>
     );
@@ -401,21 +463,58 @@ export function FiatWalletPanel({
               </p>
             </div>
 
-            <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
-              <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
-                <img
-                  src={`data:image/png;base64,${pixPayment.qrCodeBase64}`}
-                  alt="QR Pix"
-                  width={QR_SIZE}
-                  height={QR_SIZE}
-                  className="block rounded"
-                />
+            {isMobile && pixPayment.qrCode ? (
+              <button
+                type="button"
+                onClick={handleCopyPix}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-semibold text-white"
+              >
+                <Smartphone size={16} />
+                {copiedPix
+                  ? sc.fiatWalletPixCodeCopied
+                  : sc.fiatWalletPayNowCta.replace(
+                      '{amount}',
+                      formatLocalAmount(fiatWallet.totalLocal, fiatWallet.displayCurrency)
+                    )}
+              </button>
+            ) : null}
+
+            {(isDesktop || !pixPayment.qrCode) && (
+              <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
+                <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+                  <img
+                    src={`data:image/png;base64,${pixPayment.qrCodeBase64}`}
+                    alt="QR Pix"
+                    width={QR_SIZE}
+                    height={QR_SIZE}
+                    className="block rounded"
+                  />
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-terminal-muted">
+                  <Loader2 size={12} className="animate-spin text-emerald-500" />
+                  {sc.fiatWalletWaitingConfirmation}
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-[11px] text-terminal-muted">
-                <Loader2 size={12} className="animate-spin text-emerald-500" />
-                {sc.fiatWalletWaitingConfirmation}
-              </div>
-            </div>
+            )}
+
+            {isMobile && pixPayment.qrCodeBase64 ? (
+              <details className="rounded-xl border border-terminal-border bg-terminal-bg p-3">
+                <summary className="cursor-pointer text-xs font-semibold text-terminal-muted">
+                  {sc.fiatWalletQrBackup}
+                </summary>
+                <div className="mt-3 flex flex-col items-center gap-3">
+                  <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+                    <img
+                      src={`data:image/png;base64,${pixPayment.qrCodeBase64}`}
+                      alt="QR Pix"
+                      width={QR_SIZE}
+                      height={QR_SIZE}
+                      className="block rounded"
+                    />
+                  </div>
+                </div>
+              </details>
+            ) : null}
 
             {pixPayment.qrCode && (
               <button
@@ -424,12 +523,33 @@ export function FiatWalletPanel({
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-terminal-border bg-transparent py-2 text-[11px] text-terminal-muted transition-colors hover:border-emerald-500 hover:text-emerald-500"
               >
                 {copiedPix ? (
-                  <><CheckCircle2 size={12} className="text-green-500" /> {sc.fiatWalletPixCodeCopied}</>
+                  <>
+                    <CheckCircle2 size={12} className="text-green-500" /> {sc.fiatWalletPixCodeCopied}
+                  </>
                 ) : (
                   sc.fiatWalletPixCopyCode
                 )}
               </button>
             )}
+
+            {isMobile ? (
+              <div className="space-y-2">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
+                  {sc.fiatWalletAppsTitle}
+                </p>
+                {probing ? (
+                  <p className="text-xs text-terminal-muted">{sc.probing}</p>
+                ) : (
+                  fiatApps
+                    .filter((a) => a.installed !== false)
+                    .map((app) => <MobileAppRow key={app.id} app={app} />)
+                )}
+                <div className="flex items-center justify-center gap-2 text-[11px] text-terminal-muted">
+                  <Loader2 size={12} className="animate-spin text-emerald-500" />
+                  {sc.fiatWalletWaitingConfirmation}
+                </div>
+              </div>
+            ) : null}
           </div>
         ) : pixNotConfigured ? (
           <div className="space-y-3">
@@ -462,6 +582,8 @@ export function FiatWalletPanel({
           totalUsd={fiatWallet.totalUsd}
           feeBps={fiatWallet.feeBps}
           providerLabel="Pix · Mercado Pago"
+          gatewayChargedBy="Mercado Pago Pix"
+          fxChargedBy="Mercado Pago FX"
         />
       </section>
     );
@@ -515,6 +637,18 @@ export function FiatWalletPanel({
         </div>
       ) : (
         <>
+          <a
+            href={transakUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary px-4 py-3 text-sm font-semibold text-white"
+          >
+            <Smartphone size={16} />
+            {sc.fiatWalletPayNowCta.replace(
+              '{amount}',
+              formatLocalAmount(fiatWallet.totalLocal, fiatWallet.displayCurrency)
+            )}
+          </a>
           <iframe
             src={transakUrl}
             allow="camera; microphone; payment"
@@ -541,6 +675,8 @@ export function FiatWalletPanel({
         totalUsd={fiatWallet.totalUsd}
         feeBps={fiatWallet.feeBps}
         providerLabel="Transak"
+        gatewayChargedBy="Transak"
+        fxChargedBy="Transak"
       />
     </section>
   );

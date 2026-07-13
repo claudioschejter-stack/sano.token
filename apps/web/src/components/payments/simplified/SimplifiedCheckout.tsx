@@ -1,9 +1,10 @@
 'use client';
 
 import { Loader2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { CheckoutBestRoutes } from '../../../lib/payments/checkoutBestRouteService';
+import { useCheckoutSettlementStatus } from '../../../hooks/useCheckoutSettlementStatus';
 import type { SimplifiedMethod } from './SimplifiedMethodSelector';
 import { getCheapestConfiguredMethod, SimplifiedMethodSelector } from './SimplifiedMethodSelector';
 import { FiatWalletPanel } from './FiatWalletPanel';
@@ -20,15 +21,8 @@ export type SimplifiedCheckoutProps = {
   amountUsd: number;
   referenceId: string;
   investorName?: string;
-  /** ISO-2 country code (or from IP detection) */
   country?: string;
-  /** Whether this checkout funds the platform wallet or pays for a cart purchase */
   mode?: 'deposit' | 'purchase';
-  /**
-   * Creates (or reuses) a real backend PlatformDeposit / cart checkout batch for a
-   * given method, so QR-based panels (crypto, fiat wallet) have a persisted
-   * reference to poll/watch for automatic payment detection.
-   */
   ensureReference?: EnsureCheckoutReference;
   className?: string;
   onFunded?: () => void;
@@ -50,6 +44,21 @@ async function fetchRoutes(params: {
   return res.json() as Promise<CheckoutBestRoutes>;
 }
 
+function settlementPhaseLabel(
+  phase: string,
+  labels: {
+    awaiting_payment: string;
+    fiat_paid: string;
+    awaiting_usdc: string;
+    confirmed: string;
+    rwa_delivered: string;
+    failed: string;
+  }
+): string | null {
+  if (phase === 'idle') return null;
+  return labels[phase as keyof typeof labels] ?? null;
+}
+
 export function SimplifiedCheckout({
   amountUsd,
   referenceId,
@@ -68,6 +77,15 @@ export function SimplifiedCheckout({
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<SimplifiedMethod | null>(null);
+  const [activeReferenceId, setActiveReferenceId] = useState<string | null>(referenceId || null);
+  const [paymentDetected, setPaymentDetected] = useState(false);
+  const completedRef = useRef(false);
+
+  const { phase, isComplete } = useCheckoutSettlementStatus({
+    referenceId: paymentDetected ? activeReferenceId : null,
+    mode,
+    enabled: paymentDetected
+  });
 
   const loadRoutes = useCallback(async () => {
     setLoading(true);
@@ -90,6 +108,29 @@ export function SimplifiedCheckout({
     void loadRoutes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!isComplete || completedRef.current) return;
+    completedRef.current = true;
+    onFunded?.();
+  }, [isComplete, onFunded]);
+
+  const handlePaymentSignal = useCallback((ref?: string | null) => {
+    if (ref) setActiveReferenceId(ref);
+    setPaymentDetected(true);
+  }, []);
+
+  const wrapEnsureReference = useCallback<EnsureCheckoutReference>(
+    async (method, rail) => {
+      if (!ensureReference) return null;
+      const result = await ensureReference(method, rail);
+      if (result?.referenceId) {
+        setActiveReferenceId(result.referenceId);
+      }
+      return result;
+    },
+    [ensureReference]
+  );
 
   if (loading) {
     return (
@@ -115,6 +156,15 @@ export function SimplifiedCheckout({
     );
   }
 
+  const phaseLabel = settlementPhaseLabel(phase, {
+    awaiting_payment: sc.settlementAwaitingPayment,
+    fiat_paid: sc.settlementFiatPaid,
+    awaiting_usdc: sc.settlementAwaitingUsdc,
+    confirmed: sc.settlementConfirmed,
+    rwa_delivered: sc.settlementRwaDelivered,
+    failed: sc.settlementFailed
+  });
+
   return (
     <div className={`space-y-4 ${className}`}>
       <SimplifiedMethodSelector
@@ -123,14 +173,23 @@ export function SimplifiedCheckout({
         onSelect={setSelectedMethod}
       />
 
+      {paymentDetected && phaseLabel ? (
+        <div className="rounded-xl border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
+          <div className="flex items-center gap-2">
+            {!isComplete ? <Loader2 className="h-4 w-4 animate-spin text-terminal-primary" /> : null}
+            <span>{phaseLabel}</span>
+          </div>
+        </div>
+      ) : null}
+
       {selectedMethod === 'fiat_wallet' && (
         <FiatWalletPanel
           fiatWallet={routes.fiatWallet}
-          referenceId={referenceId}
+          referenceId={activeReferenceId ?? referenceId}
           country={routes.country}
-          onFunded={onFunded}
+          onFunded={() => handlePaymentSignal(activeReferenceId)}
           amountUsd={amountUsd}
-          ensureReference={ensureReference}
+          ensureReference={wrapEnsureReference}
         />
       )}
 
@@ -140,24 +199,31 @@ export function SimplifiedCheckout({
           treasuryAddress={routes.treasuryAddress}
           country={routes.country}
           amountUsd={amountUsd}
-          onFunded={onFunded}
-          ensureReference={ensureReference}
+          mode={mode}
+          onFunded={() => handlePaymentSignal(activeReferenceId)}
+          ensureReference={wrapEnsureReference}
         />
       )}
 
       {selectedMethod === 'card' && (
         <CardPaymentPanel
           card={routes.card}
-          referenceId={referenceId}
+          referenceId={activeReferenceId ?? referenceId}
           country={routes.country}
-          onFunded={onFunded}
+          onFunded={() => handlePaymentSignal(activeReferenceId ?? referenceId)}
           onError={onError}
           amountUsd={amountUsd}
         />
       )}
 
       {selectedMethod === 'wire' && (
-        <WireTransferPanel wire={routes.wire} amountUsd={amountUsd} />
+        <WireTransferPanel
+          wire={routes.wire}
+          amountUsd={amountUsd}
+          referenceId={activeReferenceId ?? referenceId}
+          investorName={investorName}
+          onPending={() => handlePaymentSignal(activeReferenceId ?? referenceId)}
+        />
       )}
     </div>
   );

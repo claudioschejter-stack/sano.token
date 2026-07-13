@@ -1,29 +1,21 @@
 import { NextResponse } from 'next/server';
 import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
-import { scanAllPendingCryptoQrDeposits } from '../../../../lib/payments/platformWalletService';
 import { scanAwaitingTreasuryUsdcSettlements } from '../../../../lib/payments/postPaymentSettlementOrchestrator';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-/**
- * Safety-net sweep:
- * - pending USDC-on-chain QR deposits
- * - MANUAL_REVIEW fiat rails awaiting USDC on Base treasury
- */
+/** Dedicated sweep for fiat rails waiting on USDC Base treasury settlement. */
 export async function GET(request: Request) {
   if (!isCronRequestAuthorized(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const [crypto, fiat] = await Promise.all([
-      scanAllPendingCryptoQrDeposits(),
-      scanAwaitingTreasuryUsdcSettlements()
-    ]);
-    return NextResponse.json({ ok: true, crypto, fiat });
+    const result = await scanAwaitingTreasuryUsdcSettlements();
+    return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    console.error('[cron/watch-crypto-deposits]', error);
+    console.error('[cron/watch-awaiting-treasury-usdc]', error);
     return NextResponse.json({ error: 'WATCH_SWEEP_FAILED' }, { status: 500 });
   }
 }

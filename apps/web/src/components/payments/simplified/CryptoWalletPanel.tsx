@@ -51,6 +51,7 @@ type Props = {
   treasuryAddress: string | null;
   country: string;
   amountUsd: number;
+  mode?: 'deposit' | 'purchase';
   onFunded?: () => void;
   ensureReference?: EnsureCheckoutReference;
 };
@@ -60,6 +61,7 @@ export function CryptoWalletPanel({
   treasuryAddress,
   country,
   amountUsd,
+  mode = 'deposit',
   onFunded,
   ensureReference
 }: Props) {
@@ -97,10 +99,10 @@ export function CryptoWalletPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensureReference]);
 
-  // Fetch the watermarked "watch amount" for the created deposit, once available.
+  // Fetch the watermarked "watch amount" for deposit mode only.
   useEffect(() => {
     let cancelled = false;
-    if (!depositId) return;
+    if (!depositId || mode !== 'deposit') return;
     void fetch(`/api/wallet/deposit-intents?id=${encodeURIComponent(depositId)}`, { cache: 'no-store' })
       .then((res) => res.json())
       .then((data: { deposit?: { metadata?: { qrWatchAmountUsd?: number | null } | null } }) => {
@@ -114,18 +116,26 @@ export function CryptoWalletPanel({
     return () => {
       cancelled = true;
     };
-  }, [depositId]);
+  }, [depositId, mode]);
 
-  // Poll for automatic on-chain payment detection every 5s while the deposit is pending.
+  // Poll for automatic on-chain payment detection every 5s.
   useEffect(() => {
     if (!depositId || confirmed) return;
     let cancelled = false;
     const interval = window.setInterval(() => {
-      void fetch(`/api/wallet/deposit-intents/watch?id=${encodeURIComponent(depositId)}`, { cache: 'no-store' })
+      const url =
+        mode === 'purchase'
+          ? `/api/marketplace/cart/watch?batchId=${encodeURIComponent(depositId)}`
+          : `/api/wallet/deposit-intents/watch?id=${encodeURIComponent(depositId)}`;
+      void fetch(url, { cache: 'no-store' })
         .then((res) => res.json())
-        .then((data: { deposit?: { status?: string } }) => {
+        .then((data: { deposit?: { status?: string }; allConfirmed?: boolean }) => {
           if (cancelled) return;
-          if (data.deposit?.status === 'CONFIRMED') {
+          const ok =
+            mode === 'purchase'
+              ? data.allConfirmed === true
+              : data.deposit?.status === 'CONFIRMED';
+          if (ok) {
             setConfirmed(true);
             onFundedRef.current?.();
           }
@@ -136,7 +146,7 @@ export function CryptoWalletPanel({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [depositId, confirmed]);
+  }, [depositId, confirmed, mode]);
 
   const treasuryForQr = resolvedTreasury ?? treasuryAddress;
   const qrAmount = watchAmountUsdc ?? amountUsdc;
@@ -349,6 +359,8 @@ export function CryptoWalletPanel({
         providerLabel="Base USDC"
         networkFeeUsd={cryptoWallet.networkFeeUsd}
         networkFeeIncluded
+        gatewayChargedBy="Base USDC"
+        gasChargedBy="Base"
       />
     </section>
   );

@@ -100,7 +100,7 @@ export function CardPaymentPanel({ card, amountUsd, onFunded, onError }: Props) 
       </div>
 
       {/* Fee breakdown */}
-      <PaymentFeeBreakdown amountUsd={amountUsd} totalUsd={card.totalUsd} />
+      <PaymentFeeBreakdown amountUsd={amountUsd} totalUsd={card.totalUsd} gatewayChargedBy="Transak" fxChargedBy="Transak" />
 
       {status === 'confirmed' ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-terminal-success/40 bg-terminal-success/10 px-4 py-6 text-center">

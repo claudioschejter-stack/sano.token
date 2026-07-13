@@ -1,4 +1,6 @@
+import { prisma } from '@sanova/database';
 import { dispatchFiatRailTreasuryWebhook } from './fiatRailTreasurySettlement';
+import { enqueueFiatToUsdcConversion } from './postPaymentSettlementOrchestrator';
 
 export type LocalWalletSettlementInput = {
   externalReference?: string | null;
@@ -53,7 +55,7 @@ export async function dispatchApprovedLocalWalletPayment(input: LocalWalletSettl
             ? input.payload.amount
             : undefined;
 
-  return dispatchFiatRailTreasuryWebhook({
+  const result = await dispatchFiatRailTreasuryWebhook({
     externalReference: reference,
     provider: input.provider,
     providerPaymentId: input.providerPaymentId ?? reference,
@@ -65,4 +67,52 @@ export async function dispatchApprovedLocalWalletPayment(input: LocalWalletSettl
       ...(amountUsd !== undefined ? { amountUsd } : {})
     }
   });
+
+  let userId: string | null = null;
+  let userEmail: string | null = null;
+  let conversionAmount = amountUsd ?? 0;
+
+  const deposit = await prisma.platformDeposit.findUnique({
+    where: { id: reference },
+    select: { userId: true, amountUsd: true }
+  });
+  if (deposit) {
+    userId = deposit.userId;
+    conversionAmount = amountUsd ?? deposit.amountUsd.toNumber();
+  } else {
+    const intent = await prisma.paymentIntent.findFirst({
+      where: {
+        OR: [{ id: reference }, { metadata: { path: ['cartBatchId'], equals: reference } }]
+      },
+      select: { userId: true, amountUsd: true }
+    });
+    if (intent) {
+      userId = intent.userId;
+      conversionAmount = amountUsd ?? intent.amountUsd.toNumber();
+    }
+  }
+
+  if (userId) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true }
+    });
+    userEmail = user?.email ?? null;
+  }
+
+  if (userId && conversionAmount > 0) {
+    try {
+      await enqueueFiatToUsdcConversion({
+        externalReference: reference,
+        provider: input.provider,
+        amountUsd: conversionAmount,
+        userId,
+        userEmail
+      });
+    } catch (error) {
+      console.error('[dispatchApprovedLocalWalletPayment] conversion enqueue failed', error);
+    }
+  }
+
+  return result;
 }

@@ -1,6 +1,7 @@
 import { prisma, type Prisma } from '@sanova/database';
 import { confirmCartPurchaseBatch, loadCartBatchIntentsAnyStatus } from './cartCheckoutService';
 import { confirmPlatformDeposit } from './platformWalletService';
+import { confirmPaymentIntent } from './paymentService';
 import type { ResolvedCheckoutReference } from './checkoutReferenceResolver';
 import { verifyTreasuryUsdcReceipt } from './treasuryUsdcVerification';
 
@@ -18,6 +19,10 @@ export async function settleOnRampCheckout(input: OnRampSettlementInput) {
   const txHash = input.treasuryTxnHash?.trim();
   if (!txHash) {
     throw new Error('TREASURY_TX_REQUIRED');
+  }
+
+  if (!input.reference) {
+    throw new Error('CHECKOUT_REFERENCE_REQUIRED');
   }
 
   const verification = await verifyTreasuryUsdcReceipt({
@@ -51,13 +56,20 @@ export async function settleOnRampCheckout(input: OnRampSettlementInput) {
 
   // Direct marketplace payment intent (single-project checkout via SimplifiedCheckout)
   if (input.reference.kind === 'payment_intent') {
-    const intent = await prisma.paymentIntent.update({
-      where: { id: input.reference.intentId },
-      data: {
-        status: 'CONFIRMED',
-        providerPaymentId: input.providerPaymentId,
-        metadata: enrichedPayload
-      }
+    const existing = await prisma.paymentIntent.findUnique({ where: { id: input.reference.intentId } });
+    if (existing?.status === 'MANUAL_REVIEW') {
+      await prisma.paymentIntent.update({
+        where: { id: existing.id },
+        data: { status: 'REQUIRES_PAYMENT' }
+      });
+    }
+
+    const intent = await confirmPaymentIntent({
+      paymentIntentId: input.reference.intentId,
+      txHash,
+      provider: input.provider,
+      providerPaymentId: input.providerPaymentId,
+      payload: enrichedPayload
     });
     return { kind: 'payment_intent' as const, intent };
   }
