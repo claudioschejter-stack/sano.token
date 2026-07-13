@@ -26,7 +26,7 @@
     },
     {
       "path": "/api/cron/watch-awaiting-treasury-usdc",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 13 * * *"
     }
   ]
 }
