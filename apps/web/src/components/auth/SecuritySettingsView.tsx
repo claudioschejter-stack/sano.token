@@ -22,6 +22,7 @@ import { googleAuthenticatorStoreUrl, provisionGoogleAuthenticator } from '../..
 import { APP_VERSION } from '../../generated/appVersion';
 import { OTPInput } from './OTPInput';
 import { PasskeyRegisterInline } from './PasskeyRegisterInline';
+import { PwaProfileIdentityCard } from '../pwa/PwaProfileIdentityCard';
 
 type Step = 'idle' | 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
 type View = 'overview' | 'setup' | 'disable' | 'backup-codes';
@@ -231,10 +232,16 @@ export function SecuritySettingsView() {
   if (view === 'overview') {
     return (
       <div className="mx-auto w-full max-w-2xl space-y-6 px-0">
+        {isMobile ? <PwaProfileIdentityCard /> : null}
+
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Seguridad de la cuenta</h1>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {isMobile ? t.pwaHome.profileSecurityTitle : 'Seguridad de la cuenta'}
+          </h1>
           <p className="mt-1 text-base text-slate-500">
-            Configurá métodos adicionales para proteger tu acceso.
+            {isMobile
+              ? t.pwaHome.profileSecuritySubtitle
+              : 'Configurá métodos adicionales para proteger tu acceso.'}
           </p>
         </div>
 

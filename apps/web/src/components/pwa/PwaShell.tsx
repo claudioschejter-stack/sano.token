@@ -6,8 +6,8 @@ import { useSession } from 'next-auth/react';
 import {
   Bell,
   Building2,
-  ScanLine,
   Search,
+  ShoppingCart,
   TrendingUp,
   Wallet
 } from 'lucide-react';
@@ -154,14 +154,25 @@ export function PwaShell({ children }: Props) {
             <Wallet size={24} />
             <span className="text-[10px] font-medium">{t.nav.marketplace}</span>
           </Link>
-          <div className="relative -top-5 flex w-16 flex-col items-center justify-center">
+          <div className="relative flex w-16 flex-col items-center justify-center">
             <Link
               href="/marketplace/carrito"
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-[#009EE3] text-white shadow-lg shadow-[#009EE3]/30 ring-4 ring-white"
-              aria-label={t.pwaHome.payQrAria}
+              className={`relative -top-5 flex h-16 w-16 items-center justify-center rounded-full text-white shadow-lg ring-4 ring-white ${
+                isActive(pathname, '/marketplace/carrito')
+                  ? 'bg-[#0077b3] shadow-[#0077b3]/40'
+                  : 'bg-[#009EE3] shadow-[#009EE3]/30'
+              }`}
+              aria-label={t.pwaHome.cartFabAria}
             >
-              <ScanLine size={28} />
+              <ShoppingCart size={26} />
             </Link>
+            <span
+              className={`-mt-3 text-[10px] font-medium ${
+                isActive(pathname, '/marketplace/carrito') ? 'text-[#009EE3]' : 'text-slate-400'
+              }`}
+            >
+              {t.pwaHome.cartNavLabel}
+            </span>
           </div>
           <Link
             href="/dashboard/cash-flow"
