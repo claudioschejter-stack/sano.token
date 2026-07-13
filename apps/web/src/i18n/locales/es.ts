@@ -873,12 +873,12 @@ export const es = {
     suspendedTitle: 'Cuenta suspendida',
     suspendedDesc: 'Contactá a soporte de Sanova para reactivar tu acceso.',
     stepContact: 'Verificá tu email y registrá tu teléfono para continuar.',
-    stepKyc: 'Completá la verificación de identidad (KYC) para depositar, retirar e invertir.',
-    stepKycRejected: 'Tu KYC fue rechazado. Revisá tus datos e intentá nuevamente.',
+    stepKyc: 'Completá la verificación de identidad para depositar, retirar e invertir.',
+    stepKycRejected: 'Tu verificación de identidad fue rechazada. Revisá tus datos e intentá nuevamente.',
     stepReview: 'Estamos revisando tu cuenta. Te avisaremos cuando esté lista.',
     walletRequiredTitle: 'Falta vincular tu billetera',
     walletRequiredDesc:
-      'Conectar en el marketplace no alcanza: activá Coinbase Wallet en Base desde el onboarding para asociar la dirección a tu perfil.',
+      'Conectar en el marketplace no alcanza: activá Coinbase Wallet en Base durante la activación de cuenta para asociar la dirección a tu perfil.',
     walletRequiredCta: 'Vincular billetera',
     totpRequiredTitle: 'Falta confirmar Google Authenticator',
     totpRequiredDesc:
@@ -892,7 +892,7 @@ export const es = {
     },
     accountLabels: {
       OPERATIONAL: 'Operativa',
-      ONBOARDING: 'En onboarding',
+      ONBOARDING: 'Activación pendiente',
       SUSPENDED: 'Suspendida'
     }
   },
@@ -1924,8 +1924,10 @@ export const es = {
       }
     },
     continueOnMobile: {
-      title: 'Continuá en tu celular',
-      desc: 'Escaneá el código QR con la cámara de tu teléfono para completar identidad, pagos y seguridad (~3 min).',
+      title: 'Continuá en la app del celular',
+      desc: 'Instalá o abrí la app Sanova en tu teléfono, escaneá el QR y completá ahí contacto, identidad y pagos.',
+      installHint:
+        'En el celular: abrí sanovacapital.com y agregá Sanova a la pantalla de inicio para una experiencia como app.',
       loadingQr: 'Generando código QR…',
       phoneDoneHint: 'Teléfono guardado. Seguí en tu celular con el QR.',
       footerHint: 'Mantené esta pantalla abierta hasta que termines en el teléfono.',
@@ -1948,24 +1950,25 @@ export const es = {
     continueButton: 'Continuar',
     sessionActiveTitle: 'Ya tenés una sesión activa',
     sessionPendingDesc:
-      'Tu cuenta aún no está operativa. Completá los 5 pasos siguientes para continuar (~10 min).',
+      'Tu cuenta aún no está operativa. Completá la activación en el celular para continuar (~10 min).',
     sessionRegisteredDesc:
-      'Cuenta creada. Completá los 5 pasos siguientes para empezar a invertir (~10 min).',
+      'Cuenta creada. Completá la activación en el celular para empezar a invertir (~10 min).',
     continueVerification: 'Continuar activación',
     switchAccount: 'Cerrar sesión e ingresar con otra cuenta',
     sessionClosed: 'Sesión cerrada exitosamente',
     onboardingResume: {
-      phaseLabel: 'Pasos 2–5: Activá tu cuenta',
-      progressHint: 'Completá el checklist para operar en la plataforma.',
+      phaseLabel: 'Activá tu cuenta',
+      progressHint: 'Completá el checklist para operar en la plataforma. En el celular la experiencia es más simple.',
       stepContact: 'Contacto',
       stepEmail: 'Contacto: teléfono y email',
       stepKyc: 'Identidad',
       stepWallet: 'Pagos',
+      stepDone: 'Listo',
       stepTotp: 'Seguridad en el celular',
       continueCta: 'Continuar activación',
       nextStepHint: 'Siguiente: {step}',
       registeredBanner:
-        'Cuenta creada. Completá los pasos siguientes cuando quieras (~10 min).',
+        'Cuenta creada. Completá los pasos siguientes en la app del celular (~10 min).',
       checklistAria: 'Checklist de activación de cuenta',
       stepsCompleted: '{done} de {total} pasos completados',
       timeRemaining: 'Tiempo estimado restante: ~{minutes} min'
@@ -1979,13 +1982,13 @@ export const es = {
       'Esta cuenta usa Google o Apple. Iniciá sesión con el botón de Google o Apple de arriba.',
     backButton: 'Volver',
     staffInviteAccepted:
-      'Invitación aceptada. Iniciá sesión o registrate con el mismo correo para continuar con la verificación KYC.',
+      'Invitación aceptada. Iniciá sesión o registrate con el mismo correo para continuar con la verificación de identidad.',
     investorInviteAccepted:
-      'Invitación de inversor aceptada. Registrate o accedé con el email invitado para continuar con KYC.',
+      'Invitación de inversor aceptada. Registrate o accedé con el email invitado para continuar la activación.',
     inviteInvalid: 'La invitación no es válida o ya venció. Pedile a un administrador que te envíe una nueva.',
     rolesTitle: 'Roles de la plataforma',
     rolesDesc:
-      'Todos los roles (Administrador, Gerente, Asesor e Inversor) deben verificar email, teléfono y completar KYC antes de operar.',
+      'Todos los roles (Administrador, Gerente, Asesor e Inversor) deben verificar email, teléfono e identidad antes de operar.',
     roles: {
       ADMIN: 'Administrador',
       ADVISOR_MANAGER: 'Gerente',
@@ -2005,10 +2008,12 @@ export const es = {
     staffPanelHint: 'Panel operativo según permisos de tu rol.',
     registerTitle: 'Crear nueva cuenta',
     registerDesc:
-      'Creá tu cuenta con email y contraseña.\nEn los siguientes pasos confirmás contacto, identidad, pagos y seguridad (~10 min).',
+      'Creá tu cuenta con email y contraseña.\nLa activación (contacto, identidad y pagos) se completa mejor en la app del celular (~10 min).',
     registerButton: 'Crear cuenta',
     register: {
-      phaseLabel: 'Paso 1 de 5: Crear cuenta',
+      phaseLabel: 'Paso 1: Crear cuenta',
+      mobileAppHint:
+        'Después de crear la cuenta, vas a continuar en tu celular: instalá o abrí la app Sanova para terminar la activación.',
       fullNameLabel: 'Nombre completo',
       fullNamePlaceholder: 'Como figura en tu DNI o pasaporte',
       taxIdLabel: 'Número de identificación fiscal',
@@ -2018,7 +2023,7 @@ export const es = {
       verifiedLabel: 'Verificado',
       pendingLabel: 'Pendiente',
       kycPrefillHint:
-        'Nombre e identificación fiscal completados automáticamente desde tu verificación Didit.',
+        'Nombre e identificación fiscal completados automáticamente desde tu verificación de identidad.',
       profileHint: 'Datos de tu cuenta. Completá la verificación para operar en la plataforma.',
       passwordLabel: 'Contraseña',
       passwordPlaceholder: 'Mínimo 8 caracteres',
@@ -2032,7 +2037,7 @@ export const es = {
       securityVerifying: 'Verificando seguridad…',
       oauthOrContinue: 'O continuá con Google o Apple',
       flowHint:
-        'Paso 1: cuenta · Pasos 2–5: contacto, identidad, pagos y seguridad en el onboarding',
+        'Paso 1: crear cuenta · Después en el celular: contacto, identidad y pagos',
       termsAcceptLabel:
         'Acepto los Términos Legales y la Política de Privacidad, y reconozco que la operatoria es colocación privada bajo el Fideicomiso Sanova Global RWA.',
       termsAcceptRequired: 'Debés aceptar los Términos Legales y la Política de Privacidad para continuar.',
@@ -2082,7 +2087,7 @@ export const es = {
           'Ya hay una cuenta en proceso con este email. Contactá a Sanova para completar el acceso o usá recuperar contraseña.'
       }
     },
-    kycTitle: 'Verificación de identidad (KYC)',
+    kycTitle: 'Verificación de identidad',
     kycDesc:
       'Disponible después de verificar email y cargar teléfono. Didit gestiona la identidad con documento y prueba de vida.',
     kycButton: 'Ir al onboarding',
@@ -2100,33 +2105,34 @@ export const es = {
     loginNotice: 'Al iniciar sesión confirmás haber leído los'
   },
   kyc: {
-    title: 'Verificación KYC',
+    title: 'Verificación de identidad',
     description:
-      'Verificación de identidad con Didit. Tras la aprobación, tu estado se actualiza automáticamente.',
-    simulateButton: 'Simular aprobación KYC (demo)',
+      'Verificación de identidad con nuestro proveedor. Tras la aprobación, tu estado se actualiza automáticamente.',
+    simulateButton: 'Simular aprobación de identidad (demo)',
     cancel: 'Cancelar',
-    loading: 'Cargando KYC…'
+    loading: 'Cargando verificación…'
   },
   onboarding: {
-    eyebrow: 'Alta móvil',
+    eyebrow: 'Activación',
     title: 'Activá tu cuenta',
-    phaseLabel: 'Pasos 2–5: Activá tu cuenta',
-    stepProgressLabel: 'Paso {current} de 5',
+    phaseLabel: 'Activá tu cuenta',
+    stepProgressLabel: 'Paso {current} de 4',
     introBanner:
       'Te lleva unos 10 minutos. Necesitás DNI o pasaporte y el celular a mano.',
     stepLabels: {
       contact: 'Contacto',
       identity: 'Identidad',
       wallet: 'Pagos',
-      security: 'Seguridad'
+      done: 'Listo',
+      security: 'Listo'
     },
     accountCreatedBanner:
-      'Paso 2 de 5: confirmá tu contacto (~10 min en total).',
+      'Paso 1 de 4: confirmá tu contacto (~10 min en total).',
     savePhoneContinue: 'Guardar teléfono y continuar',
     continueWithKyc: 'Continuar con el proceso de identificación',
     backHome: 'Inicio',
     backToAccess: 'Volver a acceso',
-    loading: 'Cargando onboarding…',
+    loading: 'Cargando activación…',
     statusLoadFailed: 'No pudimos cargar tu progreso de activación. Revisá tu conexión e intentá de nuevo.',
     statusRetry: 'Reintentar',
     continue: 'Continuar',
@@ -2168,7 +2174,7 @@ export const es = {
       identityStep1: 'Foto de tu DNI o pasaporte',
       identityStep2: 'Selfie para confirmar que sos vos',
       identityPrivacyNotice:
-        'Los datos de identidad son tratados por nuestro proveedor KYC conforme a la Política de Privacidad. Consultá la',
+        'Los datos de identidad son tratados por nuestro proveedor de verificación conforme a la Política de Privacidad. Consultá la',
       startDidit: 'Validar identidad con teléfono celular',
       retryDidit: 'Continuar con la verificación de identidad',
       diditRedirecting: 'Conectando…',
@@ -2194,7 +2200,8 @@ export const es = {
       walletHint: 'Guardamos tu dirección para asociar compras y repagos on-chain con tu cuenta.',
       walletSkip: 'Omitir por ahora',
       doneTitle: 'Cuenta aprobada exitosamente',
-      doneDesc: 'Identidad verificada y billetera vinculada. Ya podés operar en el marketplace.',
+      doneDesc:
+        'Identidad verificada y pagos listos. Instalá la app en tu celular para ingresar con biometría y operar más fácil.',
       doneEnterPlatform: 'Ingresar a plataforma'
     },
     totp: {
@@ -2280,27 +2287,27 @@ export const es = {
       WHATSAPP_TEMPLATE_REQUIRED:
         'WhatsApp requiere plantilla aprobada o Twilio Verify. Configurá TWILIO_VERIFY_SERVICE_SID en Vercel.',
       TWILIO_AUTH_FAILED: 'Credenciales Twilio inválidas. Revisá TWILIO_ACCOUNT_SID y TWILIO_AUTH_TOKEN.',
-      DIDIT_NOT_CONFIGURED: 'Didit aún no está configurado en el servidor. Contactá a soporte.',
+      DIDIT_NOT_CONFIGURED: 'La verificación de identidad aún no está configurada en el servidor. Contactá a soporte.',
       DIDIT_SESSION_FAILED:
         'No pudimos iniciar la verificación de identidad. Revisá tu conexión e intentá de nuevo en unos segundos.',
       DIDIT_AUTH_FAILED:
-        'La configuración de Didit en el servidor no es válida. Contactá a soporte para revisar DIDIT_API_KEY.',
+        'La configuración de verificación de identidad en el servidor no es válida. Contactá a soporte.',
       DIDIT_WORKFLOW_NOT_FOUND:
-        'No encontramos el workflow KYC configurado. Contactá a soporte para revisar la integración Didit.',
+        'No encontramos el flujo de verificación configurado. Contactá a soporte.',
       DIDIT_QUOTA_EXCEEDED:
-        'Didit no pudo crear la sesión: cuota mensual gratuita agotada (500/mes) o el workflow incluye módulos de pago (ej. AML). Revisá el uso en business.didit.me.',
+        'No pudimos crear la sesión de verificación: cuota agotada o el flujo incluye módulos de pago. Contactá a soporte.',
       DIDIT_SESSION_INVALID_RESPONSE:
-        'Didit respondió de forma inesperada al iniciar la verificación. Intentá de nuevo o contactá a soporte.',
+        'La verificación respondió de forma inesperada. Intentá de nuevo o contactá a soporte.',
       DIDIT_CALLBACK_INVALID:
-        'La URL de retorno del KYC no está bien configurada en el servidor. Contactá a soporte.',
-      CONTACT_NOT_VERIFIED: 'Primero verificá tu email y cargá tu teléfono antes de iniciar el KYC.',
+        'La URL de retorno de la verificación no está bien configurada en el servidor. Contactá a soporte.',
+      CONTACT_NOT_VERIFIED: 'Primero verificá tu email y cargá tu teléfono antes de continuar la activación.',
       UNAUTHORIZED: 'Tu sesión aún no está lista. Esperá un momento e intentá de nuevo.',
       INVALID_WALLET: 'La dirección de billetera no es válida.',
       WALLET_REQUIRED: 'Conectá una billetera antes de continuar.',
       WALLET_LINK_FAILED: 'No pudimos guardar tu billetera. Intentá de nuevo.',
       WALLET_ALREADY_LINKED: 'Esta billetera ya está vinculada a otra cuenta.',
       WALLET_MISMATCH: 'La wallet conectada no coincide con la vinculada a tu cuenta.',
-      KYC_NOT_APPROVED: 'Tu KYC debe estar aprobado antes de vincular la billetera.',
+      KYC_NOT_APPROVED: 'Tu identidad debe estar verificada antes de vincular la billetera.',
       PRIVY_LOGIN_FAILED:
         'No pudimos iniciar tu billetera. Verificá tu conexión e intentá de nuevo en unos segundos.',
       DOCUMENT_ALREADY_REGISTERED:
@@ -2406,9 +2413,10 @@ export const es = {
     openCta: 'Abrir la app',
     dismiss: 'Cerrar',
     iosInstruction: 'Para instalar, tocá el ícono de Compartir (el cuadro con la flecha hacia arriba) y seleccioná "Agregar a inicio".',
-    onboardingTitle: 'Instalá la app en tu celular',
-    onboardingDesc: 'Tené la experiencia completa: acceso rápido e ingreso con biometría, directo desde tu pantalla de inicio.',
-    onboardingInstallCta: 'Instalar app',
+    onboardingTitle: 'Instalá la app Sanova',
+    onboardingDesc:
+      'Agregala a la pantalla de inicio para acceso rápido, biometría y completar tu activación sin fricciones.',
+    onboardingInstallCta: 'Instalar app ahora',
     onboardingIosContinue: 'Continuar a la plataforma',
     onboardingContinueWithoutInstalling: 'Continuar sin instalar',
     updateAvailableTitle: 'Hay una nueva versión disponible',

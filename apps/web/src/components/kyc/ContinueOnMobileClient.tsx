@@ -54,6 +54,9 @@ export function ContinueOnMobileClient() {
         </div>
         <h1 className="mt-4 text-2xl font-bold">{c.title}</h1>
         <p className="mt-2 text-sm text-slate-600">{c.desc}</p>
+        <p className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          {c.installHint}
+        </p>
 
         {checklist?.contactVerified ? (
           <p className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">

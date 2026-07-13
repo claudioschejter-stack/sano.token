@@ -1,13 +1,13 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../../i18n/LocaleProvider';
 import { resolveAuthenticatedDestination } from '../../../../lib/auth/redirects';
 import type { SystemRole } from '../../../../lib/auth/roles';
 import { canAccessPortalWithoutInvestorOnboarding } from '../../../../lib/onboarding/onboardingGate';
-import { buildKycUrl, DEFAULT_POST_ONBOARDING_PATH } from '../../../../lib/auth/kycPaths';
+import { DEFAULT_POST_ONBOARDING_PATH } from '../../../../lib/auth/kycPaths';
 import { useAccountStatus } from '../../../../hooks/useAccountStatus';
 import { useMobilePortal } from '../../../../hooks/useMobilePortal';
 import { getDevicePasskeyHint } from '../../../../lib/auth/devicePasskeyStorage';
@@ -19,27 +19,12 @@ export default function AccessCallbackClient() {
   const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const access = useTranslation().access;
-  const { isOperational, loading, refresh, checklist, registrationChannel } = useAccountStatus();
+  const { isOperational, loading, refresh, registrationChannel } = useAccountStatus();
   const isMobilePortal = useMobilePortal();
   const diditSyncStarted = useRef(false);
   const [diditSyncing, setDiditSyncing] = useState(false);
-  const [totpPendingSetup, setTotpPendingSetup] = useState<boolean | null>(null);
   const [biometricGate, setBiometricGate] = useState<{ destination: string } | null>(null);
   const hasDiditStatus = searchParams.has('status') || searchParams.has('verificationSessionId');
-
-  useEffect(() => {
-    if (status !== 'authenticated') {
-      setTotpPendingSetup(null);
-      return;
-    }
-
-    void fetch('/api/auth/totp/status', { cache: 'no-store', credentials: 'same-origin' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { pendingSetup?: boolean } | null) => {
-        setTotpPendingSetup(Boolean(data?.pendingSetup));
-      })
-      .catch(() => setTotpPendingSetup(false));
-  }, [status]);
 
   useEffect(() => {
     if (status === 'loading' || biometricGate) {
@@ -55,6 +40,7 @@ export default function AccessCallbackClient() {
       return;
     }
 
+    // Login-time TOTP challenge (desktop 2FA) — not onboarding.
     if (session?.user?.totpPending && session.user.pendingTotpToken) {
       const params = new URLSearchParams({
         t: session.user.pendingTotpToken,
@@ -72,31 +58,15 @@ export default function AccessCallbackClient() {
     const justRegistered = searchParams.get('registered') === '1';
     const role = (session?.user?.role ?? 'INVESTOR') as SystemRole;
 
-    const needsTotpStep =
-      !isOperational &&
-      checklist?.kycApproved &&
-      checklist.walletLinked &&
-      !checklist.totpEnabled;
-
-    if (needsTotpStep && totpPendingSetup === null) {
-      return;
-    }
-
-    const destination = needsTotpStep
-      ? buildKycUrl(returnTo, DEFAULT_POST_ONBOARDING_PATH, 'totp', {
-          totpMode: totpPendingSetup ? 'confirm' : undefined,
-          registered: justRegistered
-        })
-      : resolveAuthenticatedDestination(role, returnTo, isOperational, {
-          registered: justRegistered,
-          isMobile: isMobilePortal,
-          registrationChannel
-        });
+    const destination = resolveAuthenticatedDestination(role, returnTo, isOperational, {
+      registered: justRegistered,
+      isMobile: isMobilePortal,
+      registrationChannel
+    });
 
     // Post-login biometric prompt on mobile (legacy path — onboarding now enrolls during /kyc).
     const email = session?.user?.email?.trim().toLowerCase() ?? '';
     if (
-      !needsTotpStep &&
       isMobilePortal &&
       email &&
       !canAccessPortalWithoutInvestorOnboarding(role) &&
@@ -110,9 +80,6 @@ export default function AccessCallbackClient() {
     router.replace(destination);
   }, [
     biometricGate,
-    checklist?.kycApproved,
-    checklist?.totpEnabled,
-    checklist?.walletLinked,
     diditSyncing,
     hasDiditStatus,
     isMobilePortal,
@@ -126,8 +93,7 @@ export default function AccessCallbackClient() {
     session?.user?.pendingTotpToken,
     session?.user?.role,
     session?.user?.totpPending,
-    status,
-    totpPendingSetup
+    status
   ]);
 
   useEffect(() => {

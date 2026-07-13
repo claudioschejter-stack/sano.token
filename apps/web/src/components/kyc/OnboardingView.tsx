@@ -483,7 +483,7 @@ function OnboardingContent() {
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{o.eyebrow}</p>
               <h1 className="text-lg font-bold">{o.title}</h1>
               <p className="mt-0.5 text-xs font-medium text-blue-600">
-                {o.stepProgressLabel.replace('{current}', String(Math.min(progressIndex + 2, 5)))}
+                {o.stepProgressLabel.replace('{current}', String(progressIndex + 1))}
               </p>
             </div>
           </div>
@@ -493,7 +493,7 @@ function OnboardingContent() {
         </div>
 
         <div className="mx-auto mt-4 flex w-full max-w-md gap-1.5">
-          {ONBOARDING_STEPS.slice(0, -1).map((stepKey, index) => (
+          {ONBOARDING_STEPS.map((stepKey, index) => (
             <div
               key={stepKey}
               className={`h-1.5 flex-1 rounded-full transition-colors ${
@@ -506,7 +506,7 @@ function OnboardingContent() {
           <span className={progressIndex >= 0 ? 'text-blue-700' : ''}>{o.stepLabels.contact}</span>
           <span className={progressIndex >= 1 ? 'text-blue-700' : ''}>{o.stepLabels.identity}</span>
           <span className={progressIndex >= 2 ? 'text-blue-700' : ''}>{o.stepLabels.wallet}</span>
-          <span className={progressIndex >= 3 ? 'text-blue-700' : ''}>{o.stepLabels.security}</span>
+          <span className={progressIndex >= 3 ? 'text-blue-700' : ''}>{o.stepLabels.done}</span>
         </div>
       </header>
 

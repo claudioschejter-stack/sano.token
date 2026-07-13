@@ -859,16 +859,16 @@ export const en = {
     suspendedTitle: "Account suspended",
     suspendedDesc: "Contact Sanova support to restore your access.",
     stepContact: "Verify your email and register your phone to continue.",
-    stepKyc: "Complete identity verification (KYC) to deposit, withdraw and invest.",
-    stepKycRejected: "Your KYC was rejected. Review your details and try again.",
+    stepKyc: "Complete identity verification to deposit, withdraw and invest.",
+    stepKycRejected: "Your identity verification was rejected. Review your details and try again.",
     stepReview: "We are reviewing your account. We will notify you when it is ready.",
     walletRequiredTitle: "Wallet linking required",
     walletRequiredDesc:
-      "Connecting in the marketplace is not enough — activate Coinbase Wallet on Base from onboarding to link the address to your profile.",
+      "Connecting in the marketplace is not enough — activate Coinbase Wallet on Base during account activation to link the address to your profile.",
     walletRequiredCta: "Link wallet",
     totpRequiredTitle: "Google Authenticator confirmation pending",
     totpRequiredDesc:
-      "If you already added Sanova Capital in the app, return to onboarding and enter the 6-digit code to enable 2FA.",
+      "If you already added Sanova Capital in the app, open Security on desktop and enter the 6-digit code to enable 2FA.",
     totpRequiredCta: "Confirm authenticator",
     continueCta: "Complete verification",
     kycLabels: {
@@ -878,7 +878,7 @@ export const en = {
     },
     accountLabels: {
       OPERATIONAL: "Operational",
-      ONBOARDING: "Onboarding",
+      ONBOARDING: "Activation pending",
       SUSPENDED: "Suspended"
     }
   },
@@ -1898,8 +1898,10 @@ export const en = {
       }
     },
     continueOnMobile: {
-      title: "Continue on your phone",
-      desc: "Scan the QR code with your phone camera to complete identity, payments and security (~3 min).",
+      title: "Continue in the phone app",
+      desc: "Install or open the Sanova app on your phone, scan the QR, and finish contact, identity, and payments there.",
+      installHint:
+        "On your phone: open sanovacapital.com and add Sanova to your home screen for an app-like experience.",
       loadingQr: "Generating QR code…",
       phoneDoneHint: "Phone saved. Continue on your phone with the QR.",
       footerHint: "Keep this screen open until you finish on your phone.",
@@ -1922,24 +1924,25 @@ export const en = {
     continueButton: "Continue",
     sessionActiveTitle: "You already have an active session",
     sessionPendingDesc:
-      'Your account is not yet operational. Complete the 5 steps below to continue (~10 min).',
+      'Your account is not yet operational. Finish activation on your phone to continue (~10 min).',
     sessionRegisteredDesc:
-      'Account created. Complete the 5 steps below to start investing (~10 min).',
+      'Account created. Finish activation on your phone to start investing (~10 min).',
     continueVerification: "Continue activation",
     switchAccount: "Log out and log in with another account",
     sessionClosed: "Signed out successfully",
     onboardingResume: {
-      phaseLabel: "Steps 2–5: Activate your account",
-      progressHint: "Complete the checklist below to operate on the platform.",
+      phaseLabel: "Activate your account",
+      progressHint: "Complete the checklist to operate on the platform. On your phone the experience is simpler.",
       stepContact: 'Contact',
       stepEmail: 'Contact: phone and email',
       stepKyc: 'Identity',
       stepWallet: 'Payments',
+      stepDone: 'Done',
       stepTotp: 'Security on your phone',
       continueCta: "Continue activation",
       nextStepHint: 'Next: {step}',
       registeredBanner:
-        "Account created. Complete the next steps when you're ready (~10 min).",
+        "Account created. Complete the next steps in the phone app (~10 min).",
       checklistAria: "Account activation checklist",
       stepsCompleted: "{done} of {total} steps completed",
       timeRemaining: "Estimated time remaining: ~{minutes} min"
@@ -1952,12 +1955,12 @@ export const en = {
       'This account uses Google or Apple. Sign in with the Google or Apple button above.',
     backButton: 'Back',
     staffInviteAccepted:
-      "Invitation accepted. Sign in or register with the same email to continue with KYC verification.",
+      "Invitation accepted. Sign in or register with the same email to continue identity verification.",
     investorInviteAccepted:
-      "Investor invitation accepted. Register or sign in with the invited email to continue with KYC.",
+      "Investor invitation accepted. Register or sign in with the invited email to continue activation.",
     inviteInvalid: "The invitation is invalid or has expired. Ask an administrator to send a new one.",
     rolesTitle: "Platform roles",
-    rolesDesc: "All roles (Administrator, Manager, Advisor and Investor) must verify email, phone and complete KYC before trading.",
+    rolesDesc: "All roles (Administrator, Manager, Advisor and Investor) must verify email, phone and identity before trading.",
     roles: {
       ADMIN: "Administrator",
       ADVISOR_MANAGER: "Manager",
@@ -1977,10 +1980,12 @@ export const en = {
     staffPanelHint: "Operational panel according to your role permissions.",
     registerTitle: "Create new account",
     registerDesc:
-      "Create your account with email and password.\nYou'll confirm contact, identity, payments and security in the next steps (~10 min).",
+      "Create your account with email and password.\nActivation (contact, identity, and payments) is best completed in the phone app (~10 min).",
     registerButton: 'Create account',
     register: {
-      phaseLabel: "Step 1 of 5: Create account",
+      phaseLabel: "Step 1: Create account",
+      mobileAppHint:
+        "After creating your account, continue on your phone: install or open the Sanova app to finish activation.",
       fullNameLabel: "Full name",
       fullNamePlaceholder: "As it appears on your ID or passport",
       taxIdLabel: "Tax identification number",
@@ -1989,7 +1994,7 @@ export const en = {
       emailPlaceholder: "you@email.com",
       verifiedLabel: "Verified",
       pendingLabel: 'Pending',
-      kycPrefillHint: "Name and tax ID automatically filled in from your Didit verification.",
+      kycPrefillHint: "Name and tax ID automatically filled in from your identity verification.",
       profileHint: 'Your account details. Complete verification to operate on the platform.',
       passwordLabel: "Password",
       passwordPlaceholder: "Minimum 8 characters",
@@ -2003,7 +2008,7 @@ export const en = {
       securityVerifying: 'Verifying security…',
       oauthOrContinue: 'Or continue with Google or Apple',
       flowHint:
-        'Step 1: account · Steps 2–5: contact, identity, payments and security in onboarding',
+        'Step 1: create account · Then on your phone: contact, identity, and payments',
       termsAcceptLabel:
         "I accept the Legal Terms and Privacy Policy, and acknowledge private placement under the Sanova Global RWA Trust.",
       termsAcceptRequired: "You must accept the Legal Terms and Privacy Policy to continue.",
@@ -2048,7 +2053,7 @@ export const en = {
           'An account is already in progress for this email. Contact Sanova to complete access or use password recovery.'
       }
     },
-    kycTitle: "Identity verification (KYC)",
+    kycTitle: "Identity verification",
     kycDesc:
       'Available after verifying email and phone. Didit verifies your document and selfie.',
     kycButton: "Go to onboarding",
@@ -2066,33 +2071,34 @@ export const en = {
     loginNotice: "By signing in you confirm you have read the"
   },
   kyc: {
-    title: "KYC Verification",
+    title: "Identity verification",
     description:
-      'Identity verification with Didit. After approval, your status is updated automatically.',
-    simulateButton: "Simulate KYC approval (demo)",
+      'Identity verification with our provider. After approval, your status is updated automatically.',
+    simulateButton: "Simulate identity approval (demo)",
     cancel: "Cancel",
-    loading: "Loading KYC…"
+    loading: "Loading verification…"
   },
   onboarding: {
-    eyebrow: "Mobile registration",
+    eyebrow: "Activation",
     title: "Activate your account",
-    phaseLabel: 'Steps 2–5: Activate your account',
-    stepProgressLabel: 'Step {current} of 5',
+    phaseLabel: 'Activate your account',
+    stepProgressLabel: 'Step {current} of 4',
     introBanner:
       'This takes about 10 minutes. You need your ID or passport and your mobile phone handy.',
     stepLabels: {
       contact: 'Contact',
       identity: 'Identity',
       wallet: 'Payments',
-      security: 'Security'
+      done: 'Done',
+      security: 'Done'
     },
     accountCreatedBanner:
-      'Step 2 of 5: confirm your contact (~10 min total).',
+      'Step 1 of 4: confirm your contact (~10 min total).',
     savePhoneContinue: "Save phone and continue",
     continueWithKyc: "Continue with identity verification",
     backHome: "Start",
     backToAccess: "Return to access",
-    loading: "Loading onboarding…",
+    loading: "Loading activation…",
     statusLoadFailed: 'We could not load your activation progress. Check your connection and try again.',
     statusRetry: 'Try again',
     continue: "Continue",
@@ -2134,9 +2140,9 @@ export const en = {
       identityStep1: 'Photo of your ID or passport',
       identityStep2: 'Selfie to confirm it is really you',
       identityPrivacyNotice:
-        "Identity data is processed by our KYC provider under our Privacy Policy. See",
+        "Identity data is processed by our verification provider under our Privacy Policy. See",
       startDidit: "Validate identity with cell phone",
-      retryDidit: "Retry Didit verification",
+      retryDidit: "Continue identity verification",
       diditRedirecting: "Connecting…",
       diditProcessing: "Processing identity verification…",
       kycPendingReview:
@@ -2160,7 +2166,8 @@ export const en = {
       walletHint: "We save your address to match on-chain purchases and repayments with your account.",
       walletSkip: "Skip for now",
       doneTitle: "Account approved successfully",
-      doneDesc: "Identity verified and wallet linked. You can now operate in the marketplace.",
+      doneDesc:
+        "Identity verified and payments ready. Install the app on your phone for biometric login and a smoother experience.",
       doneEnterPlatform: "Enter platform"
     },
     totp: {
@@ -2364,9 +2371,10 @@ export const en = {
     openCta: "Open app",
     dismiss: "Close",
     iosInstruction: 'To install, tap the Share icon (the square with an up arrow) and select "Add to Home Screen".',
-    onboardingTitle: "Install the app on your phone",
-    onboardingDesc: "Get the full experience — fast access, and biometric login, right from your home screen.",
-    onboardingInstallCta: "Install app",
+    onboardingTitle: "Install the Sanova app",
+    onboardingDesc:
+      "Add it to your home screen for fast access, biometrics, and a smoother activation.",
+    onboardingInstallCta: "Install app now",
     onboardingIosContinue: "Continue to the platform",
     onboardingContinueWithoutInstalling: "Continue without installing",
     updateAvailableTitle: "A new version is available",

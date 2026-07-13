@@ -129,6 +129,10 @@ function RegisterPageContent() {
           </div>
         </div>
 
+        <p className="mb-5 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          {a.register.mobileAppHint}
+        </p>
+
         <RegisterForm
           returnTo={returnTo}
           initialEmail={inviteEmail}
