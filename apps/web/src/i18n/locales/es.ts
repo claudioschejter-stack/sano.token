@@ -1563,6 +1563,14 @@ export const es = {
       'Conectá tu Coinbase Wallet en Base. La dirección queda en tu perfil para pagos, depósitos y cobro de rentas en USDC.',
     back: 'Volver'
   },
+  loansPreference: {
+    title: 'Préstamos',
+    subtitle:
+      'Activá esta opción para ver el menú de préstamos y solicitar financiamiento sobre tus activos.',
+    inactiveLabel: 'Activar préstamos',
+    activeLabel: 'Préstamos activados',
+    error: 'No se pudo guardar. Intentá de nuevo.'
+  },
   platformWallet: {
     eyebrow: 'Wallet Sanova',
     title: 'Mi cartera',

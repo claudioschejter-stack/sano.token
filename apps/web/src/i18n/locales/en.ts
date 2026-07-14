@@ -1549,6 +1549,13 @@ export const en = {
       "Connect your Coinbase Wallet on Base. The address is saved to your profile for payments, deposits, and USDC rent payouts.",
     back: "Back"
   },
+  loansPreference: {
+    title: "Loans",
+    subtitle: "Turn this on to show the loans menu and request financing against your assets.",
+    inactiveLabel: "Activate loans",
+    activeLabel: "Loans activated",
+    error: "Couldn't save. Please try again."
+  },
   platformWallet: {
     eyebrow: "Sanova Wallet",
     title: "My wallet",

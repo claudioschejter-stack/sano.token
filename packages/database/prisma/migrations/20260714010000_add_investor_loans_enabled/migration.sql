@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Investor" ADD COLUMN IF NOT EXISTS "loansEnabled" BOOLEAN NOT NULL DEFAULT false;

@@ -25,7 +25,7 @@ export function PwaCollectionWalletCard() {
   const [expanded, setExpanded] = useState(false);
 
   const walletLinked = Boolean(checklist?.walletLinked);
-  const returnTo = searchParams.get('returnTo') ?? '/dashboard';
+  const returnTo = searchParams.get('returnTo') ?? '/dashboard/settings/security';
   const pendingPreference = searchParams.get('preference') === 'USDC' ? 'USDC' : undefined;
 
   useEffect(() => {

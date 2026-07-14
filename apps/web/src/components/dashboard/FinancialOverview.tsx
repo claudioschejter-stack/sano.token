@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Building2, CircleDollarSign, Landmark, ShieldCheck, TrendingUp } from 'lucide-react';
 import { useRealTimeDividends } from '../../hooks/useRealTimeDividends';
 import {
@@ -34,10 +34,10 @@ import {
 import { useSession } from 'next-auth/react';
 import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
-import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
 import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
 import { useMobilePortal } from '../../hooks/useMobilePortal';
 import { PwaDashboard } from '../pwa/PwaDashboard';
+import { useLoansPreference } from '../../hooks/useLoansPreference';
 
 export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
@@ -47,7 +47,8 @@ export function FinancialOverview() {
   const d = t.dashboard;
   const isMobilePortal = useMobilePortal();
   const { data: session } = useSession();
-  const canRequestMorphoLoan = isMarketplaceTradingRole(session?.user?.role);
+  const { loansEnabled } = useLoansPreference();
+  const canRequestMorphoLoan = isMarketplaceTradingRole(session?.user?.role) && loansEnabled;
   const { intlLocale } = useLocale();
   const { formatUsd: formatUsdc, formatPercent, formatDateTime, formatMonthLabel } = useMemo(
     () => createIntlFormatters(intlLocale),
@@ -125,10 +126,6 @@ export function FinancialOverview() {
       <LiveDividendStream />
       <InvestorPageHeader eyebrow={d.eyebrow} title={d.title} subtitle={d.subtitle} />
       <AccountStatusBanner showWhenOperational />
-
-      <Suspense fallback={<div className="h-48 animate-pulse rounded-xl border border-terminal-border bg-terminal-card" />}>
-        <InvestorCollectionWalletPanel />
-      </Suspense>
 
       <MorphoLiquidityPanel loansHref="/marketplace" showLoansLink={canRequestMorphoLoan} />
 

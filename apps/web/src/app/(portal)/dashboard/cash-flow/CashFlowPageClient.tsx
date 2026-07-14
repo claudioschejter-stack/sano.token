@@ -23,6 +23,7 @@ import { CheckCircle2 } from 'lucide-react';
 import { collectionWalletHref } from '../../../../lib/navigation/collectionWalletPath';
 
 import { useMobilePortal } from '../../../../hooks/useMobilePortal';
+import { useLoansPreference } from '../../../../hooks/useLoansPreference';
 import { PwaCashFlowView } from '../../../../components/pwa/PwaCashFlowView';
 
 export function CashFlowPageClient() {
@@ -31,6 +32,7 @@ export function CashFlowPageClient() {
   const c = t.cashFlow;
   const router = useRouter();
   const walletGuard = useLinkedWalletGuard();
+  const { loansEnabled } = useLoansPreference();
   const { intlLocale } = useLocale();
   const { formatUsd, formatDate } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
 
@@ -110,7 +112,9 @@ export function CashFlowPageClient() {
         />
       </section>
 
-      <MorphoRepayPanel onRepaid={() => void fetchPortfolio()} />
+      {loansEnabled || marginDebt > 0 ? (
+        <MorphoRepayPanel onRepaid={() => void fetchPortfolio()} />
+      ) : null}
 
       <ProjectYieldPanel />
 

@@ -15,6 +15,7 @@ import {
 import type { AggregatedPortfolio } from '../../../lib/portfolio/portfolioAggregator';
 import { createIntlFormatters } from '../../../i18n/formatters';
 import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
+import { useLoansPreference } from '../../../hooks/useLoansPreference';
 import { InvestorKpiCard } from './InvestorKpiCard';
 import { InvestorSection } from './InvestorSection';
 
@@ -30,16 +31,18 @@ function formatAmount(value: number, intlLocale: string): string {
 
 function TokenActions({
   projectId,
-  labels
+  labels,
+  showLoan
 }: {
   projectId: string;
   labels: { buy: string; sell: string; loan: string };
+  showLoan: boolean;
 }) {
   const buttonClass =
     'inline-flex min-h-9 w-full items-center justify-center rounded-md px-2 py-1.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-wide text-white sm:text-xs';
 
   return (
-    <div className="grid grid-cols-3 gap-1.5">
+    <div className={`grid gap-1.5 ${showLoan ? 'grid-cols-3' : 'grid-cols-2'}`}>
       <Link
         href={`/marketplace/${projectId}/checkout`}
         className={`${buttonClass} bg-terminal-primary hover:bg-blue-500`}
@@ -52,12 +55,14 @@ function TokenActions({
       >
         {labels.sell}
       </Link>
-      <Link
-        href={`/marketplace/${projectId}/prestamo`}
-        className={`${buttonClass} bg-orange-500 hover:bg-orange-600`}
-      >
-        {labels.loan}
-      </Link>
+      {showLoan ? (
+        <Link
+          href={`/marketplace/${projectId}/prestamo`}
+          className={`${buttonClass} bg-orange-500 hover:bg-orange-600`}
+        >
+          {labels.loan}
+        </Link>
+      ) : null}
     </div>
   );
 }
@@ -66,7 +71,8 @@ function RwaPositionTable({
   rows,
   labels,
   formatUsd,
-  intlLocale
+  intlLocale,
+  showLoan
 }: {
   rows: PositionRow[];
   labels: {
@@ -83,6 +89,7 @@ function RwaPositionTable({
   };
   formatUsd: (value: number) => string;
   intlLocale: string;
+  showLoan: boolean;
 }) {
   const actionLabels = { buy: labels.actionBuy, sell: labels.actionSell, loan: labels.actionLoan };
 
@@ -124,7 +131,7 @@ function RwaPositionTable({
               </div>
               {projectId ? (
                 <div className="mt-3 border-t border-terminal-border pt-3">
-                  <TokenActions projectId={projectId} labels={actionLabels} />
+                  <TokenActions projectId={projectId} labels={actionLabels} showLoan={showLoan} />
                 </div>
               ) : null}
             </article>
@@ -167,7 +174,9 @@ function RwaPositionTable({
                     {formatUsd(row.valueUsd)}
                   </td>
                   <td className="px-3 py-3 lg:px-4">
-                    {projectId ? <TokenActions projectId={projectId} labels={actionLabels} /> : null}
+                    {projectId ? (
+                      <TokenActions projectId={projectId} labels={actionLabels} showLoan={showLoan} />
+                    ) : null}
                   </td>
                 </tr>
               );
@@ -298,6 +307,7 @@ export function InvestorPortfolioPanel() {
   const p = t.portfolio;
   const { intlLocale } = useLocale();
   const { formatUsd } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
+  const { loansEnabled } = useLoansPreference();
 
   const [portfolio, setPortfolio] = useState<AggregatedPortfolio | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -496,6 +506,7 @@ export function InvestorPortfolioPanel() {
           }}
           formatUsd={formatUsd}
           intlLocale={intlLocale}
+          showLoan={loansEnabled}
         />
       </InvestorSection>
 

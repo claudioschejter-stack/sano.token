@@ -4,6 +4,7 @@ import { isMarketplaceTradingRole } from '../../../../../lib/auth/roles';
 import { ProjectBorrowView } from '../../../../../components/marketplace/ProjectBorrowView';
 import { getLinkedWalletForUser } from '../../../../../lib/investor/linkedWalletPolicy';
 import { assertOperationalInvestor, getUserPurchaseContext } from '../../../../../lib/investor/investorService';
+import { getLoansEnabledForUser } from '../../../../../lib/investor/loansPreferenceService';
 import { collectionWalletHref } from '../../../../../lib/navigation/collectionWalletPath';
 
 type ProjectBorrowPageProps = {
@@ -26,6 +27,11 @@ export default async function MarketplaceProjectBorrowPage({ params }: ProjectBo
   const userId = session.user.id;
   if (!userId) {
     redirect(`/acceso?returnTo=${encodeURIComponent(returnTo)}`);
+  }
+
+  const loansEnabled = await getLoansEnabledForUser(userId);
+  if (!loansEnabled) {
+    redirect('/marketplace');
   }
 
   const user = await getUserPurchaseContext(userId);

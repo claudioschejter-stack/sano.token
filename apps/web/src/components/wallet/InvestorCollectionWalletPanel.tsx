@@ -27,7 +27,7 @@ export function InvestorCollectionWalletPanel({
   const sectionRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const returnTo = returnToProp ?? searchParams.get('returnTo') ?? '/dashboard';
+  const returnTo = returnToProp ?? searchParams.get('returnTo') ?? '/dashboard/settings/security';
   const pendingPreference = preferenceProp ?? (searchParams.get('preference') === 'USDC' ? 'USDC' : undefined);
 
   useEffect(() => {
@@ -68,11 +68,13 @@ export function InvestorCollectionWalletPanel({
             }
 
             const targetPath = returnTo.split('#')[0];
-            if (targetPath === '/dashboard' && pathname === '/dashboard') {
-              return;
-            }
-            if (targetPath === pathname && !returnTo.includes('#')) {
-              return;
+            if (
+              targetPath === pathname ||
+              (targetPath === '/dashboard/settings/security' && pathname === '/dashboard/settings/security')
+            ) {
+              if (!returnTo.includes('#')) {
+                return;
+              }
             }
 
             router.push(returnTo);

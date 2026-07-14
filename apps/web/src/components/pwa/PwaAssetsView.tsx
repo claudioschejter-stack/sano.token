@@ -9,6 +9,7 @@ import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { MP_ACCENT, MP_ACCENT_SOFT } from '../../lib/pwa/mpTheme';
 import { PwaWalletView } from './PwaWalletView';
+import { useLoansPreference } from '../../hooks/useLoansPreference';
 
 type PositionRow = AggregatedPortfolio['positions'][number];
 type AssetsTab = 'assets' | 'wallet';
@@ -21,7 +22,8 @@ function PositionCard({
   row,
   formatUsd,
   intlLocale,
-  labels
+  labels,
+  showLoan
 }: {
   row: PositionRow;
   formatUsd: (value: number) => string;
@@ -34,6 +36,7 @@ function PositionCard({
     sell: string;
     loan: string;
   };
+  showLoan: boolean;
 }) {
   const projectId = String(row.metadata?.projectId ?? '');
 
@@ -61,7 +64,7 @@ function PositionCard({
       </div>
 
       {projectId ? (
-        <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className={`mt-4 grid gap-2 ${showLoan ? 'grid-cols-3' : 'grid-cols-2'}`}>
           <Link
             href={`/marketplace/${projectId}/checkout`}
             className="flex min-h-10 items-center justify-center rounded-xl text-xs font-semibold text-white"
@@ -75,12 +78,14 @@ function PositionCard({
           >
             {labels.sell}
           </Link>
-          <Link
-            href={`/marketplace/${projectId}/prestamo`}
-            className="flex min-h-10 items-center justify-center rounded-xl bg-orange-500 text-xs font-semibold text-white"
-          >
-            {labels.loan}
-          </Link>
+          {showLoan ? (
+            <Link
+              href={`/marketplace/${projectId}/prestamo`}
+              className="flex min-h-10 items-center justify-center rounded-xl bg-orange-500 text-xs font-semibold text-white"
+            >
+              {labels.loan}
+            </Link>
+          ) : null}
         </div>
       ) : null}
     </article>
@@ -93,6 +98,7 @@ export function PwaAssetsView() {
   const searchParams = useSearchParams();
   const { intlLocale } = useLocale();
   const { formatUsd } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
+  const { loansEnabled } = useLoansPreference();
 
   const initialTab: AssetsTab = searchParams.get('tab') === 'wallet' ? 'wallet' : 'assets';
   const [tab, setTab] = useState<AssetsTab>(initialTab);
@@ -221,6 +227,7 @@ export function PwaAssetsView() {
                       formatUsd={formatUsd}
                       intlLocale={intlLocale}
                       labels={actionLabels}
+                      showLoan={loansEnabled}
                     />
                   ))
                 )}

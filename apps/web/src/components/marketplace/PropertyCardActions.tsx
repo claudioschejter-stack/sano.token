@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { SystemRole } from '../../lib/auth/roles';
 import { isMarketplaceTradingRole } from '../../lib/auth/roles';
+import { useLoansPreference } from '../../hooks/useLoansPreference';
 import { PropertyActionButton } from './PropertyActionButton';
 
 export type PropertyCardActionsProps = {
@@ -89,9 +90,10 @@ export function PropertyCardActions({
 }: PropertyCardActionsProps) {
   const t = useTranslation();
   const [showWaitlist, setShowWaitlist] = useState(false);
+  const { loansEnabled } = useLoansPreference();
   const isSoldOut = availableTokens <= 0;
   const isVerified = kycStatus === 'APPROVED';
-  const canRequestLoan = readyToBorrow && isMarketplaceTradingRole(role) && isVerified;
+  const canRequestLoan = loansEnabled && readyToBorrow && isMarketplaceTradingRole(role) && isVerified;
   const canPurchase = !isSoldOut && purchaseEnabled;
 
   const handlePrimaryAction = () => {

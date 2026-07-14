@@ -478,6 +478,7 @@ model Investor {
   brokerAccountRef     String?
   dividendPreference   String               @default("CASH")
   rentPayoutPreference RentPayoutPreference @default(FIAT)
+  loansEnabled         Boolean              @default(false)
   totalCapital         Decimal              @default(0) @db.Decimal(20, 6)
   marginDebt               Decimal      @default(0) @db.Decimal(20, 6)
   ltv                      Decimal      @default(0) @db.Decimal(8, 4)

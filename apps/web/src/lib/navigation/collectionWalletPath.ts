@@ -1,6 +1,6 @@
 export const COLLECTION_WALLET_SECTION_ID = 'conexion-billetera';
 
-export const COLLECTION_WALLET_PATH = '/dashboard';
+export const COLLECTION_WALLET_PATH = '/dashboard/settings/security';
 
 export function collectionWalletHref(options?: { returnTo?: string; preference?: 'USDC' }) {
   const params = new URLSearchParams();

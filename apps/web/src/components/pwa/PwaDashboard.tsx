@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   ChevronRight,
@@ -18,7 +18,6 @@ import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregato
 import { useDividendStore } from '../../store/useDividendStore';
 import { translateDistributionConcept } from '../../i18n/demoLabels';
 import { PwaPropertyCarousel } from './PwaPropertyCarousel';
-import { PwaCollectionWalletCard } from './PwaCollectionWalletCard';
 import { MP_ACCENT, MP_ACCENT_SOFT } from '../../lib/pwa/mpTheme';
 
 type Props = {
@@ -99,10 +98,6 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
           </div>
         </div>
       </div>
-
-      <Suspense fallback={<div className="mx-4 h-24 animate-pulse rounded-3xl bg-slate-100" />}>
-        <PwaCollectionWalletCard />
-      </Suspense>
 
       <div className="px-4">
         <h3 className="text-lg font-bold text-slate-900">{h.recentActivityTitle}</h3>

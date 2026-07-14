@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { useLoansPreference } from '../../hooks/useLoansPreference';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
 type SectionTab = {
@@ -17,13 +18,14 @@ function isTabActive(pathname: string, href: string): boolean {
 export function PwaSectionTabs() {
   const pathname = usePathname();
   const t = useTranslation();
+  const { loansEnabled } = useLoansPreference();
 
   const tabs: SectionTab[] = [
     { href: '/dashboard', label: t.nav.globalPosition },
     { href: '/marketplace', label: t.nav.marketplace },
     { href: '/mercado-secundario', label: t.nav.secondaryMarket },
     { href: '/dashboard/portfolio', label: t.nav.myAssets },
-    { href: '/dashboard/loans', label: t.nav.loans }
+    ...(loansEnabled ? [{ href: '/dashboard/loans', label: t.nav.loans }] : [])
   ];
 
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
@@ -23,6 +23,9 @@ import { APP_VERSION } from '../../generated/appVersion';
 import { OTPInput } from './OTPInput';
 import { PasskeyRegisterInline } from './PasskeyRegisterInline';
 import { PwaProfileIdentityCard } from '../pwa/PwaProfileIdentityCard';
+import { PwaCollectionWalletCard } from '../pwa/PwaCollectionWalletCard';
+import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
+import { LoansPreferenceToggle } from './LoansPreferenceToggle';
 
 type Step = 'idle' | 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
 type View = 'overview' | 'setup' | 'disable' | 'backup-codes';
@@ -245,6 +248,21 @@ export function SecuritySettingsView() {
           </p>
         </div>
 
+        {/* Billetera de cobro (Coinbase + cambiar billetera) */}
+        <Suspense
+          fallback={
+            <div
+              className={
+                isMobile
+                  ? 'mx-4 h-24 animate-pulse rounded-3xl bg-slate-100'
+                  : 'h-48 animate-pulse rounded-xl border border-slate-200 bg-white'
+              }
+            />
+          }
+        >
+          {isMobile ? <PwaCollectionWalletCard /> : <InvestorCollectionWalletPanel />}
+        </Suspense>
+
         {/* Passkeys / Biometría */}
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex items-start gap-4">
@@ -335,6 +353,8 @@ export function SecuritySettingsView() {
             </div>
           </div>
         </section>
+
+        <LoansPreferenceToggle />
 
         {/* Cerrar sesión */}
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
