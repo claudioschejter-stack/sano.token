@@ -11,6 +11,7 @@ import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
+import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
 
 type WalletSummary = {
   account: { balance: string; reserved: string; available: string; currency: string; status: string };
@@ -30,14 +31,85 @@ type ActivityItem = {
   date: string;
 };
 
-export function PwaWalletView() {
+type PositionRow = AggregatedPortfolio['positions'][number];
+
+function formatAmount(value: number, intlLocale: string): string {
+  return value.toLocaleString(intlLocale, { maximumFractionDigits: 6 });
+}
+
+function sumPositionUsd(rows: PositionRow[]): number {
+  return rows.reduce((sum, row) => sum + row.valueUsd, 0);
+}
+
+/** Groups by currency/type and shows each balance converted to USD; a $0 total when empty. */
+function PositionTypeSection({
+  title,
+  rows,
+  emptyLabel,
+  formatUsd,
+  intlLocale
+}: {
+  title: string;
+  rows: PositionRow[];
+  emptyLabel: string;
+  formatUsd: (value: number) => string;
+  intlLocale: string;
+}) {
+  const totalUsd = sumPositionUsd(rows);
+
+  return (
+    <section className="px-4">
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+        <span className="rounded-lg px-2 py-1 text-xs font-bold" style={{ backgroundColor: `${MP_ACCENT}1a`, color: MP_ACCENT }}>
+          {formatUsd(totalUsd)}
+        </span>
+      </div>
+      <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+        {rows.length === 0 ? (
+          <p className="p-4 text-center text-sm text-slate-500">{emptyLabel}</p>
+        ) : (
+          rows.map((row, idx) => (
+            <article
+              key={row.id}
+              className={`flex items-center justify-between px-4 py-3 ${idx !== 0 ? 'border-t border-slate-100' : ''}`}
+            >
+              <div>
+                <p className="text-sm font-semibold text-slate-900">{row.currency}</p>
+                <p className="text-xs text-slate-500">{formatAmount(row.amount, intlLocale)}</p>
+              </div>
+              <p className="text-sm font-bold text-slate-900">{formatUsd(row.valueUsd)}</p>
+            </article>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+type Props = {
+  portfolio?: AggregatedPortfolio | null;
+  isLoadingPortfolio?: boolean;
+};
+
+export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: Props) {
   const router = useRouter();
   const t = useTranslation();
   const w = t.platformWallet;
   const tw = t.wallet;
+  const p = t.portfolio;
   const { intlLocale } = useLocale();
   const { formatUsd, formatDateTime } = useMemo(() => createIntlFormatters(intlLocale), [intlLocale]);
   const { checklist } = useAccountStatus();
+
+  const stablecoinPositions = useMemo(
+    () => portfolio?.positions.filter((row) => row.type === 'STABLECOIN') ?? [],
+    [portfolio]
+  );
+  const fiatPositions = useMemo(
+    () => portfolio?.positions.filter((row) => row.type === 'FIAT_BALANCE') ?? [],
+    [portfolio]
+  );
 
   const [wallet, setWallet] = useState<WalletSummary | null>(null);
   const [isLoadingWallet, setIsLoadingWallet] = useState(true);
@@ -206,6 +278,25 @@ export function PwaWalletView() {
           Disponible: <span className="font-semibold text-emerald-600">{formatUsd(available)}</span>
         </p>
       </div>
+
+      {!isLoadingPortfolio ? (
+        <>
+          <PositionTypeSection
+            title={p.sectionStablecoins}
+            rows={stablecoinPositions}
+            emptyLabel={p.sectionStablecoinsEmpty}
+            formatUsd={formatUsd}
+            intlLocale={intlLocale}
+          />
+          <PositionTypeSection
+            title={p.sectionFiat}
+            rows={fiatPositions}
+            emptyLabel={p.sectionFiatEmpty}
+            formatUsd={formatUsd}
+            intlLocale={intlLocale}
+          />
+        </>
+      ) : null}
 
       <div className="grid grid-cols-3 gap-2 px-4">
         <button

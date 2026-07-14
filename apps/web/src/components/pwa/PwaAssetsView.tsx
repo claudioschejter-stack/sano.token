@@ -123,12 +123,6 @@ export function PwaAssetsView() {
     () => portfolio?.positions.filter((row) => row.type === 'RWA_TOKEN') ?? [],
     [portfolio]
   );
-  const otherPositions = useMemo(
-    () =>
-      portfolio?.positions.filter((row) => row.type === 'STABLECOIN' || row.type === 'FIAT_BALANCE') ??
-      [],
-    [portfolio]
-  );
 
   const actionLabels = {
     quantity: p.colQuantity,
@@ -169,7 +163,7 @@ export function PwaAssetsView() {
 
       {tab === 'wallet' ? (
         <div className="px-0">
-          <PwaWalletView />
+          <PwaWalletView portfolio={portfolio} isLoadingPortfolio={isLoading} />
         </div>
       ) : (
         <div className="space-y-4 px-4">
@@ -232,28 +226,6 @@ export function PwaAssetsView() {
                   ))
                 )}
               </section>
-
-              {otherPositions.length > 0 ? (
-                <section className="space-y-3">
-                  <h2 className="text-sm font-semibold text-slate-900">
-                    {p.sectionStablecoins} / {p.sectionFiat}
-                  </h2>
-                  {otherPositions.map((row) => (
-                    <article
-                      key={row.id}
-                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm ring-1 ring-slate-100"
-                    >
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">{row.label}</p>
-                        <p className="text-xs text-slate-500">
-                          {formatAmount(row.amount, intlLocale)} {row.currency}
-                        </p>
-                      </div>
-                      <p className="text-sm font-bold text-slate-900">{formatUsd(row.valueUsd)}</p>
-                    </article>
-                  ))}
-                </section>
-              ) : null}
 
               <button
                 type="button"
