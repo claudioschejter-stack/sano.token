@@ -129,7 +129,8 @@ export function ProjectYieldPanel({ compact = false }: ProjectYieldPanelProps) {
             investedUsd: 0,
             totalReceivedUsd: 0,
             weightedTargetYieldPercent: null,
-            portfolioRealizedYieldPercent: null
+            portfolioRealizedYieldPercent: null,
+            platformAverageTargetYieldPercent: null
           }
         });
       })

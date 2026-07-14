@@ -33,6 +33,8 @@ export type ProjectYieldSummary = {
     totalReceivedUsd: number;
     weightedTargetYieldPercent: number | null;
     portfolioRealizedYieldPercent: number | null;
+    /** Simple (unweighted) average of the declared targetYield across all active platform tokens. */
+    platformAverageTargetYieldPercent: number | null;
   };
 };
 
@@ -82,7 +84,27 @@ function resolveProjectIdForAsset(
   return null;
 }
 
+/**
+ * Simple average of the declared `targetYield` across every currently active
+ * platform token (sold out or not) — not weighted by any single investor's holdings.
+ */
+export async function getPlatformAverageTargetYieldPercent(): Promise<number | null> {
+  const projects = await prisma.project.findMany({
+    where: { isActive: true },
+    select: { targetYield: true }
+  });
+
+  if (projects.length === 0) {
+    return null;
+  }
+
+  const sum = projects.reduce((total, project) => total + project.targetYield.toNumber(), 0);
+  return Number((sum / projects.length).toFixed(2));
+}
+
 export async function getProjectYieldForUser(platformUserId: string): Promise<ProjectYieldSummary> {
+  const platformAverageTargetYieldPercent = await getPlatformAverageTargetYieldPercent();
+
   const investorId = await resolveInvestorId(platformUserId);
   if (!investorId) {
     return {
@@ -91,7 +113,8 @@ export async function getProjectYieldForUser(platformUserId: string): Promise<Pr
         investedUsd: 0,
         totalReceivedUsd: 0,
         weightedTargetYieldPercent: null,
-        portfolioRealizedYieldPercent: null
+        portfolioRealizedYieldPercent: null,
+        platformAverageTargetYieldPercent
       }
     };
   }
@@ -279,7 +302,8 @@ export async function getProjectYieldForUser(platformUserId: string): Promise<Pr
       totalReceivedUsd,
       weightedTargetYieldPercent,
       portfolioRealizedYieldPercent:
-        investedUsd > 0 ? Number(((totalReceivedUsd / investedUsd) * 100).toFixed(2)) : null
+        investedUsd > 0 ? Number(((totalReceivedUsd / investedUsd) * 100).toFixed(2)) : null,
+      platformAverageTargetYieldPercent
     }
   };
 }

@@ -22,10 +22,10 @@ import { MP_ACCENT, MP_ACCENT_SOFT } from '../../lib/pwa/mpTheme';
 
 type Props = {
   portfolio: AggregatedPortfolio | null;
-  displayTargetYield: number;
+  historicalYieldPercent: number | null;
 };
 
-export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
+export function PwaDashboard({ portfolio, historicalYieldPercent }: Props) {
   const t = useTranslation();
   const h = t.pwaHome;
   const { intlLocale } = useLocale();
@@ -65,10 +65,19 @@ export function PwaDashboard({ portfolio, displayTargetYield }: Props) {
             </button>
           </div>
 
-          <div className="mt-1 flex items-center gap-1 text-sm font-medium text-emerald-600">
-            <TrendingUp size={14} />
-            <span>{formatMessage(h.yieldLabel, { percent: formatPercent(displayTargetYield / 100) })}</span>
-          </div>
+          {historicalYieldPercent != null ? (
+            <>
+              <div className="mt-1 flex items-center gap-1 text-sm font-medium text-emerald-600">
+                <TrendingUp size={14} />
+                <span>
+                  {formatMessage(h.historicalYieldLabel, {
+                    percent: formatPercent(historicalYieldPercent)
+                  })}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] text-slate-400">{h.historicalYieldFootnote}</p>
+            </>
+          ) : null}
 
           <div className="mt-6 grid grid-cols-3 gap-3">
             <Link

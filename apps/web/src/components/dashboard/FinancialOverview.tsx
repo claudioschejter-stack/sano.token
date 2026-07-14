@@ -43,6 +43,7 @@ export function FinancialOverview() {
   const [mounted, setMounted] = useState(false);
   const [portfolio, setPortfolio] = useState<AggregatedPortfolio | null>(null);
   const [weightedTargetYield, setWeightedTargetYield] = useState<number | null>(null);
+  const [platformAverageYield, setPlatformAverageYield] = useState<number | null>(null);
   const t = useTranslation();
   const d = t.dashboard;
   const isMobilePortal = useMobilePortal();
@@ -78,10 +79,21 @@ export function FinancialOverview() {
       .catch(() => setPortfolio(null));
     void fetch('/api/portfolio/yield-by-project', { cache: 'no-store' })
       .then((response) => response.json())
-      .then((data: { totals?: { weightedTargetYieldPercent?: number | null } }) =>
-        setWeightedTargetYield(data.totals?.weightedTargetYieldPercent ?? null)
+      .then(
+        (data: {
+          totals?: {
+            weightedTargetYieldPercent?: number | null;
+            platformAverageTargetYieldPercent?: number | null;
+          };
+        }) => {
+          setWeightedTargetYield(data.totals?.weightedTargetYieldPercent ?? null);
+          setPlatformAverageYield(data.totals?.platformAverageTargetYieldPercent ?? null);
+        }
       )
-      .catch(() => setWeightedTargetYield(null));
+      .catch(() => {
+        setWeightedTargetYield(null);
+        setPlatformAverageYield(null);
+      });
   }, [fetchDividends]);
 
   const chartData = useMemo(
@@ -116,7 +128,7 @@ export function FinancialOverview() {
     return (
       <>
         <LiveDividendStream />
-        <PwaDashboard portfolio={portfolio} displayTargetYield={displayTargetYield} />
+        <PwaDashboard portfolio={portfolio} historicalYieldPercent={platformAverageYield} />
       </>
     );
   }

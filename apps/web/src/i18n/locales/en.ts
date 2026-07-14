@@ -2828,6 +2828,9 @@ export const en = {
     hideBalance: "Hide balance",
     showBalance: "Show balance",
     yieldLabel: "Yields {percent} APY",
+    historicalYieldLabel: "Historical yield {percent}*",
+    historicalYieldFootnote:
+      "* Average of the declared yields of all tokens currently on the platform.",
     recentActivityTitle: "Recent activity",
     recentActivityEmpty: "You don't have any recent activity yet.",
     viewAllActivity: "View all",

@@ -2873,6 +2873,9 @@ export const es = {
     hideBalance: 'Ocultar saldo',
     showBalance: 'Mostrar saldo',
     yieldLabel: 'Rinde {percent} APY',
+    historicalYieldLabel: 'Rendimiento histórico {percent}*',
+    historicalYieldFootnote:
+      '* Promedio de los rendimientos declarados de todos los tokens que existen actualmente en la plataforma.',
     recentActivityTitle: 'Últimas actividades',
     recentActivityEmpty: 'Aún no tenés movimientos recientes.',
     viewAllActivity: 'Consultar todas',
