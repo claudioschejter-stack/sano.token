@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { investorSessionForbiddenResponse, requireInvestorSession } from '../../../../lib/onboarding/requireInvestorSession';
+import { auth } from '../../../../auth';
 import {
   getLoansEnabledForUser,
   updateLoansEnabledForUser
@@ -7,16 +7,24 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * This is a settings preference toggle, not a checkout/trading action, so it
+ * only requires an authenticated session — it must NOT gate on marketplace
+ * checkout eligibility (KYC + linked collection wallet + 2FA), otherwise
+ * accounts that haven't linked a wallet yet can never activate the switch.
+ */
+async function requireAuthenticatedUserId(): Promise<string | null> {
+  const session = await auth();
+  return session?.user?.id ?? null;
+}
+
 export async function GET() {
-  const ctx = await requireInvestorSession();
-  if (!ctx) {
+  const userId = await requireAuthenticatedUserId();
+  if (!userId) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
   }
-  if ('forbidden' in ctx) {
-    return investorSessionForbiddenResponse(ctx);
-  }
 
-  const loansEnabled = await getLoansEnabledForUser(ctx.userId);
+  const loansEnabled = await getLoansEnabledForUser(userId);
   if (loansEnabled === null) {
     return NextResponse.json({ error: 'INVESTOR_NOT_FOUND' }, { status: 404 });
   }
@@ -25,12 +33,9 @@ export async function GET() {
 }
 
 export async function PATCH(request: Request) {
-  const ctx = await requireInvestorSession();
-  if (!ctx) {
+  const userId = await requireAuthenticatedUserId();
+  if (!userId) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
-  }
-  if ('forbidden' in ctx) {
-    return investorSessionForbiddenResponse(ctx);
   }
 
   const body = (await request.json().catch(() => ({}))) as { loansEnabled?: unknown };
@@ -39,7 +44,7 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const loansEnabled = await updateLoansEnabledForUser(ctx.userId, body.loansEnabled);
+    const loansEnabled = await updateLoansEnabledForUser(userId, body.loansEnabled);
     return NextResponse.json({ loansEnabled });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'UPDATE_FAILED';
