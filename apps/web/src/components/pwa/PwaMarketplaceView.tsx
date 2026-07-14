@@ -11,7 +11,7 @@ import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCap
 import { splitMarketplaceListings } from '../../lib/marketplace/splitMarketplaceListings';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
-import { PwaPropertyCard } from './PwaPropertyCard';
+import { PwaAdCarousel } from './PwaAdCarousel';
 import { MarketplaceCartButton } from '../marketplace/MarketplaceCartButton';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
@@ -84,21 +84,13 @@ export function PwaMarketplaceView({ initialFeed }: Props) {
 
       {available.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="px-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            {t.marketplace.availableSectionTitle}
-          </h2>
-          <div className="space-y-3 px-4">
-            {available.map((listing) => (
-              <button
-                key={listing.id}
-                type="button"
-                className="block w-full text-left"
-                onClick={() => handleOpen(listing)}
-              >
-                <PwaPropertyCard listing={listing} />
-              </button>
-            ))}
+          <div className="px-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              {t.marketplace.availableSectionTitle}
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-400">{t.marketplace.availableSectionSubtitle}</p>
           </div>
+          <PwaAdCarousel listings={available} onSelect={handleOpen} />
         </section>
       ) : (
         <p className="mx-4 rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
@@ -108,16 +100,13 @@ export function PwaMarketplaceView({ initialFeed }: Props) {
 
       {sold.length > 0 ? (
         <section className="space-y-3">
-          <h2 className="px-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-            {t.marketplace.soldSectionTitle}
-          </h2>
-          <div className="space-y-3 px-4 opacity-80">
-            {sold.map((listing) => (
-              <div key={listing.id} className="pointer-events-none">
-                <PwaPropertyCard listing={listing} />
-              </div>
-            ))}
+          <div className="px-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              {t.marketplace.soldSectionTitle}
+            </h2>
+            <p className="mt-0.5 text-xs text-slate-400">{t.marketplace.soldSectionSubtitle}</p>
           </div>
+          <PwaAdCarousel listings={sold} disabled soldBadgeLabel={t.marketplace.soldBadge} />
         </section>
       ) : null}
 

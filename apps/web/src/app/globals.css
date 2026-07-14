@@ -2,6 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 html.dark {
   color-scheme: dark;
   --terminal-bg: #0a0e17;
