@@ -114,7 +114,7 @@ function MobileAccessLandingContent() {
         {signedOut ? (
           <p
             className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6 text-center font-semibold text-white"
-            style={{ fontSize: 'calc(0.875rem * 2.5)' }}
+            style={{ fontSize: 'calc(0.875rem * 2.25)' }}
           >
             {a.sessionClosed}
           </p>
