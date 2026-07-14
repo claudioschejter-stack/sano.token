@@ -207,7 +207,8 @@ export const es = {
     settings: 'Configuración',
     signOut: 'Cerrar Sesión',
     globalPosition: 'Posición global',
-    loans: 'Préstamos'
+    loans: 'Préstamos',
+    legal: 'Legales'
   },
   adminNav: {
     panel: 'Panel de control',

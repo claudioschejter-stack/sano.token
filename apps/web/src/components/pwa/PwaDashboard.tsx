@@ -148,16 +148,6 @@ export function PwaDashboard({ portfolio, historicalYieldPercent }: Props) {
       </div>
 
       <PwaPropertyCarousel title={h.investNowTitle} limit={5} layout="feed" />
-
-      <div className="px-4 pt-2 text-center text-xs text-slate-400">
-        <Link href="/terminos" className="font-medium" style={{ color: MP_ACCENT }}>
-          {t.legal.portalFooterTerms}
-        </Link>
-        {' · '}
-        <Link href="/privacidad" className="font-medium" style={{ color: MP_ACCENT }}>
-          {t.legal.portalFooterPrivacy}
-        </Link>
-      </div>
     </div>
   );
 }

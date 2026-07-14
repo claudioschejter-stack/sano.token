@@ -25,6 +25,7 @@ export function PwaSectionTabs() {
     { href: '/marketplace', label: t.nav.marketplace },
     { href: '/mercado-secundario', label: t.nav.secondaryMarket },
     { href: '/dashboard/portfolio', label: t.nav.myAssets },
+    { href: '/dashboard/legal', label: t.nav.legal },
     ...(loansEnabled ? [{ href: '/dashboard/loans', label: t.nav.loans }] : [])
   ];
 

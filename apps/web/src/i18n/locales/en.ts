@@ -201,7 +201,8 @@ export const en = {
     settings: "Settings",
     signOut: "Sign Out",
     globalPosition: "Global position",
-    loans: "Loans"
+    loans: "Loans",
+    legal: "Legal"
   },
   adminNav: {
     panel: "Control panel",
