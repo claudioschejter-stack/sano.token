@@ -1,17 +1,21 @@
 'use client';
 
-import { QrCode, Copy, CheckCircle2, X, Loader2, CreditCard, Wallet } from 'lucide-react';
+import { ExternalLink, CheckCircle2, X, Loader2, CreditCard, Wallet } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { useAccount } from 'wagmi';
 import { useFiatOnramp } from '@privy-io/react-auth';
 import { base } from 'viem/chains';
 import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
 import { usePrivyWalletLink } from '../../hooks/usePrivyWalletLink';
 import { usePrivyVaultDeposit } from '../../hooks/usePrivyVaultDeposit';
+import { useExternalWalletVaultDeposit } from '../../hooks/useExternalWalletVaultDeposit';
 import { useFundWallet } from '@privy-io/react-auth';
 import {
   PRIVY_FIAT_ONRAMP_BASE_CHAIN,
   resolvePrivyFiatOnRampSource
 } from '../../lib/payments/privyOnRampPolicy';
+import { CoinbaseConnectButton } from '../wallet/CoinbaseConnectButton';
+import { WalletConnectConnectButton } from '../wallet/WalletConnectConnectButton';
 import type { PrivyEarnVaultRow } from './PrivyEarnVaultsPanel';
 
 type DepositStep =
@@ -28,10 +32,6 @@ type Props = {
   onClose: () => void;
 };
 
-function copyToClipboard(text: string) {
-  void navigator.clipboard.writeText(text).catch(() => {});
-}
-
 function formatPercent(value: number): string {
   return `${value.toFixed(2)}%`;
 }
@@ -41,23 +41,17 @@ export function PrivyEarnVaultDepositPanel({ vault, onClose }: Props) {
   const [tab, setTab] = useState<PaymentTab>('card');
   const [step, setStep] = useState<DepositStep>('input');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const { fund } = useFiatOnramp();
   const { fundWallet } = useFundWallet();
   const { enabled, ready, authenticated, address, ensureReady } = usePrivyEmbeddedWallet();
   const { linkPrivyWallet, linking } = usePrivyWalletLink();
   const { depositToVaults } = usePrivyVaultDeposit();
+  const { address: externalWalletAddress, isConnected: isExternalWalletConnected } = useAccount();
+  const { depositToVaultExternal } = useExternalWalletVaultDeposit();
 
   const amountUsd = Number.parseFloat(amount) || 0;
   const fiatSource = resolvePrivyFiatOnRampSource('US');
-
-  const handleCopy = () => {
-    if (!vault.vaultAddress) return;
-    copyToClipboard(vault.vaultAddress);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const runCardDeposit = useCallback(async () => {
     if (!enabled || !ready) {
@@ -164,6 +158,38 @@ export function PrivyEarnVaultDepositPanel({ vault, onClose }: Props) {
     vault.vaultAddress
   ]);
 
+  const runWalletDeposit = useCallback(async () => {
+    if (amountUsd <= 0) {
+      setErrorMsg('Ingresá un monto válido mayor a 0.');
+      setStep('error');
+      return;
+    }
+    if (!vault.vaultAddress) {
+      setErrorMsg('Dirección de bóveda no disponible.');
+      setStep('error');
+      return;
+    }
+
+    setErrorMsg(null);
+    setStep('depositing');
+
+    try {
+      await depositToVaultExternal({
+        stablecoinNetwork: 'BASE',
+        deposits: [{ vaultAddress: vault.vaultAddress, amountUsd }]
+      });
+      setStep('done');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'DEPOSIT_FAILED';
+      if (!msg.toLowerCase().includes('reject') && !msg.toLowerCase().includes('cancel') && !msg.toLowerCase().includes('denied')) {
+        setErrorMsg(msg);
+        setStep('error');
+      } else {
+        setStep('input');
+      }
+    }
+  }, [amountUsd, depositToVaultExternal, vault.vaultAddress]);
+
   const busy = step === 'funding' || step === 'depositing';
 
   return (
@@ -250,7 +276,7 @@ export function PrivyEarnVaultDepositPanel({ vault, onClose }: Props) {
                 }`}
               >
                 <Wallet size={14} />
-                Enviar USDC
+                Wallet externa
               </button>
             </div>
 
@@ -295,63 +321,69 @@ export function PrivyEarnVaultDepositPanel({ vault, onClose }: Props) {
               </div>
             ) : null}
 
-            {/* Crypto / direct USDC tab */}
+            {/* External wallet / on-chain tab */}
             {tab === 'crypto' ? (
               <div className="space-y-3">
                 <div className="rounded-lg border border-terminal-border bg-terminal-card p-3">
-                  <p className="text-xs font-semibold text-terminal-text mb-1">
-                    Enviá USDC directamente a la bóveda en Base
-                  </p>
-                  <p className="text-[11px] text-terminal-muted mb-3">
-                    Transferí <span className="font-mono font-medium text-terminal-primary">{amountUsd > 0 ? `${amountUsd.toFixed(2)} USDC` : 'USDC'}</span> desde cualquier wallet al contrato de la bóveda en la red Base.
-                    Recibirás tokens ERC-4626 a cambio.
-                  </p>
+                  <p className="text-xs font-semibold text-terminal-text">¿Cómo funciona?</p>
+                  <ol className="mt-2 space-y-1 text-xs text-terminal-muted list-decimal list-inside">
+                    <li>Conectá tu wallet (Coinbase Wallet o WalletConnect)</li>
+                    <li>
+                      Tu wallet firma el <span className="font-mono">approve</span> +{' '}
+                      <span className="font-mono">deposit</span> en el contrato de {vault.name}
+                    </li>
+                    <li>Recibís los tokens ERC-4626 directo en tu propia wallet</li>
+                  </ol>
+                </div>
 
-                  {vault.vaultAddress ? (
-                    <div className="space-y-2">
+                {!isExternalWalletConnected ? (
+                  <div className="space-y-2">
+                    <CoinbaseConnectButton showAccount={false} />
+                    <div className="text-center text-[10px] text-terminal-muted">o</div>
+                    <WalletConnectConnectButton />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="rounded-lg border border-terminal-border bg-terminal-card px-3 py-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
-                        Dirección de la bóveda
+                        Wallet conectada
                       </p>
-                      <div className="flex items-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg p-2">
-                        <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-terminal-text">
-                          {vault.vaultAddress}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={handleCopy}
-                          className="shrink-0 rounded p-1 text-terminal-muted hover:text-terminal-primary transition-colors"
-                          aria-label="Copiar dirección"
-                        >
-                          {copied ? <CheckCircle2 size={14} className="text-terminal-success" /> : <Copy size={14} />}
-                        </button>
-                      </div>
-
-                      <div className="flex items-center gap-2 rounded-lg border border-terminal-border bg-terminal-bg p-3 justify-center">
-                        <QrCode size={80} className="text-terminal-muted" />
-                        <div className="text-xs text-terminal-muted text-center">
-                          <p className="font-semibold">Escanear QR</p>
-                          <p className="mt-1">Usá tu wallet en Base</p>
-                          <a
-                            href={`https://basescan.org/address/${vault.vaultAddress}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-1 block text-terminal-primary hover:underline"
-                          >
-                            Ver en BaseScan →
-                          </a>
-                        </div>
-                      </div>
-
-                      <p className="text-[10px] text-terminal-warning">
-                        ⚠ Solo enviá USDC en la red Base. No uses otras redes ni tokens.
+                      <p className="mt-0.5 break-all font-mono text-xs text-terminal-text">
+                        {externalWalletAddress}
                       </p>
                     </div>
-                  ) : (
-                    <p className="text-xs text-terminal-muted">
-                      Dirección de bóveda no disponible. Actualizá la página.
-                    </p>
-                  )}
-                </div>
+
+                    {errorMsg && (
+                      <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        {errorMsg}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={busy || amountUsd <= 0}
+                      onClick={() => void runWalletDeposit()}
+                      className="flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                    >
+                      {busy ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+                      {step === 'depositing'
+                        ? `Depositando en ${vault.name}…`
+                        : `Depositar ${amountUsd > 0 ? `${amountUsd.toFixed(2)} USDC` : ''} con mi wallet`}
+                    </button>
+                  </div>
+                )}
+
+                {vault.vaultAddress ? (
+                  <a
+                    href={`https://basescan.org/address/${vault.vaultAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-1 text-[11px] text-terminal-primary hover:underline"
+                  >
+                    Ver contrato de la bóveda en BaseScan
+                    <ExternalLink size={12} />
+                  </a>
+                ) : null}
               </div>
             ) : null}
           </>
