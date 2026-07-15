@@ -16,8 +16,17 @@ type Props = {
 
 export function PwaPropertyCard({ listing, compact = false, variant = 'default' }: Props) {
   const { intlLocale } = useLocale();
-  const { formatUsd, formatPercent } = useMemo(
+  const { formatPercent } = useMemo(
     () => createIntlFormatters(intlLocale),
+    [intlLocale]
+  );
+  const formatTokenPrice = useMemo(
+    () =>
+      (value: number) =>
+        new Intl.NumberFormat(intlLocale, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }).format(value),
     [intlLocale]
   );
 
@@ -46,12 +55,12 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
           <div className="mt-3 flex items-center justify-between gap-2">
             <span className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-600">
               <TrendingUp size={14} />
-              {formatPercent(listing.apyPercent / 100)} APY
+              {formatPercent(listing.apyPercent)} APY
             </span>
-            <span className="text-xs text-slate-500">{listing.availableTokens} tokens</span>
+            <span className="text-xs text-slate-500">{listing.totalTokens} tokens</span>
           </div>
           <p className="mt-1 text-xs text-slate-600">
-            Desde {formatUsd(listing.pricePerTokenUsd)} / token
+            {formatTokenPrice(listing.pricePerTokenUsd)} USDC/token
           </p>
         </div>
       </Link>
@@ -79,12 +88,12 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
         </p>
         <div className="mt-3 flex items-center justify-between gap-2">
           <span className="text-sm font-semibold" style={{ color: MP_ACCENT }}>
-            {formatPercent(listing.apyPercent / 100)} APY
+            {formatPercent(listing.apyPercent)} APY
           </span>
-          <span className="text-xs text-slate-500">{listing.availableTokens} tokens</span>
+          <span className="text-xs text-slate-500">{listing.totalTokens} tokens</span>
         </div>
         <p className="mt-1 text-xs text-slate-600">
-          Desde {formatUsd(listing.pricePerTokenUsd)} / token
+          {formatTokenPrice(listing.pricePerTokenUsd)} USDC/token
         </p>
       </Link>
     );
@@ -110,10 +119,10 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           <span className="inline-flex items-center gap-1 font-semibold text-emerald-600">
             <TrendingUp size={12} />
-            {formatPercent(listing.apyPercent / 100)} APY
+            {formatPercent(listing.apyPercent)} APY
           </span>
           <span className="text-slate-500">{listing.availableTokens} disp.</span>
-          <span className="text-slate-600">{formatUsd(listing.pricePerTokenUsd)}/tk</span>
+          <span className="text-slate-600">{formatTokenPrice(listing.pricePerTokenUsd)} USDC/tk</span>
         </div>
       </div>
       <ChevronRight size={20} className="shrink-0 self-center text-slate-300" />

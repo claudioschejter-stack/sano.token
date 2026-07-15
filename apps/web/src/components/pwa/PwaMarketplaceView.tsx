@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
@@ -10,7 +10,6 @@ import { isMarketplaceTradingRole } from '../../lib/auth/roles';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import { splitMarketplaceListings } from '../../lib/marketplace/splitMarketplaceListings';
 import type { MarketplaceFeed, MarketplaceListing } from '../../types/marketplace';
-import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
 import { PwaAdCarousel } from './PwaAdCarousel';
 import { MarketplaceCartButton } from '../marketplace/MarketplaceCartButton';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
@@ -27,27 +26,12 @@ export function PwaMarketplaceView({ initialFeed }: Props) {
   const capabilities = getMarketplaceCapabilities(role);
   const { checklist } = useAccountStatus();
   const { feed, isRefreshing } = useMarketplaceFeed(initialFeed);
-  const [holdings, setHoldings] = useState<SecondaryMarketHolding[]>([]);
 
   const kycStatus = capabilities.useInvestorKycStatus
     ? checklist?.kycApproved
       ? 'APPROVED'
       : checklist?.kycStatus ?? 'PENDING'
     : 'APPROVED';
-
-  useEffect(() => {
-    if (!isMarketplaceTradingRole(role) || !checklist?.operational) {
-      setHoldings([]);
-      return;
-    }
-
-    void fetch('/api/secondary-market/holdings', { cache: 'no-store' })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { holdings?: SecondaryMarketHolding[] } | null) => {
-        setHoldings(data?.holdings ?? []);
-      })
-      .catch(() => setHoldings([]));
-  }, [checklist?.operational, role]);
 
   const { available, sold } = useMemo(
     () => splitMarketplaceListings(feed.listings),
@@ -113,24 +97,6 @@ export function PwaMarketplaceView({ initialFeed }: Props) {
           </p>
         )}
       </section>
-
-      {holdings.length > 0 ? (
-        <section className="space-y-3 px-4">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tus tokens</h2>
-          {holdings.map((holding) => {
-            const listing = feed.listings.find((l) => l.id === holding.projectId);
-            return (
-              <div
-                key={holding.projectId}
-                className="rounded-2xl bg-white p-4 text-sm shadow-sm ring-1 ring-slate-100"
-              >
-                <p className="font-semibold text-slate-900">{listing?.title ?? holding.projectId}</p>
-                <p className="mt-1 text-slate-600">{holding.ownedTokens} tokens en cartera</p>
-              </div>
-            );
-          })}
-        </section>
-      ) : null}
 
       <p className="px-4 text-center text-xs text-slate-400">
         Datos en vivo ·{' '}
