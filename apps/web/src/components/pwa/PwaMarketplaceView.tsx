@@ -82,33 +82,37 @@ export function PwaMarketplaceView({ initialFeed }: Props) {
 
       {isRefreshing ? <p className="px-4 text-xs text-slate-400">{t.marketplace.syncing}</p> : null}
 
-      {available.length > 0 ? (
-        <section className="space-y-3">
-          <div className="px-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              {t.marketplace.availableSectionTitle}
-            </h2>
-            <p className="mt-0.5 text-xs text-slate-400">{t.marketplace.availableSectionSubtitle}</p>
-          </div>
+      <section className="space-y-3">
+        <div className="px-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            {t.marketplace.availableSectionTitle}
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-400">{t.marketplace.availableSectionSubtitle}</p>
+        </div>
+        {available.length > 0 ? (
           <PwaAdCarousel listings={available} onSelect={handleOpen} />
-        </section>
-      ) : (
-        <p className="mx-4 rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
-          {t.marketplace.empty}
-        </p>
-      )}
+        ) : (
+          <p className="mx-4 rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
+            {t.marketplace.availableSectionEmpty}
+          </p>
+        )}
+      </section>
 
-      {sold.length > 0 ? (
-        <section className="space-y-3">
-          <div className="px-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-              {t.marketplace.soldSectionTitle}
-            </h2>
-            <p className="mt-0.5 text-xs text-slate-400">{t.marketplace.soldSectionSubtitle}</p>
-          </div>
+      <section className="space-y-3">
+        <div className="px-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            {t.marketplace.soldSectionTitle}
+          </h2>
+          <p className="mt-0.5 text-xs text-slate-400">{t.marketplace.soldSectionSubtitle}</p>
+        </div>
+        {sold.length > 0 ? (
           <PwaAdCarousel listings={sold} disabled soldBadgeLabel={t.marketplace.soldBadge} />
-        </section>
-      ) : null}
+        ) : (
+          <p className="mx-4 rounded-2xl bg-white p-6 text-center text-sm text-slate-500 shadow-sm">
+            {t.marketplace.soldSectionEmpty}
+          </p>
+        )}
+      </section>
 
       {holdings.length > 0 ? (
         <section className="space-y-3 px-4">
