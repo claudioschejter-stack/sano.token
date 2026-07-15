@@ -110,15 +110,12 @@ export async function listUnifiedVaultCatalog(): Promise<{
   vaults: PrivyEarnVaultCatalogItem[];
   updatedAt: string;
 }> {
-  const [morphoVaults, platformVaults] = await Promise.allSettled([
-    buildMorphoVaultItems(),
-    buildPlatformVaultItems()
-  ]);
+  // "Inversiones" only shows external DeFi yield vaults (Morpho/Privy). Tokenized
+  // property RWA positions ("sanova" provider) belong to the Propiedades/Marketplace
+  // section instead, so they're intentionally excluded here — see buildPlatformVaultItems.
+  const [morphoVaults] = await Promise.allSettled([buildMorphoVaultItems()]);
 
-  const vaults: PrivyEarnVaultCatalogItem[] = [
-    ...(morphoVaults.status === 'fulfilled' ? morphoVaults.value : []),
-    ...(platformVaults.status === 'fulfilled' ? platformVaults.value : [])
-  ];
+  const vaults: PrivyEarnVaultCatalogItem[] = morphoVaults.status === 'fulfilled' ? morphoVaults.value : [];
 
   return { vaults, updatedAt: new Date().toISOString() };
 }

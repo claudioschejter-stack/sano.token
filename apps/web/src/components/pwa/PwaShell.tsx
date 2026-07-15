@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react';
 import {
   Bell,
   Building2,
+  Landmark,
   Search,
   ShoppingCart,
   TrendingUp,
@@ -146,13 +147,13 @@ export function PwaShell({ children }: Props) {
             <span className="text-[10px] font-medium">{t.nav.panel}</span>
           </Link>
           <Link
-            href="/marketplace"
+            href="/dashboard/inversiones"
             className={`flex w-16 flex-col items-center justify-center gap-1 ${
-              isActive(pathname, '/marketplace') ? 'text-[#009EE3]' : 'text-slate-400'
+              isActive(pathname, '/dashboard/inversiones') ? 'text-[#009EE3]' : 'text-slate-400'
             }`}
           >
-            <Wallet size={24} />
-            <span className="text-[10px] font-medium">{t.nav.marketplace}</span>
+            <Landmark size={24} />
+            <span className="text-[10px] font-medium">{t.nav.investments}</span>
           </Link>
           <div className="relative flex w-16 flex-col items-center justify-center">
             <Link

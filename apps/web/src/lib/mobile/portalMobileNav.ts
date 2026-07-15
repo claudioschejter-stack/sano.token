@@ -1,21 +1,21 @@
 import type { LucideIcon } from 'lucide-react';
-import { Building2, LayoutDashboard, ShoppingBag, UserCheck, Wallet } from 'lucide-react';
+import { Building2, LayoutDashboard, Landmark, ShoppingBag, UserCheck, Wallet } from 'lucide-react';
 import type { SystemRole } from '../auth/roles';
 
 export type PortalMobileNavItem = {
   href: string;
   icon: LucideIcon;
-  labelKey: 'panel' | 'marketplace' | 'myAssets' | 'cashFlow' | 'clients' | 'myWallet';
+  labelKey: 'panel' | 'marketplace' | 'investments' | 'myAssets' | 'cashFlow' | 'clients' | 'myWallet';
   matchPrefixes?: string[];
 };
 
 const investorItems: PortalMobileNavItem[] = [
   { href: '/dashboard', icon: LayoutDashboard, labelKey: 'panel' },
   {
-    href: '/marketplace',
-    icon: ShoppingBag,
-    labelKey: 'marketplace',
-    matchPrefixes: ['/marketplace']
+    href: '/dashboard/inversiones',
+    icon: Landmark,
+    labelKey: 'investments',
+    matchPrefixes: ['/dashboard/inversiones']
   },
   {
     href: '/dashboard/portfolio',
