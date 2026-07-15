@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { FaqPage } from '../../../components/landing/FaqPage';
 import { resolveServerLocale } from '../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../lib/seo/buildMetadata';
+import { withLocalePrefix } from '../../../lib/i18n/localeRouting';
 import { getSiteUrl } from '../../../lib/seo/siteUrl';
 
 const FAQ_SCHEMA_ITEMS = [
@@ -68,7 +69,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ...base.openGraph,
       title: ogTitle,
       description: ogDescription,
-      url: `${getSiteUrl()}/faq`
+      url: `${getSiteUrl()}${withLocalePrefix(locale, '/faq')}`
     },
     twitter: {
       ...base.twitter,

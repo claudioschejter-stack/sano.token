@@ -12,13 +12,14 @@ export function getSiteUrl(): string {
   return raw;
 }
 
+// /privacidad and /terminos are intentionally excluded: they carry
+// `robots: { index: false }` (boilerplate legal text duplicated across 15
+// locales) and must never be announced in the sitemap.
 export const PUBLIC_MARKETING_PATHS = [
   '/',
   '/nosotros',
   '/faq',
   '/contacto',
-  '/privacidad',
-  '/terminos',
   '/blog',
   ...BLOG_SLUGS.map((slug) => `/blog/${slug}`)
 ] as const;

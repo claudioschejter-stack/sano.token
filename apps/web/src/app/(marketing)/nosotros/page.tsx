@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { NosotrosPage } from '../../../components/landing/NosotrosPage';
 import { resolveServerLocale } from '../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../lib/seo/buildMetadata';
+import { withLocalePrefix } from '../../../lib/i18n/localeRouting';
 import { getSiteUrl } from '../../../lib/seo/siteUrl';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -30,16 +31,12 @@ export async function generateMetadata(): Promise<Metadata> {
       ...base.openGraph,
       title: ogTitle,
       description: ogDescription,
-      url: `${getSiteUrl()}/nosotros`
+      url: `${getSiteUrl()}${withLocalePrefix(locale, '/nosotros')}`
     },
     twitter: {
       ...base.twitter,
       title: ogTitle,
       description: ogDescription
-    },
-    alternates: {
-      ...base.alternates,
-      canonical: `${getSiteUrl()}/nosotros`
     }
   };
 }

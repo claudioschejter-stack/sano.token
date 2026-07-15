@@ -1,3 +1,4 @@
+import type { Locale } from '../../lib/i18n/localeCodes';
 import type { BlogArticle } from './types';
 import { blogArticlesEn } from './catalog-en';
 import { blogArticlesEs } from './catalog-es';
@@ -35,7 +36,7 @@ const BLOG_BY_LOCALE: Record<string, Record<string, BlogArticle>> = {
   mr: blogArticlesMr
 };
 
-const FALLBACK_LOCALES = ['en', 'es'];
+const FALLBACK_LOCALES: Locale[] = ['en', 'es'];
 
 export const BLOG_SLUGS = Object.keys(blogArticlesEs);
 
@@ -51,6 +52,36 @@ export function getBlogArticle(slug: string, locale: string): BlogArticle | null
     const article = BLOG_BY_LOCALE[code]?.[slug];
     if (article) {
       return article;
+    }
+  }
+
+  return null;
+}
+
+/** True when `locale` has its own translated content for `slug` (not a fallback). */
+export function hasNativeTranslation(slug: string, locale: string): boolean {
+  return Boolean(BLOG_BY_LOCALE[locale]?.[slug]);
+}
+
+/**
+ * Locale code that actually serves the content for `slug`/`locale` — the
+ * requested locale if it has a native translation, otherwise the fallback
+ * locale (`en`, then `es`) that `getBlogArticle` resolves to. Used to point
+ * the canonical tag at the locale that really owns the content, instead of
+ * self-referencing a URL that duplicates another locale's article.
+ */
+export function resolveArticleLocale(slug: string, locale: Locale): Locale | null {
+  if (!BLOG_SLUGS.includes(slug)) {
+    return null;
+  }
+
+  if (hasNativeTranslation(slug, locale)) {
+    return locale;
+  }
+
+  for (const code of FALLBACK_LOCALES) {
+    if (BLOG_BY_LOCALE[code]?.[slug]) {
+      return code;
     }
   }
 

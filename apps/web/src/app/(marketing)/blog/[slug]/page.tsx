@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { BlogArticlePage } from '../../../../components/blog/BlogArticlePage';
-import { BLOG_SLUGS, getBlogArticle } from '../../../../content/blog/articles';
+import {
+  BLOG_SLUGS,
+  getBlogArticle,
+  hasNativeTranslation,
+  resolveArticleLocale
+} from '../../../../content/blog/articles';
 import { locales } from '../../../../i18n';
 import { resolveServerLocale } from '../../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../../lib/seo/buildMetadata';
@@ -27,16 +32,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const path = `/blog/${article.slug}`;
   const base = buildSiteMetadata(locale, path);
 
+  // If this locale has no native translation, `getBlogArticle` silently
+  // served fallback (en/es) content. Declaring a self-referencing canonical
+  // in that case creates an exact duplicate that Google flags as
+  // "Duplicada: Google eligió otra canónica". Instead, point the canonical
+  // at the locale that truly owns the content, and only advertise
+  // hreflang alternates for locales with native translations.
+  const contentLocale = resolveArticleLocale(article.slug, locale) ?? locale;
+  const nativeLocales = locales.filter((code) => hasNativeTranslation(article.slug, code));
+
   return {
     ...base,
     title: article.title,
     description: article.description,
     keywords: article.keywords,
     alternates: {
-      canonical: `${siteUrl}${withLocalePrefix(locale, path)}`,
+      canonical: `${siteUrl}${withLocalePrefix(contentLocale, path)}`,
       languages: {
         ...Object.fromEntries(
-          locales.map((code) => [code, `${siteUrl}${withLocalePrefix(code, path)}`])
+          nativeLocales.map((code) => [code, `${siteUrl}${withLocalePrefix(code, path)}`])
         ),
         'x-default': `${siteUrl}${path}`
       }
@@ -89,7 +103,8 @@ export default async function BlogSlugPage({ params }: PageProps) {
   }
   const siteUrl = getSiteUrl();
   const path = `/blog/${article.slug}`;
-  const canonical = `${siteUrl}${withLocalePrefix(locale, path)}`;
+  const contentLocale = resolveArticleLocale(article.slug, locale) ?? locale;
+  const canonical = `${siteUrl}${withLocalePrefix(contentLocale, path)}`;
   return (
     <>
       <ArticleJsonLd article={article} canonical={canonical} siteUrl={siteUrl} />

@@ -4,7 +4,7 @@ export const en = {
     description:
       "Invest in tokenized real estate and RWA assets in Vaca Muerta, Argentina. Private placement with USDC income, KYC compliance, and on-chain dividend distribution. APY up to 12.8%.",
     keywords:
-      "Vaca Muerta tokenization, RWA tokens Argentina, tokenized real estate USDC, real estate tokenizado Argentina, RWA investment Vaca Muerta, Neuquén real estate investment, Argentina shale investment, USDC yield real estate, ERC-4626 real estate tokens, DeFi real estate Argentina, Morpho RWA collateral, tokenization real assets, private placement Argentina, USDC dividends, shale infrastructure tokens",
+      "Vaca Muerta tokenization, Token Vaca Muerta, RWA tokens Argentina, Sanova, Sanova Global, Sanova RWA, Sanova Capital, tokenized real estate USDC, real estate tokenizado Argentina, RWA investment Vaca Muerta, Añelo investment, Añelo real estate, Neuquén real estate investment, Argentina shale investment, USDC yield real estate, Vaca Muerta yield, RWA profitability, rental income USDC, ERC-4626 real estate tokens, DeFi real estate Argentina, Morpho RWA collateral, tokenization real assets, private placement Argentina, USDC dividends, shale infrastructure tokens",
     ogImageAlt: "Sanova Global — Tokenized Real Estate in Vaca Muerta, Argentina",
     pwaTitle: "Sanova RWA"
   },

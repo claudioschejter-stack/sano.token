@@ -85,6 +85,32 @@ const nextConfig = {
       }
     ];
   },
+  async redirects() {
+    // Additional marketing domains ("Token Vaca Muerta") permanently
+    // redirect to the canonical production domain so all inbound links,
+    // search authority, and AI-crawler discovery consolidate on one host.
+    const extraDomains = [
+      'tokenvacamuerta.org',
+      'tokenvacamuerta.net',
+      'vacamuertatoken.org',
+      'vacamuertatoken.net'
+    ];
+
+    return extraDomains.flatMap((domain) => [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: domain }],
+        destination: 'https://www.sanovacapital.com/:path*',
+        permanent: true
+      },
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: `www.${domain}` }],
+        destination: 'https://www.sanovacapital.com/:path*',
+        permanent: true
+      }
+    ]);
+  },
   async headers() {
     const shared = [
       { key: 'X-Frame-Options', value: 'SAMEORIGIN' },

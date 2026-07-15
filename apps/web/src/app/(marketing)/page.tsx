@@ -4,14 +4,12 @@ import { fetchMarketplaceFeed } from '../../lib/marketplace/marketplaceFeedServe
 import { getSanovaYouTubeChannelVideos } from '../../lib/youtube/channelVideos';
 import { resolveServerLocale } from '../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../lib/seo/buildMetadata';
-import { getSiteUrl } from '../../lib/seo/siteUrl';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
   const base = buildSiteMetadata(locale, '/');
-  const siteUrl = getSiteUrl();
   const isEs = locale === 'es';
 
   return {
@@ -21,11 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
       : 'Sanova Global — Vaca Muerta RWA Investment | Tokenized Real Estate USDC',
     description: isEs
       ? 'Invertí en inmuebles tokenizados y activos reales (RWA) en Vaca Muerta, Argentina. Colocación privada con rentas en USDC, cumplimiento KYC y dividendos on-chain. APY hasta 12.8%.'
-      : 'Invest in tokenized real estate and RWA assets in Vaca Muerta, Argentina. Private placement with USDC income, KYC compliance, and on-chain dividend distribution. APY up to 12.8%.',
-    alternates: {
-      ...base.alternates,
-      canonical: siteUrl
-    }
+      : 'Invest in tokenized real estate and RWA assets in Vaca Muerta, Argentina. Private placement with USDC income, KYC compliance, and on-chain dividend distribution. APY up to 12.8%.'
   };
 }
 

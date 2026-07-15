@@ -17,6 +17,7 @@ export function SiteJsonLd({ locale }: SiteJsonLdProps) {
     '@id': `${siteUrl}/#organization`,
     name: 'Sanova Global SAS',
     legalName: 'Sanova Global SAS',
+    alternateName: ['Sanova', 'Sanova Global', 'Sanova RWA', 'Sanova Capital', 'Token Vaca Muerta'],
     foundingDate: '2024',
     url: siteUrl,
     logo: {
@@ -50,9 +51,11 @@ export function SiteJsonLd({ locale }: SiteJsonLdProps) {
       'RWA tokens',
       'Tokenized real estate',
       'Vaca Muerta',
+      'Añelo',
       'Shale oil and gas infrastructure',
       'Private placement',
       'USDC dividends',
+      'Rental income and profitability',
       'ERC-4626 tokens',
       'Morpho DeFi protocol',
       'Base blockchain'

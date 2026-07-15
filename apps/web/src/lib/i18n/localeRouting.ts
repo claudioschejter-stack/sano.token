@@ -5,7 +5,9 @@ export const LOCALE_PREFIXABLE_PATHS = new Set([
   '/contacto',
   '/privacidad',
   '/terminos',
-  '/blog'
+  '/blog',
+  '/nosotros',
+  '/faq'
 ]);
 
 export const LOCALE_PREFIXABLE_PREFIXES = [
