@@ -1765,6 +1765,7 @@ export const en = {
       title: "Sanova on YouTube",
       subtitle: "All videos published on the official @SanovaGlobal channel.",
       watchOnYoutube: "Watch on YouTube",
+      viewDetail: "View details",
       channelCta: "View full YouTube channel",
       ariaLabel: "Sanova Global videos on YouTube"
     },
@@ -2633,6 +2634,18 @@ export const en = {
     ctaDisclaimer:
       "KYC private placement. Not a public offering. See Legal Terms and Privacy Policy.",
     ctaButton: "Access the platform"
+  },
+  videos: {
+    indexTitle: "Sanova Global Videos",
+    indexSubtitle: "All videos published on the official @SanovaGlobal channel.",
+    indexEmpty: "No videos available right now.",
+    backToVideos: "← Back to all videos",
+    backToHome: "← Back to home",
+    watchOnYoutube: "Watch on YouTube",
+    publishedOn: "Published on {date}",
+    defaultDescription: "Sanova Global — tokenized real estate and real-world assets (RWA) in Vaca Muerta, Argentina.",
+    notFoundTitle: "Video not found",
+    notFoundBody: "This video may have been removed or the link is incorrect."
   },
   paymentGateway: {
     countryDetected: "Paying from {country}",

@@ -7,12 +7,14 @@ export const LOCALE_PREFIXABLE_PATHS = new Set([
   '/terminos',
   '/blog',
   '/nosotros',
-  '/faq'
+  '/faq',
+  '/videos'
 ]);
 
 export const LOCALE_PREFIXABLE_PREFIXES = [
   '/acceso/',
-  '/blog/'
+  '/blog/',
+  '/videos/'
 ] as const;
 
 export { isLocaleCode } from './localeCodes';

@@ -8,6 +8,9 @@ export const SANOVA_YOUTUBE_CHANNEL_ID = 'UCFnDx3UpU7ky7NdEUbxCVTw';
 export type FeaturedYouTubeVideo = {
   id: string;
   title?: string;
+  description?: string;
+  publishedAt?: string;
+  thumbnailUrl: string;
   watchUrl: string;
   embedUrl: string;
 };
@@ -41,11 +44,18 @@ function buildFeaturedVideo(watchUrl: string): FeaturedYouTubeVideo | null {
   return buildFeaturedVideoFromId(id);
 }
 
-export function buildFeaturedVideoFromId(id: string, title?: string): FeaturedYouTubeVideo {
+export function buildFeaturedVideoFromId(
+  id: string,
+  title?: string,
+  extra?: { description?: string; publishedAt?: string }
+): FeaturedYouTubeVideo {
   const trimmedId = id.trim();
   return {
     id: trimmedId,
     title,
+    description: extra?.description,
+    publishedAt: extra?.publishedAt,
+    thumbnailUrl: `https://i.ytimg.com/vi/${trimmedId}/hqdefault.jpg`,
     watchUrl: `https://www.youtube.com/watch?v=${trimmedId}`,
     embedUrl: `https://www.youtube-nocookie.com/embed/${trimmedId}?rel=0`
   };

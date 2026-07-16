@@ -1790,6 +1790,7 @@ export const es = {
       subtitle:
         'Todos los videos publicados en el canal oficial @SanovaGlobal.',
       watchOnYoutube: 'Ver en YouTube',
+      viewDetail: 'Ver detalle',
       channelCta: 'Ver canal completo en YouTube',
       ariaLabel: 'Videos de Sanova Global en YouTube'
     },
@@ -2678,6 +2679,18 @@ export const es = {
     ctaDisclaimer:
       'Colocación privada con KYC. No es oferta pública. Consulte Términos y Privacidad.',
     ctaButton: 'Acceder a la plataforma'
+  },
+  videos: {
+    indexTitle: 'Videos de Sanova Global',
+    indexSubtitle: 'Todos los videos publicados en el canal oficial @SanovaGlobal.',
+    indexEmpty: 'No hay videos disponibles por el momento.',
+    backToVideos: '← Volver a todos los videos',
+    backToHome: '← Volver al inicio',
+    watchOnYoutube: 'Ver en YouTube',
+    publishedOn: 'Publicado el {date}',
+    defaultDescription: 'Sanova Global — activos reales e inmuebles tokenizados (RWA) en Vaca Muerta, Argentina.',
+    notFoundTitle: 'Video no encontrado',
+    notFoundBody: 'Es posible que este video haya sido eliminado o el enlace sea incorrecto.'
   },
   paymentGateway: {
     countryDetected: 'Pagás desde {country}',

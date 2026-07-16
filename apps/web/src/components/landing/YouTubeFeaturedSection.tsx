@@ -1,9 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
-import { useTranslation } from '../../i18n/LocaleProvider';
+import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { FeaturedYouTubeVideo } from '../../config/social';
 import { getYouTubeUrl } from '../../config/social';
+import { withLocalePrefix } from '../../lib/i18n/localeRouting';
 
 type YouTubeFeaturedSectionProps = {
   videos: FeaturedYouTubeVideo[];
@@ -11,6 +13,7 @@ type YouTubeFeaturedSectionProps = {
 
 export function YouTubeFeaturedSection({ videos }: YouTubeFeaturedSectionProps) {
   const t = useTranslation();
+  const { locale } = useLocale();
   const y = t.landing.youtube;
 
   if (videos.length === 0) {
@@ -66,9 +69,19 @@ export function YouTubeFeaturedSection({ videos }: YouTubeFeaturedSectionProps) 
               </div>
               <div className="flex items-center justify-between gap-3 px-4 py-3">
                 {video.title ? (
-                  <p className="min-w-0 truncate text-sm font-medium text-slate-800">{video.title}</p>
+                  <Link
+                    href={withLocalePrefix(locale, `/videos/${video.id}`)}
+                    className="min-w-0 truncate text-sm font-medium text-slate-800 hover:text-blue-600"
+                  >
+                    {video.title}
+                  </Link>
                 ) : (
-                  <span />
+                  <Link
+                    href={withLocalePrefix(locale, `/videos/${video.id}`)}
+                    className="text-sm font-medium text-slate-800 hover:text-blue-600"
+                  >
+                    {y.viewDetail}
+                  </Link>
                 )}
                 <a
                   href={video.watchUrl}
