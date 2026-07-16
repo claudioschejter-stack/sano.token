@@ -85,32 +85,15 @@ const nextConfig = {
       }
     ];
   },
-  async redirects() {
-    // Additional marketing domains ("Token Vaca Muerta") permanently
-    // redirect to the canonical production domain so all inbound links,
-    // search authority, and AI-crawler discovery consolidate on one host.
-    const extraDomains = [
-      'tokenvacamuerta.org',
-      'tokenvacamuerta.net',
-      'vacamuertatoken.org',
-      'vacamuertatoken.net'
-    ];
-
-    return extraDomains.flatMap((domain) => [
-      {
-        source: '/:path*',
-        has: [{ type: 'host', value: domain }],
-        destination: 'https://www.sanovacapital.com/:path*',
-        permanent: true
-      },
-      {
-        source: '/:path*',
-        has: [{ type: 'host', value: `www.${domain}` }],
-        destination: 'https://www.sanovacapital.com/:path*',
-        permanent: true
-      }
-    ]);
-  },
+  // Additional marketing domains ("Token Vaca Muerta") are intentionally
+  // NOT redirected here. They're "masked": public marketing pages render
+  // natively under each domain (address bar stays on the typed domain),
+  // while every other path (dashboard, checkout, auth, API, etc.) is
+  // redirected to the canonical domain by middleware.ts. See
+  // `maybeRedirectAlternateDomainToCanonical` there for the exact
+  // allowlist and reasoning. Canonical/og:url metadata on every page
+  // always points at https://www.sanovacapital.com regardless of which
+  // domain served the request, so SEO authority still consolidates there.
   async headers() {
     const shared = [
       { key: 'X-Frame-Options', value: 'SAMEORIGIN' },

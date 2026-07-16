@@ -10,6 +10,7 @@ import {
   LOCALE_HEADER,
   parseLocalePath
 } from './lib/i18n/localeRouting';
+import { isAlternateMarketingHost, isMaskableOnAlternateHost } from './lib/i18n/alternateDomains';
 import { requiresOnboardingGatePath, shouldRedirectToOnboarding } from './lib/auth/middlewarePolicy';
 import { isMobileUserAgent } from './lib/auth/isMobileUserAgent';
 import {
@@ -93,6 +94,30 @@ function withLocaleAndCountryHints(
   return applySecurityHeaders(response, { allowKycCamera });
 }
 
+/**
+ * Alternate marketing domains mask public pages (address bar stays on the
+ * typed domain) but must never serve session-bearing routes — a stray
+ * absolute link to sanovacapital.com would otherwise strand the user
+ * without their auth cookie. Redirect anything not on the marketing
+ * allowlist to the canonical domain instead.
+ */
+function maybeRedirectAlternateDomainToCanonical(request: NextRequest): NextResponse | null {
+  const host = request.headers.get('host');
+  if (!isAlternateMarketingHost(host)) {
+    return null;
+  }
+
+  if (isMaskableOnAlternateHost(request.nextUrl.pathname)) {
+    return null;
+  }
+
+  const canonicalUrl = new URL(
+    `${request.nextUrl.pathname}${request.nextUrl.search}`,
+    'https://www.sanovacapital.com'
+  );
+  return withLocaleAndCountryHints(NextResponse.redirect(canonicalUrl, 308), request);
+}
+
 function maybeRewriteLocalePrefix(request: NextRequest): NextResponse | null {
   const parsed = parseLocalePath(request.nextUrl.pathname);
   if (!parsed.locale) {
@@ -115,6 +140,11 @@ function maybeRewriteLocalePrefix(request: NextRequest): NextResponse | null {
 }
 
 export async function middleware(request: NextRequest) {
+  const alternateDomainRedirect = maybeRedirectAlternateDomainToCanonical(request);
+  if (alternateDomainRedirect) {
+    return alternateDomainRedirect;
+  }
+
   const localeRewrite = maybeRewriteLocalePrefix(request);
   if (localeRewrite) {
     return localeRewrite;
