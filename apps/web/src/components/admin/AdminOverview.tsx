@@ -180,6 +180,7 @@ export function AdminOverview() {
               { href: '/dashboard/assets', label: t.adminNav.assets },
               { href: '/dashboard/loans', label: t.adminNav.loans },
               { href: '/dashboard/treasury', label: t.adminNav.treasury },
+              { href: '/dashboard/withdrawals', label: t.adminNav.withdrawals },
               { href: '/dashboard/team', label: t.adminNav.team },
               { href: '/dashboard/settings', label: t.adminNav.settings },
               { href: '/marketplace', label: t.nav.marketplace }

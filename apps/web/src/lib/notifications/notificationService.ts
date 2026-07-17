@@ -1,6 +1,10 @@
 import { prisma } from '@sanova/database';
 
-export type NotificationType = 'kyc_approved' | 'purchase_confirmed';
+export type NotificationType =
+  | 'kyc_approved'
+  | 'purchase_confirmed'
+  | 'withdrawal_confirmed'
+  | 'withdrawal_rejected';
 
 export async function createNotification(input: {
   userId: string;

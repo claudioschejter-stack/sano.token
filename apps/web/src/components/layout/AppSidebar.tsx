@@ -17,7 +17,8 @@ import {
   UserCheck,
   Users,
   UserCog,
-  Wallet
+  Wallet,
+  WalletMinimal
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -61,6 +62,7 @@ const adminNavItems = [
   { href: '/dashboard/assets', icon: Building2, labelKey: 'assets' as const },
   { href: '/dashboard/loans', icon: Landmark, labelKey: 'loans' as const },
   { href: '/dashboard/treasury', icon: Wallet, labelKey: 'treasury' as const },
+  { href: '/dashboard/withdrawals', icon: WalletMinimal, labelKey: 'withdrawals' as const },
   { href: '/dashboard/commissions', icon: CircleDollarSign, labelKey: 'commissions' as const },
   { href: '/dashboard/team', icon: UserCog, labelKey: 'team' as const },
   { href: '/dashboard/cobrar', icon: QrCode, labelKey: 'collectPayments' as const },
