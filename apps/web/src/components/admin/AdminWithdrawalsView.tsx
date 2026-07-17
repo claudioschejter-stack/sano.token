@@ -10,6 +10,16 @@ import { AdminGate } from './AdminGate';
 type WithdrawalStatus = 'PENDING' | 'PROCESSING' | 'MANUAL_REVIEW' | 'CONFIRMED' | 'FAILED' | 'CANCELLED';
 type WithdrawalFilter = WithdrawalStatus | 'ALL';
 
+type FiatPayoutDetails = {
+  rail?: string;
+  accountHolderName?: string;
+  taxId?: string;
+  cbuOrCvu?: string | null;
+  alias?: string | null;
+  providerName?: string | null;
+  notes?: string | null;
+};
+
 type AdminWithdrawalRow = {
   id: string;
   status: WithdrawalStatus;
@@ -18,6 +28,7 @@ type AdminWithdrawalRow = {
   currency: string;
   stablecoinNetwork: string | null;
   destinationAddress: string | null;
+  payoutDetails: FiatPayoutDetails | null;
   providerCheckoutUrl: string | null;
   txHash: string | null;
   createdAt: string;
@@ -42,6 +53,19 @@ function statusBadgeClass(status: WithdrawalStatus): string {
   if (status === 'FAILED') return 'border-red-500/30 text-red-400';
   if (status === 'CANCELLED') return 'border-terminal-border text-terminal-muted';
   return 'border-terminal-warning/30 text-terminal-warning';
+}
+
+function formatFiatDestination(details: FiatPayoutDetails | null): string {
+  if (!details) return '—';
+  const parts = [
+    details.accountHolderName,
+    details.cbuOrCvu ? `CBU/CVU ${details.cbuOrCvu}` : null,
+    details.alias ? `Alias ${details.alias}` : null,
+    details.providerName,
+    details.taxId ? `CUIT/DNI ${details.taxId}` : null,
+    details.notes
+  ].filter(Boolean);
+  return parts.join(' · ') || '—';
 }
 
 type KpiCardProps = {
@@ -147,7 +171,7 @@ export function AdminWithdrawalsView() {
       const response = await fetch(`/api/admin/withdrawals/${id}/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ txHash: inputValue.trim() })
+        body: JSON.stringify({ reference: inputValue.trim() })
       });
       if (!response.ok) {
         throw new Error('confirm failed');
@@ -284,6 +308,7 @@ export function AdminWithdrawalsView() {
                     rows.map((row) => {
                       const isActive = activeAction?.id === row.id;
                       const canAct = FULFILLABLE.includes(row.status);
+                      const isFiat = row.method === 'FIAT';
 
                       return (
                         <tr key={row.id} className="transition-colors hover:bg-terminal-bg/60">
@@ -296,10 +321,18 @@ export function AdminWithdrawalsView() {
                           <td className="px-6 py-4 text-right font-mono text-terminal-text">
                             {formatUsd(Number(row.amountUsd))}
                           </td>
-                          <td className="px-6 py-4 font-mono text-xs text-terminal-muted">
-                            {row.destinationAddress ? shortAddress(row.destinationAddress) : '—'}
+                          <td className="max-w-xs px-6 py-4 text-xs text-terminal-muted">
+                            {isFiat ? (
+                              <span className="whitespace-pre-wrap break-words">{formatFiatDestination(row.payoutDetails)}</span>
+                            ) : row.destinationAddress ? (
+                              <span className="font-mono">{shortAddress(row.destinationAddress)}</span>
+                            ) : (
+                              '—'
+                            )}
                           </td>
-                          <td className="px-6 py-4 text-terminal-muted">{row.stablecoinNetwork ?? row.method}</td>
+                          <td className="px-6 py-4 text-terminal-muted">
+                            {isFiat ? copy.methodFiat : row.stablecoinNetwork ?? copy.methodStablecoin}
+                          </td>
                           <td className="whitespace-nowrap px-6 py-4 text-terminal-muted">
                             {formatDateTime(row.createdAt)}
                           </td>
@@ -310,15 +343,19 @@ export function AdminWithdrawalsView() {
                               {statusLabels[row.status] ?? row.status}
                             </span>
                             {row.txHash ? (
-                              <a
-                                href={basescanTxUrl(row.txHash)}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-1 flex items-center gap-1 text-xs text-terminal-primary hover:underline"
-                              >
-                                {shortAddress(row.txHash)}
-                                <ExternalLink size={12} />
-                              </a>
+                              isFiat ? (
+                                <p className="mt-1 text-xs text-terminal-muted">{row.txHash}</p>
+                              ) : (
+                                <a
+                                  href={basescanTxUrl(row.txHash)}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-1 flex items-center gap-1 text-xs text-terminal-primary hover:underline"
+                                >
+                                  {shortAddress(row.txHash)}
+                                  <ExternalLink size={12} />
+                                </a>
+                              )
                             ) : null}
                           </td>
                           <td className="px-6 py-4">
@@ -330,14 +367,18 @@ export function AdminWithdrawalsView() {
                                   {activeAction.type === 'confirm' ? copy.confirmFormTitle : copy.rejectFormTitle}
                                 </p>
                                 <p className="text-xs text-terminal-muted">
-                                  {activeAction.type === 'confirm' ? copy.confirmFormHint : copy.rejectFormHint}
+                                  {activeAction.type === 'confirm'
+                                    ? isFiat
+                                      ? copy.confirmFormHintFiat
+                                      : copy.confirmFormHint
+                                    : copy.rejectFormHint}
                                 </p>
                                 {activeAction.type === 'confirm' ? (
                                   <input
                                     type="text"
                                     value={inputValue}
                                     onChange={(event) => setInputValue(event.target.value)}
-                                    placeholder={copy.txHashPlaceholder}
+                                    placeholder={isFiat ? copy.referencePlaceholder : copy.txHashPlaceholder}
                                     className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-xs text-terminal-text"
                                   />
                                 ) : (

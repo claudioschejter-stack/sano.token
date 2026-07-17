@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { formatMessage } from '../../i18n';
 import { useLinkedWalletGuard } from '../../hooks/useLinkedWalletGuard';
+import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { PaymentMethod } from '@sanova/database';
@@ -24,6 +25,7 @@ import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
 import { InvestorWalletLinker } from '../wallet/InvestorWalletLinker';
+import { CheckoutLinkedWalletPicker } from '../wallet/CheckoutLinkedWalletPicker';
 import { StickyActionBar } from '../mobile/StickyActionBar';
 import { CheckoutPaymentLaneSelector } from '../payments/CheckoutPaymentLaneSelector';
 import { useCheckoutPaymentCountry } from '../../hooks/useCheckoutPaymentCountry';
@@ -205,6 +207,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const { disconnectAsync } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
   const walletGuard = useLinkedWalletGuard();
+  const { refresh: refreshAccountStatus } = useAccountStatus();
   const { payToTreasury } = useUsdcTreasuryPayment();
   const { payToTreasury: payToTreasuryPrivy } = usePrivyTreasuryPayment();
   const { depositToVaults: depositToVaultsPrivy } = usePrivyVaultDeposit();
@@ -1760,7 +1763,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           ) : null}
 
           {showWalletLinker ? (
-            <div className="py-[2mm]">
+            <div className="space-y-3 py-[2mm]">
+              <CheckoutLinkedWalletPicker
+                onDefaultChanged={async () => {
+                  await refreshAccountStatus({ silent: true });
+                  void loadDepositQuote();
+                }}
+              />
               <InvestorWalletLinker
                 variant="checkout"
                 allowReplace

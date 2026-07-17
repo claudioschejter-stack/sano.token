@@ -1,6 +1,7 @@
 import { prisma } from '@sanova/database';
 import { dispatchFiatRailTreasuryWebhook } from './fiatRailTreasurySettlement';
 import { enqueueFiatToUsdcConversion } from './postPaymentSettlementOrchestrator';
+import { linkFiatIdentity } from '../investor/linkedFiatIdentityService';
 
 export type LocalWalletSettlementInput = {
   externalReference?: string | null;
@@ -114,5 +115,36 @@ export async function dispatchApprovedLocalWalletPayment(input: LocalWalletSettl
     }
   }
 
+  if (userId) {
+    await recordFiatIdentityFromPayload(userId, input.provider, input.payload, reference);
+  }
+
   return result;
+}
+
+/** Best-effort capture of the fiat "wallet" identity (e.g. MP payer) seen in an approved payment. */
+async function recordFiatIdentityFromPayload(
+  userId: string,
+  provider: string,
+  payload: Record<string, unknown>,
+  capturedFrom: string
+): Promise<void> {
+  const payer = payload.payer as { id?: string | number; email?: string } | null | undefined;
+  const identifier = payer?.email?.trim() || (payer?.id != null ? String(payer.id) : null);
+
+  if (!identifier) {
+    return;
+  }
+
+  try {
+    await linkFiatIdentity({
+      userId,
+      provider,
+      identifier,
+      label: payer?.email ?? null,
+      capturedFrom
+    });
+  } catch (error) {
+    console.error('[dispatchApprovedLocalWalletPayment] linkFiatIdentity failed', error);
+  }
 }

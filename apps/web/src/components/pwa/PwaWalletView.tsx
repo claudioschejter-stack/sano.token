@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Download, History, Loader2, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DashboardSkeleton } from '../dashboard/DashboardSkeleton';
 import { formatMessage } from '../../i18n';
 import { createIntlFormatters } from '../../i18n/formatters';
@@ -21,6 +21,43 @@ type WalletSummary = {
 };
 
 type WalletTab = 'deposit' | 'withdraw' | 'history';
+
+type LinkedCryptoWalletDto = {
+  id: string;
+  address: string;
+  network: string;
+  provider: string;
+  isDefault: boolean;
+};
+
+type LinkedFiatIdentityDto = {
+  id: string;
+  provider: string;
+  identifier: string;
+  label: string | null;
+};
+
+type FiatPayoutRail = 'BANK_OR_WALLET' | 'OTHER';
+
+type FiatWithdrawForm = {
+  rail: FiatPayoutRail;
+  accountHolderName: string;
+  taxId: string;
+  cbuOrCvu: string;
+  alias: string;
+  providerName: string;
+  notes: string;
+};
+
+const EMPTY_FIAT_FORM: FiatWithdrawForm = {
+  rail: 'BANK_OR_WALLET',
+  accountHolderName: '',
+  taxId: '',
+  cbuOrCvu: '',
+  alias: '',
+  providerName: '',
+  notes: ''
+};
 
 type ActivityItem = {
   id: string;
@@ -41,7 +78,6 @@ function sumPositionUsd(rows: PositionRow[]): number {
   return rows.reduce((sum, row) => sum + row.valueUsd, 0);
 }
 
-/** Groups by currency/type and shows each balance converted to USD; a $0 total when empty. */
 function PositionTypeSection({
   title,
   rows,
@@ -117,7 +153,11 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
   const [status, setStatus] = useState<'idle' | 'withdrawing'>('idle');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const withdrawAttemptRef = useRef<string | null>(null);
+  const [withdrawMode, setWithdrawMode] = useState<'crypto' | 'fiat'>('crypto');
+  const [linkedWallets, setLinkedWallets] = useState<LinkedCryptoWalletDto[]>([]);
+  const [fiatIdentities, setFiatIdentities] = useState<LinkedFiatIdentityDto[]>([]);
+  const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(null);
+  const [fiatForm, setFiatForm] = useState<FiatWithdrawForm>(EMPTY_FIAT_FORM);
 
   const loadWallet = async () => {
     setIsLoadingWallet(true);
@@ -142,6 +182,24 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
   useEffect(() => {
     void loadWallet();
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'withdraw') return;
+    void (async () => {
+      const response = await fetch('/api/wallet/linked-wallets', { cache: 'no-store' });
+      if (!response.ok) return;
+      const data = (await response.json()) as {
+        cryptoWallets?: LinkedCryptoWalletDto[];
+        fiatIdentities?: LinkedFiatIdentityDto[];
+      };
+      const wallets = data.cryptoWallets ?? [];
+      setLinkedWallets(wallets);
+      setFiatIdentities(data.fiatIdentities ?? []);
+      setSelectedWalletAddress(
+        wallets.find((row) => row.isDefault)?.address ?? wallets[0]?.address ?? checklist?.walletAddress ?? null
+      );
+    })();
+  }, [activeTab, checklist?.walletAddress]);
 
   const activities = useMemo<ActivityItem[]>(() => {
     if (!wallet) return [];
@@ -191,7 +249,7 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
     return items.sort((a, b) => b.date.localeCompare(a.date));
   }, [wallet, w]);
 
-  const autoWithdraw = async (amountUsd: number, destinationAddress: string) => {
+  const submitWithdrawal = async (body: Record<string, unknown>) => {
     setStatus('withdrawing');
     setError(null);
     setSuccess(null);
@@ -199,12 +257,7 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
     const response = await fetch('/api/wallet/withdraw-intents', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        amountUsd,
-        method: 'STABLECOIN',
-        destinationAddress,
-        stablecoinNetwork: 'BASE'
-      })
+      body: JSON.stringify(body)
     });
 
     const data = (await response.json()) as {
@@ -215,7 +268,6 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
     if (!response.ok || !data.withdrawal) {
       setError(data.error ?? w.errorWithdrawal);
       setStatus('idle');
-      withdrawAttemptRef.current = null;
       return;
     }
 
@@ -225,6 +277,7 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
     }
 
     setStatus('idle');
+    setFiatForm(EMPTY_FIAT_FORM);
     setSuccess(
       formatMessage(w.withdrawalCreated, {
         id: data.withdrawal.id.slice(0, 8),
@@ -235,13 +288,11 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
     setActiveTab('history');
   };
 
-  useEffect(() => {
-    if (activeTab !== 'withdraw' || !wallet || status === 'withdrawing') return;
-
+  const submitCryptoWithdrawal = async () => {
+    if (!wallet) return;
     const available = Number(wallet.account.available);
-    const linkedWallet = checklist?.walletAddress?.trim();
-
-    if (!linkedWallet) {
+    const destinationAddress = selectedWalletAddress ?? checklist?.walletAddress?.trim();
+    if (!destinationAddress) {
       setError(tw.walletNotLinked);
       return;
     }
@@ -249,13 +300,39 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
       setError(w.errorNoBalance);
       return;
     }
+    await submitWithdrawal({
+      amountUsd: available,
+      method: 'STABLECOIN',
+      destinationAddress,
+      stablecoinNetwork: 'BASE'
+    });
+  };
 
-    const attemptKey = `${available}-${linkedWallet}`;
-    if (withdrawAttemptRef.current === attemptKey) return;
-
-    withdrawAttemptRef.current = attemptKey;
-    void autoWithdraw(available, linkedWallet);
-  }, [activeTab, checklist?.walletAddress, status, tw.walletNotLinked, w.errorNoBalance, wallet]);
+  const submitFiatWithdrawal = async () => {
+    if (!wallet) return;
+    const available = Number(wallet.account.available);
+    if (available <= 0) {
+      setError(w.errorNoBalance);
+      return;
+    }
+    if (!fiatForm.accountHolderName.trim() || !fiatForm.taxId.trim()) {
+      setError(w.fiatFormIncomplete);
+      return;
+    }
+    if (fiatForm.rail === 'BANK_OR_WALLET' && !fiatForm.cbuOrCvu.trim() && !fiatForm.alias.trim()) {
+      setError(w.fiatFormIncomplete);
+      return;
+    }
+    if (fiatForm.rail === 'OTHER' && !fiatForm.notes.trim()) {
+      setError(w.fiatFormIncomplete);
+      return;
+    }
+    await submitWithdrawal({
+      amountUsd: available,
+      method: 'FIAT',
+      payoutDetails: fiatForm
+    });
+  };
 
   if (isLoadingWallet && !wallet) {
     return <DashboardSkeleton />;
@@ -311,7 +388,6 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
         <button
           type="button"
           onClick={() => {
-            withdrawAttemptRef.current = null;
             setError(null);
             setSuccess(null);
             setActiveTab('withdraw');
@@ -353,8 +429,137 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
         </p>
       ) : null}
 
-      {activeTab === 'withdraw' && status === 'withdrawing' ? (
-        <p className="px-4 text-sm text-slate-500">{w.withdrawAutoRunning}</p>
+      {activeTab === 'withdraw' ? (
+        <section className="space-y-4 px-4">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setWithdrawMode('crypto')}
+              className="flex-1 rounded-full px-3 py-2 text-xs font-semibold"
+              style={
+                withdrawMode === 'crypto'
+                  ? { backgroundColor: MP_ACCENT, color: '#fff' }
+                  : { backgroundColor: '#fff', color: '#475569', boxShadow: 'inset 0 0 0 1px #e2e8f0' }
+              }
+            >
+              {w.withdrawModeCrypto}
+            </button>
+            <button
+              type="button"
+              onClick={() => setWithdrawMode('fiat')}
+              className="flex-1 rounded-full px-3 py-2 text-xs font-semibold"
+              style={
+                withdrawMode === 'fiat'
+                  ? { backgroundColor: MP_ACCENT, color: '#fff' }
+                  : { backgroundColor: '#fff', color: '#475569', boxShadow: 'inset 0 0 0 1px #e2e8f0' }
+              }
+            >
+              {w.withdrawModeFiat}
+            </button>
+          </div>
+
+          {withdrawMode === 'crypto' ? (
+            <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+              {linkedWallets.length > 0 ? (
+                linkedWallets.map((row) => (
+                  <label key={row.id} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="pwa-withdraw-wallet"
+                        checked={selectedWalletAddress === row.address}
+                        onChange={() => setSelectedWalletAddress(row.address)}
+                      />
+                      <span className="font-mono text-xs">
+                        {row.address.slice(0, 6)}…{row.address.slice(-4)}
+                      </span>
+                    </span>
+                    <span className="text-xs text-slate-500">{row.provider}</span>
+                  </label>
+                ))
+              ) : (
+                <p className="text-sm text-amber-700">{tw.walletNotLinked}</p>
+              )}
+              <button
+                type="button"
+                disabled={status === 'withdrawing' || !selectedWalletAddress}
+                onClick={() => void submitCryptoWithdrawal()}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white disabled:opacity-60"
+                style={{ backgroundColor: MP_ACCENT }}
+              >
+                {status === 'withdrawing' ? <Loader2 size={16} className="animate-spin" /> : null}
+                {w.withdrawSubmitCrypto}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
+              {fiatIdentities.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {fiatIdentities.map((identity) => (
+                    <button
+                      key={identity.id}
+                      type="button"
+                      onClick={() =>
+                        setFiatForm((prev) => ({
+                          ...prev,
+                          providerName: identity.provider === 'mercado_pago' ? 'Mercado Pago' : identity.provider,
+                          notes:
+                            prev.notes ||
+                            formatMessage(w.fiatChipNoteTemplate, {
+                              identifier: identity.label ?? identity.identifier
+                            })
+                        }))
+                      }
+                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700"
+                    >
+                      {identity.label ?? identity.identifier}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              <input
+                type="text"
+                placeholder={w.fiatAccountHolder}
+                value={fiatForm.accountHolderName}
+                onChange={(e) => setFiatForm((prev) => ({ ...prev, accountHolderName: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <input
+                type="text"
+                placeholder={w.fiatTaxId}
+                value={fiatForm.taxId}
+                onChange={(e) => setFiatForm((prev) => ({ ...prev, taxId: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <input
+                type="text"
+                placeholder={w.fiatCbuCvu}
+                value={fiatForm.cbuOrCvu}
+                onChange={(e) => setFiatForm((prev) => ({ ...prev, cbuOrCvu: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <input
+                type="text"
+                placeholder={w.fiatAlias}
+                value={fiatForm.alias}
+                onChange={(e) => setFiatForm((prev) => ({ ...prev, alias: e.target.value }))}
+                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <p className="text-xs text-slate-500">{w.fiatManualHint}</p>
+              <button
+                type="button"
+                disabled={status === 'withdrawing'}
+                onClick={() => void submitFiatWithdrawal()}
+                className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold text-white disabled:opacity-60"
+                style={{ backgroundColor: MP_ACCENT }}
+              >
+                {status === 'withdrawing' ? <Loader2 size={16} className="animate-spin" /> : null}
+                {w.withdrawSubmitFiat}
+              </button>
+            </div>
+          )}
+        </section>
       ) : null}
 
       {activeTab === 'history' ? (

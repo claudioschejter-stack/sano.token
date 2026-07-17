@@ -25,6 +25,7 @@ import { PasskeyRegisterInline } from './PasskeyRegisterInline';
 import { PwaProfileIdentityCard } from '../pwa/PwaProfileIdentityCard';
 import { PwaCollectionWalletCard } from '../pwa/PwaCollectionWalletCard';
 import { InvestorCollectionWalletPanel } from '../wallet/InvestorCollectionWalletPanel';
+import { LinkedWalletsPanel } from '../wallet/LinkedWalletsPanel';
 import { LoansPreferenceToggle } from './LoansPreferenceToggle';
 
 type Step = 'idle' | 'instructions' | 'provision' | 'qr' | 'confirm' | 'backup';
@@ -262,6 +263,8 @@ export function SecuritySettingsView() {
         >
           {isMobile ? <PwaCollectionWalletCard /> : <InvestorCollectionWalletPanel />}
         </Suspense>
+
+        <LinkedWalletsPanel />
 
         {/* Passkeys / Biometría */}
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

@@ -4,6 +4,7 @@ import { assertWalletAvailableForUser } from './linkedWalletPolicy';
 import { ensureInvestorForUser } from './investorService';
 import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
 import { sanitizeWalletProvider } from './walletDisplayName';
+import { recordLinkedCryptoWallet } from './linkedWalletsService';
 
 function normalizeWalletAddress(walletAddress: string): string {
   const trimmed = walletAddress.trim();
@@ -97,6 +98,15 @@ export async function linkUserWallet(
   }
 
   await syncUserAccountStatus(userId);
+
+  // Best-effort: keeps a history of every wallet ever linked so the investor
+  // can later pick among them (e.g. as a withdrawal destination). Never
+  // blocks the primary link flow if it fails.
+  try {
+    await recordLinkedCryptoWallet({ userId, address: normalized, provider: providerLabel });
+  } catch (error) {
+    console.error('[linkUserWallet] recordLinkedCryptoWallet failed', error);
+  }
 
   return { walletAddress: normalized, walletProvider: providerLabel };
 }

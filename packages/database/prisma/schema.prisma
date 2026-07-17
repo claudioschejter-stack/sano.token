@@ -816,6 +816,7 @@ model PlatformWithdrawal {
   currency            String                   @default("USD")
   stablecoinNetwork   String?
   destinationAddress  String?
+  payoutDetails        Json?
   txHash              String?
   provider            String?
   providerPaymentId   String?
@@ -831,6 +832,35 @@ model PlatformWithdrawal {
   @@index([status])
   @@index([method])
   @@index([provider, providerPaymentId])
+}
+
+model LinkedCryptoWallet {
+  id         String    @id @default(cuid())
+  userId     String
+  address    String
+  network    String    @default("BASE")
+  provider   String
+  label      String?
+  isDefault  Boolean   @default(false)
+  linkedAt   DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@unique([userId, network, address])
+  @@index([userId])
+  @@index([userId, isDefault])
+}
+
+model LinkedFiatIdentity {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String
+  identifier   String
+  label        String?
+  capturedFrom String?
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, provider, identifier])
+  @@index([userId])
 }
 
 model ProjectOperatingAccount {

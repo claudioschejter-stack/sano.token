@@ -10,6 +10,7 @@ type WithdrawBody = {
   method?: PlatformWithdrawalMethod;
   destinationAddress?: string;
   stablecoinNetwork?: string;
+  payoutDetails?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -29,7 +30,8 @@ export async function POST(request: Request) {
       amountUsd: Number(body.amountUsd),
       method,
       destinationAddress: body.destinationAddress,
-      stablecoinNetwork: body.stablecoinNetwork
+      stablecoinNetwork: body.stablecoinNetwork,
+      payoutDetails: body.payoutDetails
     });
 
     return NextResponse.json({ ok: true, withdrawal }, { status: 201 });
@@ -41,6 +43,9 @@ export async function POST(request: Request) {
       message === 'KYC_NOT_APPROVED' ||
       message === 'INVALID_WITHDRAWAL_AMOUNT' ||
       message === 'DESTINATION_ADDRESS_REQUIRED' ||
+      message === 'PAYOUT_DETAILS_INCOMPLETE' ||
+      message === 'WALLET_NOT_LINKED_TO_ACCOUNT' ||
+      message === 'INVALID_WALLET' ||
       message === 'INSUFFICIENT_PLATFORM_BALANCE'
         ? 400
         : 500;

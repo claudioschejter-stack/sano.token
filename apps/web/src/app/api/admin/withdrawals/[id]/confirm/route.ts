@@ -7,6 +7,8 @@ type RouteContext = {
 };
 
 type ConfirmBody = {
+  /** On-chain tx hash for STABLECOIN, or the bank/transfer reference for FIAT. Accepts legacy `txHash` too. */
+  reference?: string;
   txHash?: string;
 };
 
@@ -25,15 +27,16 @@ export async function POST(request: Request, context: RouteContext) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  if (!body.txHash?.trim()) {
-    return NextResponse.json({ error: 'TX_HASH_REQUIRED' }, { status: 400 });
+  const reference = body.reference ?? body.txHash;
+  if (!reference?.trim()) {
+    return NextResponse.json({ error: 'REFERENCE_REQUIRED' }, { status: 400 });
   }
 
   try {
     const withdrawal = await confirmPlatformWithdrawal({
       withdrawalId: id,
       adminUserId: session.user.id,
-      txHash: body.txHash
+      reference
     });
     return NextResponse.json({ withdrawal });
   } catch (error) {
@@ -41,7 +44,7 @@ export async function POST(request: Request, context: RouteContext) {
     const status =
       message === 'WITHDRAWAL_NOT_FOUND'
         ? 404
-        : message === 'WITHDRAWAL_NOT_FULFILLABLE' || message === 'TX_HASH_REQUIRED'
+        : message === 'WITHDRAWAL_NOT_FULFILLABLE' || message === 'REFERENCE_REQUIRED'
           ? 400
           : 500;
 

@@ -30,6 +30,7 @@ async function fetchMercadoPagoPayment(paymentId: string) {
     status?: string;
     external_reference?: string;
     transaction_amount?: number;
+    payer?: { id?: string | number; email?: string };
     metadata?: {
       paymentIntentId?: string;
       cartBatchId?: string;
@@ -45,6 +46,7 @@ async function handleApprovedMercadoPagoPayment(payment: {
   status?: string;
   external_reference?: string;
   transaction_amount?: number;
+  payer?: { id?: string | number; email?: string };
   metadata?: Record<string, unknown>;
 }) {
   const metadata = payment.metadata ?? {};
@@ -65,7 +67,8 @@ async function handleApprovedMercadoPagoPayment(payment: {
       external_reference: payment.external_reference,
       transaction_amount: payment.transaction_amount,
       paymentId: payment.id ?? null,
-      status: payment.status ?? 'approved'
+      status: payment.status ?? 'approved',
+      payer: payment.payer ?? null
     }
   });
 }
@@ -95,6 +98,7 @@ export async function POST(request: Request) {
     external_reference?: string;
     metadata?: { paymentIntentId?: string; cartBatchId?: string; depositId?: string };
     status?: string;
+    payer?: { id?: string | number; email?: string };
   };
 
   const dataId = mercadoPagoWebhookDataId(request, event);
@@ -133,6 +137,7 @@ export async function POST(request: Request) {
         status: fetched.status,
         external_reference: fetched.external_reference,
         metadata: fetched.metadata,
+        payer: fetched.payer,
         data: { id: String(fetched.id ?? event.data.id) }
       };
     }
@@ -150,6 +155,7 @@ export async function POST(request: Request) {
       status: payment.status,
       external_reference: payment.external_reference,
       transaction_amount: (payment as { transaction_amount?: number }).transaction_amount,
+      payer: payment.payer,
       metadata: payment.metadata as Record<string, unknown> | undefined
     });
     return NextResponse.json(settlement);

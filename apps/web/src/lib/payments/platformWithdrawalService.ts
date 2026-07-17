@@ -1,11 +1,55 @@
 import { prisma, Prisma, type PlatformWithdrawalMethod, type PlatformWithdrawalStatus } from '@sanova/database';
 import { assertOperationalInvestor, getUserPurchaseContext } from '../investor/investorService';
-import { createTransakOffRampCheckout } from './paymentOnRampAdapters';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 import { recordAdminAuditLog } from '../admin/assetsService';
 import { verifyUsdcTransferOnBase } from '../blockchain/verifyUsdcTransfer';
+import { assertLinkedCryptoWalletOwnership } from '../investor/linkedWalletsService';
 import { createNotification } from '../notifications/notificationService';
 import { sendWithdrawalConfirmedEmail, sendWithdrawalRejectedEmail } from '../email/withdrawalEmails';
+
+export type FiatPayoutRail = 'BANK_OR_WALLET' | 'OTHER';
+
+export type FiatPayoutDetails = {
+  rail: FiatPayoutRail;
+  accountHolderName: string;
+  taxId: string;
+  cbuOrCvu?: string | null;
+  alias?: string | null;
+  providerName?: string | null;
+  notes?: string | null;
+};
+
+export function normalizeFiatPayoutDetails(input: unknown): FiatPayoutDetails {
+  const raw = (input ?? {}) as Partial<FiatPayoutDetails>;
+  const rail: FiatPayoutRail = raw.rail === 'OTHER' ? 'OTHER' : 'BANK_OR_WALLET';
+  const accountHolderName = raw.accountHolderName?.trim() ?? '';
+  const taxId = raw.taxId?.trim() ?? '';
+  const cbuOrCvu = raw.cbuOrCvu?.trim() ?? '';
+  const alias = raw.alias?.trim() ?? '';
+  const notes = raw.notes?.trim() ?? '';
+
+  if (!accountHolderName || !taxId) {
+    throw new Error('PAYOUT_DETAILS_INCOMPLETE');
+  }
+
+  if (rail === 'BANK_OR_WALLET' && !cbuOrCvu && !alias) {
+    throw new Error('PAYOUT_DETAILS_INCOMPLETE');
+  }
+
+  if (rail === 'OTHER' && !notes) {
+    throw new Error('PAYOUT_DETAILS_INCOMPLETE');
+  }
+
+  return {
+    rail,
+    accountHolderName,
+    taxId,
+    cbuOrCvu: cbuOrCvu || null,
+    alias: alias || null,
+    providerName: raw.providerName?.trim() || null,
+    notes: notes || null
+  };
+}
 
 export async function createPlatformWithdrawal(input: {
   userId: string;
@@ -13,6 +57,7 @@ export async function createPlatformWithdrawal(input: {
   method: PlatformWithdrawalMethod;
   destinationAddress?: string | null;
   stablecoinNetwork?: string | null;
+  payoutDetails?: unknown;
 }) {
   const user = await getUserPurchaseContext(input.userId);
   if (!user) {
@@ -24,12 +69,21 @@ export async function createPlatformWithdrawal(input: {
     throw new Error('INVALID_WITHDRAWAL_AMOUNT');
   }
 
-  if (input.method === 'STABLECOIN' && !input.destinationAddress?.trim()) {
-    throw new Error('DESTINATION_ADDRESS_REQUIRED');
+  let verifiedDestinationAddress: string | null = null;
+  let fiatPayoutDetails: FiatPayoutDetails | null = null;
+
+  if (input.method === 'STABLECOIN') {
+    if (!input.destinationAddress?.trim()) {
+      throw new Error('DESTINATION_ADDRESS_REQUIRED');
+    }
+    // Only allow withdrawing to an address this user has cryptographically verified ownership of before.
+    verifiedDestinationAddress = await assertLinkedCryptoWalletOwnership(input.userId, input.destinationAddress);
+  } else {
+    fiatPayoutDetails = normalizeFiatPayoutDetails(input.payoutDetails);
   }
 
   const network = getStablecoinNetwork(input.stablecoinNetwork);
-  const idempotencyKey = `${input.userId}:withdraw:${input.method}:${input.amountUsd}:${input.destinationAddress ?? 'fiat'}:${Date.now()}`;
+  const idempotencyKey = `${input.userId}:withdraw:${input.method}:${input.amountUsd}:${verifiedDestinationAddress ?? 'fiat'}:${Date.now()}`;
 
   const withdrawal = await prisma.$transaction(async (tx) => {
     const account = await tx.platformWalletAccount.findUnique({
@@ -59,7 +113,8 @@ export async function createPlatformWithdrawal(input: {
         method: input.method,
         status: input.method === 'FIAT' ? 'MANUAL_REVIEW' : 'PENDING',
         stablecoinNetwork: input.method === 'STABLECOIN' ? network.id : null,
-        destinationAddress: input.destinationAddress?.trim() ?? null,
+        destinationAddress: verifiedDestinationAddress,
+        payoutDetails: fiatPayoutDetails ? (fiatPayoutDetails as Prisma.InputJsonObject) : undefined,
         idempotencyKey,
         metadata: {
           requestedAt: new Date().toISOString(),
@@ -85,31 +140,8 @@ export async function createPlatformWithdrawal(input: {
     return created;
   });
 
-  if (input.method === 'FIAT' && input.destinationAddress?.trim()) {
-    const checkout = createTransakOffRampCheckout({
-      withdrawalId: withdrawal.id,
-      amountUsd: input.amountUsd,
-      walletAddress: input.destinationAddress.trim(),
-      userEmail: user.email
-    });
-
-    if (checkout.providerCheckoutUrl) {
-      const updated = await prisma.platformWithdrawal.update({
-        where: { id: withdrawal.id },
-        data: {
-          provider: checkout.provider,
-          providerPaymentId: checkout.providerPaymentId,
-          providerCheckoutUrl: checkout.providerCheckoutUrl,
-          metadata: {
-            ...((withdrawal.metadata as Record<string, unknown>) ?? {}),
-            provider: checkout.metadata
-          } as Prisma.InputJsonObject
-        }
-      });
-      return serializeWithdrawal(updated);
-    }
-  }
-
+  // FIAT withdrawals stay in MANUAL_REVIEW: an admin executes the bank/digital-wallet
+  // transfer outside the app (see confirmPlatformWithdrawal) and confirms with a reference.
   return serializeWithdrawal(withdrawal);
 }
 
@@ -140,7 +172,8 @@ export async function listWithdrawalsForAdmin(status?: PlatformWithdrawalStatus 
 export async function confirmPlatformWithdrawal(input: {
   withdrawalId: string;
   adminUserId: string;
-  txHash: string;
+  /** On-chain tx hash for STABLECOIN, or the bank/transfer reference number for FIAT. */
+  reference: string;
 }) {
   const withdrawal = await prisma.platformWithdrawal.findUnique({ where: { id: input.withdrawalId } });
   if (!withdrawal) {
@@ -150,16 +183,16 @@ export async function confirmPlatformWithdrawal(input: {
     throw new Error('WITHDRAWAL_NOT_FULFILLABLE');
   }
 
-  const txHash = input.txHash.trim();
-  if (!txHash) {
-    throw new Error('TX_HASH_REQUIRED');
+  const reference = input.reference.trim();
+  if (!reference) {
+    throw new Error('REFERENCE_REQUIRED');
   }
 
   let verification: { ok: boolean; reason?: string; confirmations?: number } = { ok: false, reason: 'SKIPPED' };
   if (withdrawal.method === 'STABLECOIN' && withdrawal.destinationAddress) {
     const network = getStablecoinNetwork(withdrawal.stablecoinNetwork);
     verification = await verifyUsdcTransferOnBase({
-      txHash,
+      txHash: reference,
       expectedTo: withdrawal.destinationAddress,
       expectedAmountUsd: Number(withdrawal.amountUsd),
       expectedFrom: network.treasuryAddress,
@@ -171,7 +204,7 @@ export async function confirmPlatformWithdrawal(input: {
     where: { id: withdrawal.id },
     data: {
       status: 'CONFIRMED',
-      txHash,
+      txHash: reference,
       confirmedAt: new Date(),
       metadata: {
         ...((withdrawal.metadata as Record<string, unknown>) ?? {}),
@@ -185,7 +218,7 @@ export async function confirmPlatformWithdrawal(input: {
     actorUserId: input.adminUserId,
     action: 'WITHDRAWAL_CONFIRMED',
     targetUserId: withdrawal.userId,
-    metadata: { withdrawalId: withdrawal.id, txHash, verification } as Prisma.InputJsonValue
+    metadata: { withdrawalId: withdrawal.id, reference, verification } as Prisma.InputJsonValue
   });
 
   const user = await prisma.user.findUnique({ where: { id: withdrawal.userId }, select: { email: true, name: true } });
@@ -194,14 +227,18 @@ export async function confirmPlatformWithdrawal(input: {
       to: user.email,
       name: user.name,
       amountUsd: Number(withdrawal.amountUsd),
-      txHash
+      method: withdrawal.method,
+      reference
     });
   }
   await createNotification({
     userId: withdrawal.userId,
     type: 'withdrawal_confirmed',
     title: 'Retiro confirmado',
-    body: `Tu retiro de ${Number(withdrawal.amountUsd).toFixed(2)} USDC fue enviado.`,
+    body:
+      withdrawal.method === 'FIAT'
+        ? `Tu retiro de ${Number(withdrawal.amountUsd).toFixed(2)} USD en pesos fue transferido.`
+        : `Tu retiro de ${Number(withdrawal.amountUsd).toFixed(2)} USDC fue enviado.`,
     link: '/dashboard/wallet'
   });
 
@@ -289,7 +326,7 @@ export async function rejectPlatformWithdrawal(input: {
     userId: withdrawal.userId,
     type: 'withdrawal_rejected',
     title: 'Retiro rechazado',
-    body: `Tu retiro de ${Number(withdrawal.amountUsd).toFixed(2)} USDC fue rechazado y el saldo fue restituido. Motivo: ${reason}`,
+    body: `Tu retiro de ${Number(withdrawal.amountUsd).toFixed(2)} USD fue rechazado y el saldo fue restituido. Motivo: ${reason}`,
     link: '/dashboard/wallet'
   });
 
@@ -304,6 +341,7 @@ export function serializeWithdrawal(withdrawal: {
   currency: string;
   stablecoinNetwork: string | null;
   destinationAddress: string | null;
+  payoutDetails?: unknown;
   providerCheckoutUrl: string | null;
   txHash: string | null;
   createdAt: Date;
@@ -317,6 +355,7 @@ export function serializeWithdrawal(withdrawal: {
     currency: withdrawal.currency,
     stablecoinNetwork: withdrawal.stablecoinNetwork,
     destinationAddress: withdrawal.destinationAddress,
+    payoutDetails: (withdrawal.payoutDetails as FiatPayoutDetails | null) ?? null,
     providerCheckoutUrl: withdrawal.providerCheckoutUrl,
     txHash: withdrawal.txHash,
     createdAt: withdrawal.createdAt.toISOString(),
