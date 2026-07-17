@@ -2,15 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { isAlternateMarketingHost, isMaskableOnAlternateHost } from './alternateDomains';
 
 describe('isAlternateMarketingHost', () => {
-  it('recognizes all 8 alternate domain/www variants', () => {
+  it('recognizes all 12 alternate domain/www variants', () => {
     expect(isAlternateMarketingHost('tokenvacamuerta.org')).toBe(true);
     expect(isAlternateMarketingHost('www.tokenvacamuerta.org')).toBe(true);
     expect(isAlternateMarketingHost('tokenvacamuerta.net')).toBe(true);
     expect(isAlternateMarketingHost('www.tokenvacamuerta.net')).toBe(true);
+    expect(isAlternateMarketingHost('tokenvacamuerta.com.ar')).toBe(true);
+    expect(isAlternateMarketingHost('www.tokenvacamuerta.com.ar')).toBe(true);
     expect(isAlternateMarketingHost('vacamuertatoken.org')).toBe(true);
     expect(isAlternateMarketingHost('www.vacamuertatoken.org')).toBe(true);
     expect(isAlternateMarketingHost('vacamuertatoken.net')).toBe(true);
     expect(isAlternateMarketingHost('www.vacamuertatoken.net')).toBe(true);
+    expect(isAlternateMarketingHost('vacamuertatoken.com.ar')).toBe(true);
+    expect(isAlternateMarketingHost('www.vacamuertatoken.com.ar')).toBe(true);
   });
 
   it('is case-insensitive', () => {

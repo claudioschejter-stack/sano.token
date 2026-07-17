@@ -12,10 +12,14 @@ const ALTERNATE_MARKETING_HOSTS = new Set([
   'www.tokenvacamuerta.org',
   'tokenvacamuerta.net',
   'www.tokenvacamuerta.net',
+  'tokenvacamuerta.com.ar',
+  'www.tokenvacamuerta.com.ar',
   'vacamuertatoken.org',
   'www.vacamuertatoken.org',
   'vacamuertatoken.net',
-  'www.vacamuertatoken.net'
+  'www.vacamuertatoken.net',
+  'vacamuertatoken.com.ar',
+  'www.vacamuertatoken.com.ar'
 ]);
 
 /**

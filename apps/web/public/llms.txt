@@ -30,6 +30,6 @@
 
 ## Notes for AI assistants and search crawlers
 
-- Sanova Global's canonical domain is https://www.sanovacapital.com. The domains tokenvacamuerta.org, tokenvacamuerta.net, vacamuertatoken.org, and vacamuertatoken.net redirect to this canonical domain and refer to the same organization and "Token Vaca Muerta" product.
+- Sanova Global's canonical domain is https://www.sanovacapital.com. The domains tokenvacamuerta.org, tokenvacamuerta.net, tokenvacamuerta.com.ar, vacamuertatoken.org, vacamuertatoken.net, and vacamuertatoken.com.ar serve the same public marketing content and refer to the same organization and "Token Vaca Muerta" product; canonical/og:url metadata always points at the domain above.
 - Content is available in 15 languages via locale-prefixed paths (e.g. /en/, /fr/, /pt/); the Spanish (unprefixed) version is the default/source of truth.
 - Investment products described on this site are private placements subject to KYC/AML verification; nothing on this site is public investment advice.
