@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, createVerify, timingSafeEqual } from 'node:crypto';
 import { isProductionRuntime } from '../runtime/environment';
 
 function allowMissingWebhookSecret(): boolean {
@@ -91,6 +91,67 @@ export function verifyCoinbaseSignature(input: {
   signature?: string | null;
 }): boolean {
   return verifyHmacSignature(input);
+}
+
+function normalizePemPublicKey(raw: string): string {
+  let pem = raw.trim().replace(/^["']|["']$/g, '');
+  if (pem.includes('\\n')) {
+    pem = pem.replace(/\\n/g, '\n');
+  }
+  if (!pem.includes('BEGIN PUBLIC KEY')) {
+    pem = `-----BEGIN PUBLIC KEY-----\n${pem}\n-----END PUBLIC KEY-----`;
+  }
+  return pem;
+}
+
+/**
+ * Bridge.xyz signs webhooks with per-endpoint RSA public keys:
+ * header `X-Webhook-Signature: t=<ms>,v0=<base64>` over `${t}.${rawBody}`.
+ * Falls back to legacy HMAC when only BRIDGE_WEBHOOK_SECRET is set (tests).
+ */
+export function verifyBridgeWebhookSignature(input: {
+  payload: string;
+  signature?: string | null;
+  publicKey?: string | null;
+  legacyHmacSecret?: string | null;
+}): boolean {
+  const header = input.signature?.trim();
+  if (!header) {
+    return allowMissingWebhookSecret() && !input.publicKey?.trim() && !input.legacyHmacSecret?.trim();
+  }
+
+  const publicKey = input.publicKey?.trim();
+  if (publicKey && header.includes('v0=')) {
+    try {
+      const parts = Object.fromEntries(
+        header.split(',').map((part) => {
+          const idx = part.indexOf('=');
+          return [part.slice(0, idx).trim(), part.slice(idx + 1).trim()];
+        })
+      );
+      const timestamp = parts.t;
+      const signature = parts.v0;
+      if (!timestamp || !signature) {
+        return false;
+      }
+      const ageMs = Date.now() - Number(timestamp);
+      if (!Number.isFinite(ageMs) || ageMs > 10 * 60 * 1000 || ageMs < -60_000) {
+        return false;
+      }
+      const verifier = createVerify('SHA256');
+      verifier.update(`${timestamp}.${input.payload}`);
+      verifier.end();
+      return verifier.verify(normalizePemPublicKey(publicKey), Buffer.from(signature, 'base64'));
+    } catch {
+      return false;
+    }
+  }
+
+  return verifyHmacSignature({
+    secret: input.legacyHmacSecret ?? undefined,
+    payload: input.payload,
+    signature: header
+  });
 }
 
 /** Mercado Pago webhooks: manifest `id:...;request-id:...;ts:...;` signed with HMAC-SHA256. */

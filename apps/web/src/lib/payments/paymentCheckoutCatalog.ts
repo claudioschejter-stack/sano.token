@@ -499,13 +499,16 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     id: 'bridge',
     groupId: 'international',
     method: 'BRIDGE',
-    label: 'Tarjeta de débito, crédito y transferencia',
+    label: 'Transferencia bancaria (Bridge ACH/Wire → USDC)',
     provider: 'bridge',
-    providerRail: 'on_ramp',
+    providerRail: 'international_transfer',
     fallbackFeeBps: 80,
     fallbackGasUsd: 0.12,
     fallbackNetworkUsd: 0.05,
-    usesLocalCurrency: true,
+    usesLocalCurrency: false,
+    /** Keep AR on Mercado Pago / Ripio; Bridge is the US/EU wire rail. */
+    countries: ['US', 'EU', 'GB', 'CA', 'AU'],
+    excludedCountries: ['AR'],
     sortOrder: 510
   },
   {

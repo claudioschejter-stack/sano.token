@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SANOVA Capital — Bridge Flow of Funds</title>
+  <style>
+    @page { size: A4; margin: 14mm 12mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #14212b;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      margin: 0;
+      padding: 24px 28px;
+      background: #fff;
+      max-width: 900px;
+    }
+    .page { page-break-after: always; padding-bottom: 8px; }
+    .page:last-child { page-break-after: auto; }
+    header.doc-header {
+      border-bottom: 3px solid #0b3d4a;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    header.doc-header h1 {
+      margin: 0 0 4px;
+      font-size: 22pt;
+      color: #0b3d4a;
+      letter-spacing: -0.02em;
+    }
+    header.doc-header .subtitle { font-size: 12pt; color: #444; margin: 0; font-weight: 600; }
+    header.doc-header .meta { font-size: 9pt; color: #666; margin-top: 8px; }
+    h2 {
+      font-size: 13pt;
+      color: #0b3d4a;
+      border-left: 4px solid #2f9e8c;
+      padding-left: 10px;
+      margin: 20px 0 10px;
+    }
+    h3 { font-size: 11pt; margin: 14px 0 8px; color: #333; }
+    p { margin: 0 0 10px; }
+    ul, ol { margin: 0 0 10px 18px; padding: 0; }
+    li { margin-bottom: 4px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid #c8d0d6;
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #e7f3f1; color: #0b3d4a; }
+    .diagram {
+      border: 1px solid #c8d0d6;
+      border-radius: 8px;
+      padding: 14px;
+      margin: 12px 0 16px;
+      background: #f7fafb;
+    }
+    .diagram svg { width: 100%; height: auto; display: block; }
+    .callout {
+      background: #eef8f6;
+      border: 1px solid #2f9e8c;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin: 12px 0;
+    }
+    .callout strong { color: #0b3d4a; }
+    .answer {
+      background: #fff8e8;
+      border-left: 4px solid #d4a017;
+      padding: 10px 12px;
+      margin: 10px 0 14px;
+    }
+    .footer-note {
+      margin-top: 20px;
+      font-size: 8.5pt;
+      color: #666;
+      border-top: 1px solid #ddd;
+      padding-top: 8px;
+    }
+    .mono { font-family: Consolas, "Courier New", monospace; font-size: 9pt; word-break: break-all; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    .card {
+      border: 1px solid #c8d0d6;
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+    .card h3 { margin-top: 0; color: #0b3d4a; }
+  </style>
+</head>
+<body>
+
+<div class="page" id="page-1">
+  <header class="doc-header">
+    <h1>SANOVA Capital</h1>
+    <p class="subtitle">Third-Party Money Movement — Flow of Funds (Bridge)</p>
+    <p class="meta">
+      Entity / Platform: <strong>Sanova Capital · https://www.sanovacapital.com</strong><br/>
+      Legal wrapper: <strong>Fideicomiso Sanova Global RWA · SANOVA GLOBAL S.A.S. (Argentina)</strong><br/>
+      Settlement asset: <strong>USDC on Base (chain ID 8453)</strong> &nbsp;|&nbsp;
+      Document date: <strong>July 2026</strong> &nbsp;|&nbsp;
+      Prepared for: <strong>Bridge.xyz compliance review</strong>
+    </p>
+  </header>
+
+  <h2>1. Intended use-case</h2>
+  <p>
+    Sanova Capital is a marketplace where <strong>KYC-approved investors</strong> purchase
+    <strong>fractional ownership</strong> of tokenized real-estate projects (Real-World Assets).
+    Ownership is represented as <strong>ERC-4626 vault shares</strong> on the Base blockchain.
+  </p>
+  <p>
+    <strong>Bridge</strong> is used as a licensed third-party money-movement / on-ramp provider so that
+    investors can fund purchases with <strong>USD (ACH, wire, or card)</strong>. Bridge converts those
+    funds to <strong>USDC on Base</strong> and delivers them to Sanova’s designated treasury wallet.
+    Sanova then allocates USDC into the corresponding property vault and mints vault shares to the investor.
+  </p>
+  <p>Investor funds received via Bridge are used <strong>only</strong> to:</p>
+  <ul>
+    <li>Settle the investor’s purchase of RWA vault shares</li>
+    <li>Allocate USDC into the property SPV vault that backs the asset</li>
+    <li>Pay platform / advisor commissions on-chain in USDC</li>
+  </ul>
+  <p>
+    Funds are <strong>not</strong> used for FX speculation, crypto trading, peer-to-peer transfers,
+    or unrelated third-party payouts.
+  </p>
+
+  <h2>2. Direct answers for Bridge review</h2>
+  <div class="answer">
+    <strong>Will received funds be exchanged for another currency?</strong><br/>
+    <strong>Yes.</strong> Investor USD (or local fiat collected through Bridge) is converted by
+    <strong>Bridge</strong> into <strong>USDC</strong>. Sanova does <strong>not</strong> operate an FX desk;
+    Bridge performs the conversion. Final settlement asset accepted by Sanova is always
+    <strong>USDC on Base</strong>.
+  </div>
+  <div class="answer">
+    <strong>Where will funds ultimately be sent?</strong><br/>
+    1) Primary destination: <strong>Sanova USDC Treasury wallet on Base</strong>
+    (<span class="mono">0xa993743CFB85E8d6481Ef60bb3D397F49604A592</span>)<br/>
+    2) Then allocated on-chain to the <strong>property ERC-4626 vault</strong> (SPV compartment)<br/>
+    3) Investor receives <strong>vault shares</strong> in their linked Base wallet<br/>
+    4) A small fee portion (~3–5%) goes to <strong>platform / advisor commission wallets</strong> on Base
+  </div>
+
+  <h2>3. Bridge flow of funds diagram</h2>
+  <div class="diagram">
+    <svg viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bridge flow of funds">
+      <defs>
+        <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+          <path d="M0,0 L7,3.5 L0,7 Z" fill="#334155"/>
+        </marker>
+        <style>
+          .b { fill:#fff; stroke:#0b3d4a; stroke-width:1.6; rx:8; }
+          .b1 { fill:#e8f4f8; stroke:#1d6b7a; }
+          .b2 { fill:#fff4e5; stroke:#c27803; }
+          .b3 { fill:#e7f6f2; stroke:#1f8a75; }
+          .b4 { fill:#f3eefc; stroke:#6b4ea2; }
+          .t { font: 600 13px Segoe UI, Arial, sans-serif; fill:#14212b; }
+          .s { font: 11px Segoe UI, Arial, sans-serif; fill:#475569; }
+          .h { font: 700 14px Segoe UI, Arial, sans-serif; fill:#0b3d4a; }
+          .l { stroke:#334155; stroke-width:1.5; fill:none; marker-end:url(#arr); }
+        </style>
+      </defs>
+
+      <text x="24" y="28" class="h">End-to-end money movement via Bridge</text>
+
+      <!-- Row 1 -->
+      <rect x="320" y="48" width="220" height="58" class="b b1"/>
+      <text x="430" y="72" text-anchor="middle" class="t">1. Investor (KYC approved)</text>
+      <text x="430" y="90" text-anchor="middle" class="s">Selects Bridge at Sanova checkout</text>
+
+      <!-- Row 2 -->
+      <rect x="320" y="130" width="220" height="58" class="b"/>
+      <text x="430" y="154" text-anchor="middle" class="t">2. Sanova Platform</text>
+      <text x="430" y="172" text-anchor="middle" class="s">Creates payment intent / VA order</text>
+
+      <!-- Row 3 Bridge -->
+      <rect x="250" y="220" width="360" height="78" class="b b2"/>
+      <text x="430" y="248" text-anchor="middle" class="t">3. Bridge.xyz (Third-Party Provider)</text>
+      <text x="430" y="268" text-anchor="middle" class="s">Collects USD via ACH · Wire · Card</text>
+      <text x="430" y="286" text-anchor="middle" class="s">Converts USD → USDC on Base</text>
+
+      <!-- Row 4 Treasury -->
+      <rect x="220" y="330" width="420" height="70" class="b b3"/>
+      <text x="430" y="356" text-anchor="middle" class="t">4. Sanova USDC Treasury (Base)</text>
+      <text x="430" y="376" text-anchor="middle" class="s mono" style="font-family:Consolas,monospace;font-size:10px;">0xa993743CFB85E8d6481Ef60bb3D397F49604A592</text>
+      <text x="430" y="392" text-anchor="middle" class="s">Primary settlement destination configured in Bridge</text>
+
+      <!-- Row 5 destinations -->
+      <rect x="40" y="440" width="220" height="60" class="b b4"/>
+      <text x="150" y="464" text-anchor="middle" class="t">5a. Property vault</text>
+      <text x="150" y="482" text-anchor="middle" class="s">~95–97% USDC → ERC-4626</text>
+
+      <rect x="320" y="440" width="220" height="60" class="b b4"/>
+      <text x="430" y="464" text-anchor="middle" class="t">5b. Investor wallet</text>
+      <text x="430" y="482" text-anchor="middle" class="s">Receives vault shares</text>
+
+      <rect x="600" y="440" width="220" height="60" class="b b4"/>
+      <text x="710" y="464" text-anchor="middle" class="t">5c. Commission wallets</text>
+      <text x="710" y="482" text-anchor="middle" class="s">~3–5% platform / advisors</text>
+
+      <line x1="430" y1="106" x2="430" y2="130" class="l"/>
+      <line x1="430" y1="188" x2="430" y2="220" class="l"/>
+      <line x1="430" y1="298" x2="430" y2="330" class="l"/>
+      <line x1="320" y1="400" x2="150" y2="440" class="l"/>
+      <line x1="430" y1="400" x2="430" y2="440" class="l"/>
+      <line x1="540" y1="400" x2="710" y2="440" class="l"/>
+    </svg>
+  </div>
+</div>
+
+<div class="page" id="page-2">
+  <h2>4. Bridge product surfaces used</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h3>Virtual Accounts (ACH / Wire)</h3>
+      <p>
+        Investor receives bank deposit instructions. Source currency: <strong>USD</strong>.
+        Destination configured as: <strong>USDC on Base</strong> → Sanova treasury address.
+      </p>
+    </div>
+    <div class="card">
+      <h3>On-ramp (Card / hosted)</h3>
+      <p>
+        Investor pays by card (or Bridge-hosted on-ramp). Bridge delivers
+        <strong>USDC on Base</strong> to the same treasury destination.
+      </p>
+    </div>
+  </div>
+
+  <h2>5. Currency exchange detail</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Leg</th>
+        <th>Asset / currency</th>
+        <th>Who holds / moves it</th>
+        <th>Exchanged?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Investor payment</td>
+        <td>USD (ACH / wire / card)</td>
+        <td>Bridge collects from investor</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Conversion</td>
+        <td>USD → USDC</td>
+        <td><strong>Bridge</strong> (licensed TPP)</td>
+        <td><strong>Yes</strong></td>
+      </tr>
+      <tr>
+        <td>Delivery to Sanova</td>
+        <td>USDC on Base</td>
+        <td>Bridge → Sanova treasury wallet</td>
+        <td>No further FX</td>
+      </tr>
+      <tr>
+        <td>Investment allocation</td>
+        <td>USDC on Base</td>
+        <td>Treasury → property vault + commissions</td>
+        <td>No</td>
+      </tr>
+      <tr>
+        <td>Investor receipt</td>
+        <td>ERC-4626 vault shares</td>
+        <td>Minted to investor Base wallet</td>
+        <td>N/A (not a currency)</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <strong>Policy:</strong> Sanova is merchant of record for the investment. Sanova does not exchange currencies.
+    Only Bridge (or other licensed on-ramps) perform fiat ↔ USDC conversion. No RWA shares are issued until
+    USDC is verified on-chain at the Sanova treasury.
+  </div>
+
+  <h2>6. Ultimate destinations (summary)</h2>
+  <table>
+    <thead>
+      <tr><th>Order</th><th>Destination</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td><strong>Sanova USDC Treasury</strong> on Base<br/><span class="mono">0xa993743CFB85E8d6481Ef60bb3D397F49604A592</span></td>
+        <td>Primary settlement address configured as Bridge destination</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td><strong>Property ERC-4626 vault</strong> (per project SPV / Compartimento)</td>
+        <td>~95–97% of net proceeds backing the real-estate asset</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td><strong>Investor linked wallet</strong> (Base)</td>
+        <td>Receives vault shares representing fractional ownership</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td><strong>Platform / advisor wallets</strong> (Base)</td>
+        <td>~3–5% commissions in USDC</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Funds are NOT sent to</h3>
+  <ul>
+    <li>Personal bank accounts of Sanova employees</li>
+    <li>Unrelated third parties or offshore unlinked accounts</li>
+    <li>Crypto exchanges for trading or speculation</li>
+    <li>Any destination other than Sanova-controlled Base wallets / vaults described above</li>
+  </ul>
+
+  <h2>7. Example transaction</h2>
+  <ol>
+    <li>Investor buys <strong>USD 1,000</strong> of vault shares (+ fees ≈ <strong>USD 1,050</strong>).</li>
+    <li>Investor pays <strong>USD 1,050</strong> via Bridge (ACH, wire, or card).</li>
+    <li>Bridge converts to ~<strong>1,050 USDC</strong> and sends them to the Sanova treasury on Base.</li>
+    <li>Sanova verifies the on-chain receipt, then allocates ~1,000 USDC to the property vault and ~50 USDC to commissions.</li>
+    <li>Investor receives ERC-4626 vault shares in their linked wallet.</li>
+  </ol>
+
+  <h2>8. Compliance controls</h2>
+  <ul>
+    <li>Investor <strong>KYC</strong> required (Didit) before purchase / Bridge funding</li>
+    <li>Single settlement asset: <strong>USDC on Base</strong></li>
+    <li><strong>Treasury-first</strong>: shares minted only after on-chain USDC verification</li>
+    <li>Bridge webhooks reconciled against treasury transaction hashes</li>
+    <li>Payment intents, Bridge customer / transfer IDs, and tx hashes retained for audit</li>
+  </ul>
+
+  <p class="footer-note">
+    Sanova Capital — Flow of Funds disclosure for Bridge.xyz Third-Party Money Movement review.
+    Platform: https://www.sanovacapital.com · Contact via Bridge application / compliance channel.
+    This document is for compliance review only and does not constitute an offer of securities.
+  </p>
+</div>
+
+</body>
+</html>

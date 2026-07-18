@@ -29,23 +29,35 @@ export function WireTransferPanel({
   const pg = t.paymentGateway;
   const { isDesktop, isMobile } = useDeviceDetection();
   const [instructions, setInstructions] = useState<BridgeVirtualAccountInstructions | null>(null);
+  const [vaError, setVaError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const useBridgeVa = wire.provider === 'bridge' || !wire.widgetUrl;
 
   useEffect(() => {
-    if (!referenceId) return;
+    if (!referenceId || !useBridgeVa) return;
     onPending?.();
+    setVaError(null);
     const params = new URLSearchParams({
       referenceId,
       amountUsd: String(wire.totalUsd)
     });
     void fetch(`/api/payments/bridge-virtual-account?${params}`, { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { instructions?: BridgeVirtualAccountInstructions } | null) => {
+      .then(async (res) => {
+        const data = (await res.json().catch(() => null)) as {
+          instructions?: BridgeVirtualAccountInstructions;
+          error?: string;
+          isSimulated?: boolean;
+        } | null;
+        if (!res.ok) {
+          setVaError(data?.error ?? sc.notConfigured);
+          return;
+        }
         if (data?.instructions) setInstructions(data.instructions);
+        if (data?.isSimulated) setVaError('SIMULATED_VA');
       })
-      .catch(() => undefined);
+      .catch(() => setVaError(sc.notConfigured));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [referenceId, wire.totalUsd]);
+  }, [referenceId, wire.totalUsd, useBridgeVa]);
 
   const copyField = (key: string, value: string) => {
     void navigator.clipboard.writeText(value);
@@ -61,7 +73,7 @@ export function WireTransferPanel({
     );
   }
 
-  const transakUrl = wire.widgetUrl;
+  const transakUrl = wire.provider === 'transak' ? wire.widgetUrl : null;
 
   return (
     <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
@@ -88,9 +100,13 @@ export function WireTransferPanel({
       <PaymentFeeBreakdown
         amountUsd={amountUsd}
         totalUsd={wire.totalUsd}
-        gatewayChargedBy="Transak / Bridge"
-        fxChargedBy="Transak / Bridge"
+        gatewayChargedBy={wire.provider === 'bridge' ? 'Bridge' : 'Transak'}
+        fxChargedBy={wire.provider === 'bridge' ? 'Bridge' : 'Transak'}
       />
+
+      {vaError && vaError !== 'SIMULATED_VA' ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{vaError}</p>
+      ) : null}
 
       {instructions ? (
         <div className="space-y-2 rounded-xl border border-terminal-border bg-terminal-bg p-4">

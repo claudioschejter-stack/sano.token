@@ -59,9 +59,11 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
     },
     {
       id: 'bridge',
-      label: 'Bridge on-ramp',
-      configured: paymentGatewayConfigured('BRIDGE'),
-      envKeys: ['BRIDGE_API_KEY', 'BRIDGE_WEBHOOK_SECRET']
+      label: 'Bridge VA / on-ramp (USDC Base)',
+      configured:
+        paymentGatewayConfigured('BRIDGE') &&
+        Boolean(process.env.BRIDGE_WEBHOOK_PUBLIC_KEY?.trim() || process.env.BRIDGE_WEBHOOK_SECRET?.trim()),
+      envKeys: ['BRIDGE_API_KEY', 'BRIDGE_WEBHOOK_PUBLIC_KEY', 'BRIDGE_WEBHOOK_SECRET']
     },
     {
       id: 'ripio',

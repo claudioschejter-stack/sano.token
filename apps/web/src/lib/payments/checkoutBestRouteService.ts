@@ -166,8 +166,20 @@ const FEES: Record<string, number> = {
   pix_br: 25, // Pix BR ~0.25%
   transak_fiat: 180, // ~1.8% global
   transak_card: 199, // Transak card ~1.99%
-  transak_wire: 80 // Transak bank transfer ~0.8%
+  transak_wire: 80, // Transak bank transfer ~0.8%
+  bridge_wire: 80 // Bridge VA ACH/wire developer fee ballpark
 };
+
+/** US/EU-style markets where Bridge Virtual Accounts are the preferred wire rail. */
+const BRIDGE_WIRE_COUNTRIES = new Set(['US', 'EU', 'GB', 'CA', 'AU']);
+
+function bridgeApiConfigured(): boolean {
+  return Boolean(process.env.BRIDGE_API_KEY?.trim());
+}
+
+function prefersBridgeWire(country: string): boolean {
+  return BRIDGE_WIRE_COUNTRIES.has(country.toUpperCase()) && bridgeApiConfigured();
+}
 
 function fiatFeeBpsForCountry(country: string): number {
   if (country === 'AR') return FEES.mercado_pago_fiat + FX_BUFFER_BPS;
@@ -247,18 +259,21 @@ export function resolveCheckoutBestRoutes(input: {
     mpSandbox: false
   };
 
-  // --- Wire (Transak bank transfer) ---
-  const wireFeeBps = FEES.transak_wire + FX_BUFFER_BPS;
+  // --- Wire: Bridge VA for US/EU (+ peers); Transak bank_transfer elsewhere (incl. AR backup) ---
+  const useBridgeWire = prefersBridgeWire(c);
+  const wireFeeBps = (useBridgeWire ? FEES.bridge_wire : FEES.transak_wire) + FX_BUFFER_BPS;
   const wireTotal = amountUsd * (1 + wireFeeBps / 10_000);
-  const wireWidgetUrl = transakWidgetUrl({
-    amountUsd: Number(wireTotal.toFixed(2)),
-    country: c,
-    referenceId,
-    paymentMethod: 'bank_transfer'
-  });
+  const wireWidgetUrl = useBridgeWire
+    ? null
+    : transakWidgetUrl({
+        amountUsd: Number(wireTotal.toFixed(2)),
+        country: c,
+        referenceId,
+        paymentMethod: 'bank_transfer'
+      });
   const wire: SimplifiedWireMethod = {
-    provider: 'transak',
-    configured: Boolean(wireWidgetUrl),
+    provider: useBridgeWire ? 'bridge' : 'transak',
+    configured: useBridgeWire ? bridgeApiConfigured() : Boolean(wireWidgetUrl),
     totalUsd: Number(wireTotal.toFixed(2)),
     displayCurrency: 'USD',
     feeBps: wireFeeBps,

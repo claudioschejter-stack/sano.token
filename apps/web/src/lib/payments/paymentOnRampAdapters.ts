@@ -146,22 +146,24 @@ export function createBridgeOnRampCheckout(input: OnRampRequest): OnRampResult {
     return { provider: 'bridge', metadata: { configured: true, error: 'TREASURY_NOT_CONFIGURED' } };
   }
 
-  const params = new URLSearchParams({
-    amount: input.amountUsd.toFixed(2),
-    currency: 'usd',
-    destination_address: walletAddress,
-    destination_chain: 'base',
-    external_id: input.depositId,
-    redirect_uri: input.redirectPath
-      ? `${checkoutBaseUrl()}${input.redirectPath}`
-      : `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`
-  });
+  // Hosted path is Sanova's VA / wire panel (Customers + Virtual Accounts → USDC Base treasury).
+  // Do not send investors to Bridge's internal dashboard URL.
+  const redirectPath =
+    input.redirectPath ??
+    `/marketplace/carrito?mode=deposit&deposit=${encodeURIComponent(input.depositId)}&method=bridge&status=awaiting_wire`;
 
   return {
     provider: 'bridge',
     providerPaymentId: input.depositId,
-    providerCheckoutUrl: `https://dashboard.bridge.xyz/on-ramp?${params.toString()}`,
-    metadata: { configured: true, network: 'BASE', settlement: 'treasury_first' }
+    providerCheckoutUrl: `${checkoutBaseUrl()}${redirectPath.startsWith('/') ? redirectPath : `/${redirectPath}`}`,
+    metadata: {
+      configured: true,
+      network: 'BASE',
+      settlement: 'treasury_first',
+      mode: 'virtual_account',
+      destinationAddress: walletAddress,
+      amountUsd: input.amountUsd
+    }
   };
 }
 

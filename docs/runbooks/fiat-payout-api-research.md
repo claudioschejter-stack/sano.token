@@ -1,6 +1,6 @@
 # Phase 3 — Fiat payout API research (follow-up)
 
-Status: **open / non-blocking**. Fiat withdrawals today are admin-mediated (`PlatformWithdrawal` + `AdminWithdrawalsView`). Automated money-out requires a commercial agreement with a provider.
+Status: **open / non-blocking — keep admin-mediated**. Fiat withdrawals stay on the admin confirm/reject flow (`PlatformWithdrawal` + `AdminWithdrawalsView`) even after Bridge on-ramp/VA go live. Automated money-out requires a commercial agreement with a provider (Bridge off-ramp, MP Money Out, dLocal payouts, etc.).
 
 ## Candidates
 

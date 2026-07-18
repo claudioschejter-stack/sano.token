@@ -142,6 +142,8 @@ export async function createPlatformWithdrawal(input: {
 
   // FIAT withdrawals stay in MANUAL_REVIEW: an admin executes the bank/digital-wallet
   // transfer outside the app (see confirmPlatformWithdrawal) and confirms with a reference.
+  // Do not auto-call Bridge/MP/dLocal payout APIs until Phase 3 money-out is commercially approved
+  // (docs/runbooks/fiat-payout-api-research.md).
   return serializeWithdrawal(withdrawal);
 }
 

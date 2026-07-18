@@ -2,12 +2,20 @@ import { NextResponse } from 'next/server';
 import { auth } from '../../../../auth';
 import { buildBridgeVirtualAccountInstructions } from '../../../../lib/checkout/bridgeVirtualAccountService';
 import type { BridgeVirtualAccountInstructions } from '../../../../lib/checkout/paymentRouteTypes';
+import { isProductionRuntime } from '../../../../lib/runtime/environment';
+import { getStablecoinNetwork } from '../../../../lib/payments/stablecoinNetworks';
 
 const BRIDGE_API_BASE = 'https://api.bridge.xyz/v0';
 
 /** Treasury address on Base for virtual account destination */
 function getTreasuryAddress(): string {
-  return process.env.TREASURY_WALLET_ADDRESS ?? process.env.NEXT_PUBLIC_TREASURY_ADDRESS ?? '';
+  return (
+    process.env.TREASURY_WALLET_ADDRESS?.trim() ||
+    process.env.NEXT_PUBLIC_TREASURY_ADDRESS?.trim() ||
+    process.env.BASE_STABLECOIN_TREASURY_ADDRESS?.trim() ||
+    getStablecoinNetwork('BASE').treasuryAddress ||
+    ''
+  );
 }
 
 function getBridgeApiKey(): string | undefined {
@@ -58,73 +66,54 @@ async function getOrCreateBridgeCustomer(
   apiKey: string,
   userId: string,
   email: string
-): Promise<BridgeApiCustomer | null> {
-  try {
-    // Use the SANOVA user ID as stable external identifier
-    const externalId = `sanova-${userId}`;
-    const customers = await bridgeFetch<{ data: BridgeApiCustomer[] }>(
-      `/customers?external_id=${encodeURIComponent(externalId)}`,
-      apiKey
-    );
-    if (customers.data.length > 0) {
-      return customers.data[0] ?? null;
-    }
-    // Create customer
-    const created = await bridgeFetch<BridgeApiCustomer>('/customers', apiKey, {
-      method: 'POST',
-      body: JSON.stringify({
-        external_id: externalId,
-        email,
-        type: 'individual'
-      })
-    });
-    return created;
-  } catch {
-    return null;
+): Promise<BridgeApiCustomer> {
+  const externalId = `sanova-${userId}`;
+  const customers = await bridgeFetch<{ data: BridgeApiCustomer[] }>(
+    `/customers?external_id=${encodeURIComponent(externalId)}`,
+    apiKey
+  );
+  if (customers.data.length > 0 && customers.data[0]) {
+    return customers.data[0];
   }
+  return bridgeFetch<BridgeApiCustomer>('/customers', apiKey, {
+    method: 'POST',
+    body: JSON.stringify({
+      external_id: externalId,
+      email,
+      type: 'individual'
+    })
+  });
 }
 
 async function getOrCreateVirtualAccount(
   apiKey: string,
   customerId: string,
-  referenceId: string,
-  amountUsd: number
-): Promise<BridgeApiVirtualAccount | null> {
-  try {
-    // Look for existing virtual accounts
-    const accounts = await bridgeFetch<{ data: BridgeApiVirtualAccount[] }>(
-      `/customers/${customerId}/virtual_accounts`,
-      apiKey
-    );
-    const active = accounts.data.find((a) => a.status === 'activated');
-    if (active) return active;
+  referenceId: string
+): Promise<BridgeApiVirtualAccount> {
+  const accounts = await bridgeFetch<{ data: BridgeApiVirtualAccount[] }>(
+    `/customers/${customerId}/virtual_accounts`,
+    apiKey
+  );
+  const active = accounts.data.find((a) => a.status === 'activated');
+  if (active) return active;
 
-    // Create a new virtual account (USD → USDC on Base → treasury)
-    const treasury = getTreasuryAddress();
-    if (!treasury) throw new Error('Treasury address not configured');
+  const treasury = getTreasuryAddress();
+  if (!treasury) throw new Error('TREASURY_NOT_CONFIGURED');
 
-    const idempotencyKey = `sanova-va-${customerId}-${referenceId}`;
-    const created = await bridgeFetch<BridgeApiVirtualAccount>(
-      `/customers/${customerId}/virtual_accounts`,
-      apiKey,
-      {
-        method: 'POST',
-        headers: { 'Idempotency-Key': idempotencyKey },
-        body: JSON.stringify({
-          source: { currency: 'usd' },
-          destination: {
-            payment_rail: 'base',
-            currency: 'usdc',
-            address: treasury
-          },
-          developer_fee_percent: '0.8'
-        })
-      }
-    );
-    return created;
-  } catch {
-    return null;
-  }
+  const idempotencyKey = `sanova-va-${customerId}-${referenceId}`.slice(0, 64);
+  return bridgeFetch<BridgeApiVirtualAccount>(`/customers/${customerId}/virtual_accounts`, apiKey, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify({
+      source: { currency: 'usd' },
+      destination: {
+        payment_rail: 'base',
+        currency: 'usdc',
+        address: treasury
+      },
+      developer_fee_percent: '0.8'
+    })
+  });
 }
 
 function buildInstructionsFromBridgeAccount(
@@ -153,6 +142,7 @@ function buildInstructionsFromBridgeAccount(
 export type BridgeVirtualAccountResponse = {
   instructions: BridgeVirtualAccountInstructions;
   isSimulated: boolean;
+  error?: string;
 };
 
 export async function GET(request: Request): Promise<NextResponse> {
@@ -166,9 +156,17 @@ export async function GET(request: Request): Promise<NextResponse> {
   const email = session?.user?.email;
 
   const apiKey = getBridgeApiKey();
+  const allowSimulated = !isProductionRuntime() || process.env.BRIDGE_ALLOW_SIMULATED_VA === 'true';
 
-  // No credentials → always simulated
   if (!apiKey) {
+    if (!allowSimulated) {
+      return NextResponse.json(
+        { error: 'BRIDGE_NOT_CONFIGURED', isSimulated: false } satisfies Partial<BridgeVirtualAccountResponse> & {
+          error: string;
+        },
+        { status: 503 }
+      );
+    }
     const instructions = buildBridgeVirtualAccountInstructions({
       amountUsd,
       referenceId,
@@ -177,32 +175,44 @@ export async function GET(request: Request): Promise<NextResponse> {
     return NextResponse.json({ instructions, isSimulated: true } satisfies BridgeVirtualAccountResponse);
   }
 
-  // Try to provision a real virtual account
-  if (userId && email) {
-    try {
-      const customer = await getOrCreateBridgeCustomer(apiKey, userId, email);
-      if (customer) {
-        const account = await getOrCreateVirtualAccount(apiKey, customer.id, referenceId, amountUsd);
-        if (account) {
-          const instructions = buildInstructionsFromBridgeAccount(
-            account,
-            amountUsd,
-            referenceId,
-            investorName
-          );
-          return NextResponse.json({ instructions, isSimulated: false } satisfies BridgeVirtualAccountResponse);
-        }
-      }
-    } catch {
-      // Fall through to simulated
-    }
+  if (!userId || !email) {
+    return NextResponse.json(
+      { error: 'AUTH_REQUIRED', isSimulated: false } satisfies Partial<BridgeVirtualAccountResponse> & {
+        error: string;
+      },
+      { status: 401 }
+    );
   }
 
-  // Fallback: simulated
-  const instructions = buildBridgeVirtualAccountInstructions({
-    amountUsd,
-    referenceId,
-    investorName
-  });
-  return NextResponse.json({ instructions, isSimulated: true } satisfies BridgeVirtualAccountResponse);
+  try {
+    const customer = await getOrCreateBridgeCustomer(apiKey, userId, email);
+    const account = await getOrCreateVirtualAccount(apiKey, customer.id, referenceId);
+    const instructions = buildInstructionsFromBridgeAccount(
+      account,
+      amountUsd,
+      referenceId,
+      investorName
+    );
+    return NextResponse.json({ instructions, isSimulated: false } satisfies BridgeVirtualAccountResponse);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'BRIDGE_VA_FAILED';
+    if (!allowSimulated) {
+      return NextResponse.json(
+        { error: message, isSimulated: false } satisfies Partial<BridgeVirtualAccountResponse> & {
+          error: string;
+        },
+        { status: 502 }
+      );
+    }
+    const instructions = buildBridgeVirtualAccountInstructions({
+      amountUsd,
+      referenceId,
+      investorName
+    });
+    return NextResponse.json({
+      instructions,
+      isSimulated: true,
+      error: message
+    } satisfies BridgeVirtualAccountResponse);
+  }
 }

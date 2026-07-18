@@ -7,8 +7,9 @@ export type BridgeVirtualAccountInput = {
 };
 
 /**
- * MVP: simulated Bridge Virtual Account payload.
- * Replace with Bridge.xyz Customers + Virtual Accounts API when credentials are wired.
+ * Dev-only simulated Bridge Virtual Account payload.
+ * Production uses Bridge.xyz Customers + Virtual Accounts via
+ * `/api/payments/bridge-virtual-account` (fail-loud when API is unavailable).
  */
 export function buildBridgeVirtualAccountInstructions(
   input: BridgeVirtualAccountInput
