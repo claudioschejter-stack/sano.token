@@ -221,6 +221,7 @@ export function SimplifiedCheckout({
           wire={routes.wire}
           amountUsd={amountUsd}
           referenceId={activeReferenceId ?? referenceId}
+          country={routes.country}
           investorName={investorName}
           onPending={() => handlePaymentSignal(activeReferenceId ?? referenceId)}
         />

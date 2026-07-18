@@ -39,4 +39,20 @@ export type BridgeVirtualAccountInstructions = {
   currency: string;
   memo: string;
   estimatedSettlement: string;
+  /** Optional multi-rail fields from Bridge VA responses */
+  iban?: string;
+  bic?: string;
+  clabe?: string;
+  brCode?: string;
+  sortCode?: string;
+  paymentRails?: string[];
+  virtualAccountId?: string;
+};
+
+export type BridgeKycGate = {
+  customerId: string;
+  kycStatus: string;
+  tosStatus: string;
+  kycLink: string | null;
+  tosLink: string | null;
 };

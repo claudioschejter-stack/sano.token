@@ -1,8 +1,20 @@
 # Bridge.xyz setup (Sanova)
 
-Settlement: **USD ACH/wire → USDC on Base → Sanova treasury**.
+Settlement: **local fiat VA → USDC on Base → Sanova treasury**.
 
-Argentina keeps **Mercado Pago + Ripio + Privy USDC**. Bridge is the **US/EU wire** rail.
+Supported Bridge Virtual Account source currencies:
+
+| Country | Source | Rails |
+|---------|--------|-------|
+| US / CA / AU | `usd` | ACH push, wire |
+| EU | `eur` | SEPA |
+| MX | `mxn` | SPEI |
+| BR | `brl` | Pix |
+| GB | `gbp` | Faster Payments |
+
+Investor flow: **KYC link (Persona) + ToS → Virtual Account → deposit → webhook → USDC Base**.
+
+Argentina keeps **Mercado Pago + Ripio + Privy USDC** (Bridge excluded for `AR`).
 
 ## 1. Environment (Vercel)
 

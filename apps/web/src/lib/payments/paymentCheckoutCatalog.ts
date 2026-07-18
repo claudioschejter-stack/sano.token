@@ -506,8 +506,8 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackGasUsd: 0.12,
     fallbackNetworkUsd: 0.05,
     usesLocalCurrency: false,
-    /** Keep AR on Mercado Pago / Ripio; Bridge is the US/EU wire rail. */
-    countries: ['US', 'EU', 'GB', 'CA', 'AU'],
+    /** Keep AR on Mercado Pago / Ripio; Bridge covers USD/EUR/MXN/BRL/GBP VAs. */
+    countries: ['US', 'EU', 'GB', 'CA', 'AU', 'MX', 'BR', 'DE', 'FR', 'ES', 'IT', 'NL', 'PT', 'IE'],
     excludedCountries: ['AR'],
     sortOrder: 510
   },

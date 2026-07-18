@@ -2,6 +2,7 @@ import { getStablecoinNetwork } from './stablecoinNetworks';
 import { resolveMercadoPagoChargeAmount } from './mercadoPagoCharge';
 import { mercadoPagoAccessToken } from './mercadoPagoClient';
 import { isMercadoPagoPixConfigured } from './mercadoPagoPix/config';
+import { getBridgeApiKey, isBridgeWireCountry } from './bridgeClient';
 
 // ---------------------------------------------------------------------------
 // FX table (fallback rates; production should use MERCADOPAGO_FX_ARS / DLOCAL env)
@@ -170,15 +171,12 @@ const FEES: Record<string, number> = {
   bridge_wire: 80 // Bridge VA ACH/wire developer fee ballpark
 };
 
-/** US/EU-style markets where Bridge Virtual Accounts are the preferred wire rail. */
-const BRIDGE_WIRE_COUNTRIES = new Set(['US', 'EU', 'GB', 'CA', 'AU']);
-
 function bridgeApiConfigured(): boolean {
-  return Boolean(process.env.BRIDGE_API_KEY?.trim());
+  return Boolean(getBridgeApiKey());
 }
 
 function prefersBridgeWire(country: string): boolean {
-  return BRIDGE_WIRE_COUNTRIES.has(country.toUpperCase()) && bridgeApiConfigured();
+  return isBridgeWireCountry(country) && bridgeApiConfigured();
 }
 
 function fiatFeeBpsForCountry(country: string): number {

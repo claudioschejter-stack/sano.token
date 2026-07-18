@@ -24,6 +24,11 @@ type BridgeTransferInstructionsProps = {
     copy: string;
     copied: string;
     simulatedNotice: string;
+    iban?: string;
+    bic?: string;
+    clabe?: string;
+    sortCode?: string;
+    rails?: string;
   };
 };
 
@@ -85,6 +90,36 @@ export function BridgeTransferInstructions({
   instructions,
   labels
 }: BridgeTransferInstructionsProps) {
+  const rows: Array<{ label: string; value?: string; highlight?: boolean }> = [
+    { label: labels.bankName, value: instructions.bankName },
+    { label: labels.accountName, value: instructions.accountName },
+    { label: labels.iban ?? 'IBAN', value: instructions.iban },
+    { label: labels.bic ?? 'BIC', value: instructions.bic },
+    { label: labels.clabe ?? 'CLABE', value: instructions.clabe },
+    { label: labels.sortCode ?? 'Sort code', value: instructions.sortCode },
+    {
+      label: labels.accountNumber,
+      value: instructions.iban || instructions.clabe ? undefined : instructions.accountNumber
+    },
+    {
+      label: labels.routingNumber,
+      value: instructions.sortCode || instructions.bic ? undefined : instructions.routingNumber
+    },
+    { label: labels.swift, value: instructions.bic ? undefined : instructions.swift },
+    {
+      label: labels.amount,
+      value: `${instructions.currency} ${instructions.amountUsd.toFixed(2)}`,
+      highlight: true
+    },
+    { label: labels.beneficiaryAddress, value: instructions.beneficiaryAddress },
+    { label: labels.reference, value: instructions.reference, highlight: true },
+    { label: labels.memo, value: instructions.memo },
+    {
+      label: labels.rails ?? 'Rails',
+      value: instructions.paymentRails?.length ? instructions.paymentRails.join(', ') : undefined
+    }
+  ];
+
   return (
     <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
       <div className="flex items-start gap-3">
@@ -98,66 +133,18 @@ export function BridgeTransferInstructions({
       </div>
 
       <div className="mt-4 grid gap-2.5">
-        <CopyField
-          label={labels.bankName}
-          value={instructions.bankName}
-          copyLabel={labels.copy}
-          copiedLabel={labels.copied}
-        />
-        <CopyField
-          label={labels.accountName}
-          value={instructions.accountName}
-          copyLabel={labels.copy}
-          copiedLabel={labels.copied}
-        />
-        <div className="grid grid-cols-2 gap-2.5">
-          <CopyField
-            label={labels.accountNumber}
-            value={instructions.accountNumber}
-            copyLabel={labels.copy}
-            copiedLabel={labels.copied}
-          />
-          <CopyField
-            label={labels.routingNumber}
-            value={instructions.routingNumber}
-            copyLabel={labels.copy}
-            copiedLabel={labels.copied}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2.5">
-          <CopyField
-            label={labels.swift}
-            value={instructions.swift}
-            copyLabel={labels.copy}
-            copiedLabel={labels.copied}
-          />
-          <CopyField
-            label={labels.amount}
-            value={`${instructions.currency} ${instructions.amountUsd.toFixed(2)}`}
-            copyLabel={labels.copy}
-            copiedLabel={labels.copied}
-            highlight
-          />
-        </div>
-        <CopyField
-          label={labels.beneficiaryAddress}
-          value={instructions.beneficiaryAddress}
-          copyLabel={labels.copy}
-          copiedLabel={labels.copied}
-        />
-        <CopyField
-          label={labels.reference}
-          value={instructions.reference}
-          copyLabel={labels.copy}
-          copiedLabel={labels.copied}
-          highlight
-        />
-        <CopyField
-          label={labels.memo}
-          value={instructions.memo}
-          copyLabel={labels.copy}
-          copiedLabel={labels.copied}
-        />
+        {rows.map((row) =>
+          row.value && row.value !== '—' ? (
+            <CopyField
+              key={row.label}
+              label={row.label}
+              value={row.value}
+              copyLabel={labels.copy}
+              copiedLabel={labels.copied}
+              highlight={row.highlight}
+            />
+          ) : null
+        )}
       </div>
 
       <div className="mt-4 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2.5">

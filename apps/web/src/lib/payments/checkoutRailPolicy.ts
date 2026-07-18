@@ -3,6 +3,8 @@
  * Settlement is always USDC on Base into the Sanova treasury.
  */
 
+import { isBridgeWireCountry } from './bridgeClient';
+
 export type CheckoutRailId =
   | 'crypto_usdc'
   | 'fiat_wallet_ar'
@@ -16,8 +18,6 @@ export type CheckoutRailRecommendation = {
   notes: string;
 };
 
-const BRIDGE_WIRE_COUNTRIES = new Set(['US', 'EU', 'GB', 'CA', 'AU']);
-
 export function recommendCheckoutRails(country: string): CheckoutRailRecommendation {
   const c = country.trim().toUpperCase() || 'US';
 
@@ -29,11 +29,12 @@ export function recommendCheckoutRails(country: string): CheckoutRailRecommendat
     };
   }
 
-  if (BRIDGE_WIRE_COUNTRIES.has(c)) {
+  if (isBridgeWireCountry(c)) {
     return {
       country: c,
       primary: ['crypto_usdc', 'bridge_wire', 'card_on_ramp'],
-      notes: 'US/EU peers: Bridge Virtual Account for ACH/wire, Transak/Privy for cards, USDC wallet.'
+      notes:
+        'Bridge Virtual Account (USD ACH/wire, EUR SEPA, MXN SPEI, BRL Pix, GBP FPS) → USDC Base + cards/USDC wallet.'
     };
   }
 

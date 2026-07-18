@@ -9,8 +9,10 @@ describe('recommendCheckoutRails', () => {
     expect(ar.primary).not.toContain('bridge_wire');
   });
 
-  it('prefers Bridge wire for US/EU', () => {
+  it('prefers Bridge wire for US/EU/BR/MX', () => {
     expect(recommendCheckoutRails('US').primary).toContain('bridge_wire');
     expect(recommendCheckoutRails('EU').primary).toContain('bridge_wire');
+    expect(recommendCheckoutRails('BR').primary).toContain('bridge_wire');
+    expect(recommendCheckoutRails('MX').primary).toContain('bridge_wire');
   });
 });
