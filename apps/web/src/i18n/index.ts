@@ -4,6 +4,7 @@ import { de } from './locales/de';
 import { en, type Messages } from './locales/en';
 import { es } from './locales/es';
 import { fr } from './locales/fr';
+import { he } from './locales/he';
 import { hi } from './locales/hi';
 import { id } from './locales/id';
 import { ja } from './locales/ja';
@@ -15,7 +16,6 @@ import { ur } from './locales/ur';
 import { zh } from './locales/zh';
 import { mergeLocale } from './locales/mergeLocale';
 
-/** Fifteen most widely spoken languages worldwide (by total speakers). */
 export type Locale =
   | 'en'
   | 'zh'
@@ -31,7 +31,8 @@ export type Locale =
   | 'de'
   | 'ja'
   | 'sw'
-  | 'mr';
+  | 'mr'
+  | 'he';
 
 export const defaultLocale: Locale = 'es';
 
@@ -50,7 +51,8 @@ export const locales: Locale[] = [
   'de',
   'ja',
   'sw',
-  'mr'
+  'mr',
+  'he'
 ];
 
 const localeOptionsSource: Array<{
@@ -72,7 +74,8 @@ const localeOptionsSource: Array<{
   { value: 'de', flag: '🇩🇪', label: 'Deutsch' },
   { value: 'ja', flag: '🇯🇵', label: '日本語' },
   { value: 'sw', flag: '🇰🇪', label: 'Kiswahili' },
-  { value: 'mr', flag: '🇮🇳', label: 'मराठी' }
+  { value: 'mr', flag: '🇮🇳', label: 'मराठी' },
+  { value: 'he', flag: '🇮🇱', label: 'עברית' }
 ];
 
 /** Language picker options sorted A→Z by display label. */
@@ -95,11 +98,12 @@ export const intlLocaleByCode: Record<Locale, string> = {
   de: 'de-DE',
   ja: 'ja-JP',
   sw: 'sw-KE',
-  mr: 'mr-IN'
+  mr: 'mr-IN',
+  he: 'he-IL'
 };
 
 /** Locales that use right-to-left layout. */
-export const rtlLocales: Locale[] = ['ar', 'ur'];
+export const rtlLocales: Locale[] = ['ar', 'ur', 'he'];
 
 export const messagesByLocale: Record<Locale, Messages> = {
   en,
@@ -116,7 +120,8 @@ export const messagesByLocale: Record<Locale, Messages> = {
   de: mergeLocale(de),
   ja: mergeLocale(ja),
   sw: mergeLocale(sw),
-  mr: mergeLocale(mr)
+  mr: mergeLocale(mr),
+  he: mergeLocale(he)
 };
 
 export function resolveLocale(input?: string | null): Locale {

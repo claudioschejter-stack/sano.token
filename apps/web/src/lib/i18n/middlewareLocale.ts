@@ -23,7 +23,10 @@ const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   de: 'de',
   ja: 'ja',
   sw: 'sw',
-  mr: 'mr'
+  mr: 'mr',
+  he: 'he',
+  'he-il': 'he',
+  iw: 'he'
 };
 
 const COUNTRY_LOCALE_HINT: Record<string, Locale> = {
@@ -67,7 +70,8 @@ const COUNTRY_LOCALE_HINT: Record<string, Locale> = {
   PK: 'ur',
   BD: 'bn',
   KE: 'sw',
-  TZ: 'sw'
+  TZ: 'sw',
+  IL: 'he'
 };
 
 export function mapBrowserLanguageToLocale(language: string | null | undefined): Locale | null {

@@ -17,7 +17,7 @@ export function getSiteUrl(): string {
 // locales) and must never be announced in the sitemap.
 export const PUBLIC_MARKETING_PATHS = [
   '/',
-  '/nosotros',
+  // `/nosotros` temporarily excluded from sitemap until further notice.
   '/faq',
   '/contacto',
   '/blog',

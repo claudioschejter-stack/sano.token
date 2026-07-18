@@ -48,6 +48,13 @@ export function buildSiteMetadata(locale: Locale, path = '/'): Metadata {
 
   return {
     metadataBase: new URL(siteUrl),
+    applicationName: 'Sanova',
+    manifest: '/manifest.json',
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: 'Sanova'
+    },
     // fix: 7 template appends "| Sanova Global" — child pages must NOT include it in their title string
     title: {
       default: messages.meta.title,

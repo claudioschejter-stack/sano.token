@@ -2,11 +2,18 @@
 
 import { useSyncExternalStore } from 'react';
 
+function matchesDisplayMode(mode: string): boolean {
+  return window.matchMedia(`(display-mode: ${mode})`).matches;
+}
+
 function detectIsPwa(): boolean {
   if (typeof window === 'undefined') return false;
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+  const isDisplayModeApp =
+    matchesDisplayMode('standalone') ||
+    matchesDisplayMode('fullscreen') ||
+    matchesDisplayMode('minimal-ui');
   const isIosStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-  return isStandalone || isIosStandalone;
+  return isDisplayModeApp || isIosStandalone;
 }
 
 function getServerSnapshot(): boolean {
@@ -14,9 +21,16 @@ function getServerSnapshot(): boolean {
 }
 
 function subscribe(onStoreChange: () => void): () => void {
-  const mediaQuery = window.matchMedia('(display-mode: standalone)');
-  mediaQuery.addEventListener('change', onStoreChange);
-  return () => mediaQuery.removeEventListener('change', onStoreChange);
+  const modes = ['standalone', 'fullscreen', 'minimal-ui'] as const;
+  const queries = modes.map((mode) => window.matchMedia(`(display-mode: ${mode})`));
+  for (const query of queries) {
+    query.addEventListener('change', onStoreChange);
+  }
+  return () => {
+    for (const query of queries) {
+      query.removeEventListener('change', onStoreChange);
+    }
+  };
 }
 
 /**

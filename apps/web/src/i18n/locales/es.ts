@@ -2491,11 +2491,12 @@ export const es = {
     tagline: 'RWA Tokenization'
   },
   mobileAppPrompt: {
-    title: 'La plataforma funciona mejor con la app',
+    title: 'Usá Sanova a pantalla completa',
     description:
-      'Instalá Sanova en tu celular para ingresar con huella o Face ID, y una experiencia más rápida y segura. También podés continuar en el navegador.',
-    downloadYes: 'Descargar la app',
-    downloadNo: 'Continuar en la web'
+      'La barra del navegador (X, título y dominio) solo desaparece si instalás Sanova y la abrís desde el ícono de la pantalla de inicio. Así cubre toda la pantalla, con huella o Face ID.',
+    downloadYes: 'Instalar app',
+    downloadNo: 'Seguir en el navegador',
+    browserBarHint: 'Estás en el navegador. Instalá la app para quitar esta barra y usar pantalla completa.'
   },
   pwa: {
     installTitle: 'Instalá Sanova en tu celular',

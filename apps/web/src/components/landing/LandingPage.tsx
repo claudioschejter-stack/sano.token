@@ -312,9 +312,6 @@ export function LandingPage({ initialFeed, youtubeVideos }: LandingPageProps) {
             <Link href={localePath('/acceso')} className="hover:text-white">
               {l.nav.platformAccess}
             </Link>
-            <Link href={localePath('/nosotros')} className="hover:text-white">
-              {l.footer.about}
-            </Link>
             <Link href={localePath('/faq')} className="hover:text-white">
               {l.footer.faq}
             </Link>

@@ -20,6 +20,7 @@ import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { MP_ACCENT, MP_ACCENT_SOFT } from '../../lib/pwa/mpTheme';
 import { getWhatsAppPhone, getWhatsAppUrl } from '../../config/site';
 import { WhatsAppIcon } from '../WhatsAppFloat';
+import { BrowserFullscreenBanner } from './BrowserFullscreenBanner';
 import { PwaSectionTabs } from './PwaSectionTabs';
 
 type Props = {
@@ -67,8 +68,9 @@ export function PwaShell({ children }: Props) {
 
   return (
     <div className="flex min-h-dvh flex-col bg-white">
-      <header className="sticky top-0 z-40 bg-[#009EE3] px-4 pb-4 pt-safe-top shadow-sm">
-        <div className="flex items-center justify-between pt-3">
+      <header className="sticky top-0 z-40 bg-[#009EE3] pt-safe-top shadow-sm">
+        <BrowserFullscreenBanner />
+        <div className="flex items-center justify-between px-4 pb-4 pt-3">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white/20 text-sm font-bold text-white">
               {photoUrl ? (

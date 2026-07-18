@@ -7,6 +7,7 @@ import { LocaleProvider } from '../../i18n/LocaleProvider';
 import { AuthTokenSync } from '../auth/AuthTokenSync';
 import { SessionAutoLogout } from '../auth/SessionAutoLogout';
 import { ClientPageHardening } from '../security/ClientPageHardening';
+import { MediaSaveProtection } from '../security/MediaSaveProtection';
 import { ThemeProvider } from './ThemeProvider';
 import { SessionPreferencesSync } from '../preferences/SessionPreferencesSync';
 import { AuthSessionProvider } from './AuthSessionProvider';
@@ -22,6 +23,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <AuthTokenSync />
           <SessionAutoLogout />
           <ClientPageHardening />
+          <MediaSaveProtection />
           {children}
         </LocaleProvider>
       </ThemeProvider>

@@ -14,7 +14,8 @@ export type Locale =
   | 'de'
   | 'ja'
   | 'sw'
-  | 'mr';
+  | 'mr'
+  | 'he';
 
 export const defaultLocale: Locale = 'es';
 
@@ -33,7 +34,8 @@ export const locales: readonly Locale[] = [
   'de',
   'ja',
   'sw',
-  'mr'
+  'mr',
+  'he'
 ];
 
 const LOCALE_SET = new Set<string>(locales);

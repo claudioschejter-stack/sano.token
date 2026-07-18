@@ -7,6 +7,7 @@ import { bn } from './bn';
 import { de } from './de';
 import { es } from './es';
 import { fr } from './fr';
+import { he } from './he';
 import { hi } from './hi';
 import { id } from './id';
 import { ja } from './ja';
@@ -32,7 +33,8 @@ const emailMessagesByLocale: Record<Locale, EmailMessages> = {
   de: mergeEmailLocale(de),
   ja: mergeEmailLocale(ja),
   sw: mergeEmailLocale(sw),
-  mr: mergeEmailLocale(mr)
+  mr: mergeEmailLocale(mr),
+  he: mergeEmailLocale(he)
 };
 
 const DEFAULT_EMAIL_LOCALE: Locale = 'es';

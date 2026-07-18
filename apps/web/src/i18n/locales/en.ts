@@ -2449,11 +2449,12 @@ export const en = {
     tagline: 'RWA Tokenization'
   },
   mobileAppPrompt: {
-    title: 'The platform works best with the app',
+    title: 'Use Sanova full screen',
     description:
-      'Install Sanova on your phone to sign in with fingerprint or Face ID, and a faster, more secure experience. You can also continue in the browser.',
-    downloadYes: 'Download the app',
-    downloadNo: 'Continue on the web'
+      'The browser bar (X, title, and domain) only goes away when you install Sanova and open it from your home-screen icon. That gives you full screen plus fingerprint or Face ID.',
+    downloadYes: 'Install app',
+    downloadNo: 'Stay in the browser',
+    browserBarHint: 'You are in the browser. Install the app to remove this bar and go full screen.'
   },
   pwa: {
     installTitle: "Install Sanova on your cell phone",

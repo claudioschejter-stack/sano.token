@@ -18,7 +18,6 @@ function getPriority(url: string): number {
   if (/sanovacapital\.com\/?$/.test(url)) return 1.0;
   if (url.includes('/faq')) return 0.9;
   if (url.includes('/blog') && url.match(/\/blog\/[^/]+$/)) return 0.8;
-  if (url.includes('/nosotros')) return 0.8;
   if (url.includes('/blog')) return 0.9;
   if (url.includes('/contacto')) return 0.6;
   if (url.includes('/privacidad') || url.includes('/terminos')) return 0.3;

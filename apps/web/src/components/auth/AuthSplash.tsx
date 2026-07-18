@@ -3,10 +3,7 @@
 import { useEffect, useState } from 'react';
 import { APP_VERSION } from '../../generated/appVersion';
 
-/**
- * Full-screen splash shown on mobile/PWA while the session is resolving,
- * and as the biometric gate. Uses the brand splash photo as the background.
- */
+/** Full-screen splash while session resolves / biometric gate. */
 export function AuthSplash() {
   const [visible, setVisible] = useState(false);
 
@@ -14,21 +11,29 @@ export function AuthSplash() {
     setVisible(true);
   }, []);
 
+  useEffect(() => {
+    document.body.classList.add('auth-splash-active');
+    return () => document.body.classList.remove('auth-splash-active');
+  }, []);
+
   return (
     <div
-      className={`relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden transition-opacity duration-700 ${
+      className={`no-save-media relative flex min-h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-[#0e2958] transition-opacity duration-700 ${
         visible ? 'opacity-100' : 'opacity-0'
       }`}
+      data-no-save
+      onContextMenu={(event) => event.preventDefault()}
     >
-      <img
-        src="/brand/sanova-splash-bg.png"
-        alt=""
+      {/* CSS background (not <img>) so long-press cannot offer download/share. */}
+      <div
         aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-center"
+        data-brand-media
+        className="pointer-events-none relative z-0 aspect-square w-[min(92vw,62dvh)] rounded-full bg-center bg-cover bg-no-repeat"
+        style={{ backgroundImage: 'url(/brand/sanova-app-button-1024.png)' }}
       />
 
       <p
-        className="absolute z-10 text-[11px] font-medium tracking-wide text-white/45"
+        className="pointer-events-none absolute z-10 select-none text-[11px] font-medium tracking-wide text-white/45"
         style={{
           top: 'max(1rem, env(safe-area-inset-top))',
           left: 'max(1rem, env(safe-area-inset-left))'
