@@ -34,7 +34,7 @@ export async function GET() {
     fullName
   });
 
-  if (!result.ok) {
+  if (result.ok === false) {
     const status = result.reason === 'KYC_REQUIRED' ? 409 : 503;
     return NextResponse.json(result, { status });
   }
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     body
   });
 
-  if (!result.ok) {
+  if (result.ok === false) {
     const status =
       result.reason === 'KYC_REQUIRED' ? 409 : result.reason === 'BRIDGE_NOT_CONFIGURED' ? 503 : 502;
     return NextResponse.json(result, { status });
