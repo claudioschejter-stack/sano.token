@@ -9,7 +9,7 @@
 # From repo root
 node scripts/vercel/smoke-payments-health.mjs
 # or
-SMOKE_BASE_URL=https://tokenvacamuerta.net node scripts/vercel/smoke-payments-health.mjs
+SMOKE_BASE_URL=https://sanovacapital.com node scripts/vercel/smoke-payments-health.mjs
 
 npm run vercel:verify-payments   # reads Vercel Production env (may differ from .env.local)
 ```
