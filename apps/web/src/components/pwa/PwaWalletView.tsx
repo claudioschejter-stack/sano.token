@@ -47,6 +47,8 @@ type FiatWithdrawForm = {
   alias: string;
   providerName: string;
   notes: string;
+  bridgeExternalAccountId: string;
+  bridgeCurrency: string;
 };
 
 const EMPTY_FIAT_FORM: FiatWithdrawForm = {
@@ -56,8 +58,15 @@ const EMPTY_FIAT_FORM: FiatWithdrawForm = {
   cbuOrCvu: '',
   alias: '',
   providerName: '',
-  notes: ''
+  notes: '',
+  bridgeExternalAccountId: '',
+  bridgeCurrency: ''
 };
+
+function currencyFromBridgeLabel(label: string | null): string {
+  const match = label?.match(/\b(USD|EUR|MXN)\b/i);
+  return match?.[1]?.toLowerCase() ?? '';
+}
 
 type ActivityItem = {
   id: string;
@@ -315,11 +324,17 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
       setError(w.errorNoBalance);
       return;
     }
-    if (!fiatForm.accountHolderName.trim() || !fiatForm.taxId.trim()) {
+    const hasBridge = Boolean(fiatForm.bridgeExternalAccountId.trim());
+    if (!fiatForm.accountHolderName.trim() || (!hasBridge && !fiatForm.taxId.trim())) {
       setError(w.fiatFormIncomplete);
       return;
     }
-    if (fiatForm.rail === 'BANK_OR_WALLET' && !fiatForm.cbuOrCvu.trim() && !fiatForm.alias.trim()) {
+    if (
+      fiatForm.rail === 'BANK_OR_WALLET' &&
+      !hasBridge &&
+      !fiatForm.cbuOrCvu.trim() &&
+      !fiatForm.alias.trim()
+    ) {
       setError(w.fiatFormIncomplete);
       return;
     }
@@ -495,26 +510,53 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
             <div className="space-y-3 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-100">
               {fiatIdentities.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {fiatIdentities.map((identity) => (
-                    <button
-                      key={identity.id}
-                      type="button"
-                      onClick={() =>
-                        setFiatForm((prev) => ({
-                          ...prev,
-                          providerName: identity.provider === 'mercado_pago' ? 'Mercado Pago' : identity.provider,
-                          notes:
-                            prev.notes ||
-                            formatMessage(w.fiatChipNoteTemplate, {
-                              identifier: identity.label ?? identity.identifier
-                            })
-                        }))
-                      }
-                      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-700"
-                    >
-                      {identity.label ?? identity.identifier}
-                    </button>
-                  ))}
+                  {fiatIdentities.map((identity) => {
+                    const selected =
+                      identity.provider === 'bridge' &&
+                      fiatForm.bridgeExternalAccountId === identity.identifier;
+                    return (
+                      <button
+                        key={identity.id}
+                        type="button"
+                        onClick={() => {
+                          if (identity.provider === 'bridge') {
+                            setFiatForm((prev) => ({
+                              ...prev,
+                              rail: 'BANK_OR_WALLET',
+                              providerName: 'bridge',
+                              bridgeExternalAccountId: identity.identifier,
+                              bridgeCurrency: currencyFromBridgeLabel(identity.label),
+                              notes:
+                                prev.notes ||
+                                formatMessage(w.fiatChipNoteTemplate, {
+                                  identifier: identity.label ?? identity.identifier
+                                })
+                            }));
+                            return;
+                          }
+                          setFiatForm((prev) => ({
+                            ...prev,
+                            bridgeExternalAccountId: '',
+                            bridgeCurrency: '',
+                            providerName:
+                              identity.provider === 'mercado_pago' ? 'Mercado Pago' : identity.provider,
+                            notes:
+                              prev.notes ||
+                              formatMessage(w.fiatChipNoteTemplate, {
+                                identifier: identity.label ?? identity.identifier
+                              })
+                          }));
+                        }}
+                        className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                          selected
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                            : 'border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {identity.label ?? identity.identifier}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : null}
 

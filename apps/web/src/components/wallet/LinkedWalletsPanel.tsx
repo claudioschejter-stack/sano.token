@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Landmark, Star, Wallet } from 'lucide-react';
 import { useTranslation } from '../../i18n/LocaleProvider';
+import { BridgeExternalAccountForm } from './BridgeExternalAccountForm';
 
 type LinkedCryptoWalletDto = {
   id: string;
@@ -27,15 +28,16 @@ function shortAddress(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
-function providerLabel(provider: string): string {
+function providerLabel(provider: string, lw: { bridgeProvider: string }): string {
   const known: Record<string, string> = {
     mercado_pago: 'Mercado Pago',
-    ripio: 'Ripio'
+    ripio: 'Ripio',
+    bridge: lw.bridgeProvider
   };
   return known[provider] ?? provider;
 }
 
-/** Read-only history of every wallet/billetera digital the investor has ever used to pay. */
+/** History of wallets/billeteras + Bridge external bank accounts for payouts. */
 export function LinkedWalletsPanel() {
   const t = useTranslation();
   const lw = t.linkedWallets;
@@ -43,6 +45,7 @@ export function LinkedWalletsPanel() {
   const [fiatIdentities, setFiatIdentities] = useState<LinkedFiatIdentityDto[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [switchingAddress, setSwitchingAddress] = useState<string | null>(null);
+  const [showBridgeForm, setShowBridgeForm] = useState(false);
 
   async function load() {
     try {
@@ -79,9 +82,8 @@ export function LinkedWalletsPanel() {
     }
   }
 
-  if (!loading && !cryptoWallets?.length && !fiatIdentities?.length) {
-    return null;
-  }
+  const bridgeIdentities = fiatIdentities?.filter((row) => row.provider === 'bridge') ?? [];
+  const otherFiat = fiatIdentities?.filter((row) => row.provider !== 'bridge') ?? [];
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -133,11 +135,11 @@ export function LinkedWalletsPanel() {
                 </div>
               ) : null}
 
-              {fiatIdentities && fiatIdentities.length > 0 ? (
+              {bridgeIdentities.length > 0 ? (
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{lw.fiatSection}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{lw.bridgeSection}</p>
                   <ul className="mt-2 space-y-2">
-                    {fiatIdentities.map((identity) => (
+                    {bridgeIdentities.map((identity) => (
                       <li
                         key={identity.id}
                         className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
@@ -147,13 +149,52 @@ export function LinkedWalletsPanel() {
                           <p className="truncate text-xs font-medium text-slate-700">
                             {identity.label ?? identity.identifier}
                           </p>
-                          <p className="text-xs text-slate-400">{providerLabel(identity.provider)}</p>
+                          <p className="text-xs text-slate-400">{providerLabel(identity.provider, lw)}</p>
                         </div>
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : null}
+
+              {otherFiat.length > 0 ? (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{lw.fiatSection}</p>
+                  <ul className="mt-2 space-y-2">
+                    {otherFiat.map((identity) => (
+                      <li
+                        key={identity.id}
+                        className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2"
+                      >
+                        <Landmark size={16} className="shrink-0 text-slate-400" />
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium text-slate-700">
+                            {identity.label ?? identity.identifier}
+                          </p>
+                          <p className="text-xs text-slate-400">{providerLabel(identity.provider, lw)}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+
+              {!showBridgeForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowBridgeForm(true)}
+                  className="w-full rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:border-emerald-400 hover:text-emerald-700"
+                >
+                  {lw.bridgeAddCta}
+                </button>
+              ) : (
+                <BridgeExternalAccountForm
+                  onLinked={() => {
+                    setShowBridgeForm(false);
+                    void load();
+                  }}
+                />
+              )}
 
               <p className="text-xs text-slate-400">{lw.hint}</p>
             </div>

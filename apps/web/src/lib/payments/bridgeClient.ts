@@ -289,3 +289,178 @@ export async function getOrCreateBridgeVirtualAccount(input: {
     })
   });
 }
+
+/** Investor-owned bank accounts used as Bridge payout destinations (off-ramp). */
+export type BridgeExternalAccountCurrency = 'usd' | 'eur' | 'mxn';
+
+export type BridgeExternalAccount = {
+  id: string;
+  customer_id: string;
+  bank_name?: string | null;
+  account_name?: string | null;
+  account_owner_name?: string | null;
+  active?: boolean;
+  currency: string;
+  account_type?: string;
+  account?: { last_4?: string; routing_number?: string; checking_or_savings?: string };
+  iban?: { last_4?: string; bic?: string; country?: string };
+  clabe?: { last_4?: string };
+  last_4?: string;
+};
+
+export type CreateBridgeExternalAccountInput =
+  | {
+      currency: 'usd';
+      bankName: string;
+      accountName: string;
+      firstName: string;
+      lastName: string;
+      accountOwnerName: string;
+      routingNumber: string;
+      accountNumber: string;
+      checkingOrSavings?: 'checking' | 'savings';
+      address: {
+        streetLine1: string;
+        city: string;
+        state: string;
+        postalCode: string;
+        country: string;
+      };
+    }
+  | {
+      currency: 'eur';
+      bankName: string;
+      accountName: string;
+      firstName: string;
+      lastName: string;
+      accountOwnerName: string;
+      iban: string;
+      bic: string;
+      ibanCountry: string;
+      address: {
+        streetLine1: string;
+        city: string;
+        postalCode: string;
+        country: string;
+        state?: string;
+      };
+    }
+  | {
+      currency: 'mxn';
+      bankName: string;
+      accountName: string;
+      firstName: string;
+      lastName: string;
+      accountOwnerName: string;
+      clabe: string;
+      address: {
+        streetLine1: string;
+        city: string;
+        state: string;
+        postalCode: string;
+        country: string;
+      };
+    };
+
+export async function listBridgeExternalAccounts(
+  apiKey: string,
+  customerId: string
+): Promise<BridgeExternalAccount[]> {
+  const listed = await bridgeFetch<{ data?: BridgeExternalAccount[] } | BridgeExternalAccount[]>(
+    `/customers/${customerId}/external_accounts`,
+    apiKey
+  );
+  return Array.isArray(listed) ? listed : listed.data ?? [];
+}
+
+export async function createBridgeExternalAccount(input: {
+  apiKey: string;
+  customerId: string;
+  body: CreateBridgeExternalAccountInput;
+}): Promise<BridgeExternalAccount> {
+  let payload: Record<string, unknown>;
+
+  if (input.body.currency === 'usd') {
+    payload = {
+      currency: 'usd',
+      account_type: 'us',
+      bank_name: input.body.bankName,
+      account_name: input.body.accountName,
+      first_name: input.body.firstName,
+      last_name: input.body.lastName,
+      account_owner_type: 'individual',
+      account_owner_name: input.body.accountOwnerName,
+      account: {
+        routing_number: input.body.routingNumber,
+        account_number: input.body.accountNumber,
+        checking_or_savings: input.body.checkingOrSavings ?? 'checking'
+      },
+      address: {
+        street_line_1: input.body.address.streetLine1,
+        country: input.body.address.country,
+        state: input.body.address.state,
+        city: input.body.address.city,
+        postal_code: input.body.address.postalCode
+      }
+    };
+  } else if (input.body.currency === 'eur') {
+    payload = {
+      currency: 'eur',
+      account_type: 'iban',
+      bank_name: input.body.bankName,
+      account_name: input.body.accountName,
+      first_name: input.body.firstName,
+      last_name: input.body.lastName,
+      account_owner_type: 'individual',
+      account_owner_name: input.body.accountOwnerName,
+      iban: {
+        account_number: input.body.iban,
+        country: input.body.ibanCountry,
+        bic: input.body.bic
+      },
+      address: {
+        street_line_1: input.body.address.streetLine1,
+        country: input.body.address.country,
+        city: input.body.address.city,
+        postal_code: input.body.address.postalCode,
+        ...(input.body.address.state ? { state: input.body.address.state } : {})
+      }
+    };
+  } else {
+    payload = {
+      currency: 'mxn',
+      account_type: 'clabe',
+      bank_name: input.body.bankName,
+      account_name: input.body.accountName,
+      first_name: input.body.firstName,
+      last_name: input.body.lastName,
+      account_owner_type: 'individual',
+      account_owner_name: input.body.accountOwnerName,
+      clabe: { account_number: input.body.clabe },
+      address: {
+        street_line_1: input.body.address.streetLine1,
+        country: input.body.address.country,
+        state: input.body.address.state,
+        city: input.body.address.city,
+        postal_code: input.body.address.postalCode
+      }
+    };
+  }
+
+  return bridgeFetch<BridgeExternalAccount>(`/customers/${input.customerId}/external_accounts`, input.apiKey, {
+    method: 'POST',
+    idempotencyKey: randomUUID(),
+    body: JSON.stringify(payload)
+  });
+}
+
+export function bridgeExternalAccountLabel(account: BridgeExternalAccount): string {
+  const last4 =
+    account.last_4 ??
+    account.account?.last_4 ??
+    account.iban?.last_4 ??
+    account.clabe?.last_4 ??
+    '****';
+  const bank = account.bank_name ?? 'Bank';
+  return `${bank} · ${account.currency.toUpperCase()} ·••${last4}`;
+}

@@ -64,6 +64,8 @@ type FiatWithdrawForm = {
   alias: string;
   providerName: string;
   notes: string;
+  bridgeExternalAccountId: string;
+  bridgeCurrency: string;
 };
 
 const EMPTY_FIAT_FORM: FiatWithdrawForm = {
@@ -73,8 +75,15 @@ const EMPTY_FIAT_FORM: FiatWithdrawForm = {
   cbuOrCvu: '',
   alias: '',
   providerName: '',
-  notes: ''
+  notes: '',
+  bridgeExternalAccountId: '',
+  bridgeCurrency: ''
 };
+
+function currencyFromBridgeLabel(label: string | null): string {
+  const match = label?.match(/\b(USD|EUR|MXN)\b/i);
+  return match?.[1]?.toLowerCase() ?? '';
+}
 
 type ActivityItem = {
   id: string;
@@ -276,11 +285,17 @@ export function PlatformWalletView({
       setError(w.errorNoBalance);
       return;
     }
-    if (!fiatForm.accountHolderName.trim() || !fiatForm.taxId.trim()) {
+    const hasBridge = Boolean(fiatForm.bridgeExternalAccountId.trim());
+    if (!fiatForm.accountHolderName.trim() || (!hasBridge && !fiatForm.taxId.trim())) {
       setError(w.fiatFormIncomplete);
       return;
     }
-    if (fiatForm.rail === 'BANK_OR_WALLET' && !fiatForm.cbuOrCvu.trim() && !fiatForm.alias.trim()) {
+    if (
+      fiatForm.rail === 'BANK_OR_WALLET' &&
+      !hasBridge &&
+      !fiatForm.cbuOrCvu.trim() &&
+      !fiatForm.alias.trim()
+    ) {
       setError(w.fiatFormIncomplete);
       return;
     }
@@ -325,8 +340,23 @@ export function PlatformWalletView({
   }, [activeTab]);
 
   function applyFiatIdentityChip(identity: LinkedFiatIdentityDto) {
+    if (identity.provider === 'bridge') {
+      setFiatForm((prev) => ({
+        ...prev,
+        rail: 'BANK_OR_WALLET',
+        providerName: 'bridge',
+        bridgeExternalAccountId: identity.identifier,
+        bridgeCurrency: currencyFromBridgeLabel(identity.label),
+        notes:
+          prev.notes ||
+          formatMessage(w.fiatChipNoteTemplate, { identifier: identity.label ?? identity.identifier })
+      }));
+      return;
+    }
     setFiatForm((prev) => ({
       ...prev,
+      bridgeExternalAccountId: '',
+      bridgeCurrency: '',
       providerName: identity.provider === 'mercado_pago' ? 'Mercado Pago' : identity.provider,
       notes: prev.notes || formatMessage(w.fiatChipNoteTemplate, { identifier: identity.label ?? identity.identifier })
     }));
@@ -511,16 +541,25 @@ export function PlatformWalletView({
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-terminal-muted">{w.fiatChipsLabel}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {fiatIdentities.map((identity) => (
-                      <button
-                        key={identity.id}
-                        type="button"
-                        onClick={() => applyFiatIdentityChip(identity)}
-                        className="rounded-full border border-terminal-border px-3 py-1.5 text-xs font-medium text-terminal-text transition hover:border-terminal-primary hover:text-terminal-primary"
-                      >
-                        {identity.label ?? identity.identifier}
-                      </button>
-                    ))}
+                    {fiatIdentities.map((identity) => {
+                      const selected =
+                        identity.provider === 'bridge' &&
+                        fiatForm.bridgeExternalAccountId === identity.identifier;
+                      return (
+                        <button
+                          key={identity.id}
+                          type="button"
+                          onClick={() => applyFiatIdentityChip(identity)}
+                          className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                            selected
+                              ? 'border-terminal-primary bg-terminal-primary/10 text-terminal-primary'
+                              : 'border-terminal-border text-terminal-text hover:border-terminal-primary hover:text-terminal-primary'
+                          }`}
+                        >
+                          {identity.label ?? identity.identifier}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ) : null}

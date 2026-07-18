@@ -18,6 +18,8 @@ type FiatPayoutDetails = {
   alias?: string | null;
   providerName?: string | null;
   notes?: string | null;
+  bridgeExternalAccountId?: string | null;
+  bridgeCurrency?: string | null;
 };
 
 type AdminWithdrawalRow = {
@@ -59,10 +61,13 @@ function formatFiatDestination(details: FiatPayoutDetails | null): string {
   if (!details) return '—';
   const parts = [
     details.accountHolderName,
+    details.bridgeExternalAccountId
+      ? `Bridge EA ${details.bridgeExternalAccountId}${details.bridgeCurrency ? ` (${details.bridgeCurrency.toUpperCase()})` : ''}`
+      : null,
     details.cbuOrCvu ? `CBU/CVU ${details.cbuOrCvu}` : null,
     details.alias ? `Alias ${details.alias}` : null,
     details.providerName,
-    details.taxId ? `CUIT/DNI ${details.taxId}` : null,
+    details.taxId && details.taxId !== 'BRIDGE' ? `CUIT/DNI ${details.taxId}` : null,
     details.notes
   ].filter(Boolean);
   return parts.join(' · ') || '—';

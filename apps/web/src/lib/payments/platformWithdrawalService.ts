@@ -17,6 +17,9 @@ export type FiatPayoutDetails = {
   alias?: string | null;
   providerName?: string | null;
   notes?: string | null;
+  /** Bridge.xyz external_account id for US/EU/MX bank payouts (still admin-mediated). */
+  bridgeExternalAccountId?: string | null;
+  bridgeCurrency?: string | null;
 };
 
 export function normalizeFiatPayoutDetails(input: unknown): FiatPayoutDetails {
@@ -27,12 +30,19 @@ export function normalizeFiatPayoutDetails(input: unknown): FiatPayoutDetails {
   const cbuOrCvu = raw.cbuOrCvu?.trim() ?? '';
   const alias = raw.alias?.trim() ?? '';
   const notes = raw.notes?.trim() ?? '';
+  const bridgeExternalAccountId = raw.bridgeExternalAccountId?.trim() ?? '';
+  const bridgeCurrency = raw.bridgeCurrency?.trim().toLowerCase() ?? '';
 
-  if (!accountHolderName || !taxId) {
+  if (!accountHolderName) {
     throw new Error('PAYOUT_DETAILS_INCOMPLETE');
   }
 
-  if (rail === 'BANK_OR_WALLET' && !cbuOrCvu && !alias) {
+  // Bridge external accounts are the destination for US/EU/MX rails; tax id optional there.
+  if (!bridgeExternalAccountId && !taxId) {
+    throw new Error('PAYOUT_DETAILS_INCOMPLETE');
+  }
+
+  if (rail === 'BANK_OR_WALLET' && !cbuOrCvu && !alias && !bridgeExternalAccountId) {
     throw new Error('PAYOUT_DETAILS_INCOMPLETE');
   }
 
@@ -43,11 +53,13 @@ export function normalizeFiatPayoutDetails(input: unknown): FiatPayoutDetails {
   return {
     rail,
     accountHolderName,
-    taxId,
+    taxId: taxId || (bridgeExternalAccountId ? 'BRIDGE' : ''),
     cbuOrCvu: cbuOrCvu || null,
     alias: alias || null,
-    providerName: raw.providerName?.trim() || null,
-    notes: notes || null
+    providerName: raw.providerName?.trim() || (bridgeExternalAccountId ? 'bridge' : null),
+    notes: notes || null,
+    bridgeExternalAccountId: bridgeExternalAccountId || null,
+    bridgeCurrency: bridgeCurrency || null
   };
 }
 

@@ -51,14 +51,30 @@ Event categories: `customer`, `kyc_link`, `transfer`, `virtual_account`.
 node scripts/bridge-setup.mjs check
 ```
 
-## 4. Architecture reminder
+## 4. External accounts (investor bank payout destinations)
+
+Investors can link USD (`us` / ACH), EUR (`iban`), or MXN (`clabe`) bank accounts via Bridge External Accounts.
+
+| Surface | Path |
+|---------|------|
+| API | `GET/POST /api/wallet/bridge-external-accounts` |
+| UI | Security → My wallets → “Link a bank account” |
+| Withdraw | Wallet → Fiat → chip selects `bridgeExternalAccountId` |
+| Admin | Withdrawals queue shows Bridge EA id + currency |
+
+Requires Bridge KYC + ToS (same customer as Virtual Accounts). Linked rows are stored as `LinkedFiatIdentity` with `provider: bridge`.
+
+**Money-out is still admin-mediated** — we do not auto-create Bridge transfers/payouts yet. Admins pay out manually using the stored external account id.
+
+## 5. Architecture reminder
 
 | Rail | Provider |
 |------|----------|
 | Crypto wallets | Privy / on-chain USDC Base |
 | Fiat wallets AR | Mercado Pago, Ripio |
 | Cards | Transak / Privy on-ramp |
-| Bank transfer US/EU | Bridge Virtual Account |
+| Bank transfer US/EU/MX/BR/GB | Bridge Virtual Account (on-ramp) |
+| Bank payout destination US/EU/MX | Bridge External Account (stored; admin pays) |
 | Withdrawals | Admin-mediated until payout API approved |
 
 See also: [fiat-payout-api-research.md](./fiat-payout-api-research.md).

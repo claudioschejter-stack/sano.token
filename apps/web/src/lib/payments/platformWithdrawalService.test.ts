@@ -59,4 +59,19 @@ describe('normalizeFiatPayoutDetails', () => {
       })
     ).toThrow('PAYOUT_DETAILS_INCOMPLETE');
   });
+
+  it('accepts Bridge external account without CBU/alias', () => {
+    expect(
+      normalizeFiatPayoutDetails({
+        rail: 'BANK_OR_WALLET',
+        accountHolderName: 'Ada Lovelace',
+        bridgeExternalAccountId: 'ea_123',
+        bridgeCurrency: 'usd'
+      })
+    ).toMatchObject({
+      bridgeExternalAccountId: 'ea_123',
+      bridgeCurrency: 'usd',
+      providerName: 'bridge'
+    });
+  });
 });
