@@ -100,10 +100,11 @@ export async function listUserBridgeExternalAccounts(input: {
   | { ok: false; reason: 'BRIDGE_NOT_CONFIGURED' | 'KYC_REQUIRED'; kyc?: unknown }
 > {
   const gate = await ensureBridgeCustomerForUser(input);
-  if (!gate.ok) {
-    return gate.reason === 'KYC_REQUIRED'
-      ? { ok: false, reason: 'KYC_REQUIRED', kyc: gate.kyc }
-      : { ok: false, reason: 'BRIDGE_NOT_CONFIGURED' };
+  if (gate.ok === false) {
+    if (gate.reason === 'KYC_REQUIRED') {
+      return { ok: false, reason: 'KYC_REQUIRED', kyc: gate.kyc };
+    }
+    return { ok: false, reason: 'BRIDGE_NOT_CONFIGURED' };
   }
 
   const accounts = await listBridgeExternalAccounts(gate.apiKey, gate.customerId);
@@ -120,10 +121,11 @@ export async function linkUserBridgeExternalAccount(input: {
   | { ok: false; reason: 'BRIDGE_NOT_CONFIGURED' | 'KYC_REQUIRED' | 'CREATE_FAILED'; kyc?: unknown; error?: string }
 > {
   const gate = await ensureBridgeCustomerForUser(input);
-  if (!gate.ok) {
-    return gate.reason === 'KYC_REQUIRED'
-      ? { ok: false, reason: 'KYC_REQUIRED', kyc: gate.kyc }
-      : { ok: false, reason: 'BRIDGE_NOT_CONFIGURED' };
+  if (gate.ok === false) {
+    if (gate.reason === 'KYC_REQUIRED') {
+      return { ok: false, reason: 'KYC_REQUIRED', kyc: gate.kyc };
+    }
+    return { ok: false, reason: 'BRIDGE_NOT_CONFIGURED' };
   }
 
   try {
