@@ -26,6 +26,8 @@
     "vercel:configure-token-issuance": "node scripts/vercel/configure-token-issuance-production.mjs",
     "token-issuance:user-tasks": "node scripts/vercel/print-token-issuance-user-tasks.mjs",
     "vercel:verify-payments": "node scripts/vercel/verify-production-payments.mjs",
+    "smoke:payments-health": "node scripts/vercel/smoke-payments-health.mjs",
+    "smoke:payments-rails": "node scripts/vercel/smoke-payments-rails.mjs",
     "payments:user-tasks": "node scripts/vercel/print-payments-user-tasks.mjs",
     "vercel:sync-walletconnect": "node scripts/vercel/sync-walletconnect-env.mjs",
     "vercel:check-walletconnect": "node scripts/verify-walletconnect-setup.mjs",

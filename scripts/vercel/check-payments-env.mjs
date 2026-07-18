@@ -5,9 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { evaluatePaymentEnv, PAYMENT_ENV_GROUPS, WEBHOOK_PATHS } from './paymentEnvCatalog.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : 'https://sano-token-web.vercel.app';
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
+  'https://sanovacapital.com';
 
 function parseEnvFile(path) {
   if (!existsSync(path)) return {};

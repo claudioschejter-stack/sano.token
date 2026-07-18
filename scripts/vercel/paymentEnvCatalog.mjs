@@ -83,9 +83,15 @@ export const PAYMENT_ENV_GROUPS = [
   },
   {
     id: 'bridge',
-    label: 'Bridge on/off-ramp',
+    label: 'Bridge on-ramp (VA)',
     required: false,
-    keys: ['BRIDGE_API_KEY', 'BRIDGE_WEBHOOK_SECRET']
+    keys: ['BRIDGE_API_KEY', 'BRIDGE_WEBHOOK_PUBLIC_KEY', 'BRIDGE_WEBHOOK_SECRET']
+  },
+  {
+    id: 'bridge-payouts',
+    label: 'Bridge fiat offramp (gated)',
+    required: false,
+    keys: ['BRIDGE_PAYOUTS_ENABLED', 'BRIDGE_WALLET_ID', 'BRIDGE_WALLET_CURRENCY', 'BRIDGE_PAYOUT_DEVELOPER_FEE']
   },
   {
     id: 'local-rails',
