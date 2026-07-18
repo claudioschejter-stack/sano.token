@@ -31,7 +31,7 @@ Argentina keeps **Mercado Pago + Ripio + Privy USDC** (Bridge excluded for `AR`)
 ```bash
 cd apps/web
 node scripts/bridge-setup.mjs check
-node scripts/bridge-setup.mjs ensure-webhook https://sanovacapital.com/api/webhooks/bridge
+node scripts/bridge-setup.mjs ensure-webhook https://www.sanovacapital.com/api/webhooks/bridge
 ```
 
 Copy the printed `PUBLIC_KEY_PEM` into Vercel as `BRIDGE_WEBHOOK_PUBLIC_KEY` (Production + Preview), then redeploy.

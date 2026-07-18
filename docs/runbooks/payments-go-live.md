@@ -33,7 +33,7 @@ Admin: `GET /api/admin/payments/status` (authenticated).
 
 | Provider | URL | Check |
 |----------|-----|--------|
-| Bridge | `https://sanovacapital.com/api/webhooks/bridge` | `cd apps/web && node scripts/bridge-setup.mjs check` → status `active` |
+| Bridge | `https://www.sanovacapital.com/api/webhooks/bridge` | `cd apps/web && node scripts/bridge-setup.mjs check` → status `active` |
 | Mercado Pago | `https://sanovacapital.com/api/webhooks/mercadopago` | MP dashboard notifications |
 | Ripio | `https://sanovacapital.com/api/webhooks/ripio` | Ripio Skala webhook for `ON-RAMP.WITHDRAWAL.COMPLETED` |
 
