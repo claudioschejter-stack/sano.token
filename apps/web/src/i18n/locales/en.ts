@@ -1146,6 +1146,11 @@ export const en = {
     confirmFormTitle: "Confirm withdrawal",
     confirmFormHint: "Paste the tx hash after sending the USDC from the treasury Safe.",
     confirmFormHintFiat: "Paste the bank transfer reference after sending the ARS/fiat payout.",
+    confirmFormHintBridge:
+      "Pay from the Bridge wallet to the linked external account (ACH/SEPA/SPEI), or paste a manual bank reference.",
+    bridgePaySubmit: "Pay via Bridge",
+    bridgePaying: "Creating Bridge transfer…",
+    confirmManual: "Manual confirm",
     txHashPlaceholder: "0x…",
     referencePlaceholder: "Transfer reference / receipt #",
     confirmSubmit: "Confirm and notify investor",
@@ -1161,6 +1166,7 @@ export const en = {
     methodFiat: "Fiat / ARS",
     cancel: "Cancel",
     toastConfirmed: "Withdrawal confirmed.",
+    toastBridgePaid: "Bridge transfer created and investor notified.",
     toastRejected: "Withdrawal rejected and balance refunded.",
     toastError: "The action could not be completed."
   },

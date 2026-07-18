@@ -464,3 +464,115 @@ export function bridgeExternalAccountLabel(account: BridgeExternalAccount): stri
   const bank = account.bank_name ?? 'Bank';
   return `${bank} · ${account.currency.toUpperCase()} ·••${last4}`;
 }
+
+/** Prefunded Bridge wallet used as transfer source for fiat offramps. */
+export function getBridgeWalletId(): string | undefined {
+  return process.env.BRIDGE_WALLET_ID?.trim() || undefined;
+}
+
+export function getBridgeWalletCurrency(): 'usdb' | 'usdc' {
+  const raw = process.env.BRIDGE_WALLET_CURRENCY?.trim().toLowerCase();
+  return raw === 'usdc' ? 'usdc' : 'usdb';
+}
+
+/** Absolute developer fee amount for offramp transfers (e.g. "0.5"), optional. */
+export function getBridgePayoutDeveloperFee(): string | undefined {
+  const raw = process.env.BRIDGE_PAYOUT_DEVELOPER_FEE?.trim();
+  if (!raw) return undefined;
+  if (!Number.isFinite(Number(raw)) || Number(raw) < 0) return undefined;
+  return raw;
+}
+
+export function areBridgePayoutsEnabled(): boolean {
+  return (
+    process.env.BRIDGE_PAYOUTS_ENABLED === 'true' &&
+    Boolean(getBridgeApiKey()) &&
+    Boolean(getBridgeWalletId())
+  );
+}
+
+export type BridgeFiatPayoutRail = 'ach' | 'sepa' | 'spei';
+export type BridgeFiatPayoutCurrency = 'usd' | 'eur' | 'mxn';
+
+export function bridgeFiatDestinationRail(currency: string): BridgeFiatPayoutRail {
+  switch (currency.trim().toLowerCase()) {
+    case 'eur':
+      return 'sepa';
+    case 'mxn':
+      return 'spei';
+    case 'usd':
+    default:
+      return 'ach';
+  }
+}
+
+export function normalizeBridgeFiatPayoutCurrency(currency: string | null | undefined): BridgeFiatPayoutCurrency {
+  const c = currency?.trim().toLowerCase();
+  if (c === 'eur' || c === 'mxn' || c === 'usd') return c;
+  return 'usd';
+}
+
+export type BridgeTransfer = {
+  id: string;
+  state?: string;
+  amount?: string;
+  on_behalf_of?: string;
+  developer_fee?: string;
+  client_reference_id?: string;
+  source?: {
+    payment_rail?: string;
+    currency?: string;
+    bridge_wallet_id?: string;
+  };
+  destination?: {
+    payment_rail?: string;
+    currency?: string;
+    external_account_id?: string;
+  };
+};
+
+/**
+ * Offramp: Bridge wallet (USDB/USDC) → customer external bank account (ACH/SEPA/SPEI).
+ * @see https://apidocs.bridge.xyz/get-started/guides/wallets/offramp
+ */
+export async function createBridgeOfframpTransfer(input: {
+  apiKey: string;
+  customerId: string;
+  amount: string;
+  bridgeWalletId: string;
+  sourceCurrency: 'usdb' | 'usdc';
+  destinationCurrency: BridgeFiatPayoutCurrency;
+  externalAccountId: string;
+  developerFee?: string;
+  clientReferenceId?: string;
+  idempotencyKey: string;
+}): Promise<BridgeTransfer> {
+  const destinationRail = bridgeFiatDestinationRail(input.destinationCurrency);
+  const payload: Record<string, unknown> = {
+    amount: input.amount,
+    on_behalf_of: input.customerId,
+    source: {
+      payment_rail: 'bridge_wallet',
+      currency: input.sourceCurrency,
+      bridge_wallet_id: input.bridgeWalletId
+    },
+    destination: {
+      payment_rail: destinationRail,
+      currency: input.destinationCurrency,
+      external_account_id: input.externalAccountId
+    }
+  };
+
+  if (input.developerFee) {
+    payload.developer_fee = input.developerFee;
+  }
+  if (input.clientReferenceId) {
+    payload.client_reference_id = input.clientReferenceId;
+  }
+
+  return bridgeFetch<BridgeTransfer>('/transfers', input.apiKey, {
+    method: 'POST',
+    idempotencyKey: input.idempotencyKey,
+    body: JSON.stringify(payload)
+  });
+}

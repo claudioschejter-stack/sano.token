@@ -169,19 +169,25 @@ export function AdminWithdrawalsView() {
     setInputValue('');
   }
 
-  async function submitConfirm(id: string) {
-    if (!inputValue.trim()) return;
+  async function submitConfirm(id: string, options?: { useBridgePayout?: boolean }) {
+    const useBridgePayout = options?.useBridgePayout === true;
+    if (!useBridgePayout && !inputValue.trim()) return;
     setSubmitting(true);
     try {
       const response = await fetch(`/api/admin/withdrawals/${id}/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reference: inputValue.trim() })
+        body: JSON.stringify(
+          useBridgePayout
+            ? { useBridgePayout: true }
+            : { reference: inputValue.trim() }
+        )
       });
       if (!response.ok) {
-        throw new Error('confirm failed');
+        const data = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(data?.error ?? 'confirm failed');
       }
-      setToast(copy.toastConfirmed);
+      setToast(useBridgePayout ? copy.toastBridgePaid : copy.toastConfirmed);
       cancelAction();
       await load(filter);
     } catch {
@@ -314,6 +320,7 @@ export function AdminWithdrawalsView() {
                       const isActive = activeAction?.id === row.id;
                       const canAct = FULFILLABLE.includes(row.status);
                       const isFiat = row.method === 'FIAT';
+                      const isBridgeFiat = Boolean(isFiat && row.payoutDetails?.bridgeExternalAccountId);
 
                       return (
                         <tr key={row.id} className="transition-colors hover:bg-terminal-bg/60">
@@ -373,19 +380,23 @@ export function AdminWithdrawalsView() {
                                 </p>
                                 <p className="text-xs text-terminal-muted">
                                   {activeAction.type === 'confirm'
-                                    ? isFiat
-                                      ? copy.confirmFormHintFiat
-                                      : copy.confirmFormHint
+                                    ? isBridgeFiat
+                                      ? copy.confirmFormHintBridge
+                                      : isFiat
+                                        ? copy.confirmFormHintFiat
+                                        : copy.confirmFormHint
                                     : copy.rejectFormHint}
                                 </p>
                                 {activeAction.type === 'confirm' ? (
-                                  <input
-                                    type="text"
-                                    value={inputValue}
-                                    onChange={(event) => setInputValue(event.target.value)}
-                                    placeholder={isFiat ? copy.referencePlaceholder : copy.txHashPlaceholder}
-                                    className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-xs text-terminal-text"
-                                  />
+                                  isBridgeFiat ? null : (
+                                    <input
+                                      type="text"
+                                      value={inputValue}
+                                      onChange={(event) => setInputValue(event.target.value)}
+                                      placeholder={isFiat ? copy.referencePlaceholder : copy.txHashPlaceholder}
+                                      className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-xs text-terminal-text"
+                                    />
+                                  )
                                 ) : (
                                   <textarea
                                     value={inputValue}
@@ -395,33 +406,70 @@ export function AdminWithdrawalsView() {
                                     className="w-full rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs text-terminal-text"
                                   />
                                 )}
-                                <div className="flex gap-2">
-                                  <button
-                                    type="button"
-                                    disabled={submitting || !inputValue.trim()}
-                                    onClick={() =>
-                                      void (activeAction.type === 'confirm'
-                                        ? submitConfirm(row.id)
-                                        : submitReject(row.id))
-                                    }
-                                    className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-2 text-xs font-semibold text-terminal-primary disabled:opacity-50"
-                                  >
-                                    {submitting
-                                      ? activeAction.type === 'confirm'
-                                        ? copy.confirmSubmitting
-                                        : copy.rejectSubmitting
-                                      : activeAction.type === 'confirm'
-                                        ? copy.confirmSubmit
-                                        : copy.rejectSubmit}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    disabled={submitting}
-                                    onClick={cancelAction}
-                                    className="rounded-lg border border-terminal-border px-3 py-2 text-xs text-terminal-muted hover:text-terminal-text"
-                                  >
-                                    {copy.cancel}
-                                  </button>
+                                <div className="flex flex-col gap-2">
+                                  {activeAction.type === 'confirm' && isBridgeFiat ? (
+                                    <button
+                                      type="button"
+                                      disabled={submitting}
+                                      onClick={() => void submitConfirm(row.id, { useBridgePayout: true })}
+                                      className="inline-flex w-full items-center justify-center gap-1 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-400 disabled:opacity-50"
+                                    >
+                                      {submitting ? copy.bridgePaying : copy.bridgePaySubmit}
+                                    </button>
+                                  ) : null}
+                                  <div className="flex gap-2">
+                                    {activeAction.type === 'confirm' && isBridgeFiat ? (
+                                      <>
+                                        <input
+                                          type="text"
+                                          value={inputValue}
+                                          onChange={(event) => setInputValue(event.target.value)}
+                                          placeholder={copy.referencePlaceholder}
+                                          className="min-w-0 flex-1 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 font-mono text-xs text-terminal-text"
+                                        />
+                                        <button
+                                          type="button"
+                                          disabled={submitting || !inputValue.trim()}
+                                          onClick={() => void submitConfirm(row.id)}
+                                          className="inline-flex items-center justify-center rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-2 text-xs font-semibold text-terminal-primary disabled:opacity-50"
+                                        >
+                                          {copy.confirmManual}
+                                        </button>
+                                      </>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        disabled={
+                                          submitting ||
+                                          (activeAction.type === 'confirm'
+                                            ? !inputValue.trim()
+                                            : !inputValue.trim())
+                                        }
+                                        onClick={() =>
+                                          void (activeAction.type === 'confirm'
+                                            ? submitConfirm(row.id)
+                                            : submitReject(row.id))
+                                        }
+                                        className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-2 text-xs font-semibold text-terminal-primary disabled:opacity-50"
+                                      >
+                                        {submitting
+                                          ? activeAction.type === 'confirm'
+                                            ? copy.confirmSubmitting
+                                            : copy.rejectSubmitting
+                                          : activeAction.type === 'confirm'
+                                            ? copy.confirmSubmit
+                                            : copy.rejectSubmit}
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      disabled={submitting}
+                                      onClick={cancelAction}
+                                      className="rounded-lg border border-terminal-border px-3 py-2 text-xs text-terminal-muted hover:text-terminal-text"
+                                    >
+                                      {copy.cancel}
+                                    </button>
+                                  </div>
                                 </div>
                               </div>
                             ) : (

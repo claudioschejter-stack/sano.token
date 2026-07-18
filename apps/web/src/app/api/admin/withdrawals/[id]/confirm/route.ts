@@ -10,6 +10,8 @@ type ConfirmBody = {
   /** On-chain tx hash for STABLECOIN, or the bank/transfer reference for FIAT. Accepts legacy `txHash` too. */
   reference?: string;
   txHash?: string;
+  /** Create Bridge wallet → external_account transfer (requires BRIDGE_PAYOUTS_ENABLED + wallet). */
+  useBridgePayout?: boolean;
 };
 
 export async function POST(request: Request, context: RouteContext) {
@@ -28,7 +30,9 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const reference = body.reference ?? body.txHash;
-  if (!reference?.trim()) {
+  const useBridgePayout = body.useBridgePayout === true;
+
+  if (!useBridgePayout && !reference?.trim()) {
     return NextResponse.json({ error: 'REFERENCE_REQUIRED' }, { status: 400 });
   }
 
@@ -36,7 +40,8 @@ export async function POST(request: Request, context: RouteContext) {
     const withdrawal = await confirmPlatformWithdrawal({
       withdrawalId: id,
       adminUserId: session.user.id,
-      reference
+      reference,
+      useBridgePayout
     });
     return NextResponse.json({ withdrawal });
   } catch (error) {
@@ -44,9 +49,13 @@ export async function POST(request: Request, context: RouteContext) {
     const status =
       message === 'WITHDRAWAL_NOT_FOUND'
         ? 404
-        : message === 'WITHDRAWAL_NOT_FULFILLABLE' || message === 'REFERENCE_REQUIRED'
+        : message === 'WITHDRAWAL_NOT_FULFILLABLE' ||
+            message === 'REFERENCE_REQUIRED' ||
+            message === 'BRIDGE_EXTERNAL_ACCOUNT_MISSING'
           ? 400
-          : 500;
+          : message.startsWith('BRIDGE_')
+            ? 502
+            : 500;
 
     console.error('[admin/withdrawals/confirm]', message);
     return NextResponse.json({ error: message }, { status });

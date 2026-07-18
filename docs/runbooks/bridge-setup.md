@@ -64,9 +64,26 @@ Investors can link USD (`us` / ACH), EUR (`iban`), or MXN (`clabe`) bank account
 
 Requires Bridge KYC + ToS (same customer as Virtual Accounts). Linked rows are stored as `LinkedFiatIdentity` with `provider: bridge`.
 
-**Money-out is still admin-mediated** — we do not auto-create Bridge transfers/payouts yet. Admins pay out manually using the stored external account id.
+## 5. Fiat offramp transfers (wallet → bank)
 
-## 5. Architecture reminder
+Admin can create a Bridge transfer from a prefunded Bridge wallet to the investor’s external account:
+
+`POST /v0/transfers` — source `bridge_wallet` + `usdb`/`usdc` → destination `ach` / `sepa` / `spei` + `external_account_id`.
+
+| Env | Purpose |
+|-----|---------|
+| `BRIDGE_PAYOUTS_ENABLED=true` | Master switch (keep `false` until wallet is funded) |
+| `BRIDGE_WALLET_ID` | Prefunded Bridge wallet id |
+| `BRIDGE_WALLET_CURRENCY` | `usdb` (default) or `usdc` |
+| `BRIDGE_PAYOUT_DEVELOPER_FEE` | Optional absolute fee (e.g. `0.5`) |
+
+Admin UI: Withdrawals → Confirm on a Bridge EA row → **Pay via Bridge** (or paste a manual bank reference).
+
+Idempotency key: `bridge-payout:{withdrawalId}`. Transfer id is stored as `txHash` / metadata.
+
+**Prerequisite:** the Bridge customer (`sanova-{userId}`) must own the external account, and the wallet must be valid for that `on_behalf_of` customer per Bridge’s wallet model. Keep ARS (CBU/alias) manual.
+
+## 6. Architecture reminder
 
 | Rail | Provider |
 |------|----------|
@@ -74,7 +91,7 @@ Requires Bridge KYC + ToS (same customer as Virtual Accounts). Linked rows are s
 | Fiat wallets AR | Mercado Pago, Ripio |
 | Cards | Transak / Privy on-ramp |
 | Bank transfer US/EU/MX/BR/GB | Bridge Virtual Account (on-ramp) |
-| Bank payout destination US/EU/MX | Bridge External Account (stored; admin pays) |
-| Withdrawals | Admin-mediated until payout API approved |
+| Bank payout US/EU/MX | Bridge External Account + Transfer (admin “Pay via Bridge”) |
+| Withdrawals AR | Admin-mediated bank/digital wallet |
 
 See also: [fiat-payout-api-research.md](./fiat-payout-api-research.md).

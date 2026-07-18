@@ -66,6 +66,15 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
       envKeys: ['BRIDGE_API_KEY', 'BRIDGE_WEBHOOK_PUBLIC_KEY', 'BRIDGE_WEBHOOK_SECRET']
     },
     {
+      id: 'bridge-payouts',
+      label: 'Bridge fiat offramp (wallet → bank)',
+      configured:
+        process.env.BRIDGE_PAYOUTS_ENABLED === 'true' &&
+        Boolean(process.env.BRIDGE_API_KEY?.trim()) &&
+        Boolean(process.env.BRIDGE_WALLET_ID?.trim()),
+      envKeys: ['BRIDGE_PAYOUTS_ENABLED', 'BRIDGE_WALLET_ID', 'BRIDGE_WALLET_CURRENCY', 'BRIDGE_PAYOUT_DEVELOPER_FEE']
+    },
+    {
       id: 'ripio',
       label: 'Ripio on-ramp (ARS → USDC)',
       configured: paymentGatewayConfigured('RIPIO'),

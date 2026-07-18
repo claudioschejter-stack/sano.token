@@ -6,6 +6,7 @@ import { verifyUsdcTransferOnBase } from '../blockchain/verifyUsdcTransfer';
 import { assertLinkedCryptoWalletOwnership } from '../investor/linkedWalletsService';
 import { createNotification } from '../notifications/notificationService';
 import { sendWithdrawalConfirmedEmail, sendWithdrawalRejectedEmail } from '../email/withdrawalEmails';
+import { executeBridgeFiatPayout, withdrawalSupportsBridgePayout } from './bridgePayoutService';
 
 export type FiatPayoutRail = 'BANK_OR_WALLET' | 'OTHER';
 
@@ -152,10 +153,9 @@ export async function createPlatformWithdrawal(input: {
     return created;
   });
 
-  // FIAT withdrawals stay in MANUAL_REVIEW: an admin executes the bank/digital-wallet
-  // transfer outside the app (see confirmPlatformWithdrawal) and confirms with a reference.
-  // Do not auto-call Bridge/MP/dLocal payout APIs until Phase 3 money-out is commercially approved
-  // (docs/runbooks/fiat-payout-api-research.md).
+  // FIAT withdrawals stay in MANUAL_REVIEW until an admin confirms.
+  // Bridge EA destinations can be paid via POST /v0/transfers when BRIDGE_PAYOUTS_ENABLED=true
+  // (see confirmPlatformWithdrawal + bridgePayoutService). AR CBU/alias stays manual.
   return serializeWithdrawal(withdrawal);
 }
 
@@ -187,7 +187,9 @@ export async function confirmPlatformWithdrawal(input: {
   withdrawalId: string;
   adminUserId: string;
   /** On-chain tx hash for STABLECOIN, or the bank/transfer reference number for FIAT. */
-  reference: string;
+  reference?: string;
+  /** When true, create a Bridge wallet → external_account transfer and use its id as reference. */
+  useBridgePayout?: boolean;
 }) {
   const withdrawal = await prisma.platformWithdrawal.findUnique({ where: { id: input.withdrawalId } });
   if (!withdrawal) {
@@ -197,7 +199,34 @@ export async function confirmPlatformWithdrawal(input: {
     throw new Error('WITHDRAWAL_NOT_FULFILLABLE');
   }
 
-  const reference = input.reference.trim();
+  const payoutDetails = (withdrawal.payoutDetails as FiatPayoutDetails | null) ?? null;
+  let reference = input.reference?.trim() ?? '';
+  let bridgeTransfer: Awaited<ReturnType<typeof executeBridgeFiatPayout>> | null = null;
+
+  const wantsBridge =
+    Boolean(input.useBridgePayout) ||
+    (withdrawal.method === 'FIAT' && !reference && withdrawalSupportsBridgePayout(payoutDetails));
+
+  if (wantsBridge) {
+    if (!payoutDetails?.bridgeExternalAccountId) {
+      throw new Error('BRIDGE_EXTERNAL_ACCOUNT_MISSING');
+    }
+    bridgeTransfer = await executeBridgeFiatPayout({
+      userId: withdrawal.userId,
+      withdrawalId: withdrawal.id,
+      amountUsd: Number(withdrawal.amountUsd),
+      payoutDetails
+    });
+    if (!bridgeTransfer.ok) {
+      throw new Error(
+        bridgeTransfer.reason === 'BRIDGE_PAYOUT_FAILED' && bridgeTransfer.error
+          ? `BRIDGE_PAYOUT_FAILED:${bridgeTransfer.error}`
+          : bridgeTransfer.reason
+      );
+    }
+    reference = bridgeTransfer.transfer.id;
+  }
+
   if (!reference) {
     throw new Error('REFERENCE_REQUIRED');
   }
@@ -223,7 +252,14 @@ export async function confirmPlatformWithdrawal(input: {
       metadata: {
         ...((withdrawal.metadata as Record<string, unknown>) ?? {}),
         confirmedBy: input.adminUserId,
-        onChainVerification: verification
+        onChainVerification: verification,
+        ...(bridgeTransfer?.ok
+          ? {
+              bridgeTransferId: bridgeTransfer.transfer.id,
+              bridgeTransferState: bridgeTransfer.transfer.state ?? null,
+              bridgePayout: true
+            }
+          : {})
       } as Prisma.InputJsonObject
     }
   });
@@ -232,7 +268,12 @@ export async function confirmPlatformWithdrawal(input: {
     actorUserId: input.adminUserId,
     action: 'WITHDRAWAL_CONFIRMED',
     targetUserId: withdrawal.userId,
-    metadata: { withdrawalId: withdrawal.id, reference, verification } as Prisma.InputJsonValue
+    metadata: {
+      withdrawalId: withdrawal.id,
+      reference,
+      verification,
+      bridgeTransferId: bridgeTransfer?.ok ? bridgeTransfer.transfer.id : null
+    } as Prisma.InputJsonValue
   });
 
   const user = await prisma.user.findUnique({ where: { id: withdrawal.userId }, select: { email: true, name: true } });

@@ -1160,6 +1160,11 @@ export const es = {
     confirmFormTitle: 'Confirmar retiro',
     confirmFormHint: 'Pegá el hash de la transacción luego de enviar el USDC desde el Safe de tesorería.',
     confirmFormHintFiat: 'Pegá la referencia de la transferencia luego de enviar el pago en pesos.',
+    confirmFormHintBridge:
+      'Pagá desde la wallet Bridge a la cuenta externa vinculada (ACH/SEPA/SPEI), o pegá una referencia bancaria manual.',
+    bridgePaySubmit: 'Pagar con Bridge',
+    bridgePaying: 'Creando transferencia Bridge…',
+    confirmManual: 'Confirmar manual',
     txHashPlaceholder: '0x…',
     referencePlaceholder: 'Referencia / comprobante #',
     confirmSubmit: 'Confirmar y notificar al inversor',
@@ -1176,6 +1181,7 @@ export const es = {
     methodFiat: 'Pesos / fiat',
     cancel: 'Cancelar',
     toastConfirmed: 'Retiro confirmado.',
+    toastBridgePaid: 'Transferencia Bridge creada e inversor notificado.',
     toastRejected: 'Retiro rechazado y saldo devuelto.',
     toastError: 'No se pudo completar la acción.'
   },
