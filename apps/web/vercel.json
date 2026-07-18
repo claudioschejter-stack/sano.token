@@ -22,11 +22,11 @@
     },
     {
       "path": "/api/cron/watch-crypto-deposits",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 11 * * *"
     },
     {
       "path": "/api/cron/watch-awaiting-treasury-usdc",
-      "schedule": "*/15 * * * *"
+      "schedule": "0 13 * * *"
     }
   ]
 }

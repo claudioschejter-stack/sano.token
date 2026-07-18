@@ -39,12 +39,12 @@ Admin: `GET /api/admin/payments/status` (authenticated).
 
 ## Crons
 
-In [`apps/web/vercel.json`](../../apps/web/vercel.json):
+In [`apps/web/vercel.json`](../../apps/web/vercel.json) (Vercel **Hobby** allows only **once/day** per job):
 
-- `/api/cron/watch-crypto-deposits` — every 15 minutes  
-- `/api/cron/watch-awaiting-treasury-usdc` — every 15 minutes  
+- `/api/cron/watch-crypto-deposits` — `0 11 * * *` (11:00 UTC)  
+- `/api/cron/watch-awaiting-treasury-usdc` — `0 13 * * *` (13:00 UTC)  
 
-Requires `CRON_SECRET` / Vercel cron auth.
+Requires `CRON_SECRET` / Vercel cron auth. For near-real-time settle after MP/Ripio, use webhooks (primary) or upgrade to Pro and tighten the cron schedule.
 
 ## Operator smoke tests (live money)
 
