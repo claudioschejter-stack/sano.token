@@ -217,7 +217,7 @@ export async function confirmPlatformWithdrawal(input: {
       amountUsd: Number(withdrawal.amountUsd),
       payoutDetails
     });
-    if (!bridgeTransfer.ok) {
+    if (bridgeTransfer.ok === false) {
       throw new Error(
         bridgeTransfer.reason === 'BRIDGE_PAYOUT_FAILED' && bridgeTransfer.error
           ? `BRIDGE_PAYOUT_FAILED:${bridgeTransfer.error}`
@@ -253,7 +253,7 @@ export async function confirmPlatformWithdrawal(input: {
         ...((withdrawal.metadata as Record<string, unknown>) ?? {}),
         confirmedBy: input.adminUserId,
         onChainVerification: verification,
-        ...(bridgeTransfer?.ok
+        ...(bridgeTransfer && bridgeTransfer.ok === true
           ? {
               bridgeTransferId: bridgeTransfer.transfer.id,
               bridgeTransferState: bridgeTransfer.transfer.state ?? null,
@@ -272,7 +272,8 @@ export async function confirmPlatformWithdrawal(input: {
       withdrawalId: withdrawal.id,
       reference,
       verification,
-      bridgeTransferId: bridgeTransfer?.ok ? bridgeTransfer.transfer.id : null
+      bridgeTransferId:
+        bridgeTransfer && bridgeTransfer.ok === true ? bridgeTransfer.transfer.id : null
     } as Prisma.InputJsonValue
   });
 
