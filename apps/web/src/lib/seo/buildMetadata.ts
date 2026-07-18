@@ -24,7 +24,8 @@ const OG_LOCALE_MAP: Partial<Record<Locale, string>> = {
   ur: 'ur_PK',
   id: 'id_ID',
   ja: 'ja_JP',
-  mr: 'mr_IN'
+  mr: 'mr_IN',
+  he: 'he_IL'
 };
 
 export function buildSiteMetadata(locale: Locale, path = '/'): Metadata {

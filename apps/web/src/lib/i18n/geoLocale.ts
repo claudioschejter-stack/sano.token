@@ -38,7 +38,8 @@ export const STRICT_GEO_LOCALE_COUNTRIES = new Set([
   'PK',
   'BD',
   'KE',
-  'TZ'
+  'TZ',
+  'IL'
 ]);
 
 const TIMEZONE_COUNTRY: Record<string, string> = {
@@ -64,7 +65,8 @@ const TIMEZONE_COUNTRY: Record<string, string> = {
   'Europe/Madrid': 'ES',
   'Europe/Lisbon': 'PT',
   'Europe/Paris': 'FR',
-  'Europe/Berlin': 'DE'
+  'Europe/Berlin': 'DE',
+  'Asia/Jerusalem': 'IL'
 };
 
 export function detectCountryFromTimezone(): string | null {
