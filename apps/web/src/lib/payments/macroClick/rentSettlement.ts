@@ -27,14 +27,13 @@ export function isMacroClickPaymentSuccessful(payload: MacroClickWebhookPayload)
 
 export function isMacroClickPaymentFailed(payload: MacroClickWebhookPayload): boolean {
   const estadoId = Number(payload.EstadoId);
-  if (
-    [
-      MACRO_CLICK_ESTADO.RECHAZADA,
-      MACRO_CLICK_ESTADO.EXPIRADA,
-      MACRO_CLICK_ESTADO.CANCELADA,
-      MACRO_CLICK_ESTADO.VENCIDA
-    ].includes(estadoId as (typeof MACRO_CLICK_ESTADO)[keyof typeof MACRO_CLICK_ESTADO])
-  ) {
+  const failedIds: number[] = [
+    MACRO_CLICK_ESTADO.RECHAZADA,
+    MACRO_CLICK_ESTADO.EXPIRADA,
+    MACRO_CLICK_ESTADO.CANCELADA,
+    MACRO_CLICK_ESTADO.VENCIDA
+  ];
+  if (Number.isFinite(estadoId) && failedIds.includes(estadoId)) {
     return true;
   }
   const estado = String(payload.Estado ?? '').toUpperCase();
