@@ -23,7 +23,8 @@ export type PaymentProviderId =
   | 'binance'
   | 'coinbase'
   | 'custodial'
-  | 'privy';
+  | 'privy'
+  | 'macro_click';
 
 export type PaymentCheckoutRow = {
   id: string;
@@ -215,6 +216,48 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     usesLocalCurrency: true,
     countries: ['AR'],
     sortOrder: 110
+  },
+  {
+    id: 'macro_click_ars',
+    groupId: 'argentina',
+    method: 'LOCAL_RAIL',
+    label: 'Banco Macro / Click de Pago (ARS)',
+    provider: 'macro_click',
+    providerRail: 'macro_click_hosted_ars',
+    fallbackFeeBps: 180,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.02,
+    usesLocalCurrency: true,
+    countries: ['AR'],
+    sortOrder: 112
+  },
+  {
+    id: 'macro_click_usd',
+    groupId: 'argentina',
+    method: 'LOCAL_RAIL',
+    label: 'Banco Macro / Click de Pago (USD)',
+    provider: 'macro_click',
+    providerRail: 'macro_click_hosted_usd',
+    fallbackFeeBps: 180,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.02,
+    usesLocalCurrency: true,
+    countries: ['AR'],
+    sortOrder: 113
+  },
+  {
+    id: 'macro_click_debin',
+    groupId: 'argentina',
+    method: 'LOCAL_RAIL',
+    label: 'DEBIN Banco Macro',
+    provider: 'macro_click',
+    providerRail: 'macro_click_debin',
+    fallbackFeeBps: 120,
+    fallbackGasUsd: 0,
+    fallbackNetworkUsd: 0.02,
+    usesLocalCurrency: true,
+    countries: ['AR'],
+    sortOrder: 114
   },
   {
     id: 'brubank',

@@ -17,7 +17,8 @@ export const WEBHOOK_PATHS = {
   ripio: '/api/webhooks/ripio',
   dlocal: '/api/webhooks/dlocal',
   ebanx: '/api/webhooks/ebanx',
-  astropay: '/api/webhooks/astropay'
+  astropay: '/api/webhooks/astropay',
+  macroClick: '/api/webhooks/macro-click'
 } as const;
 
 export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
@@ -44,6 +45,16 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
       label: 'Mercado Pago',
       configured: paymentGatewayConfigured('MERCADO_PAGO'),
       envKeys: ['MERCADOPAGO_ACCESS_TOKEN', 'MERCADOPAGO_WEBHOOK_SECRET']
+    },
+    {
+      id: 'macro-click',
+      label: 'Click de Pago (Banco Macro)',
+      configured: Boolean(
+        process.env.MACRO_CLICK_GUID?.trim() &&
+          process.env.MACRO_CLICK_FRASE?.trim() &&
+          process.env.MACRO_CLICK_SECRET_KEY?.trim()
+      ),
+      envKeys: ['MACRO_CLICK_GUID', 'MACRO_CLICK_FRASE', 'MACRO_CLICK_SECRET_KEY', 'MACRO_CLICK_ENV']
     },
     {
       id: 'coinbase',
@@ -122,8 +133,17 @@ export function getPaymentsProductionSummary(siteUrl: string) {
       networksReady.includes('BASE') &&
       integrations.some(
         (item) =>
-          ['stripe', 'transak', 'mercadopago', 'ripio', 'local-rails', 'astropay', 'bridge', 'coinbase'].includes(item.id) &&
-          item.configured
+          [
+            'stripe',
+            'transak',
+            'mercadopago',
+            'macro-click',
+            'ripio',
+            'local-rails',
+            'astropay',
+            'bridge',
+            'coinbase'
+          ].includes(item.id) && item.configured
       ),
     integrations,
     missing,

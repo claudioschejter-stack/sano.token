@@ -6,6 +6,7 @@ import {
 } from './mercadoPagoEmbeddedService';
 import { isPrivyOnRampConfigured } from './privyOnRampPolicy';
 import { paymentGatewayConfigured } from './paymentConfig';
+import { isMacroClickConfigured } from './macroClick/config';
 
 export function isDLocalConfigured(): boolean {
   return Boolean(process.env.DLOCAL_API_KEY?.trim() || process.env.LOCAL_RAILS_ENABLED === 'true');
@@ -66,6 +67,8 @@ export function isPaymentProviderConfigured(provider: PaymentProviderId): boolea
       return paymentGatewayConfigured('CUSTODIAL_STABLECOIN');
     case 'privy':
       return isPrivyOnRampConfigured();
+    case 'macro_click':
+      return isMacroClickConfigured();
     default:
       return false;
   }

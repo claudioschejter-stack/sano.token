@@ -1,6 +1,6 @@
 export type PaymentRouteId = 'global_retail' | 'global_institutional' | 'local_fiat';
 
-export type LocalFiatProviderId = 'mercadopago' | 'modo' | 'lemon';
+export type LocalFiatProviderId = 'mercadopago' | 'modo' | 'lemon' | 'macro_click';
 
 export type PaymentRouteOption = {
   id: PaymentRouteId;

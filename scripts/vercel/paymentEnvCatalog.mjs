@@ -56,6 +56,19 @@ export const PAYMENT_ENV_GROUPS = [
     keys: ['MERCADOPAGO_ACCESS_TOKEN', 'MERCADOPAGO_WEBHOOK_SECRET']
   },
   {
+    id: 'macro-click',
+    label: 'Click de Pago (Banco Macro)',
+    required: false,
+    keys: [
+      'MACRO_CLICK_GUID',
+      'MACRO_CLICK_FRASE',
+      'MACRO_CLICK_SECRET_KEY',
+      'MACRO_CLICK_ENV',
+      'MACRO_CLICK_SUCURSAL',
+      'MACRO_CLICK_FX_ARS'
+    ]
+  },
+  {
     id: 'coinbase',
     label: 'Coinbase Commerce',
     required: false,
@@ -220,9 +233,20 @@ export function evaluatePaymentEnv(envInput) {
   }
 
   const hasAnyGateway =
-    ['STRIPE_SECRET_KEY', 'MERCADOPAGO_ACCESS_TOKEN', 'COINBASE_COMMERCE_API_KEY', 'TRANSAK_API_KEY', 'BRIDGE_API_KEY', 'DLOCAL_API_KEY', 'EBANX_API_KEY', 'ASTROPAY_API_KEY', 'WISE_API_KEY', 'BINANCE_PAY_API_KEY', 'RAMP_API_KEY'].some(
-      (key) => Boolean(env[key]?.trim())
-    ) || env.LOCAL_RAILS_ENABLED === 'true';
+    [
+      'STRIPE_SECRET_KEY',
+      'MERCADOPAGO_ACCESS_TOKEN',
+      'MACRO_CLICK_GUID',
+      'COINBASE_COMMERCE_API_KEY',
+      'TRANSAK_API_KEY',
+      'BRIDGE_API_KEY',
+      'DLOCAL_API_KEY',
+      'EBANX_API_KEY',
+      'ASTROPAY_API_KEY',
+      'WISE_API_KEY',
+      'BINANCE_PAY_API_KEY',
+      'RAMP_API_KEY'
+    ].some((key) => Boolean(env[key]?.trim())) || env.LOCAL_RAILS_ENABLED === 'true';
 
   const networksReady = ['BASE', 'POLYGON', 'TRON', 'SOLANA'].filter((network) => {
     if (network === 'BASE') return Boolean(env.BASE_USDC_TOKEN_ADDRESS && env.BASE_STABLECOIN_TREASURY_ADDRESS);
@@ -248,5 +272,6 @@ export const WEBHOOK_PATHS = {
   COINBASE: '/api/webhooks/coinbase',
   TRANSAK: '/api/webhooks/transak',
   BRIDGE: '/api/webhooks/bridge',
-  RIPIO: '/api/webhooks/ripio'
+  RIPIO: '/api/webhooks/ripio',
+  MACRO_CLICK: '/api/webhooks/macro-click'
 };

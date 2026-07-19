@@ -18,6 +18,7 @@ import { createLocalRailCheckout } from './localRailAdapter';
 import { createBridgeOnRampCheckout, createPrivyOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
 import { createBinancePayCheckout } from './binancePayAdapter';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
+import { createMacroClickHostedCheckout } from './macroClick/checkoutAdapter';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
 import {
@@ -216,6 +217,21 @@ async function attachCartGatewayCheckout(input: {
 }) {
   const redirectPath = `/marketplace/carrito?batch=${encodeURIComponent(input.batchId)}&status=success`;
   const checkoutRow = input.paymentOptionId ? getPaymentCheckoutRowById(input.paymentOptionId) : null;
+
+  if (input.method === 'LOCAL_RAIL' && checkoutRow?.provider === 'macro_click') {
+    const currency = checkoutRow.providerRail.includes('usd') ? 'USD' : 'ARS';
+    return createMacroClickHostedCheckout({
+      referenceId: input.batchId,
+      referenceKind: 'cart',
+      amount: input.totalUsd,
+      currency,
+      label: checkoutRow.label,
+      userId: input.userId,
+      userEmail: input.userEmail,
+      clientIp: '127.0.0.1',
+      redirectPath
+    });
+  }
 
   if (input.method === 'LOCAL_RAIL' && input.paymentOptionId && checkoutRow) {
     return createLocalRailCheckout({

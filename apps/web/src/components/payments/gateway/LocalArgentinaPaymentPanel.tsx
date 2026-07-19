@@ -3,6 +3,7 @@
 import { Smartphone } from 'lucide-react';
 import type { LocalFiatProviderId } from '../../../lib/checkout/paymentRouteTypes';
 import { MercadoPagoDirectCheckout } from './MercadoPagoDirectCheckout';
+import { MacroClickPayButton } from './MacroClickPayButton';
 
 type LocalArgentinaPaymentPanelProps = {
   amountUsd: number;
@@ -16,6 +17,7 @@ type LocalArgentinaPaymentPanelProps = {
     mercadopago: string;
     modo: string;
     lemon: string;
+    macroClick?: string;
     maintenanceToast: string;
     mpTitle: string;
     mpDesktopHint: string;
@@ -28,8 +30,12 @@ type LocalArgentinaPaymentPanelProps = {
   onError?: (message: string) => void;
 };
 
-const LOCAL_PROVIDERS: Array<{ id: LocalFiatProviderId; labelKey: 'mercadopago' | 'modo' | 'lemon' }> = [
+const LOCAL_PROVIDERS: Array<{
+  id: LocalFiatProviderId;
+  labelKey: 'mercadopago' | 'modo' | 'lemon' | 'macroClick';
+}> = [
   { id: 'mercadopago', labelKey: 'mercadopago' },
+  { id: 'macro_click', labelKey: 'macroClick' },
   { id: 'modo', labelKey: 'modo' },
   { id: 'lemon', labelKey: 'lemon' }
 ];
@@ -48,7 +54,7 @@ export function LocalArgentinaPaymentPanel({
     <section className="space-y-4">
       <div>
         <p className="text-sm font-semibold text-terminal-text">{labels.title}</p>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
+        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {LOCAL_PROVIDERS.map((provider) => (
             <button
               key={provider.id}
@@ -65,11 +71,23 @@ export function LocalArgentinaPaymentPanel({
                   : 'border-terminal-border bg-white text-terminal-text hover:border-terminal-primary/40'
               }`}
             >
-              {labels[provider.labelKey]}
+              {provider.labelKey === 'macroClick'
+                ? labels.macroClick ?? 'Banco Macro'
+                : labels[provider.labelKey]}
             </button>
           ))}
         </div>
       </div>
+
+      {selectedProvider === 'macro_click' ? (
+        <MacroClickPayButton
+          referenceId={referenceId}
+          referenceKind="deposit"
+          amountUsd={amountUsd}
+          currency="ARS"
+          onError={onError}
+        />
+      ) : null}
 
       {selectedProvider === 'mercadopago' ? (
         <MercadoPagoDirectCheckout

@@ -7,6 +7,7 @@ import { MERCADOPAGO_WALLET_OPTION_ID } from './mercadoPagoEmbeddedService';
 import { resolveDepositMethodForUsdcBase } from './paymentCheckoutPolicy';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { isPrivyOnRampConfigured, privyFiatAssetForCountry, PRIVY_ON_RAMP_OPTION_ID } from './privyOnRampPolicy';
+import { createMacroClickHostedCheckout } from './macroClick/checkoutAdapter';
 
 type OnRampRequest = {
   depositId: string;
@@ -213,6 +214,21 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
     ...input,
     stablecoinNetwork: 'BASE'
   };
+
+  if (input.method === 'LOCAL_RAIL' && checkoutRow?.provider === 'macro_click') {
+    const currency = checkoutRow.providerRail.includes('usd') ? 'USD' : 'ARS';
+    return createMacroClickHostedCheckout({
+      referenceId: input.depositId,
+      referenceKind: 'deposit',
+      amount: input.amountUsd,
+      currency,
+      label: checkoutRow.label,
+      userId: input.userId,
+      userEmail: input.userEmail,
+      clientIp: '127.0.0.1',
+      redirectPath: input.redirectPath
+    });
+  }
 
   if (input.method === 'LOCAL_RAIL' && checkoutRow) {
     return createLocalRailCheckout({
