@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png" />
-        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

@@ -13,7 +13,7 @@
         "test": "vitest run",
         "test:watch": "vitest",
         "analyze": "cross-env ANALYZE=true next build",
-        "pwa:icons": "node scripts/extract-app-button.mjs",
+        "pwa:icons": "node scripts/generate-home-icons.mjs",
         "brand:assets": "node scripts/extract-app-button.mjs"
     },
     "dependencies": {

@@ -23,9 +23,20 @@ export function WhatsAppFloat() {
   const isMobilePortal = useMobilePortal();
   const [phone, setPhone] = useState(() => getWhatsAppPhone());
   const [blink, setBlink] = useState(false);
+  const [authSplashActive, setAuthSplashActive] = useState(false);
   const userInteractedRef = useRef(false);
 
   const isLanding = pathname === '/';
+
+  useEffect(() => {
+    const sync = () => {
+      setAuthSplashActive(document.body.classList.contains('auth-splash-active'));
+    };
+    sync();
+    const observer = new MutationObserver(sync);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     void fetch('/api/site-config')
@@ -75,7 +86,15 @@ export function WhatsAppFloat() {
   // The PwaShell mobile header already renders its own WhatsApp button, so the
   // floating button only makes sense outside of that shell (desktop, or mobile
   // outside the portal, e.g. the public landing pages).
-  if (!href || shouldHideWhatsAppFab(pathname) || (isMobilePortal && portalOffset)) return null;
+  // Hide on biometric access/logout splash (avoids green FAB / stray dots over the brand).
+  if (
+    !href ||
+    authSplashActive ||
+    shouldHideWhatsAppFab(pathname) ||
+    (isMobilePortal && portalOffset)
+  ) {
+    return null;
+  }
 
   // fix: 9 accessibility — aria-label, title, rel, target all present
   return (

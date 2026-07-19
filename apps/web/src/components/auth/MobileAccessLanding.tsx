@@ -102,18 +102,19 @@ function MobileAccessLandingContent() {
   }, [isMobilePortal, isOperational, returnTo, router, role, session?.user?.accessToken, status]);
 
   if (status === 'loading' || (isAuthenticated && accountLoading)) {
-    return <AuthSplash />;
+    return <AuthSplash variant="loading" />;
   }
 
   if (showBiometricSplash) {
     const autoTrigger = hasConfiguredPasskey && !signedOut;
+    const splashVariant = signedOut ? 'logout' : 'access';
 
     return (
       <div className="relative min-h-[100dvh] w-full">
-        <AuthSplash />
+        <AuthSplash variant={splashVariant} />
         {signedOut ? (
           <p
-            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6 text-center font-semibold text-white"
+            className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6 text-center font-semibold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.55)]"
             style={{ fontSize: 'calc(0.875rem * 2.25)' }}
           >
             {a.sessionClosed}
@@ -213,7 +214,7 @@ function MobileAccessLandingContent() {
 
 export function MobileAccessLanding() {
   return (
-    <Suspense fallback={<AuthSplash />}>
+    <Suspense fallback={<AuthSplash variant="loading" />}>
       <MobileAccessLandingContent />
     </Suspense>
   );
