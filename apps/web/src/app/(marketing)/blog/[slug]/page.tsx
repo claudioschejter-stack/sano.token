@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   return {
     ...base,
-    title: article.title,
+    title: { absolute: article.title },
     description: article.description,
     keywords: article.keywords,
     // Fallback locale URLs (serving en/es copy) must not be indexed — they
@@ -73,6 +73,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: 'article',
       publishedTime: article.publishedAt,
       url: `${siteUrl}${withLocalePrefix(contentLocale, path)}`
+    },
+    twitter: {
+      ...base.twitter,
+      title: article.title,
+      description: article.description
     }
   };
 }

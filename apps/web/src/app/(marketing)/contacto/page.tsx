@@ -19,7 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       ...base.openGraph,
       title: ogTitle,
-      description: contact.subtitle
+      description: contact.subtitle,
+      url: base.alternates?.canonical
     },
     twitter: {
       ...base.twitter,

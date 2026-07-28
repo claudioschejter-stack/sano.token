@@ -23,7 +23,8 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       ...base.openGraph,
       title: ogTitle,
-      description: blog.subtitle
+      description: blog.subtitle,
+      url: `${siteUrl}${withLocalePrefix(locale, '/blog')}`
     },
     twitter: {
       ...base.twitter,

@@ -3,6 +3,11 @@ import { notFound } from 'next/navigation';
 import { VideoWatchPage } from '../../../../components/landing/VideoWatchPage';
 import { resolveServerLocale } from '../../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../../lib/seo/buildMetadata';
+import {
+  buildMediaAlternates,
+  mediaContentLocale,
+  mediaRobots
+} from '../../../../lib/seo/mediaLocalePolicy';
 import { withLocalePrefix } from '../../../../lib/i18n/localeRouting';
 import { getSiteUrl } from '../../../../lib/seo/siteUrl';
 import { getSanovaYouTubeVideoById } from '../../../../lib/youtube/channelVideos';
@@ -22,23 +27,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const base = buildSiteMetadata(locale, path);
 
   if (!video) {
-    return base;
+    return {
+      ...base,
+      alternates: buildMediaAlternates(path, locale),
+      robots: mediaRobots(locale)
+    };
   }
 
   const t = messagesByLocale[locale].videos;
   const title = video.title ? `${video.title} | Sanova Global` : 'Sanova Global — YouTube';
   const description = video.description?.slice(0, 300) || t.defaultDescription;
+  const contentLocale = mediaContentLocale(locale);
+  const canonical = `${getSiteUrl()}${withLocalePrefix(contentLocale, path)}`;
 
   return {
     ...base,
     title: { absolute: title },
     description,
+    alternates: buildMediaAlternates(path, locale),
+    robots: mediaRobots(locale),
     openGraph: {
       ...base.openGraph,
       title,
       description,
       type: 'video.other',
-      url: `${getSiteUrl()}${withLocalePrefix(locale, path)}`,
+      url: canonical,
       images: [{ url: video.thumbnailUrl }]
     },
     twitter: {
@@ -60,7 +73,8 @@ function VideoJsonLd({
   siteUrl: string;
 }) {
   const t = messagesByLocale[locale].videos;
-  const pageUrl = `${siteUrl}${withLocalePrefix(locale, `/videos/${video.id}`)}`;
+  const contentLocale = mediaContentLocale(locale);
+  const pageUrl = `${siteUrl}${withLocalePrefix(contentLocale, `/videos/${video.id}`)}`;
 
   const schema = {
     '@context': 'https://schema.org',
@@ -71,6 +85,7 @@ function VideoJsonLd({
     uploadDate: video.publishedAt ?? undefined,
     embedUrl: video.embedUrl,
     url: pageUrl,
+    inLanguage: contentLocale === 'en' ? 'en' : 'es',
     publisher: {
       '@type': 'Organization',
       '@id': `${siteUrl}/#organization`,

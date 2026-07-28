@@ -2,33 +2,39 @@ import type { Metadata } from 'next';
 import { VideosIndexPage } from '../../../components/landing/VideosIndexPage';
 import { resolveServerLocale } from '../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../lib/seo/buildMetadata';
+import {
+  buildMediaAlternates,
+  mediaContentLocale,
+  mediaRobots
+} from '../../../lib/seo/mediaLocalePolicy';
 import { withLocalePrefix } from '../../../lib/i18n/localeRouting';
 import { getSiteUrl } from '../../../lib/seo/siteUrl';
 import { getSanovaYouTubeChannelVideos } from '../../../lib/youtube/channelVideos';
+import { messagesByLocale } from '../../../i18n';
 
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
-  const base = buildSiteMetadata(locale, '/videos');
-  const isEs = locale === 'es';
-
-  const ogTitle = isEs
-    ? 'Videos de Sanova Global | Vaca Muerta RWA'
-    : 'Sanova Global Videos | Vaca Muerta RWA';
-  const ogDescription = isEs
-    ? 'Videos oficiales del canal de YouTube de Sanova Global: propiedades tokenizadas, proyectos en Vaca Muerta y explicaciones sobre inversión RWA.'
-    : 'Official YouTube videos from Sanova Global: tokenized properties, Vaca Muerta projects, and RWA investment explainers.';
+  const path = '/videos';
+  const base = buildSiteMetadata(locale, path);
+  const videosCopy = messagesByLocale[locale].videos;
+  const ogTitle = `${videosCopy.indexTitle} | Sanova Global`;
+  const ogDescription = videosCopy.indexSubtitle || videosCopy.defaultDescription;
+  const contentLocale = mediaContentLocale(locale);
+  const canonical = `${getSiteUrl()}${withLocalePrefix(contentLocale, path)}`;
 
   return {
     ...base,
     title: { absolute: ogTitle },
     description: ogDescription,
+    alternates: buildMediaAlternates(path, locale),
+    robots: mediaRobots(locale),
     openGraph: {
       ...base.openGraph,
       title: ogTitle,
       description: ogDescription,
-      url: `${getSiteUrl()}${withLocalePrefix(locale, '/videos')}`
+      url: canonical
     },
     twitter: {
       ...base.twitter,
