@@ -9,6 +9,7 @@
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
+        "pretypecheck": "node scripts/generate-app-version.mjs",
         "typecheck": "tsc --noEmit --pretty false",
         "test": "vitest run",
         "test:watch": "vitest",

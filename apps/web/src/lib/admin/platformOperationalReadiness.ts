@@ -17,6 +17,7 @@ import {
 } from '../blockchain/morphoLiquiditySigner';
 import { resolveMorphoSeedUsdcForProject } from '../lending/morphoSeedLiquidity';
 import { getLendingChainConfig } from '../lending/baseContracts';
+import { resolvePublicApiUrl } from '../resolvePublicApiUrl';
 
 export type OpsCheckStatus = 'OK' | 'WARN' | 'FAIL';
 
@@ -349,8 +350,58 @@ async function auditBaseMorphoProject(asset: AdminAssetRecord): Promise<ProjectO
   };
 }
 
+export async function validateNestWorker(): Promise<OpsCheck[]> {
+  const checks: OpsCheck[] = [];
+  const configured = process.env.NEXT_PUBLIC_API_URL?.trim() || '';
+  const origin = resolvePublicApiUrl();
+
+  checks.push({
+    id: 'nest_api_url_env',
+    label: 'NEXT_PUBLIC_API_URL',
+    status: configured && !configured.includes('localhost') ? 'OK' : 'WARN',
+    detail: configured
+      ? configured
+      : `No seteada — rewrite/SSE usan fallback ${origin}. Corré: npm run vercel:sync-nest-api-url`
+  });
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8_000);
+    const response = await fetch(`${origin}/api/v1/health/live`, {
+      method: 'GET',
+      headers: { Accept: 'application/json', 'User-Agent': 'SanovaOps/nest-health' },
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+
+    const body = (await response.text()).slice(0, 160);
+    checks.push({
+      id: 'nest_health_live',
+      label: 'Nest worker health/live',
+      status: response.ok ? 'OK' : 'FAIL',
+      detail: response.ok
+        ? `${origin} → ${response.status}`
+        : `${origin} → ${response.status} ${body || '(empty)'}`
+    });
+  } catch (error) {
+    checks.push({
+      id: 'nest_health_live',
+      label: 'Nest worker health/live',
+      status: 'FAIL',
+      detail:
+        error instanceof Error
+          ? `${origin} unreachable: ${error.message}`
+          : `${origin} unreachable`
+    });
+  }
+
+  return checks;
+}
+
 export async function auditPlatformOperationalReadiness(): Promise<PlatformOpsReport> {
   const platformChecks = [
+    ...(await validateNestWorker()),
     ...(await validateTreasurySignerOnChain()),
     ...(await validateMorphoSeedWallet())
   ];

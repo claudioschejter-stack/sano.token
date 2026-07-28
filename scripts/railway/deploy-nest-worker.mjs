@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * One-shot Nest worker deploy on Railway + sync NEXT_PUBLIC_API_URL to Vercel.
- * Prereqs: `npx @railway/cli login` and project linked (or RAILWAY_PROJECT_ID set).
+ * Prereqs: `RAILWAY_TOKEN` or `npx @railway/cli login`, and Vercel CLI auth / `VERCEL_TOKEN`.
  */
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync, existsSync, appendFileSync } from 'node:fs';
@@ -12,6 +12,15 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const PROJECT_ID = process.env.RAILWAY_PROJECT_ID ?? 'a5014ffc-130f-4d2f-9c7b-84fd651d9f55';
 const ENVIRONMENT_ID = process.env.RAILWAY_ENVIRONMENT_ID ?? 'bb37162b-725f-40a2-885d-9ac18fb6dfbc';
 const SERVICE_ID = process.env.RAILWAY_SERVICE_ID ?? '8d5680aa-768f-45ff-9c50-f61363a0578a';
+const FALLBACK_DOMAIN = 'https://sanovaapi-production.up.railway.app';
+
+function safeHost(url) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return '(invalid)';
+  }
+}
 
 function run(cmd, args, opts = {}) {
   const result = spawnSync(cmd, args, {
@@ -34,12 +43,17 @@ function mustOk(label, result) {
 
 console.log('=== Deploy Nest worker (Railway) ===\n');
 
-let whoami = run('npx', ['@railway/cli', 'whoami']);
-if (whoami.status !== 0) {
-  console.error('Railway CLI not logged in. Run: npx @railway/cli login --browserless');
-  process.exit(1);
+if (!process.env.RAILWAY_TOKEN?.trim()) {
+  const whoami = run('npx', ['@railway/cli', 'whoami']);
+  if (whoami.status !== 0) {
+    console.error('Railway not authenticated.');
+    console.error('Set RAILWAY_TOKEN or run: npx @railway/cli login --browserless');
+    process.exit(1);
+  }
+  console.log(`Railway user: ${whoami.stdout?.trim()}`);
+} else {
+  console.log('Railway auth: RAILWAY_TOKEN');
 }
-console.log(`Railway user: ${whoami.stdout?.trim()}`);
 
 console.log('\n1) Link project…');
 mustOk(
@@ -56,7 +70,7 @@ mustOk('railway:sync-nest-env', run('npm', ['run', 'railway:sync-nest-env']));
 console.log('\n4) Deploy (Dockerfile.api)…');
 mustOk('railway up', run('npx', ['@railway/cli', 'up', '--detach']));
 
-console.log('\n5) Generate public domain…');
+console.log('\n5) Resolve public domain…');
 const domainResult = run('npx', ['@railway/cli', 'domain']);
 let domain = '';
 if (domainResult.status === 0) {
@@ -64,10 +78,11 @@ if (domainResult.status === 0) {
   domain = match ? match[0].replace(/\/$/, '') : '';
 }
 if (!domain) {
-  console.log('No domain yet — run: npx @railway/cli domain');
-  process.exit(0);
+  domain = FALLBACK_DOMAIN;
+  console.log(`No new domain from CLI — using known production host: ${safeHost(domain)}`);
+} else {
+  console.log(`Public host: ${safeHost(domain)}`);
 }
-console.log(`Public URL: ${domain}`);
 
 const envPath = join(root, '.env');
 const line = `NEXT_PUBLIC_API_URL="${domain}"\n`;
@@ -85,12 +100,19 @@ if (existsSync(envPath)) {
   writeFileSync(envPath, line);
 }
 
+process.env.NEXT_PUBLIC_API_URL = domain;
+process.env.NEST_PUBLIC_API_URL = domain;
+
 console.log('\n6) Sync NEXT_PUBLIC_API_URL → Vercel…');
 mustOk('vercel:sync-nest-api-url', run('npm', ['run', 'vercel:sync-nest-api-url']));
 
 console.log('\n7) Redeploy Vercel web…');
 mustOk('vercel deploy', run('npx', ['vercel', '--prod', '--yes']));
 
+console.log('\n8) Verify Nest health…');
+run('npm', ['run', 'vercel:verify-nest']);
+
 console.log('\nDone. Verify:');
-console.log(`  curl ${domain}/api/v1/health`);
-console.log(`  https://sano-token-web.vercel.app (SSE /api/v1/finance/stream)`);
+console.log(`  curl https://${safeHost(domain)}/api/v1/health/live`);
+console.log('  Admin → Operations → Nest worker health/live');
+console.log('  https://www.sanovacapital.com (SSE EventSource → Nest origin)');
