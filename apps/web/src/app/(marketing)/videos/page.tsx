@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
+import { permanentRedirect } from 'next/navigation';
 import { VideosIndexPage } from '../../../components/landing/VideosIndexPage';
 import { resolveServerLocale } from '../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../lib/seo/buildMetadata';
 import {
   buildMediaAlternates,
+  isIndexableMediaLocale,
   mediaContentLocale,
   mediaRobots
 } from '../../../lib/seo/mediaLocalePolicy';
@@ -17,6 +19,11 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
   const path = '/videos';
+
+  if (!isIndexableMediaLocale(locale)) {
+    return buildSiteMetadata('es', path);
+  }
+
   const base = buildSiteMetadata(locale, path);
   const videosCopy = messagesByLocale[locale].videos;
   const ogTitle = `${videosCopy.indexTitle} | Sanova Global`;
@@ -45,7 +52,13 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function VideosIndexRoute() {
-  const [locale, videos] = await Promise.all([resolveServerLocale(), getSanovaYouTubeChannelVideos()]);
+  const locale = await resolveServerLocale();
+
+  if (!isIndexableMediaLocale(locale)) {
+    permanentRedirect('/videos');
+  }
+
+  const videos = await getSanovaYouTubeChannelVideos();
 
   return <VideosIndexPage videos={videos} locale={locale} />;
 }

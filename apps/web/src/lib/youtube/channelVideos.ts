@@ -9,6 +9,11 @@ import {
 
 const RSS_CACHE_SECONDS = 60 * 60;
 
+/** YouTube watch IDs are 11 chars from [A-Za-z0-9_-]. */
+export function isLikelyYouTubeVideoId(id: string): boolean {
+  return /^[\w-]{11}$/.test(id.trim());
+}
+
 function channelIdFromEnv(): string {
   return process.env.YOUTUBE_CHANNEL_ID?.trim() || SANOVA_YOUTUBE_CHANNEL_ID;
 }
@@ -86,10 +91,29 @@ export async function getSanovaYouTubeChannelVideos(): Promise<FeaturedYouTubeVi
   return manual;
 }
 
-/** Single video lookup for the dedicated `/videos/[id]` watch page. */
+/**
+ * Lookup for `/videos/[id]`. Falls back to a soft resolve when the ID is a
+ * valid YouTube watch id but no longer appears in the channel RSS window
+ * (~15 latest uploads) — prevents Search Console 404s on deep links like
+ * `/he/videos/orn5gBeoKtg`.
+ */
 export async function getSanovaYouTubeVideoById(id: string): Promise<FeaturedYouTubeVideo | null> {
+  const trimmed = id.trim();
+  if (!trimmed) {
+    return null;
+  }
+
   const videos = await getSanovaYouTubeChannelVideos();
-  return videos.find((video) => video.id === id) ?? null;
+  const found = videos.find((video) => video.id === trimmed);
+  if (found) {
+    return found;
+  }
+
+  if (isLikelyYouTubeVideoId(trimmed)) {
+    return buildFeaturedVideoFromId(trimmed);
+  }
+
+  return null;
 }
 
 export function getSanovaYouTubeUploadsPlaylistId(channelId = channelIdFromEnv()): string {

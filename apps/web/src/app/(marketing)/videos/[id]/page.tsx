@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { VideoWatchPage } from '../../../../components/landing/VideoWatchPage';
 import { resolveServerLocale } from '../../../../i18n/detectLocaleServer';
 import { buildSiteMetadata } from '../../../../lib/seo/buildMetadata';
 import {
   buildMediaAlternates,
+  isIndexableMediaLocale,
   mediaContentLocale,
   mediaRobots
 } from '../../../../lib/seo/mediaLocalePolicy';
@@ -22,8 +23,14 @@ type PageProps = {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = await resolveServerLocale();
-  const video = await getSanovaYouTubeVideoById(params.id);
   const path = `/videos/${params.id}`;
+
+  // Non-indexable locales 308 to Spanish — metadata here is only for es/en.
+  if (!isIndexableMediaLocale(locale)) {
+    return buildSiteMetadata('es', path);
+  }
+
+  const video = await getSanovaYouTubeVideoById(params.id);
   const base = buildSiteMetadata(locale, path);
 
   if (!video) {
@@ -102,10 +109,14 @@ function VideoJsonLd({
 }
 
 export default async function VideoWatchRoute({ params }: PageProps) {
-  const [locale, video] = await Promise.all([
-    resolveServerLocale(),
-    getSanovaYouTubeVideoById(params.id)
-  ]);
+  const locale = await resolveServerLocale();
+
+  // /he/videos/… and /sw/videos/… etc. → permanent Spanish canonical (clears GSC 404s).
+  if (!isIndexableMediaLocale(locale)) {
+    permanentRedirect(`/videos/${params.id}`);
+  }
+
+  const video = await getSanovaYouTubeVideoById(params.id);
 
   if (!video) {
     notFound();

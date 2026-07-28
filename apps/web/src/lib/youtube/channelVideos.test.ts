@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { parseYouTubeChannelRss } from './channelVideos';
-import { getSanovaYouTubeUploadsPlaylistId } from './channelVideos';
+import {
+  getSanovaYouTubeUploadsPlaylistId,
+  isLikelyYouTubeVideoId,
+  parseYouTubeChannelRss
+} from './channelVideos';
 
 const SAMPLE_RSS = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
@@ -47,5 +50,18 @@ describe('parseYouTubeChannelRss', () => {
     expect(getSanovaYouTubeUploadsPlaylistId('UCFnDx3UpU7ky7NdEUbxCVTw')).toBe(
       'UUFnDx3UpU7ky7NdEUbxCVTw'
     );
+  });
+});
+
+describe('isLikelyYouTubeVideoId', () => {
+  it('accepts standard 11-char watch ids from Search Console examples', () => {
+    expect(isLikelyYouTubeVideoId('orn5gBeoKtg')).toBe(true);
+    expect(isLikelyYouTubeVideoId('kjPpMdFweAM')).toBe(true);
+  });
+
+  it('rejects empty or malformed ids', () => {
+    expect(isLikelyYouTubeVideoId('')).toBe(false);
+    expect(isLikelyYouTubeVideoId('short')).toBe(false);
+    expect(isLikelyYouTubeVideoId('not a video!')).toBe(false);
   });
 });
