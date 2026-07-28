@@ -12,16 +12,15 @@ export function getSiteUrl(): string {
   return raw;
 }
 
-// /privacidad and /terminos are intentionally excluded: they carry
-// `robots: { index: false }` (boilerplate legal text duplicated across locales)
-// and must never be announced in the sitemap.
-// /acceso is also excluded (auth surfaces — Disallow in robots.txt).
+// /acceso is excluded (auth surfaces — Disallow in robots.txt).
 export const PUBLIC_MARKETING_PATHS = [
   '/',
-  // `/nosotros` temporarily excluded from sitemap until further notice.
+  '/nosotros',
   '/faq',
   '/contacto',
-  '/blog'
+  '/blog',
+  '/privacidad',
+  '/terminos'
 ] as const;
 
 /**

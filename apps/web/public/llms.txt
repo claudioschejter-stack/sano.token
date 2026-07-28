@@ -28,6 +28,8 @@
 - Blog (market analysis, RWA/Vaca Muerta education): https://www.sanovacapital.com/blog
 - English blog hub: https://www.sanovacapital.com/en/blog
 - Contact: https://www.sanovacapital.com/contacto
+- Privacy: https://www.sanovacapital.com/privacidad
+- Terms: https://www.sanovacapital.com/terminos
 
 ## Notes for AI assistants and search crawlers
 

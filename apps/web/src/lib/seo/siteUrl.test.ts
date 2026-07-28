@@ -12,8 +12,12 @@ describe('buildPublicSitemapUrls', () => {
     expect(urls).toContain(`${site}/blog`);
     expect(urls).toContain(`${site}/en/blog`);
     expect(urls).toContain(`${site}/ar/faq`);
+    expect(urls).toContain(`${site}/privacidad`);
+    expect(urls).toContain(`${site}/en/privacidad`);
+    expect(urls).toContain(`${site}/terminos`);
+    expect(urls).toContain(`${site}/nosotros`);
+    expect(urls).toContain(`${site}/ja/nosotros`);
     expect(urls).not.toContain(`${site}/acceso`);
-    expect(urls).not.toContain(`${site}/privacidad`);
   });
 
   it('only lists blog article URLs for locales with native translations', () => {

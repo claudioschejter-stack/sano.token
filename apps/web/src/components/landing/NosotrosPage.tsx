@@ -15,7 +15,7 @@ type TeamMember = {
   avatar?: string;
 };
 
-// fix: 12 individual team member cards with avatar, role, bio and LinkedIn
+// fix: 12 founder card — only publish real team members (no "Nombre Apellido" placeholders)
 const TEAM: TeamMember[] = [
   {
     name: 'Claudio Schejter',
@@ -23,27 +23,6 @@ const TEAM: TeamMember[] = [
     bio: 'Emprendedor serial con más de 20 años en finanzas, real estate y tecnología. Lidera la estrategia de tokenización de activos reales de Vaca Muerta en el mercado global. Impulsa la visión de democratizar el acceso a inversiones institucionales argentinas.',
     linkedin: getLinkedInUrl(),
     avatar: '/team/claudio-schejter.jpg'
-  },
-  {
-    name: 'Nombre Apellido',
-    role: 'Co-founder & CTO',
-    bio: 'Arquitecto de software especializado en blockchain y smart contracts sobre Ethereum y Base. Diseñó la infraestructura ERC-4626 de Sanova y los mecanismos de distribución de rendimientos en USDC. Más de 10 años de experiencia en sistemas financieros descentralizados.',
-    linkedin: 'https://www.linkedin.com/company/sanova-global',
-    avatar: '/team/placeholder.png'
-  },
-  {
-    name: 'Nombre Apellido',
-    role: 'CFO & Legal',
-    bio: 'Especialista en estructuración financiera y fiduciaria bajo la Ley 24.441. Responsable del cumplimiento regulatorio y la relación con inversores institucionales en más de 15 países. Background en banca de inversión y derecho corporativo en Argentina.',
-    linkedin: 'https://www.linkedin.com/company/sanova-global',
-    avatar: '/team/placeholder.png'
-  },
-  {
-    name: 'Nombre Apellido',
-    role: 'Head of Real Estate',
-    bio: 'Referente en desarrollo inmobiliario en el corredor neuquino de Vaca Muerta. Gestiona el portafolio de activos físicos, los contratos de arrendamiento con operadoras energéticas y la due diligence técnica de cada proyecto tokenizado.',
-    linkedin: 'https://www.linkedin.com/company/sanova-global',
-    avatar: '/team/placeholder.png'
   }
 ];
 

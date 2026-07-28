@@ -10,9 +10,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const m = messagesByLocale[locale].legalPagesMeta;
   return {
     ...base,
-    title: m.privacyTitle,
-    description: m.privacyDescription,
-    robots: { index: false, follow: false }
+    title: { absolute: m.privacyTitle },
+    description: m.privacyDescription
   };
 }
 

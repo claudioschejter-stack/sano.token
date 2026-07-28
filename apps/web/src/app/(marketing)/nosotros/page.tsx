@@ -1,9 +1,29 @@
-import { redirect } from 'next/navigation';
+import type { Metadata } from 'next';
+import { NosotrosPage } from '../../../components/landing/NosotrosPage';
+import { resolveServerLocale } from '../../../i18n/detectLocaleServer';
+import { buildSiteMetadata } from '../../../lib/seo/buildMetadata';
+import { messagesByLocale } from '../../../i18n';
 
-/**
- * Temporarily hidden until further notice — keep the route so old links
- * and locale-prefixed URLs (`/he/nosotros`, etc.) still resolve cleanly.
- */
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await resolveServerLocale();
+  const base = buildSiteMetadata(locale, '/nosotros');
+  const aboutLabel = messagesByLocale[locale].footer?.about ?? 'Nosotros';
+  const title = `${aboutLabel} | Sanova Global`;
+  const description =
+    messagesByLocale[locale].meta?.description ??
+    'Sanova Global SAS — tokenización RWA de infraestructura energética en Vaca Muerta, Neuquén, Argentina.';
+  return {
+    ...base,
+    title: { absolute: title },
+    description,
+    openGraph: {
+      ...base.openGraph,
+      title,
+      description
+    }
+  };
+}
+
 export default function NosotrosPageRoute() {
-  redirect('/');
+  return <NosotrosPage />;
 }
