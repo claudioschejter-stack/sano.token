@@ -23,6 +23,9 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
 
+      - name: Generate web app version
+        run: node apps/web/scripts/generate-app-version.mjs
+
       - name: Typecheck
         run: npm run typecheck
 
