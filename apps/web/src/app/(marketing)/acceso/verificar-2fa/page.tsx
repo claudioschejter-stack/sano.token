@@ -7,7 +7,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
   return {
     title: messagesByLocale[locale].legalPagesMeta.totpVerifyTitle,
-    robots: { index: false }
+    robots: { index: false, follow: false }
   };
 }
 

@@ -20,6 +20,9 @@ export default function robots(): MetadataRoute.Robots {
           '/mercado-secundario/',
           '/kyc',
           '/acceso',
+          // Locale-prefixed auth (middleware serves /xx/acceso*)
+          '/*/acceso',
+          '/*/acceso/',
           '/_next/'
         ]
       }

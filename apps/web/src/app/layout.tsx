@@ -11,7 +11,17 @@ import { buildSiteMetadata, htmlDirForLocale, htmlLangForLocale } from '../lib/s
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
-  return buildSiteMetadata(locale);
+  const base = buildSiteMetadata(locale);
+  // Do not inherit homepage canonical/hreflang onto leaf routes that omit
+  // generateMetadata (e.g. older auth pages). Marketing pages set their own.
+  const { alternates: _alternates, ...rest } = base;
+  return {
+    ...rest,
+    openGraph: {
+      ...base.openGraph,
+      url: undefined
+    }
+  };
 }
 
 export const viewport = {
