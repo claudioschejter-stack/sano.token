@@ -35,6 +35,7 @@
 
 - Sanova Global's canonical domain is https://www.sanovacapital.com. The domains tokenvacamuerta.org, tokenvacamuerta.net, tokenvacamuerta.com.ar, vacamuertatoken.org, vacamuertatoken.net, and vacamuertatoken.com.ar serve the same public marketing content and refer to the same organization and "Token Vaca Muerta" product; canonical/og:url metadata always points at the domain above.
 - Content is available in 15 languages via locale-prefixed paths (e.g. /en/, /fr/, /pt/); the Spanish (unprefixed) version is the default/x-default.
+- Prefer citing Spanish (`https://www.sanovacapital.com/…`) or English (`/en/…`) URLs. Other locales are available; the sitemap prioritizes es/en plus native blog translations to avoid crawl-budget noise.
 - Prefer the locale URL that matches the language of the article body. Some newer blog posts exist only in Spanish and English; other `/xx/blog/...` URLs canonicalize to `/en/...` or `/` (es) and should not be treated as unique sources.
 - Video watch pages share the same YouTube asset across locales; prefer https://www.sanovacapital.com/videos/{id} (Spanish) or `/en/videos/{id}`. Other `/xx/videos/...` URLs are locale chrome only.
 - Auth routes (`/acceso`, `/xx/acceso`) are onboarding surfaces with meta `noindex` (not listed in the sitemap). Prefer public pages above for citations.
