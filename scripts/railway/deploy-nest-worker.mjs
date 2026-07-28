@@ -14,6 +14,14 @@ const ENVIRONMENT_ID = process.env.RAILWAY_ENVIRONMENT_ID ?? 'bb37162b-725f-40a2
 const SERVICE_ID = process.env.RAILWAY_SERVICE_ID ?? '8d5680aa-768f-45ff-9c50-f61363a0578a';
 const FALLBACK_DOMAIN = 'https://sanovaapi-production.up.railway.app';
 
+function safeHost(url) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return '(invalid)';
+  }
+}
+
 function run(cmd, args, opts = {}) {
   const result = spawnSync(cmd, args, {
     cwd: root,
@@ -71,9 +79,9 @@ if (domainResult.status === 0) {
 }
 if (!domain) {
   domain = FALLBACK_DOMAIN;
-  console.log(`No new domain from CLI — using known production URL: ${domain}`);
+  console.log(`No new domain from CLI — using known production host: ${safeHost(domain)}`);
 } else {
-  console.log(`Public URL: ${domain}`);
+  console.log(`Public host: ${safeHost(domain)}`);
 }
 
 const envPath = join(root, '.env');
@@ -105,6 +113,6 @@ console.log('\n8) Verify Nest health…');
 run('npm', ['run', 'vercel:verify-nest']);
 
 console.log('\nDone. Verify:');
-console.log(`  curl ${domain}/api/v1/health/live`);
+console.log(`  curl https://${safeHost(domain)}/api/v1/health/live`);
 console.log('  Admin → Operations → Nest worker health/live');
 console.log('  https://www.sanovacapital.com (SSE EventSource → Nest origin)');

@@ -1,39 +1,14 @@
 #!/usr/bin/env node
 /**
  * Sync NEXT_PUBLIC_API_URL to Vercel (web) so SSE /api/v1/* reach the Nest worker.
- * Prefer NEST_PUBLIC_API_URL / NEXT_PUBLIC_API_URL from .env; else Railway production domain.
+ * Uses process env or the known Railway production domain — does not read .env files
+ * or print secret/URL values (CodeQL clear-text / file→network hygiene).
  */
 import { spawnSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../..');
-
-function parseEnvFile(path) {
-  if (!existsSync(path)) return {};
-  const out = {};
-  for (const line of readFileSync(path, 'utf8').split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    out[key] = val;
-  }
-  return out;
-}
-
-const env = {
-  ...parseEnvFile(join(root, '.env')),
-  ...parseEnvFile(join(root, 'apps/web/.env.local')),
-  ...process.env
-};
-
 const RAILWAY_PRODUCTION_API = 'https://sanovaapi-production.up.railway.app';
 
 function pickApiUrl(value) {
@@ -42,15 +17,23 @@ function pickApiUrl(value) {
   return trimmed.replace(/\/$/, '');
 }
 
+function safeHost(url) {
+  try {
+    return new URL(url).host;
+  } catch {
+    return '(invalid)';
+  }
+}
+
 const apiUrl =
-  pickApiUrl(env.NEST_PUBLIC_API_URL) ||
-  pickApiUrl(env.NEST_API_URL) ||
-  pickApiUrl(env.NEXT_PUBLIC_API_URL) ||
+  pickApiUrl(process.env.NEST_PUBLIC_API_URL) ||
+  pickApiUrl(process.env.NEST_API_URL) ||
+  pickApiUrl(process.env.NEXT_PUBLIC_API_URL) ||
   RAILWAY_PRODUCTION_API;
 
 function addEnv(name, value, environments = ['production', 'preview', 'development']) {
   if (!value) {
-    console.log(`skip ${name} (set NEXT_PUBLIC_API_URL or NEST_PUBLIC_API_URL in .env)`);
+    console.log(`skip ${name} (export NEXT_PUBLIC_API_URL or NEST_PUBLIC_API_URL first)`);
     return false;
   }
   let allOk = true;
@@ -61,22 +44,23 @@ function addEnv(name, value, environments = ['production', 'preview', 'developme
       { cwd: root, encoding: 'utf8', shell: true }
     );
     if (result.status !== 0) {
-      console.error(`failed ${name}@${target}:`, result.stderr?.slice(0, 300) || result.stdout?.slice(0, 300));
+      console.error(`failed ${name}@${target}`);
       allOk = false;
       continue;
     }
-    console.log(`ok ${name}@${target} = ${value}`);
+    console.log(`ok ${name}@${target} (host ${safeHost(value)})`);
   }
   return allOk;
 }
 
 console.log('=== Sync Nest API URL → Vercel (web rewrites + browser SSE) ===\n');
+console.log(`Target host: ${safeHost(apiUrl)}`);
 const ok = addEnv('NEXT_PUBLIC_API_URL', apiUrl);
 if (!ok) {
   console.error('\nSync failed. Authenticate Vercel CLI (`npx vercel login`) or set VERCEL_TOKEN.');
   process.exitCode = 1;
 } else {
-  console.log('\nNest worker must be reachable at this URL (Docker/Railway/Fly).');
+  console.log('\nNest worker must be reachable at this host (Docker/Railway/Fly).');
   console.log('Redeploy web so the client bundle picks up NEXT_PUBLIC_API_URL.');
   console.log('Verify: npm run vercel:verify-nest');
 }
