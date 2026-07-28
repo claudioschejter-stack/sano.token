@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { resolveFinanceStreamUrl } from '../lib/resolvePublicApiUrl';
 import { useDividendStore, type LiveDistributionEvent } from '../store/useDividendStore';
 
-const FINANCE_STREAM_PATH = '/api/v1/finance/stream';
 const MAX_RECONNECT_DELAY_MS = 30_000;
 const POLL_INTERVAL_MS = 30_000;
 const SSE_FAILURES_BEFORE_POLL = 2;
@@ -64,7 +64,9 @@ export function useRealTimeDividends(): void {
       if (disposedRef.current) return;
 
       eventSource?.close();
-      eventSource = new EventSource(FINANCE_STREAM_PATH);
+      // Prefer Nest worker directly (NEXT_PUBLIC_API_URL / Railway). Same-origin
+      // Vercel rewrites are a poor fit for long-lived SSE.
+      eventSource = new EventSource(resolveFinanceStreamUrl());
 
       eventSource.onopen = () => {
         reconnectAttemptRef.current = 0;

@@ -11,7 +11,9 @@ No avanzar a la siguiente fase hasta verificar la anterior.
 - [x] SSE con reconnect en `useRealTimeDividends`
 - [x] Script `vercel:sync-nest-api-url` + runbook `nest-worker-deploy.md`
 - [x] Typecheck api + web OK
-- [ ] **Pendiente operativo:** desplegar Nest worker + `NEXT_PUBLIC_API_URL` en Vercel
+- [x] SSE browser → Nest directo (`resolveFinanceStreamUrl` + fallback Railway)
+- [x] Ops readiness check Nest (`validateNestWorker`) + `npm run vercel:verify-nest`
+- [ ] **Pendiente operativo (creds):** `RAILWAY_TOKEN` + `VERCEL_TOKEN` → `npm run railway:deploy-nest` (sync `NEXT_PUBLIC_API_URL` production/preview/development + redeploy web)
 - [ ] **Pendiente verificación:** `docker compose build api` (requiere Docker instalado)
 
 ## Fase 2 — Pipeline automation ERC-4626 (ALTO)

@@ -129,7 +129,7 @@ npm run vercel:verify-payments
 |----------|------------|
 | `AUTH_URL` | `https://www.sanovacapital.com` |
 | `NEXT_PUBLIC_SITE_URL` | `https://www.sanovacapital.com` |
-| `NEXT_PUBLIC_API_URL` | URL Nest worker (si aplica) |
+| `NEXT_PUBLIC_API_URL` | `https://sanovaapi-production.up.railway.app` (`npm run vercel:sync-nest-api-url`) |
 
 OAuth redirect URIs en Google/Apple:
 - `https://www.sanovacapital.com/api/auth/callback/google`

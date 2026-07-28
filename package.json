@@ -39,6 +39,7 @@
     "vercel:check-phase4-ops": "node scripts/vercel/check-phase4-ops-env.mjs",
     "vercel:sync-phase4-ops": "node scripts/vercel/sync-phase4-ops-env.mjs",
     "vercel:sync-nest-api-url": "node scripts/vercel/sync-nest-api-url.mjs",
+    "vercel:verify-nest": "node scripts/vercel/verify-nest-worker.mjs",
     "railway:sync-nest-env": "node scripts/railway/sync-nest-env.mjs",
     "railway:deploy-nest": "node scripts/railway/deploy-nest-worker.mjs",
     "api:docker": "docker compose up postgres redis api -d",
