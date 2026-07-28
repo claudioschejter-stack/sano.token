@@ -37,5 +37,5 @@
 - Content is available in 15 languages via locale-prefixed paths (e.g. /en/, /fr/, /pt/); the Spanish (unprefixed) version is the default/x-default.
 - Prefer the locale URL that matches the language of the article body. Some newer blog posts exist only in Spanish and English; other `/xx/blog/...` URLs canonicalize to `/en/...` or `/` (es) and should not be treated as unique sources.
 - Video watch pages share the same YouTube asset across locales; prefer https://www.sanovacapital.com/videos/{id} (Spanish) or `/en/videos/{id}`. Other `/xx/videos/...` URLs are locale chrome only.
-- Auth routes (`/acceso`, `/xx/acceso`) are private onboarding surfaces — do not cite them as public documentation.
+- Auth routes (`/acceso`, `/xx/acceso`) are onboarding surfaces with meta `noindex` (not listed in the sitemap). Prefer public pages above for citations.
 - Investment products described on this site are private placements subject to KYC/AML verification; nothing on this site is public investment advice.

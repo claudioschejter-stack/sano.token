@@ -5,8 +5,8 @@ import { buildSiteMetadata } from '../../../lib/seo/buildMetadata';
 
 /**
  * Auth surfaces must never inherit the homepage canonical from root layout.
- * Self-canonical + noindex aligns with robots.txt Disallow: /acceso and stops
- * GSC "Alternative page with proper canonical tag" on /xx/acceso*.
+ * Crawlable (not Disallow'd in robots.txt) but noindex — Google can read the
+ * noindex tag and will not list /acceso as "Bloqueada por robots.txt".
  */
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
