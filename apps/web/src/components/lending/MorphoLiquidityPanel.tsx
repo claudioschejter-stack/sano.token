@@ -72,17 +72,29 @@ export function MorphoLiquidityPanel({
       });
       const data = (await response.json()) as {
         error?: string;
-        results?: Array<{ projectId: string; ok: boolean; morphoStatus?: string; error?: string }>;
+        results?: Array<{
+          projectId: string;
+          ok: boolean;
+          treasuryOk?: boolean;
+          morphoStatus?: string;
+          error?: string;
+        }>;
       };
       if (!response.ok) {
         throw new Error(data.error ?? 'seed failed');
       }
       const row = data.results?.find((item) => item.projectId === projectId);
-      if (row && !row.ok) {
-        setSeedMessage(m.seedError.replace('{detail}', row.error ?? 'unknown'));
+      const morphoLiquid = row?.morphoStatus === 'LIQUID';
+      if (row && !row.ok && !morphoLiquid) {
+        const detail =
+          row.error?.trim() ||
+          (row.morphoStatus ? `Morpho ${row.morphoStatus}` : null) ||
+          (row.treasuryOk === false ? 'Treasury repair failed' : null) ||
+          'Repair returned ok:false without detail';
+        setSeedMessage(m.seedError.replace('{detail}', detail));
       } else {
         setSeedMessage(
-          m.seedSuccess.replace('{status}', row?.morphoStatus ?? 'OK')
+          m.seedSuccess.replace('{status}', row?.morphoStatus ?? (row?.ok ? 'OK' : 'LIQUID'))
         );
       }
       await load({ silent: true });
@@ -182,7 +194,7 @@ export function MorphoLiquidityPanel({
                         type="button"
                         disabled={seedingProjectId !== null}
                         onClick={() => void seedMarket(market.projectId)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500/20 disabled:opacity-50"
                       >
                         {seedingProjectId === market.projectId ? (
                           <>

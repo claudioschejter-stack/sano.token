@@ -229,11 +229,14 @@ export async function validateMorphoSeedWallet(): Promise<OpsCheck[]> {
     const balanceUsd = Number(balance) / 10 ** Number(decimals);
     const minRequired = Number.isFinite(seedFloor) && seedFloor > 0 ? seedFloor : 100;
 
+    const funded = balanceUsd >= minRequired;
     checks.push({
       id: 'morpho_seed_wallet_usdc',
       label: 'USDC en wallet Morpho liquidity',
-      status: balanceUsd >= minRequired ? 'OK' : 'WARN',
-      detail: `${balanceUsd.toFixed(2)} USDC en ${liquidityAddress} (mínimo recomendado ${minRequired})`
+      status: funded ? 'OK' : 'WARN',
+      detail: funded
+        ? `${balanceUsd.toFixed(2)} USDC en ${liquidityAddress} (mínimo recomendado ${minRequired})`
+        : `${balanceUsd.toFixed(2)} USDC en ${liquidityAddress} (mínimo recomendado ${minRequired}). Si los mercados ya tienen liquidez, fondeá solo para futuros seeds.`
     });
   } catch (error) {
     checks.push({
@@ -376,14 +379,29 @@ export async function validateNestWorker(): Promise<OpsCheck[]> {
     clearTimeout(timer);
 
     const body = (await response.text()).slice(0, 160);
-    checks.push({
-      id: 'nest_health_live',
-      label: 'Nest worker health/live',
-      status: response.ok ? 'OK' : 'FAIL',
-      detail: response.ok
-        ? `${origin} → ${response.status}`
-        : `${origin} → ${response.status} ${body || '(empty)'}`
-    });
+    if (response.ok) {
+      checks.push({
+        id: 'nest_health_live',
+        label: 'Nest worker health/live',
+        status: 'OK',
+        detail: `${origin} → ${response.status}`
+      });
+    } else if (response.status === 429) {
+      // Railway edge rate-limit from a single egress IP — Nest is up; treat as WARN.
+      checks.push({
+        id: 'nest_health_live',
+        label: 'Nest worker health/live',
+        status: 'WARN',
+        detail: `${origin} → 429 rate limited (Nest responde; reintentá desde otra red o más tarde)`
+      });
+    } else {
+      checks.push({
+        id: 'nest_health_live',
+        label: 'Nest worker health/live',
+        status: 'FAIL',
+        detail: `${origin} → ${response.status} ${body || '(empty)'}`
+      });
+    }
   } catch (error) {
     checks.push({
       id: 'nest_health_live',
@@ -489,11 +507,29 @@ export async function repairBaseMorphoProjects(input?: { projectIds?: string[]; 
   for (const projectId of targetIds) {
     try {
       const repair = await repairProjectTreasuryAndMorpho(projectId);
+      const morphoStatus = repair.morphoLiquidity?.status;
+      const morphoError =
+        repair.morphoLiquidity && 'error' in repair.morphoLiquidity
+          ? String((repair.morphoLiquidity as { error?: string }).error ?? '')
+          : '';
+      const morphoOk =
+        morphoStatus == null ||
+        morphoStatus === 'LIQUID' ||
+        morphoStatus === 'NO_MARKET';
+      const treasuryOk = repair.treasuryRepair.ok;
+      const ok = treasuryOk && morphoOk;
+      const error =
+        !treasuryOk
+          ? repair.treasuryRepair.message || 'Treasury repair failed'
+          : morphoStatus && morphoStatus !== 'LIQUID' && morphoStatus !== 'NO_MARKET'
+            ? `Morpho ${morphoStatus}${morphoError ? `: ${morphoError}` : ''}`
+            : undefined;
       results.push({
         projectId,
-        ok: repair.treasuryRepair.ok,
-        treasuryOk: repair.treasuryRepair.ok,
-        morphoStatus: repair.morphoLiquidity?.status
+        ok,
+        treasuryOk,
+        morphoStatus,
+        error
       });
     } catch (error) {
       results.push({

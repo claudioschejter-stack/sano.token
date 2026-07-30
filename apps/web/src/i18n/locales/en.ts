@@ -902,7 +902,10 @@ export const en = {
     repairing: "Repairing…",
     dryRunResult: "Simulation: {count} project(s) would be repaired.",
     repairResult: "Repair completed: {ok}/{total} projects OK.",
-    repairError: "Could not run platform repair."
+    repairError: "Could not run platform repair.",
+    projectsSection: "Base / Morpho projects",
+    projectReady: "Ready",
+    projectNeedsAttention: "Needs attention"
   },
   adminInvites: {
     pendingTitle: "Pending invitations",
@@ -956,6 +959,15 @@ export const en = {
     },
     integrationsTitle: "Integrations",
     integrationsDesc: "Status of external services configured on the server.",
+    connectionHealthTitle: "Connection health",
+    connectionHealthDesc:
+      "Live diagnosis: Nest, treasury, Morpho, payments and per-project alerts. Problems are listed first.",
+    connectionHealthSummary: "OK {ok} · WARN {warn} · FAIL {fail}",
+    connectionHealthIssuesBanner: "There are {count} attention signal(s) in connections or projects.",
+    connectionHealthAllOk: "All audited connections are OK.",
+    connectionHealthShowAll: "Also show OK connections",
+    connectionHealthProjectsTitle: "Projects with alerts",
+    connectionHealthOpsLink: "Open operations and repair →",
     integrations: {
       email: "Email (Resend)",
       sms: "SMS (Twilio)",

@@ -5,6 +5,7 @@ import { ArrowLeft, Check, RefreshCw, Save, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import type { AdminSettings } from '../../lib/admin/getAdminSettings';
+import type { OpsCheckStatus } from '../../lib/admin/platformOperationalReadiness';
 import type { PlatformConfigFieldSource } from '../../lib/platform/platformConfigService';
 import { AdminGate } from './AdminGate';
 import { AdminPlatformWalletSection } from './AdminPlatformWalletSection';
@@ -59,6 +60,16 @@ function StatusBadge({ active, activeLabel, inactiveLabel }: { active: boolean; 
       {active ? activeLabel : inactiveLabel}
     </span>
   );
+}
+
+function healthStatusClass(status: OpsCheckStatus): string {
+  if (status === 'OK') {
+    return 'border-terminal-success/30 text-terminal-success';
+  }
+  if (status === 'WARN') {
+    return 'border-terminal-warning/30 text-terminal-warning';
+  }
+  return 'border-red-500/30 text-red-400';
 }
 
 export function AdminSettingsView() {
@@ -331,6 +342,133 @@ export function AdminSettingsView() {
             </section>
 
             <AdminPlatformWalletSection />
+
+            <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-terminal-text">
+                    {t.adminSettings.connectionHealthTitle}
+                  </h2>
+                  <p className="mt-1 text-sm text-terminal-muted">
+                    {t.adminSettings.connectionHealthDesc}
+                  </p>
+                </div>
+                <p className="text-xs text-terminal-muted">
+                  {t.adminSettings.connectionHealthSummary
+                    .replace('{ok}', String(settings.connectionHealth.summary.ok))
+                    .replace('{warn}', String(settings.connectionHealth.summary.warn))
+                    .replace('{fail}', String(settings.connectionHealth.summary.fail))}
+                </p>
+              </div>
+
+              {settings.connectionHealth.summary.fail > 0 ||
+              settings.connectionHealth.summary.warn > 0 ||
+              settings.connectionHealth.summary.projectsWithIssues > 0 ? (
+                <div className="mt-4 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-terminal-warning">
+                  {t.adminSettings.connectionHealthIssuesBanner.replace(
+                    '{count}',
+                    String(
+                      settings.connectionHealth.summary.fail +
+                        settings.connectionHealth.summary.warn +
+                        settings.connectionHealth.summary.projectsWithIssues
+                    )
+                  )}
+                </div>
+              ) : (
+                <p className="mt-4 flex items-center gap-2 text-sm text-terminal-success">
+                  <Check size={16} />
+                  {t.adminSettings.connectionHealthAllOk}
+                </p>
+              )}
+
+              <ul className="mt-4 space-y-2 text-sm">
+                {settings.connectionHealth.checks
+                  .filter((check) => check.status !== 'OK')
+                  .map((check) => (
+                    <li
+                      key={check.id}
+                      className="flex flex-wrap items-center gap-2 rounded-lg border border-terminal-border px-3 py-2"
+                    >
+                      <span
+                        className={`rounded border px-2 py-0.5 text-xs font-semibold ${healthStatusClass(check.status)}`}
+                      >
+                        {check.status}
+                      </span>
+                      <span className="font-medium text-terminal-text">{check.label}</span>
+                      {check.detail ? (
+                        <span className="text-terminal-muted">{check.detail}</span>
+                      ) : null}
+                    </li>
+                  ))}
+              </ul>
+
+              {settings.connectionHealth.checks.every((check) => check.status === 'OK') ? null : (
+                <details className="mt-3">
+                  <summary className="cursor-pointer text-xs text-terminal-muted hover:text-terminal-text">
+                    {t.adminSettings.connectionHealthShowAll}
+                  </summary>
+                  <ul className="mt-2 space-y-2 text-sm">
+                    {settings.connectionHealth.checks
+                      .filter((check) => check.status === 'OK')
+                      .map((check) => (
+                        <li
+                          key={`ok-${check.id}`}
+                          className="flex flex-wrap items-center gap-2 rounded-lg border border-terminal-border px-3 py-2"
+                        >
+                          <span
+                            className={`rounded border px-2 py-0.5 text-xs font-semibold ${healthStatusClass(check.status)}`}
+                          >
+                            {check.status}
+                          </span>
+                          <span className="font-medium text-terminal-text">{check.label}</span>
+                          {check.detail ? (
+                            <span className="text-terminal-muted">{check.detail}</span>
+                          ) : null}
+                        </li>
+                      ))}
+                  </ul>
+                </details>
+              )}
+
+              {settings.connectionHealth.projectAlerts.length > 0 ? (
+                <div className="mt-6 space-y-3">
+                  <h3 className="text-sm font-semibold text-terminal-text">
+                    {t.adminSettings.connectionHealthProjectsTitle}
+                  </h3>
+                  {settings.connectionHealth.projectAlerts.map((alert) => (
+                    <div
+                      key={alert.projectId}
+                      className="rounded-lg border border-terminal-border bg-terminal-bg px-4 py-3"
+                    >
+                      <p className="text-sm font-medium text-terminal-text">{alert.title}</p>
+                      <p className="mt-0.5 font-mono text-[11px] text-terminal-muted">{alert.projectId}</p>
+                      <ul className="mt-2 space-y-1.5">
+                        {alert.checks.map((check) => (
+                          <li key={`${alert.projectId}-${check.id}`} className="flex flex-wrap items-center gap-2 text-xs">
+                            <span
+                              className={`rounded border px-1.5 py-0.5 font-semibold ${healthStatusClass(check.status)}`}
+                            >
+                              {check.status}
+                            </span>
+                            <span className="text-terminal-text">{check.label}</span>
+                            {check.detail ? (
+                              <span className="text-terminal-muted">{check.detail}</span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              <Link
+                href="/dashboard/loans"
+                className="mt-4 inline-flex text-sm font-medium text-terminal-primary hover:underline"
+              >
+                {t.adminSettings.connectionHealthOpsLink}
+              </Link>
+            </section>
 
             <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
               <h2 className="text-lg font-semibold text-terminal-text">{t.adminSettings.integrationsTitle}</h2>
