@@ -13,6 +13,11 @@ import {
   isAppleOAuthConfigured,
   isGoogleOAuthConfigured
 } from '../auth/oauthProviders';
+import {
+  auditPlatformOperationalReadiness,
+  type OpsCheck
+} from './platformOperationalReadiness';
+import { getPaymentsIntegrationStatus } from '../payments/paymentsIntegrationStatus';
 
 export type IntegrationStatus = {
   id: string;
@@ -22,9 +27,28 @@ export type IntegrationStatus = {
   optional?: boolean;
 };
 
+export type ConnectionHealthAlert = {
+  projectId: string;
+  title: string;
+  checks: OpsCheck[];
+};
+
+export type AdminConnectionHealth = {
+  generatedAt: string;
+  checks: OpsCheck[];
+  projectAlerts: ConnectionHealthAlert[];
+  summary: {
+    ok: number;
+    warn: number;
+    fail: number;
+    projectsWithIssues: number;
+  };
+};
+
 export type AdminSettings = {
   contact: AdminPlatformConfig;
   integrations: IntegrationStatus[];
+  connectionHealth: AdminConnectionHealth;
   access: {
     adminEmails: string[];
     oauthGoogle: boolean;
@@ -99,8 +123,73 @@ function isMorphoIntegrationConfigured(): boolean {
   return isConfigured(process.env.MORPHO_API_KEY, process.env.MORPHO_CURATOR_ADDRESS);
 }
 
+function paymentOpsChecks(): OpsCheck[] {
+  const coreIds = ['stablecoin-base', 'mercadopago', 'ripio'] as const;
+  const byId = new Map(getPaymentsIntegrationStatus().map((item) => [item.id, item]));
+
+  return coreIds.flatMap((id) => {
+    const item = byId.get(id);
+    if (!item) {
+      return [];
+    }
+    return [
+      {
+        id: `payments_${item.id}`,
+        label: item.label,
+        status: item.configured ? ('OK' as const) : ('WARN' as const),
+        detail: item.configured
+          ? 'Configurado'
+          : `Sin configurar (${item.envKeys.slice(0, 3).join(', ')})`
+      }
+    ];
+  });
+}
+
+async function buildConnectionHealth(): Promise<AdminConnectionHealth> {
+  try {
+    const report = await auditPlatformOperationalReadiness();
+    const paymentChecks = paymentOpsChecks();
+    const checks = [...report.platformChecks, ...paymentChecks];
+
+    const projectAlerts: ConnectionHealthAlert[] = report.projects
+      .map((project) => ({
+        projectId: project.projectId,
+        title: project.title,
+        checks: project.checks.filter((check) => check.status === 'FAIL' || check.status === 'WARN')
+      }))
+      .filter((row) => row.checks.length > 0);
+
+    return {
+      generatedAt: report.generatedAt,
+      checks,
+      projectAlerts,
+      summary: {
+        ok: checks.filter((check) => check.status === 'OK').length,
+        warn: checks.filter((check) => check.status === 'WARN').length,
+        fail: checks.filter((check) => check.status === 'FAIL').length,
+        projectsWithIssues: projectAlerts.length
+      }
+    };
+  } catch (error) {
+    return {
+      generatedAt: new Date().toISOString(),
+      checks: [
+        {
+          id: 'connection_health_load',
+          label: 'Auditoría de conexiones',
+          status: 'FAIL',
+          detail: error instanceof Error ? error.message : 'No se pudo auditar conexiones'
+        }
+      ],
+      projectAlerts: [],
+      summary: { ok: 0, warn: 0, fail: 1, projectsWithIssues: 0 }
+    };
+  }
+}
+
 export async function getAdminSettings(): Promise<AdminSettings> {
   const contact = await getAdminPlatformConfig();
+  const connectionHealth = await buildConnectionHealth();
 
   return {
     contact,
@@ -194,6 +283,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
         ]
       }
     ],
+    connectionHealth,
     access: {
       adminEmails: parseEmailList(process.env.AUTH_ADMIN_EMAILS).map(maskEmail),
       oauthGoogle: isGoogleOAuthConfigured() || privyOAuthMethodEnabled('google'),

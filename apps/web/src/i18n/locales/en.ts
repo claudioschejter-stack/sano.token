@@ -902,7 +902,10 @@ export const en = {
     repairing: "Repairing…",
     dryRunResult: "Simulation: {count} project(s) would be repaired.",
     repairResult: "Repair completed: {ok}/{total} projects OK.",
-    repairError: "Could not run platform repair."
+    repairError: "Could not run platform repair.",
+    projectsSection: "Base / Morpho projects",
+    projectReady: "Ready",
+    projectNeedsAttention: "Needs attention"
   },
   adminInvites: {
     pendingTitle: "Pending invitations",
@@ -956,6 +959,15 @@ export const en = {
     },
     integrationsTitle: "Integrations",
     integrationsDesc: "Status of external services configured on the server.",
+    connectionHealthTitle: "Connection health",
+    connectionHealthDesc:
+      "Live diagnosis: Nest, treasury, Morpho, payments and per-project alerts. Problems are listed first.",
+    connectionHealthSummary: "OK {ok} · WARN {warn} · FAIL {fail}",
+    connectionHealthIssuesBanner: "There are {count} attention signal(s) in connections or projects.",
+    connectionHealthAllOk: "All audited connections are OK.",
+    connectionHealthShowAll: "Also show OK connections",
+    connectionHealthProjectsTitle: "Projects with alerts",
+    connectionHealthOpsLink: "Open operations and repair →",
     integrations: {
       email: "Email (Resend)",
       sms: "SMS (Twilio)",
@@ -2688,6 +2700,12 @@ export const en = {
       'Custom RWA markets are not listed on Morpho.org ("Market is not listed" is expected). Borrow here via "Request loan" or Marketplace → Property → Loan.',
     borrowLink: 'Request loan',
     noLiquidityBorrow: 'No USDC to borrow',
+    seedButton: 'Seed USDC liquidity',
+    seeding: 'Seeding…',
+    seedHint:
+      'Admin: “Seed USDC liquidity” uses the Sanova Morpho wallet (Privy) balance for that market. It can take 1–3 minutes.',
+    seedSuccess: 'Morpho seed finished (status: {status}). Refresh the panel if needed.',
+    seedError: 'Could not seed Morpho liquidity: {detail}',
     updated: "Updated",
     refresh: "Refresh",
     loading: "Reading Morpho markets…",

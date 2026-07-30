@@ -47,66 +47,75 @@ export function DesktopLoginFlow({
     setError(null);
     setLoading(true);
 
-    const step1Res = await fetch('/api/auth/login/step1', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email.trim(), password })
-    });
+    try {
+      const step1Res = await fetch('/api/auth/login/step1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password })
+      });
 
-    const step1Data = (await step1Res.json()) as {
-      ok?: boolean;
-      requiresTOTP?: boolean;
-      tempToken?: string;
-      error?: string;
-      remainingSeconds?: number;
-    };
-
-    if (!step1Res.ok || !step1Data.ok) {
-      setLoading(false);
-      if (step1Data.error === 'CUENTA_BLOQUEADA') {
-        setError(t.access.accountLocked);
+      let step1Data: {
+        ok?: boolean;
+        requiresTOTP?: boolean;
+        tempToken?: string;
+        error?: string;
+        remainingSeconds?: number;
+      } = {};
+      try {
+        step1Data = (await step1Res.json()) as typeof step1Data;
+      } catch {
+        setError(t.access.authError);
         return;
       }
-      if (step1Data.error === 'INVESTOR_ACCESS_NOT_ENABLED') {
-        setError(t.access.investorAccessNotEnabled);
+
+      if (!step1Res.ok || !step1Data.ok) {
+        if (step1Data.error === 'CUENTA_BLOQUEADA') {
+          setError(t.access.accountLocked);
+          return;
+        }
+        if (step1Data.error === 'INVESTOR_ACCESS_NOT_ENABLED') {
+          setError(t.access.investorAccessNotEnabled);
+          return;
+        }
+        if (step1Data.error === 'OAUTH_ONLY_SIGN_IN_REQUIRED') {
+          setError(t.access.oauthOnlySignInRequired);
+          return;
+        }
+        setError(t.access.invalidCredentials);
         return;
       }
-      if (step1Data.error === 'OAUTH_ONLY_SIGN_IN_REQUIRED') {
-        setError(t.access.oauthOnlySignInRequired);
+
+      if (step1Data.requiresTOTP && step1Data.tempToken) {
+        const params = new URLSearchParams({ t: step1Data.tempToken, callbackUrl });
+        router.push(`/acceso/verificar-2fa?${params.toString()}`);
         return;
       }
-      setError(t.access.invalidCredentials);
-      return;
-    }
 
-    if (step1Data.requiresTOTP && step1Data.tempToken) {
-      const params = new URLSearchParams({ t: step1Data.tempToken, callbackUrl });
-      router.push(`/acceso/verificar-2fa?${params.toString()}`);
-      return;
-    }
+      const result = await signIn('credentials', {
+        email: email.trim(),
+        password,
+        redirect: false
+      });
 
-    const result = await signIn('credentials', {
-      email: email.trim(),
-      password,
-      redirect: false
-    });
+      if (result?.error) {
+        setError(t.access.invalidCredentials);
+        return;
+      }
 
-    if (result?.error) {
-      setLoading(false);
-      setError(t.access.invalidCredentials);
-      return;
-    }
+      const sessionReady = await waitForAccessToken();
 
-    const sessionReady = await waitForAccessToken();
-    setLoading(false);
+      if (!sessionReady) {
+        setError(t.access.authError);
+        return;
+      }
 
-    if (!sessionReady) {
+      router.refresh();
+      router.push(callbackUrl);
+    } catch {
       setError(t.access.authError);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    router.refresh();
-    router.push(callbackUrl);
   }
 
   return (

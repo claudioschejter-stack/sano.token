@@ -156,6 +156,64 @@ export function AdminOperationsPanel() {
             </ul>
           ) : null}
 
+          {report.projects.length > 0 ? (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-terminal-muted">
+                {labels.projectsSection}
+              </p>
+              {report.projects.map((project) => {
+                const problemChecks = project.checks.filter(
+                  (check) => check.status === 'FAIL' || check.status === 'WARN'
+                );
+                return (
+                  <div
+                    key={project.projectId}
+                    className="rounded-lg border border-terminal-border bg-terminal-bg px-3 py-3 text-sm"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium text-terminal-text">{project.title}</p>
+                      <span
+                        className={`rounded border px-2 py-0.5 text-xs font-semibold ${
+                          problemChecks.some((check) => check.status === 'FAIL')
+                            ? 'border-red-500/30 text-red-400'
+                            : problemChecks.length > 0
+                              ? 'border-terminal-warning/30 text-terminal-warning'
+                              : 'border-terminal-success/30 text-terminal-success'
+                        }`}
+                      >
+                        {problemChecks.length === 0 ? labels.projectReady : labels.projectNeedsAttention}
+                      </span>
+                    </div>
+                    {problemChecks.length > 0 ? (
+                      <ul className="mt-2 space-y-1.5">
+                        {problemChecks.map((check) => (
+                          <li
+                            key={`${project.projectId}-${check.id}`}
+                            className="flex flex-wrap items-center gap-2 text-xs"
+                          >
+                            <span
+                              className={`rounded border px-1.5 py-0.5 font-semibold ${
+                                check.status === 'WARN'
+                                  ? 'border-terminal-warning/30 text-terminal-warning'
+                                  : 'border-red-500/30 text-red-400'
+                              }`}
+                            >
+                              {check.status}
+                            </span>
+                            <span className="text-terminal-text">{check.label}</span>
+                            {check.detail ? (
+                              <span className="text-terminal-muted">{check.detail}</span>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
+
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
