@@ -14,7 +14,8 @@ export async function GET() {
   }
 
   const role = session.user.role;
-  const allAssets = await listAdminAssets('ALL');
+  // Loans / Morpho panel: only published (active) projects.
+  const allAssets = await listAdminAssets('ACTIVE');
 
   let assets = allAssets;
 
