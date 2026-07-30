@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { ArrowRight, Droplets, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
@@ -18,12 +19,16 @@ export function MorphoLiquidityPanel({
 }: MorphoLiquidityPanelProps) {
   const t = useTranslation();
   const m = t.morphoLiquidityPanel;
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
   const { intlLocale } = useLocale();
   const { formatUsd } = createIntlFormatters(intlLocale);
   const [snapshot, setSnapshot] = useState<MorphoLiquiditySnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(false);
+  const [seedingProjectId, setSeedingProjectId] = useState<string | null>(null);
+  const [seedMessage, setSeedMessage] = useState<string | null>(null);
 
   const load = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) {
@@ -55,6 +60,43 @@ export function MorphoLiquidityPanel({
     }, 60_000);
     return () => clearInterval(timer);
   }, [load]);
+
+  async function seedMarket(projectId: string) {
+    setSeedingProjectId(projectId);
+    setSeedMessage(null);
+    try {
+      const response = await fetch('/api/admin/operations/repair', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dryRun: false, projectIds: [projectId] })
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        results?: Array<{ projectId: string; ok: boolean; morphoStatus?: string; error?: string }>;
+      };
+      if (!response.ok) {
+        throw new Error(data.error ?? 'seed failed');
+      }
+      const row = data.results?.find((item) => item.projectId === projectId);
+      if (row && !row.ok) {
+        setSeedMessage(m.seedError.replace('{detail}', row.error ?? 'unknown'));
+      } else {
+        setSeedMessage(
+          m.seedSuccess.replace('{status}', row?.morphoStatus ?? 'OK')
+        );
+      }
+      await load({ silent: true });
+    } catch (err) {
+      setSeedMessage(
+        m.seedError.replace(
+          '{detail}',
+          err instanceof Error ? err.message : 'request failed'
+        )
+      );
+    } finally {
+      setSeedingProjectId(null);
+    }
+  }
 
   function statusLabel(status: string): string {
     const labels = m.statuses as Record<string, string>;
@@ -99,6 +141,7 @@ export function MorphoLiquidityPanel({
       ) : null}
 
       {error ? <p className="mt-6 text-sm text-red-400">{m.error}</p> : null}
+      {seedMessage ? <p className="mt-4 text-sm text-terminal-muted">{seedMessage}</p> : null}
 
       {snapshot ? (
         <>
@@ -133,23 +176,43 @@ export function MorphoLiquidityPanel({
                         .replace('{borrow}', formatUsd(market.totalBorrowUsdc))}
                     </p>
                   </div>
-                  {market.borrowUrl ? (
-                    <Link
-                      href={market.borrowUrl}
-                      className="inline-flex items-center gap-1 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-1.5 text-xs font-semibold text-terminal-primary hover:bg-terminal-primary/20"
-                    >
-                      {m.borrowLink}
-                      <ArrowRight size={12} />
-                    </Link>
-                  ) : market.status === 'NO_LIQUIDITY' ? (
-                    <span className="text-xs text-terminal-muted">{m.noLiquidityBorrow}</span>
-                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isAdmin && market.status !== 'LIQUID' ? (
+                      <button
+                        type="button"
+                        disabled={seedingProjectId !== null}
+                        onClick={() => void seedMarket(market.projectId)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+                      >
+                        {seedingProjectId === market.projectId ? (
+                          <>
+                            <Loader2 size={12} className="animate-spin" />
+                            {m.seeding}
+                          </>
+                        ) : (
+                          m.seedButton
+                        )}
+                      </button>
+                    ) : null}
+                    {market.borrowUrl ? (
+                      <Link
+                        href={market.borrowUrl}
+                        className="inline-flex items-center gap-1 rounded-lg border border-terminal-primary/40 bg-terminal-primary/10 px-3 py-1.5 text-xs font-semibold text-terminal-primary hover:bg-terminal-primary/20"
+                      >
+                        {m.borrowLink}
+                        <ArrowRight size={12} />
+                      </Link>
+                    ) : market.status === 'NO_LIQUIDITY' ? (
+                      <span className="text-xs text-terminal-muted">{m.noLiquidityBorrow}</span>
+                    ) : null}
+                  </div>
                 </li>
               ))}
             </ul>
           )}
 
           <p className="mt-4 text-xs text-terminal-muted">{m.footnote}</p>
+          {isAdmin ? <p className="mt-2 text-xs text-terminal-muted">{m.seedHint}</p> : null}
           {showLoansLink ? (
             <Link
               href={loansHref}
