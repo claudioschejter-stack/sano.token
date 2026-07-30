@@ -9,6 +9,7 @@ import {
   pickCoinbaseConnector,
   pickDirectWalletConnectConnector,
   pickMetaMaskConnector,
+  pickWalletConnectConnector,
   type CheckoutWalletOptionId
 } from './walletConnectors';
 
@@ -65,7 +66,9 @@ export function resolveCheckoutWalletConnector(
     case 'metamask_usdc':
       return pickMetaMaskConnector(connectors);
     case 'binance_usdc':
-      return pickBinanceConnector(connectors);
+      // Native Binance W3W is opt-in (see NEXT_PUBLIC_BINANCE_W3W_ENABLED).
+      // Fall back to WalletConnect so checkout still works without the noisy relay probe.
+      return pickBinanceConnector(connectors) ?? pickWalletConnectConnector(connectors);
     default:
       return undefined;
   }

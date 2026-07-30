@@ -48,6 +48,12 @@ describe('resolveCheckoutWalletConnector', () => {
     expect(connector?.id).toBe('wallet.binance.com');
   });
 
+  it('falls back to WalletConnect when Binance W3W connector is absent', () => {
+    const withoutBinance = connectors.filter((connector) => connector.id !== 'wallet.binance.com');
+    const connector = resolveCheckoutWalletConnector('binance_usdc', withoutBinance);
+    expect(connector?.id).toBe('walletConnect');
+  });
+
   it('picks direct walletConnect on iOS for coinbase', () => {
     vi.mocked(isMobileDevice).mockReturnValue(true);
     vi.mocked(isAndroidDevice).mockReturnValue(false);
