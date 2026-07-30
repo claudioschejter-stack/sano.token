@@ -17,6 +17,14 @@ jobs:
           node-version: '20'
           cache: npm
 
+      - name: Cache Hardhat Solidity compilers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/hardhat-nodejs
+          key: hardhat-solc-${{ runner.os }}-0.8.24-v1
+          restore-keys: |
+            hardhat-solc-${{ runner.os }}-
+
       - name: Install dependencies
         run: npm ci
 
@@ -30,7 +38,16 @@ jobs:
         run: npm run typecheck
 
       - name: Compile contracts
-        run: npm run contracts:compile
+        run: |
+          set -e
+          for i in 1 2 3 4; do
+            if npm run contracts:compile; then
+              exit 0
+            fi
+            echo "::warning::contracts:compile failed (attempt $i); retrying…"
+            sleep $((i * 8))
+          done
+          exit 1
 
       - name: Contract tests
         run: npm run contracts:test
@@ -56,6 +73,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Cache Hardhat Solidity compilers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/hardhat-nodejs
+          key: hardhat-solc-${{ runner.os }}-0.8.24-v1
+          restore-keys: |
+            hardhat-solc-${{ runner.os }}-
 
       - name: Install dependencies
         run: npm ci

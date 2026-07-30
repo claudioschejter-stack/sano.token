@@ -23,11 +23,29 @@ function requireSourcePattern(file, checks) {
 }
 
 console.log('[rwa-audit] Compiling contracts...');
-const compile = run('npx', ['hardhat', 'compile'], { cwd: contractsDir });
-if (compile.status !== 0) {
+let compile = null;
+for (let attempt = 1; attempt <= 4; attempt += 1) {
+  compile = run('npx', ['hardhat', 'compile'], { cwd: contractsDir });
+  if (compile.status === 0) {
+    break;
+  }
+  const output = `${compile.stdout ?? ''}\n${compile.stderr ?? ''}`;
+  const transient =
+    /HH502|Couldn't download compiler|ECONNRESET|ETIMEDOUT|EAI_AGAIN|AggregateError/i.test(
+      output
+    );
   console.error(compile.stdout);
   console.error(compile.stderr);
-  process.exit(compile.status ?? 1);
+  if (!transient || attempt === 4) {
+    process.exit(compile.status ?? 1);
+  }
+  const waitSec = attempt * 8;
+  console.warn(
+    `[rwa-audit] Transient solc download failure (attempt ${attempt}/4). Retrying in ${waitSec}s…`
+  );
+  spawnSync(process.execPath, ['-e', `Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ${waitSec * 1000})`], {
+    stdio: 'ignore'
+  });
 }
 
 console.log('[rwa-audit] Checking required invariants...');
