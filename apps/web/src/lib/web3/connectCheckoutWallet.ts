@@ -66,8 +66,7 @@ export function resolveCheckoutWalletConnector(
     case 'metamask_usdc':
       return pickMetaMaskConnector(connectors);
     case 'binance_usdc':
-      // Native Binance W3W is opt-in (see NEXT_PUBLIC_BINANCE_W3W_ENABLED).
-      // Fall back to WalletConnect so checkout still works without the noisy relay probe.
+      // Native Binance W3W SDK is not registered (dead relay probes on load).
       return pickBinanceConnector(connectors) ?? pickWalletConnectConnector(connectors);
     default:
       return undefined;

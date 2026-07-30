@@ -21,23 +21,11 @@ const baseRpcUrl =
 export const supportedChains = [base] as const;
 
 /**
- * Binance Web3 Wallet connector probes backup relays (incl. dead hosts like
- * nbstream.binance.click) on every page load. Keep it opt-in to avoid console noise.
+ * Native Binance Web3 Wallet SDK (@binance/w3w-*) probes dead backup relays
+ * (e.g. nbstream.binance.click) on every page load. It is intentionally not
+ * registered here. Checkout `binance_usdc` uses WalletConnect instead.
  */
-export const isBinanceW3WEnabled = process.env.NEXT_PUBLIC_BINANCE_W3W_ENABLED === 'true';
-
-function createBinanceConnectorIfEnabled() {
-  if (!isBinanceW3WEnabled) {
-    return null;
-  }
-
-  // Lazy require so the SDK is not evaluated when disabled.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getWagmiConnectorV2 } = require('@binance/w3w-wagmi-connector-v2') as {
-    getWagmiConnectorV2: () => () => unknown;
-  };
-  return getWagmiConnectorV2()();
-}
+export const isBinanceW3WEnabled = false;
 
 function wrapWalletConnectConnector(
   id: string,
@@ -96,8 +84,6 @@ function createAndroidMetaMaskWalletConnect() {
   });
 }
 
-const binanceConnector = createBinanceConnectorIfEnabled();
-
 const connectors = [
   coinbaseWallet({
     appName: walletConnectMetadata.name,
@@ -111,7 +97,6 @@ const connectors = [
     },
     useDeeplink: false
   }),
-  ...(binanceConnector ? [binanceConnector as never] : []),
   ...(isWalletConnectConfigured
     ? [
         createMobileDirectWalletConnect(),
