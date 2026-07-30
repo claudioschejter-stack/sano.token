@@ -1,11 +1,13 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { useMarketplaceFeed } from '../../hooks/useMarketplaceFeed';
+import { LEGAL_CONTACT_PATH } from '../../lib/legal/legalConfig';
 import { getMarketplaceCapabilities } from '../../lib/marketplace/marketplaceCapabilities';
 import { pickFeaturedListings } from '../../lib/marketplace/pickFeaturedListings';
 import type { MarketplaceFeed } from '../../types/marketplace';
@@ -119,6 +121,15 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
               }
             />
           ))}
+        </div>
+
+        <div className="mt-10 flex justify-center md:mt-12">
+          <Link
+            href={LEGAL_CONTACT_PATH}
+            className="inline-flex max-w-xl items-center justify-center rounded-lg border-2 border-blue-500 bg-blue-500 px-4 py-3 text-center text-sm font-bold leading-snug text-white transition-colors hover:border-blue-400 hover:bg-blue-400 md:text-base"
+          >
+            {t.marketplace.publishPropertyCta}
+          </Link>
         </div>
       </div>
     </section>
