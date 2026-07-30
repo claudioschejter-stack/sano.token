@@ -2732,6 +2732,12 @@ export const es = {
       'Los mercados RWA custom no aparecen en Morpho.org ("Market is not listed" es normal). Pedí el préstamo acá con el botón "Pedir préstamo" o desde Marketplace → Propiedad → Préstamo.',
     borrowLink: 'Pedir préstamo',
     noLiquidityBorrow: 'Sin USDC prestable',
+    seedButton: 'Sembrar liquidez USDC',
+    seeding: 'Sembrando…',
+    seedHint:
+      'Admin: “Sembrar liquidez USDC” usa el saldo de la wallet Morpho de Sanova (Privy) para ese mercado. Puede tardar 1–3 minutos.',
+    seedSuccess: 'Seed Morpho completado (estado: {status}). Actualizá el panel si hace falta.',
+    seedError: 'No se pudo sembrar liquidez Morpho: {detail}',
     updated: 'Actualizado',
     refresh: 'Actualizar',
     loading: 'Leyendo mercados Morpho…',
