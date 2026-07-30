@@ -9,6 +9,7 @@ import {
   pickCoinbaseConnector,
   pickDirectWalletConnectConnector,
   pickMetaMaskConnector,
+  pickWalletConnectConnector,
   type CheckoutWalletOptionId
 } from './walletConnectors';
 
@@ -65,7 +66,8 @@ export function resolveCheckoutWalletConnector(
     case 'metamask_usdc':
       return pickMetaMaskConnector(connectors);
     case 'binance_usdc':
-      return pickBinanceConnector(connectors);
+      // Native Binance W3W SDK is not registered (dead relay probes on load).
+      return pickBinanceConnector(connectors) ?? pickWalletConnectConnector(connectors);
     default:
       return undefined;
   }

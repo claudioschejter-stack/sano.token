@@ -1,6 +1,5 @@
 import { cookieStorage, createConfig, createStorage, http } from 'wagmi';
 import { base } from 'wagmi/chains';
-import { getWagmiConnectorV2 } from '@binance/w3w-wagmi-connector-v2';
 import { coinbaseWallet, metaMask, walletConnect } from '@wagmi/connectors';
 import type { WalletConnectParameters } from '@wagmi/connectors';
 import { isWalletConnectConfigured, walletConnectMetadata, walletConnectProjectId } from './walletConnect';
@@ -21,7 +20,12 @@ const baseRpcUrl =
 
 export const supportedChains = [base] as const;
 
-const createBinanceConnector = getWagmiConnectorV2();
+/**
+ * Native Binance Web3 Wallet SDK (@binance/w3w-*) probes dead backup relays
+ * (e.g. nbstream.binance.click) on every page load. It is intentionally not
+ * registered here. Checkout `binance_usdc` uses WalletConnect instead.
+ */
+export const isBinanceW3WEnabled = false;
 
 function wrapWalletConnectConnector(
   id: string,
@@ -93,7 +97,6 @@ const connectors = [
     },
     useDeeplink: false
   }),
-  createBinanceConnector(),
   ...(isWalletConnectConfigured
     ? [
         createMobileDirectWalletConnect(),
