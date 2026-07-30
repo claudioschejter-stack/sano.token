@@ -7,11 +7,9 @@ import { messagesByLocale } from '../../../i18n';
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await resolveServerLocale();
   const base = buildSiteMetadata(locale, '/nosotros');
-  const aboutLabel = messagesByLocale[locale].footer?.about ?? 'Nosotros';
+  const aboutLabel = messagesByLocale[locale].landing.footer.about;
   const title = `${aboutLabel} | Sanova Global`;
-  const description =
-    messagesByLocale[locale].meta?.description ??
-    'Sanova Global SAS — tokenización RWA de infraestructura energética en Vaca Muerta, Neuquén, Argentina.';
+  const description = messagesByLocale[locale].meta.description;
   return {
     ...base,
     title: { absolute: title },
