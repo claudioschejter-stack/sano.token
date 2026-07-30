@@ -9,17 +9,20 @@ export default function robots(): MetadataRoute.Robots {
     // Google-Extended, bingbot, etc.) are intentionally allowed here — we
     // want maximum visibility across Google, Bing/Copilot, and AI assistants.
     // Only private/authenticated app routes stay disallowed.
+    //
+    // /acceso is NOT disallowed: Google cannot see a noindex tag on URLs
+    // blocked by robots.txt, and reports "Bloqueada por robots.txt". Auth
+    // pages stay out of the index via meta robots noindex (acceso layout).
     rules: [
       {
         userAgent: '*',
-        allow: ['/', '/blog', '/faq', '/contacto', '/privacidad', '/terminos'],
+        allow: ['/', '/blog', '/faq', '/contacto', '/nosotros', '/privacidad', '/terminos'],
         disallow: [
           '/dashboard/',
           '/api/',
           '/marketplace/',
           '/mercado-secundario/',
           '/kyc',
-          '/acceso',
           '/_next/'
         ]
       }

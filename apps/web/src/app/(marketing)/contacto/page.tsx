@@ -19,7 +19,8 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       ...base.openGraph,
       title: ogTitle,
-      description: contact.subtitle
+      description: contact.subtitle,
+      url: typeof base.openGraph?.url === 'string' ? base.openGraph.url : undefined
     },
     twitter: {
       ...base.twitter,

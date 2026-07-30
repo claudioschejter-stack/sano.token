@@ -40,12 +40,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // hreflang alternates for locales with native translations.
   const contentLocale = resolveArticleLocale(article.slug, locale) ?? locale;
   const nativeLocales = locales.filter((code) => hasNativeTranslation(article.slug, code));
+  const isNative = hasNativeTranslation(article.slug, locale);
 
   return {
     ...base,
-    title: article.title,
+    title: { absolute: article.title },
     description: article.description,
     keywords: article.keywords,
+    // Fallback locale URLs (serving en/es copy) must not be indexed — they
+    // already point canonical at the content owner. Keeps GSC from treating
+    // /ar/blog/... as a soft-duplicate of /en/blog/...
+    robots: isNative
+      ? base.robots
+      : {
+          index: false,
+          follow: true,
+          googleBot: { index: false, follow: true }
+        },
     alternates: {
       canonical: `${siteUrl}${withLocalePrefix(contentLocale, path)}`,
       languages: {
@@ -60,7 +71,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       title: article.title,
       description: article.description,
       type: 'article',
-      publishedTime: article.publishedAt
+      publishedTime: article.publishedAt,
+      url: `${siteUrl}${withLocalePrefix(contentLocale, path)}`
+    },
+    twitter: {
+      ...base.twitter,
+      title: article.title,
+      description: article.description
     }
   };
 }
