@@ -927,7 +927,10 @@ export const es = {
     repairing: 'Reparando…',
     dryRunResult: 'Simulación: {count} proyecto(s) serían reparados.',
     repairResult: 'Reparación completada: {ok}/{total} proyectos OK.',
-    repairError: 'No se pudo ejecutar la reparación operativa.'
+    repairError: 'No se pudo ejecutar la reparación operativa.',
+    projectsSection: 'Proyectos Base / Morpho',
+    projectReady: 'Listo',
+    projectNeedsAttention: 'Requiere atención'
   },
   adminInvites: {
     pendingTitle: 'Invitaciones pendientes',
@@ -970,6 +973,15 @@ export const es = {
     },
     integrationsTitle: 'Integraciones',
     integrationsDesc: 'Estado de servicios externos configurados en el servidor.',
+    connectionHealthTitle: 'Salud de conexiones',
+    connectionHealthDesc:
+      'Diagnóstico en vivo: Nest, treasury, Morpho, pagos y alertas por proyecto. Los problemas aparecen primero.',
+    connectionHealthSummary: 'OK {ok} · WARN {warn} · FAIL {fail}',
+    connectionHealthIssuesBanner: 'Hay {count} señal(es) de atención en conexiones o proyectos.',
+    connectionHealthAllOk: 'Todas las conexiones auditadas están OK.',
+    connectionHealthShowAll: 'Ver también las conexiones OK',
+    connectionHealthProjectsTitle: 'Proyectos con alertas',
+    connectionHealthOpsLink: 'Abrir operaciones y reparación →',
     integrations: {
       email: 'Email (Resend)',
       sms: 'WhatsApp OTP (Twilio)',
