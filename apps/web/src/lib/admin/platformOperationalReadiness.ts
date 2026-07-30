@@ -406,7 +406,8 @@ export async function auditPlatformOperationalReadiness(): Promise<PlatformOpsRe
     ...(await validateMorphoSeedWallet())
   ];
 
-  const assets = await listAdminAssets('ALL');
+  // Ops readiness for Morpho/borrow: only active (published) projects.
+  const assets = await listAdminAssets('ACTIVE');
   const baseMorphoAssets = assets.filter(isBaseMorpho4626Asset);
   const projects = await Promise.all(baseMorphoAssets.map((asset) => auditBaseMorphoProject(asset)));
 

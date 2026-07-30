@@ -17,6 +17,7 @@ import type { AdminStats } from '../../lib/admin/getAdminStats';
 import { DashboardSkeleton } from '../dashboard/DashboardSkeleton';
 import { MorphoLiquidityPanel } from '../lending/MorphoLiquidityPanel';
 import { AdminGate } from './AdminGate';
+import { AdminOperationsPanel } from './AdminOperationsPanel';
 
 type KpiCardProps = {
   label: string;
@@ -170,6 +171,8 @@ export function AdminOverview() {
         </section>
 
         <MorphoLiquidityPanel loansHref="/dashboard/loans" />
+
+        <AdminOperationsPanel />
 
         <section className="rounded-xl border border-terminal-border bg-terminal-card p-6">
           <h2 className="text-lg font-bold text-terminal-text">{t.adminDashboard.quickLinksTitle}</h2>
