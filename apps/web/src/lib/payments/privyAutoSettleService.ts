@@ -141,7 +141,7 @@ export async function autoSettleAllReadyPrivyCarts() {
       const result = await autoSettlePrivyCartForUser(row.userId);
       if (result.ok && result.status === 'settled') {
         settled += 1;
-      } else if (!result.ok) {
+      } else if (result.ok === false) {
         failed += 1;
         console.error('[autoSettleAllReadyPrivyCarts]', row.userId, result.error);
       }
