@@ -155,10 +155,20 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
       : [];
 
   for (const balance of walletUsdcBalances) {
+    // Prefer live on-chain wallet cash over historical deposit sums for the same network.
+    const depositIdx = stablecoinPositions.findIndex(
+      (row) =>
+        row.type === 'STABLECOIN' &&
+        String(row.metadata?.network ?? '') === balance.network &&
+        row.metadata?.source === 'CONFIRMED_DEPOSITS'
+    );
+    if (depositIdx >= 0) {
+      stablecoinPositions.splice(depositIdx, 1);
+    }
     stablecoinPositions.push({
       id: `wallet-usdc-${balance.network}-${balance.chainId}`,
       type: 'STABLECOIN' as const,
-      label: `${balance.symbol} en ${balance.network}`,
+      label: `${balance.symbol} en tu wallet (${balance.network})`,
       amount: balance.amountUsdc,
       currency: `${balance.symbol} · ${balance.network}`,
       valueUsdc: balance.amountUsdc,
@@ -304,12 +314,16 @@ function buildStablecoinPositions(deposits: Array<{
   return Array.from(grouped.values()).map((item) => ({
     id: `stablecoin-${item.network}-${item.symbol}`,
     type: 'STABLECOIN' as const,
-    label: `${item.symbol} en ${item.network}`,
+    label: `${item.symbol} acreditado (${item.network})`,
     amount: item.amount,
     currency: `${item.symbol} · ${item.network}`,
     valueUsdc: item.amount,
     valueUsd: item.amount,
-    metadata: { network: item.network, recentTxHashes: item.txHashes.slice(0, 5) }
+    metadata: {
+      network: item.network,
+      source: 'CONFIRMED_DEPOSITS',
+      recentTxHashes: item.txHashes.slice(0, 5)
+    }
   }));
 }
 

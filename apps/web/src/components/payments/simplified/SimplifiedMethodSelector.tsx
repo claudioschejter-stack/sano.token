@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { CheckoutBestRoutes } from '../../../lib/payments/checkoutBestRouteService';
 
-export type SimplifiedMethod = 'fiat_wallet' | 'crypto_wallet' | 'card' | 'wire';
+export type SimplifiedMethod = 'fiat_wallet' | 'crypto_wallet' | 'card' | 'wire' | 'ripio';
 
 type Props = {
   routes: CheckoutBestRoutes;
@@ -76,6 +76,8 @@ function isMethodConfigured(routes: CheckoutBestRoutes, id: SimplifiedMethod): b
       return routes.card.configured;
     case 'wire':
       return routes.wire.configured;
+    case 'ripio':
+      return routes.ripio.configured;
   }
 }
 
@@ -89,11 +91,13 @@ function methodTotalUsd(routes: CheckoutBestRoutes, id: SimplifiedMethod): numbe
       return routes.card.totalUsd;
     case 'wire':
       return routes.wire.totalUsd;
+    case 'ripio':
+      return routes.ripio.totalUsd;
   }
 }
 
 export function getCheapestConfiguredMethod(routes: CheckoutBestRoutes): SimplifiedMethod | null {
-  const ids: SimplifiedMethod[] = ['fiat_wallet', 'crypto_wallet', 'card', 'wire'];
+  const ids: SimplifiedMethod[] = ['crypto_wallet', 'fiat_wallet', 'ripio', 'card', 'wire'];
   const available = ids.filter((id) => isMethodConfigured(routes, id));
   if (available.length === 0) return null;
   return available.reduce((best, id) =>
@@ -137,6 +141,16 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
         configured: routes.cryptoWallet.configured
       },
       {
+        id: 'ripio',
+        label: sc.ripioMethod,
+        amount: formatLocalAmount(routes.ripio.totalLocal, routes.ripio.displayCurrency),
+        totalUsd: routes.ripio.totalUsd,
+        Icon: Smartphone,
+        color: 'text-sky-400',
+        bgColor: 'bg-sky-400/10',
+        configured: routes.ripio.configured
+      },
+      {
         id: 'card',
         label: sc.card,
         amount: formatLocalAmount(routes.card.totalLocal, routes.card.displayCurrency),
@@ -161,7 +175,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
     return all
       .filter((method) => method.configured)
       .sort((a, b) => a.totalUsd - b.totalUsd);
-  }, [routes, sc.card, sc.cryptoWallet, sc.wire]);
+  }, [routes, sc.card, sc.cryptoWallet, sc.ripioMethod, sc.wire]);
 
   const cheapestId = methods[0]?.id ?? null;
 

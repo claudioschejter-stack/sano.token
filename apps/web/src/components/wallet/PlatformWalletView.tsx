@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowUpRight, Building, History, Loader2, ShoppingBag } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { InvestorSection } from '../dashboard/investor/InvestorSection';
+import { PrivyReceiveUsdcCard } from './PrivyReceiveUsdcCard';
 import { formatMessage } from '../../i18n';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
@@ -402,8 +403,9 @@ export function PlatformWalletView({
         <button
           type="button"
           onClick={() => {
+            setError(null);
+            setSuccess(null);
             setActiveTab('deposit');
-            router.push('/marketplace/carrito?mode=deposit');
           }}
           className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-base font-semibold transition-colors sm:flex-none sm:px-5 ${
             activeTab === 'deposit'
@@ -462,6 +464,21 @@ export function PlatformWalletView({
         <p className="rounded-lg border border-terminal-success/30 bg-terminal-success/10 px-4 py-3 text-sm text-terminal-success">
           {success}
         </p>
+      ) : null}
+
+      {activeTab === 'deposit' ? (
+        <InvestorSection title={w.depositTitle} subtitle={w.depositSubtitle}>
+          <PrivyReceiveUsdcCard />
+          <p className="mt-4 text-xs text-terminal-muted">
+            <button
+              type="button"
+              onClick={() => router.push('/marketplace/carrito?mode=deposit')}
+              className="font-semibold text-terminal-primary underline-offset-2 hover:underline"
+            >
+              {w.createDeposit}
+            </button>
+          </p>
+        </InvestorSection>
       ) : null}
 
       {activeTab === 'withdraw' ? (

@@ -12,7 +12,6 @@ import { findListingById } from '../../lib/findListing';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import type { MarketplaceListing } from '../../types/marketplace';
 import { useCartStore } from '../../store/useCartStore';
-import { StickyActionBar } from '../mobile/StickyActionBar';
 
 type AddToCartViewProps = {
   projectId: string;
@@ -113,7 +112,7 @@ export function AddToCartView({ projectId }: AddToCartViewProps) {
   }
 
   return (
-    <section className="mx-auto max-w-lg pb-36 md:pb-0">
+    <section className="mx-auto max-w-lg pb-8 md:pb-0">
       <Link
         href="/marketplace"
         className="mb-6 inline-flex items-center gap-2 text-sm text-terminal-muted hover:text-terminal-text"
