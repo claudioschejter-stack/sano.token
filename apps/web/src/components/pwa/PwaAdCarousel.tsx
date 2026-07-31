@@ -118,11 +118,13 @@ export function PwaAdCarousel({
                 ) : null}
               </div>
             ) : (
-              <PwaPropertyCard
-                listing={listing}
-                variant="feed"
-                onSelect={onSelect}
-              />
+              <button
+                type="button"
+                className="block w-full text-left"
+                onClick={() => onSelect?.(listing)}
+              >
+                <PwaPropertyCard listing={listing} variant="feed" />
+              </button>
             )}
           </div>
         ))}

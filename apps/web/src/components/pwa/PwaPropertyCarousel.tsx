@@ -106,7 +106,15 @@ export function PwaPropertyCarousel({
         </div>
         <div className="space-y-4">
           {listings.map((listing) => (
-            <PwaPropertyCard key={listing.id} listing={listing} variant="feed" />
+            <Link
+              key={listing.id}
+              href={`/marketplace/${listing.id}/agregar`}
+              className="block select-none rounded-3xl [-webkit-touch-callout:none] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ outlineColor: MP_ACCENT }}
+              prefetch={false}
+            >
+              <PwaPropertyCard listing={listing} variant="feed" showAvailableOfTotal />
+            </Link>
           ))}
         </div>
       </div>

@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 import { useEffect, useMemo, useState } from 'react';
-import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
 import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import type { LaunchContracts, LaunchMediaItem } from '../../lib/admin/launchTypes';
@@ -249,10 +248,7 @@ export function PropertyCard({
                   />
                 </div>
                 <p className={`mt-1 min-h-4 text-xs ${mutedText}`}>
-                  {formatMessage(t.marketplace.tokensAvailableOfTotal, {
-                    available: availableTokens.toLocaleString(),
-                    total: totalTokens.toLocaleString()
-                  })}
+                  {availableTokens.toLocaleString()} / {totalTokens.toLocaleString()} {t.marketplace.tokensAvailable}
                 </p>
               </>
             ) : (
