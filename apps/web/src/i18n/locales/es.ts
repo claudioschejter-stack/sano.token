@@ -2977,6 +2977,7 @@ export const es = {
     cryptoWalletAutoSettling: 'Pagando desde tu wallet Sanova y acreditando tokens…',
     cryptoWalletPayNowButton: 'Pagar {amount} USDC ahora',
     cryptoWalletPayFromPrivyButton: 'Pagar {amount} USDC desde mi wallet Sanova',
+    cryptoWalletPayButton: 'Pagar',
     cryptoWalletPrivyTitle: 'Pago automático (recomendado)',
     cryptoWalletPrivyHint:
       'Usá el USDC de tu wallet Sanova (Privy) en Base. No abre MetaMask ni otras apps: firmás acá y se acreditan los tokens RWA.',

@@ -338,7 +338,12 @@ export function CryptoWalletPanel({
             </span>
           </div>
 
-          {hasEnoughPrivy && mode === 'purchase' ? (
+          {privyBalanceUsdc == null ? (
+            <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-3 text-[11px] text-terminal-muted">
+              <Loader2 size={12} className="animate-spin text-terminal-primary" />
+              {sc.cryptoWalletPrivyPreparing}
+            </div>
+          ) : hasEnoughPrivy ? (
             <button
               type="button"
               onClick={() => void handlePayWithPrivy()}
@@ -346,9 +351,7 @@ export function CryptoWalletPanel({
               className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3.5 text-sm font-bold text-white shadow-lg disabled:opacity-60"
             >
               {privyPaying ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
-              {privyPaying
-                ? sc.cryptoWalletPrivyPaying
-                : sc.cryptoWalletPayFromPrivyButton.replace('{amount}', amountUsdc.toFixed(2))}
+              {privyPaying ? sc.cryptoWalletPrivyPaying : sc.cryptoWalletPayButton}
             </button>
           ) : (
             <>

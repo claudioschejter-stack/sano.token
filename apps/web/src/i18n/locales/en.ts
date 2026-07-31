@@ -2933,6 +2933,7 @@ export const en = {
     cryptoWalletAutoSettling: "Paying from your Sanova wallet and crediting tokens…",
     cryptoWalletPayNowButton: "Pay {amount} USDC now",
     cryptoWalletPayFromPrivyButton: "Pay {amount} USDC from my Sanova wallet",
+    cryptoWalletPayButton: "Pay",
     cryptoWalletPrivyTitle: "Automatic payment (recommended)",
     cryptoWalletPrivyHint:
       "Use USDC in your Sanova (Privy) wallet on Base. No MetaMask/app chooser — you sign here and RWA tokens are credited.",
