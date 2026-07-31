@@ -1,0 +1,24 @@
+name: Supply Morpho UV3 from treasury
+
+# Moves USDC from the Sanova Safe treasury into the UV3 Morpho Blue market
+# via the Morpho liquidity wallet. Hits the *.vercel.app alias (not the
+# Cloudflare-proxied custom domain) so the bearer token is evaluated by the app.
+on:
+  workflow_dispatch:
+    inputs:
+      amount_usdc:
+        description: 'USDC amount to move from treasury into UV3 Morpho'
+        required: false
+        default: '20'
+
+jobs:
+  supply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger supply-morpho-uv3-from-treasury
+        run: |
+          set -euo pipefail
+          AMOUNT="${{ github.event.inputs.amount_usdc || '20' }}"
+          curl --fail --show-error --silent \
+            -H "Authorization: Bearer ${{ secrets.CRON_EXTERNAL_SECRET }}" \
+            "https://sano-token-web.vercel.app/api/cron/supply-morpho-uv3-from-treasury?amountUsdc=${AMOUNT}"
