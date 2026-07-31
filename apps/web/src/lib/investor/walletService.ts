@@ -2,6 +2,7 @@ import { prisma } from '@sanova/database';
 import { getAddress, isAddress } from 'ethers';
 import { assertWalletAvailableForUser } from './linkedWalletPolicy';
 import { ensureInvestorForUser } from './investorService';
+import { isPendingInvestorWallet } from './provisionInvestorProfile';
 import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
 import { sanitizeWalletProvider } from './walletDisplayName';
 import { recordLinkedCryptoWallet } from './linkedWalletsService';
@@ -13,6 +14,15 @@ function normalizeWalletAddress(walletAddress: string): string {
   }
   return getAddress(trimmed).toLowerCase();
 }
+
+export type LinkUserWalletOptions = {
+  /**
+   * When false (default), refuse to replace an already-configured non-pending
+   * wallet with a different address. Checkout must not silently rotate the
+   * investor receive address from a Privy client session drift.
+   */
+  allowReplace?: boolean;
+};
 
 const PLATFORM_WALLET_ROLES = new Set([
   'ADMIN',
@@ -26,10 +36,12 @@ const PLATFORM_WALLET_ROLES = new Set([
 export async function linkUserWallet(
   userId: string,
   walletAddress: string,
-  walletProvider?: string | null
+  walletProvider?: string | null,
+  options?: LinkUserWalletOptions
 ) {
   const normalized = normalizeWalletAddress(walletAddress);
   const providerLabel = sanitizeWalletProvider(walletProvider) ?? 'Coinbase Wallet';
+  const allowReplace = options?.allowReplace === true;
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -44,10 +56,12 @@ export async function linkUserWallet(
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
       walletAddress: true,
+      walletProvider: true,
       investorId: true,
       investorAccessEnabled: true,
       systemRole: true,
-      totpEnabled: true
+      totpEnabled: true,
+      investor: { select: { walletAddress: true } }
     }
   });
 
@@ -65,6 +79,33 @@ export async function linkUserWallet(
 
   if (!user.emailVerifiedAt) {
     throw new Error('EMAIL_VERIFICATION_REQUIRED');
+  }
+
+  const existingCandidates = [user.walletAddress, user.investor?.walletAddress];
+  let existing: string | null = null;
+  for (const candidate of existingCandidates) {
+    const trimmed = candidate?.trim();
+    if (trimmed && !isPendingInvestorWallet(trimmed) && isAddress(trimmed)) {
+      existing = getAddress(trimmed).toLowerCase();
+      break;
+    }
+  }
+
+  if (existing && existing === normalized) {
+    try {
+      await recordLinkedCryptoWallet({ userId, address: normalized, provider: providerLabel });
+    } catch (error) {
+      console.error('[linkUserWallet] recordLinkedCryptoWallet failed', error);
+    }
+    return {
+      walletAddress: existing,
+      walletProvider: user.walletProvider?.trim() || providerLabel,
+      unchanged: true as const
+    };
+  }
+
+  if (existing && existing !== normalized && !allowReplace) {
+    throw new Error('WALLET_ALREADY_CONFIGURED');
   }
 
   await assertWalletAvailableForUser(userId, normalized);

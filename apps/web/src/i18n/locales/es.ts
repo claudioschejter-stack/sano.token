@@ -3000,6 +3000,8 @@ export const es = {
     cryptoWalletPrivyUnavailable: 'Wallet Sanova no disponible. Probá de nuevo o usá “Otra wallet”.',
     cryptoWalletInsufficientPrivy:
       'Todavía no hay USDC suficiente en tu wallet Sanova. Transferí USDC Base a la dirección de arriba (desde Ripio) y esperá: el pago se completa solo.',
+    cryptoWalletMismatch:
+      'Tu sesión de firma no coincide con la cuenta Sanova de destino. Recargá la página o contactá soporte antes de enviar más USDC.',
     cryptoWalletPrivyPayError: 'No se pudo pagar con Privy: {error}',
     cryptoWalletOtherWalletTitle: 'Tesorería / wallet externa (avanzado, no recomendado)',
     cryptoWalletOtherWalletHint:

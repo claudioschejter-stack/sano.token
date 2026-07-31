@@ -1,6 +1,7 @@
 import { prisma, Prisma } from '@sanova/database';
 import { ethers } from 'ethers';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
+import { ensureSanovaReceiveWalletForUser } from '../investor/sanovaReceiveWallet';
 import { readWalletUsdcBalances } from '../portfolio/onChainUsdcReader';
 import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
 import { getStablecoinNetwork } from './stablecoinNetworks';
@@ -232,6 +233,14 @@ async function listRecentPrivyInbounds(userId: string): Promise<PrivyInboundReco
  * Attribution is unambiguous: each investor has their own receive address.
  */
 export async function scanPrivyInboundForUser(userId: string): Promise<PrivyInboundScanResult> {
+  // Reconcile canonical receive address before scanning so checkout copy/paste
+  // and balance/watch never diverge across Privy client vs server wallets.
+  try {
+    await ensureSanovaReceiveWalletForUser(userId);
+  } catch (error) {
+    console.error('[privyInboundUsdcService] receive wallet reconcile failed', error);
+  }
+
   const address = await getLinkedWalletForUser(userId);
   const pendingPurchase = await findPendingUsdcCartPurchase(userId);
 

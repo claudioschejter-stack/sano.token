@@ -18,17 +18,66 @@ import type { PrivyLinkedAccount, PrivyUserRecord } from './privyUserApi';
  * to the session instead of creating a second one.
  */
 
-function findEthereumEmbeddedWalletAddress(linkedAccounts: PrivyLinkedAccount[] = []): string | null {
-  for (const account of linkedAccounts) {
-    if (account.type !== 'wallet' || !account.address) {
-      continue;
-    }
-    if (account.chain_type && account.chain_type !== 'ethereum') {
-      continue;
-    }
-    return account.address.trim().toLowerCase();
+function isEthereumWalletAccount(account: PrivyLinkedAccount): boolean {
+  if (account.type !== 'wallet' || !account.address?.trim()) {
+    return false;
   }
-  return null;
+  if (account.chain_type && account.chain_type !== 'ethereum') {
+    return false;
+  }
+  return true;
+}
+
+function findEthereumEmbeddedWalletAddress(linkedAccounts: PrivyLinkedAccount[] = []): string | null {
+  const wallets = listEthereumWalletAddresses(linkedAccounts);
+  return wallets[0] ?? null;
+}
+
+/** All ethereum wallet addresses on a Privy user (embedded first). */
+export function listEthereumWalletAddresses(linkedAccounts: PrivyLinkedAccount[] = []): string[] {
+  const embedded: string[] = [];
+  const other: string[] = [];
+
+  for (const account of linkedAccounts) {
+    if (!isEthereumWalletAccount(account)) {
+      continue;
+    }
+    const address = account.address!.trim().toLowerCase();
+    const isEmbedded =
+      account.wallet_client_type === 'privy' ||
+      account.connector_type === 'embedded' ||
+      !account.wallet_client_type;
+    if (isEmbedded) {
+      embedded.push(address);
+    } else {
+      other.push(address);
+    }
+  }
+
+  return [...new Set([...embedded, ...other])];
+}
+
+/** Lookup every ethereum wallet Privy has for this email (no create). */
+export async function listPrivyEthereumWalletAddressesForEmail(rawEmail: string): Promise<string[]> {
+  if (!isPrivyEnabled()) {
+    return [];
+  }
+
+  const email = normalizeEmail(rawEmail);
+  if (!email) {
+    return [];
+  }
+
+  try {
+    const existingUser = await lookupPrivyUserByEmail(email);
+    if (!existingUser) {
+      return [];
+    }
+    return listEthereumWalletAddresses(existingUser.linked_accounts);
+  } catch (error) {
+    console.error('[privyWalletProvisioning] listPrivyEthereumWalletAddressesForEmail failed', error);
+    return [];
+  }
 }
 
 async function lookupPrivyUserByEmail(email: string): Promise<PrivyUserRecord | null> {
