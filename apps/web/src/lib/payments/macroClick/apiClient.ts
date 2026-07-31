@@ -53,29 +53,42 @@ export async function getMacroClickSessionToken(force = false): Promise<string> 
     cache: 'no-store'
   });
 
-  const body = await parseJson<{ token?: string; access_token?: string; jwt?: string; expiresIn?: number }>(
+  const body = await parseJson<string | { token?: string; access_token?: string; jwt?: string; expiresIn?: number }>(
     res
   );
   if (!res.ok) {
     throw new Error(`MACRO_CLICK_SESSION_FAILED:${res.status}:${body.message ?? ''}`);
   }
 
-  const token =
-    body.data?.token ??
-    body.data?.access_token ??
-    body.data?.jwt ??
-    (typeof (body as { token?: string }).token === 'string' ? (body as { token: string }).token : null);
-
+  const token = extractMacroClickSessionToken(body);
   if (!token) {
     throw new Error('MACRO_CLICK_SESSION_TOKEN_MISSING');
   }
 
-  const ttlSec = Number(body.data?.expiresIn ?? 50 * 60);
+  const dataObj =
+    body.data && typeof body.data === 'object' ? (body.data as { expiresIn?: number }) : null;
+  const ttlSec = Number(dataObj?.expiresIn ?? 50 * 60);
   cachedSession = {
     token,
     expiresAtMs: Date.now() + (Number.isFinite(ttlSec) ? ttlSec : 3000) * 1000
   };
   return token;
+}
+
+/** Sandbox/prod `/sesion` may return JWT in `data` as a string, or nested under token fields. */
+export function extractMacroClickSessionToken(
+  body: MacroClickApiResponse<string | { token?: string; access_token?: string; jwt?: string }>
+): string | null {
+  if (typeof body.data === 'string' && body.data.split('.').length >= 3) {
+    return body.data;
+  }
+  if (body.data && typeof body.data === 'object') {
+    const nested =
+      body.data.token ?? body.data.access_token ?? body.data.jwt ?? null;
+    if (typeof nested === 'string' && nested.trim()) return nested;
+  }
+  const topLevel = (body as { token?: string }).token;
+  return typeof topLevel === 'string' && topLevel.trim() ? topLevel : null;
 }
 
 async function authorizedFetch<T>(
