@@ -8,6 +8,7 @@ import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
 import { usePrivyTreasuryPayment } from '../../../hooks/usePrivyTreasuryPayment';
 import { usePrivyEmbeddedWallet } from '../../../hooks/usePrivyEmbeddedWallet';
 import { usePrivyWalletLink } from '../../../hooks/usePrivyWalletLink';
+import { resolveDisplayReceiveAddress } from '../../../lib/investor/canonicalReceiveAddress';
 import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 import type { EnsureCheckoutReference } from './SimplifiedCheckout';
@@ -70,10 +71,12 @@ export function CryptoWalletPanel({
   onFundedRef.current = onFunded;
 
   const amountUsdc = amountUsd;
-  // Canonical receive address is ALWAYS the server-linked Sanova wallet.
-  // Never prefer the Privy client SDK address — that drift showed investors a
-  // different copy/paste destination than the one we watch for balance/pay.
-  const receiveAddress = normalizeAddress(serverAddress);
+  const receiveAddress = normalizeAddress(
+    resolveDisplayReceiveAddress({
+      serverLinkedAddress: serverAddress,
+      privyClientAddress: null
+    })
+  );
 
   const refreshPrivyBalance = useCallback(async (wallet?: string | null) => {
     const addr = wallet?.trim();

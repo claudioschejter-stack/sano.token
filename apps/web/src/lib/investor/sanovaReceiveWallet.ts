@@ -138,6 +138,14 @@ export async function ensureSanovaReceiveWalletForUser(userId: string): Promise<
   }
 
   if (!linked || linked !== chosen) {
+    if (linked && linked !== chosen) {
+      console.warn('[sanovaReceiveWallet] reconciling receive address drift', {
+        userId,
+        from: linked,
+        to: chosen,
+        source: linked ? 'privy_reconcile' : 'privy_provision'
+      });
+    }
     await linkUserWallet(userId, chosen, 'Privy Wallet', { allowReplace: true });
     reconciled = Boolean(linked && linked !== chosen);
     void autoAllowlistInvestorWallet(userId);
