@@ -19,9 +19,12 @@ export async function GET() {
 
   try {
     const result = await scanPrivyInboundForUser(ctx.userId);
+    // `address` is always the canonical server-linked receive wallet after
+    // reconcile — clients must not substitute a Privy SDK address for copy/QR.
     return NextResponse.json({
       ok: true,
       address: result.address,
+      canonical: true,
       balanceUsdc: result.balanceUsdc,
       newInbounds: result.newInbounds,
       pendingPurchase: result.pendingPurchase,

@@ -36,6 +36,10 @@ vi.mock('../investor/linkedWalletPolicy', () => ({
   getLinkedWalletForUser: (...args: unknown[]) => mockGetLinkedWallet(...args)
 }));
 
+vi.mock('../investor/sanovaReceiveWallet', () => ({
+  ensureSanovaReceiveWalletForUser: vi.fn().mockResolvedValue(null)
+}));
+
 vi.mock('../portfolio/onChainUsdcReader', () => ({
   readWalletUsdcBalances: vi.fn().mockResolvedValue([{ amountUsdc: 20 }])
 }));

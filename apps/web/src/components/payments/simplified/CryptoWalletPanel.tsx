@@ -8,6 +8,7 @@ import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
 import { usePrivyTreasuryPayment } from '../../../hooks/usePrivyTreasuryPayment';
 import { usePrivyEmbeddedWallet } from '../../../hooks/usePrivyEmbeddedWallet';
 import { usePrivyWalletLink } from '../../../hooks/usePrivyWalletLink';
+import { resolveDisplayReceiveAddress } from '../../../lib/investor/canonicalReceiveAddress';
 import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 import type { EnsureCheckoutReference } from './SimplifiedCheckout';
@@ -47,7 +48,7 @@ export function CryptoWalletPanel({
   const sc = t.simplifiedCheckout;
   const { isDesktop } = useDeviceDetection();
   const { payToTreasury, enabled: privyEnabled } = usePrivyTreasuryPayment();
-  const { address: privyAddress, ensureReady, authenticated } = usePrivyEmbeddedWallet();
+  const { ensureReady, authenticated } = usePrivyEmbeddedWallet();
   const { linkPrivyWallet } = usePrivyWalletLink();
 
   const [copiedAddr, setCopiedAddr] = useState(false);
@@ -70,8 +71,12 @@ export function CryptoWalletPanel({
   onFundedRef.current = onFunded;
 
   const amountUsdc = amountUsd;
-  const receiveAddress =
-    normalizeAddress(privyAddress) || normalizeAddress(serverAddress);
+  const receiveAddress = normalizeAddress(
+    resolveDisplayReceiveAddress({
+      serverLinkedAddress: serverAddress,
+      privyClientAddress: null
+    })
+  );
 
   const refreshPrivyBalance = useCallback(async (wallet?: string | null) => {
     const addr = wallet?.trim();
@@ -200,26 +205,6 @@ export function CryptoWalletPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensureReference, mode]);
 
-  // Optional: if Privy client already has a session, link quietly. Never call
-  // ensureReady/login here — that pops a second email login over Sanova auth.
-  useEffect(() => {
-    if (!authenticated || !privyAddress) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        if (cancelled) return;
-        setServerAddress((prev) => prev ?? privyAddress);
-        await linkPrivyWallet().catch(() => undefined);
-        await refreshPrivyBalance(privyAddress);
-      } catch {
-        /* optional bootstrap */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [authenticated, linkPrivyWallet, privyAddress, refreshPrivyBalance]);
-
   const hasEnoughPrivy =
     privyBalanceUsdc != null && Number.isFinite(privyBalanceUsdc) && privyBalanceUsdc + 1e-9 >= amountUsdc;
 
@@ -230,8 +215,12 @@ export function CryptoWalletPanel({
     }
 
     const payer = await ensureReady();
+    const canonical = normalizeAddress(serverAddress);
+    if (canonical && payer.toLowerCase() !== canonical.toLowerCase()) {
+      throw new Error('WALLET_MISMATCH');
+    }
     await linkPrivyWallet().catch(() => undefined);
-    const balance = await refreshPrivyBalance(payer);
+    const balance = await refreshPrivyBalance(canonical ?? payer);
     if (balance == null || balance + 1e-9 < amountUsdc) {
       throw new Error('INSUFFICIENT_PRIVY_USDC');
     }
@@ -279,7 +268,8 @@ export function CryptoWalletPanel({
     mode,
     payToTreasury,
     privyEnabled,
-    refreshPrivyBalance
+    refreshPrivyBalance,
+    serverAddress
   ]);
 
   const handlePayWithPrivy = async () => {
@@ -289,8 +279,11 @@ export function CryptoWalletPanel({
     try {
       if (mode === 'deposit') {
         const payer = await ensureReady();
-        await linkPrivyWallet().catch(() => undefined);
-        const balance = await refreshPrivyBalance(payer);
+        const canonical = normalizeAddress(serverAddress);
+        if (canonical && payer.toLowerCase() !== canonical.toLowerCase()) {
+          throw new Error('WALLET_MISMATCH');
+        }
+        const balance = await refreshPrivyBalance(canonical ?? payer);
         if (balance != null && balance + 1e-9 >= amountUsdc) {
           setConfirmed(true);
           setAutoSettleStatus('done');
@@ -307,6 +300,8 @@ export function CryptoWalletPanel({
       setAutoSettleStatus(hasEnoughPrivy ? 'idle' : 'waiting_funds');
       if (message === 'PRIVY_NOT_CONFIGURED') {
         setPrivyError(sc.cryptoWalletPrivyUnavailable);
+      } else if (message === 'WALLET_MISMATCH') {
+        setPrivyError(sc.cryptoWalletMismatch);
       } else if (message.includes('insufficient') || message.includes('INSUFFICIENT')) {
         setPrivyError(sc.cryptoWalletInsufficientPrivy);
       } else {
@@ -379,7 +374,11 @@ export function CryptoWalletPanel({
             autoSettleStarted.current = false;
             setAutoSettleStatus('waiting_funds');
             const message = error instanceof Error ? error.message : 'PRIVY_PAY_FAILED';
-            setPrivyError(sc.cryptoWalletPrivyPayError.replace('{error}', message));
+            if (message === 'WALLET_MISMATCH') {
+              setPrivyError(sc.cryptoWalletMismatch);
+            } else {
+              setPrivyError(sc.cryptoWalletPrivyPayError.replace('{error}', message));
+            }
           } finally {
             setPrivyPaying(false);
           }

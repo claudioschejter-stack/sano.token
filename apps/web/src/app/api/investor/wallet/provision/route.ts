@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
-import { Prisma, prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from '../../../../../lib/onboarding/requireAuthenticatedSession';
-import { isPendingInvestorWallet } from '../../../../../lib/investor/provisionInvestorProfile';
-import { linkUserWallet } from '../../../../../lib/investor/walletService';
+import { ensureSanovaReceiveWalletForUser } from '../../../../../lib/investor/sanovaReceiveWallet';
 import { isPrivyEnabled } from '../../../../../lib/privy/config';
-import { pregenerateOrFetchPrivyWallet } from '../../../../../lib/privy/privyWalletProvisioning';
-import { autoAllowlistInvestorWallet } from '../../../../../lib/blockchain/autoAllowlistInvestorWallet';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,15 +9,8 @@ export const dynamic = 'force-dynamic';
  * Self-service embedded wallet provisioning — entirely server-side (Privy
  * REST API + PRIVY_APP_SECRET), no Privy client SDK login involved.
  *
- * Why this exists instead of relying on the client-side Privy SDK: without
- * Custom/JWT-based auth configured on Privy (a paid Scale-plan feature we
- * don't use), calling `usePrivy().login()` from the browser pops Privy's own
- * hosted "log in with email" modal — a confusing second login the investor
- * never asked for, on top of the one they already completed with Sanova.
- * Since the wallet is already pre-generated server-side on KYC approval
- * (see `provisionInvestorProfileOnKycApproval`), this endpoint just re-runs
- * that same idempotent lookup/creation for the current session and links it
- * — the browser never talks to Privy directly during onboarding.
+ * Returns the canonical Sanova USDC receive address for the investor, after
+ * reconciling Privy email wallets vs the linked server wallet.
  */
 export async function POST() {
   const ctx = await requireAuthenticatedSession();
@@ -34,59 +23,19 @@ export async function POST() {
     return NextResponse.json({ error: 'PRIVY_NOT_CONFIGURED' }, { status: 503 });
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: ctx.userId },
-    select: {
-      email: true,
-      kycStatus: true,
-      emailVerifiedAt: true,
-      walletAddress: true,
-      walletProvider: true,
-      investor: { select: { walletAddress: true } }
-    }
-  });
-
-  if (!user) {
-    return NextResponse.json({ error: 'USER_NOT_FOUND' }, { status: 404 });
-  }
-
-  if (user.kycStatus !== 'APPROVED') {
-    return NextResponse.json({ error: 'KYC_NOT_APPROVED' }, { status: 400 });
-  }
-
-  if (!user.emailVerifiedAt) {
-    return NextResponse.json({ error: 'EMAIL_VERIFICATION_REQUIRED' }, { status: 403 });
-  }
-
-  // Fast path: already linked (common in checkout). Avoid a Privy round-trip
-  // just to re-display the receive address for Ripio → Privy funding.
-  const existing =
-    user.walletAddress?.trim() || user.investor?.walletAddress?.trim() || null;
-  if (existing && !isPendingInvestorWallet(existing)) {
-    void autoAllowlistInvestorWallet(ctx.userId);
-    return NextResponse.json({
-      walletAddress: existing.toLowerCase(),
-      walletProvider: user.walletProvider?.trim() || 'Privy Wallet'
-    });
-  }
-
-  const address = await pregenerateOrFetchPrivyWallet(user.email);
-
-  if (!address) {
-    return NextResponse.json({ error: 'PRIVY_PROVISION_FAILED' }, { status: 503 });
-  }
-
   try {
-    const result = await linkUserWallet(ctx.userId, address, 'Privy Wallet');
-
-    void autoAllowlistInvestorWallet(ctx.userId);
-
-    return NextResponse.json(result);
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return NextResponse.json({ error: 'WALLET_ALREADY_LINKED' }, { status: 400 });
+    const result = await ensureSanovaReceiveWalletForUser(ctx.userId);
+    if (!result) {
+      return NextResponse.json({ error: 'PRIVY_PROVISION_FAILED' }, { status: 503 });
     }
 
+    return NextResponse.json({
+      walletAddress: result.walletAddress,
+      walletProvider: result.walletProvider,
+      source: result.source,
+      reconciled: result.reconciled
+    });
+  } catch (error) {
     const message = error instanceof Error ? error.message : 'UNKNOWN';
 
     if (message === 'DOCUMENT_ALREADY_REGISTERED') {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma, prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from '../../../../lib/onboarding/requireAuthenticatedSession';
+import { getLinkedWalletForUser } from '../../../../lib/investor/linkedWalletPolicy';
 import { linkUserWallet } from '../../../../lib/investor/walletService';
 import { verifyWalletLinkSignature } from '../../../../lib/investor/walletLinkProof';
 import { assertWalletLinkChainId, WALLET_LINK_CHAIN_ID } from '../../../../lib/investor/walletLinkChain';
@@ -58,16 +59,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'EMAIL_VERIFICATION_REQUIRED' }, { status: 403 });
     }
 
-    const result = await linkUserWallet(
-      ctx.userId,
-      body.walletAddress.trim(),
-      body.walletProvider ?? 'Privy Wallet'
-    );
+    try {
+      const result = await linkUserWallet(
+        ctx.userId,
+        body.walletAddress.trim(),
+        body.walletProvider ?? 'Privy Wallet'
+      );
 
-    // Auto-whitelist on all active token contracts if KYC already approved
-    void autoAllowlistInvestorWallet(ctx.userId);
+      // Auto-whitelist on all active token contracts if KYC already approved
+      void autoAllowlistInvestorWallet(ctx.userId);
 
-    return NextResponse.json(result);
+      return NextResponse.json(result);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'UNKNOWN';
+      // Client Privy session drifted from the canonical server receive wallet —
+      // keep the configured destination so Ripio copy/paste stays stable.
+      if (message === 'WALLET_ALREADY_CONFIGURED') {
+        const existing = await getLinkedWalletForUser(ctx.userId);
+        if (existing) {
+          return NextResponse.json({
+            walletAddress: existing,
+            walletProvider: 'Privy Wallet',
+            unchanged: true,
+            warning: 'WALLET_ALREADY_CONFIGURED'
+          });
+        }
+      }
+      throw error;
+    }
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
       return NextResponse.json({ error: 'WALLET_ALREADY_LINKED' }, { status: 400 });
@@ -89,6 +108,7 @@ export async function POST(request: Request) {
       message === 'ROLE_NOT_ALLOWED' ||
       message === 'INVALID_WALLET' ||
       message === 'WALLET_ALREADY_LINKED' ||
+      message === 'WALLET_ALREADY_CONFIGURED' ||
       message === 'PRIVY_TOKEN_INVALID' ||
       message === 'PRIVY_TOKEN_REQUIRED' ||
       message === 'PRIVY_USER_LOOKUP_FAILED' ||

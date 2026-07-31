@@ -2956,6 +2956,8 @@ export const en = {
     cryptoWalletPrivyUnavailable: "Sanova wallet unavailable. Try again or use “Other wallet”.",
     cryptoWalletInsufficientPrivy:
       "Not enough USDC in your Sanova wallet yet. Send USDC on Base to the address above (from Ripio) and wait — payment completes automatically.",
+    cryptoWalletMismatch:
+      "Your signing session does not match the Sanova destination account. Reload the page or contact support before sending more USDC.",
     cryptoWalletPrivyPayError: "Could not pay with Privy: {error}",
     cryptoWalletOtherWalletTitle: "Treasury / external wallet (advanced, not recommended)",
     cryptoWalletOtherWalletHint:

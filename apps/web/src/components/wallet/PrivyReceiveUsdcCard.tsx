@@ -4,8 +4,6 @@ import { CheckCircle2, Copy, Loader2, ShoppingBag, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../i18n/LocaleProvider';
-import { usePrivyEmbeddedWallet } from '../../hooks/usePrivyEmbeddedWallet';
-import { usePrivyWalletLink } from '../../hooks/usePrivyWalletLink';
 
 type WatchPayload = {
   address?: string | null;
@@ -15,13 +13,15 @@ type WatchPayload = {
   pendingPurchase?: { batchId: string; amountUsd: number } | null;
 };
 
+/**
+ * Mi Cartera receive card — always uses the server-canonical Sanova address
+ * from `/api/wallet/privy-inbound/watch` (never the Privy browser SDK address).
+ */
 export function PrivyReceiveUsdcCard() {
   const t = useTranslation();
   const w = t.platformWallet;
-  const { address, ensureReady, authenticated } = usePrivyEmbeddedWallet();
-  const { linkPrivyWallet } = usePrivyWalletLink();
 
-  const [receiveAddress, setReceiveAddress] = useState<string | null>(address ?? null);
+  const [receiveAddress, setReceiveAddress] = useState<string | null>(null);
   const [balanceUsdc, setBalanceUsdc] = useState<number | null>(null);
   const [detected, setDetected] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -30,34 +30,20 @@ export function PrivyReceiveUsdcCard() {
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        if (authenticated) {
-          const ready = address ?? (await ensureReady());
-          if (!cancelled && ready) {
-            setReceiveAddress(ready);
-            await linkPrivyWallet().catch(() => undefined);
-          }
-        }
-      } catch {
-        /* optional */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [address, authenticated, ensureReady, linkPrivyWallet]);
-
-  useEffect(() => {
-    let cancelled = false;
 
     const tick = async () => {
       try {
+        // Ensure canonical wallet is provisioned/reconciled before reading watch.
+        await fetch('/api/investor/wallet/provision', {
+          method: 'POST',
+          credentials: 'same-origin'
+        }).catch(() => undefined);
+
         const res = await fetch('/api/wallet/privy-inbound/watch', { cache: 'no-store' });
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as WatchPayload;
         if (typeof data.address === 'string' && data.address.trim()) {
-          setReceiveAddress(data.address);
+          setReceiveAddress(data.address.trim());
         }
         if (typeof data.balanceUsdc === 'number') {
           setBalanceUsdc(data.balanceUsdc);
