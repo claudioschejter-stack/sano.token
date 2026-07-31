@@ -73,6 +73,37 @@ export function prepareMorphoCreateMarket(params: MorphoMarketParams) {
   };
 }
 
+/** True when value is a 32-byte hex Morpho market id. */
+export function isMorphoMarketId(value?: string | null): value is string {
+  return Boolean(value && /^0x[0-9a-fA-F]{64}$/.test(value.trim()));
+}
+
+/**
+ * Prefer the market id persisted at Morpho registration (`externalId`).
+ * Recomputing from defaults can miss the seeded market when LLTV/IRM env drifts.
+ */
+export function resolveMorphoMarketId(
+  morphoTarget: { externalId?: string | null } | null | undefined,
+  params: MorphoMarketParams
+): string {
+  const externalId = morphoTarget?.externalId?.trim();
+  if (isMorphoMarketId(externalId)) {
+    return externalId;
+  }
+  return morphoMarketId(params);
+}
+
+export function resolveMorphoLltvBps(chainDefaultBps: number): number {
+  const envRaw = process.env.MORPHO_DEFAULT_LLTV_BPS?.trim();
+  if (envRaw) {
+    const parsed = Number(envRaw);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return Number.isFinite(chainDefaultBps) && chainDefaultBps > 0 ? chainDefaultBps : 6250;
+}
+
 export function buildDefaultMorphoMarketParams(
   vaultAddress: string,
   oracleAddress?: string | null
@@ -84,10 +115,7 @@ export function buildDefaultMorphoMarketParams(
 
   const chainConfig = getLendingChainConfig();
   const { usdc, morphoIrm } = chainConfig;
-  const lltvRaw = Number(
-    process.env.MORPHO_DEFAULT_LLTV_BPS ?? chainConfig.morphoDefaultLltvBps ?? '6250'
-  );
-  const lltvBps = Number.isFinite(lltvRaw) ? lltvRaw : 6000;
+  const lltvBps = resolveMorphoLltvBps(chainConfig.morphoDefaultLltvBps);
 
   return {
     loanToken: usdc,
