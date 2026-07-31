@@ -1,15 +1,12 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { CheckoutBestRoutes } from '../../../lib/payments/checkoutBestRouteService';
 import { useCheckoutSettlementStatus } from '../../../hooks/useCheckoutSettlementStatus';
 import type { SimplifiedMethod } from './SimplifiedMethodSelector';
-import {
-  getCheapestConfiguredMethod,
-  SimplifiedMethodSelector
-} from './SimplifiedMethodSelector';
+import { SimplifiedMethodSelector } from './SimplifiedMethodSelector';
 import { FiatWalletPanel } from './FiatWalletPanel';
 import { CryptoWalletPanel } from './CryptoWalletPanel';
 import { CardPaymentPanel } from './CardPaymentPanel';
@@ -101,7 +98,7 @@ export function SimplifiedCheckout({
     try {
       const data = await fetchRoutes({ amountUsd, referenceId, country, investorName });
       setRoutes(data);
-      setSelectedMethod((current) => current ?? getCheapestConfiguredMethod(data));
+      // Do not auto-open a method — user taps a button to enter that payment submenu.
     } catch (err) {
       const msg = err instanceof Error ? err.message : sc.errorRoutes;
       setFetchError(msg);
@@ -175,72 +172,85 @@ export function SimplifiedCheckout({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <SimplifiedMethodSelector
-        routes={routes}
-        selected={selectedMethod}
-        onSelect={setSelectedMethod}
-      />
-
-      {paymentDetected && phaseLabel ? (
-        <div className="rounded-xl border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
-          <div className="flex items-center gap-2">
-            {!isComplete ? <Loader2 className="h-4 w-4 animate-spin text-terminal-primary" /> : null}
-            <span>{phaseLabel}</span>
-          </div>
-        </div>
-      ) : null}
-
-      {selectedMethod === 'fiat_wallet' && (
-        <FiatWalletPanel
-          fiatWallet={routes.fiatWallet}
-          referenceId={activeReferenceId ?? referenceId}
-          country={routes.country}
-          onFunded={() => handlePaymentSignal(activeReferenceId)}
-          amountUsd={amountUsd}
-          ensureReference={wrapEnsureReference}
+      {!selectedMethod ? (
+        <SimplifiedMethodSelector
+          routes={routes}
+          selected={null}
+          onSelect={setSelectedMethod}
         />
-      )}
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={() => setSelectedMethod(null)}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-terminal-primary"
+          >
+            <ChevronLeft size={14} />
+            {sc.backToMethods}
+          </button>
 
-      {selectedMethod === 'crypto_wallet' && (
-        <CryptoWalletPanel
-          cryptoWallet={routes.cryptoWallet}
-          treasuryAddress={routes.treasuryAddress}
-          country={routes.country}
-          amountUsd={amountUsd}
-          mode={mode}
-          onFunded={() => handlePaymentSignal(activeReferenceId)}
-          ensureReference={wrapEnsureReference}
-        />
-      )}
+          {paymentDetected && phaseLabel ? (
+            <div className="rounded-xl border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
+              <div className="flex items-center gap-2">
+                {!isComplete ? <Loader2 className="h-4 w-4 animate-spin text-terminal-primary" /> : null}
+                <span>{phaseLabel}</span>
+              </div>
+            </div>
+          ) : null}
 
-      {selectedMethod === 'ripio' && (
-        <RipioCheckoutPanel
-          amountUsd={amountUsd}
-          ensureReference={wrapEnsureReference}
-          onFunded={() => handlePaymentSignal(activeReferenceId)}
-        />
-      )}
+          {selectedMethod === 'fiat_wallet' ? (
+            <FiatWalletPanel
+              fiatWallet={routes.fiatWallet}
+              referenceId={activeReferenceId ?? referenceId}
+              country={routes.country}
+              onFunded={() => handlePaymentSignal(activeReferenceId)}
+              amountUsd={amountUsd}
+              ensureReference={wrapEnsureReference}
+            />
+          ) : null}
 
-      {selectedMethod === 'card' && (
-        <CardPaymentPanel
-          card={routes.card}
-          referenceId={activeReferenceId ?? referenceId}
-          country={routes.country}
-          onFunded={() => handlePaymentSignal(activeReferenceId ?? referenceId)}
-          onError={onError}
-          amountUsd={amountUsd}
-        />
-      )}
+          {selectedMethod === 'crypto_wallet' ? (
+            <CryptoWalletPanel
+              cryptoWallet={routes.cryptoWallet}
+              treasuryAddress={routes.treasuryAddress}
+              country={routes.country}
+              amountUsd={amountUsd}
+              mode={mode}
+              onFunded={() => handlePaymentSignal(activeReferenceId)}
+              ensureReference={wrapEnsureReference}
+            />
+          ) : null}
 
-      {selectedMethod === 'wire' && (
-        <WireTransferPanel
-          wire={routes.wire}
-          amountUsd={amountUsd}
-          referenceId={activeReferenceId ?? referenceId}
-          country={routes.country}
-          investorName={investorName}
-          onPending={() => handlePaymentSignal(activeReferenceId ?? referenceId)}
-        />
+          {selectedMethod === 'ripio' ? (
+            <RipioCheckoutPanel
+              amountUsd={amountUsd}
+              ensureReference={wrapEnsureReference}
+              onFunded={() => handlePaymentSignal(activeReferenceId)}
+            />
+          ) : null}
+
+          {selectedMethod === 'card' ? (
+            <CardPaymentPanel
+              card={routes.card}
+              referenceId={activeReferenceId ?? referenceId}
+              country={routes.country}
+              onFunded={() => handlePaymentSignal(activeReferenceId ?? referenceId)}
+              onError={onError}
+              amountUsd={amountUsd}
+            />
+          ) : null}
+
+          {selectedMethod === 'wire' ? (
+            <WireTransferPanel
+              wire={routes.wire}
+              amountUsd={amountUsd}
+              referenceId={activeReferenceId ?? referenceId}
+              country={routes.country}
+              investorName={investorName}
+              onPending={() => handlePaymentSignal(activeReferenceId ?? referenceId)}
+            />
+          ) : null}
+        </>
       )}
     </div>
   );
