@@ -6,16 +6,24 @@ import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { CheckoutBestRoutes } from '../../../lib/payments/checkoutBestRouteService';
 import { useCheckoutSettlementStatus } from '../../../hooks/useCheckoutSettlementStatus';
 import type { SimplifiedMethod } from './SimplifiedMethodSelector';
-import { getCheapestConfiguredMethod, SimplifiedMethodSelector } from './SimplifiedMethodSelector';
+import {
+  getCheapestConfiguredMethod,
+  SimplifiedMethodSelector
+} from './SimplifiedMethodSelector';
 import { FiatWalletPanel } from './FiatWalletPanel';
 import { CryptoWalletPanel } from './CryptoWalletPanel';
 import { CardPaymentPanel } from './CardPaymentPanel';
 import { WireTransferPanel } from './WireTransferPanel';
+import { RipioCheckoutPanel } from './RipioCheckoutPanel';
 
 export type EnsureCheckoutReference = (
-  method: 'USDC_ONCHAIN' | 'LOCAL_RAIL',
+  method: 'USDC_ONCHAIN' | 'LOCAL_RAIL' | 'RIPIO',
   rail?: string
-) => Promise<{ referenceId: string; payToAddress: string | null } | null>;
+) => Promise<{
+  referenceId: string;
+  payToAddress: string | null;
+  providerCheckoutUrl?: string | null;
+} | null>;
 
 export type SimplifiedCheckoutProps = {
   amountUsd: number;
@@ -202,6 +210,14 @@ export function SimplifiedCheckout({
           mode={mode}
           onFunded={() => handlePaymentSignal(activeReferenceId)}
           ensureReference={wrapEnsureReference}
+        />
+      )}
+
+      {selectedMethod === 'ripio' && (
+        <RipioCheckoutPanel
+          amountUsd={amountUsd}
+          ensureReference={wrapEnsureReference}
+          onFunded={() => handlePaymentSignal(activeReferenceId)}
         />
       )}
 

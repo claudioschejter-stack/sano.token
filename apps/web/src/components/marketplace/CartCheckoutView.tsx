@@ -1001,17 +1001,27 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               amountUsd: totalUsd,
               method,
               auto: false,
-              stablecoinNetwork: method === 'USDC_ONCHAIN' ? 'BASE' : undefined,
+              stablecoinNetwork: method === 'USDC_ONCHAIN' || method === 'RIPIO' ? 'BASE' : undefined,
               walletAddress: linkedWalletAddress,
               paymentOptionRail: rail
             })
           });
-          const data = (await response.json()) as { error?: string; deposit?: DepositResponse };
+          const data = (await response.json()) as {
+            error?: string;
+            deposit?: DepositResponse & { providerCheckoutUrl?: string | null };
+          };
           if (!response.ok || !data.deposit) {
             return null;
           }
           setDeposit(data.deposit);
-          const resolved = { referenceId: data.deposit.id, payToAddress: data.deposit.payToAddress ?? null };
+          const resolved = {
+            referenceId: data.deposit.id,
+            payToAddress: data.deposit.payToAddress ?? null,
+            providerCheckoutUrl:
+              data.deposit.providerCheckoutUrl ??
+              (data.deposit as { checkoutUrl?: string | null }).checkoutUrl ??
+              null
+          };
           setSimplifiedRefCache((prev) => ({ ...prev, [cacheKey]: resolved }));
           return resolved;
         }
@@ -1027,17 +1037,29 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               items: items.map((row) => ({ projectId: row.projectId, tokenCount: row.tokenCount })),
               method,
               walletAddress: address,
-              stablecoinNetwork: method === 'USDC_ONCHAIN' ? 'BASE' : undefined,
+              stablecoinNetwork: method === 'USDC_ONCHAIN' || method === 'RIPIO' ? 'BASE' : undefined,
               paymentOptionRail: rail
             })
           });
-          const data = (await response.json()) as { error?: string; checkout?: CartCheckoutResult };
+          const data = (await response.json()) as {
+            error?: string;
+            checkout?: CartCheckoutResult & { providerCheckoutUrl?: string | null };
+          };
           if (!response.ok || !data.checkout) {
             return null;
           }
           setCheckout(data.checkout);
           setBatchId(data.checkout.batchId);
-          const resolved = { referenceId: data.checkout.batchId, payToAddress: data.checkout.payToAddress ?? null };
+          const gatewayMeta = (data.checkout as { gateway?: { providerCheckoutUrl?: string } }).gateway;
+          const resolved = {
+            referenceId: data.checkout.batchId,
+            payToAddress: data.checkout.payToAddress ?? null,
+            providerCheckoutUrl:
+              data.checkout.providerCheckoutUrl ??
+              gatewayMeta?.providerCheckoutUrl ??
+              (data.checkout as { checkoutUrl?: string | null }).checkoutUrl ??
+              null
+          };
           setSimplifiedRefCache((prev) => ({ ...prev, [cacheKey]: resolved }));
           return resolved;
         }

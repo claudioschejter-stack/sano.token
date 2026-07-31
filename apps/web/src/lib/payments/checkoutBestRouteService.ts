@@ -3,6 +3,7 @@ import { resolveMercadoPagoChargeAmount } from './mercadoPagoCharge';
 import { mercadoPagoAccessToken } from './mercadoPagoClient';
 import { isMercadoPagoPixConfigured } from './mercadoPagoPix/config';
 import { getBridgeApiKey, isBridgeWireCountry } from './bridgeClient';
+import { ripioConfigured } from './ripioClient';
 
 // ---------------------------------------------------------------------------
 // FX table (fallback rates; production should use MERCADOPAGO_FX_ARS / DLOCAL env)
@@ -148,11 +149,20 @@ export type SimplifiedWireMethod = {
   widgetUrl: string | null;
 };
 
+export type SimplifiedRipioMethod = {
+  configured: boolean;
+  totalUsd: number;
+  displayCurrency: 'ARS' | 'USD';
+  totalLocal: number;
+  feeBps: number;
+};
+
 export type CheckoutBestRoutes = {
   fiatWallet: SimplifiedFiatWalletMethod;
   cryptoWallet: SimplifiedCryptoWalletMethod;
   card: SimplifiedCardMethod;
   wire: SimplifiedWireMethod;
+  ripio: SimplifiedRipioMethod;
   /** Treasury address for USDC Base payments (exposed from server-side env) */
   treasuryAddress: string | null;
   country: string;
@@ -278,11 +288,22 @@ export function resolveCheckoutBestRoutes(input: {
     widgetUrl: wireWidgetUrl
   };
 
+  const ripioFeeBps = 140;
+  const ripioLocal = resolveLocalAmount(amountUsd, c === 'AR' ? 'AR' : c, ripioFeeBps);
+  const ripio: SimplifiedRipioMethod = {
+    configured: c === 'AR' && ripioConfigured(),
+    totalUsd: Number(ripioLocal.totalUsd.toFixed(2)),
+    totalLocal: ripioLocal.totalLocal,
+    displayCurrency: c === 'AR' ? 'ARS' : 'USD',
+    feeBps: ripioFeeBps
+  };
+
   return {
     fiatWallet,
     cryptoWallet,
     card,
     wire,
+    ripio,
     treasuryAddress,
     country: c
   };
