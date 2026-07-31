@@ -2913,6 +2913,7 @@ export const es = {
     card: 'Tarjeta de débito o crédito',
     wire: 'Transferencia Bancaria',
     selectMethod: 'Elegí cómo pagar',
+    backToMethods: 'Volver a formas de pago',
     probing: 'Detectando apps instaladas…',
     feesNote: 'El precio incluye comisión, conversión a USDC (Base) y costos de gas. Los paga el comprador.',
     cheapestBadge: 'Más barata',
@@ -2976,6 +2977,7 @@ export const es = {
     cryptoWalletAutoSettling: 'Pagando desde tu wallet Sanova y acreditando tokens…',
     cryptoWalletPayNowButton: 'Pagar {amount} USDC ahora',
     cryptoWalletPayFromPrivyButton: 'Pagar {amount} USDC desde mi wallet Sanova',
+    cryptoWalletPayButton: 'Pagar',
     cryptoWalletPrivyTitle: 'Pago automático (recomendado)',
     cryptoWalletPrivyHint:
       'Usá el USDC de tu wallet Sanova (Privy) en Base. No abre MetaMask ni otras apps: firmás acá y se acreditan los tokens RWA.',
@@ -2984,6 +2986,9 @@ export const es = {
       'Mandá USDC desde Ripio u otra billetera a esta dirección. Cuando llegue, pagamos solos y te acreditamos los tokens.',
     cryptoWalletPrivyReceiveDepositHint:
       'Mandá USDC Base a esta dirección. Tu saldo de cartera se actualiza automáticamente.',
+    cryptoWalletInsufficientCopyPaste:
+      'Tu saldo es insuficiente. Copiá y pegá la siguiente dirección en tu billetera virtual para enviar USDC (red Base) a tu cuenta Sanova. Podés enviar más USDC de los que necesitás ahora: el saldo quedará guardado en tu cartera de Sanova.',
+    cryptoWalletSanovaAddressLabel: 'Dirección de tu cuenta Sanova (Base · USDC)',
     cryptoWalletQrHintPrivy: 'Escaneá desde Ripio u otra app para enviar USDC a tu wallet Sanova.',
     cryptoWalletPrivyAddress: 'Tu wallet Sanova',
     cryptoWalletPrivyBalanceLabel: 'Saldo USDC en tu wallet',

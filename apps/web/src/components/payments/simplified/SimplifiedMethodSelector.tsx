@@ -181,11 +181,6 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
 
   return (
     <div style={{ marginBlock: '2mm' }}>
-      <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-terminal-muted">
-        {sc.selectMethod}
-      </p>
-      <p className="mb-2 text-[11px] text-terminal-muted">{sc.feesNote}</p>
-
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
         {methods.length === 0 ? (
           <p className="rounded-xl border border-terminal-border bg-terminal-card px-4 py-3 text-sm text-terminal-muted">
