@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { Prisma, prisma } from '@sanova/database';
 import { requireAuthenticatedSession } from '../../../../../lib/onboarding/requireAuthenticatedSession';
+import { isPendingInvestorWallet } from '../../../../../lib/investor/provisionInvestorProfile';
 import { linkUserWallet } from '../../../../../lib/investor/walletService';
 import { isPrivyEnabled } from '../../../../../lib/privy/config';
 import { pregenerateOrFetchPrivyWallet } from '../../../../../lib/privy/privyWalletProvisioning';
@@ -35,7 +36,14 @@ export async function POST() {
 
   const user = await prisma.user.findUnique({
     where: { id: ctx.userId },
-    select: { email: true, kycStatus: true, emailVerifiedAt: true }
+    select: {
+      email: true,
+      kycStatus: true,
+      emailVerifiedAt: true,
+      walletAddress: true,
+      walletProvider: true,
+      investor: { select: { walletAddress: true } }
+    }
   });
 
   if (!user) {
@@ -48,6 +56,18 @@ export async function POST() {
 
   if (!user.emailVerifiedAt) {
     return NextResponse.json({ error: 'EMAIL_VERIFICATION_REQUIRED' }, { status: 403 });
+  }
+
+  // Fast path: already linked (common in checkout). Avoid a Privy round-trip
+  // just to re-display the receive address for Ripio → Privy funding.
+  const existing =
+    user.walletAddress?.trim() || user.investor?.walletAddress?.trim() || null;
+  if (existing && !isPendingInvestorWallet(existing)) {
+    void autoAllowlistInvestorWallet(ctx.userId);
+    return NextResponse.json({
+      walletAddress: existing.toLowerCase(),
+      walletProvider: user.walletProvider?.trim() || 'Privy Wallet'
+    });
   }
 
   const address = await pregenerateOrFetchPrivyWallet(user.email);

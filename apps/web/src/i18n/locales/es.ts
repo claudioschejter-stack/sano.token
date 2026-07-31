@@ -2993,7 +2993,9 @@ export const es = {
     cryptoWalletPrivyAddress: 'Tu wallet Sanova',
     cryptoWalletPrivyBalanceLabel: 'Saldo USDC en tu wallet',
     cryptoWalletPrivyPaying: 'Firmando y enviando USDC…',
-    cryptoWalletPrivyLoginHint: 'Vas a iniciar sesión / crear tu wallet Sanova para pagar.',
+    cryptoWalletPrivyLoginHint:
+      'Todavía no tenemos tu dirección Sanova. Tocá el botón para prepararla (sin un segundo inicio de sesión).',
+    cryptoWalletPrepareButton: 'Preparar wallet Sanova',
     cryptoWalletPrivyPreparing: 'Preparando tu wallet Sanova…',
     cryptoWalletPrivyUnavailable: 'Wallet Sanova no disponible. Probá de nuevo o usá “Otra wallet”.',
     cryptoWalletInsufficientPrivy:

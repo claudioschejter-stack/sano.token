@@ -21,6 +21,11 @@ function buildEip681Uri(toAddress: string, amountUsdc: number): string {
   return `ethereum:${USDC_BASE}@8453/transfer?address=${toAddress}&uint256=${uint256}`;
 }
 
+function normalizeAddress(value?: string | null): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
 type Props = {
   cryptoWallet: SimplifiedCryptoWalletMethod;
   treasuryAddress: string | null;
@@ -53,6 +58,9 @@ export function CryptoWalletPanel({
   const [privyPaying, setPrivyPaying] = useState(false);
   const [privyError, setPrivyError] = useState<string | null>(null);
   const [privyBalanceUsdc, setPrivyBalanceUsdc] = useState<number | null>(null);
+  const [serverAddress, setServerAddress] = useState<string | null>(null);
+  const [resolvingAddress, setResolvingAddress] = useState(true);
+  const [provisionBusy, setProvisionBusy] = useState(false);
   const [autoSettleStatus, setAutoSettleStatus] = useState<'idle' | 'waiting_funds' | 'settling' | 'done'>(
     'idle'
   );
@@ -62,7 +70,8 @@ export function CryptoWalletPanel({
   onFundedRef.current = onFunded;
 
   const amountUsdc = amountUsd;
-  const receiveAddress = privyAddress?.trim() || null;
+  const receiveAddress =
+    normalizeAddress(privyAddress) || normalizeAddress(serverAddress);
 
   const refreshPrivyBalance = useCallback(async (wallet?: string | null) => {
     const addr = wallet?.trim();
@@ -84,13 +93,99 @@ export function CryptoWalletPanel({
     }
   }, []);
 
+  const resolveServerAddress = useCallback(async (opts?: { forceProvision?: boolean }) => {
+    setResolvingAddress(true);
+    try {
+      if (!opts?.forceProvision) {
+        const watchRes = await fetch('/api/wallet/privy-inbound/watch', { cache: 'no-store' });
+        if (watchRes.ok) {
+          const watchData = (await watchRes.json()) as {
+            address?: string | null;
+            balanceUsdc?: number;
+          };
+          const fromWatch = normalizeAddress(watchData.address);
+          if (fromWatch) {
+            setServerAddress(fromWatch);
+            if (typeof watchData.balanceUsdc === 'number') {
+              setPrivyBalanceUsdc(watchData.balanceUsdc);
+            } else {
+              await refreshPrivyBalance(fromWatch);
+            }
+            return fromWatch;
+          }
+        }
+
+        const linkedRes = await fetch('/api/wallet/linked-wallets', { cache: 'no-store' });
+        if (linkedRes.ok) {
+          const linkedData = (await linkedRes.json()) as {
+            cryptoWallets?: Array<{ address?: string; isDefault?: boolean }>;
+          };
+          const wallets = linkedData.cryptoWallets ?? [];
+          const preferred =
+            wallets.find((row) => row.isDefault && row.address?.trim()) ??
+            wallets.find((row) => row.address?.trim());
+          const fromLinked = normalizeAddress(preferred?.address);
+          if (fromLinked) {
+            setServerAddress(fromLinked);
+            await refreshPrivyBalance(fromLinked);
+            return fromLinked;
+          }
+        }
+      }
+
+      const provisionRes = await fetch('/api/investor/wallet/provision', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      const provisionData = (await provisionRes.json()) as {
+        walletAddress?: string;
+        error?: string;
+      };
+      const fromProvision = normalizeAddress(provisionData.walletAddress);
+      if (provisionRes.ok && fromProvision) {
+        setServerAddress(fromProvision);
+        await refreshPrivyBalance(fromProvision);
+        return fromProvision;
+      }
+
+      // Already linked under a race / alternate pointer — re-read watch.
+      if (provisionData.error === 'WALLET_ALREADY_LINKED') {
+        const retry = await fetch('/api/wallet/privy-inbound/watch', { cache: 'no-store' });
+        if (retry.ok) {
+          const retryData = (await retry.json()) as { address?: string | null; balanceUsdc?: number };
+          const retryAddr = normalizeAddress(retryData.address);
+          if (retryAddr) {
+            setServerAddress(retryAddr);
+            if (typeof retryData.balanceUsdc === 'number') {
+              setPrivyBalanceUsdc(retryData.balanceUsdc);
+            } else {
+              await refreshPrivyBalance(retryAddr);
+            }
+            return retryAddr;
+          }
+        }
+      }
+
+      return null;
+    } catch {
+      return null;
+    } finally {
+      setResolvingAddress(false);
+    }
+  }, [refreshPrivyBalance]);
+
   useEffect(() => {
-    void refreshPrivyBalance(privyAddress);
+    void resolveServerAddress();
+  }, [resolveServerAddress]);
+
+  useEffect(() => {
+    void refreshPrivyBalance(receiveAddress);
+    if (!receiveAddress) return;
     const id = window.setInterval(() => {
-      void refreshPrivyBalance(privyAddress);
+      void refreshPrivyBalance(receiveAddress);
     }, 8000);
     return () => window.clearInterval(id);
-  }, [privyAddress, refreshPrivyBalance]);
+  }, [receiveAddress, refreshPrivyBalance]);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,15 +200,17 @@ export function CryptoWalletPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensureReference, mode]);
 
+  // Optional: if Privy client already has a session, link quietly. Never call
+  // ensureReady/login here — that pops a second email login over Sanova auth.
   useEffect(() => {
-    if (!authenticated) return;
+    if (!authenticated || !privyAddress) return;
     let cancelled = false;
     void (async () => {
       try {
-        const addr = privyAddress ?? (await ensureReady());
-        if (cancelled || !addr) return;
+        if (cancelled) return;
+        setServerAddress((prev) => prev ?? privyAddress);
         await linkPrivyWallet().catch(() => undefined);
-        await refreshPrivyBalance(addr);
+        await refreshPrivyBalance(privyAddress);
       } catch {
         /* optional bootstrap */
       }
@@ -121,7 +218,7 @@ export function CryptoWalletPanel({
     return () => {
       cancelled = true;
     };
-  }, [authenticated, ensureReady, linkPrivyWallet, privyAddress, refreshPrivyBalance]);
+  }, [authenticated, linkPrivyWallet, privyAddress, refreshPrivyBalance]);
 
   const hasEnoughPrivy =
     privyBalanceUsdc != null && Number.isFinite(privyBalanceUsdc) && privyBalanceUsdc + 1e-9 >= amountUsdc;
@@ -220,6 +317,19 @@ export function CryptoWalletPanel({
     }
   };
 
+  const handlePrepareWallet = async () => {
+    setPrivyError(null);
+    setProvisionBusy(true);
+    try {
+      const addr = await resolveServerAddress({ forceProvision: true });
+      if (!addr) {
+        setPrivyError(sc.cryptoWalletPrivyUnavailable);
+      }
+    } finally {
+      setProvisionBusy(false);
+    }
+  };
+
   useEffect(() => {
     if (confirmed) return;
     let cancelled = false;
@@ -229,10 +339,15 @@ export function CryptoWalletPanel({
         const res = await fetch('/api/wallet/privy-inbound/watch', { cache: 'no-store' });
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as {
+          address?: string | null;
           balanceUsdc?: number;
           newInbounds?: unknown[];
           readyToAutoSettle?: boolean;
         };
+        const watchedAddress = normalizeAddress(data.address);
+        if (watchedAddress) {
+          setServerAddress(watchedAddress);
+        }
         if (typeof data.balanceUsdc === 'number') {
           setPrivyBalanceUsdc(data.balanceUsdc);
         }
@@ -253,7 +368,7 @@ export function CryptoWalletPanel({
           data.readyToAutoSettle ||
           (typeof data.balanceUsdc === 'number' && data.balanceUsdc + 1e-9 >= amountUsdc);
 
-        if (ready && !autoSettleStarted.current && privyEnabled) {
+        if (ready && !autoSettleStarted.current && privyEnabled && authenticated) {
           autoSettleStarted.current = true;
           setAutoSettleStatus('settling');
           setPrivyPaying(true);
@@ -268,6 +383,9 @@ export function CryptoWalletPanel({
           } finally {
             setPrivyPaying(false);
           }
+        } else if (ready && !authenticated) {
+          // Funds are there; signing still needs a Privy client session.
+          setAutoSettleStatus('idle');
         } else if (!ready) {
           setAutoSettleStatus((prev) => (prev === 'settling' || prev === 'done' ? prev : 'waiting_funds'));
         }
@@ -284,7 +402,15 @@ export function CryptoWalletPanel({
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [amountUsdc, confirmed, mode, privyEnabled, sc.cryptoWalletPrivyPayError, settlePurchaseFromPrivy]);
+  }, [
+    amountUsdc,
+    authenticated,
+    confirmed,
+    mode,
+    privyEnabled,
+    sc.cryptoWalletPrivyPayError,
+    settlePurchaseFromPrivy
+  ]);
 
   const eip681Uri = receiveAddress ? buildEip681Uri(receiveAddress, amountUsdc) : null;
 
@@ -294,6 +420,64 @@ export function CryptoWalletPanel({
     setCopiedAddr(true);
     setTimeout(() => setCopiedAddr(false), 1500);
   };
+
+  const addressBlock = receiveAddress ? (
+    <div className="rounded-xl border border-terminal-border bg-terminal-card px-4 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted">
+        {sc.cryptoWalletSanovaAddressLabel}
+      </p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="break-all font-mono text-xs leading-relaxed text-terminal-text">{receiveAddress}</p>
+        <button
+          type="button"
+          onClick={handleCopyAddr}
+          className="shrink-0 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs font-semibold text-terminal-primary"
+          title={sc.cryptoWalletCopyAddressTitle}
+        >
+          {copiedAddr ? (
+            <span className="inline-flex items-center gap-1 text-terminal-success">
+              <CheckCircle2 size={14} /> {sc.cryptoWalletCopied}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1">
+              <Copy size={14} /> {sc.cryptoWalletCopy}
+            </span>
+          )}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  const qrBlock =
+    receiveAddress && eip681Uri ? (
+      <div>
+        {!isDesktop ? (
+          <button
+            type="button"
+            onClick={() => setShowQr((v) => !v)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-terminal-border bg-terminal-card py-2.5 text-xs font-semibold text-terminal-muted"
+          >
+            <QrCode size={14} />
+            {showQr ? sc.cryptoWalletHideQr : sc.cryptoWalletShowQr}
+          </button>
+        ) : null}
+        {(isDesktop || showQr) && eip681Uri ? (
+          <div
+            className={`${isDesktop ? '' : 'mt-3'} flex flex-col items-center gap-2 rounded-xl border border-terminal-border bg-terminal-card p-4`}
+          >
+            <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
+                alt={sc.cryptoWalletQrAlt.replace('{amount}', amountUsdc.toFixed(2))}
+                width={QR_SIZE}
+                height={QR_SIZE}
+                className="block rounded"
+              />
+            </div>
+          </div>
+        ) : null}
+      </div>
+    ) : null;
 
   return (
     <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
@@ -338,11 +522,33 @@ export function CryptoWalletPanel({
             </span>
           </div>
 
-          {privyBalanceUsdc == null ? (
+          {(resolvingAddress || provisionBusy) && !receiveAddress ? (
             <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-3 text-[11px] text-terminal-muted">
               <Loader2 size={12} className="animate-spin text-terminal-primary" />
               {sc.cryptoWalletPrivyPreparing}
             </div>
+          ) : !receiveAddress ? (
+            <div className="space-y-2">
+              <p className="text-[11px] leading-relaxed text-terminal-muted">{sc.cryptoWalletPrivyLoginHint}</p>
+              <button
+                type="button"
+                onClick={() => void handlePrepareWallet()}
+                disabled={provisionBusy || !privyEnabled}
+                className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3.5 text-sm font-bold text-white shadow-lg disabled:opacity-60"
+              >
+                {provisionBusy ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+                {provisionBusy ? sc.cryptoWalletPrivyPreparing : sc.cryptoWalletPrepareButton}
+              </button>
+            </div>
+          ) : privyBalanceUsdc == null ? (
+            <>
+              {addressBlock}
+              {qrBlock}
+              <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
+                <Loader2 size={12} className="animate-spin text-terminal-primary" />
+                {sc.cryptoWalletPrivyPreparing}
+              </div>
+            </>
           ) : hasEnoughPrivy ? (
             <button
               type="button"
@@ -356,66 +562,8 @@ export function CryptoWalletPanel({
           ) : (
             <>
               <p className="text-xs leading-relaxed text-terminal-text">{sc.cryptoWalletInsufficientCopyPaste}</p>
-
-              {receiveAddress ? (
-                <div className="rounded-xl border border-terminal-border bg-terminal-card px-4 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted">
-                    {sc.cryptoWalletSanovaAddressLabel}
-                  </p>
-                  <div className="mt-2 flex items-center justify-between gap-3">
-                    <p className="break-all font-mono text-xs leading-relaxed text-terminal-text">{receiveAddress}</p>
-                    <button
-                      type="button"
-                      onClick={handleCopyAddr}
-                      className="shrink-0 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-xs font-semibold text-terminal-primary"
-                      title={sc.cryptoWalletCopyAddressTitle}
-                    >
-                      {copiedAddr ? (
-                        <span className="inline-flex items-center gap-1 text-terminal-success">
-                          <CheckCircle2 size={14} /> {sc.cryptoWalletCopied}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1">
-                          <Copy size={14} /> {sc.cryptoWalletCopy}
-                        </span>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-[11px] text-terminal-muted">
-                  {authenticated ? sc.cryptoWalletPrivyPreparing : sc.cryptoWalletPrivyLoginHint}
-                </p>
-              )}
-
-              {receiveAddress && eip681Uri ? (
-                <div>
-                  {!isDesktop ? (
-                    <button
-                      type="button"
-                      onClick={() => setShowQr((v) => !v)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-terminal-border bg-terminal-card py-2.5 text-xs font-semibold text-terminal-muted"
-                    >
-                      <QrCode size={14} />
-                      {showQr ? sc.cryptoWalletHideQr : sc.cryptoWalletShowQr}
-                    </button>
-                  ) : null}
-                  {(isDesktop || showQr) && eip681Uri ? (
-                    <div className={`${isDesktop ? '' : 'mt-3'} flex flex-col items-center gap-2 rounded-xl border border-terminal-border bg-terminal-card p-4`}>
-                      <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
-                        <img
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
-                          alt={sc.cryptoWalletQrAlt.replace('{amount}', amountUsdc.toFixed(2))}
-                          width={QR_SIZE}
-                          height={QR_SIZE}
-                          className="block rounded"
-                        />
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-
+              {addressBlock}
+              {qrBlock}
               {autoSettleStatus === 'waiting_funds' ? (
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
                   <Loader2 size={12} className="animate-spin text-terminal-primary" />
