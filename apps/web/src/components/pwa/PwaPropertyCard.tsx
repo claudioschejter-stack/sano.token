@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { ChevronRight, MapPin, TrendingUp } from 'lucide-react';
+import { ChevronRight, MapPin, ShoppingCart, TrendingUp } from 'lucide-react';
 import { useMemo } from 'react';
 import { createIntlFormatters } from '../../i18n/formatters';
-import { useLocale } from '../../i18n/LocaleProvider';
+import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { MarketplaceListing } from '../../types/marketplace';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 
@@ -15,6 +15,7 @@ type Props = {
 };
 
 export function PwaPropertyCard({ listing, compact = false, variant = 'default' }: Props) {
+  const t = useTranslation();
   const { intlLocale } = useLocale();
   const { formatPercent } = useMemo(
     () => createIntlFormatters(intlLocale),
@@ -31,13 +32,12 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
   );
 
   const href = `/marketplace/${listing.id}/agregar`;
+  const addLabel = t.marketplace.addToCart.addButton;
 
   if (variant === 'feed') {
+    // Non-link shell: parent carousel wraps this in a <button>. Nested <a>/<button> is invalid.
     return (
-      <Link
-        href={href}
-        className="block overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100 transition active:bg-slate-50"
-      >
+      <article className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100 transition active:bg-slate-50">
         <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
           {listing.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -57,13 +57,20 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
               <TrendingUp size={14} />
               {formatPercent(listing.apyPercent)} APY
             </span>
-            <span className="text-xs text-slate-500">{listing.totalTokens} tokens</span>
+            <span className="text-xs text-slate-500">{listing.availableTokens} tokens</span>
           </div>
           <p className="mt-1 text-xs text-slate-600">
             {formatTokenPrice(listing.pricePerTokenUsd)} USDC/token
           </p>
+          <div
+            className="mt-4 inline-flex w-full min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+            style={{ backgroundColor: MP_ACCENT }}
+          >
+            <ShoppingCart size={16} aria-hidden />
+            {addLabel}
+          </div>
         </div>
-      </Link>
+      </article>
     );
   }
 

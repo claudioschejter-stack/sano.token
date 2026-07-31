@@ -9,13 +9,18 @@ type StickyActionBarProps = {
   className?: string;
 };
 
-/** Fixed bottom CTA bar for mobile checkout and long forms. */
+/**
+ * Fixed bottom CTA for mobile checkout / long forms.
+ * Sits above the PWA / portal bottom nav (z-50, ~4.5rem) so the primary
+ * action is never covered by Carrito / Panel tabs.
+ */
 export function StickyActionBar({ children, summary, className = '' }: StickyActionBarProps) {
   return (
     <div
-      className={`fixed inset-x-0 bottom-0 z-30 border-t border-terminal-border bg-terminal-card/95 backdrop-blur-md md:hidden ${className}`}
+      className={`fixed inset-x-0 z-[60] border-t border-terminal-border bg-terminal-card/95 backdrop-blur-md md:hidden ${className}`}
+      style={{ bottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))' }}
     >
-      <div className="safe-x mx-auto max-w-2xl space-y-2 px-4 pb-safe pt-3">
+      <div className="safe-x mx-auto max-w-2xl space-y-2 px-4 py-3">
         {summary}
         {children}
       </div>

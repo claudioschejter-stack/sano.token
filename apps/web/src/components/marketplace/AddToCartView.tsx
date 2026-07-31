@@ -113,7 +113,7 @@ export function AddToCartView({ projectId }: AddToCartViewProps) {
   }
 
   return (
-    <section className="mx-auto max-w-lg pb-28 md:pb-0">
+    <section className="mx-auto max-w-lg pb-36 md:pb-0">
       <Link
         href="/marketplace"
         className="mb-6 inline-flex items-center gap-2 text-sm text-terminal-muted hover:text-terminal-text"
@@ -182,23 +182,24 @@ export function AddToCartView({ projectId }: AddToCartViewProps) {
             </div>
           </div>
 
+          {/* Always visible in-card CTA — sticky bar alone was covered by the PWA bottom nav. */}
           <button
             type="button"
             onClick={handleAddToCart}
             disabled={isSoldOut}
-            className="hidden w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50 md:inline-flex md:justify-center"
+            className="inline-flex w-full min-h-12 items-center justify-center rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {a.addButton}
           </button>
         </div>
       </article>
 
-      <StickyActionBar className="md:hidden">
+      <StickyActionBar>
         <button
           type="button"
           onClick={handleAddToCart}
           disabled={isSoldOut}
-          className="w-full rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          className="inline-flex w-full min-h-12 items-center justify-center rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           {a.addButton}
         </button>

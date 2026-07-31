@@ -26,21 +26,28 @@ export function BrowserFullscreenBanner() {
     const outcome = await promptInstall();
     if (outcome === 'unavailable' && isIos) {
       window.alert(p.iosInstruction);
+      return;
+    }
+    if (outcome === 'unavailable') {
+      window.alert(m.browserInstallFallback);
     }
   }
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-2.5 text-white"
-      style={{ backgroundColor: '#0B2240' }}
+      className="flex items-center gap-3 border-b border-white/10 px-4 py-3 text-white"
+      style={{ backgroundColor: '#071628' }}
       role="status"
     >
       <Smartphone size={18} className="shrink-0 opacity-90" aria-hidden />
-      <p className="min-w-0 flex-1 text-xs leading-snug font-medium">{m.browserBarHint}</p>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold leading-snug">{m.browserBarTitle}</p>
+        <p className="mt-0.5 text-[11px] leading-snug text-white/80">{m.browserBarHint}</p>
+      </div>
       <button
         type="button"
         onClick={() => void handleInstall()}
-        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-white"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white"
         style={{ backgroundColor: MP_ACCENT }}
       >
         <Download size={14} aria-hidden />
