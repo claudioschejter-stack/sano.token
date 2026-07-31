@@ -182,7 +182,6 @@ export function AddToCartView({ projectId }: AddToCartViewProps) {
             </div>
           </div>
 
-          {/* Always visible in-card CTA — sticky bar alone was covered by the PWA bottom nav. */}
           <button
             type="button"
             onClick={handleAddToCart}
@@ -193,17 +192,6 @@ export function AddToCartView({ projectId }: AddToCartViewProps) {
           </button>
         </div>
       </article>
-
-      <StickyActionBar>
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={isSoldOut}
-          className="inline-flex w-full min-h-12 items-center justify-center rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-        >
-          {a.addButton}
-        </button>
-      </StickyActionBar>
     </section>
   );
 }

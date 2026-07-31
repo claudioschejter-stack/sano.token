@@ -110,7 +110,7 @@ export function PwaAdCarousel({
           <div key={listing.id} className="w-[86%] shrink-0 snap-center">
             {disabled ? (
               <div className="relative pointer-events-none opacity-75">
-                <PwaPropertyCard listing={listing} variant="feed" />
+                <PwaPropertyCard listing={listing} variant="feed" showAvailableOfTotal />
                 {soldBadgeLabel ? (
                   <span className="absolute right-3 top-3 rounded-full bg-slate-900/85 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
                     {soldBadgeLabel}
@@ -120,10 +120,10 @@ export function PwaAdCarousel({
             ) : (
               <button
                 type="button"
-                className="block w-full text-left"
+                className="block w-full select-none text-left [-webkit-touch-callout:none]"
                 onClick={() => onSelect?.(listing)}
               >
-                <PwaPropertyCard listing={listing} variant="feed" />
+                <PwaPropertyCard listing={listing} variant="feed" showAvailableOfTotal />
               </button>
             )}
           </div>

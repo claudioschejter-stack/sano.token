@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ChevronRight, MapPin, ShoppingCart, TrendingUp } from 'lucide-react';
 import { useMemo } from 'react';
+import { formatMessage } from '../../i18n';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { MarketplaceListing } from '../../types/marketplace';
@@ -12,9 +13,16 @@ type Props = {
   listing: MarketplaceListing;
   compact?: boolean;
   variant?: 'default' | 'feed';
+  /** Show "{available} / {total} disponibles" instead of "N tokens". */
+  showAvailableOfTotal?: boolean;
 };
 
-export function PwaPropertyCard({ listing, compact = false, variant = 'default' }: Props) {
+export function PwaPropertyCard({
+  listing,
+  compact = false,
+  variant = 'default',
+  showAvailableOfTotal = false
+}: Props) {
   const t = useTranslation();
   const { intlLocale } = useLocale();
   const { formatPercent } = useMemo(
@@ -33,9 +41,15 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
 
   const href = `/marketplace/${listing.id}/agregar`;
   const addLabel = t.marketplace.addToCart.addButton;
+  const tokenCountLabel = showAvailableOfTotal
+    ? formatMessage(t.marketplace.tokensAvailableOfTotal, {
+        available: listing.availableTokens.toLocaleString(intlLocale),
+        total: listing.totalTokens.toLocaleString(intlLocale)
+      })
+    : `${listing.availableTokens.toLocaleString(intlLocale)} tokens`;
 
   if (variant === 'feed') {
-    // Non-link shell: parent carousel wraps this in a <button>. Nested <a>/<button> is invalid.
+    // Non-link shell: Propiedades wraps this in a <button>. Nested <a>/<button> is invalid.
     return (
       <article className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100 transition active:bg-slate-50">
         <div className="relative aspect-square w-full overflow-hidden bg-slate-100">
@@ -57,7 +71,7 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
               <TrendingUp size={14} />
               {formatPercent(listing.apyPercent)} APY
             </span>
-            <span className="text-xs text-slate-500">{listing.availableTokens} tokens</span>
+            <span className="text-xs text-slate-500">{tokenCountLabel}</span>
           </div>
           <p className="mt-1 text-xs text-slate-600">
             {formatTokenPrice(listing.pricePerTokenUsd)} USDC/token
@@ -97,7 +111,7 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
           <span className="text-sm font-semibold" style={{ color: MP_ACCENT }}>
             {formatPercent(listing.apyPercent)} APY
           </span>
-          <span className="text-xs text-slate-500">{listing.totalTokens} tokens</span>
+          <span className="text-xs text-slate-500">{tokenCountLabel}</span>
         </div>
         <p className="mt-1 text-xs text-slate-600">
           {formatTokenPrice(listing.pricePerTokenUsd)} USDC/token
@@ -128,7 +142,7 @@ export function PwaPropertyCard({ listing, compact = false, variant = 'default' 
             <TrendingUp size={12} />
             {formatPercent(listing.apyPercent)} APY
           </span>
-          <span className="text-slate-500">{listing.availableTokens} disp.</span>
+          <span className="text-slate-500">{tokenCountLabel}</span>
           <span className="text-slate-600">{formatTokenPrice(listing.pricePerTokenUsd)} USDC/tk</span>
         </div>
       </div>
