@@ -39,6 +39,7 @@
         "@stripe/stripe-js": "^9.8.0",
         "@supabase/supabase-js": "^2.106.1",
         "@tanstack/react-query": "^5.81.5",
+        "@vercel/analytics": "^2.0.1",
         "@vercel/speed-insights": "^2.0.0",
         "autoprefixer": "^10.4.19",
         "bcryptjs": "^3.0.2",
