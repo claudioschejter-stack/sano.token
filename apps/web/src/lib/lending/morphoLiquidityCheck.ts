@@ -4,7 +4,11 @@ import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin
 import { notifyMorphoLiquidity } from '../admin/automationAlerts';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 import { getLendingChainConfig } from './baseContracts';
-import { buildDefaultMorphoMarketParams, morphoMarketId } from './protocols/morphoBorrow';
+import {
+  buildDefaultMorphoMarketParams,
+  resolveMorphoMarketId,
+  type MorphoMarketParams
+} from './protocols/morphoBorrow';
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 8453) {
@@ -27,8 +31,8 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
     return { status: 'NO_MARKET' as const, availableAssets: '0' };
   }
 
-  const params = buildDefaultMorphoMarketParams(asset.vaultAddress, morphoTarget.oracleAddress);
-  if (!params) {
+  const defaultParams = buildDefaultMorphoMarketParams(asset.vaultAddress, morphoTarget.oracleAddress);
+  if (!defaultParams) {
     await updateAdminAsset(asset.id, { morphoLiquidityStatus: 'NO_MARKET' });
     return { status: 'NO_MARKET' as const, availableAssets: '0' };
   }
@@ -36,6 +40,27 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
   const chainId = resolveMorphoChainId();
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
   try {
+    const morpho = new Contract(
+      getLendingChainConfig().morpho,
+      [
+        'function market(bytes32 id) view returns (uint128 totalSupplyAssets, uint128 totalSupplyShares, uint128 totalBorrowAssets, uint128 totalBorrowShares, uint128 lastUpdate, uint128 fee)',
+        'function idToMarketParams(bytes32 id) view returns (address loanToken, address collateralToken, address oracle, address irm, uint256 lltv)'
+      ],
+      provider
+    );
+    const marketId = resolveMorphoMarketId(morphoTarget, defaultParams);
+    const stored = await morpho.idToMarketParams(marketId);
+    const params: MorphoMarketParams =
+      stored.loanToken && stored.loanToken !== '0x0000000000000000000000000000000000000000'
+        ? {
+            loanToken: stored.loanToken,
+            collateralToken: stored.collateralToken,
+            oracle: stored.oracle,
+            irm: stored.irm,
+            lltv: BigInt(stored.lltv)
+          }
+        : defaultParams;
+
     const { seedMorphoLiquidityIfConfigured } = await import('./morphoLiquiditySeed');
     const seedResult = await seedMorphoLiquidityIfConfigured(params, {
       totalTokens: asset.totalTokens,
@@ -47,14 +72,6 @@ export async function checkMorphoLiquidity(asset: AdminAssetRecord) {
         ? ` (sembrado ${seedResult.seededUsdc}${'partial' in seedResult && seedResult.partial ? ' parcial' : ''})`
         : '';
 
-    const morpho = new Contract(
-      getLendingChainConfig().morpho,
-      [
-        'function market(bytes32 id) view returns (uint128 totalSupplyAssets, uint128 totalSupplyShares, uint128 totalBorrowAssets, uint128 totalBorrowShares, uint128 lastUpdate, uint128 fee)'
-      ],
-      provider
-    );
-    const marketId = morphoMarketId(params);
     const market = await morpho.market(marketId);
     const totalSupplyAssets = BigInt(market.totalSupplyAssets ?? market[0] ?? 0);
     const totalBorrowAssets = BigInt(market.totalBorrowAssets ?? market[2] ?? 0);
@@ -122,7 +139,7 @@ export async function probeMorphoLiquidityStatus(asset: AdminAssetRecord) {
       ],
       provider
     );
-    const marketId = morphoMarketId(params);
+    const marketId = resolveMorphoMarketId(morphoTarget, params);
     const market = await morpho.market(marketId);
     const totalSupplyAssets = BigInt(market.totalSupplyAssets ?? market[0] ?? 0);
     const totalBorrowAssets = BigInt(market.totalBorrowAssets ?? market[2] ?? 0);

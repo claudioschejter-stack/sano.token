@@ -3,7 +3,7 @@ import type { AdminAssetRecord } from '../admin/assetsService';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
 import { getLendingChainConfig } from './baseContracts';
 import { buildMorphoMarketPoolUrl, buildSanovaBorrowPath } from './morphoMarketUrls';
-import { buildDefaultMorphoMarketParams, morphoMarketId } from './protocols/morphoBorrow';
+import { buildDefaultMorphoMarketParams, resolveMorphoMarketId } from './protocols/morphoBorrow';
 
 export type MorphoLiquidityMarketRow = {
   projectId: string;
@@ -82,7 +82,7 @@ export async function readMorphoMarketLiquidity(asset: AdminAssetRecord): Promis
       ],
       provider
     );
-    const marketId = morphoMarketId(params);
+    const marketId = resolveMorphoMarketId(morphoTarget, params);
     const market = await morpho.market(marketId);
     const totalSupplyAssets = BigInt(market.totalSupplyAssets ?? market[0] ?? 0);
     const totalBorrowAssets = BigInt(market.totalBorrowAssets ?? market[2] ?? 0);
