@@ -3,6 +3,7 @@
 import { PrivyProvider } from '@privy-io/react-auth';
 import type { ReactNode } from 'react';
 import { privyAppId, privyClientConfig } from '../../lib/privy/config';
+import { usePrivyServerSignerBootstrap } from '../../hooks/usePrivyServerSignerBootstrap';
 import { usePrivySessionSync } from '../../hooks/usePrivySessionSync';
 
 type PrivyProviderInnerProps = {
@@ -15,6 +16,7 @@ type PrivyProviderInnerProps = {
  */
 function PrivySessionSyncMount({ children }: { children: ReactNode }) {
   usePrivySessionSync();
+  usePrivyServerSignerBootstrap();
   return <>{children}</>;
 }
 

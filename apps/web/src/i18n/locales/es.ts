@@ -2987,7 +2987,10 @@ export const es = {
     cryptoWalletPrivyReceiveDepositHint:
       'Mandá USDC Base a esta dirección. Tu saldo de cartera se actualiza automáticamente.',
     cryptoWalletInsufficientCopyPaste:
-      'Tu saldo es insuficiente. Copiá y pegá la siguiente dirección en tu billetera virtual para enviar USDC (red Base) a tu cuenta Sanova. Podés enviar más USDC de los que necesitás ahora: el saldo quedará guardado en tu cartera de Sanova.',
+      'Fondos insuficientes. Enviá USDC Base a la siguiente cuenta Sanova (copiá y pegá). El remanente de USDC quedará en tu cuenta.',
+    cryptoWalletAutoSettleNotConfigured:
+      'El pago automático del servidor aún no está configurado (falta la authorization key de Privy). Contactá a Sanova — no vuelvas a loguearte en Privy.',
+    cryptoWalletAutoSettleError: 'No se pudo completar el pago automático: {error}',
     cryptoWalletSanovaAddressLabel: 'Dirección de tu cuenta Sanova (Base · USDC)',
     cryptoWalletQrHintPrivy: 'Escaneá desde Ripio u otra app para enviar USDC a tu wallet Sanova.',
     cryptoWalletPrivyAddress: 'Tu wallet Sanova',
