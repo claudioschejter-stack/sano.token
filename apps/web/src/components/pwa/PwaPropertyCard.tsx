@@ -13,10 +13,7 @@ type Props = {
   listing: MarketplaceListing;
   compact?: boolean;
   variant?: 'default' | 'feed';
-  /**
-   * Only for Invertir ahora / non-marketplace surfaces.
-   * Marketplace (Propiedades) keeps the plain "N tokens" label and parent click handler.
-   */
+  /** Show "{available} / {total} disponibles" instead of "N tokens". */
   showAvailableOfTotal?: boolean;
 };
 
