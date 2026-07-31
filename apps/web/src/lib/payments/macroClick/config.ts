@@ -49,6 +49,24 @@ export function macroClickBranchId(): string {
   return process.env.MACRO_CLICK_SUCURSAL?.trim() ?? '';
 }
 
+/** Código de Ente for Macro “Botón Simple” (debt-search button), if provisioned. */
+export function macroClickEnteCode(): string {
+  return process.env.MACRO_CLICK_ENTE_CODE?.trim() ?? '';
+}
+
+/** Public Botón Simple debt-search URL (sandbox: …:8110/{ente}). Production requires explicit URL. */
+export function macroClickDebtSearchUrl(): string | null {
+  const override = process.env.MACRO_CLICK_DEBT_SEARCH_URL?.trim();
+  if (override) return override;
+  const ente = macroClickEnteCode();
+  if (!ente || macroClickEnv() === 'PRODUCTION') return null;
+  return `https://sandboxpp.asjservicios.com.ar:8110/${ente}`;
+}
+
+export function isMacroClickBotonSimpleConfigured(): boolean {
+  return Boolean(macroClickEnteCode() || process.env.MACRO_CLICK_DEBT_SEARCH_URL?.trim());
+}
+
 /** Public IPs / CIDRs from Click de Pago integration manual (notifications). */
 export const MACRO_CLICK_WEBHOOK_CIDRS = [
   '190.210.90.128/27',
