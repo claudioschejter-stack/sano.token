@@ -6,10 +6,15 @@ import { OnboardingStatusProvider } from '../../components/providers/OnboardingS
 /** Portal routes depend on session, Privy/Wagmi — skip static prerender at build time. */
 export const dynamic = 'force-dynamic';
 
-/** Short title so browser chrome (if any) shows "Sanova", not the marketing SEO string. */
+/** Absolute title — avoid root template appending "| Sanova Global" in Custom Tabs. */
 export const metadata: Metadata = {
-  title: 'Sanova',
-  applicationName: 'Sanova'
+  title: { absolute: 'Sanova' },
+  applicationName: 'Sanova',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Sanova'
+  }
 };
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {

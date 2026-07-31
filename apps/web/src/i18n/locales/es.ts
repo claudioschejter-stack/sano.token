@@ -2540,7 +2540,11 @@ export const es = {
       'La barra del navegador (X, título y dominio) solo desaparece si instalás Sanova y la abrís desde el ícono de la pantalla de inicio. Así cubre toda la pantalla, con huella o Face ID.',
     downloadYes: 'Instalar app',
     downloadNo: 'Seguir en el navegador',
-    browserBarHint: 'Estás en el navegador. Instalá la app para quitar esta barra y usar pantalla completa.'
+    browserBarTitle: 'Quitá la barra del navegador',
+    browserBarHint:
+      'Estás en Chrome/navegador, no en la app. Instalá Sanova y abrila desde el ícono de inicio para pantalla completa.',
+    browserInstallFallback:
+      'En Chrome: menú ⋮ → “Instalar app” o “Agregar a la pantalla de inicio”. Después abrí Sanova desde ese ícono (no desde el navegador).'
   },
   pwa: {
     installTitle: 'Instalá Sanova en tu celular',

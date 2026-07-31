@@ -103,7 +103,7 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
   const hasVaultSharesDelivery = Boolean(listing.vaultAddress);
 
   return (
-    <section className="mx-auto max-w-2xl pb-28 md:pb-0">
+    <section className="mx-auto max-w-2xl pb-40 md:pb-0">
       <Link href="/marketplace" className="mb-6 inline-flex items-center gap-2 text-sm text-terminal-muted hover:text-terminal-text">
         <ArrowLeft size={16} />
         {t.common.backToMarketplace}

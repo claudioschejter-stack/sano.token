@@ -1504,7 +1504,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             : c.confirmButton;
 
   return (
-    <section className="mx-auto max-w-3xl pb-28 md:pb-0">
+    <section className="mx-auto max-w-3xl pb-40 md:pb-0">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <Link
           href={mode === 'deposit' ? depositReturnTo : '/marketplace'}

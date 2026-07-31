@@ -2498,7 +2498,11 @@ export const en = {
       'The browser bar (X, title, and domain) only goes away when you install Sanova and open it from your home-screen icon. That gives you full screen plus fingerprint or Face ID.',
     downloadYes: 'Install app',
     downloadNo: 'Stay in the browser',
-    browserBarHint: 'You are in the browser. Install the app to remove this bar and go full screen.'
+    browserBarTitle: 'Remove the browser bar',
+    browserBarHint:
+      'You are in Chrome/browser, not the installed app. Install Sanova and open it from the home-screen icon for full screen.',
+    browserInstallFallback:
+      'In Chrome: menu ⋮ → “Install app” or “Add to Home screen”. Then open Sanova from that icon (not from the browser).'
   },
   pwa: {
     installTitle: "Install Sanova on your cell phone",
