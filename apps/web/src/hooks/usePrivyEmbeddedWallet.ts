@@ -1,6 +1,6 @@
 'use client';
 
-import { useCreateWallet, usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { createWalletClient, custom, type EIP1193Provider } from 'viem';
 import { base } from 'viem/chains';
@@ -21,7 +21,6 @@ export function usePrivyEmbeddedWallet() {
   const enabled = isPrivyEnabled();
   const { ready, authenticated, login, logout, user, getAccessToken } = usePrivy();
   const { ready: walletsReady, wallets } = useWallets();
-  const { createWallet } = useCreateWallet();
 
   // Privy creates the embedded wallet asynchronously right after login
   // (createOnLogin: 'users-without-wallets'), so `wallets` is frequently
@@ -73,12 +72,10 @@ export function usePrivyEmbeddedWallet() {
     if (!ready) {
       throw new Error('PRIVY_NOT_READY');
     }
-    if (!authenticated) {
-      await login();
-    }
 
-    // Automatic embedded wallet creation happens asynchronously right after
-    // login, so poll briefly for it instead of failing on the first check.
+    // Never call Privy `login()` — that pops a second email modal. Crypto pay
+    // is server-settled; client signing only works if Custom Auth already
+    // hydrated an embedded wallet into this session.
     const deadline = Date.now() + WALLET_POLL_TIMEOUT_MS;
     let wallet = findPrivyWallet(walletsRef.current);
     while (!wallet?.address && Date.now() < deadline) {
@@ -87,24 +84,9 @@ export function usePrivyEmbeddedWallet() {
     }
 
     if (!wallet?.address) {
-      // Automatic creation didn't land in time (or is disabled for this
-      // login method) — trigger it explicitly as a documented fallback.
-      try {
-        const created = (await createWallet()) as
-          | { address?: string; wallet?: { address?: string } }
-          | undefined;
-        const fallbackAddress =
-          created?.address ??
-          created?.wallet?.address ??
-          findPrivyWallet(walletsRef.current)?.address;
-        if (!fallbackAddress) {
-          throw new Error('PRIVY_WALLET_NOT_READY');
-        }
-        return fallbackAddress as `0x${string}`;
-      } catch (err) {
-        console.error('[usePrivyEmbeddedWallet] createWallet fallback failed', err);
-        throw new Error('PRIVY_WALLET_NOT_READY');
-      }
+      // Do NOT call createWallet() — that created a second embedded address
+      // and broke Ripio copy/paste vs server-linked destination.
+      throw new Error(authenticated ? 'PRIVY_WALLET_NOT_READY' : 'PRIVY_SESSION_REQUIRED');
     }
 
     try {
@@ -113,7 +95,7 @@ export function usePrivyEmbeddedWallet() {
       /* already on Base */
     }
     return wallet.address as `0x${string}`;
-  }, [authenticated, createWallet, enabled, login, ready]);
+  }, [authenticated, enabled, ready]);
 
   return {
     enabled,

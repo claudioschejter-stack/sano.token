@@ -1,4 +1,9 @@
 import { getAddress } from 'ethers';
+import { privyAppId } from './config';
+import {
+  buildPrivyAuthorizationSignature,
+  isPrivyAuthorizationSigningConfigured
+} from './privyAuthorizationSignature';
 import { privyApiBase, privyHeaders } from './privyHttp';
 
 export type PrivySendTransactionInput = {
@@ -8,20 +13,26 @@ export type PrivySendTransactionInput = {
   data?: string;
   value?: bigint;
   idempotencyKey?: string;
+  /** Privy gas sponsorship — required when investor wallet has 0 ETH. */
+  sponsor?: boolean;
+  /** Attach app authorization signature (needed for user-owned embedded wallets). */
+  requireAuthorizationSignature?: boolean;
 };
 
 function toHexQuantity(value: bigint): string {
   return `0x${value.toString(16)}`;
 }
 
-/** Broadcast an EVM transaction from a Privy server wallet. */
+/** Broadcast an EVM transaction from a Privy wallet (server or delegated user wallet). */
 export async function privySendTransaction(input: PrivySendTransactionInput): Promise<string> {
   const walletId = input.walletId.trim();
   if (!walletId) {
     throw new Error('PRIVY_WALLET_ID_NOT_CONFIGURED');
   }
 
-  const body = {
+  // Existing server-wallet callers use `/api/v1/...` on api.privy.io.
+  const url = `${privyApiBase()}/api/v1/wallets/${walletId}/rpc`;
+  const body: Record<string, unknown> = {
     method: 'eth_sendTransaction',
     caip2: `eip155:${input.chainId}`,
     params: {
@@ -34,11 +45,31 @@ export async function privySendTransaction(input: PrivySendTransactionInput): Pr
     }
   };
 
-  const response = await fetch(`${privyApiBase()}/api/v1/wallets/${walletId}/rpc`, {
+  if (input.sponsor) {
+    body.sponsor = true;
+  }
+
+  const needsAuth =
+    input.requireAuthorizationSignature !== false && isPrivyAuthorizationSigningConfigured();
+
+  const extraHeaders: Record<string, string> = {};
+  if (input.idempotencyKey?.trim()) {
+    extraHeaders['privy-idempotency-key'] = input.idempotencyKey.trim();
+  }
+  if (needsAuth) {
+    extraHeaders['privy-authorization-signature'] = buildPrivyAuthorizationSignature({
+      url,
+      body,
+      idempotencyKey: input.idempotencyKey
+    });
+  }
+
+  // Ensure app id is present for signature verification even if headers merge changes.
+  void privyAppId();
+
+  const response = await fetch(url, {
     method: 'POST',
-    headers: privyHeaders(
-      input.idempotencyKey ? { 'privy-idempotency-key': input.idempotencyKey } : undefined
-    ),
+    headers: privyHeaders(extraHeaders),
     body: JSON.stringify(body)
   });
 
