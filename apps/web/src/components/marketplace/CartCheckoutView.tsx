@@ -1035,13 +1035,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
             return null;
           }
           // Never pass a mismatched wagmi address into Sanova-linked checkout —
-          // that throws WALLET_MISMATCH. External pays use walletconnect_usdc.
-          const isExternalOption =
-            paymentOptionId === 'walletconnect_usdc' ||
-            paymentOptionId === 'electronic_wallet' ||
-            paymentOptionId === 'metamask_usdc' ||
-            paymentOptionId === 'binance_usdc';
-          const checkoutWallet = isExternalOption
+          // that throws WALLET_MISMATCH. External pays use walletconnect_usdc etc.
+          const checkoutWallet = isExternalUsdcPaymentOptionId(paymentOptionId)
             ? options?.walletAddress ?? linkedWalletAddress ?? undefined
             : linkedWalletAddress ?? undefined;
           const response = await fetch('/api/marketplace/cart/checkout', {
