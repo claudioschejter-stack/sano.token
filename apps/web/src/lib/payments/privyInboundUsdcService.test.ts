@@ -41,7 +41,12 @@ vi.mock('../investor/sanovaReceiveWallet', () => ({
 }));
 
 vi.mock('../portfolio/onChainUsdcReader', () => ({
-  readWalletUsdcBalances: vi.fn().mockResolvedValue([{ amountUsdc: 20 }])
+  readWalletUsdcBalances: vi.fn().mockResolvedValue([{ amountUsdc: 20 }]),
+  readWalletUsdcBalanceDetailed: vi.fn().mockResolvedValue({
+    ok: true,
+    amountUsdc: 20,
+    balances: [{ amountUsdc: 20 }]
+  })
 }));
 
 vi.mock('./stablecoinNetworks', () => ({
@@ -139,6 +144,7 @@ describe('scanPrivyInboundForUser readyToAutoSettle', () => {
 
     expect(result.address).toBe('0xb3116d28d070b5bab56221b2882dce663699cc76');
     expect(result.balanceUsdc).toBe(20);
+    expect(result.balanceKnown).toBe(true);
     expect(result.pendingPurchase?.batchId).toBe('cart-abc');
     expect(result.readyToAutoSettle).toBe(true);
   });
@@ -151,6 +157,33 @@ describe('scanPrivyInboundForUser readyToAutoSettle', () => {
     const result = await scanPrivyInboundForUser('user-1');
 
     expect(result.address).toBeNull();
+    expect(result.balanceKnown).toBe(true);
+    expect(result.readyToAutoSettle).toBe(false);
+  });
+
+  it('does not treat RPC balance failures as zero USDC', async () => {
+    const { readWalletUsdcBalanceDetailed } = await import('../portfolio/onChainUsdcReader');
+    vi.mocked(readWalletUsdcBalanceDetailed).mockResolvedValueOnce({
+      ok: false,
+      amountUsdc: null,
+      balances: [],
+      error: 'rate limited'
+    });
+    mockGetLinkedWallet.mockResolvedValue('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
+    mockFindManyIntents.mockResolvedValue([
+      {
+        id: 'pi-1',
+        amountUsd: { toString: () => '20' },
+        metadata: { cartBatchId: 'cart-abc' },
+        createdAt: new Date()
+      }
+    ]);
+
+    const { scanPrivyInboundForUser } = await import('./privyInboundUsdcService');
+    const result = await scanPrivyInboundForUser('user-1');
+
+    expect(result.balanceKnown).toBe(false);
+    expect(result.balanceUsdc).toBeNull();
     expect(result.readyToAutoSettle).toBe(false);
   });
 });

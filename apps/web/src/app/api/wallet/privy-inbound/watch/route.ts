@@ -26,6 +26,7 @@ export async function GET() {
       address: result.address,
       canonical: true,
       balanceUsdc: result.balanceUsdc,
+      balanceKnown: result.balanceKnown,
       newInbounds: result.newInbounds,
       pendingPurchase: result.pendingPurchase,
       readyToAutoSettle: result.readyToAutoSettle
