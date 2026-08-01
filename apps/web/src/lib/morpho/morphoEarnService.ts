@@ -32,12 +32,28 @@ const VAULT_LIST_QUERY = `
         state {
           totalAssetsUsd
           netApy
+          avgNetApy
+          weeklyNetApy
+          apy
         }
         asset { symbol }
       }
     }
   }
 `;
+
+function pickApyPercent(state?: {
+  netApy?: number | null;
+  avgNetApy?: number | null;
+  weeklyNetApy?: number | null;
+  apy?: number | null;
+} | null): number {
+  const candidates = [state?.netApy, state?.avgNetApy, state?.weeklyNetApy, state?.apy]
+    .map((value) => (typeof value === 'number' && Number.isFinite(value) ? value : null))
+    .filter((value): value is number => value != null && value > 0);
+  if (!candidates.length) return 0;
+  return Math.max(...candidates) * 100;
+}
 
 /**
  * Parses MORPHO_VAULT_ADDRESSES env var.
@@ -64,10 +80,15 @@ export function parseMorphoVaultConfigs(): MorphoVaultConfig[] {
     }
   }
 
-  // Default: Gauntlet USDC Prime + Steakhouse High Yield USDC on Base
+  // Default: Gauntlet USDC Prime + Steakhouse High Yield USDC v1.1 on Base.
+  // Note: 0xCBeeF… (High Yield Instant) often reports 0% APY when 100% idle in Morpho.
   return [
     { address: '0xeE8F4eC5672F09119b96Ab6fB59C27E1b7e44b61', displayName: 'Gauntlet USDC Prime', chainId: 8453 },
-    { address: '0xCBeeF01994E24a60f7DCB8De98e75AD8BD4Ad60d', displayName: 'Steakhouse High Yield USDC', chainId: 8453 }
+    {
+      address: '0xBEEFA7B88064FeEF0cEe02AAeBBd95D30df3878F',
+      displayName: 'Steakhouse High Yield USDC',
+      chainId: 8453
+    }
   ];
 }
 
@@ -102,7 +123,13 @@ export async function fetchMorphoVaultData(
       address: string;
       name: string;
       chain?: { id: number };
-      state?: { totalAssetsUsd?: number; netApy?: number };
+      state?: {
+        totalAssetsUsd?: number;
+        netApy?: number;
+        avgNetApy?: number;
+        weeklyNetApy?: number;
+        apy?: number;
+      };
       asset?: { symbol?: string };
     }> } };
     errors?: unknown[];
@@ -124,7 +151,7 @@ export async function fetchMorphoVaultData(
       assetSymbol: item.asset?.symbol ?? 'USDC',
       chainId: item.chain?.id ?? cfg?.chainId ?? 8453,
       tvlUsd: item.state?.totalAssetsUsd ?? 0,
-      netApyPercent: (item.state?.netApy ?? 0) * 100
+      netApyPercent: pickApyPercent(item.state)
     });
   }
 

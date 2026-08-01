@@ -25,7 +25,7 @@ type DepositStep =
   | 'done'
   | 'error';
 
-type PaymentTab = 'card' | 'crypto';
+type PaymentTab = 'sanova' | 'card' | 'crypto';
 
 type Props = {
   vault: PrivyEarnVaultRow;
@@ -33,18 +33,36 @@ type Props = {
 };
 
 function formatPercent(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return 'n/d';
   return `${value.toFixed(2)}%`;
+}
+
+function mapEarnError(message: string): string {
+  if (
+    message === 'PRIVY_SESSION_REQUIRED' ||
+    message === 'PRIVY_WALLET_NOT_READY' ||
+    message === 'PRIVY_WALLET_REQUIRED'
+  ) {
+    return 'Para tarjeta/Privy hace falta sesión Privy (Custom Auth). Preferí «USDC Sanova» (sin segundo login) o «Wallet externa».';
+  }
+  if (message === 'PRIVY_WALLET_ID_NOT_FOUND') {
+    return 'No encontramos tu wallet Sanova vinculada. Completá el alta de wallet en el perfil o usá «Wallet externa».';
+  }
+  if (message === 'PRIVY_SERVER_VAULT_DEPOSIT_NOT_CONFIGURED') {
+    return 'Falta configurar la clave de autorización Privy en el servidor. Mientras tanto usá «Wallet externa».';
+  }
+  return message;
 }
 
 export function PrivyEarnVaultDepositPanel({ vault, onClose }: Props) {
   const [amount, setAmount] = useState('100');
-  const [tab, setTab] = useState<PaymentTab>('card');
+  const { enabled, ready, authenticated, address, ensureReady } = usePrivyEmbeddedWallet();
+  const [tab, setTab] = useState<PaymentTab>('sanova');
   const [step, setStep] = useState<DepositStep>('input');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const { fund } = useFiatOnramp();
   const { fundWallet } = useFundWallet();
-  const { enabled, ready, authenticated, address, ensureReady } = usePrivyEmbeddedWallet();
   const { linkPrivyWallet, linking } = usePrivyWalletLink();
   const { depositToVaults } = usePrivyVaultDeposit();
   const { address: externalWalletAddress, isConnected: isExternalWalletConnected } = useAccount();
@@ -136,8 +154,11 @@ export function PrivyEarnVaultDepositPanel({ vault, onClose }: Props) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'DEPOSIT_FAILED';
       if (!msg.toLowerCase().includes('cancel') && !msg.toLowerCase().includes('closed')) {
-        setErrorMsg(msg);
+        setErrorMsg(mapEarnError(msg));
         setStep('error');
+        if (msg === 'PRIVY_SESSION_REQUIRED' || msg === 'PRIVY_WALLET_NOT_READY') {
+          setTab('crypto');
+        }
       } else {
         setStep('input');
       }
@@ -157,6 +178,49 @@ export function PrivyEarnVaultDepositPanel({ vault, onClose }: Props) {
     ready,
     vault.vaultAddress
   ]);
+
+  const runSanovaWalletDeposit = useCallback(async () => {
+    if (amountUsd <= 0) {
+      setErrorMsg('Ingresá un monto válido mayor a 0.');
+      setStep('error');
+      return;
+    }
+    if (!vault.vaultAddress) {
+      setErrorMsg('Dirección de bóveda no disponible.');
+      setStep('error');
+      return;
+    }
+
+    setErrorMsg(null);
+    setStep('depositing');
+
+    try {
+      const response = await fetch('/api/privy/earn/deposit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          useServerWallet: true,
+          deposits: [{ vaultAddress: vault.vaultAddress, amountUsd }],
+          idempotencyPrefix: `earn-sanova:${vault.vaultAddress}:${Date.now()}`
+        })
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        result?: { transactionHash?: string | null };
+      };
+      if (!response.ok || !data.result?.transactionHash) {
+        throw new Error(data.error ?? 'PRIVY_EARN_DEPOSIT_FAILED');
+      }
+      setStep('done');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'DEPOSIT_FAILED';
+      setErrorMsg(mapEarnError(msg));
+      setStep('error');
+      if (msg === 'PRIVY_SERVER_VAULT_DEPOSIT_NOT_CONFIGURED') {
+        setTab('crypto');
+      }
+    }
+  }, [amountUsd, vault.vaultAddress]);
 
   const runWalletDeposit = useCallback(async () => {
     if (amountUsd <= 0) {
@@ -256,29 +320,72 @@ export function PrivyEarnVaultDepositPanel({ vault, onClose }: Props) {
             <div className="flex gap-1 rounded-lg border border-terminal-border bg-terminal-card p-1">
               <button
                 type="button"
+                onClick={() => setTab('sanova')}
+                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] font-semibold transition-colors ${
+                  tab === 'sanova'
+                    ? 'bg-terminal-primary text-white'
+                    : 'text-terminal-muted hover:text-terminal-text'
+                }`}
+              >
+                <Wallet size={14} />
+                USDC Sanova
+              </button>
+              <button
+                type="button"
                 onClick={() => setTab('card')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
+                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] font-semibold transition-colors ${
                   tab === 'card'
                     ? 'bg-terminal-primary text-white'
                     : 'text-terminal-muted hover:text-terminal-text'
                 }`}
               >
                 <CreditCard size={14} />
-                Tarjeta / Privy
+                Tarjeta
               </button>
               <button
                 type="button"
                 onClick={() => setTab('crypto')}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-semibold transition-colors ${
+                className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-2 text-[11px] font-semibold transition-colors ${
                   tab === 'crypto'
                     ? 'bg-terminal-primary text-white'
                     : 'text-terminal-muted hover:text-terminal-text'
                 }`}
               >
                 <Wallet size={14} />
-                Wallet externa
+                Externa
               </button>
             </div>
+
+            {tab === 'sanova' ? (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-terminal-border bg-terminal-card p-3">
+                  <p className="text-xs font-semibold text-terminal-text">¿Cómo funciona?</p>
+                  <ol className="mt-2 list-inside list-decimal space-y-1 text-xs text-terminal-muted">
+                    <li>Usamos el USDC que ya tenés en tu wallet Sanova (Base)</li>
+                    <li>El depósito se firma del lado servidor (sin segundo login Privy)</li>
+                    <li>Recibís tokens ERC-4626 del fondo en la misma wallet</li>
+                  </ol>
+                </div>
+
+                {errorMsg ? (
+                  <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                    {errorMsg}
+                  </p>
+                ) : null}
+
+                <button
+                  type="button"
+                  disabled={busy || amountUsd <= 0}
+                  onClick={() => void runSanovaWalletDeposit()}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-terminal-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {busy ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+                  {step === 'depositing'
+                    ? `Depositando en ${vault.name}…`
+                    : `Depositar ${amountUsd > 0 ? `${amountUsd.toFixed(2)} USDC` : ''} desde Sanova`}
+                </button>
+              </div>
+            ) : null}
 
             {/* Card payment tab */}
             {tab === 'card' ? (

@@ -1,4 +1,8 @@
 import { isPrivyEarnConfigured, privyTreasuryWalletId, privyVaultId } from './config';
+import {
+  buildPrivyAuthorizationSignature,
+  isPrivyAuthorizationSigningConfigured
+} from './privyAuthorizationSignature';
 import { privyApiBase, privyHeaders } from './privyHttp';
 
 export type PrivyEarnAmountInput =
@@ -92,16 +96,24 @@ export async function depositToPrivyVault(input: PrivyEarnDepositInput) {
     ...(input.amount ? { amount: input.amount } : { raw_amount: input.raw_amount! })
   };
 
-  const response = await fetch(
-    `${privyApiBase()}/api/v1/wallets/${walletId}/earn/ethereum/deposit`,
-    {
-      method: 'POST',
-      headers: privyHeaders(
-        input.idempotencyKey ? { 'privy-idempotency-key': input.idempotencyKey } : undefined
-      ),
-      body: JSON.stringify(body)
-    }
-  );
+  const url = `${privyApiBase()}/api/v1/wallets/${walletId}/earn/ethereum/deposit`;
+  const extraHeaders: Record<string, string> = {};
+  if (input.idempotencyKey) {
+    extraHeaders['privy-idempotency-key'] = input.idempotencyKey;
+  }
+  if (isPrivyAuthorizationSigningConfigured()) {
+    extraHeaders['privy-authorization-signature'] = buildPrivyAuthorizationSignature({
+      url,
+      body,
+      idempotencyKey: input.idempotencyKey
+    });
+  }
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: privyHeaders(extraHeaders),
+    body: JSON.stringify(body)
+  });
 
   if (!response.ok) {
     const text = await response.text();

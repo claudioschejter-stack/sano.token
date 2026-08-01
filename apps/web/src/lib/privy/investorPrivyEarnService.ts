@@ -6,6 +6,7 @@ import {
 } from './config';
 import { depositToPrivyVault, getPrivyVaultAction, getPrivyWalletEarnPosition } from './earnApi';
 import { fetchPrivyUser, resolvePrivyEmbeddedWalletId } from './privyUserApi';
+import { resolveInvestorPrivyWalletIdForUser } from './resolveInvestorPrivyWalletId';
 import { verifyPrivyAccessToken } from './verifyAccessToken';
 import type { VaultDepositLine } from '../web3/vaultDepositPayment';
 
@@ -102,6 +103,47 @@ export function depositsEligibleForPrivyEarn(deposits: VaultDepositLine[]): bool
   );
 }
 
+async function depositLinesToWallet(input: {
+  walletId: string;
+  deposits: VaultDepositLine[];
+  idempotencyPrefix?: string;
+}): Promise<InvestorEarnDepositResult> {
+  let lastResult: InvestorEarnDepositResult | null = null;
+
+  for (const [index, line] of input.deposits.entries()) {
+    const vaultId = resolvePrivyEarnVaultId(line.vaultAddress);
+    if (!vaultId) {
+      throw new Error('PRIVY_EARN_VAULT_NOT_MAPPED');
+    }
+
+    const initiated = await depositToPrivyVault({
+      walletId: input.walletId,
+      vaultId,
+      amount: line.amountUsd.toFixed(6).replace(/\.?0+$/, ''),
+      idempotencyKey: input.idempotencyPrefix ? `${input.idempotencyPrefix}:${index}` : undefined
+    });
+
+    const settled = await waitForPrivyEarnAction({
+      walletId: input.walletId,
+      actionId: initiated.id
+    });
+
+    lastResult = {
+      actionId: initiated.id,
+      walletId: input.walletId,
+      vaultId,
+      status: settled.status,
+      transactionHash: settled.transactionHash
+    };
+  }
+
+  if (!lastResult?.transactionHash) {
+    throw new Error('PRIVY_EARN_DEPOSIT_TX_MISSING');
+  }
+
+  return lastResult;
+}
+
 export async function depositInvestorVaultsViaPrivyEarn(input: {
   privyAccessToken: string;
   walletAddress: string;
@@ -117,40 +159,38 @@ export async function depositInvestorVaultsViaPrivyEarn(input: {
     walletAddress: input.walletAddress
   });
 
-  let lastResult: InvestorEarnDepositResult | null = null;
+  return depositLinesToWallet({
+    walletId,
+    deposits: input.deposits,
+    idempotencyPrefix: input.idempotencyPrefix
+  });
+}
 
-  for (const [index, line] of input.deposits.entries()) {
-    const vaultId = resolvePrivyEarnVaultId(line.vaultAddress);
-    if (!vaultId) {
-      throw new Error('PRIVY_EARN_VAULT_NOT_MAPPED');
-    }
-
-    const initiated = await depositToPrivyVault({
-      walletId,
-      vaultId,
-      amount: line.amountUsd.toFixed(6).replace(/\.?0+$/, ''),
-      idempotencyKey: input.idempotencyPrefix ? `${input.idempotencyPrefix}:${index}` : undefined
-    });
-
-    const settled = await waitForPrivyEarnAction({
-      walletId,
-      actionId: initiated.id
-    });
-
-    lastResult = {
-      actionId: initiated.id,
-      walletId,
-      vaultId,
-      status: settled.status,
-      transactionHash: settled.transactionHash
-    };
+/**
+ * Server-side Earn deposit using the investor's linked Privy wallet (no client Privy session).
+ * Requires app authorization key when the wallet is user-owned.
+ */
+export async function depositInvestorVaultsViaServer(input: {
+  userId: string;
+  deposits: VaultDepositLine[];
+  idempotencyPrefix?: string;
+}): Promise<InvestorEarnDepositResult & { walletAddress: string }> {
+  if (!depositsEligibleForPrivyEarn(input.deposits)) {
+    throw new Error('PRIVY_EARN_DEPOSIT_NOT_ELIGIBLE');
   }
 
-  if (!lastResult?.transactionHash) {
-    throw new Error('PRIVY_EARN_DEPOSIT_TX_MISSING');
+  const resolved = await resolveInvestorPrivyWalletIdForUser(input.userId);
+  if (!resolved?.walletId) {
+    throw new Error('PRIVY_WALLET_ID_NOT_FOUND');
   }
 
-  return lastResult;
+  const result = await depositLinesToWallet({
+    walletId: resolved.walletId,
+    deposits: input.deposits,
+    idempotencyPrefix: input.idempotencyPrefix
+  });
+
+  return { ...result, walletAddress: resolved.address };
 }
 
 export async function readInvestorPrivyEarnPosition(input: {
