@@ -5,11 +5,14 @@ import {
   depositInvestorVaultsViaPrivyEarn,
   readInvestorPrivyEarnPosition
 } from '../../../../../lib/privy/investorPrivyEarnService';
+import { depositInvestorVaultFromSanovaWallet } from '../../../../../lib/privy/serverVaultDepositService';
 import type { VaultDepositLine } from '../../../../../lib/web3/vaultDepositPayment';
 
 export const dynamic = 'force-dynamic';
 
 type DepositBody = {
+  /** When true, deposit from the investor's linked Sanova/Privy wallet without a client Privy session. */
+  useServerWallet?: boolean;
   privyAccessToken?: string;
   walletAddress?: string;
   deposits?: VaultDepositLine[];
@@ -28,18 +31,35 @@ export async function POST(request: Request) {
 
   try {
     const body = (await request.json()) as DepositBody;
+    const deposits = body.deposits ?? [];
+
+    if (!deposits.length) {
+      return NextResponse.json({ error: 'VAULT_DEPOSIT_LINES_REQUIRED' }, { status: 400 });
+    }
+
+    if (body.useServerWallet) {
+      const result = await depositInvestorVaultFromSanovaWallet({
+        userId: ctx.userId,
+        deposits,
+        idempotencyPrefix: body.idempotencyPrefix?.trim() || `server:${ctx.userId}`
+      });
+      return NextResponse.json({
+        result: {
+          transactionHash: result.transactionHash,
+          walletAddress: result.walletAddress,
+          mode: result.mode
+        }
+      });
+    }
+
     const privyAccessToken = body.privyAccessToken?.trim();
     const walletAddress = body.walletAddress?.trim();
-    const deposits = body.deposits ?? [];
 
     if (!privyAccessToken) {
       return NextResponse.json({ error: 'PRIVY_TOKEN_REQUIRED' }, { status: 400 });
     }
     if (!walletAddress) {
       return NextResponse.json({ error: 'WALLET_ADDRESS_REQUIRED' }, { status: 400 });
-    }
-    if (!deposits.length) {
-      return NextResponse.json({ error: 'VAULT_DEPOSIT_LINES_REQUIRED' }, { status: 400 });
     }
 
     const result = await depositInvestorVaultsViaPrivyEarn({
@@ -57,7 +77,9 @@ export async function POST(request: Request) {
       message === 'PRIVY_TOKEN_REQUIRED' ||
       message === 'PRIVY_WALLET_ID_NOT_FOUND' ||
       message === 'PRIVY_EARN_DEPOSIT_NOT_ELIGIBLE' ||
-      message === 'PRIVY_EARN_VAULT_NOT_MAPPED'
+      message === 'PRIVY_EARN_VAULT_NOT_MAPPED' ||
+      message === 'PRIVY_SERVER_VAULT_DEPOSIT_NOT_CONFIGURED' ||
+      message === 'VAULT_DEPOSIT_LINES_REQUIRED'
         ? 400
         : 502;
     console.error('[privy/earn/deposit POST]', error);

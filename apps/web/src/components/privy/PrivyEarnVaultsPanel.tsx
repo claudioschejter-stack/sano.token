@@ -151,7 +151,7 @@ export function PrivyEarnVaultsPanel({ compact = false, hideChrome = false, clas
                         {p.apyLabel}
                       </p>
                       <p className="font-mono text-lg font-bold text-terminal-success">
-                        {formatPercent(vault.userApyPercent)}
+                        {vault.userApyPercent > 0 ? formatPercent(vault.userApyPercent) : 'n/d'}
                       </p>
                     </div>
 

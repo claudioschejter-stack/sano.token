@@ -12,6 +12,7 @@ import { useAccountStatus } from '../../hooks/useAccountStatus';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
 import { MP_ACCENT } from '../../lib/pwa/mpTheme';
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
+import type { InvestorActivityItem } from '../../lib/investor/investorActivityLedger';
 
 type WalletSummary = {
   account: { balance: string; reserved: string; available: string; currency: string; status: string };
@@ -67,15 +68,6 @@ function currencyFromBridgeLabel(label: string | null): string {
   const match = label?.match(/\b(USD|EUR|MXN)\b/i);
   return match?.[1]?.toLowerCase() ?? '';
 }
-
-type ActivityItem = {
-  id: string;
-  kind: string;
-  label: string;
-  amount: number;
-  status: string;
-  date: string;
-};
 
 type PositionRow = AggregatedPortfolio['positions'][number];
 
@@ -167,6 +159,9 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
   const [fiatIdentities, setFiatIdentities] = useState<LinkedFiatIdentityDto[]>([]);
   const [selectedWalletAddress, setSelectedWalletAddress] = useState<string | null>(null);
   const [fiatForm, setFiatForm] = useState<FiatWithdrawForm>(EMPTY_FIAT_FORM);
+  const [ledgerItems, setLedgerItems] = useState<InvestorActivityItem[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [fxNote, setFxNote] = useState<string | null>(null);
 
   const loadWallet = async () => {
     setIsLoadingWallet(true);
@@ -193,6 +188,46 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void fetch('/api/market/rates', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as {
+          rates?: { cryptoUsdPrices?: Record<string, number>; fetchedAt?: string };
+        };
+        const usdc = data.rates?.cryptoUsdPrices?.USDC ?? 1;
+        if (!cancelled) {
+          setFxNote(`Cotización USDC ≈ US$ ${usdc.toFixed(2)} (mercado libre · actualizado)`);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'history') return;
+    let cancelled = false;
+    setLedgerLoading(true);
+    void fetch('/api/investor/activity?limit=40', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as { items?: InvestorActivityItem[] };
+        if (!cancelled && Array.isArray(data.items)) {
+          setLedgerItems(data.items);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setLedgerLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab]);
+
+  useEffect(() => {
     if (activeTab !== 'withdraw') return;
     void (async () => {
       const response = await fetch('/api/wallet/linked-wallets', { cache: 'no-store' });
@@ -209,54 +244,6 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
       );
     })();
   }, [activeTab, checklist?.walletAddress]);
-
-  const activities = useMemo<ActivityItem[]>(() => {
-    if (!wallet) return [];
-
-    const ledgerLabel = (type: string) => {
-      switch (type) {
-        case 'DEPOSIT_CREDIT':
-          return w.ledgerDeposit;
-        case 'TOKEN_PURCHASE_DEBIT':
-          return w.ledgerPurchase;
-        case 'WITHDRAWAL_DEBIT':
-          return w.ledgerWithdrawal;
-        case 'REFUND_CREDIT':
-          return w.ledgerRefund;
-        default:
-          return type;
-      }
-    };
-
-    const items: ActivityItem[] = [
-      ...wallet.ledger.map((entry) => ({
-        id: entry.id,
-        kind: 'ledger',
-        label: ledgerLabel(entry.type),
-        amount: Number(entry.amount),
-        status: 'POSTED',
-        date: entry.createdAt
-      })),
-      ...wallet.deposits.map((entry) => ({
-        id: entry.id,
-        kind: 'deposit',
-        label: `${w.depositLabel} · ${entry.method}`,
-        amount: Number(entry.amountUsd),
-        status: entry.status,
-        date: entry.createdAt ?? new Date(0).toISOString()
-      })),
-      ...wallet.withdrawals.map((entry) => ({
-        id: entry.id,
-        kind: 'withdrawal',
-        label: `${w.withdrawalLabel} · ${entry.method}`,
-        amount: -Number(entry.amountUsd),
-        status: entry.status,
-        date: entry.createdAt ?? new Date(0).toISOString()
-      }))
-    ];
-
-    return items.sort((a, b) => b.date.localeCompare(a.date));
-  }, [wallet, w]);
 
   const submitWithdrawal = async (body: Record<string, unknown>) => {
     setStatus('withdrawing');
@@ -355,6 +342,10 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
 
   const available = wallet ? Number(wallet.account.available) : 0;
   const balance = wallet ? Number(wallet.account.balance) : 0;
+  // On-chain USDC (Privy Sanova wallet) is custody outside the ledger — include it in totals.
+  const onChainStablecoinUsd = sumPositionUsd(stablecoinPositions);
+  const displayBalance = balance + onChainStablecoinUsd;
+  const displayAvailable = available + onChainStablecoinUsd;
 
   const tabStyle = (tab: WalletTab) =>
     activeTab === tab
@@ -365,10 +356,16 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
     <div className="-mx-4 space-y-5 pb-2 font-sans">
       <div className="px-4">
         <h1 className="text-xl font-bold text-slate-900">{w.title}</h1>
-        <p className="mt-3 text-3xl font-bold text-slate-900">{formatUsd(balance)}</p>
+        <p className="mt-3 text-3xl font-bold text-slate-900">{formatUsd(displayBalance)}</p>
         <p className="mt-1 text-sm text-slate-500">
-          Disponible: <span className="font-semibold text-emerald-600">{formatUsd(available)}</span>
+          Disponible: <span className="font-semibold text-emerald-600">{formatUsd(displayAvailable)}</span>
         </p>
+        {onChainStablecoinUsd > 0 ? (
+          <p className="mt-1 text-[11px] text-slate-400">
+            Incluye {formatUsd(onChainStablecoinUsd)} USDC on-chain en tu wallet Sanova.
+          </p>
+        ) : null}
+        {fxNote ? <p className="mt-1 text-[11px] text-slate-400">{fxNote}</p> : null}
       </div>
 
       {!isLoadingPortfolio ? (
@@ -607,25 +604,40 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
       {activeTab === 'history' ? (
         <section className="px-4">
           <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100">
-            {activities.length === 0 ? (
+            {ledgerLoading && ledgerItems.length === 0 ? (
+              <p className="p-6 text-center text-sm text-slate-500">…</p>
+            ) : null}
+            {!ledgerLoading && ledgerItems.length === 0 ? (
               <p className="p-6 text-center text-sm text-slate-500">{w.historyEmpty}</p>
             ) : (
-              activities.map((item, idx) => (
+              ledgerItems.map((item, idx) => (
                 <article
-                  key={`${item.kind}-${item.id}`}
+                  key={item.id}
                   className={`p-4 ${idx !== 0 ? 'border-t border-slate-100' : ''}`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-slate-900">{item.label}</p>
-                      <p className="mt-1 text-xs text-slate-500">{formatDateTime(item.date)}</p>
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-900">{item.title}</p>
+                      <p className="mt-1 truncate text-xs text-slate-500">
+                        {item.subtitle ?? item.status}
+                        {item.source ? ` · origen ${item.source.slice(0, 10)}…` : ''}
+                        {item.destination ? ` · dest ${item.destination.slice(0, 10)}…` : ''}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-400">{formatDateTime(item.occurredAt)}</p>
                     </div>
-                    <p className={`font-bold ${item.amount >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      {item.amount >= 0 ? '+' : ''}
-                      {formatUsd(item.amount)}
+                    <p
+                      className={`shrink-0 font-bold ${
+                        item.amountUsd > 0
+                          ? 'text-emerald-600'
+                          : item.amountUsd < 0
+                            ? 'text-rose-600'
+                            : 'text-slate-700'
+                      }`}
+                    >
+                      {item.amountUsd > 0 ? '+' : ''}
+                      {formatUsd(item.amountUsd)}
                     </p>
                   </div>
-                  <p className="mt-1 text-xs text-slate-400">{item.status}</p>
                 </article>
               ))
             )}

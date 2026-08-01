@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
+  ArrowDownLeft,
+  ArrowUpRight,
   ChevronRight,
   Download,
   Eye,
@@ -15,8 +17,8 @@ import { useTranslation, useLocale } from '../../i18n/LocaleProvider';
 import { createIntlFormatters } from '../../i18n/formatters';
 import { formatMessage } from '../../i18n';
 import type { AggregatedPortfolio } from '../../lib/portfolio/portfolioAggregator';
+import type { InvestorActivityItem } from '../../lib/investor/investorActivityLedger';
 import { useDividendStore } from '../../store/useDividendStore';
-import { translateDistributionConcept } from '../../i18n/demoLabels';
 import { PwaPropertyCarousel } from './PwaPropertyCarousel';
 import { MP_ACCENT, MP_ACCENT_SOFT } from '../../lib/pwa/mpTheme';
 
@@ -24,6 +26,22 @@ type Props = {
   portfolio: AggregatedPortfolio | null;
   historicalYieldPercent: number | null;
 };
+
+function activityIcon(kind: InvestorActivityItem['kind']) {
+  if (kind === 'deposit' || kind === 'dividend' || kind === 'ledger_credit') {
+    return <ArrowDownLeft size={20} className="text-emerald-600" />;
+  }
+  if (kind === 'withdrawal' || kind === 'purchase' || kind === 'ledger_debit') {
+    return <ArrowUpRight size={20} className="text-rose-600" />;
+  }
+  return <TrendingUp size={20} />;
+}
+
+function amountClass(amountUsd: number): string {
+  if (amountUsd > 0) return 'font-bold text-emerald-600';
+  if (amountUsd < 0) return 'font-bold text-rose-600';
+  return 'font-bold text-slate-700';
+}
 
 export function PwaDashboard({ portfolio, historicalYieldPercent }: Props) {
   const t = useTranslation();
@@ -34,11 +52,32 @@ export function PwaDashboard({ portfolio, historicalYieldPercent }: Props) {
     [intlLocale]
   );
 
-  const distributions = useDividendStore((state) => state.distributions);
   const totalCashDividendsUsdc = useDividendStore((state) => state.totalCashDividendsUsdc);
   const [showBalance, setShowBalance] = useState(true);
+  const [activities, setActivities] = useState<InvestorActivityItem[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
 
   const totalBalance = (portfolio?.totals.totalValueUsd || 0) + totalCashDividendsUsdc;
+
+  useEffect(() => {
+    let cancelled = false;
+    setActivityLoading(true);
+    void fetch('/api/investor/activity?limit=8', { cache: 'no-store' })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = (await res.json()) as { items?: InvestorActivityItem[] };
+        if (!cancelled && Array.isArray(data.items)) {
+          setActivities(data.items);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled) setActivityLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="-mx-4 space-y-6 pb-2 font-sans">
@@ -112,33 +151,41 @@ export function PwaDashboard({ portfolio, historicalYieldPercent }: Props) {
         <h3 className="text-lg font-bold text-slate-900">{h.recentActivityTitle}</h3>
 
         <div className="mt-4 overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-slate-100">
-          {distributions.slice(0, 3).map((dist, idx) => (
+          {activityLoading && activities.length === 0 ? (
+            <div className="p-6 text-center text-sm text-slate-500">…</div>
+          ) : null}
+          {activities.slice(0, 6).map((item, idx) => (
             <div
-              key={dist.id}
+              key={item.id}
               className={`flex items-center gap-4 p-4 ${idx !== 0 ? 'border-t border-slate-100' : ''}`}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-white text-slate-600">
-                <TrendingUp size={20} />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-white">
+                {activityIcon(item.kind)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-slate-900">
-                  {translateDistributionConcept(dist.id, dist.concept, t)}
+                <p className="truncate font-semibold text-slate-900">{item.title}</p>
+                <p className="truncate text-sm text-slate-500">
+                  {item.subtitle ?? item.status}
+                  {item.source ? ` · origen ${item.source.slice(0, 10)}…` : ''}
+                  {item.destination ? ` · dest ${item.destination.slice(0, 10)}…` : ''}
                 </p>
-                <p className="text-sm text-slate-500">Dinero disponible</p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-emerald-600">+{formatUsdc(dist.amountUsdc)}</p>
-                <p className="text-xs text-slate-400">{formatDateTime(dist.date).split(',')[0]}</p>
+                <p className={amountClass(item.amountUsd)}>
+                  {item.amountUsd > 0 ? '+' : ''}
+                  {formatUsdc(Math.abs(item.amountUsd))}
+                </p>
+                <p className="text-xs text-slate-400">{formatDateTime(item.occurredAt)}</p>
               </div>
             </div>
           ))}
-          {distributions.length === 0 && (
+          {!activityLoading && activities.length === 0 ? (
             <div className="p-6 text-center text-sm text-slate-500">{h.recentActivityEmpty}</div>
-          )}
+          ) : null}
         </div>
 
         <Link
-          href="/dashboard/cash-flow"
+          href="/dashboard/portfolio?tab=wallet"
           className="mt-3 flex items-center justify-between rounded-2xl px-4 py-3 text-sm font-semibold"
           style={{ backgroundColor: MP_ACCENT_SOFT, color: MP_ACCENT }}
         >
