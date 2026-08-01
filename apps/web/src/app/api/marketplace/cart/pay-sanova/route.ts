@@ -7,7 +7,13 @@ import type { CartLineInput } from '../../../../../lib/payments/cartCheckoutServ
 import { paySanovaCartForUser } from '../../../../../lib/payments/paySanovaCartService';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 export const maxDuration = 60;
+
+/** Always JSON — never let framework HTML error pages leak to the checkout UI. */
+function jsonError(error: string, status: number, extra?: Record<string, unknown>) {
+  return NextResponse.json({ ok: false, status: 'failed', error, ...extra }, { status });
+}
 
 type Body = {
   items?: CartLineInput[];
@@ -36,16 +42,22 @@ const CLIENT_ERRORS = new Set([
  * create pending cart if needed → server-sign USDC payment → confirm tokens.
  */
 export async function POST(request: Request) {
-  const ctx = await requireMarketplacePurchaseSession();
-  if (!ctx) {
-    return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
-  }
-  if ('forbidden' in ctx) {
-    return investorSessionForbiddenResponse(ctx);
-  }
-
   try {
-    const body = (await request.json()) as Body;
+    const ctx = await requireMarketplacePurchaseSession();
+    if (!ctx) {
+      return jsonError('UNAUTHORIZED', 401);
+    }
+    if ('forbidden' in ctx) {
+      return investorSessionForbiddenResponse(ctx);
+    }
+
+    let body: Body = {};
+    try {
+      body = (await request.json()) as Body;
+    } catch {
+      return jsonError('INVALID_JSON_BODY', 400);
+    }
+
     const items = Array.isArray(body.items) ? body.items : [];
     const clientBalanceUsdc =
       typeof body.clientBalanceUsdc === 'number' && Number.isFinite(body.clientBalanceUsdc)
@@ -75,6 +87,6 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'PAY_SANOVA_FAILED';
     console.error('[marketplace/cart/pay-sanova]', error);
-    return NextResponse.json({ ok: false, status: 'failed', error: message }, { status: 500 });
+    return jsonError(message, 500);
   }
 }

@@ -2965,6 +2965,8 @@ export const en = {
     cryptoWalletAutoSettleError: "Could not complete automatic payment: {error}",
     cryptoWalletNoPendingPurchase:
       "We couldn’t create the purchase order automatically. Try “My wallet” (Coinbase / WalletConnect) or tap Pay again.",
+    cryptoWalletHtmlGatewayError:
+      "The server returned an invalid response (deploy may still be rolling out). Reload the page or pay with “My wallet” (Coinbase / WalletConnect).",
     cryptoWalletManualReview:
       "Your purchase is in manual review. Sanova will contact you — no need to pay again.",
     cryptoWalletLinkRequired:
