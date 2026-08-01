@@ -3007,6 +3007,14 @@ export const es = {
     cryptoWalletAutoSettleBalanceReadFailed:
       'No pudimos completar el pago automático todavía. Tocá Pagar de nuevo — no hace falta volver a loguearte en Privy. Si persiste, Sanova debe revisar la configuración de auto-settle.',
     cryptoWalletAutoSettleError: 'No se pudo completar el pago automático: {error}',
+    cryptoWalletNoPendingPurchase:
+      'No pudimos crear la orden de compra automáticamente. Probá «Mi wallet» (Coinbase / WalletConnect) o tocá Pagar de nuevo.',
+    cryptoWalletManualReview:
+      'Tu compra quedó en revisión manual. Sanova te contactará — no hace falta volver a pagar.',
+    cryptoWalletLinkRequired:
+      'Falta vincular tu wallet Sanova en el perfil para pagar en un toque. Mientras tanto usá «Mi wallet».',
+    cryptoWalletAllowlistRequired:
+      'Tu wallet aún no está habilitada (whitelist KYC). Completá la verificación o contactá a Sanova.',
     cryptoWalletSanovaAddressLabel: 'Dirección de tu cuenta Sanova (Base · USDC)',
     cryptoWalletQrHintPrivy: 'Escaneá desde Ripio u otra app para enviar USDC a tu wallet Sanova.',
     cryptoWalletPrivyAddress: 'Tu wallet Sanova',

@@ -1688,9 +1688,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               investorName={investorName}
               country={depositCountry}
               mode={mode === 'purchase' ? 'purchase' : 'deposit'}
+              cartItems={items.map((row) => ({ projectId: row.projectId, tokenCount: row.tokenCount }))}
               ensureReference={ensureSimplifiedCheckoutReference}
               className="py-[1mm]"
-              onFunded={() => setStatus('done')}
+              onFunded={() => {
+                clearCart();
+                setStatus('done');
+              }}
               onError={(message) => setError(message)}
             />
           ) : null}

@@ -1,51 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockIsAuthConfigured = vi.fn(() => false);
-const mockGetLinkedWallet = vi.fn();
-const mockReadBalance = vi.fn();
-const mockFindPending = vi.fn();
-const mockResolveWalletId = vi.fn();
+const mockPaySanova = vi.fn();
+const mockIsConfigured = vi.fn(() => false);
 
 vi.mock('@sanova/database', () => ({
   prisma: {
     paymentIntent: {
-      findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([])
     }
   }
 }));
 
-vi.mock('../privy/privyAuthorizationSignature', () => ({
-  isPrivyAuthorizationSigningConfigured: () => mockIsAuthConfigured()
-}));
-
-vi.mock('../investor/linkedWalletPolicy', () => ({
-  getLinkedWalletForUser: (...args: unknown[]) => mockGetLinkedWallet(...args)
-}));
-
-vi.mock('../portfolio/onChainUsdcReader', () => ({
-  readWalletUsdcBalances: vi.fn(),
-  readWalletUsdcBalanceDetailed: (...args: unknown[]) => mockReadBalance(...args)
-}));
-
-vi.mock('./privyInboundUsdcService', () => ({
-  findPendingUsdcCartPurchase: (...args: unknown[]) => mockFindPending(...args)
-}));
-
-vi.mock('../web3/usdcTreasuryTransfer', () => ({
-  prepareUsdcTreasuryPayment: vi.fn()
-}));
-
-vi.mock('../privy/resolveInvestorPrivyWalletId', () => ({
-  resolveInvestorPrivyWalletIdForUser: (...args: unknown[]) => mockResolveWalletId(...args)
-}));
-
-vi.mock('../privy/walletRpcApi', () => ({
-  privySendTransaction: vi.fn()
-}));
-
-vi.mock('./cartCheckoutService', () => ({
-  verifyCartUsdcPayment: vi.fn()
+vi.mock('./paySanovaCartService', () => ({
+  isPrivyServerAutoSettleConfigured: () => mockIsConfigured(),
+  paySanovaCartForUser: (...args: unknown[]) => mockPaySanova(...args)
 }));
 
 import { autoSettlePrivyCartForUser, isPrivyServerAutoSettleConfigured } from './privyAutoSettleService';
@@ -53,69 +21,28 @@ import { autoSettlePrivyCartForUser, isPrivyServerAutoSettleConfigured } from '.
 describe('privyAutoSettleService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.PRIVY_APP_SECRET;
-    mockIsAuthConfigured.mockReturnValue(false);
+    mockIsConfigured.mockReturnValue(false);
   });
 
-  it('reports not configured without authorization key + app secret', async () => {
+  it('reports not configured via paySanova helper', () => {
     expect(isPrivyServerAutoSettleConfigured()).toBe(false);
-    const result = await autoSettlePrivyCartForUser('user-1');
-    expect(result).toEqual({
-      ok: false,
-      status: 'not_configured',
-      error: 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
-    });
   });
 
-  it('uses clientBalanceUsdc when server RPC balance read fails', async () => {
-    process.env.PRIVY_APP_SECRET = 'secret';
-    mockIsAuthConfigured.mockReturnValue(true);
-    mockGetLinkedWallet.mockResolvedValue('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
-    mockReadBalance.mockResolvedValue({
-      ok: false,
-      amountUsdc: null,
-      balances: [],
-      error: 'RPC_BALANCE_READ_FAILED'
-    });
-    mockFindPending.mockResolvedValue({
-      batchId: 'cart-1',
-      amountUsd: 20,
-      intentIds: ['pi-1']
-    });
-    mockResolveWalletId.mockResolvedValue(null);
-
-    const result = await autoSettlePrivyCartForUser('user-1', { clientBalanceUsdc: 20 });
-    expect(result).toEqual({
-      ok: false,
-      status: 'failed',
-      error: 'PRIVY_WALLET_ID_NOT_FOUND'
-    });
-  });
-
-  it('returns waiting_funds when client balance is insufficient after RPC failure', async () => {
-    process.env.PRIVY_APP_SECRET = 'secret';
-    mockIsAuthConfigured.mockReturnValue(true);
-    mockGetLinkedWallet.mockResolvedValue('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
-    mockReadBalance.mockResolvedValue({
-      ok: false,
-      amountUsdc: null,
-      balances: [],
-      error: 'RPC_BALANCE_READ_FAILED'
-    });
-    mockFindPending.mockResolvedValue({
-      batchId: 'cart-1',
-      amountUsd: 20,
-      intentIds: ['pi-1']
-    });
-
-    const result = await autoSettlePrivyCartForUser('user-1', { clientBalanceUsdc: 5 });
-    expect(result).toEqual({
+  it('delegates settle to paySanovaCartForUser without cart items', async () => {
+    mockPaySanova.mockResolvedValue({
       ok: true,
       status: 'waiting_funds',
-      address: '0x840aed84455c3a30ef23a34a4d961bc3e1d06b41',
+      address: '0xabc',
       balanceUsdc: 5,
       amountUsd: 20
     });
-    expect(mockResolveWalletId).not.toHaveBeenCalled();
+
+    const result = await autoSettlePrivyCartForUser('user-1', { clientBalanceUsdc: 5 });
+    expect(mockPaySanova).toHaveBeenCalledWith({
+      userId: 'user-1',
+      items: [],
+      clientBalanceUsdc: 5
+    });
+    expect(result.status).toBe('waiting_funds');
   });
 });
