@@ -1495,7 +1495,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     );
   };
 
-  const displayTotalUsd = selectedDepositOption?.totalUsd ?? sortedDepositOptions.find((o) => o.configured)?.totalUsd ?? totalUsd;
+  // Simplified gateway checkout settles the cart total (not a deposit-option quote with extras).
+  const displayTotalUsd = paymentGatewayTabActive
+    ? totalUsd
+    : (selectedDepositOption?.totalUsd ??
+      sortedDepositOptions.find((o) => o.configured)?.totalUsd ??
+      totalUsd);
   const greetingName = investorFirstName(investorName);
 
   const confirmDisabled =

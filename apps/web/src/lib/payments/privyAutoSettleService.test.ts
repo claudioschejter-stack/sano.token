@@ -18,7 +18,8 @@ vi.mock('../investor/linkedWalletPolicy', () => ({
 }));
 
 vi.mock('../portfolio/onChainUsdcReader', () => ({
-  readWalletUsdcBalances: vi.fn()
+  readWalletUsdcBalances: vi.fn(),
+  readWalletUsdcBalanceDetailed: vi.fn()
 }));
 
 vi.mock('./privyInboundUsdcService', () => ({

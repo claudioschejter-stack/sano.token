@@ -2,7 +2,7 @@ import { prisma, Prisma } from '@sanova/database';
 import { ethers } from 'ethers';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { ensureSanovaReceiveWalletForUser } from '../investor/sanovaReceiveWallet';
-import { readWalletUsdcBalances } from '../portfolio/onChainUsdcReader';
+import { readWalletUsdcBalanceDetailed } from '../portfolio/onChainUsdcReader';
 import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 import { serializeDeposit } from './platformWalletService';
@@ -29,7 +29,8 @@ export type PrivyInboundRecord = {
 
 export type PrivyInboundScanResult = {
   address: string | null;
-  balanceUsdc: number;
+  balanceUsdc: number | null;
+  balanceKnown: boolean;
   newInbounds: PrivyInboundRecord[];
   recentInbounds: PrivyInboundRecord[];
   pendingPurchase: PendingPrivyPurchase | null;
@@ -248,6 +249,7 @@ export async function scanPrivyInboundForUser(userId: string): Promise<PrivyInbo
     return {
       address: null,
       balanceUsdc: 0,
+      balanceKnown: true,
       newInbounds: [],
       recentInbounds: await listRecentPrivyInbounds(userId),
       pendingPurchase,
@@ -255,8 +257,9 @@ export async function scanPrivyInboundForUser(userId: string): Promise<PrivyInbo
     };
   }
 
-  const balances = await readWalletUsdcBalances(address, ['BASE']);
-  const balanceUsdc = balances.reduce((sum, row) => sum + row.amountUsdc, 0);
+  const balanceRead = await readWalletUsdcBalanceDetailed(address, ['BASE']);
+  const balanceKnown = balanceRead.ok;
+  const balanceUsdc = balanceRead.ok ? balanceRead.amountUsdc : null;
 
   const network = getStablecoinNetwork('BASE');
   const newInbounds: PrivyInboundRecord[] = [];
@@ -326,10 +329,13 @@ export async function scanPrivyInboundForUser(userId: string): Promise<PrivyInbo
   }
 
   const readyToAutoSettle = Boolean(
-    pendingPurchase && balanceUsdc + 1e-9 >= pendingPurchase.amountUsd
+    pendingPurchase &&
+      balanceKnown &&
+      balanceUsdc != null &&
+      balanceUsdc + 1e-9 >= pendingPurchase.amountUsd
   );
 
-  if (readyToAutoSettle && pendingPurchase) {
+  if (readyToAutoSettle && pendingPurchase && balanceUsdc != null) {
     await markPendingCartInboundReady({
       userId,
       batchId: pendingPurchase.batchId,
@@ -341,6 +347,7 @@ export async function scanPrivyInboundForUser(userId: string): Promise<PrivyInbo
   return {
     address,
     balanceUsdc,
+    balanceKnown,
     newInbounds,
     recentInbounds: await listRecentPrivyInbounds(userId),
     pendingPurchase,

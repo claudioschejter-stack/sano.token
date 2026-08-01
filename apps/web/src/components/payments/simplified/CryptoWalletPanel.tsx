@@ -13,6 +13,8 @@ import type { EnsureCheckoutReference } from './SimplifiedCheckout';
 const QR_SIZE = 220;
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPC = process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
+/** Require this many consecutive low-balance reads before dropping out of "ready to pay". */
+const LOW_BALANCE_CONFIRMATIONS = 2;
 
 function buildEip681Uri(toAddress: string, amountUsdc: number): string {
   const uint256 = Math.round(amountUsdc * 1e6);
@@ -37,6 +39,7 @@ type Props = {
 /**
  * Crypto checkout — server-canonical receive address + server auto-settle.
  * Never opens Privy login / client signing for purchases.
+ * Balance UI is sticky: transient RPC failures must not flip pay ↔ deposit screens.
  */
 export function CryptoWalletPanel({
   cryptoWallet,
@@ -54,17 +57,21 @@ export function CryptoWalletPanel({
   const [confirmed, setConfirmed] = useState(false);
   const [settleError, setSettleError] = useState<string | null>(null);
   const [balanceUsdc, setBalanceUsdc] = useState<number | null>(null);
+  const [requiredUsdc, setRequiredUsdc] = useState(amountUsd);
   const [serverAddress, setServerAddress] = useState<string | null>(null);
   const [resolvingAddress, setResolvingAddress] = useState(true);
+  const [fundsReady, setFundsReady] = useState(false);
   const [autoSettleStatus, setAutoSettleStatus] = useState<'idle' | 'waiting_funds' | 'settling' | 'done'>(
     'idle'
   );
   const settleStarted = useRef(false);
+  const lowBalanceStreak = useRef(0);
+  const lastKnownBalance = useRef<number | null>(null);
 
   const onFundedRef = useRef(onFunded);
   onFundedRef.current = onFunded;
 
-  const amountUsdc = amountUsd;
+  const amountUsdc = requiredUsdc > 0 ? requiredUsdc : amountUsd;
   const receiveAddress = normalizeAddress(
     resolveDisplayReceiveAddress({
       serverLinkedAddress: serverAddress,
@@ -72,25 +79,57 @@ export function CryptoWalletPanel({
     })
   );
 
-  const refreshBalance = useCallback(async (wallet?: string | null) => {
-    const addr = wallet?.trim();
-    if (!addr) {
-      setBalanceUsdc(null);
-      return null;
-    }
-    try {
-      const provider = new JsonRpcProvider(BASE_RPC);
-      const token = new Contract(USDC_BASE, ['function balanceOf(address) view returns (uint256)'], provider);
-      const raw = (await token.balanceOf(addr)) as bigint;
-      const balance = Number(formatUnits(raw, 6));
-      setBalanceUsdc(balance);
-      provider.destroy();
-      return balance;
-    } catch {
-      setBalanceUsdc(null);
-      return null;
-    }
-  }, []);
+  const applyBalance = useCallback(
+    (next: number | null, known: boolean) => {
+      if (!known || next == null || !Number.isFinite(next)) {
+        // Keep last known balance on transient RPC failures — never flash 0.
+        if (lastKnownBalance.current != null) {
+          setBalanceUsdc(lastKnownBalance.current);
+        }
+        return;
+      }
+
+      lastKnownBalance.current = next;
+      setBalanceUsdc(next);
+
+      const enough = next + 1e-9 >= amountUsdc;
+      if (enough) {
+        lowBalanceStreak.current = 0;
+        setFundsReady(true);
+        return;
+      }
+
+      lowBalanceStreak.current += 1;
+      if (lowBalanceStreak.current >= LOW_BALANCE_CONFIRMATIONS) {
+        setFundsReady(false);
+      }
+    },
+    [amountUsdc]
+  );
+
+  const refreshBalanceRpc = useCallback(
+    async (wallet?: string | null) => {
+      const addr = wallet?.trim();
+      if (!addr) return null;
+      try {
+        const provider = new JsonRpcProvider(BASE_RPC);
+        const token = new Contract(USDC_BASE, ['function balanceOf(address) view returns (uint256)'], provider);
+        const raw = (await token.balanceOf(addr)) as bigint;
+        const balance = Number(formatUnits(raw, 6));
+        provider.destroy();
+        if (Number.isFinite(balance)) {
+          applyBalance(balance, true);
+          return balance;
+        }
+        applyBalance(null, false);
+        return null;
+      } catch {
+        applyBalance(null, false);
+        return null;
+      }
+    },
+    [applyBalance]
+  );
 
   const resolveServerAddress = useCallback(async () => {
     setResolvingAddress(true);
@@ -104,15 +143,26 @@ export function CryptoWalletPanel({
       if (watchRes.ok) {
         const watchData = (await watchRes.json()) as {
           address?: string | null;
-          balanceUsdc?: number;
+          balanceUsdc?: number | null;
+          balanceKnown?: boolean;
+          pendingPurchase?: { amountUsd?: number } | null;
         };
         const fromWatch = normalizeAddress(watchData.address);
         if (fromWatch) {
           setServerAddress(fromWatch);
-          if (typeof watchData.balanceUsdc === 'number') {
-            setBalanceUsdc(watchData.balanceUsdc);
+          if (
+            watchData.pendingPurchase &&
+            typeof watchData.pendingPurchase.amountUsd === 'number' &&
+            watchData.pendingPurchase.amountUsd > 0
+          ) {
+            setRequiredUsdc(watchData.pendingPurchase.amountUsd);
+          }
+          if (watchData.balanceKnown === false) {
+            await refreshBalanceRpc(fromWatch);
+          } else if (typeof watchData.balanceUsdc === 'number') {
+            applyBalance(watchData.balanceUsdc, true);
           } else {
-            await refreshBalance(fromWatch);
+            await refreshBalanceRpc(fromWatch);
           }
           return fromWatch;
         }
@@ -126,7 +176,7 @@ export function CryptoWalletPanel({
       const fromProvision = normalizeAddress(provisionData.walletAddress);
       if (provisionRes.ok && fromProvision) {
         setServerAddress(fromProvision);
-        await refreshBalance(fromProvision);
+        await refreshBalanceRpc(fromProvision);
         return fromProvision;
       }
       return null;
@@ -135,20 +185,21 @@ export function CryptoWalletPanel({
     } finally {
       setResolvingAddress(false);
     }
-  }, [refreshBalance]);
+  }, [applyBalance, refreshBalanceRpc]);
 
   useEffect(() => {
     void resolveServerAddress();
   }, [resolveServerAddress]);
 
   useEffect(() => {
+    setRequiredUsdc((prev) => (prev > 0 ? prev : amountUsd));
+  }, [amountUsd]);
+
+  useEffect(() => {
     if (!ensureReference || mode !== 'purchase') return;
     void ensureReference('USDC_ONCHAIN');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensureReference, mode]);
-
-  const hasEnough =
-    balanceUsdc != null && Number.isFinite(balanceUsdc) && balanceUsdc + 1e-9 >= amountUsdc;
 
   const triggerServerSettle = useCallback(async () => {
     if (mode !== 'purchase' || confirmed) return false;
@@ -163,7 +214,16 @@ export function CryptoWalletPanel({
         ok?: boolean;
         status?: string;
         error?: string;
+        amountUsd?: number;
+        balanceUsdc?: number;
       };
+
+      if (typeof data.amountUsd === 'number' && data.amountUsd > 0) {
+        setRequiredUsdc(data.amountUsd);
+      }
+      if (typeof data.balanceUsdc === 'number') {
+        applyBalance(data.balanceUsdc, true);
+      }
 
       if (res.ok && data.ok && data.status === 'settled') {
         setConfirmed(true);
@@ -179,7 +239,7 @@ export function CryptoWalletPanel({
       }
 
       settleStarted.current = false;
-      setAutoSettleStatus(hasEnough ? 'idle' : 'waiting_funds');
+      setAutoSettleStatus(fundsReady ? 'idle' : 'waiting_funds');
       if (data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || data.status === 'not_configured') {
         setSettleError(sc.cryptoWalletAutoSettleNotConfigured);
       } else {
@@ -190,14 +250,26 @@ export function CryptoWalletPanel({
       return false;
     } catch (error) {
       settleStarted.current = false;
-      setAutoSettleStatus(hasEnough ? 'idle' : 'waiting_funds');
+      setAutoSettleStatus(fundsReady ? 'idle' : 'waiting_funds');
       const message = error instanceof Error ? error.message : 'FAILED';
       setSettleError(sc.cryptoWalletAutoSettleError.replace('{error}', message));
       return false;
     }
-  }, [confirmed, hasEnough, mode, sc.cryptoWalletAutoSettleError, sc.cryptoWalletAutoSettleNotConfigured]);
+  }, [
+    applyBalance,
+    confirmed,
+    fundsReady,
+    mode,
+    sc.cryptoWalletAutoSettleError,
+    sc.cryptoWalletAutoSettleNotConfigured
+  ]);
 
-  // Poll watch + auto-settle when funds cover the cart (purchase mode).
+  const triggerServerSettleRef = useRef(triggerServerSettle);
+  triggerServerSettleRef.current = triggerServerSettle;
+  const amountUsdcRef = useRef(amountUsdc);
+  amountUsdcRef.current = amountUsdc;
+
+  // Single poller via watch API (RPC fallback only when balanceKnown=false).
   useEffect(() => {
     if (confirmed) return;
     let cancelled = false;
@@ -208,40 +280,61 @@ export function CryptoWalletPanel({
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as {
           address?: string | null;
-          balanceUsdc?: number;
+          balanceUsdc?: number | null;
+          balanceKnown?: boolean;
           readyToAutoSettle?: boolean;
           newInbounds?: unknown[];
+          pendingPurchase?: { amountUsd?: number } | null;
         };
         const watched = normalizeAddress(data.address);
         if (watched) setServerAddress(watched);
-        if (typeof data.balanceUsdc === 'number') setBalanceUsdc(data.balanceUsdc);
+        if (
+          data.pendingPurchase &&
+          typeof data.pendingPurchase.amountUsd === 'number' &&
+          data.pendingPurchase.amountUsd > 0
+        ) {
+          setRequiredUsdc(data.pendingPurchase.amountUsd);
+        }
+
+        if (data.balanceKnown === false) {
+          await refreshBalanceRpc(watched);
+        } else if (typeof data.balanceUsdc === 'number') {
+          applyBalance(data.balanceUsdc, true);
+        }
+
+        const need = amountUsdcRef.current;
 
         if (mode === 'deposit') {
+          const bal = lastKnownBalance.current;
           if (
-            (typeof data.balanceUsdc === 'number' && data.balanceUsdc + 1e-9 >= amountUsdc) ||
+            (bal != null && bal + 1e-9 >= need) ||
             (data.newInbounds && data.newInbounds.length > 0)
           ) {
             setConfirmed(true);
             setAutoSettleStatus('done');
             onFundedRef.current?.();
           } else {
-            setAutoSettleStatus('waiting_funds');
+            setAutoSettleStatus((prev) => (prev === 'done' ? prev : 'waiting_funds'));
           }
           return;
         }
 
         const ready =
           data.readyToAutoSettle ||
-          (typeof data.balanceUsdc === 'number' && data.balanceUsdc + 1e-9 >= amountUsdc);
+          (lastKnownBalance.current != null && lastKnownBalance.current + 1e-9 >= need);
+
+        if (ready) {
+          setFundsReady(true);
+        }
 
         if (ready && !settleStarted.current) {
           settleStarted.current = true;
-          await triggerServerSettle();
+          await triggerServerSettleRef.current();
         } else if (!ready) {
           setAutoSettleStatus((prev) => (prev === 'settling' || prev === 'done' ? prev : 'waiting_funds'));
         }
       } catch {
-        /* ignore */
+        /* ignore transient poll errors */
       }
     };
 
@@ -253,16 +346,7 @@ export function CryptoWalletPanel({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [amountUsdc, confirmed, mode, triggerServerSettle]);
-
-  useEffect(() => {
-    void refreshBalance(receiveAddress);
-    if (!receiveAddress) return;
-    const id = window.setInterval(() => {
-      void refreshBalance(receiveAddress);
-    }, 8000);
-    return () => window.clearInterval(id);
-  }, [receiveAddress, refreshBalance]);
+  }, [applyBalance, confirmed, mode, refreshBalanceRpc]);
 
   const eip681Uri = receiveAddress ? buildEip681Uri(receiveAddress, amountUsdc) : null;
 
@@ -331,6 +415,9 @@ export function CryptoWalletPanel({
       </div>
     ) : null;
 
+  const showPayUi = mode === 'purchase' && fundsReady;
+  const showDepositUi = !fundsReady;
+
   return (
     <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
       <div className="flex items-center gap-3">
@@ -381,17 +468,16 @@ export function CryptoWalletPanel({
             </div>
           ) : !receiveAddress ? (
             <p className="text-[11px] leading-relaxed text-terminal-muted">{sc.cryptoWalletPrivyLoginHint}</p>
-          ) : balanceUsdc == null ? (
+          ) : (
             <>
+              {/* Address stays mounted so the layout does not jump between pay/deposit states. */}
+              {showDepositUi ? (
+                <p className="text-xs leading-relaxed text-terminal-text">{sc.cryptoWalletInsufficientCopyPaste}</p>
+              ) : null}
               {addressBlock}
-              <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
-                <Loader2 size={12} className="animate-spin text-terminal-primary" />
-                {sc.cryptoWalletPrivyPreparing}
-              </div>
-            </>
-          ) : hasEnough ? (
-            <>
-              {mode === 'purchase' ? (
+              {showDepositUi ? qrBlock : null}
+
+              {showPayUi ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -408,28 +494,19 @@ export function CryptoWalletPanel({
                   )}
                   {autoSettleStatus === 'settling' ? sc.cryptoWalletAutoSettling : sc.cryptoWalletPayButton}
                 </button>
-              ) : (
-                <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-success/40 bg-terminal-success/10 px-3 py-2 text-[11px] text-terminal-success">
-                  <CheckCircle2 size={12} />
-                  {sc.cryptoWalletDepositReceivedBody}
-                </div>
-              )}
+              ) : null}
+
               {autoSettleStatus === 'settling' ? (
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-3 py-2 text-[11px] text-terminal-primary">
                   <Loader2 size={12} className="animate-spin" />
                   {sc.cryptoWalletAutoSettling}
                 </div>
+              ) : showDepositUi ? (
+                <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
+                  <Loader2 size={12} className="animate-spin text-terminal-primary" />
+                  {mode === 'purchase' ? sc.cryptoWalletAutoSettleWaiting : sc.cryptoWalletWaitingDeposit}
+                </div>
               ) : null}
-            </>
-          ) : (
-            <>
-              <p className="text-xs leading-relaxed text-terminal-text">{sc.cryptoWalletInsufficientCopyPaste}</p>
-              {addressBlock}
-              {qrBlock}
-              <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
-                <Loader2 size={12} className="animate-spin text-terminal-primary" />
-                {mode === 'purchase' ? sc.cryptoWalletAutoSettleWaiting : sc.cryptoWalletWaitingDeposit}
-              </div>
             </>
           )}
 

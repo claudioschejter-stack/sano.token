@@ -4,7 +4,7 @@ import { isPrivyAuthorizationSigningConfigured } from '../privy/privyAuthorizati
 import { resolveInvestorPrivyWalletIdForUser } from '../privy/resolveInvestorPrivyWalletId';
 import { privySendTransaction } from '../privy/walletRpcApi';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
-import { readWalletUsdcBalances } from '../portfolio/onChainUsdcReader';
+import { readWalletUsdcBalanceDetailed } from '../portfolio/onChainUsdcReader';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 import { verifyCartUsdcPayment } from './cartCheckoutService';
 
@@ -32,8 +32,13 @@ export async function autoSettlePrivyCartForUser(userId: string): Promise<PrivyA
   }
 
   const address = await getLinkedWalletForUser(userId);
-  const balances = address ? await readWalletUsdcBalances(address, ['BASE']) : [];
-  const balanceUsdc = balances.reduce((sum, row) => sum + row.amountUsdc, 0);
+  const balanceRead = address
+    ? await readWalletUsdcBalanceDetailed(address, ['BASE'])
+    : ({ ok: true, amountUsdc: 0, balances: [] } as const);
+  if (!balanceRead.ok) {
+    return { ok: false, status: 'failed', error: 'USDC_BALANCE_READ_FAILED' };
+  }
+  const balanceUsdc = balanceRead.amountUsdc;
 
   const pending = await findPendingUsdcCartPurchase(userId);
   if (!pending) {
