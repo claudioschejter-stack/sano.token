@@ -1,9 +1,11 @@
 'use client';
 
 import { Copy, Wallet, CheckCircle2, QrCode, Loader2 } from 'lucide-react';
+import { waitForTransactionReceipt, writeContract } from '@wagmi/core';
 import { Contract, JsonRpcProvider, formatUnits } from 'ethers';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAccount } from 'wagmi';
+import { erc20Abi, parseUnits } from 'viem';
+import { useAccount, useConfig, useSwitchChain } from 'wagmi';
 import { formatMessage } from '../../../i18n';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
@@ -33,10 +35,6 @@ function normalizeAddress(value?: string | null): string | null {
   return trimmed ? trimmed : null;
 }
 
-function autoSettleStorageKey(address: string, amount: number): string {
-  return `sanova:crypto-autosettle:${address.toLowerCase()}:${amount.toFixed(2)}`;
-}
-
 type Props = {
   cryptoWallet: SimplifiedCryptoWalletMethod;
   treasuryAddress: string | null;
@@ -49,9 +47,10 @@ type Props = {
 };
 
 /**
- * Frictionless crypto checkout:
- * 1) Sanova wallet — server settle when funded (no Privy login modal)
- * 2) External wallet — Coinbase / WalletConnect → USDC to treasury → cart confirm
+ * Manual crypto checkout (no auto-pay):
+ * - Enough USDC in Sanova embedded wallet → show Pagar; settle only on tap
+ * - Not enough → show address/QR + connect wallet to fund the embedded wallet
+ * - Optional: pay directly from an external wallet (Coinbase / WalletConnect)
  */
 export function CryptoWalletPanel({
   cryptoWallet,
@@ -64,6 +63,8 @@ export function CryptoWalletPanel({
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
   const { isDesktop } = useDeviceDetection();
+  const config = useConfig();
+  const { switchChainAsync } = useSwitchChain();
   const { address: externalAddress, isConnected: isExternalConnected } = useAccount();
   const { payToTreasury } = useUsdcTreasuryPayment();
 
@@ -74,6 +75,8 @@ export function CryptoWalletPanel({
   const [settleError, setSettleError] = useState<string | null>(null);
   const [externalError, setExternalError] = useState<string | null>(null);
   const [externalPaying, setExternalPaying] = useState(false);
+  const [fundingError, setFundingError] = useState<string | null>(null);
+  const [fundingSending, setFundingSending] = useState(false);
   const [balanceUsdc, setBalanceUsdc] = useState<number | null>(null);
   const [requiredUsdc, setRequiredUsdc] = useState(amountUsd);
   const [serverAddress, setServerAddress] = useState<string | null>(null);
@@ -85,12 +88,15 @@ export function CryptoWalletPanel({
   const balanceRef = useRef<number | null>(null);
   const requiredRef = useRef(amountUsd);
   requiredRef.current = requiredUsdc > 0 ? requiredUsdc : amountUsd;
-  const autoSettleFired = useRef(false);
   const mountedRef = useRef(true);
 
   const amountUsdc = requiredUsdc > 0 ? requiredUsdc : amountUsd;
   const hasEnoughSanova =
     balanceUsdc != null && Number.isFinite(balanceUsdc) && balanceUsdc + 1e-9 >= amountUsdc;
+  const fundShortfallUsdc = Math.max(
+    0,
+    Math.round((amountUsdc - (balanceUsdc ?? 0)) * 1e6) / 1e6
+  );
   const receiveAddress = normalizeAddress(
     resolveDisplayReceiveAddress({
       serverLinkedAddress: serverAddress,
@@ -148,26 +154,20 @@ export function CryptoWalletPanel({
     ]
   );
 
-  const latchReady = useCallback(() => {
+  const applyKnownBalance = useCallback((next: number) => {
+    if (!Number.isFinite(next)) return;
+    balanceRef.current = next;
+    setBalanceUsdc(next);
     if (phaseRef.current === 'done' || phaseRef.current === 'settling') return;
-    setPhase('ready');
-  }, []);
 
-  const applyKnownBalance = useCallback(
-    (next: number) => {
-      if (!Number.isFinite(next)) return;
-      balanceRef.current = next;
-      setBalanceUsdc(next);
-      const need = requiredRef.current;
-      if (next + 1e-9 >= need) {
-        latchReady();
-        setPayPath((current) => (current === 'external' ? current : 'sanova'));
-      } else if (phaseRef.current === 'loading' || phaseRef.current === 'needs_funds') {
-        setPhase('needs_funds');
-      }
-    },
-    [latchReady]
-  );
+    const need = requiredRef.current;
+    if (next + 1e-9 >= need) {
+      setPhase('ready');
+      setPayPath((current) => (current === 'external' ? current : 'sanova'));
+    } else {
+      setPhase('needs_funds');
+    }
+  }, []);
 
   const readClientBalance = useCallback(async (wallet: string): Promise<number | null> => {
     try {
@@ -182,145 +182,181 @@ export function CryptoWalletPanel({
     }
   }, []);
 
-  const runSettle = useCallback(
-    async (source: 'auto' | 'manual') => {
-      if (mode !== 'purchase') return;
-      if (phaseRef.current === 'done') return;
-      if (phaseRef.current === 'settling') return;
+  /** Manual only — never called automatically on balance ready. */
+  const runSettle = useCallback(async () => {
+    if (mode !== 'purchase') return;
+    if (phaseRef.current === 'done' || phaseRef.current === 'settling') return;
+    if (balanceRef.current == null || balanceRef.current + 1e-9 < requiredRef.current) {
+      setSettleError(sc.cryptoWalletInsufficientPrivy);
+      setPhase('needs_funds');
+      return;
+    }
 
-      setPhase('settling');
-      setSettleError(null);
+    setPhase('settling');
+    setSettleError(null);
 
-      try {
-        type SettlePayload = {
-          ok?: boolean;
-          status?: string;
-          error?: string;
-          amountUsd?: number;
-          balanceUsdc?: number | null;
-        };
+    try {
+      type SettlePayload = {
+        ok?: boolean;
+        status?: string;
+        error?: string;
+        amountUsd?: number;
+        balanceUsdc?: number | null;
+      };
 
-        const applySettlePayload = (data: SettlePayload, httpOk: boolean) => {
-          if (typeof data.amountUsd === 'number' && data.amountUsd > 0) {
-            setRequiredUsdc(data.amountUsd);
-            requiredRef.current = data.amountUsd;
-          }
-          if (typeof data.balanceUsdc === 'number') {
-            applyKnownBalance(data.balanceUsdc);
-          }
+      const primaryRes = await fetch('/api/marketplace/cart/pay-sanova', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          items: cartItems,
+          clientBalanceUsdc: balanceRef.current
+        })
+      });
+      let parsed = await readJsonResponse<SettlePayload>(primaryRes);
 
-          if (httpOk && data.ok && data.status === 'settled') {
-            setPhase('done');
-            if (receiveAddress) {
-              try {
-                sessionStorage.setItem(autoSettleStorageKey(receiveAddress, requiredRef.current), 'done');
-              } catch {
-                /* ignore */
-              }
-            }
-            onFundedRef.current?.();
-            return 'settled' as const;
-          }
-
-          if (data.status === 'waiting_funds') {
-            autoSettleFired.current = false;
-            setPhase('needs_funds');
-            return 'waiting' as const;
-          }
-
-          return 'failed' as const;
-        };
-
-        // Atomic path: create pending cart (if needed) + server settle in one request.
-        const primaryRes = await fetch('/api/marketplace/cart/pay-sanova', {
+      if (
+        parsed.errorCode === 'PAY_ENDPOINT_NOT_FOUND' ||
+        parsed.errorCode === 'INVALID_JSON_RESPONSE' ||
+        (parsed.errorCode?.endsWith('_HTML_RESPONSE') ?? false)
+      ) {
+        if (ensureReference) {
+          await ensureReference('USDC_ONCHAIN').catch(() => null);
+        }
+        const fallbackRes = await fetch('/api/wallet/privy-inbound/settle', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            items: cartItems,
-            clientBalanceUsdc: balanceRef.current
-          })
+          body: JSON.stringify({ clientBalanceUsdc: balanceRef.current })
         });
-        let parsed = await readJsonResponse<SettlePayload>(primaryRes);
+        parsed = await readJsonResponse<SettlePayload>(fallbackRes);
+      }
 
-        // Fallback when the new route is missing/HTML on a stale edge node:
-        // create checkout reference, then use the older settle endpoint.
-        if (
-          parsed.errorCode === 'PAY_ENDPOINT_NOT_FOUND' ||
-          parsed.errorCode === 'INVALID_JSON_RESPONSE' ||
-          (parsed.errorCode?.endsWith('_HTML_RESPONSE') ?? false)
-        ) {
-          if (ensureReference) {
-            await ensureReference('USDC_ONCHAIN').catch(() => null);
-          }
-          const fallbackRes = await fetch('/api/wallet/privy-inbound/settle', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ clientBalanceUsdc: balanceRef.current })
-          });
-          parsed = await readJsonResponse<SettlePayload>(fallbackRes);
-        }
+      if (!mountedRef.current) return;
 
-        if (!mountedRef.current) return;
+      if (typeof parsed.data.amountUsd === 'number' && parsed.data.amountUsd > 0) {
+        setRequiredUsdc(parsed.data.amountUsd);
+        requiredRef.current = parsed.data.amountUsd;
+      }
+      if (typeof parsed.data.balanceUsdc === 'number') {
+        applyKnownBalance(parsed.data.balanceUsdc);
+      }
 
-        const outcome = applySettlePayload(parsed.data, parsed.ok);
-        if (outcome === 'settled' || outcome === 'waiting') {
-          return;
-        }
+      if (parsed.ok && parsed.data.ok && parsed.data.status === 'settled') {
+        setPhase('done');
+        onFundedRef.current?.();
+        return;
+      }
 
-        if (parsed.data.status === 'no_pending_purchase') {
-          setSettleError(mapSettleError(parsed.data.error ?? 'NO_PENDING_PURCHASE'));
-          setPhase('ready');
-          setPayPath('external');
-          return;
-        }
+      if (parsed.data.status === 'waiting_funds') {
+        setPhase('needs_funds');
+        setSettleError(sc.cryptoWalletInsufficientPrivy);
+        return;
+      }
 
-        const code =
-          parsed.data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
-          parsed.data.status === 'not_configured'
-            ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
-            : (parsed.errorCode ??
-              parsed.data.error ??
-              parsed.data.status ??
-              'FAILED');
-        setSettleError(mapSettleError(code));
-        setPhase(hasEnoughSanova ? 'ready' : 'needs_funds');
-        if (
-          code === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
-          code === 'PRIVY_WALLET_ID_NOT_FOUND' ||
-          code === 'NO_PENDING_PURCHASE' ||
-          code === 'PAY_ENDPOINT_NOT_FOUND' ||
-          code === 'INVALID_JSON_RESPONSE' ||
-          String(code).endsWith('_HTML_RESPONSE')
-        ) {
-          setPayPath('external');
-        }
-        if (source === 'auto' && receiveAddress) {
-          try {
-            sessionStorage.setItem(autoSettleStorageKey(receiveAddress, requiredRef.current), 'failed');
-          } catch {
-            /* ignore */
-          }
-        }
-      } catch (error) {
-        if (!mountedRef.current) return;
-        const message = error instanceof Error ? error.message : 'FAILED';
-        setSettleError(mapSettleError(message));
-        setPhase('ready');
+      const code =
+        parsed.data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
+        parsed.data.status === 'not_configured'
+          ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
+          : (parsed.errorCode ?? parsed.data.error ?? parsed.data.status ?? 'FAILED');
+      setSettleError(mapSettleError(code));
+      setPhase(
+        balanceRef.current != null && balanceRef.current + 1e-9 >= requiredRef.current
+          ? 'ready'
+          : 'needs_funds'
+      );
+      if (
+        code === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
+        code === 'PRIVY_WALLET_ID_NOT_FOUND' ||
+        code === 'PAY_ENDPOINT_NOT_FOUND' ||
+        code === 'INVALID_JSON_RESPONSE' ||
+        String(code).endsWith('_HTML_RESPONSE')
+      ) {
         setPayPath('external');
       }
-    },
-    [
-      applyKnownBalance,
-      cartItems,
-      ensureReference,
-      hasEnoughSanova,
-      mapSettleError,
-      mode,
-      receiveAddress
-    ]
-  );
+    } catch (error) {
+      if (!mountedRef.current) return;
+      const message = error instanceof Error ? error.message : 'FAILED';
+      setSettleError(mapSettleError(message));
+      setPhase('ready');
+    }
+  }, [
+    applyKnownBalance,
+    cartItems,
+    ensureReference,
+    mapSettleError,
+    mode,
+    sc.cryptoWalletInsufficientPrivy
+  ]);
+
+  /** Top up the Sanova embedded wallet from a connected external wallet (not treasury pay). */
+  const fundSanovaFromExternal = useCallback(async () => {
+    if (!receiveAddress) {
+      setFundingError(sc.cryptoWalletPrivyUnavailable);
+      return;
+    }
+    if (!isExternalConnected || !externalAddress) {
+      setFundingError(sc.cryptoWalletExternalConnectFirst);
+      return;
+    }
+    if (fundingSending || phaseRef.current === 'done' || phaseRef.current === 'settling') return;
+
+    const sendAmount = fundShortfallUsdc > 0 ? fundShortfallUsdc : amountUsdc;
+    if (sendAmount <= 0) return;
+
+    setFundingSending(true);
+    setFundingError(null);
+
+    try {
+      try {
+        await switchChainAsync({ chainId: 8453 });
+      } catch {
+        /* wallet may already be on Base */
+      }
+
+      const hash = (await writeContract(config, {
+        chainId: 8453,
+        address: USDC_BASE as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'transfer',
+        args: [receiveAddress as `0x${string}`, parseUnits(sendAmount.toFixed(6), 6)]
+      } as unknown as Parameters<typeof writeContract>[1])) as `0x${string}`;
+
+      await waitForTransactionReceipt(config, { hash });
+
+      if (!mountedRef.current) return;
+      const bal = await readClientBalance(receiveAddress);
+      if (bal != null) applyKnownBalance(bal);
+    } catch (error) {
+      if (!mountedRef.current) return;
+      const message = error instanceof Error ? error.message : 'FUND_FAILED';
+      if (
+        message.toLowerCase().includes('reject') ||
+        message.toLowerCase().includes('denied') ||
+        message.toLowerCase().includes('cancel')
+      ) {
+        setFundingError(null);
+      } else {
+        setFundingError(sc.cryptoWalletFundSendError.replace('{error}', message));
+      }
+    } finally {
+      if (mountedRef.current) setFundingSending(false);
+    }
+  }, [
+    amountUsdc,
+    applyKnownBalance,
+    config,
+    externalAddress,
+    fundShortfallUsdc,
+    fundingSending,
+    isExternalConnected,
+    readClientBalance,
+    receiveAddress,
+    sc.cryptoWalletExternalConnectFirst,
+    sc.cryptoWalletFundSendError,
+    sc.cryptoWalletPrivyUnavailable,
+    switchChainAsync
+  ]);
 
   const payWithExternalWallet = useCallback(async () => {
     if (mode !== 'purchase') return;
@@ -359,9 +395,9 @@ export function CryptoWalletPanel({
           walletAddress: externalAddress
         })
       });
-      const confirmData = (await confirmRes.json()) as { error?: string };
-      if (!confirmRes.ok) {
-        throw new Error(confirmData.error ?? 'STABLECOIN_VERIFY_FAILED');
+      const confirmParsed = await readJsonResponse<{ error?: string }>(confirmRes);
+      if (!confirmParsed.ok) {
+        throw new Error(confirmParsed.errorCode ?? confirmParsed.data.error ?? 'STABLECOIN_VERIFY_FAILED');
       }
 
       if (!mountedRef.current) return;
@@ -399,7 +435,7 @@ export function CryptoWalletPanel({
     sc.cryptoWalletExternalPayError
   ]);
 
-  // Mount-only: provision + first watch. No dependency churn / remount flicker.
+  // Mount: provision wallet + read balance. Do NOT create checkout / settle here.
   useEffect(() => {
     mountedRef.current = true;
     let cancelled = false;
@@ -411,10 +447,6 @@ export function CryptoWalletPanel({
           credentials: 'same-origin'
         }).catch(() => undefined);
 
-        if (ensureReference && mode === 'purchase') {
-          await ensureReference('USDC_ONCHAIN').catch(() => null);
-        }
-
         const watchRes = await fetch('/api/wallet/privy-inbound/watch', { cache: 'no-store' });
         if (cancelled) return;
 
@@ -425,9 +457,9 @@ export function CryptoWalletPanel({
             balanceUsdc?: number | null;
             balanceKnown?: boolean;
             pendingPurchase?: { amountUsd?: number } | null;
-            readyToAutoSettle?: boolean;
           };
           address = normalizeAddress(watchData.address);
+          // Prefer the cart total from props; only override if watch reports a live pending amount.
           if (
             watchData.pendingPurchase &&
             typeof watchData.pendingPurchase.amountUsd === 'number' &&
@@ -444,8 +476,6 @@ export function CryptoWalletPanel({
             const bal = await readClientBalance(address);
             if (!cancelled && bal != null) applyKnownBalance(bal);
           }
-
-          if (watchData.readyToAutoSettle) latchReady();
         }
 
         if (!address) {
@@ -481,9 +511,9 @@ export function CryptoWalletPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Poll balance / watch — never downgrades ready → needs_funds.
+  // Poll balance while waiting for funds / ready — never auto-pays.
   useEffect(() => {
-    if (phase === 'done') return;
+    if (phase === 'done' || phase === 'settling') return;
     let cancelled = false;
 
     const tick = async () => {
@@ -494,21 +524,12 @@ export function CryptoWalletPanel({
           address?: string | null;
           balanceUsdc?: number | null;
           balanceKnown?: boolean;
-          readyToAutoSettle?: boolean;
           newInbounds?: unknown[];
           pendingPurchase?: { amountUsd?: number } | null;
         };
 
         const watched = normalizeAddress(data.address);
         if (watched) setServerAddress(watched);
-        if (
-          data.pendingPurchase &&
-          typeof data.pendingPurchase.amountUsd === 'number' &&
-          data.pendingPurchase.amountUsd > 0
-        ) {
-          setRequiredUsdc(data.pendingPurchase.amountUsd);
-          requiredRef.current = data.pendingPurchase.amountUsd;
-        }
 
         if (data.balanceKnown !== false && typeof data.balanceUsdc === 'number') {
           applyKnownBalance(data.balanceUsdc);
@@ -526,10 +547,7 @@ export function CryptoWalletPanel({
             setPhase('done');
             onFundedRef.current?.();
           }
-          return;
         }
-
-        if (data.readyToAutoSettle) latchReady();
       } catch {
         /* ignore */
       }
@@ -543,31 +561,7 @@ export function CryptoWalletPanel({
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [applyKnownBalance, latchReady, mode, phase, readClientBalance]);
-
-  // Auto-settle once when Sanova path is ready (skip if prior attempt failed this session).
-  useEffect(() => {
-    if (mode !== 'purchase') return;
-    if (payPath !== 'sanova') return;
-    if (phase !== 'ready') return;
-    if (autoSettleFired.current) return;
-
-    const addr = receiveAddress;
-    if (addr) {
-      try {
-        const prior = sessionStorage.getItem(autoSettleStorageKey(addr, amountUsdc));
-        if (prior === 'failed' || prior === 'done') {
-          autoSettleFired.current = true;
-          return;
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-
-    autoSettleFired.current = true;
-    void runSettle('auto');
-  }, [amountUsdc, mode, payPath, phase, receiveAddress, runSettle]);
+  }, [applyKnownBalance, mode, phase, readClientBalance]);
 
   const eip681Uri = receiveAddress ? buildEip681Uri(receiveAddress, amountUsdc) : null;
 
@@ -722,68 +716,102 @@ export function CryptoWalletPanel({
                 </div>
               ) : !receiveAddress ? (
                 <p className="text-[11px] leading-relaxed text-terminal-muted">{sc.cryptoWalletPrivyLoginHint}</p>
+              ) : hasEnoughSanova && mode === 'purchase' ? (
+                <>
+                  <p className="text-xs leading-relaxed text-terminal-text">{sc.cryptoWalletSanovaManualPayHint}</p>
+                  <button
+                    type="button"
+                    onClick={() => void runSettle()}
+                    disabled={phase === 'settling'}
+                    className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3.5 text-sm font-bold text-white shadow-lg disabled:opacity-60"
+                  >
+                    {phase === 'settling' ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Wallet size={16} />
+                    )}
+                    {phase === 'settling'
+                      ? sc.cryptoWalletAutoSettling
+                      : formatMessage(sc.cryptoWalletPayButtonAmount, {
+                          amount: amountUsdc.toFixed(2)
+                        })}
+                  </button>
+                </>
               ) : (
                 <>
-                  {hasEnoughSanova && mode === 'purchase' ? (
-                    <p className="text-xs leading-relaxed text-terminal-text">{sc.cryptoWalletSanovaReadyHint}</p>
-                  ) : (
-                    <p className="text-xs leading-relaxed text-terminal-text">
-                      {sc.cryptoWalletInsufficientCopyPaste}
-                    </p>
-                  )}
+                  <p className="text-xs leading-relaxed text-terminal-text">
+                    {sc.cryptoWalletFundEmbeddedHint}
+                  </p>
+                  {addressBlock}
+                  {qrBlock}
 
-                  {!hasEnoughSanova ? (
-                    <>
-                      {addressBlock}
-                      {qrBlock}
-                    </>
-                  ) : null}
-
-                  {mode === 'purchase' && (phase === 'ready' || phase === 'settling' || hasEnoughSanova) ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        autoSettleFired.current = true;
-                        if (receiveAddress) {
-                          try {
-                            sessionStorage.removeItem(autoSettleStorageKey(receiveAddress, amountUsdc));
-                          } catch {
-                            /* ignore */
-                          }
-                        }
-                        void runSettle('manual');
-                      }}
-                      disabled={phase === 'settling' || !hasEnoughSanova}
-                      className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3.5 text-sm font-bold text-white shadow-lg disabled:opacity-60"
-                    >
-                      {phase === 'settling' ? (
-                        <Loader2 size={16} className="animate-spin" />
+                  {mode === 'purchase' ? (
+                    <div className="space-y-2 rounded-xl border border-terminal-border bg-terminal-card p-3">
+                      <p className="text-[11px] font-semibold text-terminal-text">
+                        {sc.cryptoWalletFundFromWalletTitle}
+                      </p>
+                      <p className="text-[11px] leading-relaxed text-terminal-muted">
+                        {sc.cryptoWalletFundFromWalletBody}
+                      </p>
+                      {!isExternalConnected ? (
+                        <>
+                          <CoinbaseConnectButton showAccount={false} />
+                          <div className="text-center text-[10px] text-terminal-muted">
+                            {sc.cryptoWalletExternalOr}
+                          </div>
+                          <WalletConnectConnectButton />
+                        </>
                       ) : (
-                        <Wallet size={16} />
+                        <>
+                          <div className="rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-muted">
+                              {sc.cryptoWalletExternalConnectedLabel}
+                            </p>
+                            <p className="mt-0.5 break-all font-mono text-xs text-terminal-text">
+                              {externalAddress}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={fundingSending || (fundShortfallUsdc <= 0 && amountUsdc <= 0)}
+                            onClick={() => void fundSanovaFromExternal()}
+                            className="flex w-full min-h-11 items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3 text-sm font-bold text-white disabled:opacity-60"
+                          >
+                            {fundingSending ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              <Wallet size={16} />
+                            )}
+                            {fundingSending
+                              ? sc.cryptoWalletFundSending
+                              : formatMessage(sc.cryptoWalletFundSendButton, {
+                                  amount: (fundShortfallUsdc > 0 ? fundShortfallUsdc : amountUsdc).toFixed(
+                                    2
+                                  )
+                                })}
+                          </button>
+                          <CoinbaseConnectButton showAccount />
+                        </>
                       )}
-                      {phase === 'settling'
-                        ? sc.cryptoWalletAutoSettling
-                        : formatMessage(sc.cryptoWalletPayFromPrivyButton, {
-                            amount: amountUsdc.toFixed(2)
-                          })}
-                    </button>
+                      {fundingError ? (
+                        <p className="text-[11px] leading-relaxed text-red-500">{fundingError}</p>
+                      ) : null}
+                    </div>
                   ) : null}
 
-                  {!hasEnoughSanova && mode === 'purchase' ? (
+                  <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
+                    <Loader2 size={12} className="animate-spin text-terminal-primary" />
+                    {sc.cryptoWalletWaitingForFunds}
+                  </div>
+
+                  {mode === 'purchase' ? (
                     <button
                       type="button"
                       onClick={() => setPayPath('external')}
                       className="w-full rounded-lg border border-terminal-border bg-terminal-card px-3 py-2.5 text-xs font-semibold text-terminal-primary"
                     >
-                      {sc.cryptoWalletSwitchToExternal}
+                      {sc.cryptoWalletSwitchToExternalPay}
                     </button>
-                  ) : null}
-
-                  {!hasEnoughSanova ? (
-                    <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
-                      <Loader2 size={12} className="animate-spin text-terminal-primary" />
-                      {mode === 'purchase' ? sc.cryptoWalletAutoSettleWaiting : sc.cryptoWalletWaitingDeposit}
-                    </div>
                   ) : null}
                 </>
               )}
