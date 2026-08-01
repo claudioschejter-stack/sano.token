@@ -15,12 +15,33 @@ export type StablecoinNetwork = {
 
 export const DEFAULT_STABLECOIN_NETWORK: StablecoinNetworkId = 'BASE';
 
+/** Canonical Base mainnet USDC — used when env is missing so server balance/settle cannot silently fail. */
+export const DEFAULT_BASE_USDC_TOKEN_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+
+const BASE_RPC_FALLBACKS = [
+  'https://mainnet.base.org',
+  'https://base.publicnode.com',
+  'https://base.llamarpc.com',
+  'https://1rpc.io/base'
+] as const;
+
+export function baseRpcUrls(): string[] {
+  const primary =
+    envString('BASE_RPC_URL') ||
+    envString('NEXT_PUBLIC_BASE_RPC_URL') ||
+    envString('LENDING_BASE_RPC_URL');
+  const urls = [primary, ...BASE_RPC_FALLBACKS].filter((url): url is string => Boolean(url));
+  return [...new Set(urls)];
+}
+
 export function stablecoinNetworks(): StablecoinNetwork[] {
   const sharedTreasury =
     process.env.STABLECOIN_TREASURY_ADDRESS?.trim() ||
     process.env.TOKEN_TREASURY_ADDRESS?.trim() ||
     process.env.SANOVA_TREASURY_ADDRESS?.trim() ||
     null;
+
+  const rpcUrls = baseRpcUrls();
 
   return [
     {
@@ -30,9 +51,13 @@ export function stablecoinNetworks(): StablecoinNetwork[] {
       chainId: envNumber('BASE_STABLECOIN_CHAIN_ID', envNumber('STABLECOIN_CHAIN_ID', 8453)),
       symbol: 'USDC',
       decimals: envNumber('BASE_USDC_DECIMALS', envNumber('USDC_DECIMALS', 6)),
-      tokenAddress: envString('BASE_USDC_TOKEN_ADDRESS') || envString('USDC_TOKEN_ADDRESS'),
+      tokenAddress:
+        envString('BASE_USDC_TOKEN_ADDRESS') ||
+        envString('USDC_TOKEN_ADDRESS') ||
+        envString('NEXT_PUBLIC_BASE_USDC_ADDRESS') ||
+        DEFAULT_BASE_USDC_TOKEN_ADDRESS,
       treasuryAddress: envString('BASE_STABLECOIN_TREASURY_ADDRESS') || sharedTreasury,
-      rpcUrl: envString('BASE_RPC_URL') || 'https://mainnet.base.org',
+      rpcUrl: rpcUrls[0] ?? 'https://mainnet.base.org',
       cheapestRank: 1
     }
   ];

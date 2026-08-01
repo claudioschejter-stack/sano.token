@@ -15,6 +15,8 @@ const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPC = process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 /** Require this many consecutive low-balance reads before dropping out of "ready to pay". */
 const LOW_BALANCE_CONFIRMATIONS = 2;
+/** After a hard settle failure, do not auto-retry (stops Pagar ↔ Pagando flicker). */
+const SETTLE_AUTO_RETRY_COOLDOWN_MS = 60_000;
 
 function buildEip681Uri(toAddress: string, amountUsdc: number): string {
   const uint256 = Math.round(amountUsdc * 1e6);
@@ -65,6 +67,7 @@ export function CryptoWalletPanel({
     'idle'
   );
   const settleStarted = useRef(false);
+  const settleCooldownUntil = useRef(0);
   const lowBalanceStreak = useRef(0);
   const lastKnownBalance = useRef<number | null>(null);
 
@@ -201,6 +204,23 @@ export function CryptoWalletPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ensureReference, mode]);
 
+  const mapSettleError = useCallback(
+    (errorCode: string) => {
+      if (errorCode === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED') {
+        return sc.cryptoWalletAutoSettleNotConfigured;
+      }
+      if (errorCode === 'USDC_BALANCE_READ_FAILED' || errorCode === 'RPC_BALANCE_READ_FAILED') {
+        return sc.cryptoWalletAutoSettleBalanceReadFailed;
+      }
+      return sc.cryptoWalletAutoSettleError.replace('{error}', errorCode);
+    },
+    [
+      sc.cryptoWalletAutoSettleBalanceReadFailed,
+      sc.cryptoWalletAutoSettleError,
+      sc.cryptoWalletAutoSettleNotConfigured
+    ]
+  );
+
   const triggerServerSettle = useCallback(async () => {
     if (mode !== 'purchase' || confirmed) return false;
     setAutoSettleStatus('settling');
@@ -228,6 +248,7 @@ export function CryptoWalletPanel({
       if (res.ok && data.ok && data.status === 'settled') {
         setConfirmed(true);
         setAutoSettleStatus('done');
+        settleCooldownUntil.current = 0;
         onFundedRef.current?.();
         return true;
       }
@@ -238,31 +259,27 @@ export function CryptoWalletPanel({
         return false;
       }
 
+      // Hard failure: keep Pagar visible, block auto-retry so UI does not flicker.
       settleStarted.current = false;
-      setAutoSettleStatus(fundsReady ? 'idle' : 'waiting_funds');
+      settleCooldownUntil.current = Date.now() + SETTLE_AUTO_RETRY_COOLDOWN_MS;
+      setAutoSettleStatus('idle');
+      setFundsReady(true);
       if (data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || data.status === 'not_configured') {
-        setSettleError(sc.cryptoWalletAutoSettleNotConfigured);
+        setSettleError(mapSettleError('PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'));
       } else {
-        setSettleError(
-          sc.cryptoWalletAutoSettleError.replace('{error}', data.error ?? data.status ?? 'FAILED')
-        );
+        setSettleError(mapSettleError(data.error ?? data.status ?? 'FAILED'));
       }
       return false;
     } catch (error) {
       settleStarted.current = false;
-      setAutoSettleStatus(fundsReady ? 'idle' : 'waiting_funds');
+      settleCooldownUntil.current = Date.now() + SETTLE_AUTO_RETRY_COOLDOWN_MS;
+      setAutoSettleStatus('idle');
+      setFundsReady(true);
       const message = error instanceof Error ? error.message : 'FAILED';
-      setSettleError(sc.cryptoWalletAutoSettleError.replace('{error}', message));
+      setSettleError(mapSettleError(message));
       return false;
     }
-  }, [
-    applyBalance,
-    confirmed,
-    fundsReady,
-    mode,
-    sc.cryptoWalletAutoSettleError,
-    sc.cryptoWalletAutoSettleNotConfigured
-  ]);
+  }, [applyBalance, confirmed, mapSettleError, mode]);
 
   const triggerServerSettleRef = useRef(triggerServerSettle);
   triggerServerSettleRef.current = triggerServerSettle;
@@ -327,7 +344,10 @@ export function CryptoWalletPanel({
           setFundsReady(true);
         }
 
-        if (ready && !settleStarted.current) {
+        const canAutoSettle =
+          ready && !settleStarted.current && Date.now() >= settleCooldownUntil.current;
+
+        if (canAutoSettle) {
           settleStarted.current = true;
           await triggerServerSettleRef.current();
         } else if (!ready) {
@@ -481,6 +501,7 @@ export function CryptoWalletPanel({
                 <button
                   type="button"
                   onClick={() => {
+                    settleCooldownUntil.current = 0;
                     settleStarted.current = true;
                     void triggerServerSettle();
                   }}
@@ -496,12 +517,8 @@ export function CryptoWalletPanel({
                 </button>
               ) : null}
 
-              {autoSettleStatus === 'settling' ? (
-                <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-3 py-2 text-[11px] text-terminal-primary">
-                  <Loader2 size={12} className="animate-spin" />
-                  {sc.cryptoWalletAutoSettling}
-                </div>
-              ) : showDepositUi ? (
+              {/* Only show waiting-for-deposit status when not already on the pay button. */}
+              {showDepositUi && autoSettleStatus !== 'settling' ? (
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
                   <Loader2 size={12} className="animate-spin text-terminal-primary" />
                   {mode === 'purchase' ? sc.cryptoWalletAutoSettleWaiting : sc.cryptoWalletWaitingDeposit}

@@ -32,7 +32,8 @@ vi.mock('../payments/stablecoinNetworks', () => ({
     decimals: 6,
     chainId: 8453,
     symbol: 'USDC'
-  })
+  }),
+  baseRpcUrls: () => ['https://mainnet.base.org', 'https://base.publicnode.com']
 }));
 
 describe('readWalletUsdcBalanceDetailed', () => {
@@ -51,7 +52,7 @@ describe('readWalletUsdcBalanceDetailed', () => {
     }
   });
 
-  it('returns ok:false on RPC failure so callers do not show 0 USDC', async () => {
+  it('returns ok:false when all RPC candidates fail', async () => {
     mockBalanceOf.mockRejectedValue(new Error('rate limited'));
     const { readWalletUsdcBalanceDetailed } = await import('./onChainUsdcReader');
     const result = await readWalletUsdcBalanceDetailed('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
@@ -59,6 +60,19 @@ describe('readWalletUsdcBalanceDetailed', () => {
     if (!result.ok) {
       expect(result.amountUsdc).toBeNull();
       expect(result.balances).toEqual([]);
+    }
+  });
+
+  it('falls back to the next RPC when the primary fails', async () => {
+    mockBalanceOf
+      .mockRejectedValueOnce(new Error('rate limited'))
+      .mockRejectedValueOnce(new Error('rate limited'))
+      .mockResolvedValueOnce(20_000_000n);
+    const { readWalletUsdcBalanceDetailed } = await import('./onChainUsdcReader');
+    const result = await readWalletUsdcBalanceDetailed('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.amountUsdc).toBe(20);
     }
   });
 

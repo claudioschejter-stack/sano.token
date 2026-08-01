@@ -32,9 +32,14 @@ export async function autoSettlePrivyCartForUser(userId: string): Promise<PrivyA
   }
 
   const address = await getLinkedWalletForUser(userId);
-  const balanceRead = address
+  let balanceRead = address
     ? await readWalletUsdcBalanceDetailed(address, ['BASE'])
-    : ({ ok: true, amountUsdc: 0, balances: [] } as const);
+    : ({ ok: true as const, amountUsdc: 0, balances: [] as const });
+  // One extra pause+retry — public Base RPCs flap under Vercel concurrency.
+  if (address && !balanceRead.ok) {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    balanceRead = await readWalletUsdcBalanceDetailed(address, ['BASE']);
+  }
   if (!balanceRead.ok) {
     return { ok: false, status: 'failed', error: 'USDC_BALANCE_READ_FAILED' };
   }
