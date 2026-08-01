@@ -2934,6 +2934,20 @@ export const en = {
     cryptoWalletPayNowButton: "Pay {amount} USDC now",
     cryptoWalletPayFromPrivyButton: "Pay {amount} USDC from my Sanova wallet",
     cryptoWalletPayButton: "Pay",
+    cryptoWalletSanovaTab: "Sanova wallet",
+    cryptoWalletExternalTab: "My wallet",
+    cryptoWalletSanovaReadyHint:
+      "You have enough USDC. One tap pays from your Sanova wallet (no second Privy login) and credits your tokens.",
+    cryptoWalletSwitchToExternal: "I’d rather pay with Coinbase / WalletConnect",
+    cryptoWalletExternalHint:
+      "Connect the wallet you normally use (Coinbase Wallet or WalletConnect). You sign the USDC transfer on Base and tokens credit to your Sanova account.",
+    cryptoWalletExternalOr: "or",
+    cryptoWalletExternalConnectedLabel: "Connected wallet",
+    cryptoWalletExternalConnectFirst: "Connect Coinbase Wallet or WalletConnect to continue.",
+    cryptoWalletExternalPayButton: "Pay {amount} USDC with my wallet",
+    cryptoWalletExternalPaying: "Signing and confirming payment…",
+    cryptoWalletExternalCheckoutFailed: "We couldn’t prepare the order. Try again in a few seconds.",
+    cryptoWalletExternalPayError: "Could not pay with the connected wallet: {error}",
     cryptoWalletPrivyTitle: "Automatic payment (recommended)",
     cryptoWalletPrivyHint:
       "Use USDC in your Sanova (Privy) wallet on Base. No MetaMask/app chooser — you sign here and RWA tokens are credited.",

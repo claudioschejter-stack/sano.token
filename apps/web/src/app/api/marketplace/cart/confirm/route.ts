@@ -3,6 +3,7 @@ import { prisma } from '@sanova/database';
 import { resolveInvestorLinkedWallet } from '../../../../../lib/investor/linkedWalletPolicy';
 import { investorSessionForbiddenResponse, requireMarketplacePurchaseSession } from '../../../../../lib/onboarding/requireInvestorSession';
 import { verifyCartUsdcPayment } from '../../../../../lib/payments/cartCheckoutService';
+import { isExternalUsdcPaymentOptionId } from '../../../../../lib/payments/externalUsdcPaymentOptions';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,10 +12,6 @@ type ConfirmBody = {
   txHash?: string;
   walletAddress?: string;
 };
-
-function isWalletConnectCart(metadata: Record<string, unknown>): boolean {
-  return metadata.paymentOptionId === 'walletconnect_usdc';
-}
 
 const CONFIRM_ERRORS = [
   'CART_BATCH_NOT_FOUND',
@@ -66,10 +63,11 @@ export async function POST(request: Request) {
     const sampleMetadata = (sample?.metadata as Record<string, unknown>) ?? {};
     let expectedPayer: string | null = null;
 
-    if (isWalletConnectCart(sampleMetadata)) {
+    if (isExternalUsdcPaymentOptionId(sampleMetadata.paymentOptionId)) {
       if (!body.walletAddress?.trim()) {
         return NextResponse.json({ error: 'WALLET_REQUIRED' }, { status: 400 });
       }
+      // Accept the connected external payer (Coinbase / WC / MetaMask / Binance).
       expectedPayer = body.walletAddress.trim().toLowerCase();
     } else {
       expectedPayer = await resolveInvestorLinkedWallet(ctx.userId, body.walletAddress);

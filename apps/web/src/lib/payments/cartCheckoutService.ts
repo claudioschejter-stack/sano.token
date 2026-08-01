@@ -27,6 +27,7 @@ import {
 } from './paymentSupplyReservation';
 import { deliverVaultSharesAfterPayment } from './vaultShareDeliveryStatus';
 import { resolveInvestorLinkedWallet, getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
+import { isExternalUsdcPaymentOptionId } from './externalUsdcPaymentOptions';
 import { confirmPaymentIntentInTx, markPaymentIntentFailed, type PublicPaymentIntent } from './paymentService';
 import { assertPaymentProofPresent } from './purchaseGuard';
 import { buildPurchaseIntentMetadata } from './purchaseIntentMetadata';
@@ -415,9 +416,10 @@ export async function createCartPurchaseCheckout(input: {
       : getStablecoinNetwork(input.stablecoinNetwork);
 
   let payerWallet: string | null = null;
-  const isWalletConnectCheckout = input.paymentOptionId === 'walletconnect_usdc';
+  const isExternalWalletCheckout = isExternalUsdcPaymentOptionId(input.paymentOptionId);
   if (input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN') {
-    if (isWalletConnectCheckout) {
+    if (isExternalWalletCheckout) {
+      // Tokens still credit the linked Sanova wallet; USDC may come from any connected EVM wallet.
       payerWallet = await getLinkedWalletForUser(input.userId);
       if (!payerWallet) {
         throw new Error('INVESTOR_WALLET_REQUIRED');

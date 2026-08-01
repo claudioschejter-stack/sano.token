@@ -19,6 +19,7 @@ import {
   type DepositPaymentOptionGroup
 } from '../../lib/payments/depositPaymentOptions';
 import { resolvePaymentCheckoutLabel } from '../../lib/payments/paymentCheckoutLabels';
+import { isExternalUsdcPaymentOptionId } from '../../lib/payments/externalUsdcPaymentOptions';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
 import { isLocalRailManualResult, isPendingManualGatewayResult, isPrivyClientFundResult, isRipioOnRampResult, isWiseManualResult } from '../../lib/payments/stripeCheckoutOptions';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
@@ -981,9 +982,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const ensureSimplifiedCheckoutReference = useCallback(
     async (
       method: PaymentMethod,
-      rail?: string
+      rail?: string,
+      options?: { paymentOptionId?: string; walletAddress?: string | null }
     ): Promise<{ referenceId: string; payToAddress: string | null } | null> => {
-      const cacheKey = `${method}:${rail ?? ''}`;
+      const paymentOptionId = options?.paymentOptionId?.trim() || undefined;
+      const cacheKey = `${method}:${rail ?? ''}:${paymentOptionId ?? 'default'}`;
       const cached = simplifiedRefCache[cacheKey];
       if (cached) {
         return cached;
@@ -1003,7 +1006,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
               auto: false,
               stablecoinNetwork: method === 'USDC_ONCHAIN' || method === 'RIPIO' ? 'BASE' : undefined,
               walletAddress: linkedWalletAddress,
-              paymentOptionRail: rail
+              paymentOptionRail: rail,
+              paymentOptionId
             })
           });
           const data = (await response.json()) as {
@@ -1030,15 +1034,26 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           if (items.length === 0) {
             return null;
           }
+          // Never pass a mismatched wagmi address into Sanova-linked checkout —
+          // that throws WALLET_MISMATCH. External pays use walletconnect_usdc.
+          const isExternalOption =
+            paymentOptionId === 'walletconnect_usdc' ||
+            paymentOptionId === 'electronic_wallet' ||
+            paymentOptionId === 'metamask_usdc' ||
+            paymentOptionId === 'binance_usdc';
+          const checkoutWallet = isExternalOption
+            ? options?.walletAddress ?? linkedWalletAddress ?? undefined
+            : linkedWalletAddress ?? undefined;
           const response = await fetch('/api/marketplace/cart/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               items: items.map((row) => ({ projectId: row.projectId, tokenCount: row.tokenCount })),
               method,
-              walletAddress: address,
+              walletAddress: checkoutWallet,
               stablecoinNetwork: method === 'USDC_ONCHAIN' || method === 'RIPIO' ? 'BASE' : undefined,
-              paymentOptionRail: rail
+              paymentOptionRail: rail,
+              paymentOptionId
             })
           });
           const data = (await response.json()) as {
@@ -1069,7 +1084,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         return null;
       }
     },
-    [address, items, linkedWalletAddress, mode, simplifiedRefCache, totalUsd]
+    [items, linkedWalletAddress, mode, simplifiedRefCache, totalUsd]
   );
 
   const applyCartPostPurchaseStatus = (intents: PublicPaymentIntent[]) => {

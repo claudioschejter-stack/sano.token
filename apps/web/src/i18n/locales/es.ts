@@ -2978,6 +2978,20 @@ export const es = {
     cryptoWalletPayNowButton: 'Pagar {amount} USDC ahora',
     cryptoWalletPayFromPrivyButton: 'Pagar {amount} USDC desde mi wallet Sanova',
     cryptoWalletPayButton: 'Pagar',
+    cryptoWalletSanovaTab: 'Wallet Sanova',
+    cryptoWalletExternalTab: 'Mi wallet',
+    cryptoWalletSanovaReadyHint:
+      'Tenés USDC suficiente. Un toque paga desde tu wallet Sanova (sin segundo login Privy) y acredita los tokens.',
+    cryptoWalletSwitchToExternal: 'Prefiero pagar con Coinbase / WalletConnect',
+    cryptoWalletExternalHint:
+      'Conectá la billetera que usás siempre (Coinbase Wallet o WalletConnect). Firmás el envío de USDC en Base y los tokens se acreditan en tu cuenta Sanova.',
+    cryptoWalletExternalOr: 'o',
+    cryptoWalletExternalConnectedLabel: 'Wallet conectada',
+    cryptoWalletExternalConnectFirst: 'Conectá Coinbase Wallet o WalletConnect para continuar.',
+    cryptoWalletExternalPayButton: 'Pagar {amount} USDC con mi wallet',
+    cryptoWalletExternalPaying: 'Firmando y confirmando el pago…',
+    cryptoWalletExternalCheckoutFailed: 'No pudimos preparar la orden. Probá de nuevo en unos segundos.',
+    cryptoWalletExternalPayError: 'No se pudo pagar con la wallet conectada: {error}',
     cryptoWalletPrivyTitle: 'Pago automático (recomendado)',
     cryptoWalletPrivyHint:
       'Usá el USDC de tu wallet Sanova (Privy) en Base. No abre MetaMask ni otras apps: firmás acá y se acreditan los tokens RWA.',

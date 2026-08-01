@@ -13,9 +13,16 @@ import { CardPaymentPanel } from './CardPaymentPanel';
 import { WireTransferPanel } from './WireTransferPanel';
 import { RipioCheckoutPanel } from './RipioCheckoutPanel';
 
+export type EnsureCheckoutReferenceOptions = {
+  /** Catalog option — use walletconnect_usdc so confirm accepts an external payer. */
+  paymentOptionId?: string;
+  walletAddress?: string | null;
+};
+
 export type EnsureCheckoutReference = (
   method: 'USDC_ONCHAIN' | 'LOCAL_RAIL' | 'RIPIO',
-  rail?: string
+  rail?: string,
+  options?: EnsureCheckoutReferenceOptions
 ) => Promise<{
   referenceId: string;
   payToAddress: string | null;
@@ -126,9 +133,9 @@ export function SimplifiedCheckout({
   }, []);
 
   const wrapEnsureReference = useCallback<EnsureCheckoutReference>(
-    async (method, rail) => {
+    async (method, rail, options) => {
       if (!ensureReference) return null;
-      const result = await ensureReference(method, rail);
+      const result = await ensureReference(method, rail, options);
       if (result?.referenceId) {
         setActiveReferenceId(result.referenceId);
       }
