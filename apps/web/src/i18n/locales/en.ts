@@ -2946,6 +2946,8 @@ export const en = {
       "Insufficient funds. Send USDC on Base to the following Sanova account (copy and paste). Any remaining USDC stays in your account.",
     cryptoWalletAutoSettleNotConfigured:
       "Server auto-pay is not configured yet (missing Privy authorization key). Contact Sanova — do not log in to Privy again.",
+    cryptoWalletAutoSettleBalanceReadFailed:
+      "We could not confirm the on-chain balance for a moment. Tap Pay again in a few seconds — no need to log in again.",
     cryptoWalletAutoSettleError: "Could not complete automatic payment: {error}",
     cryptoWalletSanovaAddressLabel: "Your Sanova account address (Base · USDC)",
     cryptoWalletQrHintPrivy: "Scan from Ripio or another app to send USDC to your Sanova wallet.",
