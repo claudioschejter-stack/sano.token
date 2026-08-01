@@ -2982,6 +2982,19 @@ export const es = {
     cryptoWalletExternalTab: 'Mi wallet',
     cryptoWalletSanovaReadyHint:
       'Tenés USDC suficiente. Un toque paga desde tu wallet Sanova (sin segundo login Privy) y acredita los tokens.',
+    cryptoWalletSanovaManualPayHint:
+      'Tenés USDC suficiente en tu wallet Sanova. Tocá Pagar para liquidar la compra (sin segundo login Privy).',
+    cryptoWalletPayButtonAmount: 'Pagar {amount} USDC',
+    cryptoWalletFundEmbeddedHint:
+      'Cargá USDC en tu wallet Sanova (Base). Cuando el saldo alcance el monto, aparece el botón Pagar.',
+    cryptoWalletFundFromWalletTitle: 'Cargar desde Coinbase / WalletConnect',
+    cryptoWalletFundFromWalletBody:
+      'Conectá tu billetera y enviá USDC a tu cuenta Sanova. No paga al treasury: solo fondea tu wallet Sanova.',
+    cryptoWalletFundSendButton: 'Enviar {amount} USDC a mi wallet Sanova',
+    cryptoWalletFundSending: 'Enviando USDC a tu wallet Sanova…',
+    cryptoWalletFundSendError: 'No se pudo enviar USDC a tu wallet Sanova: {error}',
+    cryptoWalletWaitingForFunds: 'Esperando que llegue el USDC a tu wallet Sanova…',
+    cryptoWalletSwitchToExternalPay: 'Pagar directo con Coinbase / WalletConnect (sin pasar por Sanova)',
     cryptoWalletSwitchToExternal: 'Prefiero pagar con Coinbase / WalletConnect',
     cryptoWalletExternalHint:
       'Conectá la billetera que usás siempre (Coinbase Wallet o WalletConnect). Firmás el envío de USDC en Base y los tokens se acreditan en tu cuenta Sanova.',
