@@ -8,6 +8,7 @@ import { formatMessage } from '../../../i18n';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
 import { useUsdcTreasuryPayment } from '../../../hooks/useUsdcTreasuryPayment';
+import { readJsonResponse } from '../../../lib/http/readJsonResponse';
 import { resolveDisplayReceiveAddress } from '../../../lib/investor/canonicalReceiveAddress';
 import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
 import { CoinbaseConnectButton } from '../../wallet/CoinbaseConnectButton';
@@ -105,6 +106,14 @@ export function CryptoWalletPanel({
       if (errorCode === 'NO_PENDING_PURCHASE' || errorCode === 'CART_EMPTY') {
         return sc.cryptoWalletNoPendingPurchase;
       }
+      if (
+        errorCode === 'PAY_ENDPOINT_NOT_FOUND' ||
+        errorCode === 'INVALID_JSON_RESPONSE' ||
+        (errorCode.startsWith('HTTP_') && errorCode.endsWith('_HTML_RESPONSE')) ||
+        errorCode.includes('Unexpected token')
+      ) {
+        return sc.cryptoWalletHtmlGatewayError;
+      }
       if (errorCode === 'CART_MANUAL_REVIEW_REQUIRED') {
         return sc.cryptoWalletManualReview;
       }
@@ -132,6 +141,7 @@ export function CryptoWalletPanel({
       sc.cryptoWalletAutoSettleBalanceReadFailed,
       sc.cryptoWalletAutoSettleError,
       sc.cryptoWalletAutoSettleNotConfigured,
+      sc.cryptoWalletHtmlGatewayError,
       sc.cryptoWalletLinkRequired,
       sc.cryptoWalletManualReview,
       sc.cryptoWalletNoPendingPurchase
@@ -182,8 +192,47 @@ export function CryptoWalletPanel({
       setSettleError(null);
 
       try {
+        type SettlePayload = {
+          ok?: boolean;
+          status?: string;
+          error?: string;
+          amountUsd?: number;
+          balanceUsdc?: number | null;
+        };
+
+        const applySettlePayload = (data: SettlePayload, httpOk: boolean) => {
+          if (typeof data.amountUsd === 'number' && data.amountUsd > 0) {
+            setRequiredUsdc(data.amountUsd);
+            requiredRef.current = data.amountUsd;
+          }
+          if (typeof data.balanceUsdc === 'number') {
+            applyKnownBalance(data.balanceUsdc);
+          }
+
+          if (httpOk && data.ok && data.status === 'settled') {
+            setPhase('done');
+            if (receiveAddress) {
+              try {
+                sessionStorage.setItem(autoSettleStorageKey(receiveAddress, requiredRef.current), 'done');
+              } catch {
+                /* ignore */
+              }
+            }
+            onFundedRef.current?.();
+            return 'settled' as const;
+          }
+
+          if (data.status === 'waiting_funds') {
+            autoSettleFired.current = false;
+            setPhase('needs_funds');
+            return 'waiting' as const;
+          }
+
+          return 'failed' as const;
+        };
+
         // Atomic path: create pending cart (if needed) + server settle in one request.
-        const res = await fetch('/api/marketplace/cart/pay-sanova', {
+        const primaryRes = await fetch('/api/marketplace/cart/pay-sanova', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'content-type': 'application/json' },
@@ -192,64 +241,58 @@ export function CryptoWalletPanel({
             clientBalanceUsdc: balanceRef.current
           })
         });
-        const data = (await res.json()) as {
-          ok?: boolean;
-          status?: string;
-          error?: string;
-          amountUsd?: number;
-          balanceUsdc?: number | null;
-        };
+        let parsed = await readJsonResponse<SettlePayload>(primaryRes);
+
+        // Fallback when the new route is missing/HTML on a stale edge node:
+        // create checkout reference, then use the older settle endpoint.
+        if (
+          parsed.errorCode === 'PAY_ENDPOINT_NOT_FOUND' ||
+          parsed.errorCode === 'INVALID_JSON_RESPONSE' ||
+          (parsed.errorCode?.endsWith('_HTML_RESPONSE') ?? false)
+        ) {
+          if (ensureReference) {
+            await ensureReference('USDC_ONCHAIN').catch(() => null);
+          }
+          const fallbackRes = await fetch('/api/wallet/privy-inbound/settle', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ clientBalanceUsdc: balanceRef.current })
+          });
+          parsed = await readJsonResponse<SettlePayload>(fallbackRes);
+        }
 
         if (!mountedRef.current) return;
 
-        if (typeof data.amountUsd === 'number' && data.amountUsd > 0) {
-          setRequiredUsdc(data.amountUsd);
-          requiredRef.current = data.amountUsd;
-        }
-        if (typeof data.balanceUsdc === 'number') {
-          applyKnownBalance(data.balanceUsdc);
-        }
-
-        if (res.ok && data.ok && data.status === 'settled') {
-          setPhase('done');
-          if (receiveAddress) {
-            try {
-              sessionStorage.setItem(autoSettleStorageKey(receiveAddress, requiredRef.current), 'done');
-            } catch {
-              /* ignore */
-            }
-          }
-          onFundedRef.current?.();
+        const outcome = applySettlePayload(parsed.data, parsed.ok);
+        if (outcome === 'settled' || outcome === 'waiting') {
           return;
         }
 
-        if (data.status === 'waiting_funds') {
-          autoSettleFired.current = false;
-          setPhase('needs_funds');
-          return;
-        }
-
-        if (data.status === 'no_pending_purchase') {
-          // Fallback: try ensureReference then legacy settle (older pending carts).
-          if (ensureReference && cartItems.length === 0) {
-            await ensureReference('USDC_ONCHAIN').catch(() => null);
-          }
-          setSettleError(mapSettleError(data.error ?? 'NO_PENDING_PURCHASE'));
+        if (parsed.data.status === 'no_pending_purchase') {
+          setSettleError(mapSettleError(parsed.data.error ?? 'NO_PENDING_PURCHASE'));
           setPhase('ready');
           setPayPath('external');
           return;
         }
 
         const code =
-          data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || data.status === 'not_configured'
+          parsed.data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
+          parsed.data.status === 'not_configured'
             ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
-            : (data.error ?? data.status ?? 'FAILED');
+            : (parsed.errorCode ??
+              parsed.data.error ??
+              parsed.data.status ??
+              'FAILED');
         setSettleError(mapSettleError(code));
         setPhase(hasEnoughSanova ? 'ready' : 'needs_funds');
         if (
           code === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
           code === 'PRIVY_WALLET_ID_NOT_FOUND' ||
-          code === 'NO_PENDING_PURCHASE'
+          code === 'NO_PENDING_PURCHASE' ||
+          code === 'PAY_ENDPOINT_NOT_FOUND' ||
+          code === 'INVALID_JSON_RESPONSE' ||
+          String(code).endsWith('_HTML_RESPONSE')
         ) {
           setPayPath('external');
         }
