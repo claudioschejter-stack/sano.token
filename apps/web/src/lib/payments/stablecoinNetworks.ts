@@ -18,12 +18,8 @@ export const DEFAULT_STABLECOIN_NETWORK: StablecoinNetworkId = 'BASE';
 /** Canonical Base mainnet USDC — used when env is missing so server balance/settle cannot silently fail. */
 export const DEFAULT_BASE_USDC_TOKEN_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-const BASE_RPC_FALLBACKS = [
-  'https://mainnet.base.org',
-  'https://base.publicnode.com',
-  'https://base.llamarpc.com',
-  'https://1rpc.io/base'
-] as const;
+/** Public endpoints that answer JSON-RPC without Cloudflare/HTML challenges from Vercel. */
+const BASE_RPC_FALLBACKS = ['https://mainnet.base.org', 'https://base.publicnode.com'] as const;
 
 export function baseRpcUrls(): string[] {
   const primary =
