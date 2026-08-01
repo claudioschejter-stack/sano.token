@@ -1,154 +1,32 @@
 import { prisma } from '@sanova/database';
-import { prepareUsdcTreasuryPayment } from '../web3/usdcTreasuryTransfer';
-import { isPrivyAuthorizationSigningConfigured } from '../privy/privyAuthorizationSignature';
-import { resolveInvestorPrivyWalletIdForUser } from '../privy/resolveInvestorPrivyWalletId';
-import { privySendTransaction } from '../privy/walletRpcApi';
-import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
-import { readWalletUsdcBalanceDetailed } from '../portfolio/onChainUsdcReader';
-import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
-import { verifyCartUsdcPayment } from './cartCheckoutService';
+import {
+  isPrivyServerAutoSettleConfigured,
+  paySanovaCartForUser,
+  type PaySanovaCartResult
+} from './paySanovaCartService';
 
-export type PrivyAutoSettleResult =
-  | { ok: true; status: 'settled'; batchId: string; txHash: string; amountUsd: number }
-  | { ok: true; status: 'waiting_funds'; address: string | null; balanceUsdc: number; amountUsd: number | null }
-  | { ok: true; status: 'no_pending_purchase'; address: string | null; balanceUsdc: number | null }
-  | { ok: false; status: 'not_configured' | 'failed'; error: string };
+export type PrivyAutoSettleResult = PaySanovaCartResult;
 
 export type AutoSettlePrivyCartOptions = {
   /** Browser-observed USDC balance — used only when server RPC read fails. */
   clientBalanceUsdc?: number | null;
 };
 
-export function isPrivyServerAutoSettleConfigured(): boolean {
-  return Boolean(process.env.PRIVY_APP_SECRET?.trim()) && isPrivyAuthorizationSigningConfigured();
-}
+export { isPrivyServerAutoSettleConfigured };
 
 /**
- * Fully server-side settle: investor Privy USDC → treasury → confirm cart → mint shares.
- * Never touches the Privy browser SDK (no second login).
+ * Fully server-side settle for an existing pending USDC cart.
+ * Prefer `paySanovaCartForUser` from the checkout UI (creates the cart if needed).
  */
 export async function autoSettlePrivyCartForUser(
   userId: string,
   options: AutoSettlePrivyCartOptions = {}
 ): Promise<PrivyAutoSettleResult> {
-  if (!isPrivyServerAutoSettleConfigured()) {
-    return {
-      ok: false,
-      status: 'not_configured',
-      error: 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
-    };
-  }
-
-  const address = await getLinkedWalletForUser(userId);
-  const pending = await findPendingUsdcCartPurchase(userId);
-
-  let balanceUsdc: number | null = null;
-  let balanceKnown = false;
-
-  if (address) {
-    const balanceRead = await readWalletUsdcBalanceDetailed(address, ['BASE']);
-    if (balanceRead.ok) {
-      balanceUsdc = balanceRead.amountUsdc;
-      balanceKnown = true;
-    } else if (
-      typeof options.clientBalanceUsdc === 'number' &&
-      Number.isFinite(options.clientBalanceUsdc) &&
-      options.clientBalanceUsdc >= 0
-    ) {
-      // Server RPC flaked; trust the client snapshot only to decide waiting vs pay.
-      balanceUsdc = options.clientBalanceUsdc;
-      balanceKnown = true;
-    }
-  } else {
-    balanceUsdc = 0;
-    balanceKnown = true;
-  }
-
-  if (!pending) {
-    return { ok: true, status: 'no_pending_purchase', address, balanceUsdc };
-  }
-
-  if (balanceKnown && balanceUsdc != null && balanceUsdc + 1e-9 < pending.amountUsd) {
-    return {
-      ok: true,
-      status: 'waiting_funds',
-      address,
-      balanceUsdc,
-      amountUsd: pending.amountUsd
-    };
-  }
-
-  // If balance is still unknown, proceed with the transfer attempt — underfunded
-  // wallets fail at send time instead of blocking checkout behind RPC noise.
-  const walletRef = await resolveInvestorPrivyWalletIdForUser(userId);
-  if (!walletRef) {
-    return { ok: false, status: 'failed', error: 'PRIVY_WALLET_ID_NOT_FOUND' };
-  }
-
-  const prepared = await prepareUsdcTreasuryPayment({
-    amountUsd: pending.amountUsd,
-    stablecoinNetwork: 'BASE',
-    payerAddress: walletRef.address
+  return paySanovaCartForUser({
+    userId,
+    items: [],
+    clientBalanceUsdc: options.clientBalanceUsdc
   });
-
-  let lastHash: string | null = null;
-  try {
-    for (const [index, tx] of prepared.transactions.entries()) {
-      lastHash = await privySendTransaction({
-        walletId: walletRef.walletId,
-        chainId: prepared.chainId,
-        to: tx.to,
-        data: tx.data,
-        value: BigInt(tx.value || '0'),
-        sponsor: true,
-        requireAuthorizationSignature: true,
-        idempotencyKey: `privy-auto-settle:${userId}:${pending.batchId}:${index}`
-      });
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'PRIVY_SEND_TRANSACTION_FAILED';
-    return { ok: false, status: 'failed', error: message };
-  }
-
-  if (!lastHash) {
-    return { ok: false, status: 'failed', error: 'PRIVY_SEND_TRANSACTION_MISSING_HASH' };
-  }
-
-  // Base confirmations — brief wait + retry.
-  let verified = false;
-  let lastVerifyError: unknown = null;
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 2500 : 3000));
-    try {
-      await verifyCartUsdcPayment({
-        userId,
-        batchId: pending.batchId,
-        txHash: lastHash,
-        expectedPayer: walletRef.address
-      });
-      verified = true;
-      break;
-    } catch (error) {
-      lastVerifyError = error;
-      const message = error instanceof Error ? error.message : '';
-      if (message !== 'TX_CONFIRMATIONS_PENDING' && message !== 'TX_NOT_CONFIRMED') {
-        break;
-      }
-    }
-  }
-
-  if (!verified) {
-    const message = lastVerifyError instanceof Error ? lastVerifyError.message : 'VERIFY_FAILED';
-    return { ok: false, status: 'failed', error: message };
-  }
-
-  return {
-    ok: true,
-    status: 'settled',
-    batchId: pending.batchId,
-    txHash: lastHash,
-    amountUsd: pending.amountUsd
-  };
 }
 
 /** Cron helper: settle every user with a ready Privy inbound cart. */

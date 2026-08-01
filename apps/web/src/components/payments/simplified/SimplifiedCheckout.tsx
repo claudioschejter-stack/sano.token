@@ -29,12 +29,19 @@ export type EnsureCheckoutReference = (
   providerCheckoutUrl?: string | null;
 } | null>;
 
+export type SimplifiedCheckoutCartItem = {
+  projectId: string;
+  tokenCount: number;
+};
+
 export type SimplifiedCheckoutProps = {
   amountUsd: number;
   referenceId: string;
   investorName?: string;
   country?: string;
   mode?: 'deposit' | 'purchase';
+  /** Cart lines for one-tap Sanova pay (create + settle in one request). */
+  cartItems?: SimplifiedCheckoutCartItem[];
   ensureReference?: EnsureCheckoutReference;
   className?: string;
   onFunded?: () => void;
@@ -77,6 +84,7 @@ export function SimplifiedCheckout({
   investorName,
   country = 'US',
   mode = 'deposit',
+  cartItems = [],
   ensureReference,
   className = '',
   onFunded,
@@ -223,6 +231,7 @@ export function SimplifiedCheckout({
               country={routes.country}
               amountUsd={amountUsd}
               mode={mode}
+              cartItems={cartItems}
               onFunded={() => handlePaymentSignal(activeReferenceId)}
               ensureReference={wrapEnsureReference}
             />

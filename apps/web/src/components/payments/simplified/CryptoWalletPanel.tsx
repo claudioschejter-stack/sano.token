@@ -13,7 +13,7 @@ import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkou
 import { CoinbaseConnectButton } from '../../wallet/CoinbaseConnectButton';
 import { WalletConnectConnectButton } from '../../wallet/WalletConnectConnectButton';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
-import type { EnsureCheckoutReference } from './SimplifiedCheckout';
+import type { EnsureCheckoutReference, SimplifiedCheckoutCartItem } from './SimplifiedCheckout';
 
 const QR_SIZE = 220;
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
@@ -42,6 +42,7 @@ type Props = {
   country: string;
   amountUsd: number;
   mode?: 'deposit' | 'purchase';
+  cartItems?: SimplifiedCheckoutCartItem[];
   onFunded?: () => void;
   ensureReference?: EnsureCheckoutReference;
 };
@@ -55,6 +56,7 @@ export function CryptoWalletPanel({
   cryptoWallet,
   amountUsd,
   mode = 'deposit',
+  cartItems = [],
   onFunded,
   ensureReference
 }: Props) {
@@ -100,6 +102,12 @@ export function CryptoWalletPanel({
       if (errorCode === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED') {
         return sc.cryptoWalletAutoSettleNotConfigured;
       }
+      if (errorCode === 'NO_PENDING_PURCHASE' || errorCode === 'CART_EMPTY') {
+        return sc.cryptoWalletNoPendingPurchase;
+      }
+      if (errorCode === 'CART_MANUAL_REVIEW_REQUIRED') {
+        return sc.cryptoWalletManualReview;
+      }
       if (
         errorCode === 'USDC_BALANCE_READ_FAILED' ||
         errorCode === 'RPC_BALANCE_READ_FAILED' ||
@@ -107,12 +115,26 @@ export function CryptoWalletPanel({
       ) {
         return sc.cryptoWalletAutoSettleBalanceReadFailed;
       }
+      if (
+        errorCode === 'INVESTOR_WALLET_REQUIRED' ||
+        errorCode === 'WALLET_REQUIRED' ||
+        errorCode === 'WALLET_REQUIRED_FOR_TOKENIZED_PURCHASE'
+      ) {
+        return sc.cryptoWalletLinkRequired;
+      }
+      if (errorCode === 'ALLOWLIST_NOT_APPROVED' || errorCode === 'ONCHAIN_ALLOWLIST_NOT_APPROVED') {
+        return sc.cryptoWalletAllowlistRequired;
+      }
       return sc.cryptoWalletAutoSettleError.replace('{error}', errorCode);
     },
     [
+      sc.cryptoWalletAllowlistRequired,
       sc.cryptoWalletAutoSettleBalanceReadFailed,
       sc.cryptoWalletAutoSettleError,
-      sc.cryptoWalletAutoSettleNotConfigured
+      sc.cryptoWalletAutoSettleNotConfigured,
+      sc.cryptoWalletLinkRequired,
+      sc.cryptoWalletManualReview,
+      sc.cryptoWalletNoPendingPurchase
     ]
   );
 
@@ -160,15 +182,13 @@ export function CryptoWalletPanel({
       setSettleError(null);
 
       try {
-        if (ensureReference) {
-          await ensureReference('USDC_ONCHAIN').catch(() => null);
-        }
-
-        const res = await fetch('/api/wallet/privy-inbound/settle', {
+        // Atomic path: create pending cart (if needed) + server settle in one request.
+        const res = await fetch('/api/marketplace/cart/pay-sanova', {
           method: 'POST',
           credentials: 'same-origin',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
+            items: cartItems,
             clientBalanceUsdc: balanceRef.current
           })
         });
@@ -210,8 +230,13 @@ export function CryptoWalletPanel({
         }
 
         if (data.status === 'no_pending_purchase') {
-          setSettleError(mapSettleError('NO_PENDING_PURCHASE'));
+          // Fallback: try ensureReference then legacy settle (older pending carts).
+          if (ensureReference && cartItems.length === 0) {
+            await ensureReference('USDC_ONCHAIN').catch(() => null);
+          }
+          setSettleError(mapSettleError(data.error ?? 'NO_PENDING_PURCHASE'));
           setPhase('ready');
+          setPayPath('external');
           return;
         }
 
@@ -220,8 +245,12 @@ export function CryptoWalletPanel({
             ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
             : (data.error ?? data.status ?? 'FAILED');
         setSettleError(mapSettleError(code));
-        setPhase('ready');
-        if (code === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED') {
+        setPhase(hasEnoughSanova ? 'ready' : 'needs_funds');
+        if (
+          code === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
+          code === 'PRIVY_WALLET_ID_NOT_FOUND' ||
+          code === 'NO_PENDING_PURCHASE'
+        ) {
           setPayPath('external');
         }
         if (source === 'auto' && receiveAddress) {
@@ -236,9 +265,18 @@ export function CryptoWalletPanel({
         const message = error instanceof Error ? error.message : 'FAILED';
         setSettleError(mapSettleError(message));
         setPhase('ready');
+        setPayPath('external');
       }
     },
-    [applyKnownBalance, ensureReference, mapSettleError, mode, receiveAddress]
+    [
+      applyKnownBalance,
+      cartItems,
+      ensureReference,
+      hasEnoughSanova,
+      mapSettleError,
+      mode,
+      receiveAddress
+    ]
   );
 
   const payWithExternalWallet = useCallback(async () => {
