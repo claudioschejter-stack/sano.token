@@ -1,8 +1,6 @@
 import { ethers } from 'ethers';
 import { baseRpcUrls, getStablecoinNetwork } from '../payments/stablecoinNetworks';
 
-const ERC20_ABI = ['function balanceOf(address account) view returns (uint256)'];
-
 export type WalletUsdcBalance = {
   walletAddress: string;
   chainId: number;
@@ -19,23 +17,62 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function balanceOfWithProvider(
+function balanceOfCallData(walletAddress: string): string {
+  const checksum = ethers.getAddress(walletAddress.trim()).slice(2).toLowerCase();
+  return `0x70a08231${checksum.padStart(64, '0')}`;
+}
+
+/**
+ * Raw JSON-RPC eth_call — avoids ethers JsonRpcProvider network detection,
+ * which frequently flakes / times out on Vercel serverless.
+ */
+async function ethCallBalanceOf(
   rpcUrl: string,
   tokenAddress: string,
   walletAddress: string,
   decimals: number
 ): Promise<number> {
-  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6_000);
   try {
-    const token = new ethers.Contract(tokenAddress, ERC20_ABI, provider);
-    const raw = (await token.balanceOf(walletAddress)) as bigint;
-    const amountUsdc = Number(ethers.formatUnits(raw, decimals));
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'eth_call',
+        params: [
+          {
+            to: tokenAddress,
+            data: balanceOfCallData(walletAddress)
+          },
+          'latest'
+        ]
+      }),
+      signal: controller.signal,
+      cache: 'no-store'
+    });
+
+    const text = await response.text();
+    let payload: { result?: string; error?: { message?: string } };
+    try {
+      payload = JSON.parse(text) as { result?: string; error?: { message?: string } };
+    } catch {
+      throw new Error(`RPC_NON_JSON:${response.status}`);
+    }
+
+    if (!response.ok || payload.error || typeof payload.result !== 'string') {
+      throw new Error(payload.error?.message || `RPC_HTTP_${response.status}`);
+    }
+
+    const amountUsdc = Number(ethers.formatUnits(BigInt(payload.result), decimals));
     if (!Number.isFinite(amountUsdc)) {
       throw new Error('INVALID_BALANCE_AMOUNT');
     }
     return amountUsdc;
   } finally {
-    provider.destroy();
+    clearTimeout(timer);
   }
 }
 
@@ -43,9 +80,6 @@ async function balanceOfWithProvider(
  * Read USDC balances for a wallet. On RPC failure returns `{ ok: false }` —
  * callers must NOT treat that as a zero balance (that caused checkout UI flicker).
  * Successful zero balances are returned as `{ ok: true, amountUsdc: 0 }`.
- *
- * Tries primary + public Base RPC fallbacks with short retries — public
- * `mainnet.base.org` alone is often rate-limited on Vercel.
  */
 export async function readWalletUsdcBalances(
   walletAddress: string,
@@ -86,7 +120,7 @@ export async function readWalletUsdcBalanceDetailed(
     for (const rpcUrl of rpcCandidates) {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
-          networkBalance = await balanceOfWithProvider(
+          networkBalance = await ethCallBalanceOf(
             rpcUrl as string,
             network.tokenAddress,
             checksum,
@@ -95,9 +129,7 @@ export async function readWalletUsdcBalanceDetailed(
           break;
         } catch (error) {
           lastError = error instanceof Error ? error.message : 'RPC_BALANCE_READ_FAILED';
-          if (attempt === 0) {
-            await sleep(150);
-          }
+          if (attempt === 0) await sleep(120);
         }
       }
       if (networkBalance != null) break;

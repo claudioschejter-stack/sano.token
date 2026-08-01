@@ -13,10 +13,8 @@ import type { EnsureCheckoutReference } from './SimplifiedCheckout';
 const QR_SIZE = 220;
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPC = process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
-/** Require this many consecutive low-balance reads before dropping out of "ready to pay". */
-const LOW_BALANCE_CONFIRMATIONS = 2;
-/** After a hard settle failure, do not auto-retry (stops Pagar ↔ Pagando flicker). */
-const SETTLE_AUTO_RETRY_COOLDOWN_MS = 60_000;
+
+type Phase = 'loading' | 'needs_funds' | 'ready' | 'settling' | 'done';
 
 function buildEip681Uri(toAddress: string, amountUsdc: number): string {
   const uint256 = Math.round(amountUsdc * 1e6);
@@ -26,6 +24,10 @@ function buildEip681Uri(toAddress: string, amountUsdc: number): string {
 function normalizeAddress(value?: string | null): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+function autoSettleStorageKey(address: string, amount: number): string {
+  return `sanova:crypto-autosettle:${address.toLowerCase()}:${amount.toFixed(2)}`;
 }
 
 type Props = {
@@ -39,9 +41,8 @@ type Props = {
 };
 
 /**
- * Crypto checkout — server-canonical receive address + server auto-settle.
- * Never opens Privy login / client signing for purchases.
- * Balance UI is sticky: transient RPC failures must not flip pay ↔ deposit screens.
+ * Crypto checkout — one stable phase machine.
+ * Never opens Privy login. Never flips ready ↔ needs_funds from RPC noise.
  */
 export function CryptoWalletPanel({
   cryptoWallet,
@@ -56,23 +57,21 @@ export function CryptoWalletPanel({
 
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [showQr, setShowQr] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
+  const [phase, setPhase] = useState<Phase>('loading');
   const [settleError, setSettleError] = useState<string | null>(null);
   const [balanceUsdc, setBalanceUsdc] = useState<number | null>(null);
   const [requiredUsdc, setRequiredUsdc] = useState(amountUsd);
   const [serverAddress, setServerAddress] = useState<string | null>(null);
-  const [resolvingAddress, setResolvingAddress] = useState(true);
-  const [fundsReady, setFundsReady] = useState(false);
-  const [autoSettleStatus, setAutoSettleStatus] = useState<'idle' | 'waiting_funds' | 'settling' | 'done'>(
-    'idle'
-  );
-  const settleStarted = useRef(false);
-  const settleCooldownUntil = useRef(0);
-  const lowBalanceStreak = useRef(0);
-  const lastKnownBalance = useRef<number | null>(null);
 
   const onFundedRef = useRef(onFunded);
   onFundedRef.current = onFunded;
+  const phaseRef = useRef<Phase>('loading');
+  phaseRef.current = phase;
+  const balanceRef = useRef<number | null>(null);
+  const requiredRef = useRef(amountUsd);
+  requiredRef.current = requiredUsdc > 0 ? requiredUsdc : amountUsd;
+  const autoSettleFired = useRef(false);
+  const mountedRef = useRef(true);
 
   const amountUsdc = requiredUsdc > 0 ? requiredUsdc : amountUsd;
   const receiveAddress = normalizeAddress(
@@ -82,134 +81,16 @@ export function CryptoWalletPanel({
     })
   );
 
-  const applyBalance = useCallback(
-    (next: number | null, known: boolean) => {
-      if (!known || next == null || !Number.isFinite(next)) {
-        // Keep last known balance on transient RPC failures — never flash 0.
-        if (lastKnownBalance.current != null) {
-          setBalanceUsdc(lastKnownBalance.current);
-        }
-        return;
-      }
-
-      lastKnownBalance.current = next;
-      setBalanceUsdc(next);
-
-      const enough = next + 1e-9 >= amountUsdc;
-      if (enough) {
-        lowBalanceStreak.current = 0;
-        setFundsReady(true);
-        return;
-      }
-
-      lowBalanceStreak.current += 1;
-      if (lowBalanceStreak.current >= LOW_BALANCE_CONFIRMATIONS) {
-        setFundsReady(false);
-      }
-    },
-    [amountUsdc]
-  );
-
-  const refreshBalanceRpc = useCallback(
-    async (wallet?: string | null) => {
-      const addr = wallet?.trim();
-      if (!addr) return null;
-      try {
-        const provider = new JsonRpcProvider(BASE_RPC);
-        const token = new Contract(USDC_BASE, ['function balanceOf(address) view returns (uint256)'], provider);
-        const raw = (await token.balanceOf(addr)) as bigint;
-        const balance = Number(formatUnits(raw, 6));
-        provider.destroy();
-        if (Number.isFinite(balance)) {
-          applyBalance(balance, true);
-          return balance;
-        }
-        applyBalance(null, false);
-        return null;
-      } catch {
-        applyBalance(null, false);
-        return null;
-      }
-    },
-    [applyBalance]
-  );
-
-  const resolveServerAddress = useCallback(async () => {
-    setResolvingAddress(true);
-    try {
-      await fetch('/api/investor/wallet/provision', {
-        method: 'POST',
-        credentials: 'same-origin'
-      }).catch(() => undefined);
-
-      const watchRes = await fetch('/api/wallet/privy-inbound/watch', { cache: 'no-store' });
-      if (watchRes.ok) {
-        const watchData = (await watchRes.json()) as {
-          address?: string | null;
-          balanceUsdc?: number | null;
-          balanceKnown?: boolean;
-          pendingPurchase?: { amountUsd?: number } | null;
-        };
-        const fromWatch = normalizeAddress(watchData.address);
-        if (fromWatch) {
-          setServerAddress(fromWatch);
-          if (
-            watchData.pendingPurchase &&
-            typeof watchData.pendingPurchase.amountUsd === 'number' &&
-            watchData.pendingPurchase.amountUsd > 0
-          ) {
-            setRequiredUsdc(watchData.pendingPurchase.amountUsd);
-          }
-          if (watchData.balanceKnown === false) {
-            await refreshBalanceRpc(fromWatch);
-          } else if (typeof watchData.balanceUsdc === 'number') {
-            applyBalance(watchData.balanceUsdc, true);
-          } else {
-            await refreshBalanceRpc(fromWatch);
-          }
-          return fromWatch;
-        }
-      }
-
-      const provisionRes = await fetch('/api/investor/wallet/provision', {
-        method: 'POST',
-        credentials: 'same-origin'
-      });
-      const provisionData = (await provisionRes.json()) as { walletAddress?: string };
-      const fromProvision = normalizeAddress(provisionData.walletAddress);
-      if (provisionRes.ok && fromProvision) {
-        setServerAddress(fromProvision);
-        await refreshBalanceRpc(fromProvision);
-        return fromProvision;
-      }
-      return null;
-    } catch {
-      return null;
-    } finally {
-      setResolvingAddress(false);
-    }
-  }, [applyBalance, refreshBalanceRpc]);
-
-  useEffect(() => {
-    void resolveServerAddress();
-  }, [resolveServerAddress]);
-
-  useEffect(() => {
-    setRequiredUsdc((prev) => (prev > 0 ? prev : amountUsd));
-  }, [amountUsd]);
-
-  useEffect(() => {
-    if (!ensureReference || mode !== 'purchase') return;
-    void ensureReference('USDC_ONCHAIN');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ensureReference, mode]);
-
   const mapSettleError = useCallback(
     (errorCode: string) => {
       if (errorCode === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED') {
         return sc.cryptoWalletAutoSettleNotConfigured;
       }
-      if (errorCode === 'USDC_BALANCE_READ_FAILED' || errorCode === 'RPC_BALANCE_READ_FAILED') {
+      if (
+        errorCode === 'USDC_BALANCE_READ_FAILED' ||
+        errorCode === 'RPC_BALANCE_READ_FAILED' ||
+        errorCode === 'PRIVY_WALLET_ID_NOT_FOUND'
+      ) {
         return sc.cryptoWalletAutoSettleBalanceReadFailed;
       }
       return sc.cryptoWalletAutoSettleError.replace('{error}', errorCode);
@@ -221,74 +102,210 @@ export function CryptoWalletPanel({
     ]
   );
 
-  const triggerServerSettle = useCallback(async () => {
-    if (mode !== 'purchase' || confirmed) return false;
-    setAutoSettleStatus('settling');
-    setSettleError(null);
+  const latchReady = useCallback(() => {
+    if (phaseRef.current === 'done' || phaseRef.current === 'settling') return;
+    setPhase('ready');
+  }, []);
+
+  const applyKnownBalance = useCallback(
+    (next: number) => {
+      if (!Number.isFinite(next)) return;
+      balanceRef.current = next;
+      setBalanceUsdc(next);
+      const need = requiredRef.current;
+      if (next + 1e-9 >= need) {
+        latchReady();
+      } else if (phaseRef.current === 'loading' || phaseRef.current === 'needs_funds') {
+        // Only move into needs_funds from loading/needs — never downgrade from ready.
+        setPhase('needs_funds');
+      }
+    },
+    [latchReady]
+  );
+
+  const readClientBalance = useCallback(async (wallet: string): Promise<number | null> => {
     try {
-      const res = await fetch('/api/wallet/privy-inbound/settle', {
-        method: 'POST',
-        credentials: 'same-origin'
-      });
-      const data = (await res.json()) as {
-        ok?: boolean;
-        status?: string;
-        error?: string;
-        amountUsd?: number;
-        balanceUsdc?: number;
-      };
-
-      if (typeof data.amountUsd === 'number' && data.amountUsd > 0) {
-        setRequiredUsdc(data.amountUsd);
-      }
-      if (typeof data.balanceUsdc === 'number') {
-        applyBalance(data.balanceUsdc, true);
-      }
-
-      if (res.ok && data.ok && data.status === 'settled') {
-        setConfirmed(true);
-        setAutoSettleStatus('done');
-        settleCooldownUntil.current = 0;
-        onFundedRef.current?.();
-        return true;
-      }
-
-      if (data.status === 'waiting_funds' || data.status === 'no_pending_purchase') {
-        setAutoSettleStatus('waiting_funds');
-        settleStarted.current = false;
-        return false;
-      }
-
-      // Hard failure: keep Pagar visible, block auto-retry so UI does not flicker.
-      settleStarted.current = false;
-      settleCooldownUntil.current = Date.now() + SETTLE_AUTO_RETRY_COOLDOWN_MS;
-      setAutoSettleStatus('idle');
-      setFundsReady(true);
-      if (data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || data.status === 'not_configured') {
-        setSettleError(mapSettleError('PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'));
-      } else {
-        setSettleError(mapSettleError(data.error ?? data.status ?? 'FAILED'));
-      }
-      return false;
-    } catch (error) {
-      settleStarted.current = false;
-      settleCooldownUntil.current = Date.now() + SETTLE_AUTO_RETRY_COOLDOWN_MS;
-      setAutoSettleStatus('idle');
-      setFundsReady(true);
-      const message = error instanceof Error ? error.message : 'FAILED';
-      setSettleError(mapSettleError(message));
-      return false;
+      const provider = new JsonRpcProvider(BASE_RPC, 8453, { staticNetwork: true });
+      const token = new Contract(USDC_BASE, ['function balanceOf(address) view returns (uint256)'], provider);
+      const raw = (await token.balanceOf(wallet)) as bigint;
+      provider.destroy();
+      const balance = Number(formatUnits(raw, 6));
+      return Number.isFinite(balance) ? balance : null;
+    } catch {
+      return null;
     }
-  }, [applyBalance, confirmed, mapSettleError, mode]);
+  }, []);
 
-  const triggerServerSettleRef = useRef(triggerServerSettle);
-  triggerServerSettleRef.current = triggerServerSettle;
-  const amountUsdcRef = useRef(amountUsdc);
-  amountUsdcRef.current = amountUsdc;
+  const runSettle = useCallback(
+    async (source: 'auto' | 'manual') => {
+      if (mode !== 'purchase') return;
+      if (phaseRef.current === 'done') return;
+      if (phaseRef.current === 'settling') return;
 
-  // Single poller via watch API (RPC fallback only when balanceKnown=false).
+      setPhase('settling');
+      setSettleError(null);
+
+      try {
+        const res = await fetch('/api/wallet/privy-inbound/settle', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            clientBalanceUsdc: balanceRef.current
+          })
+        });
+        const data = (await res.json()) as {
+          ok?: boolean;
+          status?: string;
+          error?: string;
+          amountUsd?: number;
+          balanceUsdc?: number | null;
+        };
+
+        if (!mountedRef.current) return;
+
+        if (typeof data.amountUsd === 'number' && data.amountUsd > 0) {
+          setRequiredUsdc(data.amountUsd);
+          requiredRef.current = data.amountUsd;
+        }
+        if (typeof data.balanceUsdc === 'number') {
+          applyKnownBalance(data.balanceUsdc);
+        }
+
+        if (res.ok && data.ok && data.status === 'settled') {
+          setPhase('done');
+          if (receiveAddress) {
+            try {
+              sessionStorage.setItem(autoSettleStorageKey(receiveAddress, requiredRef.current), 'done');
+            } catch {
+              /* ignore */
+            }
+          }
+          onFundedRef.current?.();
+          return;
+        }
+
+        if (data.status === 'waiting_funds') {
+          // Keep showing deposit instructions; allow a later auto attempt when funded.
+          autoSettleFired.current = false;
+          setPhase('needs_funds');
+          return;
+        }
+
+        if (data.status === 'no_pending_purchase') {
+          setSettleError(mapSettleError('NO_PENDING_PURCHASE'));
+          setPhase('ready');
+          return;
+        }
+
+        const code =
+          data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || data.status === 'not_configured'
+            ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
+            : (data.error ?? data.status ?? 'FAILED');
+        setSettleError(mapSettleError(code));
+        setPhase('ready');
+        if (source === 'auto' && receiveAddress) {
+          try {
+            sessionStorage.setItem(autoSettleStorageKey(receiveAddress, requiredRef.current), 'failed');
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch (error) {
+        if (!mountedRef.current) return;
+        const message = error instanceof Error ? error.message : 'FAILED';
+        setSettleError(mapSettleError(message));
+        setPhase('ready');
+      }
+    },
+    [applyKnownBalance, mapSettleError, mode, receiveAddress]
+  );
+
+  // Mount-only: provision + first watch. No dependency churn / remount flicker.
   useEffect(() => {
-    if (confirmed) return;
+    mountedRef.current = true;
+    let cancelled = false;
+
+    const bootstrap = async () => {
+      try {
+        await fetch('/api/investor/wallet/provision', {
+          method: 'POST',
+          credentials: 'same-origin'
+        }).catch(() => undefined);
+
+        if (ensureReference && mode === 'purchase') {
+          await ensureReference('USDC_ONCHAIN').catch(() => null);
+        }
+
+        const watchRes = await fetch('/api/wallet/privy-inbound/watch', { cache: 'no-store' });
+        if (cancelled) return;
+
+        let address: string | null = null;
+        if (watchRes.ok) {
+          const watchData = (await watchRes.json()) as {
+            address?: string | null;
+            balanceUsdc?: number | null;
+            balanceKnown?: boolean;
+            pendingPurchase?: { amountUsd?: number } | null;
+            readyToAutoSettle?: boolean;
+          };
+          address = normalizeAddress(watchData.address);
+          if (
+            watchData.pendingPurchase &&
+            typeof watchData.pendingPurchase.amountUsd === 'number' &&
+            watchData.pendingPurchase.amountUsd > 0
+          ) {
+            setRequiredUsdc(watchData.pendingPurchase.amountUsd);
+            requiredRef.current = watchData.pendingPurchase.amountUsd;
+          }
+          if (address) setServerAddress(address);
+
+          if (watchData.balanceKnown !== false && typeof watchData.balanceUsdc === 'number') {
+            applyKnownBalance(watchData.balanceUsdc);
+          } else if (address) {
+            const bal = await readClientBalance(address);
+            if (!cancelled && bal != null) applyKnownBalance(bal);
+          }
+
+          if (watchData.readyToAutoSettle) latchReady();
+        }
+
+        if (!address) {
+          const provisionRes = await fetch('/api/investor/wallet/provision', {
+            method: 'POST',
+            credentials: 'same-origin'
+          });
+          const provisionData = (await provisionRes.json()) as { walletAddress?: string };
+          address = normalizeAddress(provisionData.walletAddress);
+          if (address) {
+            setServerAddress(address);
+            const bal = await readClientBalance(address);
+            if (!cancelled && bal != null) applyKnownBalance(bal);
+          }
+        }
+
+        if (!cancelled && phaseRef.current === 'loading') {
+          setPhase('needs_funds');
+        }
+      } catch {
+        if (!cancelled && phaseRef.current === 'loading') {
+          setPhase('needs_funds');
+        }
+      }
+    };
+
+    void bootstrap();
+    return () => {
+      cancelled = true;
+      mountedRef.current = false;
+    };
+    // intentionally mount-only
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Poll balance / watch — never downgrades ready → needs_funds.
+  useEffect(() => {
+    if (phase === 'done') return;
     let cancelled = false;
 
     const tick = async () => {
@@ -303,6 +320,7 @@ export function CryptoWalletPanel({
           newInbounds?: unknown[];
           pendingPurchase?: { amountUsd?: number } | null;
         };
+
         const watched = normalizeAddress(data.address);
         if (watched) setServerAddress(watched);
         if (
@@ -311,62 +329,66 @@ export function CryptoWalletPanel({
           data.pendingPurchase.amountUsd > 0
         ) {
           setRequiredUsdc(data.pendingPurchase.amountUsd);
+          requiredRef.current = data.pendingPurchase.amountUsd;
         }
 
-        if (data.balanceKnown === false) {
-          await refreshBalanceRpc(watched);
-        } else if (typeof data.balanceUsdc === 'number') {
-          applyBalance(data.balanceUsdc, true);
+        if (data.balanceKnown !== false && typeof data.balanceUsdc === 'number') {
+          applyKnownBalance(data.balanceUsdc);
+        } else if (watched) {
+          const bal = await readClientBalance(watched);
+          if (!cancelled && bal != null) applyKnownBalance(bal);
         }
-
-        const need = amountUsdcRef.current;
 
         if (mode === 'deposit') {
-          const bal = lastKnownBalance.current;
+          const bal = balanceRef.current;
           if (
-            (bal != null && bal + 1e-9 >= need) ||
+            (bal != null && bal + 1e-9 >= requiredRef.current) ||
             (data.newInbounds && data.newInbounds.length > 0)
           ) {
-            setConfirmed(true);
-            setAutoSettleStatus('done');
+            setPhase('done');
             onFundedRef.current?.();
-          } else {
-            setAutoSettleStatus((prev) => (prev === 'done' ? prev : 'waiting_funds'));
           }
           return;
         }
 
-        const ready =
-          data.readyToAutoSettle ||
-          (lastKnownBalance.current != null && lastKnownBalance.current + 1e-9 >= need);
-
-        if (ready) {
-          setFundsReady(true);
-        }
-
-        const canAutoSettle =
-          ready && !settleStarted.current && Date.now() >= settleCooldownUntil.current;
-
-        if (canAutoSettle) {
-          settleStarted.current = true;
-          await triggerServerSettleRef.current();
-        } else if (!ready) {
-          setAutoSettleStatus((prev) => (prev === 'settling' || prev === 'done' ? prev : 'waiting_funds'));
-        }
+        if (data.readyToAutoSettle) latchReady();
       } catch {
-        /* ignore transient poll errors */
+        /* ignore */
       }
     };
 
     void tick();
     const id = window.setInterval(() => {
       void tick();
-    }, 5000);
+    }, 6_000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [applyBalance, confirmed, mode, refreshBalanceRpc]);
+  }, [applyKnownBalance, latchReady, mode, phase, readClientBalance]);
+
+  // Auto-settle exactly once when entering ready (skipped if a prior auto attempt failed this session).
+  useEffect(() => {
+    if (mode !== 'purchase') return;
+    if (phase !== 'ready') return;
+    if (autoSettleFired.current) return;
+
+    const addr = receiveAddress;
+    if (addr) {
+      try {
+        const prior = sessionStorage.getItem(autoSettleStorageKey(addr, amountUsdc));
+        if (prior === 'failed' || prior === 'done') {
+          autoSettleFired.current = true;
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+
+    autoSettleFired.current = true;
+    void runSettle('auto');
+  }, [amountUsdc, mode, phase, receiveAddress, runSettle]);
 
   const eip681Uri = receiveAddress ? buildEip681Uri(receiveAddress, amountUsdc) : null;
 
@@ -435,9 +457,6 @@ export function CryptoWalletPanel({
       </div>
     ) : null;
 
-  const showPayUi = mode === 'purchase' && fundsReady;
-  const showDepositUi = !fundsReady;
-
   return (
     <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
       <div className="flex items-center gap-3">
@@ -462,7 +481,7 @@ export function CryptoWalletPanel({
         <p className="mt-0.5 text-xs text-terminal-muted">{sc.cryptoWalletOnBaseNote}</p>
       </div>
 
-      {confirmed ? (
+      {phase === 'done' ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-terminal-success/40 bg-terminal-success/10 px-4 py-6 text-center">
           <CheckCircle2 size={28} className="text-terminal-success" />
           <p className="text-sm font-bold text-terminal-success">
@@ -481,7 +500,7 @@ export function CryptoWalletPanel({
             </span>
           </div>
 
-          {resolvingAddress && !receiveAddress ? (
+          {phase === 'loading' && !receiveAddress ? (
             <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-3 text-[11px] text-terminal-muted">
               <Loader2 size={12} className="animate-spin text-terminal-primary" />
               {sc.cryptoWalletPrivyPreparing}
@@ -490,35 +509,39 @@ export function CryptoWalletPanel({
             <p className="text-[11px] leading-relaxed text-terminal-muted">{sc.cryptoWalletPrivyLoginHint}</p>
           ) : (
             <>
-              {/* Address stays mounted so the layout does not jump between pay/deposit states. */}
-              {showDepositUi ? (
+              {(phase === 'needs_funds' || phase === 'loading') && (
                 <p className="text-xs leading-relaxed text-terminal-text">{sc.cryptoWalletInsufficientCopyPaste}</p>
-              ) : null}
+              )}
               {addressBlock}
-              {showDepositUi ? qrBlock : null}
+              {(phase === 'needs_funds' || phase === 'loading') && qrBlock}
 
-              {showPayUi ? (
+              {(phase === 'ready' || phase === 'settling') && mode === 'purchase' ? (
                 <button
                   type="button"
                   onClick={() => {
-                    settleCooldownUntil.current = 0;
-                    settleStarted.current = true;
-                    void triggerServerSettle();
+                    autoSettleFired.current = true;
+                    if (receiveAddress) {
+                      try {
+                        sessionStorage.removeItem(autoSettleStorageKey(receiveAddress, amountUsdc));
+                      } catch {
+                        /* ignore */
+                      }
+                    }
+                    void runSettle('manual');
                   }}
-                  disabled={autoSettleStatus === 'settling'}
+                  disabled={phase === 'settling'}
                   className="flex w-full min-h-12 items-center justify-center gap-2 rounded-xl bg-terminal-primary py-3.5 text-sm font-bold text-white shadow-lg disabled:opacity-60"
                 >
-                  {autoSettleStatus === 'settling' ? (
+                  {phase === 'settling' ? (
                     <Loader2 size={16} className="animate-spin" />
                   ) : (
                     <Wallet size={16} />
                   )}
-                  {autoSettleStatus === 'settling' ? sc.cryptoWalletAutoSettling : sc.cryptoWalletPayButton}
+                  {phase === 'settling' ? sc.cryptoWalletAutoSettling : sc.cryptoWalletPayButton}
                 </button>
               ) : null}
 
-              {/* Only show waiting-for-deposit status when not already on the pay button. */}
-              {showDepositUi && autoSettleStatus !== 'settling' ? (
+              {phase === 'needs_funds' || phase === 'loading' ? (
                 <div className="flex items-center justify-center gap-2 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2 text-[11px] text-terminal-muted">
                   <Loader2 size={12} className="animate-spin text-terminal-primary" />
                   {mode === 'purchase' ? sc.cryptoWalletAutoSettleWaiting : sc.cryptoWalletWaitingDeposit}

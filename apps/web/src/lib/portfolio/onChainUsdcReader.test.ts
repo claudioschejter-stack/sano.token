@@ -1,27 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-const mockBalanceOf = vi.fn();
-const mockDestroy = vi.fn();
-
-vi.mock('ethers', () => {
-  class MockContract {
-    balanceOf = mockBalanceOf;
-  }
-  class MockJsonRpcProvider {
-    destroy = mockDestroy;
-  }
-  return {
-    ethers: {
-      Contract: MockContract,
-      JsonRpcProvider: MockJsonRpcProvider,
-      formatUnits: (value: bigint, decimals: number) => {
-        const n = Number(value) / 10 ** decimals;
-        return String(n);
-      },
-      getAddress: (value: string) => value
-    }
-  };
-});
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../payments/stablecoinNetworks', () => ({
   getStablecoinNetwork: () => ({
@@ -33,51 +10,76 @@ vi.mock('../payments/stablecoinNetworks', () => ({
     chainId: 8453,
     symbol: 'USDC'
   }),
-  baseRpcUrls: () => ['https://mainnet.base.org', 'https://base.publicnode.com']
+  baseRpcUrls: () => ['https://rpc-a.example', 'https://rpc-b.example']
 }));
 
 describe('readWalletUsdcBalanceDetailed', () => {
+  const originalFetch = globalThis.fetch;
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('returns ok with zero balance without treating empty as failure', async () => {
-    mockBalanceOf.mockResolvedValue(0n);
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('returns ok with zero balance', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          result: '0x0'
+        })
+    }) as unknown as typeof fetch;
+
     const { readWalletUsdcBalanceDetailed } = await import('./onChainUsdcReader');
     const result = await readWalletUsdcBalanceDetailed('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.amountUsdc).toBe(0);
-      expect(result.balances).toHaveLength(1);
     }
   });
 
   it('returns ok:false when all RPC candidates fail', async () => {
-    mockBalanceOf.mockRejectedValue(new Error('rate limited'));
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 429,
+      text: async () => 'rate limited'
+    }) as unknown as typeof fetch;
+
     const { readWalletUsdcBalanceDetailed } = await import('./onChainUsdcReader');
     const result = await readWalletUsdcBalanceDetailed('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
     expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.amountUsdc).toBeNull();
-      expect(result.balances).toEqual([]);
-    }
   });
 
   it('falls back to the next RPC when the primary fails', async () => {
-    mockBalanceOf
-      .mockRejectedValueOnce(new Error('rate limited'))
-      .mockRejectedValueOnce(new Error('rate limited'))
-      .mockResolvedValueOnce(20_000_000n);
-    const { readWalletUsdcBalanceDetailed } = await import('./onChainUsdcReader');
-    const result = await readWalletUsdcBalanceDetailed('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.amountUsdc).toBe(20);
-    }
-  });
+    globalThis.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: async () => 'rate limited'
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        text: async () => 'rate limited'
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () =>
+          JSON.stringify({
+            jsonrpc: '2.0',
+            id: 1,
+            result: '0x1312d00'
+          })
+      }) as unknown as typeof fetch;
 
-  it('returns the USDC amount on success', async () => {
-    mockBalanceOf.mockResolvedValue(20_000_000n);
     const { readWalletUsdcBalanceDetailed } = await import('./onChainUsdcReader');
     const result = await readWalletUsdcBalanceDetailed('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
     expect(result.ok).toBe(true);

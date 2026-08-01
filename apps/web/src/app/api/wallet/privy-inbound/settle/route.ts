@@ -12,7 +12,7 @@ export const maxDuration = 60;
  * Server-side auto-settle for crypto checkout.
  * Moves USDC Privy → treasury and confirms the cart without any Privy browser login.
  */
-export async function POST() {
+export async function POST(request: Request) {
   const ctx = await requireInvestorSession();
   if (!ctx) {
     return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
@@ -22,7 +22,17 @@ export async function POST() {
   }
 
   try {
-    const result = await autoSettlePrivyCartForUser(ctx.userId);
+    let clientBalanceUsdc: number | null = null;
+    try {
+      const body = (await request.json()) as { clientBalanceUsdc?: unknown };
+      if (typeof body.clientBalanceUsdc === 'number' && Number.isFinite(body.clientBalanceUsdc)) {
+        clientBalanceUsdc = body.clientBalanceUsdc;
+      }
+    } catch {
+      /* empty body is fine */
+    }
+
+    const result = await autoSettlePrivyCartForUser(ctx.userId, { clientBalanceUsdc });
     if (!result.ok) {
       const status = result.status === 'not_configured' ? 503 : 400;
       return NextResponse.json(result, { status });
