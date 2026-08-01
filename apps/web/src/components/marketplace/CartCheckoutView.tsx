@@ -1617,11 +1617,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
           {showPaymentMethods ? (
             <div className="border-b border-terminal-border py-[1mm]">
-              <div className={AMOUNT_ROW}>
-                <label className={mode === 'deposit' ? AMOUNT_CREDIT_LABEL : 'text-xs font-semibold uppercase tracking-wider text-terminal-muted'}>
-                  {c.creditAmountUsdc}
-                </label>
-                {mode === 'deposit' ? (
+              {mode === 'deposit' ? (
+                <div className={AMOUNT_ROW}>
+                  <label className={AMOUNT_CREDIT_LABEL}>{c.creditAmountUsdc}</label>
                   <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_CREDIT_VALUE} flex items-baseline justify-end text-white`}>
                     <span className={USDC_AMOUNT_GAP}>USDC</span>
                     <input
@@ -1632,13 +1630,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                       placeholder="100"
                     />
                   </div>
-                ) : (
-                  <div className={`${AMOUNT_VALUE_CELL} ${AMOUNT_TOTAL} flex items-baseline justify-end text-white`}>
-                    <span className={USDC_AMOUNT_GAP}>USDC</span>
-                    <span className={AMOUNT_NUMBER_WIDTH}>{formatUsdcAmountNumber(totalUsd, currencyLocale)}</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              ) : null}
               <div className={AMOUNT_ROW}>
                 <span className="text-sm font-semibold text-terminal-text">{c.totalToPayLabel}</span>
                 {mode !== 'deposit' && (
