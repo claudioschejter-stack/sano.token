@@ -3021,7 +3021,7 @@ export const es = {
       'No pudimos completar el pago automático todavía. Tocá Pagar de nuevo — no hace falta volver a loguearte en Privy. Si persiste, Sanova debe revisar la configuración de auto-settle.',
     cryptoWalletAutoSettleError: 'No se pudo completar el pago automático: {error}',
     cryptoWalletNoPendingPurchase:
-      'No pudimos crear la orden de compra automáticamente. Probá «Mi wallet» (Coinbase / WalletConnect) o tocá Pagar de nuevo.',
+      'No pudimos crear la orden de compra. Tocá Pagar de nuevo; si sigue fallando, usá «Mi wallet» (Coinbase / WalletConnect).',
     cryptoWalletHtmlGatewayError:
       'El servidor devolvió una respuesta inválida (posible despliegue en curso). Recargá la página o pagá con «Mi wallet» (Coinbase / WalletConnect).',
     cryptoWalletManualReview:

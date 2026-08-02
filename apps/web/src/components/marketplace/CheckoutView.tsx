@@ -223,6 +223,8 @@ export function CheckoutView({ projectId, investorName, kycApproved }: CheckoutV
                 referenceId={referenceId}
                 investorName={investorName}
                 country={country}
+                mode="purchase"
+                cartItems={[{ projectId, tokenCount: tokenQty }]}
                 onFunded={() => setStatus('done')}
                 onError={(msg) => setPurchaseError(msg)}
               />

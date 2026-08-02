@@ -68,7 +68,7 @@ import {
 } from '../../lib/payments/mercadoPagoEmbeddedService';
 import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
 import { PaymentGateway } from '../payments/gateway';
-import { SimplifiedCheckout } from '../payments/simplified';
+import { SimplifiedCheckout, type EnsureCheckoutReferenceOptions } from '../payments/simplified';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -983,11 +983,15 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     async (
       method: PaymentMethod,
       rail?: string,
-      options?: { paymentOptionId?: string; walletAddress?: string | null }
+      options?: EnsureCheckoutReferenceOptions
     ): Promise<{ referenceId: string; payToAddress: string | null } | null> => {
       const paymentOptionId = options?.paymentOptionId?.trim() || undefined;
-      const cacheKey = `${method}:${rail ?? ''}:${paymentOptionId ?? 'default'}`;
-      const cached = simplifiedRefCache[cacheKey];
+      const cartFingerprint =
+        mode === 'purchase'
+          ? items.map((row) => `${row.projectId}:${row.tokenCount}`).join('|')
+          : `deposit:${totalUsd.toFixed(2)}`;
+      const cacheKey = `${method}:${rail ?? ''}:${paymentOptionId ?? 'default'}:${cartFingerprint}`;
+      const cached = options?.forceRefresh ? null : simplifiedRefCache[cacheKey];
       if (cached) {
         return cached;
       }

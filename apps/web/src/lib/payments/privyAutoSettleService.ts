@@ -1,4 +1,6 @@
 import { prisma } from '@sanova/database';
+import type { CartLineInput } from './cartCheckoutService';
+import { normalizeCartLineItems } from './normalizeCartLineItems';
 import {
   isPrivyServerAutoSettleConfigured,
   paySanovaCartForUser,
@@ -10,13 +12,16 @@ export type PrivyAutoSettleResult = PaySanovaCartResult;
 export type AutoSettlePrivyCartOptions = {
   /** Browser-observed USDC balance — used only when server RPC read fails. */
   clientBalanceUsdc?: number | null;
+  /** When provided, creates the pending cart if none exists (checkout UI path). */
+  items?: CartLineInput[];
+  userEmail?: string | null;
 };
 
 export { isPrivyServerAutoSettleConfigured };
 
 /**
- * Fully server-side settle for an existing pending USDC cart.
- * Prefer `paySanovaCartForUser` from the checkout UI (creates the cart if needed).
+ * Fully server-side settle for a pending USDC cart.
+ * Pass `items` from the checkout UI so a missing pending batch can be created.
  */
 export async function autoSettlePrivyCartForUser(
   userId: string,
@@ -24,7 +29,8 @@ export async function autoSettlePrivyCartForUser(
 ): Promise<PrivyAutoSettleResult> {
   return paySanovaCartForUser({
     userId,
-    items: [],
+    userEmail: options.userEmail,
+    items: normalizeCartLineItems(options.items),
     clientBalanceUsdc: options.clientBalanceUsdc
   });
 }

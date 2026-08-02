@@ -6,3 +6,8 @@ export { CardPaymentPanel } from './CardPaymentPanel';
 export { WireTransferPanel } from './WireTransferPanel';
 export { MobileAppRow } from './MobileAppRow';
 export type { SimplifiedMethod } from './SimplifiedMethodSelector';
+export type {
+  EnsureCheckoutReference,
+  EnsureCheckoutReferenceOptions,
+  SimplifiedCheckoutCartItem
+} from './SimplifiedCheckout';

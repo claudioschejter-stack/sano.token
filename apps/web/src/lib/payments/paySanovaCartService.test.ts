@@ -74,6 +74,22 @@ describe('paySanovaCartForUser', () => {
     mockFindPending.mockResolvedValue(null);
   });
 
+  it('fails hard when there is no pending purchase and no cart items', async () => {
+    const result = await paySanovaCartForUser({
+      userId: 'user-1',
+      items: [],
+      clientBalanceUsdc: 20
+    });
+
+    expect(mockCreateCheckout).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      ok: false,
+      status: 'failed',
+      error: 'NO_PENDING_PURCHASE',
+      balanceUsdc: 20
+    });
+  });
+
   it('creates checkout then settles when no pending purchase exists', async () => {
     mockCreateCheckout.mockResolvedValue({
       batchId: 'cart-new',
@@ -105,7 +121,15 @@ describe('paySanovaCartForUser', () => {
       clientBalanceUsdc: 20
     });
 
-    expect(mockCreateCheckout).toHaveBeenCalled();
+    expect(mockCreateCheckout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        items: [{ projectId: 'proj-1', tokenCount: 1 }],
+        method: 'USDC_ONCHAIN',
+        stablecoinNetwork: 'BASE',
+        walletAddress: '0x840aed84455c3a30ef23a34a4d961bc3e1d06b41'
+      })
+    );
     expect(result).toMatchObject({
       ok: true,
       status: 'settled',

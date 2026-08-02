@@ -13,6 +13,8 @@ import { useUsdcTreasuryPayment } from '../../../hooks/useUsdcTreasuryPayment';
 import { readJsonResponse } from '../../../lib/http/readJsonResponse';
 import { resolveDisplayReceiveAddress } from '../../../lib/investor/canonicalReceiveAddress';
 import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
+import { normalizeCartLineItems } from '../../../lib/payments/normalizeCartLineItems';
+import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
 import { CoinbaseConnectButton } from '../../wallet/CoinbaseConnectButton';
 import { WalletConnectConnectButton } from '../../wallet/WalletConnectConnectButton';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
@@ -88,6 +90,10 @@ export function CryptoWalletPanel({
   const balanceRef = useRef<number | null>(null);
   const requiredRef = useRef(amountUsd);
   requiredRef.current = requiredUsdc > 0 ? requiredUsdc : amountUsd;
+  const cartItemsRef = useRef(cartItems);
+  cartItemsRef.current = cartItems;
+  const ensureReferenceRef = useRef(ensureReference);
+  ensureReferenceRef.current = ensureReference;
   const mountedRef = useRef(true);
 
   const amountUsdc = requiredUsdc > 0 ? requiredUsdc : amountUsd;
@@ -106,38 +112,39 @@ export function CryptoWalletPanel({
 
   const mapSettleError = useCallback(
     (errorCode: string) => {
-      if (errorCode === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED') {
+      const code = errorCode.trim().toUpperCase();
+      if (code === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || code === 'NOT_CONFIGURED') {
         return sc.cryptoWalletAutoSettleNotConfigured;
       }
-      if (errorCode === 'NO_PENDING_PURCHASE' || errorCode === 'CART_EMPTY') {
+      if (code === 'NO_PENDING_PURCHASE' || code === 'CART_EMPTY' || code === 'CART_CHECKOUT_FAILED') {
         return sc.cryptoWalletNoPendingPurchase;
       }
       if (
-        errorCode === 'PAY_ENDPOINT_NOT_FOUND' ||
-        errorCode === 'INVALID_JSON_RESPONSE' ||
-        (errorCode.startsWith('HTTP_') && errorCode.endsWith('_HTML_RESPONSE')) ||
+        code === 'PAY_ENDPOINT_NOT_FOUND' ||
+        code === 'INVALID_JSON_RESPONSE' ||
+        (code.startsWith('HTTP_') && code.endsWith('_HTML_RESPONSE')) ||
         errorCode.includes('Unexpected token')
       ) {
         return sc.cryptoWalletHtmlGatewayError;
       }
-      if (errorCode === 'CART_MANUAL_REVIEW_REQUIRED') {
+      if (code === 'CART_MANUAL_REVIEW_REQUIRED') {
         return sc.cryptoWalletManualReview;
       }
       if (
-        errorCode === 'USDC_BALANCE_READ_FAILED' ||
-        errorCode === 'RPC_BALANCE_READ_FAILED' ||
-        errorCode === 'PRIVY_WALLET_ID_NOT_FOUND'
+        code === 'USDC_BALANCE_READ_FAILED' ||
+        code === 'RPC_BALANCE_READ_FAILED' ||
+        code === 'PRIVY_WALLET_ID_NOT_FOUND'
       ) {
         return sc.cryptoWalletAutoSettleBalanceReadFailed;
       }
       if (
-        errorCode === 'INVESTOR_WALLET_REQUIRED' ||
-        errorCode === 'WALLET_REQUIRED' ||
-        errorCode === 'WALLET_REQUIRED_FOR_TOKENIZED_PURCHASE'
+        code === 'INVESTOR_WALLET_REQUIRED' ||
+        code === 'WALLET_REQUIRED' ||
+        code === 'WALLET_REQUIRED_FOR_TOKENIZED_PURCHASE'
       ) {
         return sc.cryptoWalletLinkRequired;
       }
-      if (errorCode === 'ALLOWLIST_NOT_APPROVED' || errorCode === 'ONCHAIN_ALLOWLIST_NOT_APPROVED') {
+      if (code === 'ALLOWLIST_NOT_APPROVED' || code === 'ONCHAIN_ALLOWLIST_NOT_APPROVED') {
         return sc.cryptoWalletAllowlistRequired;
       }
       return sc.cryptoWalletAutoSettleError.replace('{error}', errorCode);
@@ -192,73 +199,128 @@ export function CryptoWalletPanel({
       return;
     }
 
+    // Read from refs so a stale useCallback never ships an empty cart.
+    const items = normalizeCartLineItems(cartItemsRef.current);
+    if (!items.length) {
+      setSettleError(sc.cryptoWalletNoPendingPurchase);
+      setPhase('ready');
+      return;
+    }
+
     setPhase('settling');
     setSettleError(null);
 
-    try {
-      type SettlePayload = {
-        ok?: boolean;
-        status?: string;
-        error?: string;
-        amountUsd?: number;
-        balanceUsdc?: number | null;
-      };
+    type SettlePayload = {
+      ok?: boolean;
+      status?: string;
+      error?: string;
+      amountUsd?: number;
+      balanceUsdc?: number | null;
+      batchId?: string;
+      txHash?: string;
+      checkout?: { batchId?: string };
+    };
 
-      const primaryRes = await fetch('/api/marketplace/cart/pay-sanova', {
+    const createPendingCart = async (cartLines: typeof items): Promise<string | null> => {
+      const ensure = ensureReferenceRef.current;
+      if (ensure) {
+        const ref = await ensure('USDC_ONCHAIN', undefined, { forceRefresh: true }).catch(() => null);
+        if (ref?.referenceId) return ref.referenceId;
+      }
+
+      const checkoutRes = await fetch('/api/marketplace/cart/checkout', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          items: cartItems,
-          clientBalanceUsdc: balanceRef.current
+          items: cartLines,
+          method: 'USDC_ONCHAIN',
+          stablecoinNetwork: 'BASE'
         })
       });
-      let parsed = await readJsonResponse<SettlePayload>(primaryRes);
-
-      if (
-        parsed.errorCode === 'PAY_ENDPOINT_NOT_FOUND' ||
-        parsed.errorCode === 'INVALID_JSON_RESPONSE' ||
-        (parsed.errorCode?.endsWith('_HTML_RESPONSE') ?? false)
-      ) {
-        if (ensureReference) {
-          await ensureReference('USDC_ONCHAIN').catch(() => null);
-        }
-        const fallbackRes = await fetch('/api/wallet/privy-inbound/settle', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ clientBalanceUsdc: balanceRef.current })
-        });
-        parsed = await readJsonResponse<SettlePayload>(fallbackRes);
+      const checkoutParsed = await readJsonResponse<SettlePayload>(checkoutRes);
+      if (checkoutParsed.ok && checkoutParsed.data.checkout?.batchId) {
+        return checkoutParsed.data.checkout.batchId;
       }
+      const createError =
+        checkoutParsed.errorCode ??
+        checkoutParsed.data.error ??
+        (checkoutParsed.ok ? null : 'CART_CHECKOUT_FAILED');
+      if (createError) {
+        throw new Error(createError);
+      }
+      return null;
+    };
+
+    const payHeadersFor = (lineCount: number) =>
+      ({
+        'content-type': 'application/json',
+        'x-sanova-cart-lines': String(lineCount)
+      }) as const;
+
+    const toFlowResult = (
+      parsed: Awaited<ReturnType<typeof readJsonResponse<SettlePayload>>>
+    ) => ({
+      ok: Boolean(parsed.ok && parsed.data.ok !== false),
+      status: parsed.data.status,
+      error: parsed.errorCode ?? parsed.data.error,
+      amountUsd: parsed.data.amountUsd,
+      balanceUsdc: parsed.data.balanceUsdc,
+      batchId: parsed.data.batchId,
+      txHash: parsed.data.txHash
+    });
+
+    try {
+      const flow = await runSanovaPayFlow({
+        items,
+        clientBalanceUsdc: balanceRef.current,
+        createPendingCart,
+        postPaySanova: async (cartLines, clientBalanceUsdc) => {
+          const res = await fetch('/api/marketplace/cart/pay-sanova', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: payHeadersFor(cartLines.length),
+            body: JSON.stringify({ items: cartLines, clientBalanceUsdc })
+          });
+          return toFlowResult(await readJsonResponse<SettlePayload>(res));
+        },
+        postLegacySettle: async (cartLines, clientBalanceUsdc) => {
+          const res = await fetch('/api/wallet/privy-inbound/settle', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: payHeadersFor(cartLines.length),
+            body: JSON.stringify({ items: cartLines, clientBalanceUsdc })
+          });
+          return toFlowResult(await readJsonResponse<SettlePayload>(res));
+        }
+      });
 
       if (!mountedRef.current) return;
 
-      if (typeof parsed.data.amountUsd === 'number' && parsed.data.amountUsd > 0) {
-        setRequiredUsdc(parsed.data.amountUsd);
-        requiredRef.current = parsed.data.amountUsd;
+      if (typeof flow.amountUsd === 'number' && flow.amountUsd > 0) {
+        setRequiredUsdc(flow.amountUsd);
+        requiredRef.current = flow.amountUsd;
       }
-      if (typeof parsed.data.balanceUsdc === 'number') {
-        applyKnownBalance(parsed.data.balanceUsdc);
+      if (typeof flow.balanceUsdc === 'number') {
+        applyKnownBalance(flow.balanceUsdc);
       }
 
-      if (parsed.ok && parsed.data.ok && parsed.data.status === 'settled') {
+      if (flow.ok && flow.status === 'settled') {
         setPhase('done');
         onFundedRef.current?.();
         return;
       }
 
-      if (parsed.data.status === 'waiting_funds') {
+      if (flow.status === 'waiting_funds') {
         setPhase('needs_funds');
         setSettleError(sc.cryptoWalletInsufficientPrivy);
         return;
       }
 
       const code =
-        parsed.data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
-        parsed.data.status === 'not_configured'
+        flow.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || flow.status === 'not_configured'
           ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
-          : (parsed.errorCode ?? parsed.data.error ?? parsed.data.status ?? 'FAILED');
+          : (flow.error ?? flow.status ?? 'FAILED');
       setSettleError(mapSettleError(code));
       setPhase(
         balanceRef.current != null && balanceRef.current + 1e-9 >= requiredRef.current
@@ -280,14 +342,7 @@ export function CryptoWalletPanel({
       setSettleError(mapSettleError(message));
       setPhase('ready');
     }
-  }, [
-    applyKnownBalance,
-    cartItems,
-    ensureReference,
-    mapSettleError,
-    mode,
-    sc.cryptoWalletInsufficientPrivy
-  ]);
+  }, [applyKnownBalance, mapSettleError, mode, sc.cryptoWalletInsufficientPrivy, sc.cryptoWalletNoPendingPurchase]);
 
   /** Top up the Sanova embedded wallet from a connected external wallet (not treasury pay). */
   const fundSanovaFromExternal = useCallback(async () => {
