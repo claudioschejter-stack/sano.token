@@ -33,9 +33,13 @@ function toAmount(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+/** Dividend statuses written when a payout actually settled (see rentPayoutService). */
+const CONFIRMED_DIVIDEND_STATUSES = ['LIQUIDATED_CASH', 'LIQUIDATED_FIAT', 'CONFIRMED', 'COMPLETED'] as const;
+
 /**
  * Unified investor ledger for dashboard “Últimas actividades” and wallet history.
- * Only settled movements — unpaid carts / failed settles never appear as outflows.
+ * Includes every movement kind (deposit, withdrawal, purchase, ledger, dividend),
+ * but only confirmed / posted / liquidated rows — pending or failed never appear.
  */
 export async function getInvestorActivityLedger(
   userId: string,
@@ -50,7 +54,7 @@ export async function getInvestorActivityLedger(
 
   const [deposits, withdrawals, ledger, dividends, purchases] = await Promise.all([
     prisma.platformDeposit.findMany({
-      where: { userId },
+      where: { userId, status: 'CONFIRMED' },
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
@@ -68,7 +72,7 @@ export async function getInvestorActivityLedger(
       }
     }),
     prisma.platformWithdrawal.findMany({
-      where: { userId },
+      where: { userId, status: 'CONFIRMED' },
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
@@ -83,7 +87,7 @@ export async function getInvestorActivityLedger(
       }
     }),
     prisma.platformWalletLedgerEntry.findMany({
-      where: { userId },
+      where: { userId, status: 'POSTED' },
       orderBy: { createdAt: 'desc' },
       take: limit,
       select: {
@@ -99,9 +103,12 @@ export async function getInvestorActivityLedger(
       }
     }),
     prisma.dividendDistribution.findMany({
-      where: user?.investorId
-        ? { OR: [{ userId: user.investorId }, { platformUserId: userId }] }
-        : { platformUserId: userId },
+      where: {
+        status: { in: [...CONFIRMED_DIVIDEND_STATUSES] },
+        ...(user?.investorId
+          ? { OR: [{ userId: user.investorId }, { platformUserId: userId }] }
+          : { platformUserId: userId })
+      },
       orderBy: { distributedAt: 'desc' },
       take: limit,
       select: {
