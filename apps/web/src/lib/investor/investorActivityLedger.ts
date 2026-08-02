@@ -35,7 +35,7 @@ function toAmount(value: unknown): number {
 
 /**
  * Unified investor ledger for dashboard “Últimas actividades” and wallet history.
- * Aggregates deposits, withdrawals, ledger rows, dividends and USDC cart purchases.
+ * Only settled movements — unpaid carts / failed settles never appear as outflows.
  */
 export async function getInvestorActivityLedger(
   userId: string,
@@ -114,14 +114,15 @@ export async function getInvestorActivityLedger(
         assetId: true
       }
     }),
+    // Only confirmed purchases — REQUIRES_PAYMENT carts must not look like outflows.
     prisma.paymentIntent.findMany({
       where: {
         userId,
-        status: { in: ['CONFIRMED', 'REQUIRES_PAYMENT', 'PENDING', 'MANUAL_REVIEW'] },
+        status: 'CONFIRMED',
         method: { in: ['USDC_ONCHAIN', 'CUSTODIAL_STABLECOIN'] }
       },
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      take: limit * 3,
       select: {
         id: true,
         status: true,
@@ -129,12 +130,14 @@ export async function getInvestorActivityLedger(
         method: true,
         txHash: true,
         createdAt: true,
+        confirmedAt: true,
         metadata: true
       }
     })
   ]);
 
   const items: InvestorActivityItem[] = [];
+  const purchaseIntentIds = new Set<string>();
 
   for (const row of deposits) {
     const meta = (row.metadata as Record<string, unknown>) ?? {};
@@ -173,7 +176,62 @@ export async function getInvestorActivityLedger(
     });
   }
 
+  // Aggregate confirmed cart lines by batch so multi-line carts are one outflow.
+  type BatchAgg = {
+    batchId: string | null;
+    intentIds: string[];
+    amountUsd: number;
+    method: string;
+    txHash: string | null;
+    occurredAt: Date;
+    status: string;
+  };
+  const batches = new Map<string, BatchAgg>();
+
+  for (const row of purchases) {
+    purchaseIntentIds.add(row.id);
+    const meta = (row.metadata as Record<string, unknown>) ?? {};
+    const batchId = typeof meta.cartBatchId === 'string' ? meta.cartBatchId.trim() : null;
+    const key = batchId || `intent:${row.id}`;
+    const occurredAt = row.confirmedAt ?? row.createdAt;
+    const current = batches.get(key) ?? {
+      batchId,
+      intentIds: [],
+      amountUsd: 0,
+      method: row.method,
+      txHash: row.txHash,
+      occurredAt,
+      status: row.status
+    };
+    current.intentIds.push(row.id);
+    current.amountUsd += toAmount(row.amountUsd);
+    if (row.txHash) current.txHash = row.txHash;
+    if (occurredAt > current.occurredAt) current.occurredAt = occurredAt;
+    batches.set(key, current);
+  }
+
+  for (const [key, batch] of batches) {
+    items.push({
+      id: batch.batchId ? `purchase-batch:${batch.batchId}` : `purchase:${batch.intentIds[0]}`,
+      kind: 'purchase',
+      amountUsd: -Math.abs(batch.amountUsd),
+      currency: 'USDC',
+      status: batch.status,
+      title: 'Compra de tokens RWA',
+      subtitle: batch.batchId ? `Carrito ${batch.batchId.slice(0, 8)}` : batch.method,
+      source: 'investor_wallet',
+      destination: 'treasury',
+      txHash: batch.txHash,
+      occurredAt: batch.occurredAt.toISOString()
+    });
+    void key;
+  }
+
   for (const row of ledger) {
+    // Avoid double-counting platform-balance purchases already shown as Compra.
+    if (row.paymentIntentId && purchaseIntentIds.has(row.paymentIntentId)) {
+      continue;
+    }
     const amount = toAmount(row.amount);
     const type = String(row.type).toUpperCase();
     const isCredit = type.includes('CREDIT') || amount > 0;
@@ -209,24 +267,6 @@ export async function getInvestorActivityLedger(
       destination: 'platform_wallet',
       txHash: row.txHash,
       occurredAt: row.distributedAt.toISOString()
-    });
-  }
-
-  for (const row of purchases) {
-    const meta = (row.metadata as Record<string, unknown>) ?? {};
-    const batchId = typeof meta.cartBatchId === 'string' ? meta.cartBatchId : null;
-    items.push({
-      id: `purchase:${row.id}`,
-      kind: 'purchase',
-      amountUsd: -Math.abs(toAmount(row.amountUsd)),
-      currency: 'USDC',
-      status: row.status,
-      title: 'Compra de tokens RWA',
-      subtitle: batchId ? `Carrito ${batchId.slice(0, 8)}` : row.method,
-      source: 'investor_wallet',
-      destination: 'treasury',
-      txHash: row.txHash,
-      occurredAt: row.createdAt.toISOString()
     });
   }
 

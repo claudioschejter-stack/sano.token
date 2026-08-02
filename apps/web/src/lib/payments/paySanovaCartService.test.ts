@@ -62,7 +62,17 @@ vi.mock('../privy/walletRpcApi', () => ({
   privySendTransaction: (...args: unknown[]) => mockSendTx(...args)
 }));
 
-import { paySanovaCartForUser } from './paySanovaCartService';
+import { classifyPrivySendError, paySanovaCartForUser } from './paySanovaCartService';
+
+describe('classifyPrivySendError', () => {
+  it('maps Privy 401 authorization key failures to a stable code', () => {
+    expect(
+      classifyPrivySendError(
+        'PRIVY_SEND_TRANSACTION_FAILED:401:{"error":"No valid authorization keys or user signing keys available"}'
+      )
+    ).toBe('PRIVY_AUTHORIZATION_SIGNER_REQUIRED');
+  });
+});
 
 describe('paySanovaCartForUser', () => {
   beforeEach(() => {

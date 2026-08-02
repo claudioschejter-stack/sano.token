@@ -3024,6 +3024,8 @@ export const es = {
       'No pudimos crear la orden de compra. Tocá Pagar de nuevo; si sigue fallando, usá «Mi wallet» (Coinbase / WalletConnect).',
     cryptoWalletCheckoutTimeout:
       'El servidor tardó demasiado en preparar la orden. Tocá Pagar de nuevo — tu saldo no se movió.',
+    cryptoWalletPrivySignerRequired:
+      'No pudimos firmar el pago desde el servidor. Tocá Pagar de nuevo — vamos a firmar desde tu wallet Sanova en esta sesión.',
     cryptoWalletHtmlGatewayError:
       'El servidor devolvió una respuesta inválida (posible despliegue en curso). Recargá la página o pagá con «Mi wallet» (Coinbase / WalletConnect).',
     cryptoWalletManualReview:

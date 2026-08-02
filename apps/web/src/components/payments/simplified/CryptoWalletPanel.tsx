@@ -8,17 +8,32 @@ import { erc20Abi, parseUnits } from 'viem';
 import { useAccount, useConfig, useSwitchChain } from 'wagmi';
 import { formatMessage } from '../../../i18n';
 import { useTranslation } from '../../../i18n/LocaleProvider';
+import { useSigners } from '@privy-io/react-auth';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
+import { usePrivyTreasuryPayment } from '../../../hooks/usePrivyTreasuryPayment';
+import { usePrivyVaultDeposit } from '../../../hooks/usePrivyVaultDeposit';
 import { useUsdcTreasuryPayment } from '../../../hooks/useUsdcTreasuryPayment';
 import { readJsonResponse } from '../../../lib/http/readJsonResponse';
 import { resolveDisplayReceiveAddress } from '../../../lib/investor/canonicalReceiveAddress';
 import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
 import { normalizeCartLineItems } from '../../../lib/payments/normalizeCartLineItems';
 import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
+import type { VaultDepositLine } from '../../../lib/web3/vaultDepositPayment';
 import { CoinbaseConnectButton } from '../../wallet/CoinbaseConnectButton';
 import { WalletConnectConnectButton } from '../../wallet/WalletConnectConnectButton';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 import type { EnsureCheckoutReference, SimplifiedCheckoutCartItem } from './SimplifiedCheckout';
+
+const PRIVY_AUTH_QUORUM_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUORUM_ID?.trim() ?? '';
+
+function isPrivyAuthorizationSignerError(code: string): boolean {
+  const lower = code.toLowerCase();
+  return (
+    code === 'PRIVY_AUTHORIZATION_SIGNER_REQUIRED' ||
+    lower.includes('no valid authorization keys') ||
+    lower.includes('user signing keys available')
+  );
+}
 
 const QR_SIZE = 220;
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
@@ -69,6 +84,9 @@ export function CryptoWalletPanel({
   const { switchChainAsync } = useSwitchChain();
   const { address: externalAddress, isConnected: isExternalConnected } = useAccount();
   const { payToTreasury } = useUsdcTreasuryPayment();
+  const { payToTreasury: payToTreasuryPrivy } = usePrivyTreasuryPayment();
+  const { depositToVaults: depositToVaultsPrivy } = usePrivyVaultDeposit();
+  const { addSigners } = useSigners();
 
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [showQr, setShowQr] = useState(false);
@@ -119,6 +137,9 @@ export function CryptoWalletPanel({
       if (code === 'NO_PENDING_PURCHASE' || code === 'CART_EMPTY' || code === 'CART_CHECKOUT_FAILED') {
         return sc.cryptoWalletNoPendingPurchase;
       }
+      if (isPrivyAuthorizationSignerError(errorCode) || code === 'PRIVY_AUTHORIZATION_SIGNER_REQUIRED') {
+        return sc.cryptoWalletPrivySignerRequired;
+      }
       if (
         code === 'CART_CHECKOUT_TIMEOUT' ||
         errorCode.toLowerCase().includes('transaction already closed') ||
@@ -166,7 +187,8 @@ export function CryptoWalletPanel({
       sc.cryptoWalletHtmlGatewayError,
       sc.cryptoWalletLinkRequired,
       sc.cryptoWalletManualReview,
-      sc.cryptoWalletNoPendingPurchase
+      sc.cryptoWalletNoPendingPurchase,
+      sc.cryptoWalletPrivySignerRequired
     ]
   );
 
@@ -230,10 +252,14 @@ export function CryptoWalletPanel({
       checkout?: { batchId?: string };
     };
 
-    const createPendingCart = async (cartLines: typeof items): Promise<string | null> => {
+    const createPendingCart = async (
+      cartLines: typeof items,
+      forceRefresh = false
+    ): Promise<string | null> => {
       const ensure = ensureReferenceRef.current;
       if (ensure) {
-        const ref = await ensure('USDC_ONCHAIN', undefined, { forceRefresh: true }).catch(() => null);
+        // Reuse an open cart when possible — forceRefresh caused duplicate "Compra" ghosts.
+        const ref = await ensure('USDC_ONCHAIN', undefined, { forceRefresh }).catch(() => null);
         if (ref?.referenceId) return ref.referenceId;
       }
 
@@ -279,11 +305,74 @@ export function CryptoWalletPanel({
       txHash: parsed.data.txHash
     });
 
+    /** When server auth-key settle is blocked, sign from the embedded Privy session instead. */
+    const settleWithClientPrivy = async (batchId: string, payAmountUsd: number): Promise<boolean> => {
+      if (receiveAddress && PRIVY_AUTH_QUORUM_ID) {
+        await addSigners({
+          address: receiveAddress,
+          signers: [{ signerId: PRIVY_AUTH_QUORUM_ID, policyIds: [] }]
+        }).catch(() => undefined);
+      }
+
+      const statusRes = await fetch(
+        `/api/marketplace/cart/status?batchId=${encodeURIComponent(batchId)}`,
+        { credentials: 'same-origin', cache: 'no-store' }
+      );
+      const statusParsed = await readJsonResponse<{
+        status?: {
+          paymentIntents?: Array<{
+            amountUsd: string;
+            metadata?: Record<string, unknown> | null;
+          }>;
+        };
+      }>(statusRes);
+
+      const intents = statusParsed.data.status?.paymentIntents ?? [];
+      const vaultDeposits: VaultDepositLine[] = intents.flatMap((row) => {
+        const meta = row.metadata ?? {};
+        if (meta.purchaseMode !== 'ERC4626_DEPOSIT' || typeof meta.vaultAddress !== 'string') {
+          return [];
+        }
+        const lineAmount = Number.parseFloat(row.amountUsd);
+        if (!Number.isFinite(lineAmount) || lineAmount <= 0) return [];
+        return [{ vaultAddress: meta.vaultAddress, amountUsd: lineAmount }];
+      });
+
+      const txHash =
+        vaultDeposits.length > 0
+          ? await depositToVaultsPrivy({ stablecoinNetwork: 'BASE', deposits: vaultDeposits })
+          : await payToTreasuryPrivy({ amountUsd: payAmountUsd, stablecoinNetwork: 'BASE' });
+
+      const confirmRes = await fetch('/api/marketplace/cart/confirm', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          batchId,
+          txHash,
+          walletAddress: receiveAddress
+        })
+      });
+      const confirmParsed = await readJsonResponse<{ error?: string }>(confirmRes);
+      if (!confirmParsed.ok) {
+        throw new Error(confirmParsed.errorCode ?? confirmParsed.data.error ?? 'STABLECOIN_VERIFY_FAILED');
+      }
+      return true;
+    };
+
     try {
+      // Best-effort: grant app authorization key as signer before server settle.
+      if (receiveAddress && PRIVY_AUTH_QUORUM_ID) {
+        await addSigners({
+          address: receiveAddress,
+          signers: [{ signerId: PRIVY_AUTH_QUORUM_ID, policyIds: [] }]
+        }).catch(() => undefined);
+      }
+
       const flow = await runSanovaPayFlow({
         items,
         clientBalanceUsdc: balanceRef.current,
-        createPendingCart,
+        createPendingCart: (cartLines) => createPendingCart(cartLines, false),
         postPaySanova: async (cartLines, clientBalanceUsdc) => {
           const res = await fetch('/api/marketplace/cart/pay-sanova', {
             method: 'POST',
@@ -330,6 +419,31 @@ export function CryptoWalletPanel({
         flow.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || flow.status === 'not_configured'
           ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
           : (flow.error ?? flow.status ?? 'FAILED');
+
+      if (isPrivyAuthorizationSignerError(code)) {
+        try {
+          const batchId =
+            flow.batchId ??
+            (await createPendingCart(items, false)) ??
+            (await createPendingCart(items, true));
+          if (!batchId) {
+            throw new Error('NO_PENDING_PURCHASE');
+          }
+          const payAmount = flow.amountUsd ?? amountUsdc;
+          await settleWithClientPrivy(batchId, payAmount);
+          if (!mountedRef.current) return;
+          setPhase('done');
+          onFundedRef.current?.();
+          return;
+        } catch (clientError) {
+          if (!mountedRef.current) return;
+          const message = clientError instanceof Error ? clientError.message : code;
+          setSettleError(mapSettleError(message));
+          setPhase('ready');
+          return;
+        }
+      }
+
       setSettleError(mapSettleError(code));
       setPhase(
         balanceRef.current != null && balanceRef.current + 1e-9 >= requiredRef.current
@@ -351,7 +465,18 @@ export function CryptoWalletPanel({
       setSettleError(mapSettleError(message));
       setPhase('ready');
     }
-  }, [applyKnownBalance, mapSettleError, mode, sc.cryptoWalletInsufficientPrivy, sc.cryptoWalletNoPendingPurchase]);
+  }, [
+    addSigners,
+    amountUsdc,
+    applyKnownBalance,
+    depositToVaultsPrivy,
+    mapSettleError,
+    mode,
+    payToTreasuryPrivy,
+    receiveAddress,
+    sc.cryptoWalletInsufficientPrivy,
+    sc.cryptoWalletNoPendingPurchase
+  ]);
 
   /** Top up the Sanova embedded wallet from a connected external wallet (not treasury pay). */
   const fundSanovaFromExternal = useCallback(async () => {

@@ -22,6 +22,7 @@ describe('getInvestorActivityLedger', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockFindUser.mockResolvedValue({ investorId: 'inv-1' });
+    mockFindDeposits.mockResolvedValue([]);
     mockFindWithdrawals.mockResolvedValue([]);
     mockFindLedger.mockResolvedValue([]);
     mockFindDividends.mockResolvedValue([]);
@@ -52,5 +53,53 @@ describe('getInvestorActivityLedger', () => {
     expect(items[0]?.kind).toBe('deposit');
     expect(items[0]?.amountUsd).toBe(20);
     expect(items[0]?.title).toContain('wallet Sanova');
+  });
+
+  it('queries only CONFIRMED purchases so unpaid carts never appear as outflows', async () => {
+    const { getInvestorActivityLedger } = await import('./investorActivityLedger');
+    await getInvestorActivityLedger('user-1', { limit: 10 });
+
+    expect(mockFindIntents).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+          status: 'CONFIRMED'
+        })
+      })
+    );
+  });
+
+  it('aggregates confirmed cart lines into one purchase outflow per batch', async () => {
+    mockFindIntents.mockResolvedValue([
+      {
+        id: 'pi-1',
+        status: 'CONFIRMED',
+        amountUsd: { toNumber: () => 20 },
+        method: 'USDC_ONCHAIN',
+        txHash: '0xabc',
+        createdAt: new Date('2026-08-02T15:00:00Z'),
+        confirmedAt: new Date('2026-08-02T15:01:00Z'),
+        metadata: { cartBatchId: 'cart-user-1' }
+      },
+      {
+        id: 'pi-2',
+        status: 'CONFIRMED',
+        amountUsd: { toNumber: () => 10 },
+        method: 'USDC_ONCHAIN',
+        txHash: '0xabc',
+        createdAt: new Date('2026-08-02T15:00:00Z'),
+        confirmedAt: new Date('2026-08-02T15:01:00Z'),
+        metadata: { cartBatchId: 'cart-user-1' }
+      }
+    ]);
+
+    const { getInvestorActivityLedger } = await import('./investorActivityLedger');
+    const items = await getInvestorActivityLedger('user-1', { limit: 10 });
+    const purchases = items.filter((row) => row.kind === 'purchase');
+
+    expect(purchases).toHaveLength(1);
+    expect(purchases[0]?.amountUsd).toBe(-30);
+    expect(purchases[0]?.id).toBe('purchase-batch:cart-user-1');
+    expect(purchases[0]?.occurredAt).toBe('2026-08-02T15:01:00.000Z');
   });
 });
