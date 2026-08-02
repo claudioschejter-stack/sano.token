@@ -3,7 +3,7 @@ import {
   investorSessionForbiddenResponse,
   requireMarketplacePurchaseSession
 } from '../../../../../lib/onboarding/requireInvestorSession';
-import type { CartLineInput } from '../../../../../lib/payments/cartCheckoutService';
+import { normalizeCartLineItems } from '../../../../../lib/payments/normalizeCartLineItems';
 import { paySanovaCartForUser } from '../../../../../lib/payments/paySanovaCartService';
 
 export const dynamic = 'force-dynamic';
@@ -16,12 +16,13 @@ function jsonError(error: string, status: number, extra?: Record<string, unknown
 }
 
 type Body = {
-  items?: CartLineInput[];
+  items?: unknown;
   clientBalanceUsdc?: number | null;
 };
 
 const CLIENT_ERRORS = new Set([
   'CART_EMPTY',
+  'NO_PENDING_PURCHASE',
   'CART_MANUAL_REVIEW_REQUIRED',
   'INVESTOR_WALLET_REQUIRED',
   'WALLET_REQUIRED',
@@ -58,11 +59,19 @@ export async function POST(request: Request) {
       return jsonError('INVALID_JSON_BODY', 400);
     }
 
-    const items = Array.isArray(body.items) ? body.items : [];
+    const items = normalizeCartLineItems(body.items);
     const clientBalanceUsdc =
       typeof body.clientBalanceUsdc === 'number' && Number.isFinite(body.clientBalanceUsdc)
         ? body.clientBalanceUsdc
         : null;
+
+    if (!items.length) {
+      console.warn('[marketplace/cart/pay-sanova] empty items', {
+        userId: ctx.userId,
+        rawType: Array.isArray(body.items) ? 'array' : typeof body.items,
+        clientHeaderLines: request.headers.get('x-sanova-cart-lines')
+      });
+    }
 
     const result = await paySanovaCartForUser({
       userId: ctx.userId,

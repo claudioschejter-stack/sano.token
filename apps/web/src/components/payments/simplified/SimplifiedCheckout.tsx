@@ -17,6 +17,8 @@ export type EnsureCheckoutReferenceOptions = {
   /** Catalog option — use walletconnect_usdc so confirm accepts an external payer. */
   paymentOptionId?: string;
   walletAddress?: string | null;
+  /** Skip the in-memory reference cache and create a fresh checkout batch. */
+  forceRefresh?: boolean;
 };
 
 export type EnsureCheckoutReference = (

@@ -28,7 +28,7 @@ describe('privyAutoSettleService', () => {
     expect(isPrivyServerAutoSettleConfigured()).toBe(false);
   });
 
-  it('delegates settle to paySanovaCartForUser without cart items', async () => {
+  it('delegates settle to paySanovaCartForUser and forwards cart items', async () => {
     mockPaySanova.mockResolvedValue({
       ok: true,
       status: 'waiting_funds',
@@ -37,10 +37,15 @@ describe('privyAutoSettleService', () => {
       amountUsd: 20
     });
 
-    const result = await autoSettlePrivyCartForUser('user-1', { clientBalanceUsdc: 5 });
+    const result = await autoSettlePrivyCartForUser('user-1', {
+      clientBalanceUsdc: 5,
+      items: [{ projectId: 'proj-1', tokenCount: 1 }],
+      userEmail: 'a@b.com'
+    });
     expect(mockPaySanova).toHaveBeenCalledWith({
       userId: 'user-1',
-      items: [],
+      userEmail: 'a@b.com',
+      items: [{ projectId: 'proj-1', tokenCount: 1 }],
       clientBalanceUsdc: 5
     });
     expect(result.status).toBe('waiting_funds');

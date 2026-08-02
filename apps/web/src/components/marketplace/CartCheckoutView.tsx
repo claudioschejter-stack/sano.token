@@ -986,8 +986,12 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       options?: { paymentOptionId?: string; walletAddress?: string | null }
     ): Promise<{ referenceId: string; payToAddress: string | null } | null> => {
       const paymentOptionId = options?.paymentOptionId?.trim() || undefined;
-      const cacheKey = `${method}:${rail ?? ''}:${paymentOptionId ?? 'default'}`;
-      const cached = simplifiedRefCache[cacheKey];
+      const cartFingerprint =
+        mode === 'purchase'
+          ? items.map((row) => `${row.projectId}:${row.tokenCount}`).join('|')
+          : `deposit:${totalUsd.toFixed(2)}`;
+      const cacheKey = `${method}:${rail ?? ''}:${paymentOptionId ?? 'default'}:${cartFingerprint}`;
+      const cached = options?.forceRefresh ? null : simplifiedRefCache[cacheKey];
       if (cached) {
         return cached;
       }

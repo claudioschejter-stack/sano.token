@@ -2977,7 +2977,7 @@ export const en = {
       "We could not complete automatic payment yet. Tap Pay again — no Privy re-login needed. If it persists, Sanova must check auto-settle configuration.",
     cryptoWalletAutoSettleError: "Could not complete automatic payment: {error}",
     cryptoWalletNoPendingPurchase:
-      "We couldn’t create the purchase order automatically. Try “My wallet” (Coinbase / WalletConnect) or tap Pay again.",
+      "We couldn’t create the purchase order. Tap Pay again; if it still fails, use “My wallet” (Coinbase / WalletConnect).",
     cryptoWalletHtmlGatewayError:
       "The server returned an invalid response (deploy may still be rolling out). Reload the page or pay with “My wallet” (Coinbase / WalletConnect).",
     cryptoWalletManualReview:

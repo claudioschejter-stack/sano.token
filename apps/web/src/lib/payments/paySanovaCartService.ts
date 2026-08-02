@@ -15,12 +15,12 @@ import {
   verifyCartUsdcPayment,
   type CartLineInput
 } from './cartCheckoutService';
+import { normalizeCartLineItems } from './normalizeCartLineItems';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 
 export type PaySanovaCartResult =
   | { ok: true; status: 'settled'; batchId: string; txHash: string; amountUsd: number }
   | { ok: true; status: 'waiting_funds'; address: string | null; balanceUsdc: number; amountUsd: number }
-  | { ok: true; status: 'no_pending_purchase'; address: string | null; balanceUsdc: number | null }
   | { ok: false; status: 'not_configured' | 'failed' | 'manual_review'; error: string; balanceUsdc?: number | null };
 
 export type PaySanovaCartInput = {
@@ -141,6 +141,7 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
     };
   }
 
+  const items = normalizeCartLineItems(input.items);
   const address = await getLinkedWalletForUser(input.userId);
   let balanceUsdc: number | null = null;
   let balanceKnown = false;
@@ -166,11 +167,13 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
   let pending = await findPendingUsdcCartPurchase(input.userId);
 
   if (!pending) {
-    if (!input.items.length) {
+    if (!items.length) {
+      // Hard failure — soft `ok:true/no_pending_purchase` previously hid the bug
+      // as a vague "auto pay" error in the checkout UI.
       return {
-        ok: true,
-        status: 'no_pending_purchase',
-        address,
+        ok: false,
+        status: 'failed',
+        error: 'NO_PENDING_PURCHASE',
         balanceUsdc
       };
     }
@@ -179,9 +182,11 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
       const checkout = await createCartPurchaseCheckout({
         userId: input.userId,
         userEmail: input.userEmail,
-        items: input.items,
+        items,
         method: 'USDC_ONCHAIN',
-        stablecoinNetwork: 'BASE'
+        stablecoinNetwork: 'BASE',
+        // Prefer the already-resolved linked Sanova wallet (avoid WALLET_REQUIRED).
+        walletAddress: address
       });
 
       if (checkout.manualReview) {
