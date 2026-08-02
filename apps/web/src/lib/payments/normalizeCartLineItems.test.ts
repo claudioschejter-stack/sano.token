@@ -27,4 +27,10 @@ describe('normalizeCartLineItems', () => {
       ])
     ).toEqual([]);
   });
+
+  it('parses JSON string payloads', () => {
+    expect(normalizeCartLineItems(JSON.stringify([{ projectId: 'proj-1', tokenCount: 1 }]))).toEqual([
+      { projectId: 'proj-1', tokenCount: 1 }
+    ]);
+  });
 });
