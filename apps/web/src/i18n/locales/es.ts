@@ -3022,6 +3022,8 @@ export const es = {
     cryptoWalletAutoSettleError: 'No se pudo completar el pago automático: {error}',
     cryptoWalletNoPendingPurchase:
       'No pudimos crear la orden de compra. Tocá Pagar de nuevo; si sigue fallando, usá «Mi wallet» (Coinbase / WalletConnect).',
+    cryptoWalletCheckoutTimeout:
+      'El servidor tardó demasiado en preparar la orden. Tocá Pagar de nuevo — tu saldo no se movió.',
     cryptoWalletHtmlGatewayError:
       'El servidor devolvió una respuesta inválida (posible despliegue en curso). Recargá la página o pagá con «Mi wallet» (Coinbase / WalletConnect).',
     cryptoWalletManualReview:

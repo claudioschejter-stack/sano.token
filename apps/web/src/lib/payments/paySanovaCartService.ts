@@ -16,6 +16,7 @@ import {
   type CartLineInput
 } from './cartCheckoutService';
 import { normalizeCartLineItems } from './normalizeCartLineItems';
+import { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 
 export type PaySanovaCartResult =
@@ -178,16 +179,21 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
       };
     }
 
-    try {
-      const checkout = await createCartPurchaseCheckout({
+    const createCheckout = () =>
+      createCartPurchaseCheckout({
         userId: input.userId,
         userEmail: input.userEmail,
         items,
         method: 'USDC_ONCHAIN',
         stablecoinNetwork: 'BASE',
         // Prefer the already-resolved linked Sanova wallet (avoid WALLET_REQUIRED).
-        walletAddress: address
+        walletAddress: address,
+        // Fast path: intents only — ERC-4626 vault deposit / treasury settle follows.
+        skipGateway: true
       });
+
+    try {
+      const checkout = await createCheckout();
 
       if (checkout.manualReview) {
         return {
@@ -204,8 +210,35 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
         intentIds: checkout.paymentIntents.map((row) => row.id)
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'CART_CHECKOUT_FAILED';
-      return { ok: false, status: 'failed', error: message, balanceUsdc };
+      // One retry on DB interactive-tx timeouts (cold DB / contention).
+      if (isPrismaTransactionTimeoutError(error)) {
+        try {
+          const checkout = await createCheckout();
+          if (checkout.manualReview) {
+            return {
+              ok: false,
+              status: 'manual_review',
+              error: 'CART_MANUAL_REVIEW_REQUIRED',
+              balanceUsdc
+            };
+          }
+          pending = {
+            batchId: checkout.batchId,
+            amountUsd: Number(checkout.totalUsd),
+            intentIds: checkout.paymentIntents.map((row) => row.id)
+          };
+        } catch (retryError) {
+          const message = isPrismaTransactionTimeoutError(retryError)
+            ? 'CART_CHECKOUT_TIMEOUT'
+            : retryError instanceof Error
+              ? retryError.message
+              : 'CART_CHECKOUT_FAILED';
+          return { ok: false, status: 'failed', error: message, balanceUsdc };
+        }
+      } else {
+        const message = error instanceof Error ? error.message : 'CART_CHECKOUT_FAILED';
+        return { ok: false, status: 'failed', error: message, balanceUsdc };
+      }
     }
   }
 

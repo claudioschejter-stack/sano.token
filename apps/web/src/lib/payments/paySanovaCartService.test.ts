@@ -90,6 +90,47 @@ describe('paySanovaCartForUser', () => {
     });
   });
 
+  it('retries checkout once after a Prisma interactive transaction timeout', async () => {
+    mockCreateCheckout
+      .mockRejectedValueOnce(
+        new Error(
+          'Transaction API error: Transaction already closed: The timeout for this transaction was 5000 ms'
+        )
+      )
+      .mockResolvedValueOnce({
+        batchId: 'cart-retry',
+        totalUsd: '20',
+        manualReview: false,
+        paymentIntents: [{ id: 'pi-retry' }]
+      });
+    mockResolveWallet.mockResolvedValue({
+      address: '0x840aed84455c3a30ef23a34a4d961bc3e1d06b41',
+      walletId: 'w-1'
+    });
+    mockFindMany.mockResolvedValue([
+      {
+        id: 'pi-retry',
+        amountUsd: { toNumber: () => 20 },
+        metadata: { purchaseMode: 'ERC4626_DEPOSIT', vaultAddress: '0xVault', cartBatchId: 'cart-retry' }
+      }
+    ]);
+    mockPrepareVault.mockReturnValue({
+      chainId: 8453,
+      transactions: [{ to: '0xVault', data: '0xdeposit', value: '0' }]
+    });
+    mockSendTx.mockResolvedValue('0xhash');
+    mockVerify.mockResolvedValue([]);
+
+    const result = await paySanovaCartForUser({
+      userId: 'user-1',
+      items: [{ projectId: 'proj-1', tokenCount: 1 }],
+      clientBalanceUsdc: 20
+    });
+
+    expect(mockCreateCheckout).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({ ok: true, status: 'settled', batchId: 'cart-retry' });
+  });
+
   it('creates checkout then settles when no pending purchase exists', async () => {
     mockCreateCheckout.mockResolvedValue({
       batchId: 'cart-new',
@@ -127,7 +168,8 @@ describe('paySanovaCartForUser', () => {
         items: [{ projectId: 'proj-1', tokenCount: 1 }],
         method: 'USDC_ONCHAIN',
         stablecoinNetwork: 'BASE',
-        walletAddress: '0x840aed84455c3a30ef23a34a4d961bc3e1d06b41'
+        walletAddress: '0x840aed84455c3a30ef23a34a4d961bc3e1d06b41',
+        skipGateway: true
       })
     );
     expect(result).toMatchObject({

@@ -120,6 +120,14 @@ export function CryptoWalletPanel({
         return sc.cryptoWalletNoPendingPurchase;
       }
       if (
+        code === 'CART_CHECKOUT_TIMEOUT' ||
+        errorCode.toLowerCase().includes('transaction already closed') ||
+        errorCode.toLowerCase().includes('expired transaction') ||
+        errorCode.toLowerCase().includes('interactive transaction timeout')
+      ) {
+        return sc.cryptoWalletCheckoutTimeout;
+      }
+      if (
         code === 'PAY_ENDPOINT_NOT_FOUND' ||
         code === 'INVALID_JSON_RESPONSE' ||
         (code.startsWith('HTTP_') && code.endsWith('_HTML_RESPONSE')) ||
@@ -154,6 +162,7 @@ export function CryptoWalletPanel({
       sc.cryptoWalletAutoSettleBalanceReadFailed,
       sc.cryptoWalletAutoSettleError,
       sc.cryptoWalletAutoSettleNotConfigured,
+      sc.cryptoWalletCheckoutTimeout,
       sc.cryptoWalletHtmlGatewayError,
       sc.cryptoWalletLinkRequired,
       sc.cryptoWalletManualReview,
