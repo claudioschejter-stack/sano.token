@@ -22,7 +22,27 @@ import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 export type PaySanovaCartResult =
   | { ok: true; status: 'settled'; batchId: string; txHash: string; amountUsd: number }
   | { ok: true; status: 'waiting_funds'; address: string | null; balanceUsdc: number; amountUsd: number }
-  | { ok: false; status: 'not_configured' | 'failed' | 'manual_review'; error: string; balanceUsdc?: number | null };
+  | {
+      ok: false;
+      status: 'not_configured' | 'failed' | 'manual_review';
+      error: string;
+      balanceUsdc?: number | null;
+      batchId?: string;
+      amountUsd?: number;
+    };
+
+/** Normalize Privy RPC failures into stable client-facing error codes. */
+export function classifyPrivySendError(message: string): string {
+  const lower = message.toLowerCase();
+  if (
+    lower.includes('no valid authorization keys') ||
+    lower.includes('user signing keys available') ||
+    (lower.includes('privy_send_transaction_failed:401') && lower.includes('authorization'))
+  ) {
+    return 'PRIVY_AUTHORIZATION_SIGNER_REQUIRED';
+  }
+  return message;
+}
 
 export type PaySanovaCartInput = {
   userId: string;
@@ -86,7 +106,13 @@ async function sendPreparedAndVerify(input: {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'PRIVY_SEND_TRANSACTION_FAILED';
-    return { ok: false, status: 'failed', error: message };
+    return {
+      ok: false,
+      status: 'failed',
+      error: classifyPrivySendError(message),
+      batchId: input.batchId,
+      amountUsd: input.amountUsd
+    };
   }
 
   if (!lastHash) {

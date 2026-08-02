@@ -11,6 +11,11 @@ export type SanovaPayFlowResult = {
   txHash?: string;
 };
 
+function withBatchId(result: SanovaPayFlowResult, batchId: string | null): SanovaPayFlowResult {
+  if (!batchId || result.batchId) return result;
+  return { ...result, batchId };
+}
+
 export type SanovaPayFlowDeps = {
   items: CartLineInput[];
   clientBalanceUsdc: number | null;
@@ -40,18 +45,22 @@ export async function runSanovaPayFlow(deps: SanovaPayFlowDeps): Promise<SanovaP
   }
 
   const isHtml = deps.isHtmlOrMissingEndpoint ?? defaultIsHtml;
+  let pendingBatchId: string | null = null;
   let result = await deps.postPaySanova(items, deps.clientBalanceUsdc);
+  pendingBatchId = result.batchId ?? pendingBatchId;
 
   const code = String(result.error ?? result.status ?? '');
   if (code.toUpperCase() === 'NO_PENDING_PURCHASE' || code.toLowerCase() === 'no_pending_purchase') {
-    await deps.createPendingCart(items);
+    pendingBatchId = (await deps.createPendingCart(items)) ?? pendingBatchId;
     result = await deps.postPaySanova(items, deps.clientBalanceUsdc);
+    pendingBatchId = result.batchId ?? pendingBatchId;
   }
 
   if (isHtml(result.error)) {
-    await deps.createPendingCart(items).catch(() => null);
+    pendingBatchId = (await deps.createPendingCart(items).catch(() => null)) ?? pendingBatchId;
     result = await deps.postLegacySettle(items, deps.clientBalanceUsdc);
+    pendingBatchId = result.batchId ?? pendingBatchId;
   }
 
-  return result;
+  return withBatchId(result, pendingBatchId);
 }
