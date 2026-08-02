@@ -47,6 +47,7 @@ import {
   isMercadoPagoEmbeddedResult,
   type MercadoPagoEmbeddedSession
 } from './mercadoPagoEmbeddedService';
+export { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = ['event Transfer(address indexed from,address indexed to,uint256 value)'];
@@ -393,6 +394,11 @@ export async function createCartPurchaseCheckout(input: {
   paymentOptionRail?: string | null;
   walletAddress?: string | null;
   stablecoinNetwork?: string | null;
+  /**
+   * Sanova one-tap settle: create pending intents only.
+   * Skips fiat/on-ramp gateway attachment (not needed for Privy USDC → vault/treasury).
+   */
+  skipGateway?: boolean;
 }): Promise<CartCheckoutResult> {
   if (!input.items.length) {
     throw new Error('CART_EMPTY');
@@ -449,118 +455,129 @@ export async function createCartPurchaseCheckout(input: {
         ? network.treasuryAddress
         : null;
 
-  const createdIntents = await prisma.$transaction(async (tx) => {
-    type PlannedLine = {
-      index: number;
-      line: CartLineInput;
-      project: NonNullable<Awaited<ReturnType<typeof tx.project.findUnique>>>;
-      amountUsd: Prisma.Decimal;
-      risk: Awaited<ReturnType<typeof scorePaymentRisk>>;
-    };
+  // Plan OUTSIDE the interactive transaction. Risk/limits/circuit queries used to run
+  // inside the 5s Prisma tx and expired mid-flight (project.findUnique after timeout).
+  type PlannedLine = {
+    index: number;
+    line: CartLineInput;
+    project: NonNullable<Awaited<ReturnType<typeof prisma.project.findUnique>>>;
+    amountUsd: Prisma.Decimal;
+    risk: Awaited<ReturnType<typeof scorePaymentRisk>>;
+  };
 
-    const plannedLines: PlannedLine[] = [];
-    let hasVaultDepositMode = false;
-    let hasTreasuryTransferMode = false;
+  const plannedLines: PlannedLine[] = [];
+  let hasVaultDepositMode = false;
+  let hasTreasuryTransferMode = false;
 
-    for (const [index, line] of input.items.entries()) {
-      await assertPaymentCircuitOpen(line.projectId);
+  for (const [index, line] of input.items.entries()) {
+    await assertPaymentCircuitOpen(line.projectId);
 
-      const project = await tx.project.findUnique({ where: { id: line.projectId } });
-      if (!project || !project.isActive) {
-        throw new Error('PROJECT_NOT_AVAILABLE');
-      }
-      if (!Number.isInteger(line.tokenCount) || line.tokenCount <= 0) {
-        throw new Error('INVALID_TOKEN_COUNT');
-      }
-      if (project.availableTokens < line.tokenCount) {
-        throw new Error('INSUFFICIENT_SUPPLY');
-      }
-
-      const amountUsd = project.pricePerToken.mul(line.tokenCount);
-      await assertPaymentLimits({
-        userId: input.userId,
-        projectId: line.projectId,
-        walletAddress: payerWallet,
-        amountUsd: amountUsd.toNumber()
-      });
-
-      const risk = await scorePaymentRisk({
-        userId: input.userId,
-        projectId: line.projectId,
-        amountUsd: amountUsd.toNumber(),
-        walletAddress: payerWallet,
-        method: input.method
-      });
-
-      const vaultShareDeliveryMode =
-        input.method === 'USDC_ONCHAIN' && Boolean(project.vaultAddress?.trim());
-      if (vaultShareDeliveryMode) {
-        hasVaultDepositMode = true;
-      } else if (input.method === 'USDC_ONCHAIN') {
-        hasTreasuryTransferMode = true;
-      }
-
-      plannedLines.push({ index, line, project, amountUsd, risk });
+    const project = await prisma.project.findUnique({ where: { id: line.projectId } });
+    if (!project || !project.isActive) {
+      throw new Error('PROJECT_NOT_AVAILABLE');
+    }
+    if (!Number.isInteger(line.tokenCount) || line.tokenCount <= 0) {
+      throw new Error('INVALID_TOKEN_COUNT');
+    }
+    if (project.availableTokens < line.tokenCount) {
+      throw new Error('INSUFFICIENT_SUPPLY');
     }
 
-    if (hasVaultDepositMode && hasTreasuryTransferMode) {
-      throw new Error('CART_MIXED_PAYMENT_MODE');
+    const amountUsd = project.pricePerToken.mul(line.tokenCount);
+    await assertPaymentLimits({
+      userId: input.userId,
+      projectId: line.projectId,
+      walletAddress: payerWallet,
+      amountUsd: amountUsd.toNumber()
+    });
+
+    const risk = await scorePaymentRisk({
+      userId: input.userId,
+      projectId: line.projectId,
+      amountUsd: amountUsd.toNumber(),
+      walletAddress: payerWallet,
+      method: input.method
+    });
+
+    const vaultShareDeliveryMode =
+      input.method === 'USDC_ONCHAIN' && Boolean(project.vaultAddress?.trim());
+    if (vaultShareDeliveryMode) {
+      hasVaultDepositMode = true;
+    } else if (input.method === 'USDC_ONCHAIN') {
+      hasTreasuryTransferMode = true;
     }
 
-    const batchTotalUsdcBaseUnits = sumDecimalUsdBaseUnits(
-      plannedLines.map((row) => ({ amountUsd: row.amountUsd }))
-    ).toString();
+    plannedLines.push({ index, line, project, amountUsd, risk });
+  }
 
-    const rows = [];
-    for (const planned of plannedLines) {
-      const { index, line, project, amountUsd, risk } = planned;
-      const reserved = await reserveProjectTokens(tx, line.projectId, line.tokenCount);
-      if (!reserved) {
-        throw new Error('INSUFFICIENT_SUPPLY');
-      }
+  if (hasVaultDepositMode && hasTreasuryTransferMode) {
+    throw new Error('CART_MIXED_PAYMENT_MODE');
+  }
 
-      const idempotencyKey = `${batchId}:${line.projectId}:${line.tokenCount}:${input.method}`;
+  const batchTotalUsdcBaseUnits = sumDecimalUsdBaseUnits(
+    plannedLines.map((row) => ({ amountUsd: row.amountUsd }))
+  ).toString();
 
-      const intent = await tx.paymentIntent.create({
-        data: {
-          userId: input.userId,
-          investorId,
-          projectId: line.projectId,
-          method: input.method,
-          status: risk.requiresManualReview ? 'MANUAL_REVIEW' : 'REQUIRES_PAYMENT',
-          tokenCount: line.tokenCount,
-          amountUsd,
-          currency: 'USD',
-          stablecoinSymbol:
-            input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? network.symbol : null,
-          chainId: input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? network.chainId : null,
-          payerWalletAddress: payerWallet,
-          payToAddress,
-          idempotencyKey,
-          expiresAt,
-          metadata: buildPurchaseIntentMetadata({
-            method: input.method,
-            tokenCount: line.tokenCount,
-            project,
-            network,
-            payerWallet,
-            payToAddress,
-            risk: risk as Record<string, unknown>,
-            paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null,
-            providerRail: checkoutRow?.providerRail ?? null,
-            paymentLabel: checkoutRow?.label ?? null,
-            cartBatchId: batchId,
-            cartLineIndex: index,
-            batchTotalUsdcBaseUnits
-          })
+  // Slim tx: only supply reservation + intent inserts (contention-sensitive work).
+  const createdIntents = await prisma.$transaction(
+    async (tx) => {
+      const rows = [];
+      for (const planned of plannedLines) {
+        const { index, line, project, amountUsd, risk } = planned;
+        const reserved = await reserveProjectTokens(tx, line.projectId, line.tokenCount);
+        if (!reserved) {
+          throw new Error('INSUFFICIENT_SUPPLY');
         }
-      });
 
-      rows.push(intent);
-    }
+        const idempotencyKey = `${batchId}:${line.projectId}:${line.tokenCount}:${input.method}`;
 
-    return rows;
-  });
+        const intent = await tx.paymentIntent.create({
+          data: {
+            userId: input.userId,
+            investorId,
+            projectId: line.projectId,
+            method: input.method,
+            status: risk.requiresManualReview ? 'MANUAL_REVIEW' : 'REQUIRES_PAYMENT',
+            tokenCount: line.tokenCount,
+            amountUsd,
+            currency: 'USD',
+            stablecoinSymbol:
+              input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN'
+                ? network.symbol
+                : null,
+            chainId:
+              input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN'
+                ? network.chainId
+                : null,
+            payerWalletAddress: payerWallet,
+            payToAddress,
+            idempotencyKey,
+            expiresAt,
+            metadata: buildPurchaseIntentMetadata({
+              method: input.method,
+              tokenCount: line.tokenCount,
+              project,
+              network,
+              payerWallet,
+              payToAddress,
+              risk: risk as Record<string, unknown>,
+              paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null,
+              providerRail: checkoutRow?.providerRail ?? null,
+              paymentLabel: checkoutRow?.label ?? null,
+              cartBatchId: batchId,
+              cartLineIndex: index,
+              batchTotalUsdcBaseUnits
+            })
+          }
+        });
+
+        rows.push(intent);
+      }
+
+      return rows;
+    },
+    { maxWait: 10_000, timeout: 20_000 }
+  );
 
   const totalUsdNumber = createdIntents.reduce((sum, row) => sum + row.amountUsd.toNumber(), 0);
   const totalTokens = createdIntents.reduce((sum, row) => sum + row.tokenCount, 0);
@@ -620,6 +637,25 @@ export async function createCartPurchaseCheckout(input: {
       stablecoinNetwork: network.id,
       confirmed: false,
       manualReview: true
+    };
+  }
+
+  // Privy Sanova settle only needs open payment intents — no fiat/on-ramp gateway.
+  if (
+    input.skipGateway ||
+    (input.method === 'USDC_ONCHAIN' && !input.paymentOptionId && !checkoutRow)
+  ) {
+    return {
+      batchId,
+      mode: 'purchase',
+      totalUsd: totalUsdNumber.toFixed(6),
+      totalTokens,
+      method: input.method,
+      paymentIntents: createdIntents.map(serializeIntent),
+      providerCheckoutUrl: null,
+      payToAddress,
+      stablecoinNetwork: network.id,
+      confirmed: false
     };
   }
 

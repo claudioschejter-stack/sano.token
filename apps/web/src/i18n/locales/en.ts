@@ -2978,6 +2978,8 @@ export const en = {
     cryptoWalletAutoSettleError: "Could not complete automatic payment: {error}",
     cryptoWalletNoPendingPurchase:
       "We couldn’t create the purchase order. Tap Pay again; if it still fails, use “My wallet” (Coinbase / WalletConnect).",
+    cryptoWalletCheckoutTimeout:
+      "The server took too long preparing the order. Tap Pay again — your balance was not moved.",
     cryptoWalletHtmlGatewayError:
       "The server returned an invalid response (deploy may still be rolling out). Reload the page or pay with “My wallet” (Coinbase / WalletConnect).",
     cryptoWalletManualReview:
