@@ -14,6 +14,7 @@ import { readJsonResponse } from '../../../lib/http/readJsonResponse';
 import { resolveDisplayReceiveAddress } from '../../../lib/investor/canonicalReceiveAddress';
 import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
 import { normalizeCartLineItems } from '../../../lib/payments/normalizeCartLineItems';
+import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
 import { CoinbaseConnectButton } from '../../wallet/CoinbaseConnectButton';
 import { WalletConnectConnectButton } from '../../wallet/WalletConnectConnectButton';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
@@ -215,15 +216,12 @@ export function CryptoWalletPanel({
       error?: string;
       amountUsd?: number;
       balanceUsdc?: number | null;
+      batchId?: string;
+      txHash?: string;
       checkout?: { batchId?: string };
     };
 
-    const isHtmlOrMissingEndpoint = (errorCode: string | null) =>
-      errorCode === 'PAY_ENDPOINT_NOT_FOUND' ||
-      errorCode === 'INVALID_JSON_RESPONSE' ||
-      (errorCode?.endsWith('_HTML_RESPONSE') ?? false);
-
-    const createPendingCart = async (): Promise<string | null> => {
+    const createPendingCart = async (cartLines: typeof items): Promise<string | null> => {
       const ensure = ensureReferenceRef.current;
       if (ensure) {
         const ref = await ensure('USDC_ONCHAIN', undefined, { forceRefresh: true }).catch(() => null);
@@ -235,7 +233,7 @@ export function CryptoWalletPanel({
         credentials: 'same-origin',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          items,
+          items: cartLines,
           method: 'USDC_ONCHAIN',
           stablecoinNetwork: 'BASE'
         })
@@ -254,85 +252,75 @@ export function CryptoWalletPanel({
       return null;
     };
 
-    const payHeaders = {
-      'content-type': 'application/json',
-      'x-sanova-cart-lines': String(items.length)
-    } as const;
+    const payHeadersFor = (lineCount: number) =>
+      ({
+        'content-type': 'application/json',
+        'x-sanova-cart-lines': String(lineCount)
+      }) as const;
 
-    const postPaySanova = async () => {
-      const res = await fetch('/api/marketplace/cart/pay-sanova', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: payHeaders,
-        body: JSON.stringify({
-          items,
-          clientBalanceUsdc: balanceRef.current
-        })
-      });
-      return readJsonResponse<SettlePayload>(res);
-    };
-
-    const postLegacySettle = async () => {
-      const res = await fetch('/api/wallet/privy-inbound/settle', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: payHeaders,
-        body: JSON.stringify({
-          items,
-          clientBalanceUsdc: balanceRef.current
-        })
-      });
-      return readJsonResponse<SettlePayload>(res);
-    };
+    const toFlowResult = (
+      parsed: Awaited<ReturnType<typeof readJsonResponse<SettlePayload>>>
+    ) => ({
+      ok: Boolean(parsed.ok && parsed.data.ok !== false),
+      status: parsed.data.status,
+      error: parsed.errorCode ?? parsed.data.error,
+      amountUsd: parsed.data.amountUsd,
+      balanceUsdc: parsed.data.balanceUsdc,
+      batchId: parsed.data.batchId,
+      txHash: parsed.data.txHash
+    });
 
     try {
-      // 1) Atomic create+settle — server creates the pending cart from `items` if needed.
-      let parsed = await postPaySanova();
-
-      // 2) If the server still reports no pending cart, force-create then retry once.
-      const statusOrError = String(parsed.data.status ?? parsed.data.error ?? parsed.errorCode ?? '');
-      if (
-        statusOrError.toLowerCase() === 'no_pending_purchase' ||
-        parsed.errorCode === 'NO_PENDING_PURCHASE' ||
-        parsed.errorCode === 'CART_EMPTY'
-      ) {
-        await createPendingCart();
-        parsed = await postPaySanova();
-      }
-
-      // 3) HTML/gateway fallback — still pass items (never settle empty).
-      if (isHtmlOrMissingEndpoint(parsed.errorCode)) {
-        await createPendingCart().catch(() => null);
-        parsed = await postLegacySettle();
-      }
+      const flow = await runSanovaPayFlow({
+        items,
+        clientBalanceUsdc: balanceRef.current,
+        createPendingCart,
+        postPaySanova: async (cartLines, clientBalanceUsdc) => {
+          const res = await fetch('/api/marketplace/cart/pay-sanova', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: payHeadersFor(cartLines.length),
+            body: JSON.stringify({ items: cartLines, clientBalanceUsdc })
+          });
+          return toFlowResult(await readJsonResponse<SettlePayload>(res));
+        },
+        postLegacySettle: async (cartLines, clientBalanceUsdc) => {
+          const res = await fetch('/api/wallet/privy-inbound/settle', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: payHeadersFor(cartLines.length),
+            body: JSON.stringify({ items: cartLines, clientBalanceUsdc })
+          });
+          return toFlowResult(await readJsonResponse<SettlePayload>(res));
+        }
+      });
 
       if (!mountedRef.current) return;
 
-      if (typeof parsed.data.amountUsd === 'number' && parsed.data.amountUsd > 0) {
-        setRequiredUsdc(parsed.data.amountUsd);
-        requiredRef.current = parsed.data.amountUsd;
+      if (typeof flow.amountUsd === 'number' && flow.amountUsd > 0) {
+        setRequiredUsdc(flow.amountUsd);
+        requiredRef.current = flow.amountUsd;
       }
-      if (typeof parsed.data.balanceUsdc === 'number') {
-        applyKnownBalance(parsed.data.balanceUsdc);
+      if (typeof flow.balanceUsdc === 'number') {
+        applyKnownBalance(flow.balanceUsdc);
       }
 
-      if (parsed.ok && parsed.data.ok !== false && parsed.data.status === 'settled') {
+      if (flow.ok && flow.status === 'settled') {
         setPhase('done');
         onFundedRef.current?.();
         return;
       }
 
-      if (parsed.data.status === 'waiting_funds') {
+      if (flow.status === 'waiting_funds') {
         setPhase('needs_funds');
         setSettleError(sc.cryptoWalletInsufficientPrivy);
         return;
       }
 
       const code =
-        parsed.data.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
-        parsed.data.status === 'not_configured'
+        flow.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || flow.status === 'not_configured'
           ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
-          : (parsed.errorCode ?? parsed.data.error ?? parsed.data.status ?? 'FAILED');
+          : (flow.error ?? flow.status ?? 'FAILED');
       setSettleError(mapSettleError(code));
       setPhase(
         balanceRef.current != null && balanceRef.current + 1e-9 >= requiredRef.current
