@@ -2965,6 +2965,8 @@ export const es = {
     fiatWalletScanToPay: 'Escaneá con tu billetera digital para pagar',
     cryptoWalletExactAmountLabel: 'Monto exacto a pagar',
     cryptoWalletReceiveAmountLabel: 'Monto a cargar en tu cartera',
+    cryptoWalletPayableIncludesGas:
+      'Inversión {investment} USDC + gas de red {gas} USDC (User pays en Base)',
     cryptoWalletOnBaseNote: 'en Base Network · sin conversión',
     cryptoWalletTrackingCentsNote: ' · incluye centavos de seguimiento para detectar tu pago automáticamente',
     cryptoWalletPaymentReceivedTitle: '¡Pago recibido!',
@@ -3100,7 +3102,7 @@ export const es = {
       title: 'Detalle de costos',
       investment: 'Monto de inversión',
       providerFee: 'Comisión del proveedor + FX',
-      networkFee: 'Gas de red (Base)',
+      networkFee: 'Gas de red (Base, USDC)',
       conversionNote: 'Conversión a USDC Base',
       conversionValue: 'Incluida en el total',
       included: 'Incluido',
@@ -3110,6 +3112,7 @@ export const es = {
       chargedBySanova: 'Sanova (activo / depósito)',
       chargedByGateway: 'Pasarela de pago',
       chargedByBase: 'Red Base',
+      chargedByUserPaysUsdc: 'Base · se descuenta de tu USDC',
       chargedByFx: 'FX / on-ramp'
     },
     settlementAwaitingPayment: 'Esperando tu pago…',

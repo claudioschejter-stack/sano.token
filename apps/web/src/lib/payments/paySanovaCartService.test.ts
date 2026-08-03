@@ -62,6 +62,18 @@ vi.mock('../privy/walletRpcApi', () => ({
   privySendTransaction: (...args: unknown[]) => mockSendTx(...args)
 }));
 
+vi.mock('./baseUserPaysGasQuote', () => ({
+  quoteBaseUserPaysGasUsd: vi.fn(async () => ({
+    networkFeeUsd: 0.012345,
+    networkFeeUsdRaw: 0.01,
+    gasUnits: 65000,
+    ethUsd: 3000,
+    feeWei: 1n,
+    txCount: 1,
+    quotedAt: '2026-08-03T00:00:00.000Z'
+  }))
+}));
+
 import { classifyPrivySendError, paySanovaCartForUser } from './paySanovaCartService';
 
 describe('classifyPrivySendError', () => {
@@ -80,7 +92,7 @@ describe('paySanovaCartForUser', () => {
     process.env.PRIVY_APP_SECRET = 'secret';
     mockIsAuth.mockReturnValue(true);
     mockGetLinked.mockResolvedValue('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
-    mockReadBalance.mockResolvedValue({ ok: true, amountUsdc: 20, balances: [] });
+    mockReadBalance.mockResolvedValue({ ok: true, amountUsdc: 50, balances: [] });
     mockFindPending.mockResolvedValue(null);
   });
 
@@ -88,7 +100,7 @@ describe('paySanovaCartForUser', () => {
     const result = await paySanovaCartForUser({
       userId: 'user-1',
       items: [],
-      clientBalanceUsdc: 20
+      clientBalanceUsdc: 50
     });
 
     expect(mockCreateCheckout).not.toHaveBeenCalled();
@@ -96,7 +108,7 @@ describe('paySanovaCartForUser', () => {
       ok: false,
       status: 'failed',
       error: 'NO_PENDING_PURCHASE',
-      balanceUsdc: 20
+      balanceUsdc: 50
     });
   });
 
@@ -134,7 +146,7 @@ describe('paySanovaCartForUser', () => {
     const result = await paySanovaCartForUser({
       userId: 'user-1',
       items: [{ projectId: 'proj-1', tokenCount: 1 }],
-      clientBalanceUsdc: 20
+      clientBalanceUsdc: 50
     });
 
     expect(mockCreateCheckout).toHaveBeenCalledTimes(2);
@@ -169,7 +181,7 @@ describe('paySanovaCartForUser', () => {
     const result = await paySanovaCartForUser({
       userId: 'user-1',
       items: [{ projectId: 'proj-1', tokenCount: 1 }],
-      clientBalanceUsdc: 20
+      clientBalanceUsdc: 50
     });
 
     expect(mockCreateCheckout).toHaveBeenCalledWith(
@@ -187,6 +199,51 @@ describe('paySanovaCartForUser', () => {
       status: 'settled',
       batchId: 'cart-new',
       txHash: '0xhash'
+    });
+    expect(mockSendTx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sponsor: true,
+        sponsorAsset: 'usdc'
+      })
+    );
+  });
+
+  it('requires investment plus live User-pays gas before settling', async () => {
+    mockFindPending.mockResolvedValue({
+      batchId: 'cart-gas',
+      amountUsd: 20,
+      intentIds: ['pi-gas']
+    });
+    mockResolveWallet.mockResolvedValue({
+      address: '0x840aed84455c3a30ef23a34a4d961bc3e1d06b41',
+      walletId: 'w-1'
+    });
+    mockFindMany.mockResolvedValue([
+      {
+        id: 'pi-gas',
+        amountUsd: { toNumber: () => 20 },
+        metadata: { purchaseMode: 'TREASURY_TRANSFER', cartBatchId: 'cart-gas' }
+      }
+    ]);
+    mockPrepareTreasury.mockResolvedValue({
+      chainId: 8453,
+      transactions: [{ to: '0xtreasury', data: '0xabc', value: '0' }]
+    });
+    mockReadBalance.mockResolvedValue({ ok: true, amountUsdc: 20, balances: [] });
+
+    const result = await paySanovaCartForUser({
+      userId: 'user-1',
+      items: [],
+      clientBalanceUsdc: 20
+    });
+
+    expect(mockSendTx).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: true,
+      status: 'waiting_funds',
+      amountUsd: 20.012345,
+      networkFeeUsd: 0.012345,
+      payableUsdc: 20.012345
     });
   });
 
@@ -224,11 +281,17 @@ describe('paySanovaCartForUser', () => {
     const result = await paySanovaCartForUser({
       userId: 'user-1',
       items: [],
-      clientBalanceUsdc: 20
+      clientBalanceUsdc: 50
     });
 
     expect(mockPrepareVault).toHaveBeenCalled();
     expect(mockPrepareTreasury).not.toHaveBeenCalled();
     expect(result).toMatchObject({ ok: true, status: 'settled', txHash: '0xdeposithash' });
+    expect(mockSendTx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sponsor: true,
+        sponsorAsset: 'usdc'
+      })
+    );
   });
 });

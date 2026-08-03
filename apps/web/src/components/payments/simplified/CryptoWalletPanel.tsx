@@ -44,6 +44,13 @@ function buildEip681Uri(toAddress: string, amountUsdc: number): string {
   return `ethereum:${USDC_BASE}@8453/transfer?address=${toAddress}&uint256=${uint256}`;
 }
 
+function formatUsdcAmount(value: number): string {
+  if (!Number.isFinite(value)) return '0.00';
+  const fixed = value.toFixed(6);
+  const trimmed = fixed.replace(/\.?0+$/, '');
+  return trimmed.includes('.') ? trimmed : `${trimmed}.00`;
+}
+
 function normalizeAddress(value?: string | null): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -97,8 +104,10 @@ export function CryptoWalletPanel({
   const [externalPaying, setExternalPaying] = useState(false);
   const [fundingError, setFundingError] = useState<string | null>(null);
   const [fundingSending, setFundingSending] = useState(false);
+  const initialPayableUsdc =
+    mode === 'purchase' && cryptoWallet.totalUsd > 0 ? cryptoWallet.totalUsd : amountUsd;
   const [balanceUsdc, setBalanceUsdc] = useState<number | null>(null);
-  const [requiredUsdc, setRequiredUsdc] = useState(amountUsd);
+  const [requiredUsdc, setRequiredUsdc] = useState(initialPayableUsdc);
   const [serverAddress, setServerAddress] = useState<string | null>(null);
 
   const onFundedRef = useRef(onFunded);
@@ -106,17 +115,31 @@ export function CryptoWalletPanel({
   const phaseRef = useRef<Phase>('loading');
   phaseRef.current = phase;
   const balanceRef = useRef<number | null>(null);
-  const requiredRef = useRef(amountUsd);
-  requiredRef.current = requiredUsdc > 0 ? requiredUsdc : amountUsd;
+  const requiredRef = useRef(initialPayableUsdc);
+  requiredRef.current = requiredUsdc > 0 ? requiredUsdc : initialPayableUsdc;
   const cartItemsRef = useRef(cartItems);
   cartItemsRef.current = cartItems;
   const ensureReferenceRef = useRef(ensureReference);
   ensureReferenceRef.current = ensureReference;
   const mountedRef = useRef(true);
 
-  const amountUsdc = requiredUsdc > 0 ? requiredUsdc : amountUsd;
+  // Payable USDC = investment + live User-pays gas (from routes or settle quote).
+  const amountUsdc = requiredUsdc > 0 ? requiredUsdc : initialPayableUsdc;
+  const networkFeeUsdc = Math.max(0, Number((cryptoWallet.networkFeeUsd ?? 0).toFixed(6)));
   const hasEnoughSanova =
     balanceUsdc != null && Number.isFinite(balanceUsdc) && balanceUsdc + 1e-9 >= amountUsdc;
+
+  // Keep payable in sync when checkout-methods returns a fresher live gas quote.
+  useEffect(() => {
+    if (mode !== 'purchase') return;
+    const next = cryptoWallet.totalUsd > 0 ? cryptoWallet.totalUsd : amountUsd;
+    if (!(next > 0)) return;
+    setRequiredUsdc((prev) => {
+      // Don't clobber a settle-time payable that is higher (exact tx quote).
+      if (prev + 1e-9 >= next) return prev;
+      return next;
+    });
+  }, [mode, cryptoWallet.totalUsd, amountUsd]);
   const fundShortfallUsdc = Math.max(
     0,
     Math.round((amountUsdc - (balanceUsdc ?? 0)) * 1e6) / 1e6
@@ -868,7 +891,7 @@ export function CryptoWalletPanel({
         <div>
           <h3 className="text-sm font-semibold text-terminal-text">{sc.cryptoWalletTitle}</h3>
           <p className="mt-0.5 text-xs text-terminal-muted">
-            USDC · Base · {amountUsdc.toFixed(2)} USDC
+            USDC · Base · {formatUsdcAmount(amountUsdc)} USDC
           </p>
         </div>
       </div>
@@ -878,9 +901,18 @@ export function CryptoWalletPanel({
           {mode === 'purchase' ? sc.cryptoWalletExactAmountLabel : sc.cryptoWalletReceiveAmountLabel}
         </p>
         <p className="mt-1 text-2xl font-bold text-terminal-primary">
-          {amountUsdc.toFixed(2)} <span className="text-base font-semibold">USDC</span>
+          {formatUsdcAmount(amountUsdc)} <span className="text-base font-semibold">USDC</span>
         </p>
-        <p className="mt-0.5 text-xs text-terminal-muted">{sc.cryptoWalletOnBaseNote}</p>
+        {mode === 'purchase' && networkFeeUsdc > 0 ? (
+          <p className="mt-0.5 text-xs text-terminal-muted">
+            {formatMessage(sc.cryptoWalletPayableIncludesGas, {
+              investment: amountUsd.toFixed(2),
+              gas: networkFeeUsdc.toFixed(6)
+            })}
+          </p>
+        ) : (
+          <p className="mt-0.5 text-xs text-terminal-muted">{sc.cryptoWalletOnBaseNote}</p>
+        )}
       </div>
 
       {phase === 'done' ? (
@@ -1108,13 +1140,13 @@ export function CryptoWalletPanel({
 
       <PaymentFeeBreakdown
         amountUsd={amountUsd}
-        totalUsd={cryptoWallet.totalUsd}
+        totalUsd={amountUsdc}
         feeBps={cryptoWallet.feeBps}
         providerLabel="Base USDC"
-        networkFeeUsd={cryptoWallet.networkFeeUsd}
+        networkFeeUsd={Math.max(networkFeeUsdc, Math.round((amountUsdc - amountUsd) * 1e6) / 1e6)}
         networkFeeIncluded
         gatewayChargedBy="Base USDC"
-        gasChargedBy="Base"
+        gasChargedBy={sc.feeBreakdown.chargedByUserPaysUsdc}
       />
     </section>
   );

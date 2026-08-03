@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
       country?: unknown;
       referenceId?: unknown;
       investorName?: unknown;
+      payerAddress?: unknown;
     };
 
     const amountUsd = Number(body.amountUsd);
@@ -33,7 +34,18 @@ export async function POST(req: NextRequest) {
     const investorName =
       typeof body.investorName === 'string' ? body.investorName.trim() : undefined;
 
-    const routes = resolveCheckoutBestRoutes({ amountUsd, country, referenceId, investorName });
+    const payerAddress =
+      typeof body.payerAddress === 'string' && /^0x[a-fA-F0-9]{40}$/.test(body.payerAddress.trim())
+        ? body.payerAddress.trim()
+        : null;
+
+    const routes = await resolveCheckoutBestRoutes({
+      amountUsd,
+      country,
+      referenceId,
+      investorName,
+      payerAddress
+    });
 
     return NextResponse.json(routes);
   } catch (err) {

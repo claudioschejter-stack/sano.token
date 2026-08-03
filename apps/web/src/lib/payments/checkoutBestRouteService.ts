@@ -4,6 +4,7 @@ import { mercadoPagoAccessToken } from './mercadoPagoClient';
 import { isMercadoPagoPixConfigured } from './mercadoPagoPix/config';
 import { getBridgeApiKey, isBridgeWireCountry } from './bridgeClient';
 import { ripioConfigured } from './ripioClient';
+import { quoteBaseCryptoCheckoutGasUsd } from './baseUserPaysGasQuote';
 
 // ---------------------------------------------------------------------------
 // FX table (fallback rates; production should use MERCADOPAGO_FX_ARS / DLOCAL env)
@@ -23,8 +24,11 @@ const FX_TABLE: Record<string, { currency: string; rate: number }> = {
   IN: { currency: 'INR', rate: 83.5 }
 };
 
-/** Estimated Base network gas paid by the buyer (included in crypto all-in total). */
-export const CRYPTO_BASE_GAS_USD = 0.001;
+/**
+ * @deprecated Fixed estimate removed — crypto checkout uses live Base User-pays gas quotes.
+ * Kept as a last-resort fallback only when RPC/price oracles fail.
+ */
+export const CRYPTO_BASE_GAS_USD = 0.02;
 
 /**
  * Small FX buffer (bps) baked into local-currency methods so the displayed total
@@ -123,8 +127,10 @@ export type SimplifiedCryptoWalletMethod = {
   totalUsd: number;
   displayCurrency: 'USDC';
   feeBps: number;
-  /** Gas estimate already included in totalUsd (shown in fee breakdown). */
+  /** Live User-pays gas quote (USDC) already included in totalUsd. */
   networkFeeUsd: number;
+  /** ISO timestamp of the gas quote (null when fallback constant was used). */
+  networkFeeQuotedAt: string | null;
   stablecoinNetwork: string;
 };
 
@@ -210,12 +216,14 @@ function fiatProviderForCountry(country: string): 'mercado_pago' | 'transak' {
 // Main resolver
 // ---------------------------------------------------------------------------
 
-export function resolveCheckoutBestRoutes(input: {
+export async function resolveCheckoutBestRoutes(input: {
   amountUsd: number;
   country: string;
   referenceId: string;
   investorName?: string;
-}): CheckoutBestRoutes {
+  /** Optional Sanova wallet — improves eth_estimateGas accuracy. */
+  payerAddress?: string | null;
+}): Promise<CheckoutBestRoutes> {
   const { amountUsd, country, referenceId } = input;
   const c = country.toUpperCase();
   const treasuryAddress = getStablecoinNetwork('BASE').treasuryAddress;
@@ -235,14 +243,28 @@ export function resolveCheckoutBestRoutes(input: {
     staticQrData: process.env.FIAT_STATIC_QR_DATA?.trim() || null
   };
 
-  // --- Crypto wallet: amount + Base gas only (no duplicate bps markup) ---
-  const cryptoTotalUsd = Number((amountUsd + CRYPTO_BASE_GAS_USD).toFixed(2));
+  // --- Crypto wallet: investment + live User-pays gas (USDC on Base) ---
+  let networkFeeUsd = CRYPTO_BASE_GAS_USD;
+  let networkFeeQuotedAt: string | null = null;
+  try {
+    const gasQuote = await quoteBaseCryptoCheckoutGasUsd({
+      amountUsd,
+      fromAddress: input.payerAddress,
+      path: 'transfer'
+    });
+    networkFeeUsd = gasQuote.networkFeeUsd;
+    networkFeeQuotedAt = gasQuote.quotedAt;
+  } catch (error) {
+    console.warn('[checkout-methods] live gas quote failed; using fallback', error);
+  }
+  const cryptoTotalUsd = Number((amountUsd + networkFeeUsd).toFixed(6));
   const cryptoWallet: SimplifiedCryptoWalletMethod = {
     configured: Boolean(treasuryAddress),
     totalUsd: cryptoTotalUsd,
     displayCurrency: 'USDC',
     feeBps: 0,
-    networkFeeUsd: CRYPTO_BASE_GAS_USD,
+    networkFeeUsd,
+    networkFeeQuotedAt,
     stablecoinNetwork: 'BASE'
   };
 

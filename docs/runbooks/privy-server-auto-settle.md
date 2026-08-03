@@ -51,7 +51,9 @@ Cloudflare **bot-challenges** `https://www.sanovacapital.com/api/auth/privy-jwks
 - [ ] Smoke: `GET /api/auth/privy-token` as logged-in investor returns `{ token }`
 - [ ] Smoke: `POST /api/investor/wallet/provision` returns canonical address
 - [ ] **Stuck funded wallets (legacy email-only):** in Privy Dashboard, open the funded address (e.g. `0x840a…`) and add the app authorization key / key quorum as **additional signer** once. Without this, server settle returns 401 “No valid authorization keys…” even when Custom Auth works for a *different* empty wallet.
-- [ ] Cart with Sanova balance ≥ amount → **Pagar** settles to `CONFIRMED` and credits RWA tokens
+- [ ] Privy Dashboard → Wallet infrastructure → **Gas sponsorship** → mode **User pays** + **Base / USDC** (not App pays). Checkout sends `sponsor: true` + `sponsor_options.asset=usdc`.
+- [ ] Cart with Sanova balance ≥ **investment + live gas quote** → **Pagar** settles to `CONFIRMED` and credits RWA tokens
+- [ ] Crypto checkout total shows live Base gas in USDC (not the old $0.001 fixed estimate)
 - [ ] Confirm UI does **not** auto-switch to **Mi wallet** when Sanova balance is sufficient
 
 ### Cloudflare (optional hardening)

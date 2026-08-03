@@ -133,7 +133,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
       {
         id: 'crypto_wallet',
         label: sc.cryptoWallet,
-        amount: `${routes.cryptoWallet.totalUsd.toFixed(2)} USDC`,
+        amount: `${Number(routes.cryptoWallet.totalUsd.toFixed(6))} USDC`,
         totalUsd: routes.cryptoWallet.totalUsd,
         Icon: Wallet,
         color: 'text-terminal-primary',
