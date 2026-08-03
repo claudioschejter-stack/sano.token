@@ -950,6 +950,12 @@ export async function verifyCartUsdcPayment(input: {
   batchId: string;
   txHash: string;
   expectedPayer?: string | null;
+  /**
+   * Sanova Transfer API settle always pays treasury USDC, then delivers vault
+   * shares off the direct-deposit path. Force treasury Transfer verification
+   * even when intents are tagged ERC4626_DEPOSIT.
+   */
+  settleViaTreasury?: boolean;
 }) {
   const intents = await loadCartBatchIntents(input.userId, input.batchId);
   if (!intents.length) {
@@ -993,7 +999,8 @@ export async function verifyCartUsdcPayment(input: {
     throw new Error('TX_CONFIRMATIONS_PENDING');
   }
 
-  const directVaultDeposit = isErc4626DirectDepositBatch(intents);
+  const directVaultDeposit =
+    !input.settleViaTreasury && isErc4626DirectDepositBatch(intents);
   const expectedFrom = normalizeAddress(input.expectedPayer ?? first.payerWalletAddress);
 
   if (directVaultDeposit) {
