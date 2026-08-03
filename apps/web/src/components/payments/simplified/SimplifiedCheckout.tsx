@@ -36,6 +36,14 @@ export type SimplifiedCheckoutCartItem = {
   tokenCount: number;
 };
 
+export type SimplifiedPayableInfo = {
+  method: SimplifiedMethod | null;
+  investmentUsd: number;
+  networkFeeUsd: number;
+  /** All-in amount the buyer must hold/pay for the selected (or crypto default) path. */
+  totalUsd: number;
+};
+
 export type SimplifiedCheckoutProps = {
   amountUsd: number;
   referenceId: string;
@@ -48,6 +56,8 @@ export type SimplifiedCheckoutProps = {
   className?: string;
   onFunded?: () => void;
   onError?: (message: string) => void;
+  /** Notifies parent when route quotes / selected method change the payable total. */
+  onPayableChange?: (info: SimplifiedPayableInfo) => void;
 };
 
 async function fetchRoutes(params: {
@@ -90,7 +100,8 @@ export function SimplifiedCheckout({
   ensureReference,
   className = '',
   onFunded,
-  onError
+  onError,
+  onPayableChange
 }: SimplifiedCheckoutProps) {
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
@@ -102,6 +113,8 @@ export function SimplifiedCheckout({
   const [activeReferenceId, setActiveReferenceId] = useState<string | null>(referenceId || null);
   const [paymentDetected, setPaymentDetected] = useState(false);
   const completedRef = useRef(false);
+  const onPayableChangeRef = useRef(onPayableChange);
+  onPayableChangeRef.current = onPayableChange;
 
   const { phase, isComplete } = useCheckoutSettlementStatus({
     referenceId: paymentDetected ? activeReferenceId : null,
@@ -130,6 +143,37 @@ export function SimplifiedCheckout({
     void loadRoutes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!routes || !onPayableChangeRef.current) return;
+    const cryptoTotal = Number(routes.cryptoWallet.totalUsd) || amountUsd;
+    const cryptoFee = Number(routes.cryptoWallet.networkFeeUsd) || 0;
+    if (!selectedMethod || selectedMethod === 'crypto_wallet') {
+      onPayableChangeRef.current({
+        method: selectedMethod,
+        investmentUsd: amountUsd,
+        networkFeeUsd: cryptoFee,
+        totalUsd: Math.max(cryptoTotal, amountUsd + cryptoFee, amountUsd)
+      });
+      return;
+    }
+    const methodTotal =
+      selectedMethod === 'fiat_wallet'
+        ? routes.fiatWallet.totalUsd
+        : selectedMethod === 'card'
+          ? routes.card.totalUsd
+          : selectedMethod === 'wire'
+            ? routes.wire.totalUsd
+            : selectedMethod === 'ripio'
+              ? routes.ripio.totalUsd
+              : amountUsd;
+    onPayableChangeRef.current({
+      method: selectedMethod,
+      investmentUsd: amountUsd,
+      networkFeeUsd: 0,
+      totalUsd: Number.isFinite(methodTotal) ? methodTotal : amountUsd
+    });
+  }, [routes, selectedMethod, amountUsd]);
 
   useEffect(() => {
     if (!isComplete || completedRef.current) return;

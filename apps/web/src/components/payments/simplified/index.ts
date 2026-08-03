@@ -9,5 +9,6 @@ export type { SimplifiedMethod } from './SimplifiedMethodSelector';
 export type {
   EnsureCheckoutReference,
   EnsureCheckoutReferenceOptions,
-  SimplifiedCheckoutCartItem
+  SimplifiedCheckoutCartItem,
+  SimplifiedPayableInfo
 } from './SimplifiedCheckout';

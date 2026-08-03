@@ -247,11 +247,22 @@ export async function resolveCheckoutBestRoutes(input: {
   let networkFeeUsd = CRYPTO_BASE_GAS_USD;
   let networkFeeQuotedAt: string | null = null;
   try {
-    const gasQuote = await quoteBaseCryptoCheckoutGasUsd({
-      amountUsd,
-      fromAddress: input.payerAddress,
-      path: 'transfer'
-    });
+    // RWA carts usually settle via approve+deposit (vault). Quote the heavier path so
+    // the payable amount never understates User-pays gas vs a single transfer.
+    const [transferQuote, vaultQuote] = await Promise.all([
+      quoteBaseCryptoCheckoutGasUsd({
+        amountUsd,
+        fromAddress: input.payerAddress,
+        path: 'transfer'
+      }),
+      quoteBaseCryptoCheckoutGasUsd({
+        amountUsd,
+        fromAddress: input.payerAddress,
+        path: 'vault'
+      })
+    ]);
+    const gasQuote =
+      vaultQuote.networkFeeUsd >= transferQuote.networkFeeUsd ? vaultQuote : transferQuote;
     networkFeeUsd = gasQuote.networkFeeUsd;
     networkFeeQuotedAt = gasQuote.quotedAt;
   } catch (error) {
