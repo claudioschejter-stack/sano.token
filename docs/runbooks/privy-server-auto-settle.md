@@ -23,9 +23,11 @@ Client must **not** create a second wallet (`createOnLogin: 'off'`).
 | `PRIVY_AUTHORIZATION_KEY_QUORUM_ID` | Key quorum id from the same screen |
 | `NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUORUM_ID` | Same quorum id (client `addSigners` bootstrap) |
 | `NEXT_PUBLIC_PRIVY_CUSTOM_AUTH=true` | Silent NextAuth → Privy sync |
-| `PRIVY_JWT_PRIVATE_KEY` | Signs `/api/auth/privy-token` JWTs |
+| `PRIVY_JWT_PRIVATE_KEY` | PKCS8 PEM that matches JWKS kid `sanova-rwa-v2` (store `\n` as literal `\n` in Vercel) |
 | `PRIVY_JWT_ISSUER` | Optional; default `https://www.sanovacapital.com` (must match Dashboard if issuer is set there) |
 | `NEXT_PUBLIC_PRIVY_APP_ID` | Privy app (also used as JWT `aud`) |
+
+If jwt.io shows **Invalid Signature** against `PRIVY_CUSTOM_AUTH_PUBLIC_KEY_PEM`, the Vercel private key does not match JWKS — rotate both together (new PEM in Vercel + new JWKS deploy).
 
 ## Production checklist (Phase 0 — do before / right after deploy)
 

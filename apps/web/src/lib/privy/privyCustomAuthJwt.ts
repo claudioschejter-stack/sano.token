@@ -3,33 +3,35 @@
  *
  * Privy verifies `/api/auth/privy-token` JWTs using either:
  * - JWKS at `/api/auth/privy-jwks` (must be reachable by Privy's servers), or
- * - the PEM public key pasted in the Privy Dashboard (preferred when Cloudflare
- *   bot-challenges the custom domain).
+ * - an X.509 certificate / public key configured in the Privy Dashboard.
+ *
+ * kid `sanova-rwa-v2` was rotated after production JWT signatures failed to
+ * verify against the previous JWKS public key (Invalid Signature / invalid_credentials).
  */
 
 import { privyAppId } from './config';
 
-export const PRIVY_CUSTOM_AUTH_JWT_KID = 'sanova-rwa-v1';
+export const PRIVY_CUSTOM_AUTH_JWT_KID = 'sanova-rwa-v2';
 
 /** Default issuer must match what is configured in Privy JWT-based auth (if set). */
 export const PRIVY_CUSTOM_AUTH_JWT_ISSUER_DEFAULT = 'https://www.sanovacapital.com';
 
 /**
  * Canonical JWKS URL that bypasses Cloudflare on the custom domain.
- * Prefer this (or the PEM public key) in Privy Dashboard — not www.sanovacapital.com.
+ * Prefer this in Privy Dashboard — not www.sanovacapital.com.
  */
 export const PRIVY_CUSTOM_AUTH_JWKS_URL_VERCEL =
   'https://sano-token-web.vercel.app/api/auth/privy-jwks';
 
-/** Public verification key matching kid `sanova-rwa-v1` (not a secret). */
+/** Public verification key matching kid `sanova-rwa-v2` (not a secret). */
 export const PRIVY_CUSTOM_AUTH_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz6saKJBgTVuvLrTNHm+4
-xXE0U5I+dT3OG1gbm+goFpzkrX9yb2er70Q4DbLPNdi7pE+g7si5NS9UAL6Peca8
-NBP/kW8EYezZPuaXJjZG0UlTSIP4NWO7nhyGF5hD+FRkFsAHMXGITdUspAMAzTDZ
-5DPd5hKGw3JoplzCzS0XPTi3vkGugM0gbdQmruprJLpXMQWZmofP-L6KNt3eYlo9
-3uIcy1IaDl9o/uso0XqjaPnF4K1P9iuY8oOB+I6N3iLHJB3zNyNRkevcYyCPVPAe
-D1+CNalpNtP+P+PCP+6gT8eo//Z+Cd1d2M+2EjetQcSsAGKQmsoafz6w/9yrqBif
-8wIDAQAB
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAquEgdW4+WiT1dhqVHUI/
+g0UzqewEf4Fo4Lbfvq9eg+vvZ/B06tKBjIRymbFTuixRdT84EgRzDFm6qtl+dw1+
+d1sBAhilYyrq0T1xTVCRAl2P82R8+3IDlQsCeTmpQKiopLkjPoP2/T2M5LtlSY2C
+dkYJk9PPbLQbJB5wC1IjWisQMVusWS0lgyZO01L6elkyOfh07ViKpSa5RGJ4fs2w
+wjFCn3PklljhYAfp1pnsjggwh+W6X4ovPIv/GRaA2HXFOmOCQjR3Ug8yQ1bmpT86
+Oy0IbM2BD93QIysn0iKCiZHzDlTJovmB1hqb3BMP6/f0SQ9uuoqIFB+UdIV0tnxg
+MwIDAQAB
 -----END PUBLIC KEY-----`;
 
 export function resolvePrivyCustomAuthJwtIssuer(): string {

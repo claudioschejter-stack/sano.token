@@ -6,9 +6,8 @@
  *
  * IMPORTANT — Cloudflare bot challenge currently blocks:
  *   https://www.sanovacapital.com/api/auth/privy-jwks  (403 "Just a moment…")
- * Prefer either:
- *   1. JWKS URL: https://sano-token-web.vercel.app/api/auth/privy-jwks
- *   2. Paste the PEM public key from privyCustomAuthJwt.ts (no fetch needed)
+ * Prefer:
+ *   JWKS URL: https://sano-token-web.vercel.app/api/auth/privy-jwks
  *
  * User ID claim: sub
  *
@@ -24,7 +23,7 @@ const JWKS = {
   keys: [
     {
       kty: 'RSA',
-      n: 'z6saKJBgTVuvLrTNHm-4xXE0U5I-dT3OG1gbm-goFpzkrX9yb2er70Q4DbLPNdi7pE-g7si5NS9UAL6Peca8NBP_kW8EYezZPuaXJjZG0UlTSIP4NWO7nhyGF5hD-FRkFsAHMXGITdUspAMAzTDZ5DPd5hKGw3JoplzCzS0XPTi3vkGugM0gbdQmruprJLpXMQWZmofP-L6KNt3eYlo93uIcy1IaDl9o_uso0XqjaPnF4K1P9iuY8oOB-I6N3iLHJB3zNyNRkevcYyCPVPAeD1-CNalpNtP-P-PCP-6gT8eo__Z-Cd1d2M-2EjetQcSsAGKQmsoafz6w_9yrqBif8w',
+      n: 'quEgdW4-WiT1dhqVHUI_g0UzqewEf4Fo4Lbfvq9eg-vvZ_B06tKBjIRymbFTuixRdT84EgRzDFm6qtl-dw1-d1sBAhilYyrq0T1xTVCRAl2P82R8-3IDlQsCeTmpQKiopLkjPoP2_T2M5LtlSY2CdkYJk9PPbLQbJB5wC1IjWisQMVusWS0lgyZO01L6elkyOfh07ViKpSa5RGJ4fs2wwjFCn3PklljhYAfp1pnsjggwh-W6X4ovPIv_GRaA2HXFOmOCQjR3Ug8yQ1bmpT86Oy0IbM2BD93QIysn0iKCiZHzDlTJovmB1hqb3BMP6_f0SQ9uuoqIFB-UdIV0tnxgMw',
       e: 'AQAB',
       kid: PRIVY_CUSTOM_AUTH_JWT_KID,
       use: 'sig',
