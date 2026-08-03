@@ -3,6 +3,7 @@
 import { ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
+import { formatUsdPrecise, roundUsdc } from '../../../lib/payments/formatUsdPrecise';
 
 export type FeeBreakdownLine = {
   label: string;
@@ -52,11 +53,7 @@ function Row({
           {value}
         </span>
       </div>
-      {chargedBy ? (
-        <p className="text-[10px] text-terminal-muted">
-          {chargedBy}
-        </p>
-      ) : null}
+      {chargedBy ? <p className="text-[10px] text-terminal-muted">{chargedBy}</p> : null}
     </div>
   );
 }
@@ -75,10 +72,19 @@ export function PaymentFeeBreakdown({
   const fb = t.simplifiedCheckout.feeBreakdown;
   const [open, setOpen] = useState(defaultOpen || networkFeeUsd > 0);
 
-  const providerFeeUsd = Math.max(0, totalUsd - amountUsd - (networkFeeIncluded ? networkFeeUsd : 0));
-  const grandTotal = networkFeeIncluded ? totalUsd : totalUsd + networkFeeUsd;
-  const formatUsd = (value: number, digits = 2) =>
-    value < 0.01 && value > 0 ? value.toFixed(6) : value.toFixed(digits);
+  const investment = roundUsdc(amountUsd);
+  const networkFee = roundUsdc(Math.max(0, networkFeeUsd));
+  /**
+   * Never trust totalUsd alone when networkFeeIncluded — callers sometimes pass the
+   * investment amount while still supplying networkFeeUsd. Always sum the lines.
+   */
+  const impliedProvider = networkFeeIncluded
+    ? roundUsdc(Math.max(0, roundUsdc(totalUsd) - investment - networkFee))
+    : roundUsdc(Math.max(0, roundUsdc(totalUsd) - investment));
+  const providerFeeUsd = impliedProvider;
+  const grandTotal = networkFeeIncluded
+    ? roundUsdc(investment + providerFeeUsd + networkFee)
+    : roundUsdc(roundUsdc(totalUsd) + networkFee);
 
   return (
     <div className="rounded-xl border border-terminal-border bg-terminal-bg overflow-hidden">
@@ -89,7 +95,7 @@ export function PaymentFeeBreakdown({
       >
         <span className="text-xs font-semibold text-terminal-text">{fb.title}</span>
         <span className="flex items-center gap-2">
-          <span className="text-xs font-bold text-terminal-text">USD {formatUsd(grandTotal, 6)}</span>
+          <span className="text-xs font-bold text-terminal-text">USD {formatUsdPrecise(grandTotal)}</span>
           <ChevronDown
             className={`h-3.5 w-3.5 text-terminal-muted transition-transform ${open ? 'rotate-180' : ''}`}
           />
@@ -100,12 +106,12 @@ export function PaymentFeeBreakdown({
         <div className="border-t border-terminal-border px-4 pb-4 pt-3 space-y-2.5">
           <Row
             label={fb.investment}
-            value={`USD ${formatUsd(amountUsd)}`}
+            value={`USD ${formatUsdPrecise(investment)}`}
             chargedBy={`${fb.chargedByPrefix} ${fb.chargedBySanova}`}
           />
           <Row
             label={fb.providerFee}
-            value={providerFeeUsd > 0.005 ? `+ USD ${formatUsd(providerFeeUsd)}` : fb.included}
+            value={providerFeeUsd > 0.0000005 ? `+ USD ${formatUsdPrecise(providerFeeUsd)}` : fb.included}
             chargedBy={
               gatewayChargedBy
                 ? `${fb.chargedByPrefix} ${gatewayChargedBy}`
@@ -113,10 +119,10 @@ export function PaymentFeeBreakdown({
             }
             muted
           />
-          {networkFeeUsd > 0 && (
+          {networkFee > 0 && (
             <Row
               label={fb.networkFee}
-              value={`USD ${formatUsd(networkFeeUsd, 6)}`}
+              value={`USD ${formatUsdPrecise(networkFee)}`}
               chargedBy={
                 gasChargedBy
                   ? `${fb.chargedByPrefix} ${gasChargedBy}`
@@ -137,7 +143,7 @@ export function PaymentFeeBreakdown({
           />
           <p className="text-[10px] text-terminal-muted">{fb.paidByBuyer}</p>
           <div className="border-t border-terminal-border pt-2.5">
-            <Row label={fb.total} value={`USD ${formatUsd(grandTotal, 6)}`} bold />
+            <Row label={fb.total} value={`USD ${formatUsdPrecise(grandTotal)}`} bold />
           </div>
         </div>
       )}

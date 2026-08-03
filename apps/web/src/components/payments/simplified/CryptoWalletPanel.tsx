@@ -21,6 +21,7 @@ import {
   isPrivyAuthorizationSignerError,
   runCryptoWalletSettle
 } from '../../../lib/payments/cryptoWalletSettleOrchestrator';
+import { formatUsdPrecise, roundUsdc } from '../../../lib/payments/formatUsdPrecise';
 import { normalizeCartLineItems } from '../../../lib/payments/normalizeCartLineItems';
 import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
 import type { VaultDepositLine } from '../../../lib/web3/vaultDepositPayment';
@@ -35,6 +36,8 @@ const PRIVY_AUTH_QUORUM_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUO
 const QR_SIZE = 220;
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPC = process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
+/** Live User-pays gas quote refresh while the crypto panel is open. */
+const GAS_QUOTE_REFRESH_MS = 30_000;
 
 type Phase = 'loading' | 'needs_funds' | 'ready' | 'settling' | 'done';
 type PayPath = 'sanova' | 'external';
@@ -45,10 +48,7 @@ function buildEip681Uri(toAddress: string, amountUsdc: number): string {
 }
 
 function formatUsdcAmount(value: number): string {
-  if (!Number.isFinite(value)) return '0.00';
-  const fixed = value.toFixed(6);
-  const trimmed = fixed.replace(/\.?0+$/, '');
-  return trimmed.includes('.') ? trimmed : `${trimmed}.00`;
+  return formatUsdPrecise(value);
 }
 
 function normalizeAddress(value?: string | null): string | null {
@@ -65,6 +65,8 @@ type Props = {
   cartItems?: SimplifiedCheckoutCartItem[];
   onFunded?: () => void;
   ensureReference?: EnsureCheckoutReference;
+  /** Bubble live payable (investment + gas) up to the payment menu header. */
+  onPayableChange?: (info: { totalUsd: number; networkFeeUsd: number; investmentUsd: number }) => void;
 };
 
 /**
@@ -80,7 +82,8 @@ export function CryptoWalletPanel({
   mode = 'deposit',
   cartItems = [],
   onFunded,
-  ensureReference
+  ensureReference,
+  onPayableChange
 }: Props) {
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
@@ -137,20 +140,24 @@ export function CryptoWalletPanel({
       ? Math.max(
           settlePayableUsdc ?? 0,
           routePayableUsdc,
-          Number((investmentUsdc + networkFeeUsdc).toFixed(6))
+          roundUsdc(investmentUsdc + networkFeeUsdc)
         )
       : settlePayableUsdc && settlePayableUsdc > 0
         ? settlePayableUsdc
         : investmentUsdc;
+  /** Gas actually included in the payable — keep hero / breakdown / header in sync. */
+  const includedGasUsdc =
+    mode === 'purchase' ? Math.max(0, roundUsdc(amountUsdc - investmentUsdc)) : networkFeeUsdc;
   const requiredRef = useRef(amountUsdc);
   requiredRef.current = amountUsdc;
+  const onPayableChangeRef = useRef(onPayableChange);
+  onPayableChangeRef.current = onPayableChange;
   const hasEnoughSanova =
     balanceUsdc != null && Number.isFinite(balanceUsdc) && balanceUsdc + 1e-9 >= amountUsdc;
 
-  // If routes arrived without a gas quote, refresh checkout-methods once.
+  // Refresh live User-pays gas every 30s while this panel is open.
   useEffect(() => {
     if (mode !== 'purchase' || investmentUsdc <= 0) return;
-    if (routeNetworkFeeUsdc > 0) return;
     let cancelled = false;
     const refresh = async () => {
       try {
@@ -170,17 +177,30 @@ export function CryptoWalletPanel({
         };
         const fee = Number(data.cryptoWallet?.networkFeeUsd ?? 0);
         if (Number.isFinite(fee) && fee > 0 && !cancelled) {
-          setLocalNetworkFeeUsdc(fee);
+          setLocalNetworkFeeUsdc((prev) => Math.max(prev, fee));
         }
       } catch {
         // keep route/fallback values
       }
     };
     void refresh();
+    const id = window.setInterval(() => {
+      void refresh();
+    }, GAS_QUOTE_REFRESH_MS);
     return () => {
       cancelled = true;
+      window.clearInterval(id);
     };
-  }, [mode, investmentUsdc, routeNetworkFeeUsdc, country, serverAddress]);
+  }, [mode, investmentUsdc, country, serverAddress]);
+
+  useEffect(() => {
+    if (mode !== 'purchase') return;
+    onPayableChangeRef.current?.({
+      investmentUsd: investmentUsdc,
+      networkFeeUsd: includedGasUsdc,
+      totalUsd: amountUsdc
+    });
+  }, [mode, investmentUsdc, includedGasUsdc, amountUsdc]);
 
   const fundShortfallUsdc = Math.max(
     0,
@@ -940,11 +960,11 @@ export function CryptoWalletPanel({
         <p className="mt-1 text-2xl font-bold text-terminal-primary">
           {formatUsdcAmount(amountUsdc)} <span className="text-base font-semibold">USDC</span>
         </p>
-        {mode === 'purchase' && networkFeeUsdc > 0 ? (
+        {mode === 'purchase' && includedGasUsdc > 0 ? (
           <p className="mt-0.5 text-xs text-terminal-muted">
             {formatMessage(sc.cryptoWalletPayableIncludesGas, {
-              investment: amountUsd.toFixed(2),
-              gas: networkFeeUsdc.toFixed(6)
+              investment: formatUsdcAmount(investmentUsdc),
+              gas: formatUsdcAmount(includedGasUsdc)
             })}
           </p>
         ) : (
@@ -1180,10 +1200,7 @@ export function CryptoWalletPanel({
         totalUsd={amountUsdc}
         feeBps={cryptoWallet.feeBps}
         providerLabel="Base USDC"
-        networkFeeUsd={Math.max(
-          networkFeeUsdc,
-          Math.max(0, Math.round((amountUsdc - investmentUsdc) * 1e6) / 1e6)
-        )}
+        networkFeeUsd={includedGasUsdc}
         networkFeeIncluded
         defaultOpen
         gatewayChargedBy="Base USDC"

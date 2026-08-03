@@ -280,6 +280,14 @@ export function SimplifiedCheckout({
               cartItems={cartItems}
               onFunded={() => handlePaymentSignal(activeReferenceId)}
               ensureReference={wrapEnsureReference}
+              onPayableChange={(info) => {
+                onPayableChangeRef.current?.({
+                  method: 'crypto_wallet',
+                  investmentUsd: info.investmentUsd,
+                  networkFeeUsd: info.networkFeeUsd,
+                  totalUsd: info.totalUsd
+                });
+              }}
             />
           ) : null}
 
