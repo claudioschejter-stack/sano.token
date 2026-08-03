@@ -1,8 +1,9 @@
 /**
  * Issues a short-lived RS256 JWT for the authenticated NextAuth user.
  *
- * Privy verifies this JWT against our JWKS (/api/auth/privy-jwks) and silently
- * authenticates the user without showing its own login modal.
+ * Privy verifies this JWT against our JWKS (/api/auth/privy-jwks) — or the PEM
+ * public key configured in the Privy Dashboard — and silently authenticates
+ * the user without showing its own login modal.
  *
  * Called by usePrivySessionSync on every page load when the user is authenticated.
  * Only accessible by the same browser session (credentials: 'same-origin').
@@ -13,19 +14,15 @@
 import { NextResponse } from 'next/server';
 import { SignJWT, importPKCS8 } from 'jose';
 import { auth } from '../../../../auth';
+import {
+  PRIVY_CUSTOM_AUTH_JWT_KID,
+  resolvePrivyCustomAuthJwtAudience,
+  resolvePrivyCustomAuthJwtIssuer,
+  resolvePrivyJwtPrivateKeyPem
+} from '../../../../lib/privy/privyCustomAuthJwt';
 
-const KID = 'sanova-rwa-v1';
-const ISSUER = 'https://sanovacapital.com';
-const PRIVY_APP_ID = 'cmqiztako002p0bjmjiqaebuw';
 /** Token lifespan — 10 minutes is enough; hook refreshes before expiry. */
 const TOKEN_TTL_SECONDS = 600;
-
-function resolvePrivateKey(): string | null {
-  const raw = process.env.PRIVY_JWT_PRIVATE_KEY?.trim();
-  if (!raw) return null;
-  // Env var stores \n as literal backslash-n; restore real newlines.
-  return raw.replace(/\\n/g, '\n');
-}
 
 export const dynamic = 'force-dynamic';
 
@@ -36,21 +33,23 @@ export async function GET() {
     return NextResponse.json({ error: 'UNAUTHENTICATED' }, { status: 401 });
   }
 
-  const rawPrivateKey = resolvePrivateKey();
+  const rawPrivateKey = resolvePrivyJwtPrivateKeyPem();
   if (!rawPrivateKey) {
     return NextResponse.json({ error: 'PRIVY_JWT_NOT_CONFIGURED' }, { status: 503 });
   }
 
   try {
     const privateKey = await importPKCS8(rawPrivateKey, 'RS256');
+    const issuer = resolvePrivyCustomAuthJwtIssuer();
+    const audience = resolvePrivyCustomAuthJwtAudience();
 
     const token = await new SignJWT({
       email: session.user.email ?? undefined
     })
-      .setProtectedHeader({ alg: 'RS256', kid: KID })
+      .setProtectedHeader({ alg: 'RS256', kid: PRIVY_CUSTOM_AUTH_JWT_KID })
       .setSubject(session.user.id)
-      .setIssuer(ISSUER)
-      .setAudience(PRIVY_APP_ID)
+      .setIssuer(issuer)
+      .setAudience(audience)
       .setIssuedAt()
       .setExpirationTime(`${TOKEN_TTL_SECONDS}s`)
       .sign(privateKey);

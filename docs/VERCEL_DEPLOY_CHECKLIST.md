@@ -56,7 +56,8 @@ npm run build -w @sanova/web
 | `NEXT_PUBLIC_PRIVY_APP_ID` | Sí | Dashboard Privy |
 | `NEXT_PUBLIC_PRIVY_CUSTOM_AUTH` | **Sí = `true`** | Sync silencioso NextAuth → Privy |
 | `PRIVY_APP_SECRET` | Sí | Server-side; nunca en cliente |
-| JWKS en Privy Dashboard | Sí | `https://auth.privy.io/api/v1/apps/{APP_ID}/jwks.json` |
+| `PRIVY_JWT_PRIVATE_KEY` | Sí | Firma JWTs de Custom Auth (`/api/auth/privy-token`) |
+| JWT verification en Privy Dashboard | Sí | **PEM público** (preferido) o JWKS `https://sano-token-web.vercel.app/api/auth/privy-jwks` — **no** usar `www.sanovacapital.com` (Cloudflare 403) ni el JWKS de Privy (`auth.privy.io/.../jwks.json`) |
 
 ## 4. KYC (Didit) — CRÍTICAS
 
