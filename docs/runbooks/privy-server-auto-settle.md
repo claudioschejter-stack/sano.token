@@ -85,3 +85,4 @@ Older email-provisioned wallets need a **one-time** authorization-key grant (Das
 | CORS error on that same request | Browser hiding the 401/429 body | Fix verification; ignore CORS as primary |
 | 429 Too Many Requests | Retry storm after failed auth | Wait ~1 min; fix Dashboard; client now cools down 60s |
 | `PRIVY_AUTHORIZATION_SIGNER_REQUIRED` with funded Sanova | Wallet has USDC but no app signer | Dashboard additional signer on that address |
+| `PRIVY_WALLET_ADDRESS_MISMATCH` | Custom Auth session wallet ≠ funded legacy email wallet | In checkout use **Autorizar wallet Sanova fondeada** (email OTP → `addSigners` on funded address), then **Pagar** again |

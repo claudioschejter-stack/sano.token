@@ -3031,7 +3031,18 @@ export const es = {
     cryptoWalletPrivySessionRetry:
       'Estamos activando la firma de tu wallet Sanova. Tocá Pagar de nuevo — tu USDC no se movió. Si persiste, contactá a Sanova (no hace falta otra billetera).',
     cryptoWalletPrivyAddressMismatch:
-      'La sesión de firma no coincide con tu cuenta Sanova fondeada. Tocá Pagar de nuevo o contactá a Sanova — no se debitó nada. No hace falta usar otra billetera mientras haya USDC en Sanova.',
+      'La sesión de firma no coincide con tu cuenta Sanova fondeada. Autorizá esa wallet una vez con el código al email (abajo) y volvé a tocar Pagar — no se debitó nada.',
+    cryptoWalletLegacySignerTitle: 'Autorizar wallet Sanova fondeada (una vez)',
+    cryptoWalletLegacySignerBody:
+      'Tu USDC está en una wallet Privy anterior (email). Te enviamos un código a tu email para autorizar que Sanova pueda firmar pagos desde esa dirección.',
+    cryptoWalletLegacySignerCta: 'Enviar código al email',
+    cryptoWalletLegacySignerCodeHint: 'Ingresá el código que enviamos a {email}',
+    cryptoWalletLegacySignerVerifyCta: 'Confirmar y autorizar',
+    cryptoWalletLegacySignerCancel: 'Cancelar y volver',
+    cryptoWalletLegacySignerGranted:
+      'Listo. Tocá Pagar de nuevo — tu USDC en Sanova ya puede usarse.',
+    cryptoWalletLegacySignerMissingConfig:
+      'Falta configurar la clave de autorización de Privy. Contactá a Sanova.',
     cryptoWalletHtmlGatewayError:
       'El servidor devolvió una respuesta inválida (posible despliegue en curso). Recargá la página o pagá con «Mi wallet» (Coinbase / WalletConnect).',
     cryptoWalletManualReview:

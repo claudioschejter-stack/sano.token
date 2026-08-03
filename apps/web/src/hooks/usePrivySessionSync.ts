@@ -9,8 +9,7 @@
  * Requirements before enabling:
  *   1. Request "Custom Auth Support" in Privy Dashboard → Integrations → Plugins
  *   2. After approval, configure in Privy Dashboard → User Management → Authentication:
- *        - Prefer PEM public key (avoids Cloudflare JWKS fetch), OR
- *          JWKS URL: https://sano-token-web.vercel.app/api/auth/privy-jwks
+ *        - Prefer JWKS URL: https://sano-token-web.vercel.app/api/auth/privy-jwks
  *          (NOT www.sanovacapital.com — Cloudflare bot-challenge returns 403)
  *        - User ID claim: sub
  *        - Auth environment: Client-side (or Both)
@@ -23,7 +22,11 @@
 
 import { useSubscribeToJwtAuthWithFlag } from '@privy-io/react-auth';
 import { useSession } from 'next-auth/react';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  isLegacySignerGrantActive,
+  LEGACY_SIGNER_GRANT_EVENT
+} from '../lib/privy/legacySignerGrantFlag';
 
 const CUSTOM_AUTH_ENABLED = process.env.NEXT_PUBLIC_PRIVY_CUSTOM_AUTH === 'true';
 
@@ -50,12 +53,20 @@ export function usePrivySessionSync() {
   const { status } = useSession();
   const cooldownUntilRef = useRef(0);
   const warnedRef = useRef(false);
+  const [legacyGrantActive, setLegacyGrantActive] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setLegacyGrantActive(isLegacySignerGrantActive());
+    sync();
+    window.addEventListener(LEGACY_SIGNER_GRANT_EVENT, sync);
+    return () => window.removeEventListener(LEGACY_SIGNER_GRANT_EVENT, sync);
+  }, []);
 
   const isAuthenticated = status === 'authenticated';
   const isLoading = status === 'loading';
 
   const getExternalJwt = useCallback(async (): Promise<string | undefined> => {
-    if (!isAuthenticated) return undefined;
+    if (!isAuthenticated || legacyGrantActive) return undefined;
 
     if (Date.now() < cooldownUntilRef.current) {
       return undefined;
@@ -74,7 +85,7 @@ export function usePrivySessionSync() {
     }
 
     return token;
-  }, [isAuthenticated]);
+  }, [isAuthenticated, legacyGrantActive]);
 
   const onError = useCallback((error: Error) => {
     cooldownUntilRef.current = Date.now() + FAILURE_COOLDOWN_MS;
@@ -90,10 +101,10 @@ export function usePrivySessionSync() {
   }, []);
 
   useSubscribeToJwtAuthWithFlag({
-    isAuthenticated,
+    isAuthenticated: isAuthenticated && !legacyGrantActive,
     isLoading,
     getExternalJwt,
-    enabled: CUSTOM_AUTH_ENABLED,
+    enabled: CUSTOM_AUTH_ENABLED && !legacyGrantActive,
     onError
   });
 }

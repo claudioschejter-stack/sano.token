@@ -2987,7 +2987,17 @@ export const en = {
     cryptoWalletPrivySessionRetry:
       "We’re activating your Sanova wallet signer. Tap Pay again — your USDC was not moved. If it persists, contact Sanova (no other wallet needed).",
     cryptoWalletPrivyAddressMismatch:
-      "This signing session does not match your funded Sanova account. Tap Pay again or contact Sanova — nothing was debited. No other wallet is needed while Sanova holds USDC.",
+      "This signing session does not match your funded Sanova account. Authorize that wallet once with the email code below, then tap Pay again — nothing was debited.",
+    cryptoWalletLegacySignerTitle: 'Authorize funded Sanova wallet (one time)',
+    cryptoWalletLegacySignerBody:
+      'Your USDC is on an older Privy email wallet. We’ll email you a code so Sanova can sign payments from that address.',
+    cryptoWalletLegacySignerCta: 'Send email code',
+    cryptoWalletLegacySignerCodeHint: 'Enter the code we sent to {email}',
+    cryptoWalletLegacySignerVerifyCta: 'Confirm and authorize',
+    cryptoWalletLegacySignerCancel: 'Cancel and go back',
+    cryptoWalletLegacySignerGranted: 'Done. Tap Pay again — your Sanova USDC can be spent.',
+    cryptoWalletLegacySignerMissingConfig:
+      'Privy authorization key is not configured. Contact Sanova.',
     cryptoWalletHtmlGatewayError:
       "The server returned an invalid response (deploy may still be rolling out). Reload the page or pay with “My wallet” (Coinbase / WalletConnect).",
     cryptoWalletManualReview:
