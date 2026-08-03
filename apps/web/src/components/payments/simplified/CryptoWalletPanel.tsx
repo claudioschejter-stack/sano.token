@@ -265,7 +265,7 @@ export function CryptoWalletPanel({
       ) {
         return sc.cryptoWalletRpcUserPaysUnsupported;
       }
-      if (lower.startsWith('privy_transfer_failed')) {
+      if (code === 'PRIVY_TRANSFER_FAILED' || lower.startsWith('privy_transfer_failed')) {
         return sc.cryptoWalletTransferFailed.replace('{error}', errorCode);
       }
       if (
@@ -553,10 +553,14 @@ export function CryptoWalletPanel({
         },
         grantServerSigner: async () => {
           if (!receiveAddress || !PRIVY_AUTH_QUORUM_ID) return;
-          await addSigners({
-            address: receiveAddress,
-            signers: [{ signerId: PRIVY_AUTH_QUORUM_ID, policyIds: [] }]
-          }).catch(() => undefined);
+          try {
+            await addSigners({
+              address: receiveAddress,
+              signers: [{ signerId: PRIVY_AUTH_QUORUM_ID, policyIds: [] }]
+            });
+          } catch {
+            // Already granted (PATCH 400) or session cannot mutate — server retry still runs.
+          }
         },
         ensureBatchId: async (preferred) =>
           preferred ??

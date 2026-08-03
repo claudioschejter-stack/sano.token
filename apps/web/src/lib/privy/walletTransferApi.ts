@@ -77,11 +77,13 @@ export async function privyTransferUsdc(input: PrivyTransferUsdcInput): Promise<
 
   const amount = formatPrivyUsdcAmount(input.amountUsdc);
   const url = `${privyApiBase()}/v1/wallets/${walletId}/transfer?include=steps`;
-  // Shape matches Privy User-pays setup docs (amount on source).
+  // Privy Node/SDK shape (top-level amount). User-pays gas applies automatically
+  // when Dashboard is configured for Base/USDC — no sponsor_options here.
   const body: Record<string, unknown> = {
+    amount,
+    amount_type: 'exact_input',
     source: {
       asset: 'usdc',
-      amount,
       chain: input.chain ?? 'base'
     },
     destination: {
