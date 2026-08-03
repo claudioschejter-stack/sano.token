@@ -247,6 +247,7 @@ export function CryptoWalletPanel({
   const mapSettleError = useCallback(
     (errorCode: string) => {
       const code = errorCode.trim().toUpperCase();
+      const lower = errorCode.toLowerCase();
       if (code === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || code === 'NOT_CONFIGURED') {
         return sc.cryptoWalletAutoSettleNotConfigured;
       }
@@ -255,6 +256,17 @@ export function CryptoWalletPanel({
       }
       if (isPrivyAuthorizationSignerError(errorCode) || code === 'PRIVY_AUTHORIZATION_SIGNER_REQUIRED') {
         return sc.cryptoWalletPrivySignerRequired;
+      }
+      // Legacy RPC User-pays path (pre Transfer API). Surface a clear retry, not raw JSON.
+      if (
+        lower.includes('invalid request body for rpc resolution') ||
+        (lower.includes('privy_send_transaction_failed') &&
+          (lower.includes('invalid_data') || lower.includes(':400:')))
+      ) {
+        return sc.cryptoWalletRpcUserPaysUnsupported;
+      }
+      if (lower.startsWith('privy_transfer_failed')) {
+        return sc.cryptoWalletTransferFailed.replace('{error}', errorCode);
       }
       if (
         code === 'PRIVY_SESSION_REQUIRED' ||
@@ -269,9 +281,9 @@ export function CryptoWalletPanel({
       }
       if (
         code === 'CART_CHECKOUT_TIMEOUT' ||
-        errorCode.toLowerCase().includes('transaction already closed') ||
-        errorCode.toLowerCase().includes('expired transaction') ||
-        errorCode.toLowerCase().includes('interactive transaction timeout')
+        lower.includes('transaction already closed') ||
+        lower.includes('expired transaction') ||
+        lower.includes('interactive transaction timeout')
       ) {
         return sc.cryptoWalletCheckoutTimeout;
       }
@@ -317,7 +329,9 @@ export function CryptoWalletPanel({
       sc.cryptoWalletNoPendingPurchase,
       sc.cryptoWalletPrivyAddressMismatch,
       sc.cryptoWalletPrivySessionRetry,
-      sc.cryptoWalletPrivySignerRequired
+      sc.cryptoWalletPrivySignerRequired,
+      sc.cryptoWalletRpcUserPaysUnsupported,
+      sc.cryptoWalletTransferFailed
     ]
   );
 
@@ -1099,12 +1113,14 @@ export function CryptoWalletPanel({
                     {phase === 'settling'
                       ? sc.cryptoWalletAutoSettling
                       : formatMessage(sc.cryptoWalletPayButtonAmount, {
-                          amount: amountUsdc.toFixed(2)
+                          amount: formatUsdcAmount(amountUsdc)
                         })}
                   </button>
                   {settleError ? (
                     <p className="text-[11px] leading-relaxed text-red-500">{settleError}</p>
                   ) : null}
+                  {/* Legacy email-wallet grant only when the funded Sanova address
+                      is not the Custom Auth session wallet — not as a permanent CTA. */}
                   {receiveAddress &&
                   (forceLegacySignerGrant ||
                     settleErrorCode === 'PRIVY_WALLET_ADDRESS_MISMATCH' ||
@@ -1118,11 +1134,12 @@ export function CryptoWalletPanel({
                         setPhase('ready');
                       }}
                     />
-                  ) : receiveAddress ? (
+                  ) : settleErrorCode === 'PRIVY_AUTHORIZATION_SIGNER_REQUIRED' ||
+                    settleErrorCode === 'PRIVY_WALLET_ADDRESS_MISMATCH' ? (
                     <button
                       type="button"
                       onClick={() => setForceLegacySignerGrant(true)}
-                      className="w-full rounded-lg border border-amber-500/40 bg-amber-900/10 px-3 py-2.5 text-[11px] font-semibold text-amber-400"
+                      className="w-full text-center text-[11px] font-medium text-terminal-muted underline-offset-2 hover:text-terminal-text hover:underline"
                     >
                       {sc.cryptoWalletLegacySignerOpen}
                     </button>
@@ -1176,8 +1193,8 @@ export function CryptoWalletPanel({
                             {fundingSending
                               ? sc.cryptoWalletFundSending
                               : formatMessage(sc.cryptoWalletFundSendButton, {
-                                  amount: (fundShortfallUsdc > 0 ? fundShortfallUsdc : amountUsdc).toFixed(
-                                    2
+                                  amount: formatUsdcAmount(
+                                    fundShortfallUsdc > 0 ? fundShortfallUsdc : amountUsdc
                                   )
                                 })}
                           </button>
@@ -1257,7 +1274,7 @@ export function CryptoWalletPanel({
                     {externalPaying
                       ? sc.cryptoWalletExternalPaying
                       : formatMessage(sc.cryptoWalletExternalPayButton, {
-                          amount: amountUsdc.toFixed(2)
+                          amount: formatUsdcAmount(amountUsdc)
                         })}
                   </button>
 
