@@ -162,15 +162,13 @@ export function PwaDashboard({ portfolio, historicalYieldPercent }: Props) {
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-white">
                 {activityIcon(item.kind)}
               </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-semibold text-slate-900">{item.title}</p>
-                <p className="truncate text-sm text-slate-500">
+              <div className="min-w-0 flex-1 pr-2">
+                <p className="break-words font-semibold leading-snug text-slate-900">{item.title}</p>
+                <p className="break-words text-sm leading-snug text-slate-500">
                   {item.subtitle ?? item.status}
-                  {item.source ? ` · origen ${item.source.slice(0, 10)}…` : ''}
-                  {item.destination ? ` · dest ${item.destination.slice(0, 10)}…` : ''}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="shrink-0 text-right">
                 <p className={amountClass(item.amountUsd)}>
                   {item.amountUsd > 0 ? '+' : ''}
                   {formatUsdc(Math.abs(item.amountUsd))}

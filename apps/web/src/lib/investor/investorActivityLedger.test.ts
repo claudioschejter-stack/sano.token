@@ -52,7 +52,8 @@ describe('getInvestorActivityLedger', () => {
     expect(items).toHaveLength(1);
     expect(items[0]?.kind).toBe('deposit');
     expect(items[0]?.amountUsd).toBe(20);
-    expect(items[0]?.title).toContain('wallet Sanova');
+    expect(items[0]?.title).toBe('Depósito USDC');
+    expect(items[0]?.subtitle).toBe('Wallet Sanova');
   });
 
   it('queries only confirmed/posted movements across every activity kind', async () => {

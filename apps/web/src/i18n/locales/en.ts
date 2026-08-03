@@ -2939,7 +2939,7 @@ export const en = {
     cryptoWalletSanovaReadyHint:
       "You have enough USDC. One tap pays from your Sanova wallet (no second Privy login) and credits your tokens.",
     cryptoWalletSanovaManualPayHint:
-      "You have enough USDC in your Sanova wallet. Tap Pay to settle the purchase (no second Privy login).",
+      "You have enough USDC in your Sanova wallet. Tap Pay to settle the purchase from this account.",
     cryptoWalletPayButtonAmount: "Pay {amount} USDC",
     cryptoWalletFundEmbeddedHint:
       "Fund your Sanova wallet with USDC on Base. When the balance covers the amount, the Pay button appears.",
@@ -2982,6 +2982,10 @@ export const en = {
       "The server took too long preparing the order. Tap Pay again — your balance was not moved.",
     cryptoWalletPrivySignerRequired:
       "We couldn’t sign the payment on the server. Tap Pay again — we’ll sign from your Sanova wallet in this session.",
+    cryptoWalletPrivySessionRequired:
+      "Your Sanova wallet signing session is not ready on this device yet. Use “My wallet” (Coinbase / WalletConnect) to complete payment now — your Sanova USDC was not moved.",
+    cryptoWalletPrivyAddressMismatch:
+      "This session’s Privy wallet does not match your funded Sanova account. Use “My wallet” or contact Sanova — nothing was debited.",
     cryptoWalletHtmlGatewayError:
       "The server returned an invalid response (deploy may still be rolling out). Reload the page or pay with “My wallet” (Coinbase / WalletConnect).",
     cryptoWalletManualReview:

@@ -10,12 +10,17 @@ import { formatMessage } from '../../../i18n';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useSigners } from '@privy-io/react-auth';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
+import { usePrivyEmbeddedWallet } from '../../../hooks/usePrivyEmbeddedWallet';
 import { usePrivyTreasuryPayment } from '../../../hooks/usePrivyTreasuryPayment';
 import { usePrivyVaultDeposit } from '../../../hooks/usePrivyVaultDeposit';
 import { useUsdcTreasuryPayment } from '../../../hooks/useUsdcTreasuryPayment';
 import { readJsonResponse } from '../../../lib/http/readJsonResponse';
 import { resolveDisplayReceiveAddress } from '../../../lib/investor/canonicalReceiveAddress';
 import type { SimplifiedCryptoWalletMethod } from '../../../lib/payments/checkoutBestRouteService';
+import {
+  isPrivyAuthorizationSignerError,
+  runCryptoWalletSettle
+} from '../../../lib/payments/cryptoWalletSettleOrchestrator';
 import { normalizeCartLineItems } from '../../../lib/payments/normalizeCartLineItems';
 import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
 import type { VaultDepositLine } from '../../../lib/web3/vaultDepositPayment';
@@ -25,15 +30,6 @@ import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 import type { EnsureCheckoutReference, SimplifiedCheckoutCartItem } from './SimplifiedCheckout';
 
 const PRIVY_AUTH_QUORUM_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUORUM_ID?.trim() ?? '';
-
-function isPrivyAuthorizationSignerError(code: string): boolean {
-  const lower = code.toLowerCase();
-  return (
-    code === 'PRIVY_AUTHORIZATION_SIGNER_REQUIRED' ||
-    lower.includes('no valid authorization keys') ||
-    lower.includes('user signing keys available')
-  );
-}
 
 const QR_SIZE = 220;
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
@@ -86,6 +82,7 @@ export function CryptoWalletPanel({
   const { payToTreasury } = useUsdcTreasuryPayment();
   const { payToTreasury: payToTreasuryPrivy } = usePrivyTreasuryPayment();
   const { depositToVaults: depositToVaultsPrivy } = usePrivyVaultDeposit();
+  const { ensureReady: ensurePrivyReady } = usePrivyEmbeddedWallet();
   const { addSigners } = useSigners();
 
   const [copiedAddr, setCopiedAddr] = useState(false);
@@ -141,6 +138,17 @@ export function CryptoWalletPanel({
         return sc.cryptoWalletPrivySignerRequired;
       }
       if (
+        code === 'PRIVY_SESSION_REQUIRED' ||
+        code === 'PRIVY_WALLET_NOT_READY' ||
+        code === 'PRIVY_NOT_READY' ||
+        code === 'PRIVY_PROVIDER_UNAVAILABLE'
+      ) {
+        return sc.cryptoWalletPrivySessionRequired;
+      }
+      if (code === 'PRIVY_WALLET_ADDRESS_MISMATCH') {
+        return sc.cryptoWalletPrivyAddressMismatch;
+      }
+      if (
         code === 'CART_CHECKOUT_TIMEOUT' ||
         errorCode.toLowerCase().includes('transaction already closed') ||
         errorCode.toLowerCase().includes('expired transaction') ||
@@ -188,6 +196,8 @@ export function CryptoWalletPanel({
       sc.cryptoWalletLinkRequired,
       sc.cryptoWalletManualReview,
       sc.cryptoWalletNoPendingPurchase,
+      sc.cryptoWalletPrivyAddressMismatch,
+      sc.cryptoWalletPrivySessionRequired,
       sc.cryptoWalletPrivySignerRequired
     ]
   );
@@ -306,7 +316,7 @@ export function CryptoWalletPanel({
     });
 
     /** When server auth-key settle is blocked, sign from the embedded Privy session instead. */
-    const settleWithClientPrivy = async (batchId: string, payAmountUsd: number): Promise<boolean> => {
+    const settleWithClientPrivy = async (batchId: string, payAmountUsd: number): Promise<void> => {
       if (receiveAddress && PRIVY_AUTH_QUORUM_ID) {
         await addSigners({
           address: receiveAddress,
@@ -357,108 +367,89 @@ export function CryptoWalletPanel({
       if (!confirmParsed.ok) {
         throw new Error(confirmParsed.errorCode ?? confirmParsed.data.error ?? 'STABLECOIN_VERIFY_FAILED');
       }
-      return true;
     };
 
     try {
-      // Best-effort: grant app authorization key as signer before server settle.
-      if (receiveAddress && PRIVY_AUTH_QUORUM_ID) {
-        await addSigners({
-          address: receiveAddress,
-          signers: [{ signerId: PRIVY_AUTH_QUORUM_ID, policyIds: [] }]
-        }).catch(() => undefined);
-      }
-
-      const flow = await runSanovaPayFlow({
-        items,
-        clientBalanceUsdc: balanceRef.current,
-        createPendingCart: (cartLines) => createPendingCart(cartLines, false),
-        postPaySanova: async (cartLines, clientBalanceUsdc) => {
-          const res = await fetch('/api/marketplace/cart/pay-sanova', {
-            method: 'POST',
+      const outcome = await runCryptoWalletSettle({
+        expectedWalletAddress: receiveAddress,
+        runServerPay: async () =>
+          runSanovaPayFlow({
+            items,
+            clientBalanceUsdc: balanceRef.current,
+            createPendingCart: (cartLines) => createPendingCart(cartLines, false),
+            postPaySanova: async (cartLines, clientBalanceUsdc) => {
+              const res = await fetch('/api/marketplace/cart/pay-sanova', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: payHeadersFor(cartLines.length),
+                body: JSON.stringify({ items: cartLines, clientBalanceUsdc })
+              });
+              return toFlowResult(await readJsonResponse<SettlePayload>(res));
+            },
+            postLegacySettle: async (cartLines, clientBalanceUsdc) => {
+              const res = await fetch('/api/wallet/privy-inbound/settle', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: payHeadersFor(cartLines.length),
+                body: JSON.stringify({ items: cartLines, clientBalanceUsdc })
+              });
+              return toFlowResult(await readJsonResponse<SettlePayload>(res));
+            }
+          }),
+        waitForPrivySession: async () => {
+          // Warm Custom Auth JWT so Privy can hydrate without an email modal.
+          await fetch('/api/auth/privy-token', {
             credentials: 'same-origin',
-            headers: payHeadersFor(cartLines.length),
-            body: JSON.stringify({ items: cartLines, clientBalanceUsdc })
-          });
-          return toFlowResult(await readJsonResponse<SettlePayload>(res));
+            cache: 'no-store'
+          }).catch(() => undefined);
+          const address = await ensurePrivyReady();
+          return { address };
         },
-        postLegacySettle: async (cartLines, clientBalanceUsdc) => {
-          const res = await fetch('/api/wallet/privy-inbound/settle', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: payHeadersFor(cartLines.length),
-            body: JSON.stringify({ items: cartLines, clientBalanceUsdc })
-          });
-          return toFlowResult(await readJsonResponse<SettlePayload>(res));
-        }
+        grantServerSigner: async () => {
+          if (!receiveAddress || !PRIVY_AUTH_QUORUM_ID) return;
+          await addSigners({
+            address: receiveAddress,
+            signers: [{ signerId: PRIVY_AUTH_QUORUM_ID, policyIds: [] }]
+          }).catch(() => undefined);
+        },
+        ensureBatchId: async (preferred) =>
+          preferred ??
+          (await createPendingCart(items, false)) ??
+          (await createPendingCart(items, true)),
+        settleWithClientPrivy
       });
 
       if (!mountedRef.current) return;
 
-      if (typeof flow.amountUsd === 'number' && flow.amountUsd > 0) {
-        setRequiredUsdc(flow.amountUsd);
-        requiredRef.current = flow.amountUsd;
+      if (typeof outcome.amountUsd === 'number' && outcome.amountUsd > 0) {
+        setRequiredUsdc(outcome.amountUsd);
+        requiredRef.current = outcome.amountUsd;
       }
-      if (typeof flow.balanceUsdc === 'number') {
-        applyKnownBalance(flow.balanceUsdc);
+      if (typeof outcome.balanceUsdc === 'number') {
+        applyKnownBalance(outcome.balanceUsdc);
       }
 
-      if (flow.ok && flow.status === 'settled') {
+      if (outcome.kind === 'settled') {
         setPhase('done');
         onFundedRef.current?.();
         return;
       }
 
-      if (flow.status === 'waiting_funds') {
+      if (outcome.kind === 'waiting_funds') {
         setPhase('needs_funds');
         setSettleError(sc.cryptoWalletInsufficientPrivy);
         return;
       }
 
-      const code =
-        flow.error === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' || flow.status === 'not_configured'
-          ? 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED'
-          : (flow.error ?? flow.status ?? 'FAILED');
-
-      if (isPrivyAuthorizationSignerError(code)) {
-        try {
-          const batchId =
-            flow.batchId ??
-            (await createPendingCart(items, false)) ??
-            (await createPendingCart(items, true));
-          if (!batchId) {
-            throw new Error('NO_PENDING_PURCHASE');
-          }
-          const payAmount = flow.amountUsd ?? amountUsdc;
-          await settleWithClientPrivy(batchId, payAmount);
-          if (!mountedRef.current) return;
-          setPhase('done');
-          onFundedRef.current?.();
-          return;
-        } catch (clientError) {
-          if (!mountedRef.current) return;
-          const message = clientError instanceof Error ? clientError.message : code;
-          setSettleError(mapSettleError(message));
-          setPhase('ready');
-          return;
-        }
+      setSettleError(mapSettleError(outcome.errorCode));
+      if (outcome.switchToExternal) {
+        setPayPath('external');
       }
-
-      setSettleError(mapSettleError(code));
       setPhase(
         balanceRef.current != null && balanceRef.current + 1e-9 >= requiredRef.current
           ? 'ready'
           : 'needs_funds'
       );
-      if (
-        code === 'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED' ||
-        code === 'PRIVY_WALLET_ID_NOT_FOUND' ||
-        code === 'PAY_ENDPOINT_NOT_FOUND' ||
-        code === 'INVALID_JSON_RESPONSE' ||
-        String(code).endsWith('_HTML_RESPONSE')
-      ) {
-        setPayPath('external');
-      }
     } catch (error) {
       if (!mountedRef.current) return;
       const message = error instanceof Error ? error.message : 'FAILED';
@@ -467,9 +458,9 @@ export function CryptoWalletPanel({
     }
   }, [
     addSigners,
-    amountUsdc,
     applyKnownBalance,
     depositToVaultsPrivy,
+    ensurePrivyReady,
     mapSettleError,
     mode,
     payToTreasuryPrivy,

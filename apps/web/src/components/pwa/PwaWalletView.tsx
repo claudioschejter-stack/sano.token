@@ -616,12 +616,10 @@ export function PwaWalletView({ portfolio = null, isLoadingPortfolio = false }: 
                   className={`p-4 ${idx !== 0 ? 'border-t border-slate-100' : ''}`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-900">{item.title}</p>
-                      <p className="mt-1 truncate text-xs text-slate-500">
+                    <div className="min-w-0 flex-1 pr-2">
+                      <p className="break-words font-semibold leading-snug text-slate-900">{item.title}</p>
+                      <p className="mt-1 break-words text-xs leading-snug text-slate-500">
                         {item.subtitle ?? item.status}
-                        {item.source ? ` · origen ${item.source.slice(0, 10)}…` : ''}
-                        {item.destination ? ` · dest ${item.destination.slice(0, 10)}…` : ''}
                       </p>
                       <p className="mt-1 text-xs text-slate-400">{formatDateTime(item.occurredAt)}</p>
                     </div>

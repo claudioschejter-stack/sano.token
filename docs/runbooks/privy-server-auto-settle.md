@@ -29,4 +29,14 @@ Goal: when an investor sends USDC on Base to their **canonical Sanova address**,
 
 User-owned embedded wallets need the app authorization key added as a signer once. With Custom Auth + `NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUORUM_ID`, `usePrivyServerSignerBootstrap` does this silently when the Sanova session is open (no email modal).
 
-If Pay fails with `PRIVY_AUTHORIZATION_SIGNER_REQUIRED` / Privy 401 “No valid authorization keys…”, the checkout UI retries by signing from the embedded Privy session in the browser (vault deposit or treasury transfer) and then confirms the cart. Still set the env vars above so server settle / cron keep working.
+If Pay fails with `PRIVY_AUTHORIZATION_SIGNER_REQUIRED` / Privy 401 “No valid authorization keys…”, the checkout UI:
+
+1. Warms Custom Auth (`/api/auth/privy-token`) and waits for the embedded Privy session
+2. Grants the app authorization key via `addSigners`
+3. Retries server settle
+4. Falls back to client Privy signing (same funded Sanova address only)
+5. If the session never hydrates (`PRIVY_SESSION_REQUIRED`), shows a clear message and switches to **Mi wallet** (Coinbase / WalletConnect) — never leaves a raw Privy code under Pagar
+
+New wallets provisioned server-side now attach `additional_signers` with `PRIVY_AUTHORIZATION_KEY_QUORUM_ID` so server settle works without a browser session.
+
+Still set the env vars above so server settle / cron keep working.
