@@ -26,6 +26,7 @@ import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
 import type { VaultDepositLine } from '../../../lib/web3/vaultDepositPayment';
 import { CoinbaseConnectButton } from '../../wallet/CoinbaseConnectButton';
 import { WalletConnectConnectButton } from '../../wallet/WalletConnectConnectButton';
+import { LegacyFundedWalletSignerGrant } from './LegacyFundedWalletSignerGrant';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
 import type { EnsureCheckoutReference, SimplifiedCheckoutCartItem } from './SimplifiedCheckout';
 
@@ -90,6 +91,7 @@ export function CryptoWalletPanel({
   const [phase, setPhase] = useState<Phase>('loading');
   const [payPath, setPayPath] = useState<PayPath>('sanova');
   const [settleError, setSettleError] = useState<string | null>(null);
+  const [settleErrorCode, setSettleErrorCode] = useState<string | null>(null);
   const [externalError, setExternalError] = useState<string | null>(null);
   const [externalPaying, setExternalPaying] = useState(false);
   const [fundingError, setFundingError] = useState<string | null>(null);
@@ -235,6 +237,7 @@ export function CryptoWalletPanel({
     if (mode !== 'purchase') return;
     if (phaseRef.current === 'done' || phaseRef.current === 'settling') return;
     if (balanceRef.current == null || balanceRef.current + 1e-9 < requiredRef.current) {
+      setSettleErrorCode(null);
       setSettleError(sc.cryptoWalletInsufficientPrivy);
       setPhase('needs_funds');
       return;
@@ -243,6 +246,7 @@ export function CryptoWalletPanel({
     // Read from refs so a stale useCallback never ships an empty cart.
     const items = normalizeCartLineItems(cartItemsRef.current);
     if (!items.length) {
+      setSettleErrorCode(null);
       setSettleError(sc.cryptoWalletNoPendingPurchase);
       setPhase('ready');
       return;
@@ -250,6 +254,7 @@ export function CryptoWalletPanel({
 
     setPhase('settling');
     setSettleError(null);
+    setSettleErrorCode(null);
 
     type SettlePayload = {
       ok?: boolean;
@@ -447,10 +452,12 @@ export function CryptoWalletPanel({
 
       if (outcome.kind === 'waiting_funds') {
         setPhase('needs_funds');
+        setSettleErrorCode(null);
         setSettleError(sc.cryptoWalletInsufficientPrivy);
         return;
       }
 
+      setSettleErrorCode(outcome.errorCode);
       setSettleError(mapSettleError(outcome.errorCode));
       if (outcome.switchToExternal) {
         setPayPath('external');
@@ -463,6 +470,7 @@ export function CryptoWalletPanel({
     } catch (error) {
       if (!mountedRef.current) return;
       const message = error instanceof Error ? error.message : 'FAILED';
+      setSettleErrorCode(message.trim().toUpperCase());
       setSettleError(mapSettleError(message));
       setPhase('ready');
     }
@@ -1007,6 +1015,16 @@ export function CryptoWalletPanel({
               )}
 
               {settleError ? <p className="text-[11px] leading-relaxed text-red-500">{settleError}</p> : null}
+              {settleErrorCode === 'PRIVY_WALLET_ADDRESS_MISMATCH' && receiveAddress ? (
+                <LegacyFundedWalletSignerGrant
+                  fundedAddress={receiveAddress}
+                  onGranted={() => {
+                    setSettleError(null);
+                    setSettleErrorCode(null);
+                    setPhase('ready');
+                  }}
+                />
+              ) : null}
             </>
           ) : (
             <div className="space-y-3">
