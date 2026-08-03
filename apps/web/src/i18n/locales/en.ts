@@ -2988,6 +2988,7 @@ export const en = {
       "We’re activating your Sanova wallet signer. Tap Pay again — your USDC was not moved. If it persists, contact Sanova (no other wallet needed).",
     cryptoWalletPrivyAddressMismatch:
       "This signing session does not match your funded Sanova account. Authorize that wallet once with the email code below, then tap Pay again — nothing was debited.",
+    cryptoWalletLegacySignerOpen: 'Authorize funded Sanova wallet (one time)',
     cryptoWalletLegacySignerTitle: 'Authorize funded Sanova wallet (one time)',
     cryptoWalletLegacySignerBody:
       'Your USDC is on an older Privy email wallet. We’ll email you a code so Sanova can sign payments from that address.',

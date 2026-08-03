@@ -3032,6 +3032,7 @@ export const es = {
       'Estamos activando la firma de tu wallet Sanova. Tocá Pagar de nuevo — tu USDC no se movió. Si persiste, contactá a Sanova (no hace falta otra billetera).',
     cryptoWalletPrivyAddressMismatch:
       'La sesión de firma no coincide con tu cuenta Sanova fondeada. Autorizá esa wallet una vez con el código al email (abajo) y volvé a tocar Pagar — no se debitó nada.',
+    cryptoWalletLegacySignerOpen: 'Autorizar wallet Sanova fondeada (una vez)',
     cryptoWalletLegacySignerTitle: 'Autorizar wallet Sanova fondeada (una vez)',
     cryptoWalletLegacySignerBody:
       'Tu USDC está en una wallet Privy anterior (email). Te enviamos un código a tu email para autorizar que Sanova pueda firmar pagos desde esa dirección.',

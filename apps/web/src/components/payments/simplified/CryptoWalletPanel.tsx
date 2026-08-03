@@ -92,6 +92,7 @@ export function CryptoWalletPanel({
   const [payPath, setPayPath] = useState<PayPath>('sanova');
   const [settleError, setSettleError] = useState<string | null>(null);
   const [settleErrorCode, setSettleErrorCode] = useState<string | null>(null);
+  const [forceLegacySignerGrant, setForceLegacySignerGrant] = useState(false);
   const [externalError, setExternalError] = useState<string | null>(null);
   const [externalPaying, setExternalPaying] = useState(false);
   const [fundingError, setFundingError] = useState<string | null>(null);
@@ -934,6 +935,31 @@ export function CryptoWalletPanel({
                           amount: amountUsdc.toFixed(2)
                         })}
                   </button>
+                  {settleError ? (
+                    <p className="text-[11px] leading-relaxed text-red-500">{settleError}</p>
+                  ) : null}
+                  {receiveAddress &&
+                  (forceLegacySignerGrant ||
+                    settleErrorCode === 'PRIVY_WALLET_ADDRESS_MISMATCH' ||
+                    settleError === sc.cryptoWalletPrivyAddressMismatch) ? (
+                    <LegacyFundedWalletSignerGrant
+                      fundedAddress={receiveAddress}
+                      onGranted={() => {
+                        setSettleError(null);
+                        setSettleErrorCode(null);
+                        setForceLegacySignerGrant(false);
+                        setPhase('ready');
+                      }}
+                    />
+                  ) : receiveAddress ? (
+                    <button
+                      type="button"
+                      onClick={() => setForceLegacySignerGrant(true)}
+                      className="w-full rounded-lg border border-amber-500/40 bg-amber-900/10 px-3 py-2.5 text-[11px] font-semibold text-amber-400"
+                    >
+                      {sc.cryptoWalletLegacySignerOpen}
+                    </button>
+                  ) : null}
                 </>
               ) : (
                 <>
@@ -1014,13 +1040,22 @@ export function CryptoWalletPanel({
                 </>
               )}
 
-              {settleError ? <p className="text-[11px] leading-relaxed text-red-500">{settleError}</p> : null}
-              {settleErrorCode === 'PRIVY_WALLET_ADDRESS_MISMATCH' && receiveAddress ? (
+              {/* Mismatch grant UI also lives under the funded Pagar branch above. */}
+              {settleError &&
+              !(hasEnoughSanova && mode === 'purchase') ? (
+                <p className="text-[11px] leading-relaxed text-red-500">{settleError}</p>
+              ) : null}
+              {receiveAddress &&
+              !(hasEnoughSanova && mode === 'purchase') &&
+              (forceLegacySignerGrant ||
+                settleErrorCode === 'PRIVY_WALLET_ADDRESS_MISMATCH' ||
+                settleError === sc.cryptoWalletPrivyAddressMismatch) ? (
                 <LegacyFundedWalletSignerGrant
                   fundedAddress={receiveAddress}
                   onGranted={() => {
                     setSettleError(null);
                     setSettleErrorCode(null);
+                    setForceLegacySignerGrant(false);
                     setPhase('ready');
                   }}
                 />
