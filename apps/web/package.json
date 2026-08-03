@@ -44,6 +44,7 @@
         "autoprefixer": "^10.4.19",
         "bcryptjs": "^3.0.2",
         "bullmq": "^5.34.3",
+        "canonicalize": "^2.1.0",
         "ethers": "^6.16.0",
         "ioredis": "^5.4.2",
         "jose": "^6.0.11",

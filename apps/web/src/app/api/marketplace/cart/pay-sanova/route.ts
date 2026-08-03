@@ -38,8 +38,18 @@ const CLIENT_ERRORS = new Set([
   'WALLET_REQUIRED_FOR_TOKENIZED_PURCHASE',
   'PRIVY_WALLET_ID_NOT_FOUND',
   'PRIVY_SERVER_AUTO_SETTLE_NOT_CONFIGURED',
-  'PRIVY_AUTHORIZATION_SIGNER_REQUIRED'
+  'PRIVY_AUTHORIZATION_SIGNER_REQUIRED',
+  'TREASURY_NOT_CONFIGURED',
+  'PRIVY_TRANSFER_TX_HASH_PENDING'
 ]);
+
+function clientErrorCode(error: string): string {
+  if (CLIENT_ERRORS.has(error)) return error;
+  // Keep Transfer API failures as a stable code so the UI does not treat JSON
+  // bodies as “HTML gateway” noise after retries.
+  if (error.startsWith('PRIVY_TRANSFER_FAILED')) return 'PRIVY_TRANSFER_FAILED';
+  return error;
+}
 
 /**
  * One-tap crypto purchase from the Sanova (Privy) wallet:
@@ -84,15 +94,23 @@ export async function POST(request: Request) {
     });
 
     if (result.ok === false) {
+      const errorCode = clientErrorCode(result.error);
       const status =
         result.status === 'not_configured'
           ? 503
           : result.status === 'manual_review'
             ? 409
-            : CLIENT_ERRORS.has(result.error)
+            : CLIENT_ERRORS.has(errorCode) || errorCode === 'PRIVY_TRANSFER_FAILED'
               ? 400
               : 502;
-      return NextResponse.json(result, { status });
+      if (errorCode !== result.error) {
+        console.error('[marketplace/cart/pay-sanova] settle failed', {
+          userId: ctx.userId,
+          errorCode,
+          detail: result.error.slice(0, 500)
+        });
+      }
+      return NextResponse.json({ ...result, error: errorCode }, { status });
     }
 
     return NextResponse.json(result);

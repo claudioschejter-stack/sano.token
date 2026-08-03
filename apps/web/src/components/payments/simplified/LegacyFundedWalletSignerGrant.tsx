@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
+import { isAddSignersAlreadyPresentError } from '../../../lib/privy/isAddSignersAlreadyPresentError';
 import {
   isLegacySignerGrantActive,
   setLegacySignerGrantActive
@@ -59,10 +60,17 @@ export function LegacyFundedWalletSignerGrant({ fundedAddress, onGranted }: Prop
     if (!PRIVY_AUTH_QUORUM_ID || !target) {
       throw new Error('PRIVY_AUTH_QUORUM_MISSING');
     }
-    await addSigners({
-      address: target,
-      signers: [{ signerId: PRIVY_AUTH_QUORUM_ID, policyIds: [] }]
-    });
+    try {
+      await addSigners({
+        address: target,
+        signers: [{ signerId: PRIVY_AUTH_QUORUM_ID, policyIds: [] }]
+      });
+    } catch (error) {
+      // Signer already on this wallet (common after Dashboard grant) — continue.
+      if (!isAddSignersAlreadyPresentError(error)) {
+        throw error;
+      }
+    }
     setLegacySignerGrantActive(false);
     setActive(false);
     setDone(true);
