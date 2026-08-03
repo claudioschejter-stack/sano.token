@@ -73,4 +73,24 @@ describe('pickCanonicalReceiveAddress', () => {
     });
     expect(chosen).toBe(linked);
   });
+
+  it('prefers the original registration wallet over an empty Custom Auth fork', async () => {
+    mockReadBalances.mockResolvedValue([{ amountUsdc: 0 }]);
+    const original = '0x840aed84455c3a30ef23a34a4d961bc3e1d06b41';
+    const fork = '0xb3116d28d070b5bab56221b2882dce663699cc76';
+    const chosen = await pickCanonicalReceiveAddress({
+      candidates: [fork, original],
+      linkedAddress: fork,
+      originalAddress: original
+    });
+    // linked wins when unfunded (DB already pointed at fork) — callers should pin original first.
+    expect(chosen).toBe(fork);
+
+    const chosenOriginal = await pickCanonicalReceiveAddress({
+      candidates: [fork, original],
+      linkedAddress: null,
+      originalAddress: original
+    });
+    expect(chosenOriginal).toBe(original);
+  });
 });

@@ -6,7 +6,8 @@ import { getLinkedWalletForUser } from './linkedWalletPolicy';
 import { readWalletUsdcBalances } from '../portfolio/onChainUsdcReader';
 import {
   ensureSanovaPrivyWallet,
-  listPrivyEthereumWalletAddressesForInvestor
+  listPrivyEthereumWalletAddressesForInvestor,
+  resolveOriginalPrivyWalletForInvestor
 } from '../privy/privyWalletProvisioning';
 import { autoAllowlistInvestorWallet } from '../blockchain/autoAllowlistInvestorWallet';
 
@@ -34,14 +35,15 @@ async function usdcBalanceBase(address: string): Promise<number> {
 }
 
 /**
- * Picks one receive address when a Privy email owns multiple eth wallets.
- * Prefer the wallet that already holds USDC on Base (avoids orphaning deposits
- * after a client/server wallet drift), then the currently linked address, then
- * the first Privy ethereum wallet.
+ * Picks one receive address when multiple eth wallets exist.
+ * Prefer: funded USDC on Base → currently linked → original/first candidate
+ * (callers pass email-registration wallets first).
  */
 export async function pickCanonicalReceiveAddress(input: {
   candidates: string[];
   linkedAddress?: string | null;
+  /** Explicit original registration wallet — wins over empty forks when unfunded. */
+  originalAddress?: string | null;
 }): Promise<string | null> {
   const unique = [
     ...new Set(
@@ -67,6 +69,10 @@ export async function pickCanonicalReceiveAddress(input: {
     return funded[0]?.address ?? null;
   }
   if (funded.length > 1) {
+    const linkedFunded = input.linkedAddress?.trim().toLowerCase();
+    if (linkedFunded && funded.some((row) => row.address === linkedFunded)) {
+      return linkedFunded;
+    }
     return funded[0]?.address ?? null;
   }
 
@@ -75,6 +81,12 @@ export async function pickCanonicalReceiveAddress(input: {
     return linked;
   }
 
+  const original = input.originalAddress?.trim().toLowerCase();
+  if (original && unique.includes(original)) {
+    return original;
+  }
+
+  // candidates are email-first from listPrivyEthereumWalletAddressesForInvestor
   return unique[0] ?? null;
 }
 
@@ -107,6 +119,10 @@ export async function ensureSanovaReceiveWalletForUser(userId: string): Promise<
     userId,
     email: user.email
   });
+  const original = await resolveOriginalPrivyWalletForInvestor({
+    userId,
+    email: user.email
+  });
 
   let source: SanovaReceiveWallet['source'] = 'linked';
   let reconciled = false;
@@ -115,7 +131,8 @@ export async function ensureSanovaReceiveWalletForUser(userId: string): Promise<
   if (privyWallets.length > 0) {
     chosen = await pickCanonicalReceiveAddress({
       candidates: privyWallets,
-      linkedAddress: linked
+      linkedAddress: linked,
+      originalAddress: original?.address ?? privyWallets[0] ?? null
     });
     if (chosen && linked && chosen === linked) {
       source = 'linked';
@@ -137,7 +154,7 @@ export async function ensureSanovaReceiveWalletForUser(userId: string): Promise<
     chosen = normalizeAddress(provisioned.address);
     source = 'privy_provision';
   } else {
-    // Still ensure Custom Auth identity exists (idempotent) so browser session can match.
+    // Idempotent + non-forking: will reuse original email wallet, never mint a second.
     await ensureSanovaPrivyWallet({ userId, email: user.email }).catch(() => null);
     chosen = normalizeAddress(chosen);
   }
