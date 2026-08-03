@@ -25,6 +25,8 @@ const nextConfig = {
       ...config.resolve.alias,
       '@noble/hashes/_assert': path.join(__dirname, 'src/lib/shims/noble-hashes-assert.js'),
       '@wagmi/connectors': path.join(__dirname, 'src/lib/shims/wagmi-connectors.js'),
+      // MetaMask SDK optional peer (React Native only) — silence webpack warn on web.
+      '@react-native-async-storage/async-storage': emptyModule,
       '@farcaster/mini-app-solana': emptyModule,
       '@farcaster/miniapp-sdk': emptyModule,
       '@solana/wallet-adapter-react': emptyModule,
