@@ -18,7 +18,7 @@ Client must **not** create a second wallet (`createOnLogin: 'off'`).
 
 | Invariant | Where | How to verify |
 |---|---|---|
-| One ethereum embedded wallet per email | Privy | `GET /api/admin/privy-diagnostics?email=…` → `duplicateWallets` empty |
+| One ethereum embedded wallet per email | Privy | `GET /api/admin/privy-diagnostics?email=…` → `duplicateWallets` empty. Clean up with `POST /api/admin/privy-diagnostics { "action": "archive_duplicates", "email": "…" }` (archives empty forks; refuses funded wallets) |
 | Dashboard never mints wallets on login | Privy Dashboard → Embedded wallets → Ethereum → **create on login = off** | diagnostics `appConfig.ethereumCreateOnLogin === 'off'` |
 | App key can spend | Wallet record `additional_signers` contains `PRIVY_AUTHORIZATION_KEY_QUORUM_ID` | diagnostics `authorization.quorumIsAdditionalSigner === true` |
 | Gas without ETH | Dashboard → Gas sponsorship → **User pays** + **Base / USDC** | wallet with 0 ETH still settles |
