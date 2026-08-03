@@ -16,12 +16,17 @@ export type BaseUserPaysGasQuote = {
   networkFeeUsd: number;
   /** Raw network fee before buffer. */
   networkFeeUsdRaw: number;
+  /** Safety / paymaster buffer applied on top of raw network fee (default 1500 = 15%). */
+  bufferBps: number;
   gasUnits: number;
   ethUsd: number;
   feeWei: bigint;
   txCount: number;
   quotedAt: string;
 };
+
+/** Default +15% headroom so wallet balance is not short when Base fees move. */
+export const DEFAULT_USER_PAYS_GAS_BUFFER_BPS = 1500;
 
 const ERC20_TRANSFER_IFACE = new Interface([
   'function transfer(address to, uint256 amount) returns (bool)'
@@ -32,9 +37,9 @@ const ETH_USD_CACHE_TTL_MS = 60_000;
 
 let ethUsdCache: { value: number; at: number } | null = null;
 
-function bufferBps(): number {
-  const raw = Number(process.env.PRIVY_USER_PAYS_GAS_BUFFER_BPS ?? '1500');
-  if (!Number.isFinite(raw) || raw < 0) return 1500;
+export function userPaysGasBufferBps(): number {
+  const raw = Number(process.env.PRIVY_USER_PAYS_GAS_BUFFER_BPS ?? DEFAULT_USER_PAYS_GAS_BUFFER_BPS);
+  if (!Number.isFinite(raw) || raw < 0) return DEFAULT_USER_PAYS_GAS_BUFFER_BPS;
   return Math.min(10_000, Math.floor(raw));
 }
 
@@ -178,11 +183,13 @@ export async function quoteBaseUserPaysGasUsd(input: {
   const ethUsd = await fetchEthUsdPrice();
   const ethAmount = Number(formatEther(feeWei));
   const networkFeeUsdRaw = roundUsdc(ethAmount * ethUsd);
-  const networkFeeUsd = roundUsdc(networkFeeUsdRaw * (1 + bufferBps() / 10_000));
+  const buffer = userPaysGasBufferBps();
+  const networkFeeUsd = roundUsdc(networkFeeUsdRaw * (1 + buffer / 10_000));
 
   return {
     networkFeeUsd: Math.max(networkFeeUsd, 0.000001),
     networkFeeUsdRaw: Math.max(networkFeeUsdRaw, 0),
+    bufferBps: buffer,
     gasUnits: Number(gasUnits),
     ethUsd,
     feeWei,

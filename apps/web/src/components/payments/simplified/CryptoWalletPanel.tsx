@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, Wallet, CheckCircle2, QrCode, Loader2 } from 'lucide-react';
+import { Copy, Wallet, CheckCircle2, QrCode, Loader2, Timer } from 'lucide-react';
 import { waitForTransactionReceipt, writeContract } from '@wagmi/core';
 import { Contract, JsonRpcProvider, formatUnits } from 'ethers';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -36,8 +36,8 @@ const PRIVY_AUTH_QUORUM_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUO
 const QR_SIZE = 220;
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPC = process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
-/** Live User-pays gas quote refresh while the crypto panel is open. */
-const GAS_QUOTE_REFRESH_MS = 30_000;
+/** Live User-pays gas quote validity window while the crypto panel is open. */
+const GAS_QUOTE_TTL_SEC = 30;
 
 type Phase = 'loading' | 'needs_funds' | 'ready' | 'settling' | 'done';
 type PayPath = 'sanova' | 'external';
@@ -120,6 +120,8 @@ export function CryptoWalletPanel({
   /** Settle-time payable override (investment + exact gas). Never store investment-only. */
   const [settlePayableUsdc, setSettlePayableUsdc] = useState<number | null>(null);
   const [localNetworkFeeUsdc, setLocalNetworkFeeUsdc] = useState(0);
+  const [quoteSecondsLeft, setQuoteSecondsLeft] = useState(GAS_QUOTE_TTL_SEC);
+  const [quoteRefreshing, setQuoteRefreshing] = useState(false);
   const [serverAddress, setServerAddress] = useState<string | null>(null);
 
   const onFundedRef = useRef(onFunded);
@@ -155,11 +157,22 @@ export function CryptoWalletPanel({
   const hasEnoughSanova =
     balanceUsdc != null && Number.isFinite(balanceUsdc) && balanceUsdc + 1e-9 >= amountUsdc;
 
-  // Refresh live User-pays gas every 30s while this panel is open.
+  const quoteTtlSec = Math.max(
+    10,
+    Number(cryptoWallet.networkFeeQuoteTtlSec) || GAS_QUOTE_TTL_SEC
+  );
+
+  // Countdown + requote when the 30s window expires.
   useEffect(() => {
     if (mode !== 'purchase' || investmentUsdc <= 0) return;
     let cancelled = false;
+    let tickId: number | null = null;
+    let refreshing = false;
+
     const refresh = async () => {
+      if (refreshing || cancelled) return;
+      refreshing = true;
+      setQuoteRefreshing(true);
       try {
         const res = await fetch('/api/payments/checkout-methods', {
           method: 'POST',
@@ -177,21 +190,36 @@ export function CryptoWalletPanel({
         };
         const fee = Number(data.cryptoWallet?.networkFeeUsd ?? 0);
         if (Number.isFinite(fee) && fee > 0 && !cancelled) {
-          setLocalNetworkFeeUsdc((prev) => Math.max(prev, fee));
+          setLocalNetworkFeeUsdc(fee);
         }
       } catch {
-        // keep route/fallback values
+        // keep previous quote
+      } finally {
+        refreshing = false;
+        if (!cancelled) {
+          setQuoteRefreshing(false);
+          setQuoteSecondsLeft(quoteTtlSec);
+        }
       }
     };
+
+    setQuoteSecondsLeft(quoteTtlSec);
     void refresh();
-    const id = window.setInterval(() => {
-      void refresh();
-    }, GAS_QUOTE_REFRESH_MS);
+    tickId = window.setInterval(() => {
+      setQuoteSecondsLeft((prev) => {
+        if (prev <= 1) {
+          void refresh();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => {
       cancelled = true;
-      window.clearInterval(id);
+      if (tickId != null) window.clearInterval(tickId);
     };
-  }, [mode, investmentUsdc, country, serverAddress]);
+  }, [mode, investmentUsdc, country, serverAddress, quoteTtlSec]);
 
   useEffect(() => {
     if (mode !== 'purchase') return;
@@ -970,6 +998,20 @@ export function CryptoWalletPanel({
         ) : (
           <p className="mt-0.5 text-xs text-terminal-muted">{sc.cryptoWalletOnBaseNote}</p>
         )}
+        {mode === 'purchase' ? (
+          <p className="mt-2 inline-flex items-center justify-center gap-1.5 text-[11px] font-medium text-terminal-muted">
+            {quoteRefreshing ? (
+              <Loader2 size={12} className="animate-spin text-terminal-primary" />
+            ) : (
+              <Timer size={12} className="text-terminal-primary" />
+            )}
+            {quoteRefreshing
+              ? sc.cryptoWalletGasQuoteRefreshing
+              : formatMessage(sc.cryptoWalletGasQuoteCountdown, {
+                  seconds: String(quoteSecondsLeft).padStart(2, '0')
+                })}
+          </p>
+        ) : null}
       </div>
 
       {phase === 'done' ? (

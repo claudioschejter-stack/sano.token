@@ -2967,6 +2967,8 @@ export const es = {
     cryptoWalletReceiveAmountLabel: 'Monto a cargar en tu cartera',
     cryptoWalletPayableIncludesGas:
       'Inversión {investment} USDC + gas de red {gas} USDC (User pays en Base)',
+    cryptoWalletGasQuoteCountdown: 'Cotización válida por 0:{seconds}',
+    cryptoWalletGasQuoteRefreshing: 'Actualizando cotización de gas…',
     cryptoWalletOnBaseNote: 'en Base Network · sin conversión',
     cryptoWalletTrackingCentsNote: ' · incluye centavos de seguimiento para detectar tu pago automáticamente',
     cryptoWalletPaymentReceivedTitle: '¡Pago recibido!',
