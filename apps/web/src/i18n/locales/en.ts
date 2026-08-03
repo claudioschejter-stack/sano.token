@@ -2923,6 +2923,8 @@ export const en = {
     cryptoWalletReceiveAmountLabel: "Amount to load into your wallet",
     cryptoWalletPayableIncludesGas:
       "Investment {investment} USDC + network gas {gas} USDC (User pays on Base)",
+    cryptoWalletGasQuoteCountdown: "Quote valid for 0:{seconds}",
+    cryptoWalletGasQuoteRefreshing: "Updating gas quote…",
     cryptoWalletOnBaseNote: "on Base Network · no conversion",
     cryptoWalletTrackingCentsNote: " · includes tracking cents to detect your payment automatically",
     cryptoWalletPaymentReceivedTitle: "Payment received!",

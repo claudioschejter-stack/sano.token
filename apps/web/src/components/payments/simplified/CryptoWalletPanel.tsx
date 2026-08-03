@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, Wallet, CheckCircle2, QrCode, Loader2 } from 'lucide-react';
+import { Copy, Wallet, CheckCircle2, QrCode, Loader2, Timer } from 'lucide-react';
 import { waitForTransactionReceipt, writeContract } from '@wagmi/core';
 import { Contract, JsonRpcProvider, formatUnits } from 'ethers';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -21,6 +21,7 @@ import {
   isPrivyAuthorizationSignerError,
   runCryptoWalletSettle
 } from '../../../lib/payments/cryptoWalletSettleOrchestrator';
+import { formatUsdPrecise, roundUsdc } from '../../../lib/payments/formatUsdPrecise';
 import { normalizeCartLineItems } from '../../../lib/payments/normalizeCartLineItems';
 import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
 import type { VaultDepositLine } from '../../../lib/web3/vaultDepositPayment';
@@ -35,6 +36,8 @@ const PRIVY_AUTH_QUORUM_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUO
 const QR_SIZE = 220;
 const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const BASE_RPC = process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
+/** Live User-pays gas quote validity window while the crypto panel is open. */
+const GAS_QUOTE_TTL_SEC = 30;
 
 type Phase = 'loading' | 'needs_funds' | 'ready' | 'settling' | 'done';
 type PayPath = 'sanova' | 'external';
@@ -45,10 +48,7 @@ function buildEip681Uri(toAddress: string, amountUsdc: number): string {
 }
 
 function formatUsdcAmount(value: number): string {
-  if (!Number.isFinite(value)) return '0.00';
-  const fixed = value.toFixed(6);
-  const trimmed = fixed.replace(/\.?0+$/, '');
-  return trimmed.includes('.') ? trimmed : `${trimmed}.00`;
+  return formatUsdPrecise(value);
 }
 
 function normalizeAddress(value?: string | null): string | null {
@@ -65,6 +65,8 @@ type Props = {
   cartItems?: SimplifiedCheckoutCartItem[];
   onFunded?: () => void;
   ensureReference?: EnsureCheckoutReference;
+  /** Bubble live payable (investment + gas) up to the payment menu header. */
+  onPayableChange?: (info: { totalUsd: number; networkFeeUsd: number; investmentUsd: number }) => void;
 };
 
 /**
@@ -80,7 +82,8 @@ export function CryptoWalletPanel({
   mode = 'deposit',
   cartItems = [],
   onFunded,
-  ensureReference
+  ensureReference,
+  onPayableChange
 }: Props) {
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
@@ -117,6 +120,8 @@ export function CryptoWalletPanel({
   /** Settle-time payable override (investment + exact gas). Never store investment-only. */
   const [settlePayableUsdc, setSettlePayableUsdc] = useState<number | null>(null);
   const [localNetworkFeeUsdc, setLocalNetworkFeeUsdc] = useState(0);
+  const [quoteSecondsLeft, setQuoteSecondsLeft] = useState(GAS_QUOTE_TTL_SEC);
+  const [quoteRefreshing, setQuoteRefreshing] = useState(false);
   const [serverAddress, setServerAddress] = useState<string | null>(null);
 
   const onFundedRef = useRef(onFunded);
@@ -137,22 +142,37 @@ export function CryptoWalletPanel({
       ? Math.max(
           settlePayableUsdc ?? 0,
           routePayableUsdc,
-          Number((investmentUsdc + networkFeeUsdc).toFixed(6))
+          roundUsdc(investmentUsdc + networkFeeUsdc)
         )
       : settlePayableUsdc && settlePayableUsdc > 0
         ? settlePayableUsdc
         : investmentUsdc;
+  /** Gas actually included in the payable — keep hero / breakdown / header in sync. */
+  const includedGasUsdc =
+    mode === 'purchase' ? Math.max(0, roundUsdc(amountUsdc - investmentUsdc)) : networkFeeUsdc;
   const requiredRef = useRef(amountUsdc);
   requiredRef.current = amountUsdc;
+  const onPayableChangeRef = useRef(onPayableChange);
+  onPayableChangeRef.current = onPayableChange;
   const hasEnoughSanova =
     balanceUsdc != null && Number.isFinite(balanceUsdc) && balanceUsdc + 1e-9 >= amountUsdc;
 
-  // If routes arrived without a gas quote, refresh checkout-methods once.
+  const quoteTtlSec = Math.max(
+    10,
+    Number(cryptoWallet.networkFeeQuoteTtlSec) || GAS_QUOTE_TTL_SEC
+  );
+
+  // Countdown + requote when the 30s window expires.
   useEffect(() => {
     if (mode !== 'purchase' || investmentUsdc <= 0) return;
-    if (routeNetworkFeeUsdc > 0) return;
     let cancelled = false;
+    let tickId: number | null = null;
+    let refreshing = false;
+
     const refresh = async () => {
+      if (refreshing || cancelled) return;
+      refreshing = true;
+      setQuoteRefreshing(true);
       try {
         const res = await fetch('/api/payments/checkout-methods', {
           method: 'POST',
@@ -173,14 +193,42 @@ export function CryptoWalletPanel({
           setLocalNetworkFeeUsdc(fee);
         }
       } catch {
-        // keep route/fallback values
+        // keep previous quote
+      } finally {
+        refreshing = false;
+        if (!cancelled) {
+          setQuoteRefreshing(false);
+          setQuoteSecondsLeft(quoteTtlSec);
+        }
       }
     };
+
+    setQuoteSecondsLeft(quoteTtlSec);
     void refresh();
+    tickId = window.setInterval(() => {
+      setQuoteSecondsLeft((prev) => {
+        if (prev <= 1) {
+          void refresh();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => {
       cancelled = true;
+      if (tickId != null) window.clearInterval(tickId);
     };
-  }, [mode, investmentUsdc, routeNetworkFeeUsdc, country, serverAddress]);
+  }, [mode, investmentUsdc, country, serverAddress, quoteTtlSec]);
+
+  useEffect(() => {
+    if (mode !== 'purchase') return;
+    onPayableChangeRef.current?.({
+      investmentUsd: investmentUsdc,
+      networkFeeUsd: includedGasUsdc,
+      totalUsd: amountUsdc
+    });
+  }, [mode, investmentUsdc, includedGasUsdc, amountUsdc]);
 
   const fundShortfallUsdc = Math.max(
     0,
@@ -940,16 +988,30 @@ export function CryptoWalletPanel({
         <p className="mt-1 text-2xl font-bold text-terminal-primary">
           {formatUsdcAmount(amountUsdc)} <span className="text-base font-semibold">USDC</span>
         </p>
-        {mode === 'purchase' && networkFeeUsdc > 0 ? (
+        {mode === 'purchase' && includedGasUsdc > 0 ? (
           <p className="mt-0.5 text-xs text-terminal-muted">
             {formatMessage(sc.cryptoWalletPayableIncludesGas, {
-              investment: amountUsd.toFixed(2),
-              gas: networkFeeUsdc.toFixed(6)
+              investment: formatUsdcAmount(investmentUsdc),
+              gas: formatUsdcAmount(includedGasUsdc)
             })}
           </p>
         ) : (
           <p className="mt-0.5 text-xs text-terminal-muted">{sc.cryptoWalletOnBaseNote}</p>
         )}
+        {mode === 'purchase' ? (
+          <p className="mt-2 inline-flex items-center justify-center gap-1.5 text-[11px] font-medium text-terminal-muted">
+            {quoteRefreshing ? (
+              <Loader2 size={12} className="animate-spin text-terminal-primary" />
+            ) : (
+              <Timer size={12} className="text-terminal-primary" />
+            )}
+            {quoteRefreshing
+              ? sc.cryptoWalletGasQuoteRefreshing
+              : formatMessage(sc.cryptoWalletGasQuoteCountdown, {
+                  seconds: String(quoteSecondsLeft).padStart(2, '0')
+                })}
+          </p>
+        ) : null}
       </div>
 
       {phase === 'done' ? (
@@ -1180,10 +1242,7 @@ export function CryptoWalletPanel({
         totalUsd={amountUsdc}
         feeBps={cryptoWallet.feeBps}
         providerLabel="Base USDC"
-        networkFeeUsd={Math.max(
-          networkFeeUsdc,
-          Math.max(0, Math.round((amountUsdc - investmentUsdc) * 1e6) / 1e6)
-        )}
+        networkFeeUsd={includedGasUsdc}
         networkFeeIncluded
         defaultOpen
         gatewayChargedBy="Base USDC"

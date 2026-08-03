@@ -66,6 +66,7 @@ vi.mock('./baseUserPaysGasQuote', () => ({
   quoteBaseUserPaysGasUsd: vi.fn(async () => ({
     networkFeeUsd: 0.012345,
     networkFeeUsdRaw: 0.01,
+    bufferBps: 1500,
     gasUnits: 65000,
     ethUsd: 3000,
     feeWei: 1n,

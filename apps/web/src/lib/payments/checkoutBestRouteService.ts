@@ -131,6 +131,8 @@ export type SimplifiedCryptoWalletMethod = {
   networkFeeUsd: number;
   /** ISO timestamp of the gas quote (null when fallback constant was used). */
   networkFeeQuotedAt: string | null;
+  /** Quote validity window in seconds for the crypto panel countdown. */
+  networkFeeQuoteTtlSec: number;
   stablecoinNetwork: string;
 };
 
@@ -276,6 +278,7 @@ export async function resolveCheckoutBestRoutes(input: {
     feeBps: 0,
     networkFeeUsd,
     networkFeeQuotedAt,
+    networkFeeQuoteTtlSec: 30,
     stablecoinNetwork: 'BASE'
   };
 

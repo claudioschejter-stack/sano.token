@@ -68,6 +68,7 @@ import {
 } from '../../lib/payments/mercadoPagoEmbeddedService';
 import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
 import { PaymentGateway } from '../payments/gateway';
+import { formatUsdPrecise } from '../../lib/payments/formatUsdPrecise';
 import { SimplifiedCheckout, type EnsureCheckoutReferenceOptions } from '../payments/simplified';
 
 type CartCheckoutResult = {
@@ -118,12 +119,9 @@ function formatUsdc2(amount: number, locale: string): string {
 }
 
 function formatUsdcAmountNumber(amount: number, locale: string): string {
-  // Keep enough precision so live User-pays gas does not round away to the cart total.
-  const decimals = Math.abs(amount - Math.round(amount * 100) / 100) > 1e-9 ? 6 : 2;
-  return amount.toLocaleString(locale, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: decimals
-  });
+  // Preserve sub-cent User-pays gas (20.000721 must not become 20,00).
+  const formatted = formatUsdPrecise(amount);
+  return locale.toLowerCase().startsWith('es') ? formatted.replace('.', ',') : formatted;
 }
 
 function formatUsd2(amount: number, locale: string): string {
