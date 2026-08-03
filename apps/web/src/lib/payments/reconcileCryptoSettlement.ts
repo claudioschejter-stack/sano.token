@@ -2,6 +2,7 @@ import { prisma } from '@sanova/database';
 import { ethers } from 'ethers';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { verifyCartUsdcPayment } from './cartCheckoutService';
+import { closeStaleOpenCartBatches } from './closeStaleCartBatches';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 import { baseRpcUrls, getStablecoinNetwork } from './stablecoinNetworks';
 
@@ -26,13 +27,24 @@ export async function reconcileCartBatchWithTxHash(input: {
   txHash: string;
 }) {
   const payer = await getLinkedWalletForUser(input.userId);
-  return verifyCartUsdcPayment({
+  const intents = await verifyCartUsdcPayment({
     userId: input.userId,
     batchId: input.batchId,
     txHash: input.txHash,
     expectedPayer: payer,
     settleViaTreasury: true
   });
+
+  // Retry attempts left sibling batches payable; close them so the cart is clean.
+  await closeStaleOpenCartBatches({
+    userId: input.userId,
+    keepBatchId: input.batchId,
+    reason: 'RECONCILED_TREASURY_PAYMENT'
+  }).catch((error) => {
+    console.error('[reconcileCartBatchWithTxHash] stale cleanup failed', error);
+  });
+
+  return intents;
 }
 
 /** Treasury-bound USDC transfers sent by this investor's linked wallet. */

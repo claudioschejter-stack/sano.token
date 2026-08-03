@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
 import { getLinkedWalletForUser } from '../../../../lib/investor/linkedWalletPolicy';
+import { closeStaleOpenCartBatches } from '../../../../lib/payments/closeStaleCartBatches';
 import {
   autoReconcileTreasuryPaymentForUser,
   findTreasuryPaymentsFromWallet,
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
     email?: string;
     txHash?: string;
     batchId?: string;
-    action?: 'auto';
+    action?: 'auto' | 'close_stale';
   };
 
   const userId = await resolveUserId({ userId: body.userId, email: body.email });
@@ -94,6 +95,15 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    if (body.action === 'close_stale') {
+      const closed = await closeStaleOpenCartBatches({
+        userId,
+        keepBatchId: body.batchId,
+        reason: 'ADMIN_CLOSE_STALE'
+      });
+      return NextResponse.json({ ok: true, action: 'close_stale', closed });
+    }
+
     if (body.txHash?.trim()) {
       const batchId =
         body.batchId?.trim() || (await findPendingUsdcCartPurchase(userId))?.batchId || '';

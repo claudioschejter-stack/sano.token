@@ -14,6 +14,7 @@ import { normalizeCartLineItems } from './normalizeCartLineItems';
 import { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 import { quoteBaseUserPaysGasUsd } from './baseUserPaysGasQuote';
+import { closeStaleOpenCartBatches } from './closeStaleCartBatches';
 import { autoReconcileTreasuryPaymentForUser } from './reconcileCryptoSettlement';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 
@@ -194,6 +195,15 @@ async function transferToTreasuryAndVerify(input: {
     return settledOrFailure(message);
   }
 
+  // One purchase must leave exactly one batch: close siblings from earlier retries.
+  await closeStaleOpenCartBatches({
+    userId: input.userId,
+    keepBatchId: input.batchId,
+    reason: 'SETTLED_CART_BATCH'
+  }).catch((error) => {
+    console.error('[pay-sanova] stale batch cleanup failed', error);
+  });
+
   return {
     ok: true,
     status: 'settled',
@@ -275,6 +285,15 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
         balanceUsdc
       };
     }
+
+    // No payable batch left: retire anything still open (expired retries) so the
+    // investor never accumulates several open 20 USDC carts for one purchase.
+    await closeStaleOpenCartBatches({
+      userId: input.userId,
+      reason: 'SUPERSEDED_BY_NEW_CART'
+    }).catch((error) => {
+      console.error('[pay-sanova] pre-checkout stale cleanup failed', error);
+    });
 
     const createCheckout = () =>
       createCartPurchaseCheckout({
