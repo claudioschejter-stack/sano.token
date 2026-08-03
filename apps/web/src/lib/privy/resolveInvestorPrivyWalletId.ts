@@ -32,9 +32,10 @@ function resolveWalletIdFromUser(
 
 /**
  * Resolves the Privy wallet ID for the investor's canonical linked address.
- * Needed for server-side eth_sendTransaction (auto-settle).
+ * Needed for server-side Transfer API settle.
  *
- * Prefers Custom Auth identity (Sanova user.id), then legacy email Privy user.
+ * Prefers the email (registration) Privy identity — the original Sanova wallet —
+ * then Custom Auth. Never invents a new wallet id.
  */
 export async function resolveInvestorPrivyWalletIdForUser(userId: string): Promise<{
   address: string;
@@ -50,18 +51,6 @@ export async function resolveInvestorPrivyWalletIdForUser(userId: string): Promi
     select: { email: true }
   });
 
-  try {
-    const customUser = await lookupPrivyUserByCustomAuthId(userId);
-    if (customUser) {
-      const walletId = resolveWalletIdFromUser(customUser, address);
-      if (walletId) {
-        return { address, walletId };
-      }
-    }
-  } catch (error) {
-    console.error('[resolveInvestorPrivyWalletId] custom_auth lookup failed', error);
-  }
-
   if (user?.email) {
     try {
       const emailUser = await lookupPrivyUserByEmail(user.email);
@@ -74,6 +63,18 @@ export async function resolveInvestorPrivyWalletIdForUser(userId: string): Promi
     } catch (error) {
       console.error('[resolveInvestorPrivyWalletId] email lookup failed', error);
     }
+  }
+
+  try {
+    const customUser = await lookupPrivyUserByCustomAuthId(userId);
+    if (customUser) {
+      const walletId = resolveWalletIdFromUser(customUser, address);
+      if (walletId) {
+        return { address, walletId };
+      }
+    }
+  } catch (error) {
+    console.error('[resolveInvestorPrivyWalletId] custom_auth lookup failed', error);
   }
 
   // Address may still be a known Privy wallet, but without a resolvable wallet id

@@ -73,9 +73,11 @@ Add a WAF / Configuration Rule: skip Bot Fight / Managed Challenge for URI Path 
 
 ## Existing / legacy wallets
 
-New wallets created via `ensureSanovaPrivyWallet` attach `additional_signers` automatically.
+**Single-wallet policy:** one email → one ethereum embedded wallet. `ensureSanovaPrivyWallet` must never create a Custom Auth user/wallet when the email Privy user already has a wallet.
 
-Older email-provisioned wallets need a **one-time** authorization-key grant (Dashboard or successful Custom Auth `addSigners` once the browser session owns that **same** wallet). Until then, USDC is visible but unspendable by the server.
+New greenfield wallets attach `additional_signers` automatically.
+
+Older email-provisioned wallets need a **one-time** authorization-key grant (Dashboard on the **funded** wallet, or checkout **Autorizar wallet Sanova fondeada** email OTP → `addSigners`). Until then, USDC is visible but unspendable by the server.
 
 `addSigners` only works after Custom Auth succeeds **and** the Privy session user owns the funded address. If Custom Auth created a second empty wallet, grant the signer on the **funded** address in the Dashboard — do not look for an “Additional signers” toggle on Authorization keys; open the **wallet** record instead.
 
@@ -87,4 +89,4 @@ Older email-provisioned wallets need a **one-time** authorization-key grant (Das
 | CORS error on that same request | Browser hiding the 401/429 body | Fix verification; ignore CORS as primary |
 | 429 Too Many Requests | Retry storm after failed auth | Wait ~1 min; fix Dashboard; client now cools down 60s |
 | `PRIVY_AUTHORIZATION_SIGNER_REQUIRED` with funded Sanova | Wallet has USDC but no app signer | Dashboard additional signer on that address |
-| `PRIVY_WALLET_ADDRESS_MISMATCH` | Custom Auth session wallet ≠ funded legacy email wallet | In checkout use **Autorizar wallet Sanova fondeada** (email OTP → `addSigners` on funded address), then **Pagar** again |
+| `PRIVY_WALLET_ADDRESS_MISMATCH` | Custom Auth session wallet ≠ funded legacy email wallet | In checkout use **Autorizar wallet Sanova fondeada** (email OTP → `addSigners` on funded address), then **Pagar** again. Prevent forks: `ensureSanovaPrivyWallet` must never create a second wallet for the same email. Admin: `POST /api/admin/account-audit` with `{ "action": "pin_original", "userId": "…" }` pins DB to the original email wallet and lists duplicates (delete empty forks in Privy Dashboard). |

@@ -7,16 +7,16 @@ import type { PrivyLinkedAccount, PrivyUserRecord } from './privyUserApi';
 /**
  * Server-side embedded wallet provisioning (Privy REST API).
  *
- * Identity rule (Phase 1):
- * - Canonical Privy user is keyed by Custom Auth `custom_user_id` = Sanova `user.id`
- *   (same `sub` issued by `/api/auth/privy-token`).
- * - Email is linked on that same Privy user when possible.
- * - Wallets are created with the app authorization key as `additional_signers`
- *   so server settle can spend without Coinbase / WalletConnect.
- *
- * Legacy: older email-only Privy users may still hold funded wallets. We keep
- * those addresses as receive targets when they hold USDC, and resolve wallet
- * ids from either identity until ops grants the authorization signer.
+ * Single-wallet policy (hard rule):
+ * - One Sanova investor / email → at most ONE ethereum embedded wallet.
+ * - The original wallet is the first embedded wallet on the Privy email user
+ *   (registration identity). Never mint a second wallet for the same email.
+ * - Custom Auth (`custom_user_id` = Sanova `user.id`) must share that same
+ *   Privy user when possible. If a legacy email user already exists, we reuse
+ *   their wallet and do NOT create a Custom Auth user with a new empty wallet
+ *   (that fork caused PRIVY_WALLET_ADDRESS_MISMATCH pay loops).
+ * - New wallets (greenfield only) attach `additional_signers` = authorization
+ *   key quorum so server Transfer API settle can spend without Coinbase.
  */
 
 /** Attach app authorization key so server auto-settle works without a browser Privy session. */
@@ -127,7 +127,10 @@ export async function listPrivyEthereumWalletAddressesForEmail(rawEmail: string)
   }
 }
 
-/** Wallets for Custom Auth identity (Sanova user.id) + legacy email identity. */
+/**
+ * Wallets for the investor. Email (registration) identity is listed first so
+ * “first wallet” / dedupe always prefers the original Sanova wallet.
+ */
 export async function listPrivyEthereumWalletAddressesForInvestor(input: {
   userId: string;
   email?: string | null;
@@ -137,14 +140,6 @@ export async function listPrivyEthereumWalletAddressesForInvestor(input: {
   }
 
   const addresses: string[] = [];
-  try {
-    const customUser = await lookupPrivyUserByCustomAuthId(input.userId);
-    if (customUser) {
-      addresses.push(...listEthereumWalletAddresses(customUser.linked_accounts));
-    }
-  } catch (error) {
-    console.error('[privyWalletProvisioning] custom_auth wallet list failed', error);
-  }
 
   const email = normalizeEmail(input.email ?? '');
   if (email) {
@@ -158,9 +153,60 @@ export async function listPrivyEthereumWalletAddressesForInvestor(input: {
     }
   }
 
+  try {
+    const customUser = await lookupPrivyUserByCustomAuthId(input.userId);
+    if (customUser) {
+      addresses.push(...listEthereumWalletAddresses(customUser.linked_accounts));
+    }
+  } catch (error) {
+    console.error('[privyWalletProvisioning] custom_auth wallet list failed', error);
+  }
+
   return [...new Set(addresses)];
 }
 
+/**
+ * Resolve the single canonical wallet for an investor without creating anything.
+ * Prefers the email Privy user's first embedded wallet (original registration).
+ */
+export async function resolveOriginalPrivyWalletForInvestor(input: {
+  userId: string;
+  email?: string | null;
+}): Promise<{ address: string; privyUserId: string; source: 'email' | 'custom_auth' } | null> {
+  if (!isPrivyEnabled()) {
+    return null;
+  }
+
+  const email = normalizeEmail(input.email ?? '');
+  if (email) {
+    try {
+      const emailUser = await lookupPrivyUserByEmail(email);
+      const address = emailUser ? originalEmbeddedWalletAddress(emailUser.linked_accounts) : null;
+      if (emailUser && address) {
+        return { address, privyUserId: emailUser.id, source: 'email' };
+      }
+    } catch (error) {
+      console.error('[privyWalletProvisioning] resolveOriginal email failed', error);
+    }
+  }
+
+  try {
+    const customUser = await lookupPrivyUserByCustomAuthId(input.userId);
+    const address = customUser ? originalEmbeddedWalletAddress(customUser.linked_accounts) : null;
+    if (customUser && address) {
+      return { address, privyUserId: customUser.id, source: 'custom_auth' };
+    }
+  } catch (error) {
+    console.error('[privyWalletProvisioning] resolveOriginal custom_auth failed', error);
+  }
+
+  return null;
+}
+
+/**
+ * Create an ethereum embedded wallet only when the Privy user has none.
+ * Never call this to “upgrade” an identity that already owns a wallet.
+ */
 async function createWalletForExistingPrivyUser(privyUserId: string): Promise<string | null> {
   const additional_signers = additionalSignersPayload();
   const response = await fetch(`${privyApiBase()}/v1/wallets`, {
@@ -187,6 +233,13 @@ async function ensureWalletAddressOnPrivyUser(user: PrivyUserRecord): Promise<st
     return existing;
   }
   return createWalletForExistingPrivyUser(user.id);
+}
+
+/** First embedded ethereum wallet on a Privy user (registration original). */
+export function originalEmbeddedWalletAddress(
+  linkedAccounts: PrivyLinkedAccount[] = []
+): string | null {
+  return findEthereumEmbeddedWalletAddress(linkedAccounts);
 }
 
 async function createUnifiedPrivyUser(input: {
@@ -273,8 +326,9 @@ export type SanovaPrivyWalletResult = {
 };
 
 /**
- * Ensure the investor has a Privy embedded wallet aligned with Custom Auth.
+ * Ensure the investor has exactly one Privy embedded wallet.
  * Never throws — returns null on failure.
+ * Never creates a second wallet when the email (or Custom Auth) identity already has one.
  */
 export async function ensureSanovaPrivyWallet(input: {
   userId: string;
@@ -293,7 +347,7 @@ export async function ensureSanovaPrivyWallet(input: {
     let customUser = await lookupPrivyUserByCustomAuthId(input.userId);
     let emailUser = await lookupPrivyUserByEmail(email);
 
-    // Neither exists → create unified user (custom_auth + email + signed wallet).
+    // Neither exists → create unified user (custom_auth + email + ONE signed wallet).
     if (!customUser && !emailUser) {
       const created = await createUnifiedPrivyUser({ userId: input.userId, email });
       if (created) {
@@ -314,38 +368,46 @@ export async function ensureSanovaPrivyWallet(input: {
       return { address, privyUserId: customUser.id, unifiedIdentity: true };
     }
 
-    // Custom Auth user exists (session-aligned). Prefer it for new signing path.
-    if (customUser) {
-      const address = await ensureWalletAddressOnPrivyUser(customUser);
-      if (!address) return null;
-      return { address, privyUserId: customUser.id, unifiedIdentity: true };
+    // Split identities (legacy email user + later Custom Auth fork).
+    // Keep the ORIGINAL email wallet. Never mint another wallet on either side.
+    if (customUser && emailUser && customUser.id !== emailUser.id) {
+      const emailAddress = findEthereumEmbeddedWalletAddress(emailUser.linked_accounts);
+      if (emailAddress) {
+        console.warn(
+          '[privyWalletProvisioning] split Privy identities — pinning original email wallet',
+          { userId: input.userId, email, emailAddress, customPrivyUserId: customUser.id }
+        );
+        return {
+          address: emailAddress,
+          privyUserId: emailUser.id,
+          unifiedIdentity: false
+        };
+      }
+
+      const customAddress = findEthereumEmbeddedWalletAddress(customUser.linked_accounts);
+      if (customAddress) {
+        return {
+          address: customAddress,
+          privyUserId: customUser.id,
+          unifiedIdentity: true
+        };
+      }
+
+      // Neither has a wallet yet — create exactly one on the email identity.
+      const createdOnEmail = await createWalletForExistingPrivyUser(emailUser.id);
+      if (!createdOnEmail) return null;
+      return {
+        address: createdOnEmail,
+        privyUserId: emailUser.id,
+        unifiedIdentity: false
+      };
     }
 
-    // Legacy email-only Privy user: keep their wallet, and also create a
-    // Custom Auth identity with a signed wallet so future Custom Auth sessions
-    // have a home. Callers that pick canonical by USDC balance will keep the
-    // funded legacy address until ops grants the authorization signer.
+    // Legacy email-only Privy user: reuse their wallet. Do NOT create a Custom Auth
+    // user with a second empty wallet (that is the mismatch pay-loop root cause).
     if (emailUser) {
-      const legacyAddress =
-        findEthereumEmbeddedWalletAddress(emailUser.linked_accounts) ??
-        (await createWalletForExistingPrivyUser(emailUser.id));
-
-      const createdCustom = await createCustomAuthPrivyUserWithWallet(input.userId);
-      if (createdCustom) {
-        const customAddress = findEthereumEmbeddedWalletAddress(createdCustom.linked_accounts);
-        // If legacy has no wallet yet, use the new unified-capable wallet.
-        if (!legacyAddress && customAddress) {
-          return {
-            address: customAddress,
-            privyUserId: createdCustom.id,
-            unifiedIdentity: true
-          };
-        }
-      }
-
-      if (!legacyAddress) {
-        return null;
-      }
+      const legacyAddress = await ensureWalletAddressOnPrivyUser(emailUser);
+      if (!legacyAddress) return null;
       return {
         address: legacyAddress,
         privyUserId: emailUser.id,
@@ -353,7 +415,14 @@ export async function ensureSanovaPrivyWallet(input: {
       };
     }
 
-    // Last resort: custom_auth-only user.
+    // Custom Auth only (no email Privy user) — ensure that single identity has one wallet.
+    if (customUser) {
+      const address = await ensureWalletAddressOnPrivyUser(customUser);
+      if (!address) return null;
+      return { address, privyUserId: customUser.id, unifiedIdentity: true };
+    }
+
+    // Last resort: create Custom Auth user with one wallet (email create raced away).
     const createdCustom = await createCustomAuthPrivyUserWithWallet(input.userId);
     if (!createdCustom) {
       return null;

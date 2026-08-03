@@ -7,6 +7,10 @@ import { listRegistrationAttempts } from '../../../../lib/auth/registrationAttem
 import { isInvestorOpenRegistration } from '../../../../lib/auth/investorAccess';
 import { ensureSanovaPrivyWallet } from '../../../../lib/privy/privyWalletProvisioning';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
+import {
+  pinOriginalSanovaWalletForUser,
+  pinOriginalSanovaWalletsForDuplicates
+} from '../../../../lib/investor/pinOriginalSanovaWallet';
 
 export const dynamic = 'force-dynamic';
 
@@ -272,7 +276,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as { userId?: string };
+  const body = (await request.json().catch(() => ({}))) as {
+    userId?: string;
+    action?: 'backfill_pending' | 'pin_original';
+  };
+
+  // Pin Sanova DB to the original Privy email wallet; report empty Custom Auth forks.
+  if (body.action === 'pin_original') {
+    if (body.userId?.trim()) {
+      const result = await pinOriginalSanovaWalletForUser(body.userId.trim());
+      return NextResponse.json({ ok: true, action: 'pin_original', result });
+    }
+    const batch = await pinOriginalSanovaWalletsForDuplicates();
+    return NextResponse.json({ ok: true, action: 'pin_original', ...batch });
+  }
 
   const users = await prisma.user.findMany({
     where: {
@@ -330,6 +347,7 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    action: 'backfill_pending',
     processed: targets.length,
     linked: results.filter((r) => r.status === 'LINKED').length,
     results
