@@ -76,7 +76,9 @@ export async function privyTransferUsdc(input: PrivyTransferUsdcInput): Promise<
   }
 
   const amount = formatPrivyUsdcAmount(input.amountUsdc);
-  const url = `${privyApiBase()}/v1/wallets/${walletId}/transfer?include=steps`;
+  // No query string: the authorization signature must cover the exact URL, and
+  // `?include=steps` broke signature validation. Tx hash comes from polling.
+  const url = `${privyApiBase()}/v1/wallets/${walletId}/transfer`;
   // Privy Node/SDK shape (top-level amount). User-pays gas applies automatically
   // when Dashboard is configured for Base/USDC — no sponsor_options here.
   const body: Record<string, unknown> = {
@@ -100,8 +102,7 @@ export async function privyTransferUsdc(input: PrivyTransferUsdcInput): Promise<
   }
   if (needsAuth) {
     extraHeaders['privy-authorization-signature'] = buildPrivyAuthorizationSignature({
-      // Signature URL must not include query string.
-      url: url.split('?')[0],
+      url,
       body,
       idempotencyKey: input.idempotencyKey
     });

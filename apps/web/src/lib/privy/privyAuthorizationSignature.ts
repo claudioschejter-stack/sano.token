@@ -22,9 +22,14 @@ export function privyAuthorizationKeyQuorumId(): string {
 }
 
 export function buildPrivyAuthorizationSignature(input: {
+  /**
+   * EXACT request URL, including any query string. Privy signs the full URL —
+   * stripping `?include=steps` produced zero_correct_authorization_signatures.
+   */
   url: string;
   body: Record<string, unknown>;
   idempotencyKey?: string;
+  method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 }): string {
   const rawKey = process.env.PRIVY_AUTHORIZATION_PRIVATE_KEY?.trim();
   if (!rawKey) {
@@ -40,7 +45,7 @@ export function buildPrivyAuthorizationSignature(input: {
 
   const payload = {
     version: 1,
-    method: 'POST',
+    method: input.method ?? 'POST',
     url: input.url.replace(/\/$/, ''),
     body: input.body,
     headers
