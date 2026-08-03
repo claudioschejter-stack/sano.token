@@ -157,9 +157,16 @@ export async function getInvestorActivityLedger(
       status: row.status,
       title:
         custody === 'privy_wallet' || row.provider === 'privy_inbound_watch'
-          ? 'Depósito USDC en wallet Sanova'
-          : `Depósito ${row.method}`,
-      subtitle: row.provider ? `Vía ${row.provider}` : null,
+          ? 'Depósito USDC'
+          : row.method === 'USDC_ONCHAIN'
+            ? 'Depósito USDC'
+            : `Depósito ${row.method}`,
+      subtitle:
+        custody === 'privy_wallet' || row.provider === 'privy_inbound_watch'
+          ? 'Wallet Sanova'
+          : row.provider
+            ? `Vía ${row.provider}`
+            : null,
       source: row.payerWalletAddress,
       destination: row.payToAddress,
       txHash: row.txHash,
@@ -174,7 +181,7 @@ export async function getInvestorActivityLedger(
       amountUsd: -Math.abs(toAmount(row.amountUsd)),
       currency: 'USD',
       status: row.status,
-      title: `Retiro ${row.method}`,
+      title: row.method === 'STABLECOIN' ? 'Retiro USDC' : `Retiro ${row.method}`,
       subtitle: row.destinationAddress ? `Destino ${row.destinationAddress.slice(0, 10)}…` : null,
       source: 'platform_wallet',
       destination: row.destinationAddress,
@@ -224,7 +231,7 @@ export async function getInvestorActivityLedger(
       amountUsd: -Math.abs(batch.amountUsd),
       currency: 'USDC',
       status: batch.status,
-      title: 'Compra de tokens RWA',
+      title: 'Compra RWA',
       subtitle: batch.batchId ? `Carrito ${batch.batchId.slice(0, 8)}` : batch.method,
       source: 'investor_wallet',
       destination: 'treasury',
@@ -248,12 +255,14 @@ export async function getInvestorActivityLedger(
       amountUsd: isCredit ? Math.abs(amount) : -Math.abs(amount),
       currency: row.currency || 'USD',
       status: row.status,
-      title: `Movimiento ledger · ${row.type}`,
-      subtitle: row.depositId
-        ? `Depósito ${row.depositId.slice(0, 8)}`
-        : row.paymentIntentId
-          ? `Pago ${row.paymentIntentId.slice(0, 8)}`
-          : null,
+      title: isCredit ? 'Crédito ledger' : 'Débito ledger',
+      subtitle: row.type
+        ? String(row.type)
+        : row.depositId
+          ? `Depósito ${row.depositId.slice(0, 8)}`
+          : row.paymentIntentId
+            ? `Pago ${row.paymentIntentId.slice(0, 8)}`
+            : null,
       source: null,
       destination: null,
       txHash: row.txHash,
@@ -268,7 +277,7 @@ export async function getInvestorActivityLedger(
       amountUsd: toAmount(row.amount),
       currency: row.currency || 'USD',
       status: row.status,
-      title: 'Dividendo / renta',
+      title: 'Dividendo',
       subtitle: row.assetId ? `Activo ${row.assetId.slice(0, 8)}` : null,
       source: row.assetId,
       destination: 'platform_wallet',

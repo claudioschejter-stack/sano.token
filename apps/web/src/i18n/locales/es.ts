@@ -2983,7 +2983,7 @@ export const es = {
     cryptoWalletSanovaReadyHint:
       'Tenés USDC suficiente. Un toque paga desde tu wallet Sanova (sin segundo login Privy) y acredita los tokens.',
     cryptoWalletSanovaManualPayHint:
-      'Tenés USDC suficiente en tu wallet Sanova. Tocá Pagar para liquidar la compra (sin segundo login Privy).',
+      'Tenés USDC suficiente en tu wallet Sanova. Tocá Pagar para liquidar la compra desde esta cuenta.',
     cryptoWalletPayButtonAmount: 'Pagar {amount} USDC',
     cryptoWalletFundEmbeddedHint:
       'Cargá USDC en tu wallet Sanova (Base). Cuando el saldo alcance el monto, aparece el botón Pagar.',
@@ -3026,6 +3026,10 @@ export const es = {
       'El servidor tardó demasiado en preparar la orden. Tocá Pagar de nuevo — tu saldo no se movió.',
     cryptoWalletPrivySignerRequired:
       'No pudimos firmar el pago desde el servidor. Tocá Pagar de nuevo — vamos a firmar desde tu wallet Sanova en esta sesión.',
+    cryptoWalletPrivySessionRequired:
+      'La firma de tu wallet Sanova aún no está lista en este dispositivo. Usá «Mi wallet» (Coinbase / WalletConnect) para completar el pago ahora — tu USDC en Sanova no se movió.',
+    cryptoWalletPrivyAddressMismatch:
+      'La wallet Privy de esta sesión no coincide con tu cuenta Sanova fondeada. Usá «Mi wallet» o contactá a Sanova — no se debitó nada.',
     cryptoWalletHtmlGatewayError:
       'El servidor devolvió una respuesta inválida (posible despliegue en curso). Recargá la página o pagá con «Mi wallet» (Coinbase / WalletConnect).',
     cryptoWalletManualReview:

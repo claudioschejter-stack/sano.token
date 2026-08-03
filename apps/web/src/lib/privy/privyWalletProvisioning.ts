@@ -1,7 +1,14 @@
 import { normalizeEmail } from '../auth/contactValidation';
 import { isPrivyEnabled } from './config';
+import { privyAuthorizationKeyQuorumId } from './privyAuthorizationSignature';
 import { privyApiBase, privyHeaders } from './privyHttp';
 import type { PrivyLinkedAccount, PrivyUserRecord } from './privyUserApi';
+
+/** Attach app authorization key so server auto-settle works without a browser Privy session. */
+function additionalSignersPayload(): Array<{ signer_id: string }> | undefined {
+  const signerId = privyAuthorizationKeyQuorumId();
+  return signerId ? [{ signer_id: signerId }] : undefined;
+}
 
 /**
  * Server-side embedded wallet provisioning (Privy REST API).
@@ -100,10 +107,15 @@ async function lookupPrivyUserByEmail(email: string): Promise<PrivyUserRecord | 
 }
 
 async function createWalletForExistingPrivyUser(privyUserId: string): Promise<string | null> {
+  const additional_signers = additionalSignersPayload();
   const response = await fetch(`${privyApiBase()}/v1/wallets`, {
     method: 'POST',
     headers: privyHeaders(),
-    body: JSON.stringify({ owner: { user_id: privyUserId }, chain_type: 'ethereum' })
+    body: JSON.stringify({
+      owner: { user_id: privyUserId },
+      chain_type: 'ethereum',
+      ...(additional_signers ? { additional_signers } : {})
+    })
   });
 
   if (!response.ok) {
@@ -115,12 +127,18 @@ async function createWalletForExistingPrivyUser(privyUserId: string): Promise<st
 }
 
 async function createPrivyUserWithWallet(email: string): Promise<PrivyUserRecord | null> {
+  const additional_signers = additionalSignersPayload();
   const response = await fetch(`${privyApiBase()}/v1/users`, {
     method: 'POST',
     headers: privyHeaders(),
     body: JSON.stringify({
       linked_accounts: [{ type: 'email', address: email }],
-      wallets: [{ chain_type: 'ethereum' }]
+      wallets: [
+        {
+          chain_type: 'ethereum',
+          ...(additional_signers ? { additional_signers } : {})
+        }
+      ]
     })
   });
 
