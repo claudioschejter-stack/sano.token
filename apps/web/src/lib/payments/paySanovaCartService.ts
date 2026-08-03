@@ -18,10 +18,28 @@ import {
 import { normalizeCartLineItems } from './normalizeCartLineItems';
 import { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
+import { quoteBaseUserPaysGasUsd } from './baseUserPaysGasQuote';
 
 export type PaySanovaCartResult =
-  | { ok: true; status: 'settled'; batchId: string; txHash: string; amountUsd: number }
-  | { ok: true; status: 'waiting_funds'; address: string | null; balanceUsdc: number; amountUsd: number }
+  | {
+      ok: true;
+      status: 'settled';
+      batchId: string;
+      txHash: string;
+      amountUsd: number;
+      networkFeeUsd?: number;
+      payableUsdc?: number;
+    }
+  | {
+      ok: true;
+      status: 'waiting_funds';
+      address: string | null;
+      balanceUsdc: number;
+      /** Payable USDC including live User-pays gas. */
+      amountUsd: number;
+      networkFeeUsd?: number;
+      payableUsdc?: number;
+    }
   | {
       ok: false;
       status: 'not_configured' | 'failed' | 'manual_review';
@@ -29,6 +47,8 @@ export type PaySanovaCartResult =
       balanceUsdc?: number | null;
       batchId?: string;
       amountUsd?: number;
+      networkFeeUsd?: number;
+      payableUsdc?: number;
     };
 
 /** Normalize Privy RPC failures into stable client-facing error codes. */
@@ -84,7 +104,10 @@ async function loadBatchIntents(userId: string, batchId: string) {
 async function sendPreparedAndVerify(input: {
   userId: string;
   batchId: string;
+  /** Investment USDC (cart), excluding gas. */
   amountUsd: number;
+  networkFeeUsd: number;
+  payableUsdc: number;
   walletId: string;
   walletAddress: string;
   chainId: number;
@@ -99,7 +122,9 @@ async function sendPreparedAndVerify(input: {
         to: tx.to,
         data: tx.data,
         value: BigInt(tx.value || '0'),
+        // User pays gas in USDC (Dashboard → Gas sponsorship → User pays + Base/USDC).
         sponsor: true,
+        sponsorAsset: 'usdc',
         requireAuthorizationSignature: true,
         idempotencyKey: `privy-auto-settle:${input.userId}:${input.batchId}:${index}`
       });
@@ -111,12 +136,21 @@ async function sendPreparedAndVerify(input: {
       status: 'failed',
       error: classifyPrivySendError(message),
       batchId: input.batchId,
-      amountUsd: input.amountUsd
+      amountUsd: input.payableUsdc,
+      networkFeeUsd: input.networkFeeUsd,
+      payableUsdc: input.payableUsdc
     };
   }
 
   if (!lastHash) {
-    return { ok: false, status: 'failed', error: 'PRIVY_SEND_TRANSACTION_MISSING_HASH' };
+    return {
+      ok: false,
+      status: 'failed',
+      error: 'PRIVY_SEND_TRANSACTION_MISSING_HASH',
+      amountUsd: input.payableUsdc,
+      networkFeeUsd: input.networkFeeUsd,
+      payableUsdc: input.payableUsdc
+    };
   }
 
   let verified = false;
@@ -143,7 +177,14 @@ async function sendPreparedAndVerify(input: {
 
   if (!verified) {
     const message = lastVerifyError instanceof Error ? lastVerifyError.message : 'VERIFY_FAILED';
-    return { ok: false, status: 'failed', error: message };
+    return {
+      ok: false,
+      status: 'failed',
+      error: message,
+      amountUsd: input.payableUsdc,
+      networkFeeUsd: input.networkFeeUsd,
+      payableUsdc: input.payableUsdc
+    };
   }
 
   return {
@@ -151,8 +192,31 @@ async function sendPreparedAndVerify(input: {
     status: 'settled',
     batchId: input.batchId,
     txHash: lastHash,
-    amountUsd: input.amountUsd
+    amountUsd: input.amountUsd,
+    networkFeeUsd: input.networkFeeUsd,
+    payableUsdc: input.payableUsdc
   };
+}
+
+async function quotePayableForPrepared(input: {
+  investmentUsd: number;
+  walletAddress: string;
+  transactions: Array<{ to: string; data: string; value: string }>;
+}): Promise<{ networkFeeUsd: number; payableUsdc: number }> {
+  try {
+    const quote = await quoteBaseUserPaysGasUsd({
+      fromAddress: input.walletAddress,
+      transactions: input.transactions
+    });
+    const networkFeeUsd = quote.networkFeeUsd;
+    return {
+      networkFeeUsd,
+      payableUsdc: Math.round((input.investmentUsd + networkFeeUsd) * 1e6) / 1e6
+    };
+  } catch (error) {
+    console.warn('[pay-sanova] live gas quote failed; requiring investment only', error);
+    return { networkFeeUsd: 0, payableUsdc: input.investmentUsd };
+  }
 }
 
 /**
@@ -268,18 +332,19 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
     }
   }
 
-  if (balanceKnown && balanceUsdc != null && balanceUsdc + 1e-9 < pending.amountUsd) {
-    return {
-      ok: true,
-      status: 'waiting_funds',
-      address,
-      balanceUsdc,
-      amountUsd: pending.amountUsd
-    };
-  }
-
   const walletRef = await resolveInvestorPrivyWalletIdForUser(input.userId);
   if (!walletRef) {
+    // Underfunded carts should still surface the payable amount (QR / fund flow).
+    if (balanceKnown && balanceUsdc != null && balanceUsdc + 1e-9 < pending.amountUsd) {
+      return {
+        ok: true,
+        status: 'waiting_funds',
+        address,
+        balanceUsdc,
+        amountUsd: pending.amountUsd,
+        payableUsdc: pending.amountUsd
+      };
+    }
     return { ok: false, status: 'failed', error: 'PRIVY_WALLET_ID_NOT_FOUND', balanceUsdc };
   }
 
@@ -303,10 +368,30 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
       deposits
     });
 
+    const payable = await quotePayableForPrepared({
+      investmentUsd: pending.amountUsd,
+      walletAddress: walletRef.address,
+      transactions: prepared.transactions
+    });
+
+    if (balanceKnown && balanceUsdc != null && balanceUsdc + 1e-9 < payable.payableUsdc) {
+      return {
+        ok: true,
+        status: 'waiting_funds',
+        address,
+        balanceUsdc,
+        amountUsd: payable.payableUsdc,
+        networkFeeUsd: payable.networkFeeUsd,
+        payableUsdc: payable.payableUsdc
+      };
+    }
+
     return sendPreparedAndVerify({
       userId: input.userId,
       batchId: pending.batchId,
       amountUsd: pending.amountUsd,
+      networkFeeUsd: payable.networkFeeUsd,
+      payableUsdc: payable.payableUsdc,
       walletId: walletRef.walletId,
       walletAddress: walletRef.address,
       chainId: prepared.chainId,
@@ -320,10 +405,30 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
     payerAddress: walletRef.address
   });
 
+  const payable = await quotePayableForPrepared({
+    investmentUsd: pending.amountUsd,
+    walletAddress: walletRef.address,
+    transactions: prepared.transactions
+  });
+
+  if (balanceKnown && balanceUsdc != null && balanceUsdc + 1e-9 < payable.payableUsdc) {
+    return {
+      ok: true,
+      status: 'waiting_funds',
+      address,
+      balanceUsdc,
+      amountUsd: payable.payableUsdc,
+      networkFeeUsd: payable.networkFeeUsd,
+      payableUsdc: payable.payableUsdc
+    };
+  }
+
   return sendPreparedAndVerify({
     userId: input.userId,
     batchId: pending.batchId,
     amountUsd: pending.amountUsd,
+    networkFeeUsd: payable.networkFeeUsd,
+    payableUsdc: payable.payableUsdc,
     walletId: walletRef.walletId,
     walletAddress: walletRef.address,
     chainId: prepared.chainId,

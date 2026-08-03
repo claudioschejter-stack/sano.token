@@ -247,7 +247,7 @@ export const privyClientConfig: PrivyClientConfig = {
       // made Pagar try to spend an empty browser wallet while USDC sat on Sanova.
       createOnLogin: 'off'
     },
-    /** Enable gas sponsorship in Privy Dashboard → Settings → Gas */
+    /** Gas: Dashboard → Gas sponsorship → User pays + Base/USDC (sponsor_options.asset=usdc). */
     showWalletUIs: false
   },
   defaultChain: base,

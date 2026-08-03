@@ -72,7 +72,9 @@ export async function depositInvestorVaultFromSanovaWallet(input: {
       to: tx.to,
       data: tx.data,
       value: BigInt(tx.value || '0'),
+      // User pays gas in USDC (not app gas credits).
       sponsor: true,
+      sponsorAsset: 'usdc',
       idempotencyKey: input.idempotencyPrefix
         ? `${input.idempotencyPrefix}:tx:${index}`
         : undefined,

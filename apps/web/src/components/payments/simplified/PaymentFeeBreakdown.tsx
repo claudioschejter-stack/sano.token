@@ -111,7 +111,7 @@ export function PaymentFeeBreakdown({
           {networkFeeUsd > 0 && (
             <Row
               label={fb.networkFee}
-              value={`≈ USD ${networkFeeUsd.toFixed(3)}`}
+              value={`USD ${networkFeeUsd < 0.01 ? networkFeeUsd.toFixed(6) : networkFeeUsd.toFixed(4)}`}
               chargedBy={
                 gasChargedBy
                   ? `${fb.chargedByPrefix} ${gasChargedBy}`
