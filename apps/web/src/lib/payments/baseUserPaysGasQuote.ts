@@ -28,6 +28,19 @@ export type BaseUserPaysGasQuote = {
 /** Default +15% headroom so wallet balance is not short when Base fees move. */
 export const DEFAULT_USER_PAYS_GAS_BUFFER_BPS = 1500;
 
+/**
+ * Privy settles User-pays gas through the Alchemy ERC-20 paymaster, which charges
+ * the network fee **plus a service fee**. Raw Base gas alone under-quotes it
+ * (observed 0.000701 quoted vs 0.004253 charged), leaving wallets short.
+ */
+export const DEFAULT_USER_PAYS_GAS_MIN_USD = 0.01;
+
+export function userPaysGasMinUsd(): number {
+  const raw = Number(process.env.PRIVY_USER_PAYS_GAS_MIN_USD ?? DEFAULT_USER_PAYS_GAS_MIN_USD);
+  if (!Number.isFinite(raw) || raw < 0) return DEFAULT_USER_PAYS_GAS_MIN_USD;
+  return raw;
+}
+
 const ERC20_TRANSFER_IFACE = new Interface([
   'function transfer(address to, uint256 amount) returns (bool)'
 ]);
@@ -184,7 +197,9 @@ export async function quoteBaseUserPaysGasUsd(input: {
   const ethAmount = Number(formatEther(feeWei));
   const networkFeeUsdRaw = roundUsdc(ethAmount * ethUsd);
   const buffer = userPaysGasBufferBps();
-  const networkFeeUsd = roundUsdc(networkFeeUsdRaw * (1 + buffer / 10_000));
+  const buffered = roundUsdc(networkFeeUsdRaw * (1 + buffer / 10_000));
+  // Floor covers the paymaster service fee; only actual gas is debited on-chain.
+  const networkFeeUsd = roundUsdc(Math.max(buffered, userPaysGasMinUsd()));
 
   return {
     networkFeeUsd: Math.max(networkFeeUsd, 0.000001),

@@ -14,6 +14,7 @@ import { normalizeCartLineItems } from './normalizeCartLineItems';
 import { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 import { quoteBaseUserPaysGasUsd } from './baseUserPaysGasQuote';
+import { autoReconcileTreasuryPaymentForUser } from './reconcileCryptoSettlement';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 
 export type PaySanovaCartResult =
@@ -104,6 +105,40 @@ async function transferToTreasuryAndVerify(input: {
   walletAddress: string;
   treasuryAddress: string;
 }): Promise<PaySanovaCartResult> {
+  /**
+   * A submitted Privy transfer can land on-chain after our response window.
+   * Never report plain failure without first checking the treasury: an investor
+   * was debited 20 USDC while the cart stayed open.
+   */
+  const settledOrFailure = async (fallbackError: string): Promise<PaySanovaCartResult> => {
+    try {
+      const reconciled = await autoReconcileTreasuryPaymentForUser(input.userId);
+      if (reconciled.status === 'CONFIRMED' && reconciled.matchedTxHash) {
+        return {
+          ok: true,
+          status: 'settled',
+          batchId: reconciled.batchId ?? input.batchId,
+          txHash: reconciled.matchedTxHash,
+          amountUsd: input.amountUsd,
+          networkFeeUsd: input.networkFeeUsd,
+          payableUsdc: input.payableUsdc
+        };
+      }
+    } catch (error) {
+      console.error('[pay-sanova] treasury reconcile after failure failed', error);
+    }
+
+    return {
+      ok: false,
+      status: 'failed',
+      error: fallbackError,
+      batchId: input.batchId,
+      amountUsd: input.payableUsdc,
+      networkFeeUsd: input.networkFeeUsd,
+      payableUsdc: input.payableUsdc
+    };
+  };
+
   let txHash: string | null = null;
   try {
     const transfer = await privyTransferUsdc({
@@ -118,31 +153,17 @@ async function transferToTreasuryAndVerify(input: {
     if (!txHash && transfer.actionId) {
       txHash = await privyWaitForTransferTxHash({
         walletId: input.walletId,
-        actionId: transfer.actionId
+        actionId: transfer.actionId,
+        attempts: 14
       });
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'PRIVY_TRANSFER_FAILED';
-    return {
-      ok: false,
-      status: 'failed',
-      error: classifyPrivySendError(message),
-      batchId: input.batchId,
-      amountUsd: input.payableUsdc,
-      networkFeeUsd: input.networkFeeUsd,
-      payableUsdc: input.payableUsdc
-    };
+    return settledOrFailure(classifyPrivySendError(message));
   }
 
   if (!txHash) {
-    return {
-      ok: false,
-      status: 'failed',
-      error: 'PRIVY_TRANSFER_TX_HASH_PENDING',
-      amountUsd: input.payableUsdc,
-      networkFeeUsd: input.networkFeeUsd,
-      payableUsdc: input.payableUsdc
-    };
+    return settledOrFailure('PRIVY_TRANSFER_TX_HASH_PENDING');
   }
 
   let verified = false;
@@ -170,14 +191,7 @@ async function transferToTreasuryAndVerify(input: {
 
   if (!verified) {
     const message = lastVerifyError instanceof Error ? lastVerifyError.message : 'VERIFY_FAILED';
-    return {
-      ok: false,
-      status: 'failed',
-      error: message,
-      amountUsd: input.payableUsdc,
-      networkFeeUsd: input.networkFeeUsd,
-      payableUsdc: input.payableUsdc
-    };
+    return settledOrFailure(message);
   }
 
   return {
