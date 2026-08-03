@@ -6,8 +6,8 @@ const mockGetLinked = vi.fn();
 const mockReadBalance = vi.fn();
 const mockResolveWallet = vi.fn();
 const mockPrepareTreasury = vi.fn();
-const mockPrepareVault = vi.fn();
-const mockSendTx = vi.fn();
+const mockTransfer = vi.fn();
+const mockWaitTransfer = vi.fn();
 const mockVerify = vi.fn();
 const mockFindMany = vi.fn();
 const mockIsAuth = vi.fn(() => true);
@@ -45,21 +45,13 @@ vi.mock('../web3/usdcTreasuryTransfer', () => ({
   prepareUsdcTreasuryPayment: (...args: unknown[]) => mockPrepareTreasury(...args)
 }));
 
-vi.mock('../web3/vaultDepositPayment', () => ({
-  isErc4626DirectDepositBatch: (intents: Array<{ metadata: unknown }>) =>
-    intents.every((row) => {
-      const meta = (row.metadata as Record<string, unknown>) ?? {};
-      return meta.purchaseMode === 'ERC4626_DEPOSIT';
-    }),
-  prepareVaultDepositPayment: (...args: unknown[]) => mockPrepareVault(...args)
-}));
-
 vi.mock('../privy/resolveInvestorPrivyWalletId', () => ({
   resolveInvestorPrivyWalletIdForUser: (...args: unknown[]) => mockResolveWallet(...args)
 }));
 
-vi.mock('../privy/walletRpcApi', () => ({
-  privySendTransaction: (...args: unknown[]) => mockSendTx(...args)
+vi.mock('../privy/walletTransferApi', () => ({
+  privyTransferUsdc: (...args: unknown[]) => mockTransfer(...args),
+  privyWaitForTransferTxHash: (...args: unknown[]) => mockWaitTransfer(...args)
 }));
 
 vi.mock('./baseUserPaysGasQuote', () => ({
@@ -75,6 +67,16 @@ vi.mock('./baseUserPaysGasQuote', () => ({
   }))
 }));
 
+vi.mock('./stablecoinNetworks', () => ({
+  getStablecoinNetwork: () => ({
+    id: 'BASE',
+    treasuryAddress: '0xTreasury000000000000000000000000000001',
+    tokenAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    chainId: 8453,
+    decimals: 6
+  })
+}));
+
 import { classifyPrivySendError, paySanovaCartForUser } from './paySanovaCartService';
 
 describe('classifyPrivySendError', () => {
@@ -82,6 +84,11 @@ describe('classifyPrivySendError', () => {
     expect(
       classifyPrivySendError(
         'PRIVY_SEND_TRANSACTION_FAILED:401:{"error":"No valid authorization keys or user signing keys available"}'
+      )
+    ).toBe('PRIVY_AUTHORIZATION_SIGNER_REQUIRED');
+    expect(
+      classifyPrivySendError(
+        'PRIVY_TRANSFER_FAILED:401:{"error":"No valid authorization keys or user signing keys available"}'
       )
     ).toBe('PRIVY_AUTHORIZATION_SIGNER_REQUIRED');
   });
@@ -95,6 +102,10 @@ describe('paySanovaCartForUser', () => {
     mockGetLinked.mockResolvedValue('0x840aed84455c3a30ef23a34a4d961bc3e1d06b41');
     mockReadBalance.mockResolvedValue({ ok: true, amountUsdc: 50, balances: [] });
     mockFindPending.mockResolvedValue(null);
+    mockPrepareTreasury.mockResolvedValue({
+      chainId: 8453,
+      transactions: [{ to: '0xusdc', data: '0xabc', value: '0' }]
+    });
   });
 
   it('fails hard when there is no pending purchase and no cart items', async () => {
@@ -137,11 +148,7 @@ describe('paySanovaCartForUser', () => {
         metadata: { purchaseMode: 'ERC4626_DEPOSIT', vaultAddress: '0xVault', cartBatchId: 'cart-retry' }
       }
     ]);
-    mockPrepareVault.mockReturnValue({
-      chainId: 8453,
-      transactions: [{ to: '0xVault', data: '0xdeposit', value: '0' }]
-    });
-    mockSendTx.mockResolvedValue('0xhash');
+    mockTransfer.mockResolvedValue({ actionId: 'a-1', status: 'pending', txHash: '0xhash' });
     mockVerify.mockResolvedValue([]);
 
     const result = await paySanovaCartForUser({
@@ -154,7 +161,7 @@ describe('paySanovaCartForUser', () => {
     expect(result).toMatchObject({ ok: true, status: 'settled', batchId: 'cart-retry' });
   });
 
-  it('creates checkout then settles when no pending purchase exists', async () => {
+  it('creates checkout then settles via Transfer API when no pending purchase exists', async () => {
     mockCreateCheckout.mockResolvedValue({
       batchId: 'cart-new',
       totalUsd: '20',
@@ -172,11 +179,7 @@ describe('paySanovaCartForUser', () => {
         metadata: { purchaseMode: 'TREASURY_TRANSFER', cartBatchId: 'cart-new' }
       }
     ]);
-    mockPrepareTreasury.mockResolvedValue({
-      chainId: 8453,
-      transactions: [{ to: '0xtreasury', data: '0xabc', value: '0' }]
-    });
-    mockSendTx.mockResolvedValue('0xhash');
+    mockTransfer.mockResolvedValue({ actionId: 'a-1', status: 'pending', txHash: '0xhash' });
     mockVerify.mockResolvedValue([]);
 
     const result = await paySanovaCartForUser({
@@ -201,10 +204,18 @@ describe('paySanovaCartForUser', () => {
       batchId: 'cart-new',
       txHash: '0xhash'
     });
-    expect(mockSendTx).toHaveBeenCalledWith(
+    expect(mockTransfer).toHaveBeenCalledWith(
       expect.objectContaining({
-        sponsor: true,
-        sponsorAsset: 'usdc'
+        walletId: 'w-1',
+        amountUsdc: 20,
+        destinationAddress: '0xTreasury000000000000000000000000000001',
+        chain: 'base'
+      })
+    );
+    expect(mockVerify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        settleViaTreasury: true,
+        txHash: '0xhash'
       })
     );
   });
@@ -226,10 +237,6 @@ describe('paySanovaCartForUser', () => {
         metadata: { purchaseMode: 'TREASURY_TRANSFER', cartBatchId: 'cart-gas' }
       }
     ]);
-    mockPrepareTreasury.mockResolvedValue({
-      chainId: 8453,
-      transactions: [{ to: '0xtreasury', data: '0xabc', value: '0' }]
-    });
     mockReadBalance.mockResolvedValue({ ok: true, amountUsdc: 20, balances: [] });
 
     const result = await paySanovaCartForUser({
@@ -238,7 +245,7 @@ describe('paySanovaCartForUser', () => {
       clientBalanceUsdc: 20
     });
 
-    expect(mockSendTx).not.toHaveBeenCalled();
+    expect(mockTransfer).not.toHaveBeenCalled();
     expect(result).toMatchObject({
       ok: true,
       status: 'waiting_funds',
@@ -248,7 +255,7 @@ describe('paySanovaCartForUser', () => {
     });
   });
 
-  it('uses vault deposit prepare for ERC-4626 carts', async () => {
+  it('settles ERC-4626 carts via treasury Transfer API (not vault RPC deposit)', async () => {
     mockFindPending.mockResolvedValue({
       batchId: 'cart-vault',
       amountUsd: 20,
@@ -269,14 +276,8 @@ describe('paySanovaCartForUser', () => {
         }
       }
     ]);
-    mockPrepareVault.mockReturnValue({
-      chainId: 8453,
-      transactions: [
-        { to: '0xusdc', data: '0xapprove', value: '0' },
-        { to: '0xVault0000000000000000000000000000000001', data: '0xdeposit', value: '0' }
-      ]
-    });
-    mockSendTx.mockResolvedValueOnce('0xapprovehash').mockResolvedValueOnce('0xdeposithash');
+    mockTransfer.mockResolvedValue({ actionId: 'a-2', status: 'pending', txHash: null });
+    mockWaitTransfer.mockResolvedValue('0xtransferhash');
     mockVerify.mockResolvedValue([]);
 
     const result = await paySanovaCartForUser({
@@ -285,14 +286,13 @@ describe('paySanovaCartForUser', () => {
       clientBalanceUsdc: 50
     });
 
-    expect(mockPrepareVault).toHaveBeenCalled();
-    expect(mockPrepareTreasury).not.toHaveBeenCalled();
-    expect(result).toMatchObject({ ok: true, status: 'settled', txHash: '0xdeposithash' });
-    expect(mockSendTx).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sponsor: true,
-        sponsorAsset: 'usdc'
-      })
+    expect(mockPrepareTreasury).toHaveBeenCalled();
+    expect(mockWaitTransfer).toHaveBeenCalledWith(
+      expect.objectContaining({ walletId: 'w-1', actionId: 'a-2' })
+    );
+    expect(result).toMatchObject({ ok: true, status: 'settled', txHash: '0xtransferhash' });
+    expect(mockVerify).toHaveBeenCalledWith(
+      expect.objectContaining({ settleViaTreasury: true, txHash: '0xtransferhash' })
     );
   });
 });

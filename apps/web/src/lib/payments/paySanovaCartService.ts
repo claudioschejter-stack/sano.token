@@ -1,12 +1,7 @@
 import { prepareUsdcTreasuryPayment } from '../web3/usdcTreasuryTransfer';
-import {
-  isErc4626DirectDepositBatch,
-  prepareVaultDepositPayment,
-  type VaultDepositLine
-} from '../web3/vaultDepositPayment';
 import { isPrivyAuthorizationSigningConfigured } from '../privy/privyAuthorizationSignature';
 import { resolveInvestorPrivyWalletIdForUser } from '../privy/resolveInvestorPrivyWalletId';
-import { privySendTransaction } from '../privy/walletRpcApi';
+import { privyTransferUsdc, privyWaitForTransferTxHash } from '../privy/walletTransferApi';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { readWalletUsdcBalanceDetailed } from '../portfolio/onChainUsdcReader';
 import { prisma } from '@sanova/database';
@@ -19,6 +14,7 @@ import { normalizeCartLineItems } from './normalizeCartLineItems';
 import { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 import { quoteBaseUserPaysGasUsd } from './baseUserPaysGasQuote';
+import { getStablecoinNetwork } from './stablecoinNetworks';
 
 export type PaySanovaCartResult =
   | {
@@ -51,13 +47,15 @@ export type PaySanovaCartResult =
       payableUsdc?: number;
     };
 
-/** Normalize Privy RPC failures into stable client-facing error codes. */
+/** Normalize Privy RPC/Transfer failures into stable client-facing error codes. */
 export function classifyPrivySendError(message: string): string {
   const lower = message.toLowerCase();
   if (
     lower.includes('no valid authorization keys') ||
     lower.includes('user signing keys available') ||
-    (lower.includes('privy_send_transaction_failed:401') && lower.includes('authorization'))
+    ((lower.includes('privy_send_transaction_failed:401') ||
+      lower.includes('privy_transfer_failed:401')) &&
+      lower.includes('authorization'))
   ) {
     return 'PRIVY_AUTHORIZATION_SIGNER_REQUIRED';
   }
@@ -73,16 +71,6 @@ export type PaySanovaCartInput = {
 
 export function isPrivyServerAutoSettleConfigured(): boolean {
   return Boolean(process.env.PRIVY_APP_SECRET?.trim()) && isPrivyAuthorizationSigningConfigured();
-}
-
-function toAmount(value: unknown): number {
-  if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (value && typeof value === 'object' && 'toNumber' in value) {
-    const n = (value as { toNumber: () => number }).toNumber();
-    return Number.isFinite(n) ? n : 0;
-  }
-  const n = Number(value);
-  return Number.isFinite(n) ? n : 0;
 }
 
 async function loadBatchIntents(userId: string, batchId: string) {
@@ -101,7 +89,11 @@ async function loadBatchIntents(userId: string, batchId: string) {
   return intents;
 }
 
-async function sendPreparedAndVerify(input: {
+/**
+ * Settle cart via Privy Transfer API → treasury (User pays gas in USDC).
+ * ERC-4626 carts use the same treasury transfer; shares are delivered after confirm.
+ */
+async function transferToTreasuryAndVerify(input: {
   userId: string;
   batchId: string;
   /** Investment USDC (cart), excluding gas. */
@@ -110,27 +102,27 @@ async function sendPreparedAndVerify(input: {
   payableUsdc: number;
   walletId: string;
   walletAddress: string;
-  chainId: number;
-  transactions: Array<{ to: string; data: string; value: string }>;
+  treasuryAddress: string;
 }): Promise<PaySanovaCartResult> {
-  let lastHash: string | null = null;
+  let txHash: string | null = null;
   try {
-    for (const [index, tx] of input.transactions.entries()) {
-      lastHash = await privySendTransaction({
+    const transfer = await privyTransferUsdc({
+      walletId: input.walletId,
+      amountUsdc: input.amountUsd,
+      destinationAddress: input.treasuryAddress,
+      chain: 'base',
+      requireAuthorizationSignature: true,
+      idempotencyKey: `privy-transfer-settle:${input.userId}:${input.batchId}`
+    });
+    txHash = transfer.txHash;
+    if (!txHash && transfer.actionId) {
+      txHash = await privyWaitForTransferTxHash({
         walletId: input.walletId,
-        chainId: input.chainId,
-        to: tx.to,
-        data: tx.data,
-        value: BigInt(tx.value || '0'),
-        // User pays gas in USDC (Dashboard → Gas sponsorship → User pays + Base/USDC).
-        sponsor: true,
-        sponsorAsset: 'usdc',
-        requireAuthorizationSignature: true,
-        idempotencyKey: `privy-auto-settle:${input.userId}:${input.batchId}:${index}`
+        actionId: transfer.actionId
       });
     }
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'PRIVY_SEND_TRANSACTION_FAILED';
+    const message = error instanceof Error ? error.message : 'PRIVY_TRANSFER_FAILED';
     return {
       ok: false,
       status: 'failed',
@@ -142,11 +134,11 @@ async function sendPreparedAndVerify(input: {
     };
   }
 
-  if (!lastHash) {
+  if (!txHash) {
     return {
       ok: false,
       status: 'failed',
-      error: 'PRIVY_SEND_TRANSACTION_MISSING_HASH',
+      error: 'PRIVY_TRANSFER_TX_HASH_PENDING',
       amountUsd: input.payableUsdc,
       networkFeeUsd: input.networkFeeUsd,
       payableUsdc: input.payableUsdc
@@ -161,8 +153,9 @@ async function sendPreparedAndVerify(input: {
       await verifyCartUsdcPayment({
         userId: input.userId,
         batchId: input.batchId,
-        txHash: lastHash,
-        expectedPayer: input.walletAddress
+        txHash,
+        expectedPayer: input.walletAddress,
+        settleViaTreasury: true
       });
       verified = true;
       break;
@@ -191,7 +184,7 @@ async function sendPreparedAndVerify(input: {
     ok: true,
     status: 'settled',
     batchId: input.batchId,
-    txHash: lastHash,
+    txHash,
     amountUsd: input.amountUsd,
     networkFeeUsd: input.networkFeeUsd,
     payableUsdc: input.payableUsdc
@@ -221,7 +214,7 @@ async function quotePayableForPrepared(input: {
 
 /**
  * One-tap Sanova pay: ensure a pending USDC cart exists, then settle from the
- * linked Privy wallet (treasury transfer or ERC-4626 vault deposit).
+ * linked Privy wallet via Transfer API → treasury (User pays gas in USDC).
  */
 export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<PaySanovaCartResult> {
   if (!isPrivyServerAutoSettleConfigured()) {
@@ -278,7 +271,7 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
         stablecoinNetwork: 'BASE',
         // Prefer the already-resolved linked Sanova wallet (avoid WALLET_REQUIRED).
         walletAddress: address,
-        // Fast path: intents only — ERC-4626 vault deposit / treasury settle follows.
+        // Fast path: intents only — Transfer API treasury settle follows.
         skipGateway: true
       });
 
@@ -353,52 +346,13 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
     return { ok: false, status: 'failed', error: 'CART_BATCH_NOT_FOUND', balanceUsdc };
   }
 
-  if (isErc4626DirectDepositBatch(intents)) {
-    const deposits: VaultDepositLine[] = intents.map((row) => {
-      const metadata = (row.metadata as Record<string, unknown>) ?? {};
-      return {
-        vaultAddress: String(metadata.vaultAddress ?? ''),
-        amountUsd: toAmount(row.amountUsd)
-      };
-    });
-
-    const prepared = prepareVaultDepositPayment({
-      stablecoinNetwork: 'BASE',
-      payerAddress: walletRef.address,
-      deposits
-    });
-
-    const payable = await quotePayableForPrepared({
-      investmentUsd: pending.amountUsd,
-      walletAddress: walletRef.address,
-      transactions: prepared.transactions
-    });
-
-    if (balanceKnown && balanceUsdc != null && balanceUsdc + 1e-9 < payable.payableUsdc) {
-      return {
-        ok: true,
-        status: 'waiting_funds',
-        address,
-        balanceUsdc,
-        amountUsd: payable.payableUsdc,
-        networkFeeUsd: payable.networkFeeUsd,
-        payableUsdc: payable.payableUsdc
-      };
-    }
-
-    return sendPreparedAndVerify({
-      userId: input.userId,
-      batchId: pending.batchId,
-      amountUsd: pending.amountUsd,
-      networkFeeUsd: payable.networkFeeUsd,
-      payableUsdc: payable.payableUsdc,
-      walletId: walletRef.walletId,
-      walletAddress: walletRef.address,
-      chainId: prepared.chainId,
-      transactions: prepared.transactions
-    });
+  const treasuryAddress = getStablecoinNetwork('BASE').treasuryAddress;
+  if (!treasuryAddress) {
+    return { ok: false, status: 'failed', error: 'TREASURY_NOT_CONFIGURED', balanceUsdc };
   }
 
+  // User pays (USDC gas) only works on Transfer API — always settle to treasury.
+  // ERC-4626 share delivery runs after confirm via deliverVaultSharesAfterPayment.
   const prepared = await prepareUsdcTreasuryPayment({
     amountUsd: pending.amountUsd,
     stablecoinNetwork: 'BASE',
@@ -423,7 +377,7 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
     };
   }
 
-  return sendPreparedAndVerify({
+  return transferToTreasuryAndVerify({
     userId: input.userId,
     batchId: pending.batchId,
     amountUsd: pending.amountUsd,
@@ -431,7 +385,6 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
     payableUsdc: payable.payableUsdc,
     walletId: walletRef.walletId,
     walletAddress: walletRef.address,
-    chainId: prepared.chainId,
-    transactions: prepared.transactions
+    treasuryAddress
   });
 }

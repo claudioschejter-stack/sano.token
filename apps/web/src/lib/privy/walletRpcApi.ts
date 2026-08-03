@@ -14,16 +14,12 @@ export type PrivySendTransactionInput = {
   value?: bigint;
   idempotencyKey?: string;
   /**
-   * Privy gas sponsorship flag.
-   * - App pays (gas credits): `sponsor: true` without `sponsorAsset`
-   * - User pays (USDC/USDT): `sponsor: true` + `sponsorAsset: 'usdc'`
+   * App-pays gas sponsorship (`sponsor: true` uses gas credits).
+   * User pays (USDC on Base) is NOT supported on eth_sendTransaction —
+   * use Transfer API (`privyTransferUsdc`) instead. Sending sponsor_options
+   * here returns 400 invalid_data from Privy.
    */
   sponsor?: boolean;
-  /**
-   * User-pays gas token for RPC (`sponsor_options.asset`).
-   * Requires Dashboard → Gas sponsorship → User pays + chain/asset enabled.
-   */
-  sponsorAsset?: 'usdc' | 'usdt' | 'eurc' | 'usdg' | 'usdc_e';
   /** Attach app authorization signature (needed for user-owned embedded wallets). */
   requireAuthorizationSignature?: boolean;
 };
@@ -56,9 +52,6 @@ export async function privySendTransaction(input: PrivySendTransactionInput): Pr
 
   if (input.sponsor) {
     body.sponsor = true;
-    if (input.sponsorAsset) {
-      body.sponsor_options = { asset: input.sponsorAsset };
-    }
   }
 
   const needsAuth =
