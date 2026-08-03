@@ -2980,6 +2980,10 @@ export const en = {
     cryptoWalletAutoSettleBalanceReadFailed:
       "We could not complete automatic payment yet. Tap Pay again — no Privy re-login needed. If it persists, Sanova must check auto-settle configuration.",
     cryptoWalletAutoSettleError: "Could not complete automatic payment: {error}",
+    cryptoWalletRpcUserPaysUnsupported:
+      "USDC gas payment was updated. Reload the page and tap Pay again — your balance was not moved.",
+    cryptoWalletTransferFailed:
+      "Could not transfer USDC from your Sanova wallet. Tap Pay again. If it persists: {error}",
     cryptoWalletNoPendingPurchase:
       "We couldn’t create the purchase order. Tap Pay again; if it still fails, use “My wallet” (Coinbase / WalletConnect).",
     cryptoWalletCheckoutTimeout:
