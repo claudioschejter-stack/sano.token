@@ -3,8 +3,14 @@
  *
  * Privy calls this URL to verify the JWTs our server issues via /api/auth/privy-token.
  * Configure in: Privy Dashboard → User Management → Authentication → JWT-based auth
- *   → JWKS URL: https://sanovacapital.com/api/auth/privy-jwks
- *   → User ID claim: sub
+ *
+ * IMPORTANT — Cloudflare bot challenge currently blocks:
+ *   https://www.sanovacapital.com/api/auth/privy-jwks  (403 "Just a moment…")
+ * Prefer either:
+ *   1. JWKS URL: https://sano-token-web.vercel.app/api/auth/privy-jwks
+ *   2. Paste the PEM public key from privyCustomAuthJwt.ts (no fetch needed)
+ *
+ * User ID claim: sub
  *
  * The public key is embedded directly here (it's not a secret).
  * Rotate by regenerating the RSA pair, updating PRIVY_JWT_PRIVATE_KEY in Vercel,
@@ -12,6 +18,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { PRIVY_CUSTOM_AUTH_JWT_KID } from '../../../../lib/privy/privyCustomAuthJwt';
 
 const JWKS = {
   keys: [
@@ -19,7 +26,7 @@ const JWKS = {
       kty: 'RSA',
       n: 'z6saKJBgTVuvLrTNHm-4xXE0U5I-dT3OG1gbm-goFpzkrX9yb2er70Q4DbLPNdi7pE-g7si5NS9UAL6Peca8NBP_kW8EYezZPuaXJjZG0UlTSIP4NWO7nhyGF5hD-FRkFsAHMXGITdUspAMAzTDZ5DPd5hKGw3JoplzCzS0XPTi3vkGugM0gbdQmruprJLpXMQWZmofP-L6KNt3eYlo93uIcy1IaDl9o_uso0XqjaPnF4K1P9iuY8oOB-I6N3iLHJB3zNyNRkevcYyCPVPAeD1-CNalpNtP-P-PCP-6gT8eo__Z-Cd1d2M-2EjetQcSsAGKQmsoafz6w_9yrqBif8w',
       e: 'AQAB',
-      kid: 'sanova-rwa-v1',
+      kid: PRIVY_CUSTOM_AUTH_JWT_KID,
       use: 'sig',
       alg: 'RS256'
     }

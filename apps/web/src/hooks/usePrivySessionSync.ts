@@ -9,19 +9,26 @@
  * Requirements before enabling:
  *   1. Request "Custom Auth Support" in Privy Dashboard → Integrations → Plugins
  *   2. After approval, configure in Privy Dashboard → User Management → Authentication:
- *        - JWKS URL: https://sanovacapital.com/api/auth/privy-jwks
+ *        - Prefer PEM public key (avoids Cloudflare JWKS fetch), OR
+ *          JWKS URL: https://sano-token-web.vercel.app/api/auth/privy-jwks
+ *          (NOT www.sanovacapital.com — Cloudflare bot-challenge returns 403)
  *        - User ID claim: sub
- *   3. Set NEXT_PUBLIC_PRIVY_CUSTOM_AUTH=true in Vercel env vars
- *   4. Set PRIVY_JWT_PRIVATE_KEY in Vercel env vars (already done)
+ *        - Auth environment: Client-side (or Both)
+ *   3. Allowed origins must include https://www.sanovacapital.com
+ *   4. Set NEXT_PUBLIC_PRIVY_CUSTOM_AUTH=true in Vercel env vars
+ *   5. Set PRIVY_JWT_PRIVATE_KEY in Vercel env vars
  *
  * @see https://docs.privy.io/authentication/user-authentication/jwt-based-auth/usage
  */
 
 import { useSubscribeToJwtAuthWithFlag } from '@privy-io/react-auth';
 import { useSession } from 'next-auth/react';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 
 const CUSTOM_AUTH_ENABLED = process.env.NEXT_PUBLIC_PRIVY_CUSTOM_AUTH === 'true';
+
+/** After Privy rejects credentials, pause refetch to avoid 429 + CORS noise. */
+const FAILURE_COOLDOWN_MS = 60_000;
 
 /** Fetches a short-lived RS256 JWT signed by our server for the current user. */
 async function fetchPrivyJwt(): Promise<string | undefined> {
@@ -41,19 +48,52 @@ async function fetchPrivyJwt(): Promise<string | undefined> {
 
 export function usePrivySessionSync() {
   const { status } = useSession();
+  const cooldownUntilRef = useRef(0);
+  const warnedRef = useRef(false);
 
   const isAuthenticated = status === 'authenticated';
   const isLoading = status === 'loading';
 
   const getExternalJwt = useCallback(async (): Promise<string | undefined> => {
     if (!isAuthenticated) return undefined;
-    return fetchPrivyJwt();
+
+    if (Date.now() < cooldownUntilRef.current) {
+      return undefined;
+    }
+
+    const token = await fetchPrivyJwt();
+    if (!token) {
+      cooldownUntilRef.current = Date.now() + FAILURE_COOLDOWN_MS;
+      if (!warnedRef.current) {
+        warnedRef.current = true;
+        console.warn(
+          '[usePrivySessionSync] /api/auth/privy-token unavailable — Custom Auth paused 60s. Check PRIVY_JWT_PRIVATE_KEY and session.'
+        );
+      }
+      return undefined;
+    }
+
+    return token;
   }, [isAuthenticated]);
+
+  const onError = useCallback((error: Error) => {
+    cooldownUntilRef.current = Date.now() + FAILURE_COOLDOWN_MS;
+    if (!warnedRef.current) {
+      warnedRef.current = true;
+      console.warn(
+        '[usePrivySessionSync] Privy Custom Auth rejected JWT (invalid_credentials / CORS). ' +
+          'In Privy Dashboard use JWKS https://sano-token-web.vercel.app/api/auth/privy-jwks ' +
+          'or paste the PEM public key — www.sanovacapital.com/api/auth/privy-jwks is blocked by Cloudflare.',
+        error
+      );
+    }
+  }, []);
 
   useSubscribeToJwtAuthWithFlag({
     isAuthenticated,
     isLoading,
     getExternalJwt,
-    enabled: CUSTOM_AUTH_ENABLED
+    enabled: CUSTOM_AUTH_ENABLED,
+    onError
   });
 }
