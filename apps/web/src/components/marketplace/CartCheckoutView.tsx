@@ -118,7 +118,12 @@ function formatUsdc2(amount: number, locale: string): string {
 }
 
 function formatUsdcAmountNumber(amount: number, locale: string): string {
-  return amount.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Keep enough precision so live User-pays gas does not round away to the cart total.
+  const decimals = Math.abs(amount - Math.round(amount * 100) / 100) > 1e-9 ? 6 : 2;
+  return amount.toLocaleString(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: decimals
+  });
 }
 
 function formatUsd2(amount: number, locale: string): string {
@@ -300,6 +305,8 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const [paymentLane, setPaymentLane] = useState<CheckoutPaymentLaneId | null>(null);
   const [ripioEwalletRail, setRipioEwalletRail] = useState<string | null>(null);
   const [paymentGatewayTabActive] = useState(true);
+  /** All-in payable from SimplifiedCheckout (includes live User-pays gas for crypto). */
+  const [gatewayPayableUsd, setGatewayPayableUsd] = useState<number | null>(null);
 
   const totalUsd = mode === 'deposit' ? Number(depositAmount) || 0 : cartTotalUsd;
   const privyVaultDeposits = useMemo(
@@ -1509,9 +1516,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     );
   };
 
-  // Simplified gateway checkout settles the cart total (not a deposit-option quote with extras).
+  // Gateway tab: show SimplifiedCheckout all-in total (crypto includes live gas).
   const displayTotalUsd = paymentGatewayTabActive
-    ? totalUsd
+    ? gatewayPayableUsd != null && gatewayPayableUsd > 0
+      ? gatewayPayableUsd
+      : totalUsd
     : (selectedDepositOption?.totalUsd ??
       sortedDepositOptions.find((o) => o.configured)?.totalUsd ??
       totalUsd);
@@ -1700,6 +1709,11 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 setStatus('done');
               }}
               onError={(message) => setError(message)}
+              onPayableChange={(info) => {
+                if (Number.isFinite(info.totalUsd) && info.totalUsd > 0) {
+                  setGatewayPayableUsd(info.totalUsd);
+                }
+              }}
             />
           ) : null}
 

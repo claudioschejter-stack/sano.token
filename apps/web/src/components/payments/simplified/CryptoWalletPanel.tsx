@@ -75,6 +75,7 @@ type Props = {
  */
 export function CryptoWalletPanel({
   cryptoWallet,
+  country,
   amountUsd,
   mode = 'deposit',
   cartItems = [],
@@ -104,10 +105,18 @@ export function CryptoWalletPanel({
   const [externalPaying, setExternalPaying] = useState(false);
   const [fundingError, setFundingError] = useState<string | null>(null);
   const [fundingSending, setFundingSending] = useState(false);
-  const initialPayableUsdc =
-    mode === 'purchase' && cryptoWallet.totalUsd > 0 ? cryptoWallet.totalUsd : amountUsd;
+  const investmentUsdc = Number.isFinite(amountUsd) ? amountUsd : 0;
+  const routeNetworkFeeUsdc = Math.max(0, Number((cryptoWallet.networkFeeUsd ?? 0).toFixed(6)));
+  const routePayableUsdc = Math.max(
+    Number((cryptoWallet.totalUsd ?? 0).toFixed(6)),
+    Number((investmentUsdc + routeNetworkFeeUsdc).toFixed(6)),
+    investmentUsdc
+  );
+
   const [balanceUsdc, setBalanceUsdc] = useState<number | null>(null);
-  const [requiredUsdc, setRequiredUsdc] = useState(initialPayableUsdc);
+  /** Settle-time payable override (investment + exact gas). Never store investment-only. */
+  const [settlePayableUsdc, setSettlePayableUsdc] = useState<number | null>(null);
+  const [localNetworkFeeUsdc, setLocalNetworkFeeUsdc] = useState(0);
   const [serverAddress, setServerAddress] = useState<string | null>(null);
 
   const onFundedRef = useRef(onFunded);
@@ -115,31 +124,64 @@ export function CryptoWalletPanel({
   const phaseRef = useRef<Phase>('loading');
   phaseRef.current = phase;
   const balanceRef = useRef<number | null>(null);
-  const requiredRef = useRef(initialPayableUsdc);
-  requiredRef.current = requiredUsdc > 0 ? requiredUsdc : initialPayableUsdc;
   const cartItemsRef = useRef(cartItems);
   cartItemsRef.current = cartItems;
   const ensureReferenceRef = useRef(ensureReference);
   ensureReferenceRef.current = ensureReference;
   const mountedRef = useRef(true);
 
-  // Payable USDC = investment + live User-pays gas (from routes or settle quote).
-  const amountUsdc = requiredUsdc > 0 ? requiredUsdc : initialPayableUsdc;
-  const networkFeeUsdc = Math.max(0, Number((cryptoWallet.networkFeeUsd ?? 0).toFixed(6)));
+  const networkFeeUsdc = Math.max(routeNetworkFeeUsdc, localNetworkFeeUsdc);
+  // Always investment + gas for purchase; deposit mode stays at loaded amount.
+  const amountUsdc =
+    mode === 'purchase'
+      ? Math.max(
+          settlePayableUsdc ?? 0,
+          routePayableUsdc,
+          Number((investmentUsdc + networkFeeUsdc).toFixed(6))
+        )
+      : settlePayableUsdc && settlePayableUsdc > 0
+        ? settlePayableUsdc
+        : investmentUsdc;
+  const requiredRef = useRef(amountUsdc);
+  requiredRef.current = amountUsdc;
   const hasEnoughSanova =
     balanceUsdc != null && Number.isFinite(balanceUsdc) && balanceUsdc + 1e-9 >= amountUsdc;
 
-  // Keep payable in sync when checkout-methods returns a fresher live gas quote.
+  // If routes arrived without a gas quote, refresh checkout-methods once.
   useEffect(() => {
-    if (mode !== 'purchase') return;
-    const next = cryptoWallet.totalUsd > 0 ? cryptoWallet.totalUsd : amountUsd;
-    if (!(next > 0)) return;
-    setRequiredUsdc((prev) => {
-      // Don't clobber a settle-time payable that is higher (exact tx quote).
-      if (prev + 1e-9 >= next) return prev;
-      return next;
-    });
-  }, [mode, cryptoWallet.totalUsd, amountUsd]);
+    if (mode !== 'purchase' || investmentUsdc <= 0) return;
+    if (routeNetworkFeeUsdc > 0) return;
+    let cancelled = false;
+    const refresh = async () => {
+      try {
+        const res = await fetch('/api/payments/checkout-methods', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amountUsd: investmentUsdc,
+            country: country || 'US',
+            referenceId: `gas-${Date.now()}`,
+            payerAddress: serverAddress
+          })
+        });
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as {
+          cryptoWallet?: { networkFeeUsd?: number; totalUsd?: number };
+        };
+        const fee = Number(data.cryptoWallet?.networkFeeUsd ?? 0);
+        if (Number.isFinite(fee) && fee > 0 && !cancelled) {
+          setLocalNetworkFeeUsdc(fee);
+        }
+      } catch {
+        // keep route/fallback values
+      }
+    };
+    void refresh();
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, investmentUsdc, routeNetworkFeeUsdc, country, serverAddress]);
+
   const fundShortfallUsdc = Math.max(
     0,
     Math.round((amountUsdc - (balanceUsdc ?? 0)) * 1e6) / 1e6
@@ -461,8 +503,10 @@ export function CryptoWalletPanel({
       if (!mountedRef.current) return;
 
       if (typeof outcome.amountUsd === 'number' && outcome.amountUsd > 0) {
-        setRequiredUsdc(outcome.amountUsd);
-        requiredRef.current = outcome.amountUsd;
+        // Server waiting_funds / settle quotes return payable (= investment + gas).
+        setSettlePayableUsdc((prev) =>
+          prev != null && prev + 1e-9 >= outcome.amountUsd! ? prev : outcome.amountUsd!
+        );
       }
       if (typeof outcome.balanceUsdc === 'number') {
         applyKnownBalance(outcome.balanceUsdc);
@@ -681,15 +725,8 @@ export function CryptoWalletPanel({
             pendingPurchase?: { amountUsd?: number } | null;
           };
           address = normalizeAddress(watchData.address);
-          // Prefer the cart total from props; only override if watch reports a live pending amount.
-          if (
-            watchData.pendingPurchase &&
-            typeof watchData.pendingPurchase.amountUsd === 'number' &&
-            watchData.pendingPurchase.amountUsd > 0
-          ) {
-            setRequiredUsdc(watchData.pendingPurchase.amountUsd);
-            requiredRef.current = watchData.pendingPurchase.amountUsd;
-          }
+          // Do NOT overwrite payable with pendingPurchase.amountUsd — that value is
+          // investment only and would strip live User-pays gas from the UI.
           if (address) setServerAddress(address);
 
           if (watchData.balanceKnown !== false && typeof watchData.balanceUsdc === 'number') {
@@ -1139,12 +1176,16 @@ export function CryptoWalletPanel({
       )}
 
       <PaymentFeeBreakdown
-        amountUsd={amountUsd}
+        amountUsd={investmentUsdc}
         totalUsd={amountUsdc}
         feeBps={cryptoWallet.feeBps}
         providerLabel="Base USDC"
-        networkFeeUsd={Math.max(networkFeeUsdc, Math.round((amountUsdc - amountUsd) * 1e6) / 1e6)}
+        networkFeeUsd={Math.max(
+          networkFeeUsdc,
+          Math.max(0, Math.round((amountUsdc - investmentUsdc) * 1e6) / 1e6)
+        )}
         networkFeeIncluded
+        defaultOpen
         gatewayChargedBy="Base USDC"
         gasChargedBy={sc.feeBreakdown.chargedByUserPaysUsdc}
       />
