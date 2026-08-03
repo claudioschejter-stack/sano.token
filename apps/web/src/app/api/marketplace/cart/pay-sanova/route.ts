@@ -103,14 +103,17 @@ export async function POST(request: Request) {
             : CLIENT_ERRORS.has(errorCode) || errorCode === 'PRIVY_TRANSFER_FAILED'
               ? 400
               : 502;
-      if (errorCode !== result.error) {
+      const detail = errorCode === result.error ? undefined : result.error.slice(0, 400);
+      if (detail) {
         console.error('[marketplace/cart/pay-sanova] settle failed', {
           userId: ctx.userId,
           errorCode,
-          detail: result.error.slice(0, 500)
+          detail
         });
       }
-      return NextResponse.json({ ...result, error: errorCode }, { status });
+      // `detail` keeps the Privy reason visible in checkout so failures are never
+      // reduced to an opaque code again.
+      return NextResponse.json({ ...result, error: errorCode, detail }, { status });
     }
 
     return NextResponse.json(result);

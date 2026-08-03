@@ -137,6 +137,8 @@ export function CryptoWalletPanel({
   const ensureReferenceRef = useRef(ensureReference);
   ensureReferenceRef.current = ensureReference;
   const mountedRef = useRef(true);
+  /** Last Privy failure reason from the server, appended to the UI message. */
+  const lastSettleDetailRef = useRef<string | null>(null);
 
   const networkFeeUsdc = Math.max(routeNetworkFeeUsdc, localNetworkFeeUsdc);
   // Always investment + gas for purchase; deposit mode stays at loaded amount.
@@ -386,11 +388,19 @@ export function CryptoWalletPanel({
     setPhase('settling');
     setSettleError(null);
     setSettleErrorCode(null);
+    lastSettleDetailRef.current = null;
+
+    const withSettleDetail = (message: string) => {
+      const detail = lastSettleDetailRef.current?.trim();
+      return detail ? `${message} (${detail})` : message;
+    };
 
     type SettlePayload = {
       ok?: boolean;
       status?: string;
       error?: string;
+      /** Privy reason kept verbatim so failures stay debuggable in checkout. */
+      detail?: string;
       amountUsd?: number;
       balanceUsdc?: number | null;
       batchId?: string;
@@ -441,15 +451,21 @@ export function CryptoWalletPanel({
 
     const toFlowResult = (
       parsed: Awaited<ReturnType<typeof readJsonResponse<SettlePayload>>>
-    ) => ({
-      ok: Boolean(parsed.ok && parsed.data.ok !== false),
-      status: parsed.data.status,
-      error: parsed.errorCode ?? parsed.data.error,
-      amountUsd: parsed.data.amountUsd,
-      balanceUsdc: parsed.data.balanceUsdc,
-      batchId: parsed.data.batchId,
-      txHash: parsed.data.txHash
-    });
+    ) => {
+      const detail = parsed.data.detail?.trim();
+      if (detail) {
+        lastSettleDetailRef.current = detail;
+      }
+      return {
+        ok: Boolean(parsed.ok && parsed.data.ok !== false),
+        status: parsed.data.status,
+        error: parsed.errorCode ?? parsed.data.error,
+        amountUsd: parsed.data.amountUsd,
+        balanceUsdc: parsed.data.balanceUsdc,
+        batchId: parsed.data.batchId,
+        txHash: parsed.data.txHash
+      };
+    };
 
     /** When server auth-key settle is blocked, sign from the embedded Privy session instead. */
     const settleWithClientPrivy = async (batchId: string, payAmountUsd: number): Promise<void> => {
@@ -595,7 +611,7 @@ export function CryptoWalletPanel({
       }
 
       setSettleErrorCode(outcome.errorCode);
-      setSettleError(mapSettleError(outcome.errorCode));
+      setSettleError(withSettleDetail(mapSettleError(outcome.errorCode)));
       if (outcome.switchToExternal) {
         setPayPath('external');
       }

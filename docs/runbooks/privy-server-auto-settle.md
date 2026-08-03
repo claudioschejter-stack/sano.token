@@ -14,6 +14,19 @@ Goal: when an investor has USDC on Base in their **canonical Sanova embedded wal
 Server provision: `ensureSanovaPrivyWallet({ userId, email })`  
 Client must **not** create a second wallet (`createOnLogin: 'off'`).
 
+### Single-wallet invariants (must all hold)
+
+| Invariant | Where | How to verify |
+|---|---|---|
+| One ethereum embedded wallet per email | Privy | `GET /api/admin/privy-diagnostics?email=…` → `duplicateWallets` empty |
+| Dashboard never mints wallets on login | Privy Dashboard → Embedded wallets → Ethereum → **create on login = off** | diagnostics `appConfig.ethereumCreateOnLogin === 'off'` |
+| App key can spend | Wallet record `additional_signers` contains `PRIVY_AUTHORIZATION_KEY_QUORUM_ID` | diagnostics `authorization.quorumIsAdditionalSigner === true` |
+| Gas without ETH | Dashboard → Gas sponsorship → **User pays** + **Base / USDC** | wallet with 0 ETH still settles |
+| Settle path | Transfer API `POST /v1/wallets/{id}/transfer` | never `eth_sendTransaction` + `sponsor_options` |
+| Signature covers exact URL | `buildPrivyAuthorizationSignature` | no query string on signed POSTs |
+
+`create_on_login: "users-without-wallets"` is the duplicate-wallet factory: every Custom Auth login without a wallet gets a **new empty** wallet, which then mismatches the funded one.
+
 ## Required Vercel env (Production)
 
 | Variable | Purpose |
@@ -89,4 +102,6 @@ Older email-provisioned wallets need a **one-time** authorization-key grant (Das
 | CORS error on that same request | Browser hiding the 401/429 body | Fix verification; ignore CORS as primary |
 | 429 Too Many Requests | Retry storm after failed auth | Wait ~1 min; fix Dashboard; client now cools down 60s |
 | `PRIVY_AUTHORIZATION_SIGNER_REQUIRED` with funded Sanova | Wallet has USDC but no app signer | Dashboard additional signer on that address |
+| `PRIVY_TRANSFER_FAILED` | Transfer API rejected settle | Read the `detail` in the checkout message / server log. `zero_correct_authorization_signatures` → signature URL/body mismatch. Insufficient gas → Dashboard gas is not **User pays + Base/USDC**. |
+| `Duplicate signer(s) provided when updating wallet` (PATCH 400) | Quorum already an additional signer | Benign — client `addSigners` treats it as success |
 | `PRIVY_WALLET_ADDRESS_MISMATCH` | Custom Auth session wallet ≠ funded legacy email wallet | In checkout use **Autorizar wallet Sanova fondeada** (email OTP → `addSigners` on funded address), then **Pagar** again. Prevent forks: `ensureSanovaPrivyWallet` must never create a second wallet for the same email. Admin: `POST /api/admin/account-audit` with `{ "action": "pin_original", "userId": "…" }` pins DB to the original email wallet and lists duplicates (delete empty forks in Privy Dashboard). |
