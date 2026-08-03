@@ -21,6 +21,12 @@ import {
   isPrivyAuthorizationSignerError,
   runCryptoWalletSettle
 } from '../../../lib/payments/cryptoWalletSettleOrchestrator';
+import {
+  BASE_USDC_TOKEN_ADDRESS,
+  buildCryptoReceiveQrPayload,
+  cryptoReceiveQrImageUrl,
+  type CryptoReceiveQrMode
+} from '../../../lib/payments/cryptoReceiveQr';
 import { formatUsdPrecise, roundUsdc } from '../../../lib/payments/formatUsdPrecise';
 import { normalizeCartLineItems } from '../../../lib/payments/normalizeCartLineItems';
 import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
@@ -34,18 +40,13 @@ import type { EnsureCheckoutReference, SimplifiedCheckoutCartItem } from './Simp
 const PRIVY_AUTH_QUORUM_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUORUM_ID?.trim() ?? '';
 
 const QR_SIZE = 220;
-const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const USDC_BASE = BASE_USDC_TOKEN_ADDRESS;
 const BASE_RPC = process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 /** Live User-pays gas quote validity window while the crypto panel is open. */
 const GAS_QUOTE_TTL_SEC = 30;
 
 type Phase = 'loading' | 'needs_funds' | 'ready' | 'settling' | 'done';
 type PayPath = 'sanova' | 'external';
-
-function buildEip681Uri(toAddress: string, amountUsdc: number): string {
-  const uint256 = Math.round(amountUsdc * 1e6);
-  return `ethereum:${USDC_BASE}@8453/transfer?address=${toAddress}&uint256=${uint256}`;
-}
 
 function formatUsdcAmount(value: number): string {
   return formatUsdPrecise(value);
@@ -99,6 +100,8 @@ export function CryptoWalletPanel({
 
   const [copiedAddr, setCopiedAddr] = useState(false);
   const [showQr, setShowQr] = useState(false);
+  /** Bare address QR by default — Ripio/Lemon reject EIP-681 USDC transfer URIs. */
+  const [qrMode, setQrMode] = useState<CryptoReceiveQrMode>('address');
   const [phase, setPhase] = useState<Phase>('loading');
   const [payPath, setPayPath] = useState<PayPath>('sanova');
   const [settleError, setSettleError] = useState<string | null>(null);
@@ -870,7 +873,20 @@ export function CryptoWalletPanel({
     };
   }, [applyKnownBalance, mode, phase, readClientBalance]);
 
-  const eip681Uri = receiveAddress ? buildEip681Uri(receiveAddress, amountUsdc) : null;
+  const qrPayload = receiveAddress
+    ? buildCryptoReceiveQrPayload({
+        receiveAddress,
+        amountUsdc,
+        mode: qrMode
+      })
+    : null;
+  const eip681Uri = receiveAddress
+    ? buildCryptoReceiveQrPayload({
+        receiveAddress,
+        amountUsdc,
+        mode: 'eip681_usdc'
+      })
+    : null;
 
   const handleCopyAddr = () => {
     if (!receiveAddress) return;
@@ -907,7 +923,7 @@ export function CryptoWalletPanel({
   ) : null;
 
   const qrBlock =
-    receiveAddress && eip681Uri ? (
+    receiveAddress && qrPayload ? (
       <div>
         {!isDesktop ? (
           <button
@@ -919,19 +935,46 @@ export function CryptoWalletPanel({
             {showQr ? sc.cryptoWalletHideQr : sc.cryptoWalletShowQr}
           </button>
         ) : null}
-        {(isDesktop || showQr) && eip681Uri ? (
+        {(isDesktop || showQr) && qrPayload ? (
           <div
             className={`${isDesktop ? '' : 'mt-3'} flex flex-col items-center gap-2 rounded-xl border border-terminal-border bg-terminal-card p-4`}
           >
+            <div className="flex w-full gap-1 rounded-lg border border-terminal-border bg-terminal-bg p-1">
+              <button
+                type="button"
+                onClick={() => setQrMode('address')}
+                className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-semibold transition-colors ${
+                  qrMode === 'address'
+                    ? 'bg-terminal-primary text-white'
+                    : 'text-terminal-muted hover:text-terminal-text'
+                }`}
+              >
+                {sc.cryptoWalletQrModeAddress}
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrMode('eip681_usdc')}
+                className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-semibold transition-colors ${
+                  qrMode === 'eip681_usdc'
+                    ? 'bg-terminal-primary text-white'
+                    : 'text-terminal-muted hover:text-terminal-text'
+                }`}
+              >
+                {sc.cryptoWalletQrModeEip681}
+              </button>
+            </div>
             <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
               <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(eip681Uri)}`}
+                src={cryptoReceiveQrImageUrl(qrPayload, QR_SIZE)}
                 alt={sc.cryptoWalletQrAlt.replace('{amount}', amountUsdc.toFixed(2))}
                 width={QR_SIZE}
                 height={QR_SIZE}
                 className="block rounded"
               />
             </div>
+            <p className="max-w-[260px] text-center text-[10px] leading-relaxed text-terminal-muted">
+              {qrMode === 'address' ? sc.cryptoWalletQrAddressHint : sc.cryptoWalletQrEip681Hint}
+            </p>
           </div>
         ) : null}
       </div>

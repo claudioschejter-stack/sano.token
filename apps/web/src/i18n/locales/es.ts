@@ -3082,6 +3082,12 @@ export const es = {
     cryptoWalletAmountPrefillNote: 'El monto ({amount} USDC) se pre-llena automáticamente',
     cryptoWalletHideQr: 'Ocultar QR',
     cryptoWalletShowQr: 'Ver QR (para escanear desde otro celular)',
+    cryptoWalletQrModeAddress: 'Dirección (Ripio / Lemon / Coinbase)',
+    cryptoWalletQrModeEip681: 'Con monto (MetaMask)',
+    cryptoWalletQrAddressHint:
+      'Escaneá con Ripio, Lemon, Coinbase o MetaMask. Después elegí USDC en red Base y enviá el monto exacto.',
+    cryptoWalletQrEip681Hint:
+      'Algunas wallets (p. ej. MetaMask) abren la transferencia USDC con monto. Ripio y Lemon suelen no leer este formato.',
     cryptoWalletAmountPrefilledShort: 'Monto pre-llenado: {amount} USDC · Base',
     cryptoWalletCopyAddressTitle: 'Copiar dirección',
     cryptoWalletCopyUri: 'Copiar URI de pago (EIP-681)',
