@@ -46,8 +46,18 @@ export function isPrivySessionOrWalletError(code: string): boolean {
   );
 }
 
-/** Errors where the user can still pay from Coinbase / WalletConnect. */
-export function shouldSwitchToExternalWallet(errorCode: string): boolean {
+/**
+ * Errors where Coinbase / WalletConnect is a valid recovery.
+ * Never when Sanova embedded wallet already has enough USDC — that would
+ * abandon funded Sanova balance (production screenshot regression).
+ */
+export function shouldSwitchToExternalWallet(
+  errorCode: string,
+  options?: { hasSufficientSanovaBalance?: boolean }
+): boolean {
+  if (options?.hasSufficientSanovaBalance) {
+    return false;
+  }
   const upper = errorCode.trim().toUpperCase();
   return (
     isPrivySessionOrWalletError(upper) ||
@@ -71,6 +81,11 @@ export type CryptoSettleDeps = {
   ensureBatchId: (preferred?: string | null) => Promise<string | null>;
   /** Expected Sanova receive address (server-linked). */
   expectedWalletAddress: string | null;
+  /**
+   * When true, failures never force the “Mi wallet” tab — Sanova already holds
+   * enough USDC and must keep retrying / show stay-on-Sanova messaging.
+   */
+  hasSufficientSanovaBalance?: boolean;
 };
 
 function errorCodeOf(result: SanovaPayServerResult): string {
@@ -82,16 +97,31 @@ function errorCodeOf(result: SanovaPayServerResult): string {
 
 function toFailed(
   errorCode: string,
-  extras?: Partial<CryptoSettleUiOutcome & { kind: 'failed' }>
+  extras: {
+    amountUsd?: number;
+    balanceUsdc?: number | null;
+    batchId?: string;
+    hasSufficientSanovaBalance?: boolean;
+  } = {}
 ): CryptoSettleUiOutcome {
   return {
     kind: 'failed',
     errorCode,
-    switchToExternal: shouldSwitchToExternalWallet(errorCode),
-    amountUsd: extras?.amountUsd,
-    balanceUsdc: extras?.balanceUsdc,
-    batchId: extras?.batchId
+    switchToExternal: shouldSwitchToExternalWallet(errorCode, {
+      hasSufficientSanovaBalance: extras.hasSufficientSanovaBalance
+    }),
+    amountUsd: extras.amountUsd,
+    balanceUsdc: extras.balanceUsdc,
+    batchId: extras.batchId
   };
+}
+
+function hasEnoughBalance(result: SanovaPayServerResult, flag?: boolean): boolean {
+  if (flag) return true;
+  if (typeof result.balanceUsdc !== 'number' || typeof result.amountUsd !== 'number') {
+    return Boolean(flag);
+  }
+  return result.balanceUsdc + 1e-9 >= result.amountUsd;
 }
 
 /**
@@ -99,10 +129,11 @@ function toFailed(
  * 1) server settle
  * 2) if auth-key signer missing → wait Privy session → grant signer → retry server
  * 3) if still blocked → client Privy settle (same wallet)
- * 4) session/wallet failures → external wallet recovery (never raw PRIVY_* in UI alone)
+ * 4) session/wallet failures → stay on Sanova when funded; external only if underfunded
  */
 export async function runCryptoWalletSettle(deps: CryptoSettleDeps): Promise<CryptoSettleUiOutcome> {
   let server = await deps.runServerPay();
+  const funded = () => hasEnoughBalance(server, deps.hasSufficientSanovaBalance);
 
   if (server.ok && server.status === 'settled') {
     return {
@@ -128,7 +159,8 @@ export async function runCryptoWalletSettle(deps: CryptoSettleDeps): Promise<Cry
     return toFailed(code, {
       amountUsd: server.amountUsd,
       balanceUsdc: server.balanceUsdc,
-      batchId: server.batchId
+      batchId: server.batchId,
+      hasSufficientSanovaBalance: funded()
     });
   }
 
@@ -141,7 +173,8 @@ export async function runCryptoWalletSettle(deps: CryptoSettleDeps): Promise<Cry
       return toFailed('PRIVY_WALLET_ADDRESS_MISMATCH', {
         amountUsd: server.amountUsd,
         balanceUsdc: server.balanceUsdc,
-        batchId: server.batchId
+        batchId: server.batchId,
+        hasSufficientSanovaBalance: funded()
       });
     }
 
@@ -175,7 +208,8 @@ export async function runCryptoWalletSettle(deps: CryptoSettleDeps): Promise<Cry
       return toFailed(code, {
         amountUsd: server.amountUsd,
         balanceUsdc: server.balanceUsdc,
-        batchId: server.batchId
+        batchId: server.batchId,
+        hasSufficientSanovaBalance: funded()
       });
     }
 
@@ -183,7 +217,8 @@ export async function runCryptoWalletSettle(deps: CryptoSettleDeps): Promise<Cry
     if (!batchId) {
       return toFailed('NO_PENDING_PURCHASE', {
         amountUsd: server.amountUsd,
-        balanceUsdc: server.balanceUsdc
+        balanceUsdc: server.balanceUsdc,
+        hasSufficientSanovaBalance: funded()
       });
     }
 
@@ -192,7 +227,8 @@ export async function runCryptoWalletSettle(deps: CryptoSettleDeps): Promise<Cry
       return toFailed(code, {
         amountUsd: server.amountUsd,
         balanceUsdc: server.balanceUsdc,
-        batchId
+        batchId,
+        hasSufficientSanovaBalance: funded()
       });
     }
 
@@ -213,7 +249,8 @@ export async function runCryptoWalletSettle(deps: CryptoSettleDeps): Promise<Cry
     return toFailed(failedCode, {
       amountUsd: server.amountUsd,
       balanceUsdc: server.balanceUsdc,
-      batchId: server.batchId
+      batchId: server.batchId,
+      hasSufficientSanovaBalance: funded()
     });
   }
 }

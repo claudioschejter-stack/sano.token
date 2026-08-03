@@ -386,7 +386,7 @@ export function AdminAccountAuditView() {
                   <ConfigRow
                     label="Privy Embedded Wallets"
                     ok={data.platformConfig.privyEmbeddedWalletEnabled}
-                    value="createOnLogin: users-without-wallets"
+                    value="createOnLogin: off (server provision)"
                   />
                   <ConfigRow
                     label="Turnstile secret (server)"

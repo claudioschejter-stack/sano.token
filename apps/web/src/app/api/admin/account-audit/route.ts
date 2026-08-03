@@ -5,7 +5,7 @@ import { isPendingInvestorWallet } from '../../../../lib/investor/provisionInves
 import { isPrivyOperatorConfigured } from '../../../../lib/privy/config';
 import { listRegistrationAttempts } from '../../../../lib/auth/registrationAttemptService';
 import { isInvestorOpenRegistration } from '../../../../lib/auth/investorAccess';
-import { pregenerateOrFetchPrivyWallet } from '../../../../lib/privy/privyWalletProvisioning';
+import { ensureSanovaPrivyWallet } from '../../../../lib/privy/privyWalletProvisioning';
 import { syncUserAccountStatus } from '../../../../lib/onboarding/syncUserAccount';
 
 export const dynamic = 'force-dynamic';
@@ -300,7 +300,8 @@ export async function POST(request: NextRequest) {
 
   for (const user of targets) {
     try {
-      const address = await pregenerateOrFetchPrivyWallet(user.email);
+      const provisioned = await ensureSanovaPrivyWallet({ userId: user.id, email: user.email });
+      const address = provisioned?.address;
       if (!address) {
         results.push({ userId: user.id, email: user.email, status: 'FAILED' });
         continue;

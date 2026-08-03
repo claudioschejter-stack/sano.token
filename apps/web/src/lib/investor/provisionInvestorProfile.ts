@@ -1,7 +1,7 @@
 import { prisma } from '@sanova/database';
 import { applyInvestorInviteAdvisorForUser } from '../invite/applyInvestorInviteAdvisor';
 import { isCuitUniqueConflict, resolveOrphanedInvestorByCuit } from './investorCuitConflict';
-import { pregenerateOrFetchPrivyWallet } from '../privy/privyWalletProvisioning';
+import { ensureSanovaPrivyWallet } from '../privy/privyWalletProvisioning';
 import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
 
 export const PENDING_INVESTOR_WALLET_PREFIX = 'pending:';
@@ -67,7 +67,8 @@ async function backfillPrivyWalletIfPending(userId: string, investorId: string, 
       return;
     }
 
-    const address = await pregenerateOrFetchPrivyWallet(email);
+    const provisioned = await ensureSanovaPrivyWallet({ userId, email });
+    const address = provisioned?.address;
     if (!address) {
       return;
     }

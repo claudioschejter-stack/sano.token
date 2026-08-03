@@ -242,7 +242,10 @@ export const privyClientConfig: PrivyClientConfig = {
   },
   embeddedWallets: {
     ethereum: {
-      createOnLogin: 'users-without-wallets'
+      // Server provisions the Custom Auth wallet (+ authorization signers).
+      // Creating another embedded wallet on login caused address drift and
+      // made Pagar try to spend an empty browser wallet while USDC sat on Sanova.
+      createOnLogin: 'off'
     },
     /** Enable gas sponsorship in Privy Dashboard → Settings → Gas */
     showWalletUIs: false

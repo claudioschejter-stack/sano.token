@@ -21,8 +21,8 @@ vi.mock('./linkedWalletPolicy', () => ({
 }));
 
 vi.mock('../privy/privyWalletProvisioning', () => ({
-  listPrivyEthereumWalletAddressesForEmail: vi.fn(),
-  pregenerateOrFetchPrivyWallet: vi.fn()
+  listPrivyEthereumWalletAddressesForInvestor: vi.fn(),
+  ensureSanovaPrivyWallet: vi.fn()
 }));
 
 vi.mock('../blockchain/autoAllowlistInvestorWallet', () => ({
