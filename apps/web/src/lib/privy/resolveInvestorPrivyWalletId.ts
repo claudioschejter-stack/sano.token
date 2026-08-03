@@ -1,30 +1,40 @@
 import { prisma } from '@sanova/database';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
-import { listPrivyEthereumWalletAddressesForEmail } from './privyWalletProvisioning';
-import { privyApiBase, privyHeaders } from './privyHttp';
+import {
+  listPrivyEthereumWalletAddressesForInvestor,
+  lookupPrivyUserByCustomAuthId,
+  lookupPrivyUserByEmail
+} from './privyWalletProvisioning';
 import type { PrivyLinkedAccount, PrivyUserRecord } from './privyUserApi';
 import { resolvePrivyEmbeddedWalletId } from './privyUserApi';
 
-async function lookupPrivyUserByEmail(email: string): Promise<PrivyUserRecord | null> {
-  const response = await fetch(`${privyApiBase()}/v1/users/email/address`, {
-    method: 'POST',
-    headers: privyHeaders(),
-    body: JSON.stringify({ address: email }),
-    cache: 'no-store'
-  });
+function resolveWalletIdFromUser(
+  privyUser: PrivyUserRecord,
+  address: string
+): string | null {
+  const walletId = resolvePrivyEmbeddedWalletId(
+    privyUser.linked_accounts as PrivyLinkedAccount[],
+    address
+  );
+  if (walletId) {
+    return walletId;
+  }
 
-  if (response.status === 404) {
-    return null;
+  for (const account of privyUser.linked_accounts ?? []) {
+    if (account.type !== 'wallet' || !account.address || !account.id) continue;
+    if (account.address.trim().toLowerCase() !== address) continue;
+    if (account.chain_type && account.chain_type !== 'ethereum') continue;
+    return account.id.trim();
   }
-  if (!response.ok) {
-    throw new Error(`PRIVY_USER_LOOKUP_FAILED:${response.status}`);
-  }
-  return (await response.json()) as PrivyUserRecord;
+
+  return null;
 }
 
 /**
  * Resolves the Privy wallet ID for the investor's canonical linked address.
  * Needed for server-side eth_sendTransaction (auto-settle).
+ *
+ * Prefers Custom Auth identity (Sanova user.id), then legacy email Privy user.
  */
 export async function resolveInvestorPrivyWalletIdForUser(userId: string): Promise<{
   address: string;
@@ -39,30 +49,39 @@ export async function resolveInvestorPrivyWalletIdForUser(userId: string): Promi
     where: { id: userId },
     select: { email: true }
   });
-  if (!user?.email) {
-    return null;
+
+  try {
+    const customUser = await lookupPrivyUserByCustomAuthId(userId);
+    if (customUser) {
+      const walletId = resolveWalletIdFromUser(customUser, address);
+      if (walletId) {
+        return { address, walletId };
+      }
+    }
+  } catch (error) {
+    console.error('[resolveInvestorPrivyWalletId] custom_auth lookup failed', error);
   }
 
-  const privyUser = await lookupPrivyUserByEmail(user.email);
-  if (!privyUser) {
-    return null;
+  if (user?.email) {
+    try {
+      const emailUser = await lookupPrivyUserByEmail(user.email);
+      if (emailUser) {
+        const walletId = resolveWalletIdFromUser(emailUser, address);
+        if (walletId) {
+          return { address, walletId };
+        }
+      }
+    } catch (error) {
+      console.error('[resolveInvestorPrivyWalletId] email lookup failed', error);
+    }
   }
 
-  const walletId = resolvePrivyEmbeddedWalletId(privyUser.linked_accounts as PrivyLinkedAccount[], address);
-  if (walletId) {
-    return { address, walletId };
-  }
-
-  // Fallback: any ethereum wallet account matching the address (incl. server wallets).
-  for (const account of privyUser.linked_accounts ?? []) {
-    if (account.type !== 'wallet' || !account.address || !account.id) continue;
-    if (account.address.trim().toLowerCase() !== address) continue;
-    if (account.chain_type && account.chain_type !== 'ethereum') continue;
-    return { address, walletId: account.id.trim() };
-  }
-
-  // Last resort: ensure address is still a Privy wallet for this email.
-  const wallets = await listPrivyEthereumWalletAddressesForEmail(user.email);
+  // Address may still be a known Privy wallet, but without a resolvable wallet id
+  // we must not guess — pay path returns PRIVY_WALLET_ID_NOT_FOUND.
+  const wallets = await listPrivyEthereumWalletAddressesForInvestor({
+    userId,
+    email: user?.email
+  });
   if (!wallets.includes(address)) {
     return null;
   }

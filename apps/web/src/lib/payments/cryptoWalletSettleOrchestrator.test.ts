@@ -29,9 +29,12 @@ describe('cryptoWalletSettleOrchestrator helpers', () => {
     expect(isPrivyAuthorizationSignerError('PRIVY_AUTHORIZATION_SIGNER_REQUIRED')).toBe(true);
   });
 
-  it('treats PRIVY_SESSION_REQUIRED as external-wallet recovery', () => {
+  it('treats PRIVY_SESSION_REQUIRED as external only when Sanova is underfunded', () => {
     expect(isPrivySessionOrWalletError('PRIVY_SESSION_REQUIRED')).toBe(true);
     expect(shouldSwitchToExternalWallet('PRIVY_SESSION_REQUIRED')).toBe(true);
+    expect(
+      shouldSwitchToExternalWallet('PRIVY_SESSION_REQUIRED', { hasSufficientSanovaBalance: true })
+    ).toBe(false);
   });
 });
 
@@ -110,7 +113,36 @@ describe('runCryptoWalletSettle', () => {
     expect(outcome).toMatchObject({ kind: 'settled', batchId: 'cart-1', amountUsd: 20 });
   });
 
-  it('reproduces screenshot failure: PRIVY_SESSION_REQUIRED → external recovery', async () => {
+  it('with funded Sanova balance: PRIVY_SESSION_REQUIRED stays on Sanova (never Mi wallet)', async () => {
+    const runServerPay = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 'failed',
+      error: 'PRIVY_AUTHORIZATION_SIGNER_REQUIRED',
+      batchId: 'cart-1',
+      amountUsd: 20,
+      balanceUsdc: 20
+    });
+    const waitForPrivySession = vi.fn().mockRejectedValue(new Error('PRIVY_SESSION_REQUIRED'));
+
+    const outcome = await runCryptoWalletSettle(
+      deps({
+        runServerPay,
+        waitForPrivySession,
+        hasSufficientSanovaBalance: true
+      })
+    );
+
+    expect(outcome).toEqual({
+      kind: 'failed',
+      errorCode: 'PRIVY_SESSION_REQUIRED',
+      switchToExternal: false,
+      amountUsd: 20,
+      balanceUsdc: 20,
+      batchId: 'cart-1'
+    });
+  });
+
+  it('infers funded Sanova from server balance/amount and blocks external switch', async () => {
     const runServerPay = vi.fn().mockResolvedValue({
       ok: false,
       status: 'failed',
@@ -123,13 +155,10 @@ describe('runCryptoWalletSettle', () => {
 
     const outcome = await runCryptoWalletSettle(deps({ runServerPay, waitForPrivySession }));
 
-    expect(outcome).toEqual({
+    expect(outcome).toMatchObject({
       kind: 'failed',
       errorCode: 'PRIVY_SESSION_REQUIRED',
-      switchToExternal: true,
-      amountUsd: 20,
-      balanceUsdc: 20,
-      batchId: 'cart-1'
+      switchToExternal: false
     });
   });
 
@@ -154,7 +183,8 @@ describe('runCryptoWalletSettle', () => {
     expect(outcome).toMatchObject({
       kind: 'failed',
       errorCode: 'PRIVY_WALLET_ADDRESS_MISMATCH',
-      switchToExternal: true
+      // Funded Sanova balance inferred from server amount/balance → stay on Sanova.
+      switchToExternal: false
     });
   });
 

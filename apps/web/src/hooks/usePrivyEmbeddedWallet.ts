@@ -22,9 +22,9 @@ export function usePrivyEmbeddedWallet() {
   const { ready, authenticated, login, logout, user, getAccessToken } = usePrivy();
   const { ready: walletsReady, wallets } = useWallets();
 
-  // Privy creates the embedded wallet asynchronously right after login
-  // (createOnLogin: 'users-without-wallets'), so `wallets` is frequently
-  // stale for a moment. Keep a ref so ensureReady() can poll fresh values
+  // Server provisions the Custom Auth wallet; the SDK may still hydrate
+  // wallets asynchronously after JWT sync, so `wallets` is frequently stale
+  // for a moment. Keep a ref so ensureReady() can poll fresh values
   // instead of the closure captured at call time.
   const walletsRef = useRef(wallets);
   useEffect(() => {

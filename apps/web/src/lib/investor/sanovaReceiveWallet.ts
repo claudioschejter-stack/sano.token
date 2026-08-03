@@ -5,8 +5,8 @@ import { linkUserWallet } from './walletService';
 import { getLinkedWalletForUser } from './linkedWalletPolicy';
 import { readWalletUsdcBalances } from '../portfolio/onChainUsdcReader';
 import {
-  listPrivyEthereumWalletAddressesForEmail,
-  pregenerateOrFetchPrivyWallet
+  ensureSanovaPrivyWallet,
+  listPrivyEthereumWalletAddressesForInvestor
 } from '../privy/privyWalletProvisioning';
 import { autoAllowlistInvestorWallet } from '../blockchain/autoAllowlistInvestorWallet';
 
@@ -82,8 +82,8 @@ export async function pickCanonicalReceiveAddress(input: {
  * Canonical Sanova USDC receive address for an investor.
  *
  * Source of truth is the server-linked wallet, reconciled against Privy wallets
- * for the investor email. Never trusts a browser Privy SDK address alone —
- * that caused checkout to show a different address than the one we watch.
+ * for Custom Auth (user.id) + email. Never trusts a browser Privy SDK address
+ * alone — that caused checkout to show a different address than the one we watch.
  */
 export async function ensureSanovaReceiveWalletForUser(userId: string): Promise<SanovaReceiveWallet | null> {
   const user = await prisma.user.findUnique({
@@ -103,7 +103,10 @@ export async function ensureSanovaReceiveWalletForUser(userId: string): Promise<
   }
 
   const linked = await getLinkedWalletForUser(userId);
-  const privyWallets = await listPrivyEthereumWalletAddressesForEmail(user.email);
+  const privyWallets = await listPrivyEthereumWalletAddressesForInvestor({
+    userId,
+    email: user.email
+  });
 
   let source: SanovaReceiveWallet['source'] = 'linked';
   let reconciled = false;
@@ -127,13 +130,15 @@ export async function ensureSanovaReceiveWalletForUser(userId: string): Promise<
   }
 
   if (!chosen) {
-    const provisioned = await pregenerateOrFetchPrivyWallet(user.email);
-    if (!provisioned) {
+    const provisioned = await ensureSanovaPrivyWallet({ userId, email: user.email });
+    if (!provisioned?.address) {
       return null;
     }
-    chosen = normalizeAddress(provisioned);
+    chosen = normalizeAddress(provisioned.address);
     source = 'privy_provision';
   } else {
+    // Still ensure Custom Auth identity exists (idempotent) so browser session can match.
+    await ensureSanovaPrivyWallet({ userId, email: user.email }).catch(() => null);
     chosen = normalizeAddress(chosen);
   }
 

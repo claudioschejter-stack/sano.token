@@ -143,7 +143,7 @@ export function CryptoWalletPanel({
         code === 'PRIVY_NOT_READY' ||
         code === 'PRIVY_PROVIDER_UNAVAILABLE'
       ) {
-        return sc.cryptoWalletPrivySessionRequired;
+        return sc.cryptoWalletPrivySessionRetry;
       }
       if (code === 'PRIVY_WALLET_ADDRESS_MISMATCH') {
         return sc.cryptoWalletPrivyAddressMismatch;
@@ -197,7 +197,7 @@ export function CryptoWalletPanel({
       sc.cryptoWalletManualReview,
       sc.cryptoWalletNoPendingPurchase,
       sc.cryptoWalletPrivyAddressMismatch,
-      sc.cryptoWalletPrivySessionRequired,
+      sc.cryptoWalletPrivySessionRetry,
       sc.cryptoWalletPrivySignerRequired
     ]
   );
@@ -370,8 +370,18 @@ export function CryptoWalletPanel({
     };
 
     try {
+      // Ensure Custom Auth identity + signed wallet exist before settle.
+      await fetch('/api/investor/wallet/provision', {
+        method: 'POST',
+        credentials: 'same-origin'
+      }).catch(() => undefined);
+
+      const sufficientSanova =
+        balanceRef.current != null && balanceRef.current + 1e-9 >= requiredRef.current;
+
       const outcome = await runCryptoWalletSettle({
         expectedWalletAddress: receiveAddress,
+        hasSufficientSanovaBalance: sufficientSanova,
         runServerPay: async () =>
           runSanovaPayFlow({
             items,

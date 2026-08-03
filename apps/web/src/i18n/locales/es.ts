@@ -3027,9 +3027,11 @@ export const es = {
     cryptoWalletPrivySignerRequired:
       'No pudimos firmar el pago desde el servidor. Tocá Pagar de nuevo — vamos a firmar desde tu wallet Sanova en esta sesión.',
     cryptoWalletPrivySessionRequired:
-      'La firma de tu wallet Sanova aún no está lista en este dispositivo. Usá «Mi wallet» (Coinbase / WalletConnect) para completar el pago ahora — tu USDC en Sanova no se movió.',
+      'La firma de tu wallet Sanova aún no está lista en este dispositivo. Tocá Pagar de nuevo en unos segundos — tu USDC en Sanova no se movió.',
+    cryptoWalletPrivySessionRetry:
+      'Estamos activando la firma de tu wallet Sanova. Tocá Pagar de nuevo — tu USDC no se movió. Si persiste, contactá a Sanova (no hace falta otra billetera).',
     cryptoWalletPrivyAddressMismatch:
-      'La wallet Privy de esta sesión no coincide con tu cuenta Sanova fondeada. Usá «Mi wallet» o contactá a Sanova — no se debitó nada.',
+      'La sesión de firma no coincide con tu cuenta Sanova fondeada. Tocá Pagar de nuevo o contactá a Sanova — no se debitó nada. No hace falta usar otra billetera mientras haya USDC en Sanova.',
     cryptoWalletHtmlGatewayError:
       'El servidor devolvió una respuesta inválida (posible despliegue en curso). Recargá la página o pagá con «Mi wallet» (Coinbase / WalletConnect).',
     cryptoWalletManualReview:

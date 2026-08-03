@@ -2983,9 +2983,11 @@ export const en = {
     cryptoWalletPrivySignerRequired:
       "We couldn’t sign the payment on the server. Tap Pay again — we’ll sign from your Sanova wallet in this session.",
     cryptoWalletPrivySessionRequired:
-      "Your Sanova wallet signing session is not ready on this device yet. Use “My wallet” (Coinbase / WalletConnect) to complete payment now — your Sanova USDC was not moved.",
+      "Your Sanova wallet signing session is not ready on this device yet. Tap Pay again in a few seconds — your Sanova USDC was not moved.",
+    cryptoWalletPrivySessionRetry:
+      "We’re activating your Sanova wallet signer. Tap Pay again — your USDC was not moved. If it persists, contact Sanova (no other wallet needed).",
     cryptoWalletPrivyAddressMismatch:
-      "This session’s Privy wallet does not match your funded Sanova account. Use “My wallet” or contact Sanova — nothing was debited.",
+      "This signing session does not match your funded Sanova account. Tap Pay again or contact Sanova — nothing was debited. No other wallet is needed while Sanova holds USDC.",
     cryptoWalletHtmlGatewayError:
       "The server returned an invalid response (deploy may still be rolling out). Reload the page or pay with “My wallet” (Coinbase / WalletConnect).",
     cryptoWalletManualReview:
