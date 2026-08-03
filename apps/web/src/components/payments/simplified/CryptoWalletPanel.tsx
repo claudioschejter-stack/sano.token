@@ -880,13 +880,6 @@ export function CryptoWalletPanel({
         mode: qrMode
       })
     : null;
-  const eip681Uri = receiveAddress
-    ? buildCryptoReceiveQrPayload({
-        receiveAddress,
-        amountUsdc,
-        mode: 'eip681_usdc'
-      })
-    : null;
 
   const handleCopyAddr = () => {
     if (!receiveAddress) return;
