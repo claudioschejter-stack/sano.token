@@ -10,6 +10,7 @@ import {
   type CollateralProjectContext
 } from './collateralRegistry';
 import { mergeCollateralTargets } from './collateralTargetsService';
+import { sanitizeCollateralExternalId } from './sanitizeCollateralExternalId';
 import { validateOraclePricing } from '../blockchain/pricingOracleValidation';
 
 export type CollateralRegistrationOutcome = {
@@ -181,10 +182,23 @@ export async function registerProjectCollateral(
     target = { ...target, status: 'SUBMITTING' };
     const result = await runCollateralAdapter(project, protocol);
 
+    /**
+     * For Morpho, `externalId` is the market id and nothing else. Adapters have
+     * historically filled it with placeholders like `MORPHO-<projectId>` when
+     * they could not get the real one, which makes the field look populated
+     * while every read of it silently falls back to recomputing the id from
+     * assumed parameters — the path that read a funded market as empty. Storing
+     * null instead lets reconciliation resolve it against the chain.
+     */
+    const resolvedExternalId = sanitizeCollateralExternalId(
+      protocol,
+      result.externalId ?? target.externalId ?? null
+    );
+
     target = {
       ...target,
       status: result.status,
-      externalId: result.externalId ?? target.externalId ?? null,
+      externalId: resolvedExternalId,
       poolUrl: result.poolUrl ?? target.poolUrl ?? null,
       oracleAddress: result.oracleAddress ?? target.oracleAddress ?? null,
       notes: result.notes ?? target.notes,
@@ -210,7 +224,7 @@ export async function registerProjectCollateral(
             : 'FAILED',
       message: result.notes ?? `${protocol}: ${result.status}`,
       address: result.oracleAddress ?? target.poolUrl ?? null,
-      externalId: result.externalId ?? null
+      externalId: resolvedExternalId
     });
   }
 
