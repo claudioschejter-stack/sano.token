@@ -82,6 +82,12 @@ function envString(name: string): string | null {
 }
 
 function envNumber(name: string, fallback: number): number {
-  const raw = Number(process.env[name]);
+  // An empty/blank var must fall back: `Number('')` is 0, which silently turned
+  // USDC into a 0-decimal token and broke every base-unit amount.
+  const value = process.env[name]?.trim();
+  if (!value) {
+    return fallback;
+  }
+  const raw = Number(value);
   return Number.isFinite(raw) && raw >= 0 ? raw : fallback;
 }
