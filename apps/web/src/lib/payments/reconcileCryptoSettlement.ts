@@ -27,6 +27,32 @@ export async function reconcileCartBatchWithTxHash(input: {
   txHash: string;
 }) {
   const payer = await getLinkedWalletForUser(input.userId);
+
+  // The investor already paid: close any allowlist gap so confirm can credit.
+  if (payer) {
+    const batchIntents = await prisma.paymentIntent.findMany({
+      where: { userId: input.userId, status: { in: ['REQUIRES_PAYMENT', 'PENDING', 'MANUAL_REVIEW'] } },
+      select: { projectId: true, metadata: true }
+    });
+    const projectIds = [
+      ...new Set(
+        batchIntents
+          .filter((row) => (row.metadata as Record<string, unknown>)?.cartBatchId === input.batchId)
+          .map((row) => row.projectId)
+      )
+    ];
+    if (projectIds.length) {
+      const { ensureInvestorAllowlistForProjects } = await import('./ensureInvestorAllowlist');
+      await ensureInvestorAllowlistForProjects({
+        userId: input.userId,
+        walletAddress: payer,
+        projectIds
+      }).catch((error) => {
+        console.error('[reconcileCartBatchWithTxHash] allowlist ensure failed', error);
+      });
+    }
+  }
+
   const intents = await verifyCartUsdcPayment({
     userId: input.userId,
     batchId: input.batchId,

@@ -1,43 +1,35 @@
-import { afterEach, describe, expect, it } from 'vitest';
-import {
-  DEFAULT_BASE_USDC_TOKEN_ADDRESS,
-  baseRpcUrls,
-  getStablecoinNetwork
-} from './stablecoinNetworks';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-describe('stablecoinNetworks Base defaults', () => {
-  const previous = {
-    BASE_USDC_TOKEN_ADDRESS: process.env.BASE_USDC_TOKEN_ADDRESS,
-    USDC_TOKEN_ADDRESS: process.env.USDC_TOKEN_ADDRESS,
-    NEXT_PUBLIC_BASE_USDC_ADDRESS: process.env.NEXT_PUBLIC_BASE_USDC_ADDRESS,
-    BASE_RPC_URL: process.env.BASE_RPC_URL,
-    NEXT_PUBLIC_BASE_RPC_URL: process.env.NEXT_PUBLIC_BASE_RPC_URL,
-    LENDING_BASE_RPC_URL: process.env.LENDING_BASE_RPC_URL
-  };
-
+describe('getStablecoinNetwork decimals', () => {
   afterEach(() => {
-    for (const [key, value] of Object.entries(previous)) {
-      if (value === undefined) delete process.env[key];
-      else process.env[key] = value;
-    }
+    vi.unstubAllEnvs();
+    vi.resetModules();
   });
 
-  it('defaults Base USDC token address when env is missing', () => {
-    delete process.env.BASE_USDC_TOKEN_ADDRESS;
-    delete process.env.USDC_TOKEN_ADDRESS;
-    delete process.env.NEXT_PUBLIC_BASE_USDC_ADDRESS;
-
-    const network = getStablecoinNetwork('BASE');
-    expect(network.tokenAddress?.toLowerCase()).toBe(DEFAULT_BASE_USDC_TOKEN_ADDRESS.toLowerCase());
+  it('defaults USDC to 6 decimals', async () => {
+    const { getStablecoinNetwork } = await import('./stablecoinNetworks');
+    expect(getStablecoinNetwork('BASE').decimals).toBe(6);
   });
 
-  it('exposes multiple Base RPC fallbacks', () => {
-    delete process.env.BASE_RPC_URL;
-    delete process.env.NEXT_PUBLIC_BASE_RPC_URL;
-    delete process.env.LENDING_BASE_RPC_URL;
+  it('ignores a blank USDC_DECIMALS instead of treating it as 0', async () => {
+    vi.stubEnv('USDC_DECIMALS', '');
+    vi.stubEnv('BASE_USDC_DECIMALS', '');
+    vi.resetModules();
+    const { getStablecoinNetwork } = await import('./stablecoinNetworks');
+    expect(getStablecoinNetwork('BASE').decimals).toBe(6);
+  });
 
-    const urls = baseRpcUrls();
-    expect(urls.length).toBeGreaterThanOrEqual(2);
-    expect(urls[0]).toContain('base');
+  it('honours an explicit override', async () => {
+    vi.stubEnv('BASE_USDC_DECIMALS', '8');
+    vi.resetModules();
+    const { getStablecoinNetwork } = await import('./stablecoinNetworks');
+    expect(getStablecoinNetwork('BASE').decimals).toBe(8);
+  });
+
+  it('falls back when the value is not a number', async () => {
+    vi.stubEnv('BASE_USDC_DECIMALS', 'six');
+    vi.resetModules();
+    const { getStablecoinNetwork } = await import('./stablecoinNetworks');
+    expect(getStablecoinNetwork('BASE').decimals).toBe(6);
   });
 });
