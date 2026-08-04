@@ -89,14 +89,36 @@ async function readPrivyWalletAddress(walletId: string): Promise<string | null> 
 /**
  * Privy wallet id that owns a given address, so ops can point
  * `PRIVY_OPERATOR_WALLET_ID` at the wallet that is actually the token owner.
+ * Uses the `address` filter, then falls back to paging the app's wallets.
  */
 async function findPrivyWalletIdByAddress(address: string): Promise<string | null> {
   const target = address.trim().toLowerCase();
-  let cursor: string | null = null;
 
+  try {
+    const direct = new URL(`${privyApiBase()}/v1/wallets`);
+    direct.searchParams.set('address', address.trim());
+    const response = await fetch(direct.toString(), {
+      headers: privyHeaders(),
+      cache: 'no-store'
+    });
+    if (response.ok) {
+      const payload = (await response.json()) as {
+        data?: Array<{ id?: string; address?: string }>;
+      };
+      const match = (payload.data ?? []).find(
+        (row) => row.address?.trim().toLowerCase() === target
+      );
+      if (match?.id) return match.id;
+    }
+  } catch {
+    // fall through to paging
+  }
+
+  let cursor: string | null = null;
   for (let page = 0; page < 10; page += 1) {
     const url = new URL(`${privyApiBase()}/v1/wallets`);
     url.searchParams.set('limit', '100');
+    url.searchParams.set('chain_type', 'ethereum');
     if (cursor) url.searchParams.set('cursor', cursor);
 
     try {
