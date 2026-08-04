@@ -112,6 +112,7 @@ export type DeploymentEvent = {
     | 'CIRCUIT_BREAKER'
     | 'KYC_ALLOWLIST'
     | 'OWNERSHIP_TRANSFER'
+    | 'ASSET_GOVERNANCE'
     | 'PRICING_ORACLE'
     | 'READY_TO_BORROW'
     | 'SYNTHETIC_RWA_FLOW'

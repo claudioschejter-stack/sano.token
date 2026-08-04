@@ -138,12 +138,6 @@ export async function setupKycOperatorModule(input: {
     process.env.TREASURY_OWNER_PRIVATE_KEY?.trim() ||
     null;
 
-  if (!privateKey) {
-    throw new Error(
-      'SAFE_OWNER_KEY_MISSING: set TOKEN_DEPLOY_PRIVATE_KEY (or TREASURY_OWNER_PRIVATE_KEY) to a Safe owner key'
-    );
-  }
-
   const provider = new JsonRpcProvider(
     input.rpcUrl?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org'
   );
@@ -152,7 +146,41 @@ export async function setupKycOperatorModule(input: {
   let signerAddress: string | null = null;
 
   try {
-    const signer = new Wallet(privateKey, provider);
+    /**
+     * Deploying only needs gas; the Safe steps need an **owner** signature.
+     * The legacy deploy key is usually not a Safe owner, so those steps are
+     * signed by the Privy Safe-owner wallet instead.
+     */
+    const deploySigner = privateKey ? new Wallet(privateKey, provider) : null;
+
+    const { resolveTreasuryOwnerSigner, isTreasuryOwnerSignerConfigured } = await import(
+      './treasuryOwnerSigner'
+    );
+    const safeReader = new Contract(safe, SAFE_ABI, provider);
+    const owners = ((await safeReader.getOwners()) as string[]).map((row) => row.toLowerCase());
+
+    let safeSigner: Signer | null = null;
+    if (deploySigner) {
+      const deployAddress = (await deploySigner.getAddress()).toLowerCase();
+      if (owners.includes(deployAddress)) {
+        safeSigner = deploySigner;
+      }
+    }
+    if (!safeSigner && isTreasuryOwnerSignerConfigured()) {
+      const privySigner = await resolveTreasuryOwnerSigner(provider, 8453);
+      const privyAddress = privySigner ? (await privySigner.getAddress()).toLowerCase() : null;
+      if (privySigner && privyAddress && owners.includes(privyAddress)) {
+        safeSigner = privySigner;
+      }
+    }
+
+    if (!deploySigner && !safeSigner) {
+      throw new Error(
+        `SAFE_OWNER_SIGNER_MISSING: configure PRIVY_SAFE_OWNER_WALLET_ID + TREASURY_OWNER_ADDRESS for a Safe owner (${owners.join(', ')})`
+      );
+    }
+
+    const signer = deploySigner ?? safeSigner!;
     signerAddress = await signer.getAddress();
 
     if (!moduleAddress) {
@@ -183,8 +211,22 @@ export async function setupKycOperatorModule(input: {
       steps.push({ step: 'deploy_module', ok: true, detail: `reused ${moduleAddress}` });
     }
 
-    const safeContract = new Contract(safe, SAFE_ABI, signer);
+    if (!safeSigner) {
+      const missing = 'SAFE_OWNER_SIGNER_MISSING';
+      for (const step of ['enable_module', 'allow_token', 'set_operator'] as const) {
+        steps.push({
+          step,
+          ok: false,
+          error: `${missing}: signer ${signerAddress} is not a Safe owner (${owners.join(', ')}). Configure PRIVY_SAFE_OWNER_WALLET_ID + TREASURY_OWNER_ADDRESS.`
+        });
+      }
+      return { safe, moduleAddress, operatorAddress, signerAddress, steps, envToSet: null };
+    }
+
+    // Safe-governed steps must be signed by an owner, not the deploy key.
+    const safeContract = new Contract(safe, SAFE_ABI, safeSigner);
     const moduleIface = new Contract(moduleAddress, MODULE_ABI, provider);
+    signerAddress = await safeSigner.getAddress();
 
     // 1. Let the module act for the Safe.
     try {
@@ -193,7 +235,7 @@ export async function setupKycOperatorModule(input: {
         steps.push({ step: 'enable_module', ok: true, detail: 'ALREADY_ENABLED' });
       } else {
         const data = safeContract.interface.encodeFunctionData('enableModule', [moduleAddress]);
-        const txHash = await execAsSafe({ safe, signer, target: safe, data });
+        const txHash = await execAsSafe({ safe, signer: safeSigner, target: safe, data });
         steps.push({ step: 'enable_module', ok: true, txHash });
       }
     } catch (error) {
@@ -215,7 +257,7 @@ export async function setupKycOperatorModule(input: {
           continue;
         }
         const data = moduleIface.interface.encodeFunctionData('setTokenAllowed', [token, true]);
-        const txHash = await execAsSafe({ safe, signer, target: moduleAddress, data });
+        const txHash = await execAsSafe({ safe, signer: safeSigner, target: moduleAddress, data });
         steps.push({ step: 'allow_token', ok: true, txHash, detail: token });
       } catch (error) {
         steps.push({
@@ -237,7 +279,7 @@ export async function setupKycOperatorModule(input: {
           operatorAddress,
           true
         ]);
-        const txHash = await execAsSafe({ safe, signer, target: moduleAddress, data });
+        const txHash = await execAsSafe({ safe, signer: safeSigner, target: moduleAddress, data });
         steps.push({ step: 'set_operator', ok: true, txHash, detail: operatorAddress });
       }
     } catch (error) {
