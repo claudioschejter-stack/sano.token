@@ -1,4 +1,5 @@
 import { JsonRpcProvider } from 'ethers';
+import { maskRpcUrl } from './maskRpcUrl';
 
 export type CandidateChain = {
   chainId: number;
@@ -66,7 +67,7 @@ async function chainHasCode(
         // A single unreachable read must not discard the whole chain.
       }
     }
-    return { chainId, name: chain.name, rpcUrl: chain.rpcUrl, withCode };
+    return { chainId, name: chain.name, rpcUrl: maskRpcUrl(chain.rpcUrl) ?? '', withCode };
   } catch {
     return null;
   } finally {

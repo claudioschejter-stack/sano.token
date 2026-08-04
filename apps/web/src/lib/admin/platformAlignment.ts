@@ -16,6 +16,7 @@ import { kycOperatorModuleAddress } from '../blockchain/kycOperatorModule';
 import { deliveryOperatorModuleAddress } from '../blockchain/deliveryOperatorModule';
 import { locateContracts, type ContractLocation } from '../blockchain/contractChainLocator';
 import { readWithRetry } from '../blockchain/rpcRetry';
+import { maskRpcUrl } from '../blockchain/maskRpcUrl';
 import { privyApiBase, privyHeaders } from '../privy/privyHttp';
 import { readSafeOwners, readSafeThreshold } from '../blockchain/safeExec';
 import { usdcDecimals, usdcTokenAddress } from '../payments/paymentConfig';
@@ -62,7 +63,8 @@ export type PlatformAlignmentReport = {
   chain: {
     deployChainId: number;
     morphoChainId: number;
-    rpcUrl: string;
+    /** Masked: the configured endpoint carries the provider API key. */
+    rpcUrl: string | null;
     rpcChainId: number | null;
     consistent: boolean;
     /** Where unreadable contracts actually have code. Empty when all reads worked. */
@@ -318,7 +320,7 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
         section: 'chain',
         code: 'RPC_UNREACHABLE',
         severity: 'BLOCKER',
-        detail: `No se pudo consultar la red en ${rpcUrl()}`,
+        detail: `No se pudo consultar la red en ${maskRpcUrl(rpcUrl())}`,
         fix: 'Revisá BASE_RPC_URL / LENDING_BASE_RPC_URL en Vercel.'
       });
     } else if (rpcChainId !== deployChainId) {
@@ -511,7 +513,7 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
         section: 'chain',
         code: 'RPC_UNRELIABLE',
         severity: 'BLOCKER',
-        detail: `${throttled.length} contrato(s) existen en la red ${deployChainId} pero el RPC no respondió a sus lecturas: ${rpcUrl()} está limitando las consultas`,
+        detail: `${throttled.length} contrato(s) existen en la red ${deployChainId} pero el RPC no respondió a sus lecturas: ${maskRpcUrl(rpcUrl())} está limitando las consultas`,
         fix: 'Usá un RPC dedicado con API key (Alchemy, QuickNode, Infura) en BASE_RPC_URL. El endpoint público no soporta esta carga, y todo lo que figure como owner ilegible es consecuencia de esto.'
       });
     }
@@ -613,7 +615,7 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
       chain: {
         deployChainId,
         morphoChainId,
-        rpcUrl: rpcUrl(),
+        rpcUrl: maskRpcUrl(rpcUrl()),
         rpcChainId,
         consistent: chainConsistent,
         contractLocations
