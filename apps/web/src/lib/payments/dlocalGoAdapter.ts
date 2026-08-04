@@ -40,7 +40,11 @@ export function buildDLocalGoOpenCheckoutUrl(input?: {
     return null;
   }
 
-  const base = (process.env.DLOCAL_CHECKOUT_BASE_URL ?? 'https://checkout.dlocalgo.com').replace(/\/$/, '');
+  // A var declared and left blank must fall through: `??` keeps '' and
+  // `new URL('/open-checkout/…')` throws, taking the fiat checkout link with it.
+  const base = (
+    process.env.DLOCAL_CHECKOUT_BASE_URL?.trim() || 'https://checkout.dlocalgo.com'
+  ).replace(/\/$/, '');
   const url = new URL(`${base}/open-checkout/${token}`);
 
   if (input?.amountLocal != null && Number.isFinite(input.amountLocal)) {
@@ -68,9 +72,9 @@ export function buildDLocalGoOpenCheckoutUrl(input?: {
 
 export function dlocalGoApiBase(): string {
   if (isDLocalGoMode()) {
-    return (process.env.DLOCAL_API_BASE_URL ?? 'https://api.dlocalgo.com').replace(/\/$/, '');
+    return (process.env.DLOCAL_API_BASE_URL?.trim() || 'https://api.dlocalgo.com').replace(/\/$/, '');
   }
-  return (process.env.DLOCAL_API_BASE_URL ?? 'https://api.dlocal.com').replace(/\/$/, '');
+  return (process.env.DLOCAL_API_BASE_URL?.trim() || 'https://api.dlocal.com').replace(/\/$/, '');
 }
 
 export function dlocalGoNotificationUrl(): string {

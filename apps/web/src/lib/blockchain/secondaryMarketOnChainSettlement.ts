@@ -6,6 +6,7 @@ import { usdcDecimals, usdcTokenAddress } from '../payments/paymentConfig';
 import { waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { resolveTreasuryOwnerSigner } from './treasuryOwnerSigner';
+import { execAsOwner } from './safeExec';
 
 const TOKEN_ABI = [
   'function kycApproved(address) view returns (bool)',
@@ -37,40 +38,18 @@ async function ensureRecipientKyc(
   signer: Signer,
   recipient: string
 ): Promise<void> {
-  const signerAddress = await signer.getAddress();
   const approved = (await assetToken.kycApproved(recipient)) as boolean;
   if (approved) {
     return;
   }
 
   const setKycData = new Interface(TOKEN_ABI).encodeFunctionData('setKyc', [recipient, true]);
-  const treasuryCode = await signer.provider!.getCode(treasuryAddress);
-  if (treasuryCode === '0x') {
-    if (signerAddress.toLowerCase() !== treasuryAddress.toLowerCase()) {
-      throw new Error('ON_CHAIN_SETTLEMENT_KYC_FAILED');
-    }
-    const tx = await signer.sendTransaction({ to: assetToken.target, data: setKycData });
-    await waitForAutomationTx(tx);
-    return;
-  }
-
-  const SAFE_ABI = [
-    'function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address payable refundReceiver,bytes signatures) payable returns (bool success)'
-  ];
-  const safe = new Contract(treasuryAddress, SAFE_ABI, signer);
-  const tx = await safe.execTransaction(
-    assetToken.target,
-    0,
-    setKycData,
-    0,
-    0,
-    0,
-    0,
-    '0x0000000000000000000000000000000000000000',
-    '0x0000000000000000000000000000000000000000',
-    '0x'
-  );
-  await waitForAutomationTx(tx);
+  await execAsOwner({
+    owner: treasuryAddress,
+    signer,
+    target: String(assetToken.target),
+    data: setKycData
+  });
 }
 
 export type SecondaryP2pSettlementInput = {

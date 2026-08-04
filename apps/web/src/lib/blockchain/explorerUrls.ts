@@ -20,7 +20,8 @@ export function resolveMorphoChainId(): number {
     process.env.LENDING_CHAIN_ID?.trim() ||
     process.env.TOKEN_DEPLOY_CHAIN_ID?.trim() ||
     '8453';
-  return Number.parseInt(raw, 10);
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 8453;
 }
 
 export function explorerUrl(chainId: number, address: string): string {

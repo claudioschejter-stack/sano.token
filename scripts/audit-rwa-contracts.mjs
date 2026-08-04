@@ -95,7 +95,21 @@ if (!slitherRan) {
 } else {
   const report = JSON.parse(readFileSync(reportPath, 'utf8'));
   const detectors = report?.results?.detectors ?? [];
-  const highSeverity = detectors.filter((d) => d.impact === 'High');
+
+  /**
+   * Test-only mocks under `contracts/test/` never ship, and they deliberately
+   * cut corners a production contract could not. Auditing them as if they were
+   * ours blocks the gate on findings nobody can act on.
+   */
+  const isProductionFinding = (finding) =>
+    (finding.elements ?? []).some((element) => {
+      const file = element?.source_mapping?.filename_relative ?? '';
+      return file && !/(^|\/)contracts\/test\//.test(file);
+    });
+
+  const highSeverity = detectors
+    .filter((d) => d.impact === 'High')
+    .filter(isProductionFinding);
   unlinkSync(reportPath);
 
   if (highSeverity.length) {

@@ -1,5 +1,6 @@
 import { Contract, type Provider, type Signer } from 'ethers';
 import { buildSafePreValidatedSignature } from './safePreValidatedSignature';
+import { waitForAutomationTx } from './automationTx';
 
 export const SAFE_ABI = [
   'function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address payable refundReceiver,bytes signatures) payable returns (bool success)',
@@ -67,6 +68,38 @@ export async function execAsSafeOwner(input: {
     '0x0000000000000000000000000000000000000000',
     buildSafePreValidatedSignature(signerAddress)
   );
-  const receipt = await tx.wait();
+  const receipt = await waitForAutomationTx(tx);
   return receipt?.hash ?? tx.hash;
+}
+
+/**
+ * Execute `data` on `target` as `owner`, which may be either a Safe or an EOA.
+ * Every server flow that acts on behalf of the treasury or governance Safe must
+ * go through here so the pre-validated signature and threshold guard stay
+ * consistent across subsystems.
+ */
+export async function execAsOwner(input: {
+  owner: string;
+  signer: Signer;
+  target: string;
+  data: string;
+}): Promise<string> {
+  const signerAddress = await input.signer.getAddress();
+  const code = await input.signer.provider!.getCode(input.owner);
+
+  if (code === '0x') {
+    if (signerAddress.toLowerCase() !== input.owner.toLowerCase()) {
+      throw new Error(`SIGNER_NOT_OWNER_EOA:${signerAddress}`);
+    }
+    const tx = await input.signer.sendTransaction({ to: input.target, data: input.data });
+    const receipt = await waitForAutomationTx(tx);
+    return receipt?.hash ?? tx.hash;
+  }
+
+  return execAsSafeOwner({
+    safe: input.owner,
+    signer: input.signer,
+    target: input.target,
+    data: input.data
+  });
 }

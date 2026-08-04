@@ -2,7 +2,14 @@ import { Contract, Interface, JsonRpcProvider, type Signer, isAddress } from 'et
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { resolveTreasuryOwnerSigner } from './treasuryOwnerSigner';
 import { resolveTreasuryAddress } from './treasuryPolicy';
-import { waitForAutomationTx } from './automationTx';
+import { execAsOwner } from './safeExec';
+import { resolveRwaOperatorSigner } from './rwaOperatorSigner';
+import { setInvestorKycAllowlist } from './kycAllowlist';
+import {
+  deliverSharesViaModule,
+  deliveryOperatorModuleAddress,
+  moduleCanDeliver
+} from './deliveryOperatorModule';
 
 const TOKEN_ABI = [
   'function kycApproved(address) view returns (bool)',
@@ -14,12 +21,6 @@ const VAULT_ABI = [
   'function balanceOf(address) view returns (uint256)',
   'function transfer(address to, uint256 amount) returns (bool)',
   'function owner() view returns (address)'
-];
-
-const SAFE_ABI = [
-  'function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address payable refundReceiver,bytes signatures) payable returns (bool success)',
-  'function getThreshold() view returns (uint256)',
-  'function getOwners() view returns (address[])'
 ];
 
 function resolveRpcUrl(chainId: number): string {
@@ -39,47 +40,12 @@ async function execAsTreasury(input: {
   target: string;
   data: string;
 }): Promise<string> {
-  const signerAddress = await input.signer.getAddress();
-  const code = await input.signer.provider!.getCode(input.treasuryAddress);
-  const isSafe = code !== '0x';
-
-  if (!isSafe) {
-    if (signerAddress.toLowerCase() !== input.treasuryAddress.toLowerCase()) {
-      throw new Error(
-        'EOA treasury: el firmante treasury debe coincidir con TOKEN_TREASURY_ADDRESS.'
-      );
-    }
-    const tx = await input.signer.sendTransaction({ to: input.target, data: input.data });
-    const receipt = await waitForAutomationTx(tx);
-    return receipt?.hash ?? tx.hash;
-  }
-
-  const safe = new Contract(input.treasuryAddress, SAFE_ABI, input.signer);
-  const owners: string[] = await safe.getOwners();
-  const signerIsOwner = owners.some(
-    (owner) => owner.toLowerCase() === signerAddress.toLowerCase()
-  );
-
-  if (!signerIsOwner) {
-    throw new Error(
-      `La wallet firmante ${signerAddress} no es owner del Safe treasury ${input.treasuryAddress}.`
-    );
-  }
-
-  const tx = await safe.execTransaction(
-    input.target,
-    0,
-    input.data,
-    0,
-    0,
-    0,
-    0,
-    '0x0000000000000000000000000000000000000000',
-    '0x0000000000000000000000000000000000000000',
-    '0x'
-  );
-  const receipt = await waitForAutomationTx(tx);
-  return receipt?.hash ?? tx.hash;
+  return execAsOwner({
+    owner: input.treasuryAddress,
+    signer: input.signer,
+    target: input.target,
+    data: input.data
+  });
 }
 
 export type MigrateTreasurySharesResult =
@@ -108,18 +74,27 @@ export async function migrateTreasuryVaultSharesToWallet(input: {
 
   const chainId = input.asset.chainId ?? 8453;
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
-  const signer = await resolveTreasuryOwnerSigner(provider, chainId);
-  if (!signer) {
+
+  /**
+   * Delivery runs through the module whenever it is wired, so a threshold-2
+   * Safe does not put a manual signature in the middle of every purchase. The
+   * Safe-owner signer is only needed for the fallback path.
+   */
+  const moduleAddress = deliveryOperatorModuleAddress();
+  const operatorSigner = moduleAddress ? await resolveRwaOperatorSigner(provider, chainId).catch(() => null) : null;
+  const signer = await resolveTreasuryOwnerSigner(provider, chainId).catch(() => null);
+
+  if (!signer && !operatorSigner) {
     return {
       ok: false,
       code: 'TREASURY_SIGNER_MISSING',
       detail:
-        'Configurá PRIVY_SAFE_OWNER_WALLET_ID + TREASURY_OWNER_ADDRESS o TREASURY_OWNER_PRIVATE_KEY.'
+        'Configurá PRIVY_SAFE_OWNER_WALLET_ID + TREASURY_OWNER_ADDRESS, o el operador de entrega con DELIVERY_OPERATOR_MODULE_ADDRESS.'
     };
   }
 
   try {
-    const assetContract = new Contract(token, TOKEN_ABI, signer);
+    const assetContract = new Contract(token, TOKEN_ABI, provider);
     const vaultContract = new Contract(vault, VAULT_ABI, provider);
 
     const treasuryShares = (await vaultContract.balanceOf(treasury)) as bigint;
@@ -138,22 +113,54 @@ export async function migrateTreasuryVaultSharesToWallet(input: {
 
     const recipientKyc = await assetContract.kycApproved(recipient);
     if (!recipientKyc) {
-      const setKycData = new Interface(TOKEN_ABI).encodeFunctionData('setKyc', [recipient, true]);
-      await execAsTreasury({
-        treasuryAddress: treasury,
-        signer,
-        target: token,
-        data: setKycData
+      // Prefers the KYC module, so this works with the Safe above threshold 1.
+      await setInvestorKycAllowlist({
+        tokenAddress: token,
+        walletAddress: recipient,
+        approved: true
       });
     }
 
-    const transferData = new Interface(VAULT_ABI).encodeFunctionData('transfer', [recipient, amount]);
-    const txHash = await execAsTreasury({
-      treasuryAddress: treasury,
-      signer,
-      target: vault,
-      data: transferData
-    });
+    let txHash: string | null = null;
+    if (moduleAddress && operatorSigner) {
+      const usable = await moduleCanDeliver({
+        moduleAddress,
+        vaultAddress: vault,
+        investorAddress: recipient,
+        amount,
+        operatorAddress: await operatorSigner.getAddress(),
+        provider
+      });
+      if (usable) {
+        txHash = await deliverSharesViaModule({
+          moduleAddress,
+          vaultAddress: vault,
+          investorAddress: recipient,
+          amount,
+          signer: operatorSigner
+        });
+      }
+    }
+
+    if (!txHash) {
+      if (!signer) {
+        return {
+          ok: false,
+          code: 'DELIVERY_MODULE_UNAVAILABLE',
+          detail: `El módulo ${moduleAddress ?? 'no configurado'} no puede entregar este vault y no hay firmante del Safe.`
+        };
+      }
+      const transferData = new Interface(VAULT_ABI).encodeFunctionData('transfer', [
+        recipient,
+        amount
+      ]);
+      txHash = await execAsTreasury({
+        treasuryAddress: treasury,
+        signer,
+        target: vault,
+        data: transferData
+      });
+    }
 
     const recipientShares = (await vaultContract.balanceOf(recipient)) as bigint;
     if (recipientShares < amount) {
