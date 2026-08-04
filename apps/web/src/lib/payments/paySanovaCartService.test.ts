@@ -269,7 +269,8 @@ describe('paySanovaCartForUser', () => {
     expect(mockTransfer).toHaveBeenCalledWith(
       expect.objectContaining({
         walletId: 'w-1',
-        amountUsdc: 20,
+        // Treasury receives the investment plus the investor's gas coverage.
+        amountUsdc: 20.25,
         destinationAddress: '0xTreasury000000000000000000000000000001',
         chain: 'base'
       })
@@ -308,12 +309,13 @@ describe('paySanovaCartForUser', () => {
     });
 
     expect(mockTransfer).not.toHaveBeenCalled();
+    // Investment + paymaster estimate + flat coverage for whitelist/delivery gas.
     expect(result).toMatchObject({
       ok: true,
       status: 'waiting_funds',
-      amountUsd: 20.012345,
-      networkFeeUsd: 0.012345,
-      payableUsdc: 20.012345
+      amountUsd: 20.262345,
+      networkFeeUsd: 0.262345,
+      payableUsdc: 20.262345
     });
   });
 

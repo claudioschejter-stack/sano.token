@@ -15,6 +15,7 @@ import { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 import { findAvailabilityShortfalls } from './assertProjectAvailability';
 import { ensureInvestorAllowlistForProjects } from './ensureInvestorAllowlist';
+import { buildSettlementCharges, type SettlementCharges } from './investorGasCoverage';
 import { quoteBaseUserPaysGasUsd } from './baseUserPaysGasQuote';
 import { closeStaleOpenCartBatches } from './closeStaleCartBatches';
 import { autoReconcileTreasuryPaymentForUser } from './reconcileCryptoSettlement';
@@ -105,6 +106,8 @@ async function transferToTreasuryAndVerify(input: {
   batchId: string;
   /** Investment USDC (cart), excluding gas. */
   amountUsd: number;
+  /** USDC sent to treasury: investment + investor gas coverage. */
+  transferUsd?: number;
   networkFeeUsd: number;
   payableUsdc: number;
   walletId: string;
@@ -149,7 +152,7 @@ async function transferToTreasuryAndVerify(input: {
   try {
     const transfer = await privyTransferUsdc({
       walletId: input.walletId,
-      amountUsdc: input.amountUsd,
+      amountUsdc: input.transferUsd ?? input.amountUsd,
       destinationAddress: input.treasuryAddress,
       chain: 'base',
       requireAuthorizationSignature: true,
@@ -234,20 +237,24 @@ async function quotePayableForPrepared(input: {
   investmentUsd: number;
   walletAddress: string;
   transactions: Array<{ to: string; data: string; value: string }>;
-}): Promise<{ networkFeeUsd: number; payableUsdc: number }> {
+}): Promise<SettlementCharges> {
   try {
     const quote = await quoteBaseUserPaysGasUsd({
       fromAddress: input.walletAddress,
       transactions: input.transactions
     });
-    const networkFeeUsd = quote.networkFeeUsd;
-    return {
-      networkFeeUsd,
-      payableUsdc: Math.round((input.investmentUsd + networkFeeUsd) * 1e6) / 1e6
-    };
+    // Investor-driven movements pay their own gas end to end: their transfer plus
+    // the whitelist and share-delivery txs that Sanova signs on their behalf.
+    return buildSettlementCharges({
+      investmentUsd: input.investmentUsd,
+      paymasterFeeUsd: quote.networkFeeUsd
+    });
   } catch (error) {
-    console.warn('[pay-sanova] live gas quote failed; requiring investment only', error);
-    return { networkFeeUsd: 0, payableUsdc: input.investmentUsd };
+    console.warn('[pay-sanova] live gas quote failed; charging flat coverage only', error);
+    return buildSettlementCharges({
+      investmentUsd: input.investmentUsd,
+      paymasterFeeUsd: 0
+    });
   }
 }
 
@@ -475,6 +482,8 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
     userId: input.userId,
     batchId: pending.batchId,
     amountUsd: pending.amountUsd,
+    // Treasury receives investment + gas coverage so it can fund the delivery txs.
+    transferUsd: payable.treasuryTransferUsd,
     networkFeeUsd: payable.networkFeeUsd,
     payableUsdc: payable.payableUsdc,
     walletId: walletRef.walletId,
