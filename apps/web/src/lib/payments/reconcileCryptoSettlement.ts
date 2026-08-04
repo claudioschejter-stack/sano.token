@@ -47,6 +47,62 @@ export async function reconcileCartBatchWithTxHash(input: {
   return intents;
 }
 
+import { pickBatchForPayment, type ReconcilableCartBatch } from './pickBatchForPayment';
+
+export type { ReconcilableCartBatch };
+export { pickBatchForPayment };
+
+/**
+ * Open cart batches for an investor **regardless of TTL**.
+ * A payment can land after `expiresAt`, and that money still has to be credited.
+ */
+export async function findReconcilableCartBatches(
+  userId: string
+): Promise<ReconcilableCartBatch[]> {
+  const intents = await prisma.paymentIntent.findMany({
+    where: {
+      userId,
+      method: 'USDC_ONCHAIN',
+      status: { in: ['REQUIRES_PAYMENT', 'PENDING', 'MANUAL_REVIEW'] }
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, amountUsd: true, metadata: true, createdAt: true, expiresAt: true }
+  });
+
+  const batches = new Map<string, ReconcilableCartBatch>();
+  const now = Date.now();
+
+  for (const intent of intents) {
+    const metadata = (intent.metadata as Record<string, unknown>) ?? {};
+    const batchId =
+      typeof metadata.cartBatchId === 'string' && metadata.cartBatchId.trim()
+        ? metadata.cartBatchId.trim()
+        : null;
+    if (!batchId) continue;
+
+    const current = batches.get(batchId) ?? {
+      batchId,
+      amountUsd: 0,
+      intentIds: [],
+      createdAt: intent.createdAt.toISOString(),
+      expired: true
+    };
+    current.amountUsd += Number(intent.amountUsd);
+    current.intentIds.push(intent.id);
+    if (intent.expiresAt.getTime() > now) {
+      current.expired = false;
+    }
+    if (intent.createdAt.toISOString() > current.createdAt) {
+      current.createdAt = intent.createdAt.toISOString();
+    }
+    batches.set(batchId, current);
+  }
+
+  return [...batches.values()]
+    .map((row) => ({ ...row, amountUsd: Number(row.amountUsd.toFixed(6)) }))
+    .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+}
+
 /** Treasury-bound USDC transfers sent by this investor's linked wallet. */
 export async function findTreasuryPaymentsFromWallet(input: {
   payerAddress: string;
@@ -119,7 +175,11 @@ export type AutoReconcileResult = {
 export async function autoReconcileTreasuryPaymentForUser(
   userId: string
 ): Promise<AutoReconcileResult> {
-  const pending = await findPendingUsdcCartPurchase(userId);
+  // Prefer a live batch; fall back to expired ones so late payments still credit.
+  const pending =
+    (await findPendingUsdcCartPurchase(userId)) ??
+    (await findReconcilableCartBatches(userId))[0] ??
+    null;
   if (!pending) {
     return {
       userId,

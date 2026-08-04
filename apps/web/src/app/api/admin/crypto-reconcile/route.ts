@@ -5,7 +5,9 @@ import { getLinkedWalletForUser } from '../../../../lib/investor/linkedWalletPol
 import { closeStaleOpenCartBatches } from '../../../../lib/payments/closeStaleCartBatches';
 import {
   autoReconcileTreasuryPaymentForUser,
+  findReconcilableCartBatches,
   findTreasuryPaymentsFromWallet,
+  pickBatchForPayment,
   reconcileCartBatchWithTxHash
 } from '../../../../lib/payments/reconcileCryptoSettlement';
 import { findPendingUsdcCartPurchase } from '../../../../lib/payments/privyInboundUsdcService';
@@ -48,6 +50,7 @@ export async function GET(request: NextRequest) {
 
   const payer = await getLinkedWalletForUser(userId);
   const pending = await findPendingUsdcCartPurchase(userId);
+  const openBatches = await findReconcilableCartBatches(userId);
   const payments = payer
     ? await findTreasuryPaymentsFromWallet({ payerAddress: payer }).catch(() => [])
     : [];
@@ -66,6 +69,8 @@ export async function GET(request: NextRequest) {
     userId,
     payerAddress: payer,
     pendingBatch: pending,
+    // Includes batches past their TTL — those still need crediting if paid.
+    openBatches,
     treasuryPayments: payments.map((row) => ({
       ...row,
       alreadyUsed: usedHashes.includes(row.txHash.toLowerCase())
@@ -121,16 +126,32 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.txHash?.trim()) {
-      const batchId =
-        body.batchId?.trim() || (await findPendingUsdcCartPurchase(userId))?.batchId || '';
+      const txHash = body.txHash.trim();
+      let batchId = body.batchId?.trim() || '';
+
       if (!batchId) {
-        return NextResponse.json({ error: 'NO_PENDING_BATCH' }, { status: 400 });
+        const payer = await getLinkedWalletForUser(userId);
+        const payments = payer
+          ? await findTreasuryPaymentsFromWallet({ payerAddress: payer }).catch(() => [])
+          : [];
+        const paidUsdc =
+          payments.find((row) => row.txHash.toLowerCase() === txHash.toLowerCase())?.amountUsdc ??
+          null;
+
+        // Expired batches must still be creditable: the money already moved.
+        const batches = await findReconcilableCartBatches(userId);
+        const picked = pickBatchForPayment({ batches, paidUsdc });
+        batchId = picked?.batchId ?? '';
+
+        if (!batchId) {
+          return NextResponse.json(
+            { error: 'NO_RECONCILABLE_BATCH', paidUsdc, openBatches: batches },
+            { status: 400 }
+          );
+        }
       }
-      const intents = await reconcileCartBatchWithTxHash({
-        userId,
-        batchId,
-        txHash: body.txHash.trim()
-      });
+
+      const intents = await reconcileCartBatchWithTxHash({ userId, batchId, txHash });
       return NextResponse.json({ ok: true, batchId, intents });
     }
 
