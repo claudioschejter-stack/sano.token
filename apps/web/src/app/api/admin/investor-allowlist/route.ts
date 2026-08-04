@@ -9,6 +9,8 @@ import {
   privySponsorServerTransactions,
   resolveRwaOperatorAddressEnv
 } from '../../../../lib/privy/config';
+import { privyApiBase, privyHeaders } from '../../../../lib/privy/privyHttp';
+import { resolveChainId } from '../../../../lib/blockchain/explorerUrls';
 import {
   ensureInvestorAllowlistForProjects,
   findAllowlistGaps
@@ -30,34 +32,117 @@ async function resolveUserId(input: { userId?: string | null; email?: string | n
   return user?.id ?? '';
 }
 
+async function readEthBalance(address: string, rpcUrl?: string): Promise<string | null> {
+  const urls = rpcUrl ? [rpcUrl] : baseRpcUrls();
+  for (const url of urls) {
+    // No staticNetwork: a misconfigured RPC must be allowed to reveal its chain.
+    const provider = new JsonRpcProvider(url);
+    try {
+      const balance = formatEther(await provider.getBalance(address));
+      provider.destroy();
+      return balance;
+    } catch {
+      provider.destroy();
+    }
+  }
+  return null;
+}
+
+/** Chain the configured RPC really serves — mismatches broke signing silently. */
+async function readRpcChain(rpcUrl: string): Promise<number | null> {
+  const provider = new JsonRpcProvider(rpcUrl);
+  try {
+    const network = await provider.getNetwork();
+    provider.destroy();
+    return Number(network.chainId);
+  } catch {
+    provider.destroy();
+    return null;
+  }
+}
+
+function rpcHost(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).host;
+  } catch {
+    return null;
+  }
+}
+
+/** Address Privy will actually broadcast from for `PRIVY_OPERATOR_WALLET_ID`. */
+async function readPrivyWalletAddress(walletId: string): Promise<string | null> {
+  if (!walletId) return null;
+  try {
+    const response = await fetch(`${privyApiBase()}/v1/wallets/${walletId}`, {
+      headers: privyHeaders(),
+      cache: 'no-store'
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { address?: string };
+    return payload.address?.trim() ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Whitelisting is signed by the RWA operator server wallet, which pays gas in
- * ETH unless app sponsorship covers it. Surfaced so ops can see where to top up.
+ * ETH unless app sponsorship covers it.
+ *
+ * Privy broadcasts from the wallet behind `PRIVY_OPERATOR_WALLET_ID`, **not**
+ * from `RWA_OPERATOR_ADDRESS`. When they differ, a funded `RWA_OPERATOR_ADDRESS`
+ * hides an empty broadcasting wallet — hence both balances are reported.
  */
 async function operatorStatus() {
   const address = resolveRwaOperatorAddressEnv();
-  let ethBalance: string | null = null;
+  const walletId = privyOperatorWalletId();
+  const walletIdAddress = await readPrivyWalletAddress(walletId);
 
-  if (address) {
-    for (const url of baseRpcUrls()) {
-      const provider = new JsonRpcProvider(url, 8453, { staticNetwork: true });
-      try {
-        ethBalance = formatEther(await provider.getBalance(address));
-        provider.destroy();
-        break;
-      } catch {
-        provider.destroy();
-      }
-    }
-  }
+  const ethBalance = address ? await readEthBalance(address) : null;
+  const walletIdEthBalance =
+    walletIdAddress && walletIdAddress.toLowerCase() !== address?.toLowerCase()
+      ? await readEthBalance(walletIdAddress)
+      : ethBalance;
+
+  const addressMatchesWalletId = Boolean(
+    address && walletIdAddress && address.toLowerCase() === walletIdAddress.toLowerCase()
+  );
+
+  const fundTarget = walletIdAddress ?? address;
+
+  // `setKyc` is broadcast on resolveChainId(); if the configured RPC serves a
+  // different chain, balances look healthy while signing fails on an empty chain.
+  const signingChainId = resolveChainId();
+  const primaryRpc = baseRpcUrls()[0];
+  const rpcChainId = primaryRpc ? await readRpcChain(primaryRpc) : null;
+  const mainnetBalance = address
+    ? await readEthBalance(address, 'https://mainnet.base.org')
+    : null;
 
   return {
     address,
-    walletIdConfigured: Boolean(privyOperatorWalletId()),
+    walletIdConfigured: Boolean(walletId),
+    walletIdAddress,
+    addressMatchesWalletId,
     ethBalance,
+    walletIdEthBalance,
+    /** Balance on Base mainnet regardless of the configured RPC. */
+    ethBalanceBaseMainnet: mainnetBalance,
+    signingChainId,
+    rpcChainId,
+    rpcHost: rpcHost(primaryRpc),
+    chainMismatchWarning:
+      rpcChainId != null && rpcChainId !== signingChainId
+        ? `Configured RPC (${rpcHost(primaryRpc)}) serves chain ${rpcChainId} but transactions are signed for chain ${signingChainId}. Fix BASE_RPC_URL / TOKEN_DEPLOY_CHAIN_ID.`
+        : null,
     gasSponsorshipEnabled: privySponsorServerTransactions(),
-    fundGasHint: address
-      ? `Send Base ETH to ${address} (0.005 ETH covers many setKyc calls) or GET /api/cron/fund-gas?to=${address}`
+    mismatchWarning:
+      walletIdAddress && !addressMatchesWalletId
+        ? `RWA_OPERATOR_ADDRESS (${address}) is not the wallet Privy broadcasts from (${walletIdAddress}). Fund ${walletIdAddress} or point RWA_OPERATOR_ADDRESS at it.`
+        : null,
+    fundGasHint: fundTarget
+      ? `Send Base ETH to ${fundTarget} (0.005 ETH covers many setKyc calls) or GET /api/cron/fund-gas?to=${fundTarget}`
       : null
   };
 }
