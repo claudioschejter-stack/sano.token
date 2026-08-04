@@ -87,6 +87,45 @@ async function readPrivyWalletAddress(walletId: string): Promise<string | null> 
 }
 
 /**
+ * Privy wallet id that owns a given address, so ops can point
+ * `PRIVY_OPERATOR_WALLET_ID` at the wallet that is actually the token owner.
+ */
+async function findPrivyWalletIdByAddress(address: string): Promise<string | null> {
+  const target = address.trim().toLowerCase();
+  let cursor: string | null = null;
+
+  for (let page = 0; page < 10; page += 1) {
+    const url = new URL(`${privyApiBase()}/v1/wallets`);
+    url.searchParams.set('limit', '100');
+    if (cursor) url.searchParams.set('cursor', cursor);
+
+    try {
+      const response = await fetch(url.toString(), {
+        headers: privyHeaders(),
+        cache: 'no-store'
+      });
+      if (!response.ok) return null;
+      const payload = (await response.json()) as {
+        data?: Array<{ id?: string; address?: string }>;
+        next_cursor?: string | null;
+      };
+
+      const match = (payload.data ?? []).find(
+        (row) => row.address?.trim().toLowerCase() === target
+      );
+      if (match?.id) return match.id;
+
+      cursor = payload.next_cursor ?? null;
+      if (!cursor) return null;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Whitelisting is signed by the RWA operator server wallet, which pays gas in
  * ETH unless app sponsorship covers it.
  *
@@ -139,8 +178,11 @@ async function operatorStatus() {
     gasSponsorshipEnabled: privySponsorServerTransactions(),
     mismatchWarning:
       walletIdAddress && !addressMatchesWalletId
-        ? `RWA_OPERATOR_ADDRESS (${address}) is not the wallet Privy broadcasts from (${walletIdAddress}). Fund ${walletIdAddress} or point RWA_OPERATOR_ADDRESS at it.`
+        ? `RWA_OPERATOR_ADDRESS (${address}) is not the wallet Privy broadcasts from (${walletIdAddress}). Set PRIVY_OPERATOR_WALLET_ID to the wallet that owns ${address}.`
         : null,
+    /** Wallet id whose address is `RWA_OPERATOR_ADDRESS` — paste into PRIVY_OPERATOR_WALLET_ID. */
+    suggestedWalletIdForAddress:
+      address && !addressMatchesWalletId ? await findPrivyWalletIdByAddress(address) : null,
     fundGasHint: fundTarget
       ? `Send Base ETH to ${fundTarget} (0.005 ETH covers many setKyc calls) or GET /api/cron/fund-gas?to=${fundTarget}`
       : null
