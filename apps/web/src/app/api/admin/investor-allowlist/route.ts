@@ -10,6 +10,7 @@ import {
   resolveRwaOperatorAddressEnv
 } from '../../../../lib/privy/config';
 import { privyApiBase, privyHeaders } from '../../../../lib/privy/privyHttp';
+import { resolveChainId } from '../../../../lib/blockchain/explorerUrls';
 import {
   ensureInvestorAllowlistForProjects,
   findAllowlistGaps
@@ -31,9 +32,11 @@ async function resolveUserId(input: { userId?: string | null; email?: string | n
   return user?.id ?? '';
 }
 
-async function readEthBalance(address: string): Promise<string | null> {
-  for (const url of baseRpcUrls()) {
-    const provider = new JsonRpcProvider(url, 8453, { staticNetwork: true });
+async function readEthBalance(address: string, rpcUrl?: string): Promise<string | null> {
+  const urls = rpcUrl ? [rpcUrl] : baseRpcUrls();
+  for (const url of urls) {
+    // No staticNetwork: a misconfigured RPC must be allowed to reveal its chain.
+    const provider = new JsonRpcProvider(url);
     try {
       const balance = formatEther(await provider.getBalance(address));
       provider.destroy();
@@ -43,6 +46,28 @@ async function readEthBalance(address: string): Promise<string | null> {
     }
   }
   return null;
+}
+
+/** Chain the configured RPC really serves — mismatches broke signing silently. */
+async function readRpcChain(rpcUrl: string): Promise<number | null> {
+  const provider = new JsonRpcProvider(rpcUrl);
+  try {
+    const network = await provider.getNetwork();
+    provider.destroy();
+    return Number(network.chainId);
+  } catch {
+    provider.destroy();
+    return null;
+  }
+}
+
+function rpcHost(url: string | undefined): string | null {
+  if (!url) return null;
+  try {
+    return new URL(url).host;
+  } catch {
+    return null;
+  }
 }
 
 /** Address Privy will actually broadcast from for `PRIVY_OPERATOR_WALLET_ID`. */
@@ -86,6 +111,15 @@ async function operatorStatus() {
 
   const fundTarget = walletIdAddress ?? address;
 
+  // `setKyc` is broadcast on resolveChainId(); if the configured RPC serves a
+  // different chain, balances look healthy while signing fails on an empty chain.
+  const signingChainId = resolveChainId();
+  const primaryRpc = baseRpcUrls()[0];
+  const rpcChainId = primaryRpc ? await readRpcChain(primaryRpc) : null;
+  const mainnetBalance = address
+    ? await readEthBalance(address, 'https://mainnet.base.org')
+    : null;
+
   return {
     address,
     walletIdConfigured: Boolean(walletId),
@@ -93,6 +127,15 @@ async function operatorStatus() {
     addressMatchesWalletId,
     ethBalance,
     walletIdEthBalance,
+    /** Balance on Base mainnet regardless of the configured RPC. */
+    ethBalanceBaseMainnet: mainnetBalance,
+    signingChainId,
+    rpcChainId,
+    rpcHost: rpcHost(primaryRpc),
+    chainMismatchWarning:
+      rpcChainId != null && rpcChainId !== signingChainId
+        ? `Configured RPC (${rpcHost(primaryRpc)}) serves chain ${rpcChainId} but transactions are signed for chain ${signingChainId}. Fix BASE_RPC_URL / TOKEN_DEPLOY_CHAIN_ID.`
+        : null,
     gasSponsorshipEnabled: privySponsorServerTransactions(),
     mismatchWarning:
       walletIdAddress && !addressMatchesWalletId

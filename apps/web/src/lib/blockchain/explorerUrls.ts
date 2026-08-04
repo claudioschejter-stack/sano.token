@@ -3,8 +3,14 @@ import { chainExplorerAddressUrl, resolveChainRpcUrl } from './supportedChains';
 export { resolveChainRpcUrl };
 
 export function resolveChainId(): number {
-  const raw = process.env.TOKEN_DEPLOY_CHAIN_ID ?? process.env.NEXT_PUBLIC_CHAIN_ID ?? '8453';
-  return Number.parseInt(raw, 10);
+  // Blank vars must fall through: `?? ` keeps '' and parseInt('') is NaN, which
+  // produced `caip2: eip155:NaN` and testnet RPC fallbacks in production.
+  const raw =
+    process.env.TOKEN_DEPLOY_CHAIN_ID?.trim() ||
+    process.env.NEXT_PUBLIC_CHAIN_ID?.trim() ||
+    '8453';
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 8453;
 }
 
 /** Chain for Morpho borrow markets (defaults to Base mainnet in production). */
