@@ -213,6 +213,15 @@ export function privyOperatorWalletId(): string {
   return process.env.PRIVY_OPERATOR_WALLET_ID?.trim() ?? '';
 }
 
+/**
+ * Pay gas for Privy **server wallet** transactions with the app's gas credits
+ * (Dashboard → Gas sponsorship). Lets operator/treasury ops run without holding
+ * ETH; falls back to the wallet's own ETH when disabled or out of credits.
+ */
+export function privySponsorServerTransactions(): boolean {
+  return process.env.PRIVY_SPONSOR_SERVER_TX?.trim() !== 'false';
+}
+
 export function resolveRwaOperatorAddressEnv(): string | null {
   return process.env.RWA_OPERATOR_ADDRESS?.trim() || null;
 }
