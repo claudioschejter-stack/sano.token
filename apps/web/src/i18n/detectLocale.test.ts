@@ -39,12 +39,24 @@ describe('detectLocale', () => {
     ).toBe('es');
   });
 
-  it('uses country locale when browser prefers another language in strict geo countries', () => {
+  // The device language beats the IP hint: carriers in South America often
+  // route through a neighbouring country and used to force the wrong language.
+  it('prefers the browser language over the country hint', () => {
     expect(
       resolveInitialLocale({
         stored: null,
         countryHint: 'AR',
         browserLanguages: ['en-US']
+      })
+    ).toBe('en');
+  });
+
+  it('falls back to the country hint when no browser language matches', () => {
+    expect(
+      resolveInitialLocale({
+        stored: null,
+        countryHint: 'AR',
+        browserLanguages: ['ko-KR']
       })
     ).toBe('es');
   });

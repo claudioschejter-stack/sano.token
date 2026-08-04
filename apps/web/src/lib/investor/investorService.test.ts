@@ -20,8 +20,9 @@ const baseUser = {
 };
 
 describe('assertInvestorCheckoutEligible', () => {
-  it('rejects checkout when TOTP is required but not enabled', () => {
-    expect(() => assertInvestorCheckoutEligible(baseUser)).toThrow('TOTP_REQUIRED');
+  // TOTP is opt-in, so it must not stand between an approved investor and checkout.
+  it('allows checkout without TOTP', () => {
+    expect(() => assertInvestorCheckoutEligible(baseUser)).not.toThrow();
   });
 
   it('allows checkout when TOTP is enabled', () => {

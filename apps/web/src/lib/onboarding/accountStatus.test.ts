@@ -82,7 +82,7 @@ describe('isAccountOperational wallet policy', () => {
     ).toBe(false);
   });
 
-  it('requires linked wallet and TOTP for INVESTOR', () => {
+  it('requires a linked wallet for INVESTOR', () => {
     expect(
       isAccountOperational({
         ...baseUser,
@@ -95,16 +95,17 @@ describe('isAccountOperational wallet policy', () => {
       isAccountOperational({
         ...baseUser,
         systemRole: 'INVESTOR',
-        walletAddress: '0x1234567890123456789012345678901234567890',
-        totpEnabled: false
+        walletAddress: null,
+        totpEnabled: true
       })
     ).toBe(false);
   });
 });
 
+// TOTP is opt-in on desktop, so it gates nobody: mobile login would break.
 describe('requiresTotpSetup', () => {
-  it('requires TOTP for investors with KYC approved and linked wallet', () => {
-    expect(requiresTotpSetup(investorUser)).toBe(true);
+  it('never gates an investor', () => {
+    expect(requiresTotpSetup(investorUser)).toBe(false);
     expect(requiresTotpSetup({ ...investorUser, walletAddress: null })).toBe(false);
     expect(requiresTotpSetup({ ...investorUser, kycStatus: 'PENDING' })).toBe(false);
   });
@@ -116,8 +117,8 @@ describe('requiresTotpSetup', () => {
 });
 
 describe('isAccountOperational TOTP policy', () => {
-  it('blocks INVESTOR without TOTP when KYC and wallet are ready', () => {
-    expect(isAccountOperational({ ...investorUser, totpEnabled: false })).toBe(false);
+  it('lets an INVESTOR operate without TOTP once KYC and wallet are ready', () => {
+    expect(isAccountOperational({ ...investorUser, totpEnabled: false })).toBe(true);
     expect(isAccountOperational({ ...investorUser, totpEnabled: true })).toBe(true);
   });
 
