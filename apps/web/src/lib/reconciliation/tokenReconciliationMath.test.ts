@@ -1,10 +1,40 @@
 import { describe, expect, it } from 'vitest';
 import {
+  auditTreasuryCoverage,
   compareHolding,
   reconcileProjectSupplyMath,
   sharesToTokens,
   tokensToShares
 } from './tokenReconciliationMath';
+
+describe('auditTreasuryCoverage', () => {
+  it('covers pending deliveries when treasury holds enough shares', () => {
+    expect(auditTreasuryCoverage({ pendingDeliveryTokens: 3, treasuryTokens: 10 })).toEqual({
+      pendingDeliveryTokens: 3,
+      treasuryTokens: 10,
+      shortfallTokens: 0,
+      covered: true
+    });
+  });
+
+  it('reports the shortfall when investors paid for more than treasury holds', () => {
+    expect(auditTreasuryCoverage({ pendingDeliveryTokens: 12, treasuryTokens: 4 })).toEqual({
+      pendingDeliveryTokens: 12,
+      treasuryTokens: 4,
+      shortfallTokens: 8,
+      covered: false
+    });
+  });
+
+  it('stays unknown when treasury shares could not be read', () => {
+    expect(auditTreasuryCoverage({ pendingDeliveryTokens: 1, treasuryTokens: null })).toEqual({
+      pendingDeliveryTokens: 1,
+      treasuryTokens: null,
+      shortfallTokens: null,
+      covered: null
+    });
+  });
+});
 
 describe('sharesToTokens', () => {
   it('converts 18-decimal shares to whole tokens', () => {

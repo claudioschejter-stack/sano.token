@@ -48,6 +48,42 @@ export function compareHolding(input: {
   return { status: delta < 0 ? 'SHORT_ONCHAIN' : 'EXTRA_ONCHAIN', deltaTokens: delta };
 }
 
+export type TreasuryCoverage = {
+  pendingDeliveryTokens: number;
+  treasuryTokens: number | null;
+  /** Tokens the treasury is short of to honour pending deliveries. */
+  shortfallTokens: number | null;
+  covered: boolean | null;
+};
+
+/**
+ * Can the treasury still deliver every confirmed-but-undelivered purchase?
+ * Investors already paid for these, so a shortfall is an obligation, not a warning.
+ */
+export function auditTreasuryCoverage(input: {
+  pendingDeliveryTokens: number;
+  treasuryTokens: number | null;
+}): TreasuryCoverage {
+  if (input.treasuryTokens === null) {
+    return {
+      pendingDeliveryTokens: input.pendingDeliveryTokens,
+      treasuryTokens: null,
+      shortfallTokens: null,
+      covered: null
+    };
+  }
+
+  const shortfall = Number(
+    Math.max(0, input.pendingDeliveryTokens - input.treasuryTokens).toFixed(6)
+  );
+  return {
+    pendingDeliveryTokens: input.pendingDeliveryTokens,
+    treasuryTokens: input.treasuryTokens,
+    shortfallTokens: shortfall,
+    covered: shortfall <= 1e-6
+  };
+}
+
 export type ProjectSupplyReconciliation = {
   totalTokens: number;
   availableTokens: number;

@@ -2,11 +2,13 @@ import { prisma } from '@sanova/database';
 import { resolveTreasuryAddress } from '../blockchain/treasuryPolicy';
 import { readVaultPosition } from '../portfolio/onChainVaultReader';
 import {
+  auditTreasuryCoverage,
   compareHolding,
   reconcileProjectSupplyMath,
   sharesToTokens,
   type ProjectSupplyReconciliation,
-  type ReconcileStatus
+  type ReconcileStatus,
+  type TreasuryCoverage
 } from './tokenReconciliationMath';
 import { readVaultShareMovements, readVaultSupplyAndBalance, type VaultShareMovement } from './vaultShareMovements';
 
@@ -183,6 +185,12 @@ export type ProjectReconciliationReport = ProjectSupplyReconciliation & {
   vaultAddress: string | null;
   treasuryAddress: string | null;
   investorCount: number;
+  /** Confirmed purchases still owed vault shares. */
+  treasuryCoverage: TreasuryCoverage;
+  /** Confirmed intents still flagged as holding a supply reservation. */
+  doubleReservedIntentIds: string[];
+  /** Reserved but unpaid tokens (open carts holding supply). */
+  openReservedTokens: number;
   movements?: VaultShareMovement[];
   issues: string[];
 };
@@ -236,7 +244,55 @@ export async function reconcileProjectSupply(input: {
     treasuryShares
   });
 
+  const projectIntents = await prisma.paymentIntent.findMany({
+    where: { projectId: project.id },
+    select: { id: true, status: true, tokenCount: true, metadata: true }
+  });
+
+  let pendingDeliveryTokens = 0;
+  let openReservedTokens = 0;
+  const doubleReservedIntentIds: string[] = [];
+
+  for (const intent of projectIntents) {
+    const metadata = (intent.metadata as Record<string, unknown>) ?? {};
+    const reserved = metadata.supplyReserved === true;
+
+    if (intent.status === 'CONFIRMED') {
+      const delivered =
+        metadata.vaultShareDeliveryStatus === 'DELIVERED' ||
+        metadata.vaultShareDeliveryStatus === 'DELIVERED_ONCHAIN' ||
+        (typeof metadata.vaultShareDeliveryTxHash === 'string' &&
+          metadata.vaultShareDeliveryTxHash.trim().length > 0);
+      if (metadata.purchaseMode === 'ERC4626_DEPOSIT' && !delivered) {
+        pendingDeliveryTokens += intent.tokenCount;
+      }
+      // Confirm consumes the reservation; a leftover flag double-counts supply.
+      if (reserved) doubleReservedIntentIds.push(intent.id);
+      continue;
+    }
+
+    if ((intent.status === 'REQUIRES_PAYMENT' || intent.status === 'PENDING') && reserved) {
+      openReservedTokens += intent.tokenCount;
+    }
+  }
+
+  const treasuryCoverage = auditTreasuryCoverage({
+    pendingDeliveryTokens,
+    treasuryTokens: math.treasuryTokens
+  });
+
   const issues: string[] = [];
+
+  if (treasuryCoverage.covered === false) {
+    issues.push(
+      `treasury is short ${treasuryCoverage.shortfallTokens} share-token(s) for ${pendingDeliveryTokens} paid-but-undelivered token(s).`
+    );
+  }
+  if (doubleReservedIntentIds.length > 0) {
+    issues.push(
+      `${doubleReservedIntentIds.length} confirmed intent(s) still flagged supplyReserved — availableTokens may be double-counted.`
+    );
+  }
   if (math.supplyStatus === 'SHORT_ONCHAIN') {
     issues.push(
       `availableTokens says ${math.soldByAvailability} sold but investments book ${bookedByInvestments} — ${math.supplyDeltaTokens} token(s) reserved without a confirmed purchase.`
@@ -278,6 +334,9 @@ export async function reconcileProjectSupply(input: {
     vaultAddress: project.vaultAddress,
     treasuryAddress,
     investorCount,
+    treasuryCoverage,
+    doubleReservedIntentIds,
+    openReservedTokens,
     movements,
     issues
   };

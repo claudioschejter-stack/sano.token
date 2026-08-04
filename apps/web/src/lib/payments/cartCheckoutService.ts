@@ -966,6 +966,23 @@ export async function verifyCartUsdcPayment(input: {
     throw new Error('INVALID_PAYMENT_METHOD');
   }
 
+  // One on-chain payment settles one batch. Without this, reconciling several
+  // retry batches with the same tx would credit tokens for a single payment.
+  const alreadyUsed = await prisma.paymentIntent.findFirst({
+    where: {
+      txHash: input.txHash,
+      status: 'CONFIRMED',
+      NOT: { id: { in: intents.map((row) => row.id) } }
+    },
+    select: { id: true, metadata: true }
+  });
+  if (alreadyUsed) {
+    const usedBatch = (alreadyUsed.metadata as Record<string, unknown> | null)?.cartBatchId;
+    throw new Error(
+      `TX_HASH_ALREADY_USED:${typeof usedBatch === 'string' ? usedBatch : alreadyUsed.id}`
+    );
+  }
+
   const first = intents[0];
   const metadata = (first.metadata as Record<string, unknown>) ?? {};
   const network = getStablecoinNetwork(String(metadata.stablecoinNetwork ?? 'BASE'));
@@ -1052,6 +1069,7 @@ export async function verifyCartUsdcPayment(input: {
   const iface = new ethers.Interface(ERC20_TRANSFER_ABI);
   const expectedTo = ethers.getAddress(treasuryAddress);
 
+  let paidBaseUnits = 0n;
   const matchingLog = receipt.logs
     .filter((log) => log.address.toLowerCase() === usdcAddress.toLowerCase())
     .find((log) => {
@@ -1065,7 +1083,12 @@ export async function verifyCartUsdcPayment(input: {
       const from = ethers.getAddress(parsed.args.from as string).toLowerCase();
       const to = ethers.getAddress(parsed.args.to as string);
       const value = parsed.args.value as bigint;
-      return to === expectedTo && value >= expectedAmount && (!expectedFrom || from === expectedFrom);
+      const matches =
+        to === expectedTo && value >= expectedAmount && (!expectedFrom || from === expectedFrom);
+      if (matches) {
+        paidBaseUnits = value;
+      }
+      return matches;
     });
 
   provider.destroy();
@@ -1073,6 +1096,8 @@ export async function verifyCartUsdcPayment(input: {
   if (!matchingLog) {
     throw new Error('USDC_TRANSFER_NOT_FOUND');
   }
+
+  const overpaidBaseUnits = paidBaseUnits > expectedAmount ? paidBaseUnits - expectedAmount : 0n;
 
   return confirmCartPurchaseBatch({
     userId: input.userId,
@@ -1083,6 +1108,9 @@ export async function verifyCartUsdcPayment(input: {
       txHash: input.txHash,
       totalUsd: totalUsd.toFixed(6),
       expectedUsdcBaseUnits: expectedAmount.toString(),
+      // Recorded so treasury reconciliation can explain treasury surplus.
+      paidUsdcBaseUnits: paidBaseUnits.toString(),
+      overpaidUsdcBaseUnits: overpaidBaseUnits.toString(),
       treasuryAddress: expectedTo
     }
   });
