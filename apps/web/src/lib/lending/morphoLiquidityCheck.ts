@@ -3,6 +3,7 @@ import type { AdminAssetRecord } from '../admin/assetsService';
 import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin/assetsService';
 import { notifyMorphoLiquidity } from '../admin/automationAlerts';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
+import { isTransientRpcError, readWithRetry } from '../blockchain/rpcRetry';
 import { getLendingChainConfig } from './baseContracts';
 import {
   buildDefaultMorphoMarketParams,
@@ -140,7 +141,10 @@ export async function probeMorphoLiquidityStatus(asset: AdminAssetRecord) {
       provider
     );
     const marketId = resolveMorphoMarketId(morphoTarget, params);
-    const market = await morpho.market(marketId);
+    // Rethrows so the catch can tell a throttled read from a real revert.
+    const market = (await readWithRetry(() => morpho.market(marketId), {
+      rethrow: true
+    })) as Record<string, bigint | undefined> & Array<bigint | undefined>;
     const totalSupplyAssets = BigInt(market.totalSupplyAssets ?? market[0] ?? 0);
     const totalBorrowAssets = BigInt(market.totalBorrowAssets ?? market[2] ?? 0);
     const availableAssets = totalSupplyAssets > totalBorrowAssets ? totalSupplyAssets - totalBorrowAssets : 0n;
@@ -151,6 +155,16 @@ export async function probeMorphoLiquidityStatus(asset: AdminAssetRecord) {
     return { status, availableAssets: availableAssets.toString() };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Morpho liquidity probe failed';
+
+    /**
+     * A throttled read is not an illiquid market. Recording FAILED for one made
+     * the platform report an asset as not ready to borrow long after the market
+     * had liquidity, because nothing re-runs the probe on its own.
+     */
+    if (isTransientRpcError(error)) {
+      return { status: 'UNKNOWN' as const, availableAssets: '0', error: message };
+    }
+
     await updateAdminAsset(asset.id, { morphoLiquidityStatus: 'FAILED' });
     return { status: 'FAILED' as const, availableAssets: '0', error: message };
   } finally {

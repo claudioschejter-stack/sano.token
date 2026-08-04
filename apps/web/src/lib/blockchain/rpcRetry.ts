@@ -42,7 +42,16 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  */
 export async function readWithRetry<T>(
   read: () => Promise<T>,
-  options?: { attempts?: number; baseDelayMs?: number }
+  options?: {
+    attempts?: number;
+    baseDelayMs?: number;
+    /**
+     * Rethrow the last error instead of returning null, so the caller can tell
+     * a throttled read from a genuine revert. Swallowing it loses that
+     * distinction, and callers that persist the outcome need it.
+     */
+    rethrow?: boolean;
+  }
 ): Promise<T | null> {
   const attempts = options?.attempts ?? 3;
   const baseDelay = options?.baseDelayMs ?? 250;
@@ -52,6 +61,7 @@ export async function readWithRetry<T>(
       return await read();
     } catch (error) {
       if (!isTransientRpcError(error) || attempt === attempts - 1) {
+        if (options?.rethrow) throw error;
         return null;
       }
       await sleep(baseDelay * 2 ** attempt);
