@@ -3,31 +3,19 @@ import { ethers } from 'ethers';
 import { baseRpcUrls, getStablecoinNetwork } from '../payments/stablecoinNetworks';
 import { resolveTreasuryAddress } from '../blockchain/treasuryPolicy';
 import { recordTokenMovement } from './tokenMovementLedger';
+import { platformAddressRegistry, type PlatformAddress } from './platformAddressRegistry';
+import { resolveLedgerStartBlock } from './ledgerWatermark';
+import { attributeMovement, classifyMovement, classifyShareMovement } from './classifyMovement';
 
 const TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const RPC_CHUNK = 9_500;
 const DEFAULT_LOOKBACK = 40_000;
+/** Ceiling on one run, so a long outage cannot produce an unbounded scan. */
+const MAX_SPAN_BLOCKS = 400_000;
 
 type OwnerLookup = {
-  userIdByAddress: Map<string, { userId: string; investorId: string | null }>;
+  registry: Map<string, PlatformAddress>;
 };
-
-async function loadOwners(): Promise<OwnerLookup> {
-  const users = await prisma.user.findMany({
-    where: { walletAddress: { not: null } },
-    select: { id: true, walletAddress: true, investorId: true }
-  });
-
-  const userIdByAddress = new Map<string, { userId: string; investorId: string | null }>();
-  for (const user of users) {
-    if (!user.walletAddress) continue;
-    userIdByAddress.set(user.walletAddress.trim().toLowerCase(), {
-      userId: user.id,
-      investorId: user.investorId
-    });
-  }
-  return { userIdByAddress };
-}
 
 async function withProvider<T>(run: (provider: ethers.JsonRpcProvider) => Promise<T>): Promise<T> {
   let lastError: unknown = null;
@@ -60,10 +48,17 @@ async function indexTransfers(input: {
 
   return withProvider(async (provider) => {
     const latest = await provider.getBlockNumber();
+    // Resume where the ledger left off, so a skipped run leaves no hole.
+    const startBlock = await resolveLedgerStartBlock({
+      contractAddress: contract,
+      latestBlock: latest,
+      fallbackLookback: input.lookbackBlocks,
+      maxSpan: MAX_SPAN_BLOCKS
+    });
     let indexed = 0;
 
-    for (let end = latest; end > latest - input.lookbackBlocks; end -= RPC_CHUNK) {
-      const start = Math.max(0, end - RPC_CHUNK + 1);
+    for (let start = startBlock; start <= latest; start += RPC_CHUNK) {
+      const end = Math.min(start + RPC_CHUNK - 1, latest);
       const logs = await provider.getLogs({
         address: contract,
         topics: [TRANSFER_TOPIC],
@@ -85,18 +80,24 @@ async function indexTransfers(input: {
           continue;
         }
 
-        const owner = input.owners.userIdByAddress.get(toKey) ?? input.owners.userIdByAddress.get(fromKey);
-        const isMint = fromKey === ethers.ZeroAddress.toLowerCase();
-        const isBurn = toKey === ethers.ZeroAddress.toLowerCase();
+        const fromEntry = input.owners.registry.get(fromKey);
+        const toEntry = input.owners.registry.get(toKey);
 
         const kind =
           input.asset === 'USDC'
-            ? 'USDC_PAYMENT'
-            : isMint
-              ? 'RWA_SHARE_MINT'
-              : isBurn
-                ? 'RWA_SHARE_BURN'
-                : 'RWA_SHARE_TRANSFER';
+            ? classifyMovement({
+                asset: 'USDC',
+                fromRole: fromEntry?.role ?? null,
+                toRole: toEntry?.role ?? null
+              })
+            : classifyShareMovement({
+                fromAddress: from,
+                toAddress: to,
+                fromRole: fromEntry?.role ?? null,
+                toRole: toEntry?.role ?? null
+              });
+
+        const attribution = attributeMovement(fromEntry, toEntry);
 
         await recordTokenMovement({
           kind,
@@ -110,10 +111,12 @@ async function indexTransfers(input: {
           logIndex: log.index,
           blockNumber: log.blockNumber,
           projectId: input.projectId ?? null,
-          userId: owner?.userId ?? null,
-          investorId: owner?.investorId ?? null,
+          userId: attribution.userId,
+          investorId: attribution.investorId,
           metadata: {
             source: 'vault-indexer',
+            fromRole: fromEntry?.role ?? null,
+            toRole: toEntry?.role ?? null,
             treasury: input.treasuryAddress?.toLowerCase() ?? null
           }
         });
@@ -141,7 +144,8 @@ export async function indexTokenMovements(input?: {
   projectId?: string | null;
 }): Promise<IndexTokenMovementsResult> {
   const lookbackBlocks = input?.lookbackBlocks ?? DEFAULT_LOOKBACK;
-  const owners = await loadOwners();
+  const registry = await platformAddressRegistry();
+  const owners: OwnerLookup = { registry };
   const network = getStablecoinNetwork('BASE');
   const treasuryAddress =
     resolveTreasuryAddress(network.treasuryAddress) ?? network.treasuryAddress ?? null;
@@ -172,10 +176,16 @@ export async function indexTokenMovements(input?: {
   }
 
   let usdcIndexed = 0;
-  if (network.tokenAddress && treasuryAddress) {
-    // USDC has huge volume: only movements touching treasury or investor wallets.
-    const relevant = new Set<string>([treasuryAddress.toLowerCase()]);
-    for (const key of owners.userIdByAddress.keys()) relevant.add(key);
+  if (network.tokenAddress) {
+    /**
+     * USDC is far too busy to index wholesale, so it is filtered by address —
+     * and that filter is the registry. Previously it held only the token
+     * treasury and wallets saved on `User`, so rent from the stablecoin
+     * treasury, liquidity going to Morpho and gas moved between operators all
+     * fell outside it and left no trace.
+     */
+    const relevant = new Set<string>(registry.keys());
+    if (treasuryAddress) relevant.add(treasuryAddress.toLowerCase());
 
     usdcIndexed = await indexTransfers({
       contractAddress: network.tokenAddress,
