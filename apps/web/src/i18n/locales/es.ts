@@ -2649,6 +2649,8 @@ export const es = {
     sectionTokens: 'Tokenes',
     sectionTokensHint: 'Posiciones RWA tokenizadas',
     sectionTokensEmpty: 'Sin posiciones en tokens RWA.',
+    walletVerifiedTokens: 'Verificado en tu wallet (on-chain)',
+    walletPendingTokens: 'En tu wallet: {tokens} · entrega en proceso',
     sectionStablecoins: 'Stablecoins',
     sectionStablecoinsHint: 'USDC en cada red',
     sectionStablecoinsEmpty: 'Sin posiciones en stablecoins.',
@@ -2973,6 +2975,19 @@ export const es = {
     cryptoWalletTrackingCentsNote: ' · incluye centavos de seguimiento para detectar tu pago automáticamente',
     cryptoWalletPaymentReceivedTitle: '¡Pago recibido!',
     cryptoWalletPaymentReceivedBody: 'Detectamos tu USDC y acreditamos los tokens en tu wallet Sanova.',
+    cryptoWalletPurchaseSuccessTitle: 'Compra exitosa',
+    cryptoWalletPurchaseSuccessBody:
+      'Se acreditaron {tokens} token(s) RWA en tu wallet Sanova y {amount} USDC llegaron al treasury.',
+    cryptoWalletPurchaseSettlingTitle: 'Confirmando compra…',
+    cryptoWalletPurchaseSettlingBody:
+      'El USDC ya salió de tu wallet. Estamos confirmando el treasury y acreditando tus tokens RWA.',
+    cryptoWalletPurchaseDeliveryFailedTitle: 'Pago confirmado · tokens en proceso',
+    cryptoWalletPurchaseDeliveryFailedBody:
+      'Recibimos tu USDC pero la entrega de tokens quedó pendiente de revisión. Sanova la completa sin que pagues de nuevo.',
+    cryptoWalletSuccessStepTreasury: 'USDC recibido en treasury (Base)',
+    cryptoWalletSuccessStepTokens: 'Tokens RWA en tu wallet',
+    cryptoWalletSuccessViewTx: 'Ver en BaseScan',
+    cryptoWalletSuccessViewPortfolio: 'Ver mi portfolio',
     cryptoWalletDepositReceivedTitle: '¡Depósito recibido!',
     cryptoWalletDepositReceivedBody: 'Tu saldo USDC en la wallet Sanova ya está disponible.',
     cryptoWalletWaitingPayment: 'Esperando tu pago · se confirma solo, sin pegar el hash',

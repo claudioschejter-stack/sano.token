@@ -27,6 +27,10 @@ import {
   cryptoReceiveQrImageUrl,
   type CryptoReceiveQrMode
 } from '../../../lib/payments/cryptoReceiveQr';
+import {
+  summarizeCartSettlement,
+  type CartSettlementSummary
+} from '../../../lib/payments/cartSettlementConfirmation';
 import { formatUsdPrecise, roundUsdc } from '../../../lib/payments/formatUsdPrecise';
 import { normalizeCartLineItems } from '../../../lib/payments/normalizeCartLineItems';
 import { runSanovaPayFlow } from '../../../lib/payments/runSanovaPayFlow';
@@ -41,6 +45,7 @@ const PRIVY_AUTH_QUORUM_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUO
 
 const QR_SIZE = 220;
 const USDC_BASE = BASE_USDC_TOKEN_ADDRESS;
+const BASESCAN_TX = 'https://basescan.org/tx/';
 const BASE_RPC = process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 /** Live User-pays gas quote validity window while the crypto panel is open. */
 const GAS_QUOTE_TTL_SEC = 30;
@@ -139,6 +144,9 @@ export function CryptoWalletPanel({
   const mountedRef = useRef(true);
   /** Last Privy failure reason from the server, appended to the UI message. */
   const lastSettleDetailRef = useRef<string | null>(null);
+  /** Settled batch used to confirm USDC → treasury and RWA → investor wallet. */
+  const [settledBatchId, setSettledBatchId] = useState<string | null>(null);
+  const [settlement, setSettlement] = useState<CartSettlementSummary | null>(null);
 
   const networkFeeUsdc = Math.max(routeNetworkFeeUsdc, localNetworkFeeUsdc);
   // Always investment + gas for purchase; deposit mode stays at loaded amount.
@@ -234,6 +242,56 @@ export function CryptoWalletPanel({
       totalUsd: amountUsdc
     });
   }, [mode, investmentUsdc, includedGasUsdc, amountUsdc]);
+
+  // Poll until both legs are verified: USDC at treasury and RWA in the wallet.
+  useEffect(() => {
+    if (phase !== 'done' || !settledBatchId) return;
+    let cancelled = false;
+    let attempts = 0;
+
+    const poll = async () => {
+      attempts += 1;
+      try {
+        const res = await fetch(
+          `/api/marketplace/cart/status?batchId=${encodeURIComponent(settledBatchId)}&sync=1`,
+          { credentials: 'same-origin', cache: 'no-store' }
+        );
+        const parsed = await readJsonResponse<{
+          status?: {
+            paymentIntents?: Array<{
+              status?: string;
+              txHash?: string | null;
+              tokenCount?: number;
+              metadata?: Record<string, unknown> | null;
+            }>;
+          };
+        }>(res);
+        const intents = parsed.data.status?.paymentIntents ?? [];
+        if (cancelled || !intents.length) return;
+        const summary = summarizeCartSettlement(intents);
+        setSettlement(summary);
+        if (summary.tokensDelivered || summary.deliveryFailed) {
+          cancelled = true;
+        }
+      } catch {
+        // keep polling; success card waits for confirmation
+      }
+    };
+
+    void poll();
+    const id = window.setInterval(() => {
+      if (cancelled || attempts >= 12) {
+        window.clearInterval(id);
+        return;
+      }
+      void poll();
+    }, 3000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [phase, settledBatchId]);
 
   const fundShortfallUsdc = Math.max(
     0,
@@ -598,6 +656,7 @@ export function CryptoWalletPanel({
       }
 
       if (outcome.kind === 'settled') {
+        setSettledBatchId(outcome.batchId ?? null);
         setPhase('done');
         onFundedRef.current?.();
         return;
@@ -1084,15 +1143,105 @@ export function CryptoWalletPanel({
         ) : null}
       </div>
 
-      {phase === 'done' ? (
+      {phase === 'done' && mode === 'purchase' ? (
+        <div
+          className={`space-y-3 rounded-xl border px-4 py-5 ${
+            settlement?.tokensDelivered
+              ? 'border-terminal-success/50 bg-terminal-success/10'
+              : settlement?.deliveryFailed
+                ? 'border-amber-500/40 bg-amber-900/10'
+                : 'border-terminal-primary/40 bg-terminal-primary/10'
+          }`}
+        >
+          <div className="flex flex-col items-center gap-2 text-center">
+            {settlement?.tokensDelivered ? (
+              <CheckCircle2 size={32} className="text-terminal-success" />
+            ) : (
+              <Loader2 size={28} className="animate-spin text-terminal-primary" />
+            )}
+            <p
+              className={`text-base font-bold uppercase tracking-wide ${
+                settlement?.tokensDelivered ? 'text-terminal-success' : 'text-terminal-primary'
+              }`}
+            >
+              {settlement?.tokensDelivered
+                ? sc.cryptoWalletPurchaseSuccessTitle
+                : settlement?.deliveryFailed
+                  ? sc.cryptoWalletPurchaseDeliveryFailedTitle
+                  : sc.cryptoWalletPurchaseSettlingTitle}
+            </p>
+            <p className="text-xs text-terminal-muted">
+              {settlement?.tokensDelivered
+                ? formatMessage(sc.cryptoWalletPurchaseSuccessBody, {
+                    tokens: String(settlement.tokenCount),
+                    amount: formatUsdcAmount(investmentUsdc)
+                  })
+                : settlement?.deliveryFailed
+                  ? sc.cryptoWalletPurchaseDeliveryFailedBody
+                  : sc.cryptoWalletPurchaseSettlingBody}
+            </p>
+          </div>
+
+          <div className="space-y-1.5 rounded-lg border border-terminal-border bg-terminal-card px-3 py-2.5">
+            <div className="flex items-center justify-between gap-2 text-[11px]">
+              <span className="flex items-center gap-1.5 text-terminal-text">
+                {settlement?.paid ? (
+                  <CheckCircle2 size={13} className="text-terminal-success" />
+                ) : (
+                  <Loader2 size={13} className="animate-spin text-terminal-primary" />
+                )}
+                {sc.cryptoWalletSuccessStepTreasury}
+              </span>
+              {settlement?.treasuryTxHash ? (
+                <a
+                  href={`${BASESCAN_TX}${settlement.treasuryTxHash}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-terminal-primary underline-offset-2 hover:underline"
+                >
+                  {sc.cryptoWalletSuccessViewTx}
+                </a>
+              ) : null}
+            </div>
+            <div className="flex items-center justify-between gap-2 text-[11px]">
+              <span className="flex items-center gap-1.5 text-terminal-text">
+                {settlement?.tokensDelivered ? (
+                  <CheckCircle2 size={13} className="text-terminal-success" />
+                ) : (
+                  <Loader2 size={13} className="animate-spin text-terminal-primary" />
+                )}
+                {sc.cryptoWalletSuccessStepTokens}
+              </span>
+              {settlement?.shareTxHashes[0] ? (
+                <a
+                  href={`${BASESCAN_TX}${settlement.shareTxHashes[0]}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-terminal-primary underline-offset-2 hover:underline"
+                >
+                  {sc.cryptoWalletSuccessViewTx}
+                </a>
+              ) : null}
+            </div>
+          </div>
+
+          {settlement?.tokensDelivered ? (
+            <a
+              href="/dashboard/portfolio"
+              className="flex w-full min-h-11 items-center justify-center gap-2 rounded-xl bg-terminal-success py-3 text-sm font-bold text-white shadow-lg"
+            >
+              <CheckCircle2 size={16} />
+              {sc.cryptoWalletSuccessViewPortfolio}
+            </a>
+          ) : null}
+        </div>
+      ) : phase === 'done' ? (
         <div className="flex flex-col items-center gap-2 rounded-xl border border-terminal-success/40 bg-terminal-success/10 px-4 py-6 text-center">
           <CheckCircle2 size={28} className="text-terminal-success" />
           <p className="text-sm font-bold text-terminal-success">
-            {mode === 'purchase' ? sc.cryptoWalletPaymentReceivedTitle : sc.cryptoWalletDepositReceivedTitle}
+            {sc.cryptoWalletDepositReceivedTitle}
           </p>
-          <p className="text-xs text-terminal-muted">
-            {mode === 'purchase' ? sc.cryptoWalletPaymentReceivedBody : sc.cryptoWalletDepositReceivedBody}
-          </p>
+          <p className="text-xs text-terminal-muted">{sc.cryptoWalletDepositReceivedBody}</p>
         </div>
       ) : (
         <div className="space-y-3 rounded-xl border border-terminal-primary/30 bg-terminal-bg/80 p-4">

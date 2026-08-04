@@ -18,7 +18,7 @@ Client must **not** create a second wallet (`createOnLogin: 'off'`).
 
 | Invariant | Where | How to verify |
 |---|---|---|
-| One ethereum embedded wallet per email | Privy | `GET /api/admin/privy-diagnostics?email=…` → `duplicateWallets` empty |
+| One ethereum embedded wallet per email | Privy | `GET /api/admin/privy-diagnostics?email=…` → `duplicateWallets` empty. Clean up with `POST /api/admin/privy-diagnostics { "action": "archive_duplicates", "email": "…" }` (archives empty forks; refuses funded wallets) |
 | Dashboard never mints wallets on login | Privy Dashboard → Embedded wallets → Ethereum → **create on login = off** | diagnostics `appConfig.ethereumCreateOnLogin === 'off'` |
 | App key can spend | Wallet record `additional_signers` contains `PRIVY_AUTHORIZATION_KEY_QUORUM_ID` | diagnostics `authorization.quorumIsAdditionalSigner === true` |
 | Gas without ETH | Dashboard → Gas sponsorship → **User pays** + **Base / USDC** | wallet with 0 ETH still settles |
@@ -102,6 +102,13 @@ Older email-provisioned wallets need a **one-time** authorization-key grant (Das
 | CORS error on that same request | Browser hiding the 401/429 body | Fix verification; ignore CORS as primary |
 | 429 Too Many Requests | Retry storm after failed auth | Wait ~1 min; fix Dashboard; client now cools down 60s |
 | `PRIVY_AUTHORIZATION_SIGNER_REQUIRED` with funded Sanova | Wallet has USDC but no app signer | Dashboard additional signer on that address |
+| `INSUFFICIENT_SUPPLY` on Pagar | The project sold out between building the cart and paying | Correct behaviour — no USDC is taken. The investor's USDC stays in their Sanova wallet and shows under **Mi cartera**. |
+| Delivery impossible (treasury has no shares) | Investor paid but shares cannot be delivered | `POST /api/admin/crypto-reconcile { email, batchId, action: "refund", reason, refundTxHash? }` → marks REFUNDED, returns tokens to supply, records `USDC_REFUND` in the bitácora. Send the USDC back from treasury and pass its `refundTxHash` to link both sides. |
+| `TX_HASH_ALREADY_USED:<batch>` | The same on-chain payment was used to confirm another batch | Correct behaviour — one payment settles one batch. Find the real payment with `GET /api/admin/crypto-reconcile`. |
+| Tokens missing / supply looks wrong | DB booked vs on-chain vault shares drifted | `GET /api/admin/token-reconciliation?email=…` (investor holdings + project supply + persisted `ledger`) and `&movements=1` to also pull the live RPC view. `issues: []` means everything reconciles. |
+| Several open 20 USDC carts for one purchase | Each failed attempt left its batch in `REQUIRES_PAYMENT` | Settle now expires siblings before creating a batch and after settling. Manual: `POST /api/admin/crypto-reconcile { email, action: "close_stale" }` (add `batchId` to keep one). |
+| Reserved tokens still out of stock | Vercel **Hobby** only allows daily crons, so `/api/cron/expire-stale-reservations` runs once a day (14:00 UTC) | A throttled sweep also runs whenever any investor starts a checkout (max once per 5 min per instance). On Pro, set the cron back to `0 * * * *`. |
+| Investor debited but cart still open | Transfer landed on-chain after the settle response window | `GET /api/admin/crypto-reconcile?email=…` lists treasury payments from their wallet; `POST` with `{ email, txHash }` (or `{ email }` for auto-match) confirms the batch, credits tokens and decrements supply. Settle also self-reconciles now before reporting failure. |
 | `PRIVY_TRANSFER_FAILED` | Transfer API rejected settle | Read the `detail` in the checkout message / server log. `zero_correct_authorization_signatures` → signature URL/body mismatch. Insufficient gas → Dashboard gas is not **User pays + Base/USDC**. |
 | `Duplicate signer(s) provided when updating wallet` (PATCH 400) | Quorum already an additional signer | Benign — client `addSigners` treats it as success |
 | `PRIVY_WALLET_ADDRESS_MISMATCH` | Custom Auth session wallet ≠ funded legacy email wallet | In checkout use **Autorizar wallet Sanova fondeada** (email OTP → `addSigners` on funded address), then **Pagar** again. Prevent forks: `ensureSanovaPrivyWallet` must never create a second wallet for the same email. Admin: `POST /api/admin/account-audit` with `{ "action": "pin_original", "userId": "…" }` pins DB to the original email wallet and lists duplicates (delete empty forks in Privy Dashboard). |

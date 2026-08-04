@@ -180,15 +180,22 @@ export async function collectPrivyPayDiagnostics(userId: string): Promise<PrivyP
       `Authorization quorum ${quorumIdEnv} is neither owner nor additional signer on wallet ${walletRef?.walletId}.`
     );
   }
+
+  // Not payment-blocking: settle uses the linked wallet directly. Kept as a
+  // warning so duplicates get cleaned up without masking real blockers.
   if (ethereum && ethereum.create_on_login && ethereum.create_on_login !== 'off') {
-    blockers.push(
+    warnings.push(
       `Dashboard embedded wallets → ethereum.create_on_login = "${String(
         ethereum.create_on_login
-      )}". Set it to "off" or Privy keeps minting duplicate wallets on Custom Auth login.`
+      )}". Privy can still mint extra wallets on login; server provisioning already refuses to fork.`
     );
   }
   if (duplicateWallets.length > 0) {
-    warnings.push(`Duplicate Privy wallets for this investor: ${duplicateWallets.join(', ')}`);
+    warnings.push(
+      `Duplicate Privy wallets for this investor: ${duplicateWallets.join(
+        ', '
+      )} — archive them with POST /api/admin/privy-diagnostics { action: "archive_duplicates" }.`
+    );
   }
   if (balances.ethBase != null && balances.ethBase === 0) {
     warnings.push(

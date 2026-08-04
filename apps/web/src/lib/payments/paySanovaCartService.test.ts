@@ -11,6 +11,10 @@ const mockWaitTransfer = vi.fn();
 const mockVerify = vi.fn();
 const mockFindMany = vi.fn();
 const mockIsAuth = vi.fn(() => true);
+const mockShortfalls = vi.fn();
+const mockCloseStale = vi.fn();
+const mockRecordMovements = vi.fn();
+const mockAutoReconcile = vi.fn();
 
 vi.mock('@sanova/database', () => ({
   prisma: {
@@ -77,6 +81,22 @@ vi.mock('./stablecoinNetworks', () => ({
   })
 }));
 
+vi.mock('./assertProjectAvailability', () => ({
+  findAvailabilityShortfalls: (...args: unknown[]) => mockShortfalls(...args)
+}));
+
+vi.mock('./closeStaleCartBatches', () => ({
+  closeStaleOpenCartBatches: (...args: unknown[]) => mockCloseStale(...args)
+}));
+
+vi.mock('./recordSettlementMovements', () => ({
+  recordSettlementMovements: (...args: unknown[]) => mockRecordMovements(...args)
+}));
+
+vi.mock('./reconcileCryptoSettlement', () => ({
+  autoReconcileTreasuryPaymentForUser: (...args: unknown[]) => mockAutoReconcile(...args)
+}));
+
 import { classifyPrivySendError, paySanovaCartForUser } from './paySanovaCartService';
 
 describe('classifyPrivySendError', () => {
@@ -105,6 +125,48 @@ describe('paySanovaCartForUser', () => {
     mockPrepareTreasury.mockResolvedValue({
       chainId: 8453,
       transactions: [{ to: '0xusdc', data: '0xabc', value: '0' }]
+    });
+    mockShortfalls.mockResolvedValue([]);
+    mockCloseStale.mockResolvedValue({ closedBatchIds: [], closedIntentIds: [], releasedTokens: 0 });
+    mockRecordMovements.mockResolvedValue({ paymentUsdc: 20, gasFeeUsdc: 0.004253, recorded: 2 });
+    mockAutoReconcile.mockResolvedValue({ status: 'NO_PENDING_BATCH' });
+  });
+
+  it('refuses to charge when the project ran out of tokens', async () => {
+    mockFindPending.mockResolvedValue({
+      batchId: 'cart-soldout',
+      amountUsd: 20,
+      intentIds: ['pi-soldout']
+    });
+    mockResolveWallet.mockResolvedValue({
+      address: '0x840aed84455c3a30ef23a34a4d961bc3e1d06b41',
+      walletId: 'w-1'
+    });
+    mockFindMany.mockResolvedValue([
+      {
+        id: 'pi-soldout',
+        amountUsd: { toNumber: () => 20 },
+        projectId: 'proj-1',
+        tokenCount: 1,
+        metadata: { purchaseMode: 'ERC4626_DEPOSIT', cartBatchId: 'cart-soldout' }
+      }
+    ]);
+    mockShortfalls.mockResolvedValue([
+      { projectId: 'proj-1', projectTitle: 'UV3RWA', requestedTokens: 1, availableTokens: 0 }
+    ]);
+
+    const result = await paySanovaCartForUser({
+      userId: 'user-1',
+      items: [],
+      clientBalanceUsdc: 50
+    });
+
+    expect(mockTransfer).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      ok: false,
+      status: 'failed',
+      error: 'INSUFFICIENT_SUPPLY',
+      batchId: 'cart-soldout'
     });
   });
 

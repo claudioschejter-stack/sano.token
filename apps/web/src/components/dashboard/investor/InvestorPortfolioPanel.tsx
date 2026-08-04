@@ -12,6 +12,7 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import { onChainHoldingBadge } from '../../../lib/portfolio/onChainHoldingBadge';
 import type { AggregatedPortfolio } from '../../../lib/portfolio/portfolioAggregator';
 import { createIntlFormatters } from '../../../i18n/formatters';
 import { useLocale, useTranslation } from '../../../i18n/LocaleProvider';
@@ -67,6 +68,45 @@ function TokenActions({
   );
 }
 
+/** Wallet-verified quantity: booked rows alone hid undelivered vault shares. */
+function OnChainHoldingNote({
+  row,
+  intlLocale,
+  labels
+}: {
+  row: PositionRow;
+  intlLocale: string;
+  labels: { walletVerifiedTokens: string; walletPendingTokens: string };
+}) {
+  const badge = onChainHoldingBadge({
+    bookedTokens: row.amount,
+    metadata: row.metadata ?? null
+  });
+
+  if (badge.onChainTokens === null) return null;
+
+  if (badge.verified) {
+    return (
+      <span className="mt-0.5 block text-[10px] font-medium text-terminal-success">
+        {labels.walletVerifiedTokens}
+      </span>
+    );
+  }
+
+  if (badge.pendingDelivery) {
+    return (
+      <span className="mt-0.5 block text-[10px] font-medium text-amber-500">
+        {labels.walletPendingTokens.replace(
+          '{tokens}',
+          formatAmount(badge.onChainTokens, intlLocale)
+        )}
+      </span>
+    );
+  }
+
+  return null;
+}
+
 function RwaPositionTable({
   rows,
   labels,
@@ -86,6 +126,8 @@ function RwaPositionTable({
     actionSell: string;
     actionLoan: string;
     empty: string;
+    walletVerifiedTokens: string;
+    walletPendingTokens: string;
   };
   formatUsd: (value: number) => string;
   intlLocale: string;
@@ -123,6 +165,7 @@ function RwaPositionTable({
                 <div>
                   <p className="text-xs text-terminal-muted">{labels.colQuantity}</p>
                   <p className="font-mono">{formatAmount(row.amount, intlLocale)}</p>
+                  <OnChainHoldingNote row={row} intlLocale={intlLocale} labels={labels} />
                 </div>
                 <div>
                   <p className="text-xs text-terminal-muted">{labels.colTokenCode}</p>
@@ -168,7 +211,10 @@ function RwaPositionTable({
                 >
                   <td className={labelCellClass}>{row.label}</td>
                   <td className={`${cellClass} text-terminal-text`}>{formatUsd(row.valueUsdc)}</td>
-                  <td className={`${cellClass} text-terminal-text`}>{formatAmount(row.amount, intlLocale)}</td>
+                  <td className={`${cellClass} text-terminal-text`}>
+                    {formatAmount(row.amount, intlLocale)}
+                    <OnChainHoldingNote row={row} intlLocale={intlLocale} labels={labels} />
+                  </td>
                   <td className={`${cellClass} text-terminal-muted`}>{row.currency}</td>
                   <td className={`${cellClass} font-semibold text-terminal-primary`}>
                     {formatUsd(row.valueUsd)}
@@ -502,7 +548,9 @@ export function InvestorPortfolioPanel() {
             actionBuy: p.actionBuy,
             actionSell: p.actionSell,
             actionLoan: p.actionLoan,
-            empty: p.sectionTokensEmpty
+            empty: p.sectionTokensEmpty,
+            walletVerifiedTokens: p.walletVerifiedTokens,
+            walletPendingTokens: p.walletPendingTokens
           }}
           formatUsd={formatUsd}
           intlLocale={intlLocale}

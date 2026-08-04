@@ -27,6 +27,14 @@
     {
       "path": "/api/cron/watch-awaiting-treasury-usdc",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/expire-stale-reservations",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/index-token-movements",
+      "schedule": "30 14 * * *"
     }
   ]
 }

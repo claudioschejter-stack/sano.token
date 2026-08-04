@@ -2606,6 +2606,8 @@ export const en = {
     sectionTokens: "Tokens",
     sectionTokensHint: "Tokenized RWA positions",
     sectionTokensEmpty: "No RWA token positions.",
+    walletVerifiedTokens: "Verified in your wallet (on-chain)",
+    walletPendingTokens: "In your wallet: {tokens} · delivery in progress",
     sectionStablecoins: "Stablecoins",
     sectionStablecoinsHint: "USDC on each network",
     sectionStablecoinsEmpty: "No stablecoin positions.",
@@ -2927,6 +2929,19 @@ export const en = {
     cryptoWalletGasQuoteRefreshing: "Updating gas quote…",
     cryptoWalletOnBaseNote: "on Base Network · no conversion",
     cryptoWalletTrackingCentsNote: " · includes tracking cents to detect your payment automatically",
+    cryptoWalletPurchaseSuccessTitle: "Purchase successful",
+    cryptoWalletPurchaseSuccessBody:
+      "{tokens} RWA token(s) were credited to your Sanova wallet and {amount} USDC reached the treasury.",
+    cryptoWalletPurchaseSettlingTitle: "Confirming purchase…",
+    cryptoWalletPurchaseSettlingBody:
+      "Your USDC already left the wallet. We're confirming the treasury and crediting your RWA tokens.",
+    cryptoWalletPurchaseDeliveryFailedTitle: "Payment confirmed · tokens pending",
+    cryptoWalletPurchaseDeliveryFailedBody:
+      "We received your USDC but token delivery needs review. Sanova completes it without you paying again.",
+    cryptoWalletSuccessStepTreasury: "USDC received at treasury (Base)",
+    cryptoWalletSuccessStepTokens: "RWA tokens in your wallet",
+    cryptoWalletSuccessViewTx: "View on BaseScan",
+    cryptoWalletSuccessViewPortfolio: "View my portfolio",
     cryptoWalletPaymentReceivedTitle: "Payment received!",
     cryptoWalletPaymentReceivedBody: "We detected your USDC and credited tokens to your Sanova wallet.",
     cryptoWalletDepositReceivedTitle: "Deposit received!",
