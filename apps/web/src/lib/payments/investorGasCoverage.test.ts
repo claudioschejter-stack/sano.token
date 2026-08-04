@@ -35,32 +35,32 @@ describe('investorGasCoverageUsd', () => {
 });
 
 describe('buildSettlementCharges', () => {
-  it('defaults the coverage to 0.10 USDC', () => {
+  it('defaults the coverage to 0.022 USDC', () => {
     const charges = buildSettlementCharges({ investmentUsd: 20, paymasterFeeUsd: 0 });
-    expect(charges.coverageUsd).toBe(0.1);
-    expect(charges.treasuryTransferUsd).toBe(20.1);
+    expect(charges.coverageUsd).toBe(0.022);
+    expect(charges.treasuryTransferUsd).toBe(20.022);
   });
 
   it('sends investment plus coverage to treasury', () => {
     const charges = buildSettlementCharges({
       investmentUsd: 20,
       paymasterFeeUsd: 0.004253,
-      coverageUsd: 0.1
+      coverageUsd: 0.022
     });
 
-    expect(charges.treasuryTransferUsd).toBe(20.1);
-    expect(charges.networkFeeUsd).toBe(0.104253);
-    expect(charges.payableUsdc).toBe(20.104253);
+    expect(charges.treasuryTransferUsd).toBe(20.022);
+    expect(charges.networkFeeUsd).toBe(0.026253);
+    expect(charges.payableUsdc).toBe(20.026253);
   });
 
   it('keeps the investment amount untouched', () => {
     const charges = buildSettlementCharges({
       investmentUsd: 20,
       paymasterFeeUsd: 0.01,
-      coverageUsd: 0.1
+      coverageUsd: 0.022
     });
     expect(charges.investmentUsd).toBe(20);
-    expect(charges.coverageUsd).toBe(0.1);
+    expect(charges.coverageUsd).toBe(0.022);
   });
 
   it('falls back to the configured coverage', () => {
