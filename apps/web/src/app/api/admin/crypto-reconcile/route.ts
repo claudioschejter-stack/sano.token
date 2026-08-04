@@ -9,6 +9,7 @@ import {
   reconcileCartBatchWithTxHash
 } from '../../../../lib/payments/reconcileCryptoSettlement';
 import { findPendingUsdcCartPurchase } from '../../../../lib/payments/privyInboundUsdcService';
+import { refundCryptoPurchase } from '../../../../lib/payments/refundCryptoPurchase';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -86,7 +87,9 @@ export async function POST(request: NextRequest) {
     email?: string;
     txHash?: string;
     batchId?: string;
-    action?: 'auto' | 'close_stale';
+    action?: 'auto' | 'close_stale' | 'refund';
+    reason?: string;
+    refundTxHash?: string;
   };
 
   const userId = await resolveUserId({ userId: body.userId, email: body.email });
@@ -95,6 +98,19 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    if (body.action === 'refund') {
+      if (!body.batchId?.trim()) {
+        return NextResponse.json({ error: 'BATCH_ID_REQUIRED' }, { status: 400 });
+      }
+      const refund = await refundCryptoPurchase({
+        userId,
+        batchId: body.batchId.trim(),
+        reason: body.reason?.trim() || 'DELIVERY_FAILED',
+        refundTxHash: body.refundTxHash?.trim() || null
+      });
+      return NextResponse.json({ ok: true, action: 'refund', refund });
+    }
+
     if (body.action === 'close_stale') {
       const closed = await closeStaleOpenCartBatches({
         userId,

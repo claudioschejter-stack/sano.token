@@ -13,9 +13,11 @@ import {
 import { normalizeCartLineItems } from './normalizeCartLineItems';
 import { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
+import { findAvailabilityShortfalls } from './assertProjectAvailability';
 import { quoteBaseUserPaysGasUsd } from './baseUserPaysGasQuote';
 import { closeStaleOpenCartBatches } from './closeStaleCartBatches';
 import { autoReconcileTreasuryPaymentForUser } from './reconcileCryptoSettlement';
+import { recordSettlementMovements } from './recordSettlementMovements';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 
 export type PaySanovaCartResult =
@@ -85,7 +87,9 @@ async function loadBatchIntents(userId: string, batchId: string) {
     select: {
       id: true,
       amountUsd: true,
-      metadata: true
+      metadata: true,
+      projectId: true,
+      tokenCount: true
     }
   });
   return intents;
@@ -202,6 +206,16 @@ async function transferToTreasuryAndVerify(input: {
     reason: 'SETTLED_CART_BATCH'
   }).catch((error) => {
     console.error('[pay-sanova] stale batch cleanup failed', error);
+  });
+
+  // Bitácora: treasury payment + paymaster gas fee from the same receipt.
+  await recordSettlementMovements({
+    txHash,
+    payerAddress: input.walletAddress,
+    treasuryAddress: input.treasuryAddress,
+    userId: input.userId
+  }).catch((error) => {
+    console.error('[pay-sanova] movement ledger write failed', error);
   });
 
   return {
@@ -382,6 +396,24 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
   const treasuryAddress = getStablecoinNetwork('BASE').treasuryAddress;
   if (!treasuryAddress) {
     return { ok: false, status: 'failed', error: 'TREASURY_NOT_CONFIGURED', balanceUsdc };
+  }
+
+  // Never take USDC for tokens that are no longer available: supply can sell out
+  // between building the cart and tapping Pagar.
+  const shortfalls = await findAvailabilityShortfalls(intents);
+  if (shortfalls.length > 0) {
+    console.warn('[pay-sanova] blocked settle for sold-out supply', {
+      userId: input.userId,
+      batchId: pending.batchId,
+      shortfalls
+    });
+    return {
+      ok: false,
+      status: 'failed',
+      error: 'INSUFFICIENT_SUPPLY',
+      batchId: pending.batchId,
+      balanceUsdc
+    };
   }
 
   // User pays (USDC gas) only works on Transfer API — always settle to treasury.

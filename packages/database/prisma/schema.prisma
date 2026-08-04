@@ -225,72 +225,73 @@ enum VerificationChannel {
 }
 
 model User {
-  id                String        @id @default(cuid())
-  email             String        @unique
-  phone             String?
-  name              String?
-  image             String?
-  walletAddress     String?       @unique
-  walletProvider    String?
-  systemRole        SystemRole    @default(INVESTOR)
-  passwordHash      String?
-  oauthProvider     String?
-  oauthProviderId   String?
-  investorId        String?       @unique
-  kycStatus         KycStatus     @default(PENDING)
-  kycProviderId     String?
-  kycFullName       String?
-  kycDocumentId     String?
-  kycDateOfBirth    String?
-  kycNationality    String?
-  kycDocumentType   String?
-  kycDocumentExpiry String?
-  kycGender         String?
-  kycPersonalNumber String?
-  kycIssuingState   String?
-  kycPortraitPath   String?
-  diditSessionId    String?
-  emailVerifiedAt   DateTime?
-  phoneVerifiedAt   DateTime?
-  termsAcceptedAt   DateTime?
-  investorAccessEnabled Boolean   @default(false)
-  accountStatus     AccountStatus @default(ONBOARDING)
-  jurisdiction      String?
-  preferredLocale   String?
-  preferredTheme    String?
-  pwaInstalledAt    DateTime?
-  pwaDismissedAt    DateTime?
+  id                         String        @id @default(cuid())
+  email                      String        @unique
+  phone                      String?
+  name                       String?
+  image                      String?
+  walletAddress              String?       @unique
+  walletProvider             String?
+  systemRole                 SystemRole    @default(INVESTOR)
+  passwordHash               String?
+  oauthProvider              String?
+  oauthProviderId            String?
+  investorId                 String?       @unique
+  kycStatus                  KycStatus     @default(PENDING)
+  kycProviderId              String?
+  kycFullName                String?
+  kycDocumentId              String?
+  kycDateOfBirth             String?
+  kycNationality             String?
+  kycDocumentType            String?
+  kycDocumentExpiry          String?
+  kycGender                  String?
+  kycPersonalNumber          String?
+  kycIssuingState            String?
+  kycPortraitPath            String?
+  diditSessionId             String?
+  emailVerifiedAt            DateTime?
+  phoneVerifiedAt            DateTime?
+  termsAcceptedAt            DateTime?
+  investorAccessEnabled      Boolean       @default(false)
+  accountStatus              AccountStatus @default(ONBOARDING)
+  jurisdiction               String?
+  preferredLocale            String?
+  preferredTheme             String?
+  pwaInstalledAt             DateTime?
+  pwaDismissedAt             DateTime?
   // Separate from pwaInstalledAt/pwaDismissedAt above, which are owned by the
   // legacy desktop InstallAppBanner. The mobile-browser post-login install
   // gate (usePortalInstallGate/MobileAppDownloadModal) needs its own fields
   // so a past interaction with one surface never permanently suppresses the
   // other.
-  pwaPortalGateInstalledAt DateTime?
-  pwaPortalGateDismissedAt DateTime?
-  registrationChannel String?
-  onboardingSuccessShownAt DateTime?
+  pwaPortalGateInstalledAt   DateTime?
+  pwaPortalGateDismissedAt   DateTime?
+  registrationChannel        String?
+  onboardingSuccessShownAt   DateTime?
   accountApprovedEmailSentAt DateTime?
-  totpSecret        String?
-  totpEnabled       Boolean       @default(false)
-  failed2faAttempts Int           @default(0)
-  locked2faUntil    DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  totpSecret                 String?
+  totpEnabled                Boolean       @default(false)
+  failed2faAttempts          Int           @default(0)
+  locked2faUntil             DateTime?
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
 
-  investor              Investor?              @relation(fields: [investorId], references: [id], onDelete: SetNull)
-  passkeys              UserPasskey[]
-  backupCodes           BackupCode[]
-  portfolio             Portfolio?
-  dividendDistributions DividendDistribution[]
-  advisor               Advisor?
-  reviewedNominations   AdvisorNomination[]    @relation("NominationReviewedBy")
-  teamInvitesSent       TeamInvite[]           @relation("TeamInviteInvitedBy")
-  verificationCodes     VerificationCode[]
-  secondaryListingsSold SecondaryMarketListing[] @relation("SecondarySeller")
+  investor                Investor?                @relation(fields: [investorId], references: [id], onDelete: SetNull)
+  passkeys                UserPasskey[]
+  backupCodes             BackupCode[]
+  portfolio               Portfolio?
+  dividendDistributions   DividendDistribution[]
+  advisor                 Advisor?
+  reviewedNominations     AdvisorNomination[]      @relation("NominationReviewedBy")
+  teamInvitesSent         TeamInvite[]             @relation("TeamInviteInvitedBy")
+  verificationCodes       VerificationCode[]
+  secondaryListingsSold   SecondaryMarketListing[] @relation("SecondarySeller")
   secondaryListingsBought SecondaryMarketListing[] @relation("SecondaryBuyer")
-  notifications         Notification[]
-  kycVerifications      KycVerification[]
-  prizeEntries          PrizeEntry[]
+  notifications           Notification[]
+  kycVerifications        KycVerification[]
+  prizeEntries            PrizeEntry[]
+  tokenMovements          TokenMovement[]
 
   @@index([walletAddress])
   @@index([investorId])
@@ -317,14 +318,14 @@ model VerificationCode {
 }
 
 model UserPasskey {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
-  credentialId String   @unique
+  credentialId String    @unique
   publicKey    Bytes
-  counter      BigInt   @default(0)
+  counter      BigInt    @default(0)
   deviceName   String?
   transports   Json?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   lastUsedAt   DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -405,9 +406,9 @@ model Advisor {
   upline   Advisor?  @relation("AdvisorHierarchy", fields: [uplineId], references: [id], onDelete: SetNull)
   downline Advisor[] @relation("AdvisorHierarchy")
 
-  incorporatedInvestors Investor[]            @relation("InvestorIncorporatedBy")
-  nominationsSuggested  AdvisorNomination[]   @relation("NominationSuggestedBy")
-  nominationsAsUpline     AdvisorNomination[]   @relation("NominationProposedUpline")
+  incorporatedInvestors Investor[]          @relation("InvestorIncorporatedBy")
+  nominationsSuggested  AdvisorNomination[] @relation("NominationSuggestedBy")
+  nominationsAsUpline   AdvisorNomination[] @relation("NominationProposedUpline")
   teamInvites           TeamInvite[]
   commissionAccruals    CommissionAccrual[]
 
@@ -462,32 +463,32 @@ model TeamInvite {
 }
 
 model Investor {
-  id                 String       @id @default(cuid())
-  email              String       @unique
-  fullName           String
-  cuit               String       @unique
-  phone              String?
-  dateOfBirth        String?
-  nationality        String?
-  portraitPath       String?
-  walletAddress      String       @unique
-  investorType       InvestorType @default(RETAIL)
-  kycStatus          KycStatus    @default(PENDING)
-  kycVerifiedAt      DateTime?
-  originOfFunds      String?
-  brokerAccountRef     String?
-  dividendPreference   String               @default("CASH")
-  rentPayoutPreference RentPayoutPreference @default(FIAT)
-  loansEnabled         Boolean              @default(false)
-  totalCapital         Decimal              @default(0) @db.Decimal(20, 6)
-  marginDebt               Decimal      @default(0) @db.Decimal(20, 6)
-  ltv                      Decimal      @default(0) @db.Decimal(8, 4)
-  incorporatedByAdvisorId  String?
-  incorporatedAt           DateTime?
-  createdAt                DateTime     @default(now())
-  updatedAt                DateTime     @updatedAt
+  id                      String               @id @default(cuid())
+  email                   String               @unique
+  fullName                String
+  cuit                    String               @unique
+  phone                   String?
+  dateOfBirth             String?
+  nationality             String?
+  portraitPath            String?
+  walletAddress           String               @unique
+  investorType            InvestorType         @default(RETAIL)
+  kycStatus               KycStatus            @default(PENDING)
+  kycVerifiedAt           DateTime?
+  originOfFunds           String?
+  brokerAccountRef        String?
+  dividendPreference      String               @default("CASH")
+  rentPayoutPreference    RentPayoutPreference @default(FIAT)
+  loansEnabled            Boolean              @default(false)
+  totalCapital            Decimal              @default(0) @db.Decimal(20, 6)
+  marginDebt              Decimal              @default(0) @db.Decimal(20, 6)
+  ltv                     Decimal              @default(0) @db.Decimal(8, 4)
+  incorporatedByAdvisorId String?
+  incorporatedAt          DateTime?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
 
-  incorporatedBy        Advisor? @relation("InvestorIncorporatedBy", fields: [incorporatedByAdvisorId], references: [id], onDelete: SetNull)
+  incorporatedBy        Advisor?               @relation("InvestorIncorporatedBy", fields: [incorporatedByAdvisorId], references: [id], onDelete: SetNull)
   investments           Investment[]
   payoutReceipts        PayoutReceipt[]
   dividendDistributions DividendDistribution[]
@@ -514,59 +515,60 @@ model Portfolio {
 }
 
 model Project {
-  id                   String       @id
-  title                String
-  description          String
-  location             String
-  image                String?
-  latitude             Decimal?     @db.Decimal(10, 7)
-  longitude            Decimal?     @db.Decimal(10, 7)
-  mediaGallery         Json         @default("[]")
-  contractTrustUrl     String?
-  contractPurchaseUrl  String?
-  contractLeaseUrl     String?
-  contractSmartUrl     String?
-  tokenName            String?
-  tokenSymbol          String?
-  tokenStandard        String       @default("SANOVA_KYC")
-  tokenInstrumentType  String       @default("EQUITY")
-  maturityDate         DateTime?
-  equitySharePercent   Decimal?     @db.Decimal(8, 4)
-  tokenDeployStatus    String       @default("NOT_REQUESTED")
-  collateralTargets    Json         @default("[]")
-  deploymentEvents     Json         @default("[]")
-  centrifugeChecklist  Json         @default("{}")
-  spvEntityName        String?
-  navOracleUrl         String?
-  totalTokens          Int
-  availableTokens      Int
-  pricePerToken        Decimal      @db.Decimal(20, 6)
-  targetYield          Decimal      @db.Decimal(8, 4)
-  fiscalRegime         FiscalRegime @default(LEY_19640)
-  fiscalLawRef         String       @default("Ley 19.640")
-  taxExemptionNote     String?
-  jurisdiction         String?
-  promoterEntity       String?
-  contractAddress      String?
-  usdcVaultAddress     String?
-  vaultAddress         String?
-  vaultFundingStatus   String       @default("NOT_REQUIRED")
-  vaultFundingAmount   String?
-  vaultFundingTxHash   String?
-  vaultFundingError    String?
-  chainId              Int?
-  automationLockStep       String?
-  automationLockExpiresAt  DateTime?
-  automationLockOwner      String?
-  isActive             Boolean      @default(true)
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  id                      String       @id
+  title                   String
+  description             String
+  location                String
+  image                   String?
+  latitude                Decimal?     @db.Decimal(10, 7)
+  longitude               Decimal?     @db.Decimal(10, 7)
+  mediaGallery            Json         @default("[]")
+  contractTrustUrl        String?
+  contractPurchaseUrl     String?
+  contractLeaseUrl        String?
+  contractSmartUrl        String?
+  tokenName               String?
+  tokenSymbol             String?
+  tokenStandard           String       @default("SANOVA_KYC")
+  tokenInstrumentType     String       @default("EQUITY")
+  maturityDate            DateTime?
+  equitySharePercent      Decimal?     @db.Decimal(8, 4)
+  tokenDeployStatus       String       @default("NOT_REQUESTED")
+  collateralTargets       Json         @default("[]")
+  deploymentEvents        Json         @default("[]")
+  centrifugeChecklist     Json         @default("{}")
+  spvEntityName           String?
+  navOracleUrl            String?
+  totalTokens             Int
+  availableTokens         Int
+  pricePerToken           Decimal      @db.Decimal(20, 6)
+  targetYield             Decimal      @db.Decimal(8, 4)
+  fiscalRegime            FiscalRegime @default(LEY_19640)
+  fiscalLawRef            String       @default("Ley 19.640")
+  taxExemptionNote        String?
+  jurisdiction            String?
+  promoterEntity          String?
+  contractAddress         String?
+  usdcVaultAddress        String?
+  vaultAddress            String?
+  vaultFundingStatus      String       @default("NOT_REQUIRED")
+  vaultFundingAmount      String?
+  vaultFundingTxHash      String?
+  vaultFundingError       String?
+  chainId                 Int?
+  automationLockStep      String?
+  automationLockExpiresAt DateTime?
+  automationLockOwner     String?
+  isActive                Boolean      @default(true)
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
 
-  investments Investment[]
-  payouts     PayoutHistory[]
+  investments       Investment[]
+  payouts           PayoutHistory[]
   secondaryListings SecondaryMarketListing[]
   operatingAccounts ProjectOperatingAccount[]
   yieldBatches      ProjectYieldBatch[]
+  tokenMovements    TokenMovement[]
 
   @@index([fiscalRegime])
   @@index([isActive])
@@ -612,20 +614,20 @@ model InvestorAllowlist {
 }
 
 model AutomationJob {
-  id            String   @id @default(cuid())
-  projectId     String?
-  step          String
-  status        String   @default("QUEUED")
-  attempts      Int      @default(0)
-  maxAttempts   Int      @default(3)
-  runAfter      DateTime @default(now())
-  lockedAt      DateTime?
-  lockedBy      String?
-  payload       Json     @default("{}")
-  result        Json?
-  error         String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String    @id @default(cuid())
+  projectId   String?
+  step        String
+  status      String    @default("QUEUED")
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  runAfter    DateTime  @default(now())
+  lockedAt    DateTime?
+  lockedBy    String?
+  payload     Json      @default("{}")
+  result      Json?
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([projectId])
   @@index([step])
@@ -729,15 +731,15 @@ model StablecoinWallet {
 }
 
 model PlatformWalletAccount {
-  id        String   @id @default(cuid())
-  userId    String
+  id         String   @id @default(cuid())
+  userId     String
   investorId String?
-  currency  String   @default("USD")
-  balance   Decimal  @default(0) @db.Decimal(20, 6)
-  reserved  Decimal  @default(0) @db.Decimal(20, 6)
-  status    String   @default("ACTIVE")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  currency   String   @default("USD")
+  balance    Decimal  @default(0) @db.Decimal(20, 6)
+  reserved   Decimal  @default(0) @db.Decimal(20, 6)
+  status     String   @default("ACTIVE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([userId, currency])
   @@index([userId])
@@ -746,22 +748,22 @@ model PlatformWalletAccount {
 }
 
 model PlatformWalletLedgerEntry {
-  id             String                    @id @default(cuid())
-  accountId      String
-  userId         String
-  investorId     String?
-  type           PlatformLedgerEntryType
-  status         PlatformLedgerEntryStatus @default(POSTED)
-  amount         Decimal                   @db.Decimal(20, 6)
-  currency       String                    @default("USD")
-  balanceAfter   Decimal                   @db.Decimal(20, 6)
-  idempotencyKey String                    @unique
+  id              String                    @id @default(cuid())
+  accountId       String
+  userId          String
+  investorId      String?
+  type            PlatformLedgerEntryType
+  status          PlatformLedgerEntryStatus @default(POSTED)
+  amount          Decimal                   @db.Decimal(20, 6)
+  currency        String                    @default("USD")
+  balanceAfter    Decimal                   @db.Decimal(20, 6)
+  idempotencyKey  String                    @unique
   paymentIntentId String?
-  depositId      String?
-  investmentId   String?
-  txHash         String?
-  metadata       Json                      @default("{}")
-  createdAt      DateTime                  @default(now())
+  depositId       String?
+  investmentId    String?
+  txHash          String?
+  metadata        Json                      @default("{}")
+  createdAt       DateTime                  @default(now())
 
   @@index([accountId])
   @@index([userId])
@@ -816,7 +818,7 @@ model PlatformWithdrawal {
   currency            String                   @default("USD")
   stablecoinNetwork   String?
   destinationAddress  String?
-  payoutDetails        Json?
+  payoutDetails       Json?
   txHash              String?
   provider            String?
   providerPaymentId   String?
@@ -904,23 +906,23 @@ model ProjectOperatingLedgerEntry {
 }
 
 model ProjectYieldBatch {
-  id                String                   @id @default(cuid())
-  projectId         String
-  status            ProjectYieldBatchStatus  @default(QUEUED)
-  sourceCurrency    String
-  sourceAmount      Decimal                  @db.Decimal(20, 6)
-  usdcAmount        Decimal?                 @db.Decimal(20, 6)
-  conversionRail    YieldConversionRail?
-  conversionRef     String?
-  conversionTxHash  String?
+  id                 String                  @id @default(cuid())
+  projectId          String
+  status             ProjectYieldBatchStatus @default(QUEUED)
+  sourceCurrency     String
+  sourceAmount       Decimal                 @db.Decimal(20, 6)
+  usdcAmount         Decimal?                @db.Decimal(20, 6)
+  conversionRail     YieldConversionRail?
+  conversionRef      String?
+  conversionTxHash   String?
   distributionTxHash String?                 @unique
-  vaultAddress      String?
-  chainId           Int?
-  error             String?
-  metadata          Json                     @default("{}")
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
-  completedAt       DateTime?
+  vaultAddress       String?
+  chainId            Int?
+  error              String?
+  metadata           Json                    @default("{}")
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  completedAt        DateTime?
 
   project Project                       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   ledger  ProjectOperatingLedgerEntry[]
@@ -932,25 +934,25 @@ model ProjectYieldBatch {
 }
 
 model PortfolioSnapshot {
-  id              String   @id @default(cuid())
-  userId          String
-  investorId      String?
-  baseCurrency    String   @default("USD")
-  totalValueUsd   Decimal  @db.Decimal(20, 6)
-  rwaValueUsd     Decimal  @default(0) @db.Decimal(20, 6)
-  stablecoinUsd   Decimal  @default(0) @db.Decimal(20, 6)
-  fiatUsd         Decimal  @default(0) @db.Decimal(20, 6)
-  availableUsd    Decimal  @default(0) @db.Decimal(20, 6)
-  debtUsd         Decimal  @default(0) @db.Decimal(20, 6)
-  ltv             Decimal  @default(0) @db.Decimal(8, 4)
-  positions       Json     @default("[]")
-  capturedAt      DateTime @default(now())
-  createdAt       DateTime @default(now())
+  id            String   @id @default(cuid())
+  userId        String
+  investorId    String?
+  baseCurrency  String   @default("USD")
+  totalValueUsd Decimal  @db.Decimal(20, 6)
+  rwaValueUsd   Decimal  @default(0) @db.Decimal(20, 6)
+  stablecoinUsd Decimal  @default(0) @db.Decimal(20, 6)
+  fiatUsd       Decimal  @default(0) @db.Decimal(20, 6)
+  availableUsd  Decimal  @default(0) @db.Decimal(20, 6)
+  debtUsd       Decimal  @default(0) @db.Decimal(20, 6)
+  ltv           Decimal  @default(0) @db.Decimal(8, 4)
+  positions     Json     @default("[]")
+  capturedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
 
+  @@unique([userId, capturedAt])
   @@index([userId])
   @@index([investorId])
   @@index([capturedAt])
-  @@unique([userId, capturedAt])
 }
 
 model PayoutHistory {
@@ -1057,16 +1059,16 @@ model PlatformCommissionPolicy {
 }
 
 model AdvisorCategoryRule {
-  id                     String          @id @default(cuid())
-  policyId               String
-  category               AdvisorCategory
-  sortOrder              Int             @default(0)
-  minBookAumUsd          Decimal         @default(0) @db.Decimal(20, 6)
-  minActiveInvestors     Int             @default(1)
-  minQualifyingDays      Int             @default(0)
-  advisorMultiplierBps   Int             @default(10000)
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  id                   String          @id @default(cuid())
+  policyId             String
+  category             AdvisorCategory
+  sortOrder            Int             @default(0)
+  minBookAumUsd        Decimal         @default(0) @db.Decimal(20, 6)
+  minActiveInvestors   Int             @default(1)
+  minQualifyingDays    Int             @default(0)
+  advisorMultiplierBps Int             @default(10000)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
 
   policy PlatformCommissionPolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
 
@@ -1211,7 +1213,7 @@ model KycVerification {
 }
 
 model KycDocument {
-  id                String        @id @default(cuid())
+  id                String       @id @default(cuid())
   kycVerificationId String
   kind              KycMediaKind
   storageBucket     String
@@ -1219,7 +1221,7 @@ model KycDocument {
   mimeType          String?
   checksum          String?
   sourceUrl         String?
-  createdAt         DateTime      @default(now())
+  createdAt         DateTime     @default(now())
 
   verification KycVerification @relation(fields: [kycVerificationId], references: [id], onDelete: Cascade)
 
@@ -1261,4 +1263,60 @@ model PrizeEntry {
   @@unique([campaignId, userId])
   @@index([campaignId])
   @@index([userId])
+}
+
+/// On-chain movement log (bitácora) for USDC payments and RWA vault shares.
+/// Persisted so audits do not depend on scanning RPC logs on demand.
+model TokenMovement {
+  id              String             @id @default(cuid())
+  kind            TokenMovementKind
+  asset           TokenMovementAsset
+  /// ERC-20 / ERC-4626 contract the movement belongs to.
+  contractAddress String
+  chainId         Int                @default(8453)
+  fromAddress     String
+  toAddress       String
+  /// Raw on-chain amount (wei-like), kept exact.
+  amountRaw       String
+  /// Human amount: USDC units or RWA tokens.
+  amount          Decimal            @db.Decimal(38, 18)
+  txHash          String
+  logIndex        Int
+  blockNumber     Int
+  occurredAt      DateTime?
+  projectId       String?
+  userId          String?
+  investorId      String?
+  paymentIntentId String?
+  metadata        Json               @default("{}")
+  createdAt       DateTime           @default(now())
+
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([txHash, logIndex])
+  @@index([kind])
+  @@index([asset])
+  @@index([contractAddress])
+  @@index([fromAddress])
+  @@index([toAddress])
+  @@index([projectId])
+  @@index([userId])
+  @@index([paymentIntentId])
+  @@index([blockNumber])
+  @@index([createdAt])
+}
+
+enum TokenMovementKind {
+  USDC_PAYMENT
+  USDC_GAS_FEE
+  USDC_REFUND
+  RWA_SHARE_MINT
+  RWA_SHARE_BURN
+  RWA_SHARE_TRANSFER
+}
+
+enum TokenMovementAsset {
+  USDC
+  RWA_SHARE
 }

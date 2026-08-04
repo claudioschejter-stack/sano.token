@@ -5,6 +5,7 @@ import {
   reconcileInvestorHoldings,
   reconcileProjectSupply
 } from '../../../../lib/reconciliation/tokenHoldingsReconciliation';
+import { listTokenMovements } from '../../../../lib/reconciliation/tokenMovementLedger';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -53,11 +54,24 @@ export async function GET(request: NextRequest) {
 
     const issues = [...(investor?.issues ?? []), ...projects.flatMap((row) => row.issues)];
 
+    // Persisted bitácora first; `movements=1` also pulls the live RPC view.
+    const ledger = await listTokenMovements({
+      userId: userId || null,
+      projectId: projectId || null,
+      limit: 200
+    }).catch(() => []);
+
     return NextResponse.json({
       ok: true,
       reconciled: issues.length === 0,
       investor,
       projects,
+      ledger: ledger.map((row) => ({
+        ...row,
+        amount: row.amount.toString(),
+        occurredAt: row.occurredAt?.toISOString() ?? null,
+        createdAt: row.createdAt.toISOString()
+      })),
       issues
     });
   } catch (error) {
