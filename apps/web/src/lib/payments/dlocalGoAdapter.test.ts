@@ -27,4 +27,14 @@ describe('dlocalGoAdapter', () => {
     expect(url).toContain('external_id=dep-123');
     delete process.env.DLOCAL_GO_MERCHANT_ID;
   });
+
+  it('falls back to the default host when the base url is declared but blank', () => {
+    process.env.DLOCAL_GO_MERCHANT_ID = '230197';
+    process.env.DLOCAL_CHECKOUT_BASE_URL = '';
+    expect(buildDLocalGoOpenCheckoutUrl({ amountLocal: 10 })).toContain(
+      'https://checkout.dlocalgo.com/open-checkout/'
+    );
+    delete process.env.DLOCAL_CHECKOUT_BASE_URL;
+    delete process.env.DLOCAL_GO_MERCHANT_ID;
+  });
 });

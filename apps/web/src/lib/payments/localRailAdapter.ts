@@ -94,7 +94,12 @@ export async function createDLocalCheckout(input: LocalRailRequest): Promise<Loc
     };
   }
 
-  const base = (process.env.DLOCAL_CHECKOUT_BASE_URL ?? (process.env.DLOCAL_GO_MERCHANT_ID?.trim() ? 'https://checkout.dlocalgo.com' : 'https://checkout.dlocal.com')).replace(/\/$/, '');
+  const base = (
+    process.env.DLOCAL_CHECKOUT_BASE_URL?.trim() ||
+    (process.env.DLOCAL_GO_MERCHANT_ID?.trim()
+      ? 'https://checkout.dlocalgo.com'
+      : 'https://checkout.dlocal.com')
+  ).replace(/\/$/, '');
   const paymentMethodId = mapDLocalPaymentMethodId(country, input.row.providerRail);
   const charge = resolveDLocalChargeAmount(country, input.amountUsd);
 
