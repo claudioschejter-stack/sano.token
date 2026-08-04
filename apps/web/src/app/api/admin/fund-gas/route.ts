@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     to?: string;
     amountEth?: number;
     from?: GasSourceRole;
+    force?: boolean;
   };
 
   if (!body.to?.trim()) {
@@ -65,7 +66,8 @@ export async function POST(request: NextRequest) {
       provider: rpc,
       to: body.to.trim(),
       amountEth: body.amountEth ?? 0.003,
-      from: body.from
+      from: body.from,
+      force: body.force === true
     });
     return NextResponse.json(result, { status: result.ok ? 200 : 409 });
   } catch (error) {

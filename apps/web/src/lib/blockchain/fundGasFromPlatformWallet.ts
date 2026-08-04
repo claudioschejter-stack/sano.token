@@ -88,6 +88,8 @@ export async function fundGasFromPlatformWallet(input: {
   amountEth: number;
   /** Force a source instead of picking the wallet with the most spare ETH. */
   from?: GasSourceRole;
+  /** Send even when the recipient already holds the requested amount. */
+  force?: boolean;
 }): Promise<FundGasResult> {
   if (!isAddress(input.to)) {
     return { ok: false, code: 'INVALID_RECIPIENT', detail: input.to };
@@ -97,6 +99,23 @@ export async function fundGasFromPlatformWallet(input: {
   }
 
   const value = parseEther(input.amountEth.toString());
+
+  /**
+   * Re-running a top-up is the normal way an operator confirms it worked, so
+   * the default is to do nothing when the recipient is already funded rather
+   * than quietly send a second time.
+   */
+  if (!input.force) {
+    const current = await input.provider.getBalance(getAddress(input.to));
+    if (current >= value) {
+      return {
+        ok: false,
+        code: 'ALREADY_FUNDED',
+        detail: `${input.to} ya tiene ${formatEther(current)} ETH; usá force:true para enviar igual`
+      };
+    }
+  }
+
   if (value > MAX_TRANSFER_WEI) {
     return {
       ok: false,
