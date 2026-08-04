@@ -43,6 +43,7 @@ import {
 } from '../web3/vaultDepositPayment';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
 import { isLocalRailManualResult, isRipioOnRampResult } from './stripeCheckoutOptions';
+import { runThrottledReservationSweep } from './throttledReservationSweep';
 import {
   isMercadoPagoEmbeddedResult,
   type MercadoPagoEmbeddedSession
@@ -403,6 +404,9 @@ export async function createCartPurchaseCheckout(input: {
   if (!input.items.length) {
     throw new Error('CART_EMPTY');
   }
+
+  // Hobby plan allows daily crons only, so free expired reservations here too.
+  runThrottledReservationSweep();
 
   if (!isCheckoutMethodConfigured(input.method)) {
     throw new Error('PAYMENT_METHOD_NOT_CONFIGURED');
