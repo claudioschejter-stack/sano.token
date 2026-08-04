@@ -2,7 +2,7 @@ import { Contract, Interface, JsonRpcProvider, type Signer, isAddress } from 'et
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { resolveTreasuryOwnerSigner } from './treasuryOwnerSigner';
 import { resolveTreasuryAddress } from './treasuryPolicy';
-import { waitForAutomationTx } from './automationTx';
+import { execAsOwner } from './safeExec';
 
 const TOKEN_ABI = [
   'function kycApproved(address) view returns (bool)',
@@ -14,12 +14,6 @@ const VAULT_ABI = [
   'function balanceOf(address) view returns (uint256)',
   'function transfer(address to, uint256 amount) returns (bool)',
   'function owner() view returns (address)'
-];
-
-const SAFE_ABI = [
-  'function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address payable refundReceiver,bytes signatures) payable returns (bool success)',
-  'function getThreshold() view returns (uint256)',
-  'function getOwners() view returns (address[])'
 ];
 
 function resolveRpcUrl(chainId: number): string {
@@ -39,47 +33,12 @@ async function execAsTreasury(input: {
   target: string;
   data: string;
 }): Promise<string> {
-  const signerAddress = await input.signer.getAddress();
-  const code = await input.signer.provider!.getCode(input.treasuryAddress);
-  const isSafe = code !== '0x';
-
-  if (!isSafe) {
-    if (signerAddress.toLowerCase() !== input.treasuryAddress.toLowerCase()) {
-      throw new Error(
-        'EOA treasury: el firmante treasury debe coincidir con TOKEN_TREASURY_ADDRESS.'
-      );
-    }
-    const tx = await input.signer.sendTransaction({ to: input.target, data: input.data });
-    const receipt = await waitForAutomationTx(tx);
-    return receipt?.hash ?? tx.hash;
-  }
-
-  const safe = new Contract(input.treasuryAddress, SAFE_ABI, input.signer);
-  const owners: string[] = await safe.getOwners();
-  const signerIsOwner = owners.some(
-    (owner) => owner.toLowerCase() === signerAddress.toLowerCase()
-  );
-
-  if (!signerIsOwner) {
-    throw new Error(
-      `La wallet firmante ${signerAddress} no es owner del Safe treasury ${input.treasuryAddress}.`
-    );
-  }
-
-  const tx = await safe.execTransaction(
-    input.target,
-    0,
-    input.data,
-    0,
-    0,
-    0,
-    0,
-    '0x0000000000000000000000000000000000000000',
-    '0x0000000000000000000000000000000000000000',
-    '0x'
-  );
-  const receipt = await waitForAutomationTx(tx);
-  return receipt?.hash ?? tx.hash;
+  return execAsOwner({
+    owner: input.treasuryAddress,
+    signer: input.signer,
+    target: input.target,
+    data: input.data
+  });
 }
 
 export type MigrateTreasurySharesResult =

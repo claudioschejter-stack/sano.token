@@ -9,7 +9,7 @@ import {
   parseUnits
 } from 'ethers';
 import { resolveMorphoLiquiditySigner } from '../blockchain/morphoLiquiditySigner';
-import { buildSafePreValidatedSignature } from '../blockchain/safePreValidatedSignature';
+import { execAsOwner } from '../blockchain/safeExec';
 import { resolveTreasuryOwnerSigner } from '../blockchain/treasuryOwnerSigner';
 import { resolveTreasuryAddress } from '../blockchain/treasuryPolicy';
 import { waitForAutomationTx } from '../blockchain/automationTx';
@@ -170,20 +170,12 @@ export async function fundMorphoUv3FromTreasury(input?: {
       transferAmount
     ]);
 
-    const transferTx = await safe.execTransaction(
-      usdc,
-      0,
-      transferData,
-      0,
-      0,
-      0,
-      0,
-      '0x0000000000000000000000000000000000000000',
-      '0x0000000000000000000000000000000000000000',
-      buildSafePreValidatedSignature(ownerAddress)
-    );
-    const transferReceipt = await waitForAutomationTx(transferTx);
-    const transferTxHash = transferReceipt?.hash ?? transferTx.hash;
+    const transferTxHash = await execAsOwner({
+      owner: treasurySafe,
+      signer: treasurySigner,
+      target: usdc,
+      data: transferData
+    });
 
     const morphoUsdc = new Contract(usdc, ERC20_ABI, morphoSigner);
     const morphoBalance = (await morphoUsdc.balanceOf(await morphoSigner.getAddress())) as bigint;
