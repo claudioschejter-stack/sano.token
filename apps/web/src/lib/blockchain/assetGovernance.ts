@@ -215,10 +215,8 @@ export async function enforceAssetGovernance(input?: {
   if (!safe) {
     return { audit, steps };
   }
-  if (input?.dryRun) {
-    return { audit, steps };
-  }
 
+  const dryRun = input?.dryRun === true;
   const rpc = provider();
   try {
     const { deployKey, safeOwner } = await resolveSigners(rpc);
@@ -235,6 +233,16 @@ export async function enforceAssetGovernance(input?: {
 
           try {
             if (deployAddress && owner === deployAddress && deployKey) {
+              if (dryRun) {
+                steps.push({
+                  projectId: project.projectId,
+                  contract: contract.address,
+                  action: 'transfer_ownership',
+                  ok: true,
+                  detail: `[dryRun] firmaría ${deployAddress} (EOA) para pasar ${contract.owner} → Safe ${safe}`
+                });
+                continue;
+              }
               const tx = await new Contract(contract.address, OWNABLE_ABI, deployKey).transferOwnership(safe);
               const receipt = await tx.wait();
               steps.push({
@@ -262,6 +270,22 @@ export async function enforceAssetGovernance(input?: {
                   action: 'transfer_ownership',
                   ok: false,
                   error: `NO_SIGNER_FOR_LEGACY_SAFE ${contract.owner} (owners: ${legacyOwners.join(', ')})`
+                });
+                continue;
+              }
+
+              if (dryRun) {
+                const legacyThreshold = await readSafeThreshold(contract.owner, rpc);
+                steps.push({
+                  projectId: project.projectId,
+                  contract: contract.address,
+                  action: 'transfer_ownership',
+                  ok: legacyThreshold === 1,
+                  detail: `[dryRun] firmaría ${await signer.getAddress()} vía Safe legacy ${contract.owner} (threshold ${legacyThreshold}) para pasar a Safe ${safe}`,
+                  error:
+                    legacyThreshold === 1
+                      ? undefined
+                      : `SAFE_THRESHOLD_${legacyThreshold}: el Safe legacy pediría ${legacyThreshold} firmas`
                 });
                 continue;
               }
@@ -324,6 +348,16 @@ export async function enforceAssetGovernance(input?: {
               contract.address,
               true
             ]);
+            if (dryRun) {
+              steps.push({
+                projectId: project.projectId,
+                contract: contract.address,
+                action: 'allow_token_in_module',
+                ok: true,
+                detail: `[dryRun] habilitaría ${contract.address} en el módulo ${audit.moduleAddress}`
+              });
+              continue;
+            }
             const txHash = await execAsSafeOwner({
               safe,
               signer: safeOwner,
@@ -353,5 +387,6 @@ export async function enforceAssetGovernance(input?: {
     rpc.destroy();
   }
 
-  return { audit: await auditAssetGovernance(input?.projectId), steps };
+  // A dry run changed nothing, so re-auditing would only cost RPC calls.
+  return { audit: dryRun ? audit : await auditAssetGovernance(input?.projectId), steps };
 }
