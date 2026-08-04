@@ -5,13 +5,14 @@ pragma solidity 0.8.24;
 contract MockSafeModuleHost {
     error CallFailed();
 
+    /// @dev The delivery module always passes value 0, so this ignores it.
     function execTransactionFromModule(
         address to,
-        uint256 value,
+        uint256,
         bytes calldata data,
         uint8
     ) external returns (bool success) {
-        (success, ) = to.call{value: value}(data);
+        (success, ) = to.call(data);
     }
 
     /// @dev Lets tests drive the Safe-only setters without a real multisig.

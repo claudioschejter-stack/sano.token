@@ -1,17 +1,42 @@
 import { expect } from 'chai';
 import hre from 'hardhat';
-import type { Contract, ContractFactory } from 'ethers';
+import type { BaseContract, ContractFactory, ContractRunner, ContractTransactionResponse } from 'ethers';
 
-type TestSigner = { address: string };
+type TestSigner = ContractRunner & { address: string };
+
+type DeliveryModule = Omit<BaseContract, 'connect'> & {
+  connect: (runner: ContractRunner) => DeliveryModule;
+  deliverShares: (
+    vault: string,
+    investor: string,
+    amount: bigint
+  ) => Promise<ContractTransactionResponse>;
+  setOperator: (operator: string, allowed: boolean) => Promise<ContractTransactionResponse>;
+  setVaultAllowed: (
+    vault: string,
+    kycToken: string,
+    maxPerTx: bigint
+  ) => Promise<ContractTransactionResponse>;
+  canDeliver: (vault: string, investor: string, amount: bigint) => Promise<boolean>;
+};
+
+type MockSafe = BaseContract & {
+  callModule: (module: string, data: string) => Promise<ContractTransactionResponse>;
+};
+
+type MockKycToken = BaseContract & {
+  setKyc: (account: string, approved: boolean) => Promise<ContractTransactionResponse>;
+};
+
+type MockShareToken = BaseContract & {
+  balanceOf: (account: string) => Promise<bigint>;
+};
 
 const hardhatEthers = (
   hre as unknown as {
     ethers: {
       getSigners: () => Promise<TestSigner[]>;
       getContractFactory: (name: string) => Promise<ContractFactory>;
-      getContractAt: (name: string, address: string) => Promise<Contract>;
-      getImpersonatedSigner: (address: string) => Promise<TestSigner>;
-      provider: { send: (method: string, params: unknown[]) => Promise<unknown> };
     };
   }
 ).ethers;
@@ -23,31 +48,40 @@ const hardhatEthers = (
  */
 describe('SanovaDeliveryOperatorModule', () => {
   const ONE = 10n ** 18n;
+  const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
+  async function expectRevert(promise: Promise<unknown>, customError: string) {
+    try {
+      await promise;
+    } catch (error) {
+      expect(String(error)).to.contain(customError);
+      return;
+    }
+    throw new Error(`expected revert with ${customError}`);
+  }
 
   async function deployFixture() {
-    const signers = await hardhatEthers.getSigners();
-    const [deployer, operator, investor, outsider] = signers;
+    const [, operator, investor, outsider] = await hardhatEthers.getSigners();
 
     // A minimal Safe stand-in: forwards module calls and holds the shares.
     const safeFactory = await hardhatEthers.getContractFactory('MockSafeModuleHost');
-    const safe = await safeFactory.deploy();
+    const safe = (await safeFactory.deploy()) as unknown as MockSafe;
     await safe.waitForDeployment();
     const safeAddress = await safe.getAddress();
 
     const tokenFactory = await hardhatEthers.getContractFactory('MockKycToken');
-    const token = await tokenFactory.deploy();
+    const token = (await tokenFactory.deploy()) as unknown as MockKycToken;
     await token.waitForDeployment();
 
     const vaultFactory = await hardhatEthers.getContractFactory('MockShareToken');
-    const vault = await vaultFactory.deploy(safeAddress, 1000n * ONE);
+    const vault = (await vaultFactory.deploy(safeAddress, 1000n * ONE)) as unknown as MockShareToken;
     await vault.waitForDeployment();
 
     const moduleFactory = await hardhatEthers.getContractFactory('SanovaDeliveryOperatorModule');
-    const module = await moduleFactory.deploy(safeAddress);
+    const module = (await moduleFactory.deploy(safeAddress)) as unknown as DeliveryModule;
     await module.waitForDeployment();
 
     return {
-      deployer,
       operator,
       investor,
       outsider,
@@ -82,26 +116,23 @@ describe('SanovaDeliveryOperatorModule', () => {
 
   it('only the Safe can grant operator or allowlist a vault', async () => {
     const ctx = await deployFixture();
-    const asOutsider = ctx.module.connect(
-      await hardhatEthers.getImpersonatedSigner(ctx.outsider.address)
-    ) as Contract;
+    const asOutsider = ctx.module.connect(ctx.outsider);
 
-    await expect(asOutsider.setOperator(ctx.outsider.address, true)).to.be.revertedWithCustomError(
-      ctx.module,
+    await expectRevert(asOutsider.setOperator(ctx.outsider.address, true), 'NotSafe');
+    await expectRevert(
+      asOutsider.setVaultAllowed(ctx.vaultAddress, ctx.tokenAddress, 0n),
       'NotSafe'
     );
-    await expect(
-      asOutsider.setVaultAllowed(ctx.vaultAddress, ctx.tokenAddress, 0n)
-    ).to.be.revertedWithCustomError(ctx.module, 'NotSafe');
   });
 
   it('delivers shares from the Safe to a whitelisted investor', async () => {
     const ctx = await wire();
-    const asOperator = ctx.module.connect(
-      await hardhatEthers.getImpersonatedSigner(ctx.operator.address)
-    ) as Contract;
 
-    await asOperator.deliverShares(ctx.vaultAddress, ctx.investor.address, 10n * ONE);
+    await ctx.module.connect(ctx.operator).deliverShares(
+      ctx.vaultAddress,
+      ctx.investor.address,
+      10n * ONE
+    );
 
     expect(await ctx.vault.balanceOf(ctx.investor.address)).to.equal(10n * ONE);
     expect(await ctx.vault.balanceOf(ctx.safeAddress)).to.equal(990n * ONE);
@@ -109,39 +140,37 @@ describe('SanovaDeliveryOperatorModule', () => {
 
   it('refuses to send to an investor the token has not whitelisted', async () => {
     const ctx = await wire();
-    const asOperator = ctx.module.connect(
-      await hardhatEthers.getImpersonatedSigner(ctx.operator.address)
-    ) as Contract;
 
-    await expect(
-      asOperator.deliverShares(ctx.vaultAddress, ctx.outsider.address, ONE)
-    ).to.be.revertedWithCustomError(ctx.module, 'RecipientNotApproved');
+    await expectRevert(
+      ctx.module.connect(ctx.operator).deliverShares(ctx.vaultAddress, ctx.outsider.address, ONE),
+      'RecipientNotApproved'
+    );
   });
 
   it('refuses a vault that was never allowlisted', async () => {
     const ctx = await wire();
     const otherVaultFactory = await hardhatEthers.getContractFactory('MockShareToken');
-    const otherVault = await otherVaultFactory.deploy(ctx.safeAddress, 100n * ONE);
+    const otherVault = (await otherVaultFactory.deploy(
+      ctx.safeAddress,
+      100n * ONE
+    )) as unknown as MockShareToken;
     await otherVault.waitForDeployment();
 
-    const asOperator = ctx.module.connect(
-      await hardhatEthers.getImpersonatedSigner(ctx.operator.address)
-    ) as Contract;
-
-    await expect(
-      asOperator.deliverShares(await otherVault.getAddress(), ctx.investor.address, ONE)
-    ).to.be.revertedWithCustomError(ctx.module, 'VaultNotAllowed');
+    await expectRevert(
+      ctx.module
+        .connect(ctx.operator)
+        .deliverShares(await otherVault.getAddress(), ctx.investor.address, ONE),
+      'VaultNotAllowed'
+    );
   });
 
   it('refuses a wallet that is not an operator', async () => {
     const ctx = await wire();
-    const asOutsider = ctx.module.connect(
-      await hardhatEthers.getImpersonatedSigner(ctx.outsider.address)
-    ) as Contract;
 
-    await expect(
-      asOutsider.deliverShares(ctx.vaultAddress, ctx.investor.address, ONE)
-    ).to.be.revertedWithCustomError(ctx.module, 'NotOperator');
+    await expectRevert(
+      ctx.module.connect(ctx.outsider).deliverShares(ctx.vaultAddress, ctx.investor.address, ONE),
+      'NotOperator'
+    );
   });
 
   it('enforces the per-transaction cap when one is set', async () => {
@@ -155,46 +184,43 @@ describe('SanovaDeliveryOperatorModule', () => {
       ])
     );
 
-    const asOperator = ctx.module.connect(
-      await hardhatEthers.getImpersonatedSigner(ctx.operator.address)
-    ) as Contract;
+    await expectRevert(
+      ctx.module
+        .connect(ctx.operator)
+        .deliverShares(ctx.vaultAddress, ctx.investor.address, 6n * ONE),
+      'AmountAboveCap'
+    );
 
-    await expect(
-      asOperator.deliverShares(ctx.vaultAddress, ctx.investor.address, 6n * ONE)
-    ).to.be.revertedWithCustomError(ctx.module, 'AmountAboveCap');
-
-    await asOperator.deliverShares(ctx.vaultAddress, ctx.investor.address, 5n * ONE);
+    await ctx.module
+      .connect(ctx.operator)
+      .deliverShares(ctx.vaultAddress, ctx.investor.address, 5n * ONE);
     expect(await ctx.vault.balanceOf(ctx.investor.address)).to.equal(5n * ONE);
   });
 
   it('revoking the vault stops further delivery', async () => {
     const ctx = await wire();
-    const asOperator = ctx.module.connect(
-      await hardhatEthers.getImpersonatedSigner(ctx.operator.address)
-    ) as Contract;
 
-    await asOperator.deliverShares(ctx.vaultAddress, ctx.investor.address, ONE);
+    await ctx.module.connect(ctx.operator).deliverShares(ctx.vaultAddress, ctx.investor.address, ONE);
 
     await ctx.safe.callModule(
       ctx.moduleAddress,
       ctx.module.interface.encodeFunctionData('setVaultAllowed', [
         ctx.vaultAddress,
-        '0x0000000000000000000000000000000000000000',
+        ZERO_ADDRESS,
         0n
       ])
     );
 
-    await expect(
-      asOperator.deliverShares(ctx.vaultAddress, ctx.investor.address, ONE)
-    ).to.be.revertedWithCustomError(ctx.module, 'VaultNotAllowed');
+    await expectRevert(
+      ctx.module.connect(ctx.operator).deliverShares(ctx.vaultAddress, ctx.investor.address, ONE),
+      'VaultNotAllowed'
+    );
   });
 
   it('canDeliver mirrors what the module would actually accept', async () => {
     const ctx = await wire();
     expect(await ctx.module.canDeliver(ctx.vaultAddress, ctx.investor.address, ONE)).to.equal(true);
-    expect(await ctx.module.canDeliver(ctx.vaultAddress, ctx.outsider.address, ONE)).to.equal(
-      false
-    );
+    expect(await ctx.module.canDeliver(ctx.vaultAddress, ctx.outsider.address, ONE)).to.equal(false);
     expect(await ctx.module.canDeliver(ctx.vaultAddress, ctx.investor.address, 0n)).to.equal(false);
   });
 });
