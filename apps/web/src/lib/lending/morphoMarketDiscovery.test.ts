@@ -67,7 +67,7 @@ beforeEach(() => {
 
 describe('discoverMarketsByCollateral', () => {
   it('finds the market for a vault and reads its live liquidity', async () => {
-    const found = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
+    const { byCollateral: found, scanned } = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
     const entry = found.get(VAULT.toLowerCase())?.[0];
     expect(entry?.marketId).toBe(MARKET_A);
     expect(entry?.supplyAssets).toBe('500.0');
@@ -76,13 +76,13 @@ describe('discoverMarketsByCollateral', () => {
 
   it('finds a market created with a non-default LLTV, which a recomputed id would miss', async () => {
     logs = [createMarketLog(MARKET_A, VAULT, 860_000_000_000_000_000n)];
-    const found = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
+    const { byCollateral: found, scanned } = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
     expect(found.get(VAULT.toLowerCase())?.[0].lltv).toBe('860000000000000000');
   });
 
   it('ignores markets whose collateral is not ours', async () => {
     logs = [createMarketLog(MARKET_B, '0x9999999999999999999999999999999999999999', 1n)];
-    const found = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
+    const { byCollateral: found, scanned } = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
     expect(found.size).toBe(0);
   });
 
@@ -95,7 +95,7 @@ describe('discoverMarketsByCollateral', () => {
       [MARKET_A]: [1_000_000n, 0n, 0n, 0n, 0n, 0n],
       [MARKET_B]: [2_000_000n, 0n, 0n, 0n, 0n, 0n]
     };
-    const found = await discoverMarketsByCollateral({
+    const { byCollateral: found, scanned } = await discoverMarketsByCollateral({
       provider,
       collateralTokens: [VAULT, OTHER_VAULT]
     });
@@ -109,7 +109,7 @@ describe('discoverMarketsByCollateral', () => {
       [MARKET_A]: [1_000_000n, 0n, 0n, 0n, 0n, 0n],
       [MARKET_B]: [900_000_000n, 0n, 0n, 0n, 0n, 0n]
     };
-    const found = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
+    const { byCollateral: found, scanned } = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
     expect(found.get(VAULT.toLowerCase())?.map((row) => row.marketId)).toEqual([
       MARKET_B,
       MARKET_A
@@ -118,19 +118,22 @@ describe('discoverMarketsByCollateral', () => {
 
   it('subtracts what is borrowed from what is available', async () => {
     markets = { [MARKET_A]: [500_000_000n, 0n, 200_000_000n, 0n, 0n, 0n] };
-    const found = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
+    const { byCollateral: found, scanned } = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
     expect(found.get(VAULT.toLowerCase())?.[0].availableAssets).toBe('300.0');
   });
 
-  it('falls back to chunked scanning when one wide query is refused', async () => {
+  it('says the scan did not run instead of implying there are no markets', async () => {
     getLogsFails = true;
-    const found = await discoverMarketsByCollateral({ provider, collateralTokens: [VAULT] });
-    // Every chunk is refused too, so it reports nothing rather than throwing.
+    const { byCollateral: found, scanned } = await discoverMarketsByCollateral({
+      provider,
+      collateralTokens: [VAULT]
+    });
+    expect(scanned).toBe(false);
     expect(found.size).toBe(0);
   });
 
   it('returns nothing when asked about no vaults', async () => {
-    const found = await discoverMarketsByCollateral({ provider, collateralTokens: [] });
+    const { byCollateral: found, scanned } = await discoverMarketsByCollateral({ provider, collateralTokens: [] });
     expect(found.size).toBe(0);
   });
 });

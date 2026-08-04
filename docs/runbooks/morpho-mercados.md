@@ -10,7 +10,11 @@ El síntoma es engañoso porque no hay error: se lee un mercado vacío, que es u
 
 ## Cómo funciona ahora
 
-**Los mercados se descubren, no se calculan.** `discoverMarketsByCollateral` lee los eventos `CreateMarket` de Morpho y se queda con los que tienen alguno de nuestros vaults como colateral. Eso encuentra el mercado sea cual sea su LLTV u oracle, incluso si lo creó otra persona o si nuestros parámetros por defecto cambiaron después.
+**Primero se verifica el id que ya tenemos.** `verifyStoredMarket` lee `idToMarketParams` y confirma que el colateral del mercado sea nuestro vault. Son dos lecturas, es exacto y no asume ningún parámetro. Este es el camino normal.
+
+**Si el id falta o apunta a otro vault, se descubre.** `discoverMarketsByCollateral` lee los eventos `CreateMarket` de Morpho y se queda con los que tienen alguno de nuestros vaults como colateral. Encuentra el mercado sea cual sea su LLTV u oracle, incluso si lo creó otra persona o si nuestros parámetros por defecto cambiaron después.
+
+**Una lectura fallida no dispara un escaneo ni concluye nada.** Si no pudimos leer el id guardado, no sabemos si está bien o mal, así que no se toca nada.
 
 **El id descubierto se guarda.** `reconcileMorphoMarkets` registra en `collateralTargets[].externalId` el mercado que la cadena dice que corresponde, y deriva `morphoLiquidityStatus` de ese mercado. Los valores guardados pasan a ser una caché reparable en vez de un dato que puede quedar mintiendo para siempre.
 
@@ -34,10 +38,14 @@ Cuando un vault tiene más de un mercado, elige el de mayor liquidez disponible 
 
 | Situación | Qué significa |
 |---|---|
-| `sin mercado en Morpho para este vault` | El mercado nunca se creó. Es trabajo pendiente, no un dato viejo. |
-| `market id corregido` | Había un id guardado que no existe en la cadena. |
-| `liquidez: FAILED → LIQUID` | El estado guardado venía de una lectura fallida. |
 | `ya coincidía con la cadena` | Nada que hacer. |
+| `liquidez: FAILED → LIQUID` | El estado guardado venía de una lectura fallida. |
+| `id guardado collateral_mismatch` | El id apunta a un mercado de otro colateral; se buscó el correcto. |
+| `market id corregido` | Se reemplazó por el que la cadena tiene. |
+| `sin mercado en Morpho para este vault` | Se escaneó y no existe. Es trabajo pendiente, no un dato viejo. |
+| `no se pudo determinar el mercado` | **No se pudo leer.** No afirma nada y no cambia nada. |
+
+Esa última fila es la distinción que importa: "no encontré" y "no pude buscar" son cosas distintas. Confundirlas fue lo que declaró ausente un mercado con 656 USDC.
 
 ## Estados de liquidez
 
