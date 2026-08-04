@@ -4,6 +4,7 @@ import { kycOperatorModuleAddress } from './kycOperatorModule';
 import KycOperatorModuleArtifact from './artifacts/SanovaKycOperatorModule.json';
 import { execAsSafeOwner, isSafeContract, readSafeOwners, readSafeThreshold } from './safeExec';
 import { resolveTreasuryOwnerSigner, isTreasuryOwnerSignerConfigured } from './treasuryOwnerSigner';
+import { readWithRetry } from './rpcRetry';
 
 const OWNABLE_ABI = [
   'function owner() view returns (address)',
@@ -54,12 +55,11 @@ function provider(): JsonRpcProvider {
 }
 
 async function readOwner(address: string, rpc: JsonRpcProvider): Promise<string | null> {
-  try {
+  const owner = await readWithRetry(async () => {
     const contract = new Contract(address, OWNABLE_ABI, rpc);
     return getAddress((await contract.owner()) as string);
-  } catch {
-    return null;
-  }
+  });
+  return owner;
 }
 
 /**
@@ -85,8 +85,8 @@ export async function auditAssetGovernance(projectId?: string): Promise<Governan
     let moduleEnabledOnSafe: boolean | null = null;
 
     if (safe) {
-      safeOwners = await readSafeOwners(safe, rpc).catch(() => []);
-      safeThreshold = await readSafeThreshold(safe, rpc).catch(() => null);
+      safeOwners = (await readWithRetry(() => readSafeOwners(safe, rpc))) ?? [];
+      safeThreshold = await readWithRetry(() => readSafeThreshold(safe, rpc));
       if (moduleAddress) {
         try {
           const safeContract = new Contract(
@@ -128,8 +128,13 @@ export async function auditAssetGovernance(projectId?: string): Promise<Governan
             .catch(() => null);
         }
 
-        if (!ownerIsGovernanceSafe) {
-          issues.push(`${kind} ${address} owner is ${owner ?? 'unknown'}, expected ${safe}`);
+        if (!owner) {
+          // An unreadable owner is an RPC problem, not a governance problem.
+          issues.push(
+            `${kind} ${address}: no se pudo leer owner() — el RPC no respondió tras varios intentos`
+          );
+        } else if (!ownerIsGovernanceSafe) {
+          issues.push(`${kind} ${address} owner is ${owner}, expected ${safe}`);
         }
         if (kind === 'token' && moduleAllowed === false) {
           issues.push(`${kind} ${address} is not allowlisted in the KYC module`);

@@ -14,6 +14,9 @@ import { privyOperatorWalletId, resolveRwaOperatorAddressEnv } from '../privy/co
 import { auditAssetGovernance, governanceSafeAddress } from '../blockchain/assetGovernance';
 import { kycOperatorModuleAddress } from '../blockchain/kycOperatorModule';
 import { deliveryOperatorModuleAddress } from '../blockchain/deliveryOperatorModule';
+import { locateContracts, type ContractLocation } from '../blockchain/contractChainLocator';
+import { readWithRetry } from '../blockchain/rpcRetry';
+import { privyApiBase, privyHeaders } from '../privy/privyHttp';
 import { readSafeOwners, readSafeThreshold } from '../blockchain/safeExec';
 import { usdcDecimals, usdcTokenAddress } from '../payments/paymentConfig';
 
@@ -62,6 +65,8 @@ export type PlatformAlignmentReport = {
     rpcUrl: string;
     rpcChainId: number | null;
     consistent: boolean;
+    /** Where unreadable contracts actually have code. Empty when all reads worked. */
+    contractLocations: ContractLocation[];
   };
   wallets: WalletRole[];
   treasury: {
@@ -115,6 +120,22 @@ async function ethBalance(provider: JsonRpcProvider, address: string | null): Pr
   }
 }
 
+/** The address that actually signs, which is not always the one in the env. */
+async function privyWalletAddress(walletId: string | null): Promise<string | null> {
+  if (!walletId) return null;
+  try {
+    const response = await fetch(`${privyApiBase()}/v1/wallets/${walletId}`, {
+      headers: privyHeaders(),
+      cache: 'no-store'
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { address?: string };
+    return normalise(payload.address ?? null);
+  } catch {
+    return null;
+  }
+}
+
 /** Wallet roles the platform needs, in the order they block operations. */
 function walletRoles(): WalletRole[] {
   return [
@@ -148,7 +169,9 @@ function walletRoles(): WalletRole[] {
     {
       role: 'usdc_treasury_signer',
       purpose: 'Paga renta y rendimientos en USDC a los inversores',
-      address: normalise(process.env.BASE_STABLECOIN_TREASURY_ADDRESS),
+      // Resolved from Privy below: the stablecoin treasury may be a Safe, which
+      // holds the USDC but never signs and therefore needs no gas.
+      address: null,
       privyWalletId: process.env.PRIVY_TREASURY_WALLET_ID?.trim() || null,
       configured: Boolean(process.env.PRIVY_TREASURY_WALLET_ID?.trim()),
       ethBalance: null,
@@ -320,6 +343,7 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
 
     const wallets = walletRoles();
     for (const wallet of wallets) {
+      wallet.address = (await privyWalletAddress(wallet.privyWalletId)) ?? wallet.address;
       wallet.ethBalance = await ethBalance(provider, wallet.address);
 
       if (!wallet.configured) {
@@ -355,13 +379,9 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
     let safeThreshold: number | null = null;
     let isSafe: boolean | null = null;
     if (safe) {
-      try {
-        safeOwners = await readSafeOwners(safe, provider);
-        safeThreshold = await readSafeThreshold(safe, provider);
-        isSafe = true;
-      } catch {
-        isSafe = false;
-      }
+      safeOwners = (await readWithRetry(() => readSafeOwners(safe, provider))) ?? [];
+      safeThreshold = await readWithRetry(() => readSafeThreshold(safe, provider));
+      isSafe = safeThreshold !== null;
     }
 
     if (!safe) {
@@ -454,7 +474,85 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
     }
 
     const governance = await auditAssetGovernance();
-    if (!governance.compliant) {
+
+    /**
+     * Every on-chain read failing at once usually means the RPC is on another
+     * chain, not that the contracts are broken. Locate them before blaming
+     * ownership, so the report names the real problem.
+     */
+    const unreadable: Array<{ address: string; label: string }> = [];
+    for (const project of governance.projects) {
+      for (const contract of project.contracts) {
+        if (!contract.owner) {
+          unreadable.push({ address: contract.address, label: `${project.title} (${contract.kind})` });
+        }
+      }
+    }
+    if (safe && isSafe === false) {
+      unreadable.push({ address: safe, label: 'Governance Safe' });
+    }
+
+    const contractLocations = unreadable.length ? await locateContracts(unreadable) : [];
+    const elsewhere = contractLocations.filter(
+      (row) => row.foundOn.length > 0 && !row.foundOn.some((hit) => hit.chainId === deployChainId)
+    );
+    const nowhere = contractLocations.filter((row) => row.foundOn.length === 0);
+    const throttled = contractLocations.filter((row) =>
+      row.foundOn.some((hit) => hit.chainId === deployChainId)
+    );
+
+    /**
+     * The contract is right here, on the chain we are querying, and we still
+     * could not read it: the endpoint is rate limiting us. Saying so is the
+     * difference between one fixable problem and a page of phantom ones.
+     */
+    if (throttled.length) {
+      issues.push({
+        section: 'chain',
+        code: 'RPC_UNRELIABLE',
+        severity: 'BLOCKER',
+        detail: `${throttled.length} contrato(s) existen en la red ${deployChainId} pero el RPC no respondió a sus lecturas: ${rpcUrl()} está limitando las consultas`,
+        fix: 'Usá un RPC dedicado con API key (Alchemy, QuickNode, Infura) en BASE_RPC_URL. El endpoint público no soporta esta carga, y todo lo que figure como owner ilegible es consecuencia de esto.'
+      });
+    }
+
+    if (elsewhere.length) {
+      const chainNames = [
+        ...new Set(elsewhere.flatMap((row) => row.foundOn.map((hit) => `${hit.name} (${hit.chainId})`)))
+      ];
+      issues.push({
+        section: 'chain',
+        code: 'CONTRACTS_ON_ANOTHER_CHAIN',
+        severity: 'BLOCKER',
+        detail: `${elsewhere.length} contrato(s) no existen en la red ${deployChainId}: viven en ${chainNames.join(', ')}`,
+        fix: `Apuntá BASE_RPC_URL y TOKEN_DEPLOY_CHAIN_ID a ${chainNames[0]}, o volvé a desplegar los activos en la red ${deployChainId}. Todo lo demás que figura como "owner is unknown" es consecuencia de esto.`
+      });
+    }
+    if (nowhere.length) {
+      issues.push({
+        section: 'chain',
+        code: 'CONTRACTS_NOT_FOUND_ANYWHERE',
+        severity: 'BLOCKER',
+        detail: `${nowhere.length} dirección(es) sin código en ninguna red consultada: ${nowhere.map((row) => row.label).join(', ')}`,
+        fix: 'Verificá las direcciones guardadas en la base: puede que el deploy nunca se haya confirmado.'
+      });
+    }
+
+    /**
+     * Ownership cannot be judged from a chain the contracts do not live on, and
+     * reporting each failed read as its own problem buries the one that matters.
+     */
+    const chainMisreads = elsewhere.length > 0 || nowhere.length > 0 || throttled.length > 0;
+    if (chainMisreads) {
+      const consequences = new Set(['GOVERNANCE_SAFE_NOT_A_SAFE', 'SIGNER_NOT_SAFE_OWNER']);
+      for (let index = issues.length - 1; index >= 0; index -= 1) {
+        if (consequences.has(issues[index].code)) {
+          issues.splice(index, 1);
+        }
+      }
+    }
+
+    if (!governance.compliant && !chainMisreads) {
       for (const project of governance.projects) {
         for (const detail of project.issues) {
           issues.push({
@@ -471,6 +569,11 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
     const supply = await auditSupply(provider);
     for (const project of supply) {
       for (const detail of project.issues) {
+        // A share balance that cannot be read on the wrong chain says nothing
+        // about the cupo, so it must not surface as a supply problem.
+        if (chainMisreads && detail.includes('balance de shares')) {
+          continue;
+        }
         issues.push({
           section: 'supply',
           code: 'SUPPLY_MISMATCH',
@@ -512,7 +615,8 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
         morphoChainId,
         rpcUrl: rpcUrl(),
         rpcChainId,
-        consistent: chainConsistent
+        consistent: chainConsistent,
+        contractLocations
       },
       wallets,
       treasury: {
