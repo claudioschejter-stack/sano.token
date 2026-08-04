@@ -53,6 +53,37 @@ async function recordOwnershipTransfers(projectId: string, transfers?: Ownership
   }
 }
 
+/**
+ * Leave every new asset under the target architecture: governance Safe owns the
+ * contracts and the KYC module is scoped to the token, so whitelisting works
+ * from day one without a manual step.
+ */
+async function applyGovernanceAfterDeploy(projectId: string) {
+  try {
+    const { enforceAssetGovernance } = await import('./assetGovernance');
+    const { audit, steps } = await enforceAssetGovernance({ projectId });
+    const report = audit.projects.find((row) => row.projectId === projectId);
+
+    await appendDeploymentEvent(projectId, {
+      step: 'ASSET_GOVERNANCE',
+      status: report?.compliant ? 'SUCCESS' : 'FAILED',
+      message: report?.compliant
+        ? `Governance OK: Safe ${audit.governanceSafe} owns the contracts and the KYC module is scoped.`
+        : `Governance pendiente: ${(report?.issues ?? ['sin datos']).join(' · ')}`,
+      txHash: steps.find((step) => step.ok && step.txHash)?.txHash ?? null,
+      address: null
+    });
+  } catch (error) {
+    await appendDeploymentEvent(projectId, {
+      step: 'ASSET_GOVERNANCE',
+      status: 'FAILED',
+      message: error instanceof Error ? error.message.slice(0, 250) : 'ASSET_GOVERNANCE_FAILED',
+      txHash: null,
+      address: null
+    }).catch(() => undefined);
+  }
+}
+
 async function executeProjectVaultDeployUnlocked(projectId: string): Promise<ProjectVaultDeployResult> {
   const asset = await getAdminAsset(projectId);
   if (!asset) {
@@ -141,6 +172,7 @@ async function executeProjectVaultDeployUnlocked(projectId: string): Promise<Pro
     address: result.vaultAddress
   });
   await recordOwnershipTransfers(projectId, result.ownershipTransfers);
+  await applyGovernanceAfterDeploy(projectId);
   await recordExplorerVerification(projectId, {
     contractAddress: result.vaultAddress,
     contractName: 'SanovaRwaVault',
@@ -357,6 +389,7 @@ async function executeProjectTokenDeployUnlocked(
         address: result.contractAddress
       });
       await recordOwnershipTransfers(projectId, result.ownershipTransfers);
+  await applyGovernanceAfterDeploy(projectId);
       await recordExplorerVerification(projectId, {
         contractAddress: result.contractAddress,
         contractName: 'SanovaAssetToken',
