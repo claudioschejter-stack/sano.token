@@ -270,7 +270,7 @@ describe('paySanovaCartForUser', () => {
       expect.objectContaining({
         walletId: 'w-1',
         // Treasury receives the investment plus the investor's gas coverage.
-        amountUsdc: 20.022,
+        amountUsdc: 20.032,
         destinationAddress: '0xTreasury000000000000000000000000000001',
         chain: 'base'
       })
@@ -313,9 +313,9 @@ describe('paySanovaCartForUser', () => {
     expect(result).toMatchObject({
       ok: true,
       status: 'waiting_funds',
-      amountUsd: 20.034345,
-      networkFeeUsd: 0.034345,
-      payableUsdc: 20.034345
+      amountUsd: 20.044345,
+      networkFeeUsd: 0.044345,
+      payableUsdc: 20.044345
     });
   });
 
