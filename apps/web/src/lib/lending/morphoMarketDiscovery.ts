@@ -40,7 +40,81 @@ export type DiscoveredMarket = {
   availableAssets: string;
 };
 
-async function fetchCreateMarketLogs(provider: JsonRpcProvider): Promise<Log[]> {
+const MARKET_PARAMS_ABI = [
+  'function idToMarketParams(bytes32) view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)'
+];
+
+export type StoredMarketCheck =
+  | { ok: true; market: DiscoveredMarket }
+  | { ok: false; reason: 'NOT_FOUND' | 'COLLATERAL_MISMATCH' | 'READ_FAILED'; detail?: string };
+
+/**
+ * Verify a market id we already have against the chain.
+ *
+ * This is the cheap, exact path: two reads, no assumptions about parameters and
+ * no event scanning. Scanning only earns its cost when the stored id is missing
+ * or points somewhere else.
+ */
+export async function verifyStoredMarket(input: {
+  provider: JsonRpcProvider;
+  marketId: string;
+  expectedCollateral: string;
+  loanDecimals?: number;
+}): Promise<StoredMarketCheck> {
+  const { Contract } = await import('ethers');
+  const morpho = new Contract(
+    getLendingChainConfig().morpho,
+    [...MARKET_PARAMS_ABI, ...MARKET_ABI],
+    input.provider
+  );
+
+  const params = await readWithRetry(() => morpho.idToMarketParams(input.marketId));
+  if (!params) {
+    return { ok: false, reason: 'READ_FAILED' };
+  }
+
+  const collateral = String(params.collateralToken ?? params[1] ?? '');
+  if (!collateral || collateral === '0x0000000000000000000000000000000000000000') {
+    return { ok: false, reason: 'NOT_FOUND' };
+  }
+  if (collateral.toLowerCase() !== input.expectedCollateral.trim().toLowerCase()) {
+    return { ok: false, reason: 'COLLATERAL_MISMATCH', detail: collateral };
+  }
+
+  const state = await readWithRetry(() => morpho.market(input.marketId));
+  if (!state) {
+    return { ok: false, reason: 'READ_FAILED' };
+  }
+
+  const decimals = input.loanDecimals ?? 6;
+  const supply = BigInt(state[0] ?? 0);
+  const borrow = BigInt(state[2] ?? 0);
+  const available = supply > borrow ? supply - borrow : 0n;
+
+  return {
+    ok: true,
+    market: {
+      marketId: input.marketId,
+      collateralToken: getAddress(collateral),
+      loanToken: getAddress(String(params.loanToken ?? params[0])),
+      oracle: getAddress(String(params.oracle ?? params[2])),
+      irm: getAddress(String(params.irm ?? params[3])),
+      lltv: BigInt(params.lltv ?? params[4] ?? 0).toString(),
+      supplyAssets: formatUnits(supply, decimals),
+      borrowAssets: formatUnits(borrow, decimals),
+      availableAssets: formatUnits(available, decimals)
+    }
+  };
+}
+
+/**
+ * `scanned: false` means the scan could not be completed, which is not the same
+ * as finding nothing — reporting "no market" for a scan that never ran is how a
+ * market holding 656 USDC got declared absent.
+ */
+async function fetchCreateMarketLogs(
+  provider: JsonRpcProvider
+): Promise<{ scanned: boolean; logs: Log[] }> {
   const morpho = getLendingChainConfig().morpho;
   const topic = MORPHO_EVENTS.getEvent('CreateMarket')!.topicHash;
   const latest = await provider.getBlockNumber();
@@ -51,11 +125,12 @@ async function fetchCreateMarketLogs(provider: JsonRpcProvider): Promise<Log[]> 
     provider.getLogs({ address: morpho, topics: [topic], fromBlock, toBlock: latest })
   );
   if (whole) {
-    return whole;
+    return { scanned: true, logs: whole };
   }
 
   const logs: Log[] = [];
   const step = 500_000;
+  let anyChunkFailed = false;
   for (let start = fromBlock; start <= latest; start += step) {
     const end = Math.min(start + step - 1, latest);
     const chunk = await readWithRetry(() =>
@@ -63,9 +138,11 @@ async function fetchCreateMarketLogs(provider: JsonRpcProvider): Promise<Log[]> 
     );
     if (chunk) {
       logs.push(...chunk);
+    } else {
+      anyChunkFailed = true;
     }
   }
-  return logs;
+  return { scanned: !anyChunkFailed, logs };
 }
 
 /**
@@ -77,7 +154,7 @@ export async function discoverMarketsByCollateral(input: {
   collateralTokens: string[];
   /** USDC decimals, for readable amounts. */
   loanDecimals?: number;
-}): Promise<Map<string, DiscoveredMarket[]>> {
+}): Promise<{ scanned: boolean; byCollateral: Map<string, DiscoveredMarket[]> }> {
   const wanted = new Set(
     input.collateralTokens
       .map((row) => row?.trim())
@@ -87,10 +164,10 @@ export async function discoverMarketsByCollateral(input: {
 
   const byCollateral = new Map<string, DiscoveredMarket[]>();
   if (!wanted.size) {
-    return byCollateral;
+    return { scanned: true, byCollateral };
   }
 
-  const logs = await fetchCreateMarketLogs(input.provider);
+  const { scanned, logs } = await fetchCreateMarketLogs(input.provider);
   const decimals = input.loanDecimals ?? 6;
   const { Contract } = await import('ethers');
   const morphoContract = new Contract(
@@ -147,5 +224,5 @@ export async function discoverMarketsByCollateral(input: {
     byCollateral.set(key, list);
   }
 
-  return byCollateral;
+  return { scanned, byCollateral };
 }

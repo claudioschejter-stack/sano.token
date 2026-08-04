@@ -9,6 +9,9 @@ const MARKET_WRONG = '0x11111111111111111111111111111111111111111111111111111111
 const updates: Array<{ id: string; patch: Record<string, unknown> }> = [];
 let assets: Array<Record<string, unknown>> = [];
 let byCollateral = new Map<string, DiscoveredMarket[]>();
+let scanSucceeds = true;
+/** Overridden per test to model what the chain says about a stored id. */
+let verifyResult: (marketId: string) => unknown = () => ({ ok: false, reason: 'NOT_FOUND' });
 
 vi.mock('../admin/assetsService', () => ({
   listAdminAssets: async () => assets,
@@ -18,7 +21,8 @@ vi.mock('../admin/assetsService', () => ({
 }));
 vi.mock('../payments/paymentConfig', () => ({ usdcDecimals: () => 6 }));
 vi.mock('./morphoMarketDiscovery', () => ({
-  discoverMarketsByCollateral: async () => byCollateral
+  discoverMarketsByCollateral: async () => ({ scanned: scanSucceeds, byCollateral }),
+  verifyStoredMarket: async (input: { marketId: string }) => verifyResult(input.marketId)
 }));
 
 const { reconcileMorphoMarkets } = await import('./reconcileMorphoMarkets');
@@ -53,11 +57,74 @@ const provider = {} as never;
 
 beforeEach(() => {
   updates.length = 0;
+  scanSucceeds = true;
   assets = [asset()];
   byCollateral = new Map([[VAULT_A.toLowerCase(), [market({})]]]);
+  verifyResult = () => ({ ok: false, reason: 'NOT_FOUND' });
 });
 
 describe('reconcileMorphoMarkets', () => {
+  it('trusts a stored id the chain confirms, without scanning', async () => {
+    assets = [
+      asset({
+        collateralTargets: [{ protocol: 'MORPHO', externalId: MARKET_REAL, oracleAddress: null }]
+      })
+    ];
+    verifyResult = () => ({ ok: true, market: market({ marketId: MARKET_REAL }) });
+    // A scan would find nothing, so a pass here proves the stored id was used.
+    byCollateral = new Map();
+
+    const result = await reconcileMorphoMarkets({ provider });
+
+    expect(result.rows[0]).toMatchObject({
+      discoveredMarketId: MARKET_REAL,
+      liquidityAfter: 'LIQUID',
+      availableAssets: '500.0'
+    });
+    expect(result.rows[0].actions.join(' ')).not.toContain('sin mercado');
+  });
+
+  it('does not claim a vault has no market when the scan could not run', async () => {
+    scanSucceeds = false;
+    byCollateral = new Map();
+
+    const result = await reconcileMorphoMarkets({ provider });
+
+    expect(result.rows[0].actions.join(' ')).toContain('no se pudo determinar');
+    expect(result.rows[0].liquidityAfter).toBe('FAILED');
+    expect(updates).toHaveLength(0);
+  });
+
+  it('does not scan on account of a read that failed', async () => {
+    assets = [
+      asset({
+        collateralTargets: [{ protocol: 'MORPHO', externalId: MARKET_REAL, oracleAddress: null }]
+      })
+    ];
+    verifyResult = () => ({ ok: false, reason: 'READ_FAILED' });
+    byCollateral = new Map();
+
+    const result = await reconcileMorphoMarkets({ provider });
+
+    expect(result.rows[0].actions.join(' ')).toContain('read_failed');
+    expect(result.rows[0].actions.join(' ')).toContain('no se pudo determinar');
+    expect(updates).toHaveLength(0);
+  });
+
+  it('scans when the stored id points at another vault', async () => {
+    assets = [
+      asset({
+        collateralTargets: [{ protocol: 'MORPHO', externalId: MARKET_WRONG, oracleAddress: null }]
+      })
+    ];
+    verifyResult = () => ({ ok: false, reason: 'COLLATERAL_MISMATCH', detail: VAULT_B });
+
+    const result = await reconcileMorphoMarkets({ provider });
+
+    expect(result.rows[0].actions.join(' ')).toContain('collateral_mismatch');
+    expect(result.rows[0].discoveredMarketId).toBe(MARKET_REAL);
+  });
+
   it('records the market the chain has and corrects the liquidity status', async () => {
     const result = await reconcileMorphoMarkets({ provider });
 

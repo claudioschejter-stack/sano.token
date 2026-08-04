@@ -1,7 +1,11 @@
 import { JsonRpcProvider } from 'ethers';
 import { listAdminAssets, updateAdminAsset, type AdminAssetRecord } from '../admin/assetsService';
 import { usdcDecimals } from '../payments/paymentConfig';
-import { discoverMarketsByCollateral, type DiscoveredMarket } from './morphoMarketDiscovery';
+import {
+  discoverMarketsByCollateral,
+  verifyStoredMarket,
+  type DiscoveredMarket
+} from './morphoMarketDiscovery';
 
 export type MorphoReconcileRow = {
   projectId: string;
@@ -56,12 +60,53 @@ export async function reconcileMorphoMarkets(input: {
     : assets;
 
   const withVault = targets.filter((asset) => Boolean(asset.vaultAddress?.trim()));
+  const decimals = usdcDecimals();
 
-  const discovered = await discoverMarketsByCollateral({
-    provider: input.provider,
-    collateralTokens: withVault.map((asset) => asset.vaultAddress!.trim()),
-    loanDecimals: usdcDecimals()
-  });
+  /**
+   * Verify the id each asset already has before scanning anything: it is two
+   * reads and it is exact. Scanning is the fallback for the assets whose stored
+   * id is missing or points at another vault.
+   */
+  const verified = new Map<string, DiscoveredMarket>();
+  const needsScan: AdminAssetRecord[] = [];
+  const verifyNotes = new Map<string, string[]>();
+
+  for (const asset of withVault) {
+    const vault = asset.vaultAddress!.trim();
+    const storedMarketId = morphoTargetOf(asset)?.externalId?.trim() || null;
+    if (!storedMarketId) {
+      needsScan.push(asset);
+      continue;
+    }
+
+    const check = await verifyStoredMarket({
+      provider: input.provider,
+      marketId: storedMarketId,
+      expectedCollateral: vault,
+      loanDecimals: decimals
+    });
+
+    if (check.ok === true) {
+      verified.set(asset.id, check.market);
+    } else {
+      const reason = check.reason;
+      verifyNotes.set(asset.id, [
+        `id guardado ${reason.toLowerCase()}${check.detail ? `: ${check.detail}` : ''}`
+      ]);
+      // A failed read says nothing about the market, so do not scan on its account.
+      if (reason !== 'READ_FAILED') {
+        needsScan.push(asset);
+      }
+    }
+  }
+
+  const discovery = needsScan.length
+    ? await discoverMarketsByCollateral({
+        provider: input.provider,
+        collateralTokens: needsScan.map((asset) => asset.vaultAddress!.trim()),
+        loanDecimals: decimals
+      })
+    : { scanned: true, byCollateral: new Map<string, DiscoveredMarket[]>() };
 
   const rows: MorphoReconcileRow[] = [];
   let marketsDiscovered = 0;
@@ -70,16 +115,23 @@ export async function reconcileMorphoMarkets(input: {
 
   for (const asset of withVault) {
     const vault = asset.vaultAddress!.trim();
-    const markets: DiscoveredMarket[] = discovered.get(vault.toLowerCase()) ?? [];
-    const best = markets[0] ?? null;
     const target = morphoTargetOf(asset);
     const storedMarketId = target?.externalId?.trim() || null;
     const liquidityBefore = asset.morphoLiquidityStatus ?? null;
-    const actions: string[] = [];
+    const actions: string[] = [...(verifyNotes.get(asset.id) ?? [])];
 
-    marketsDiscovered += markets.length;
+    const verifiedMarket = verified.get(asset.id) ?? null;
+    const markets: DiscoveredMarket[] = verifiedMarket
+      ? [verifiedMarket]
+      : discovery.byCollateral.get(vault.toLowerCase()) ?? [];
+    const best = markets[0] ?? null;
+
+    if (!verifiedMarket) {
+      marketsDiscovered += markets.length;
+    }
 
     if (!best) {
+      const scanRan = discovery.scanned && needsScan.some((row) => row.id === asset.id);
       rows.push({
         projectId: asset.id,
         title: asset.title,
@@ -91,7 +143,12 @@ export async function reconcileMorphoMarkets(input: {
         availableAssets: null,
         liquidityBefore,
         liquidityAfter: liquidityBefore,
-        actions: ['sin mercado en Morpho para este vault']
+        actions: [
+          ...actions,
+          scanRan
+            ? 'sin mercado en Morpho para este vault'
+            : 'no se pudo determinar el mercado; no se cambió nada'
+        ]
       });
       continue;
     }

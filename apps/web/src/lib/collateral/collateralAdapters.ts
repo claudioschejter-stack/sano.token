@@ -85,18 +85,26 @@ async function registerMorpho(project: CollateralProjectContext): Promise<Collat
         };
       }
 
+      /**
+       * `externalId` is the Morpho market id, and only ever that. Storing a
+       * placeholder like `MORPHO-<projectId>` makes the field look populated
+       * while every read of it falls back to recomputing the id from assumed
+       * parameters — which is how a market holding real USDC came to be read as
+       * empty. Leaving it null lets reconciliation fill it from the chain.
+       */
       if (/already (created|exists)/i.test(result.reason)) {
         return {
           status: 'REGISTERED',
-          externalId: `MORPHO-${project.id}`,
+          externalId: null,
           oracleAddress: process.env.MORPHO_ORACLE_ADDRESS?.trim() || null,
-          notes: 'Mercado Morpho ya existía o fue registrado previamente.'
+          notes:
+            'Mercado Morpho ya existía. El id se resuelve contra la cadena en la próxima reconciliación.'
         };
       }
 
       return {
         status: 'SUBMITTED',
-        externalId: `MORPHO-MARKET-${project.id}`,
+        externalId: null,
         notes: `Morpho: ${result.reason}`
       };
     } catch (error) {
