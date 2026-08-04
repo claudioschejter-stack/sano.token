@@ -103,6 +103,8 @@ export async function POST(request: NextRequest) {
       userId,
       walletAddress,
       attempted: result.attempted,
+      // Per-project reason: without it a silent failure looked like a no-op.
+      attempts: result.attempts ?? [],
       remainingGaps: result.remainingGaps
     });
   } catch (error) {

@@ -83,10 +83,92 @@ export async function findAllowlistGaps(input: {
   return gaps;
 }
 
+export type AllowlistAttempt = {
+  projectId: string;
+  projectTitle: string;
+  ok: boolean;
+  txHash?: string | null;
+  error?: string;
+};
+
 export type EnsureAllowlistResult = {
   attempted: boolean;
   remainingGaps: AllowlistGap[];
+  /** Per-project outcome — `autoAllowlistInvestorWallet` swallows failures. */
+  attempts?: AllowlistAttempt[];
 };
+
+/**
+ * Whitelist a wallet on each project's asset token and mirror it in the DB,
+ * reporting why any project failed instead of logging and moving on.
+ */
+export async function allowlistInvestorWalletWithReport(input: {
+  userId: string;
+  walletAddress: string;
+  projectIds: string[];
+}): Promise<AllowlistAttempt[]> {
+  const { isRwaOperatorConfigured } = await import('../blockchain/rwaOperatorSigner');
+  const projects = await prisma.project.findMany({
+    where: { id: { in: input.projectIds } },
+    select: { id: true, title: true, contractAddress: true }
+  });
+
+  if (!isRwaOperatorConfigured()) {
+    return projects.map((project) => ({
+      projectId: project.id,
+      projectTitle: project.title,
+      ok: false,
+      error:
+        'RWA_OPERATOR_NOT_CONFIGURED: set PRIVY_OPERATOR_WALLET_ID + RWA_OPERATOR_ADDRESS (+ PRIVY_APP_SECRET) in Vercel.'
+    }));
+  }
+
+  const { setInvestorKycAllowlist } = await import('../blockchain/kycAllowlist');
+  const { upsertInvestorAllowlist } = await import('../admin/investorsService');
+
+  const attempts: AllowlistAttempt[] = [];
+  for (const project of projects) {
+    if (!project.contractAddress?.trim()) {
+      attempts.push({
+        projectId: project.id,
+        projectTitle: project.title,
+        ok: false,
+        error: 'PROJECT_TOKEN_NOT_DEPLOYED'
+      });
+      continue;
+    }
+
+    try {
+      const result = await setInvestorKycAllowlist({
+        tokenAddress: project.contractAddress.trim(),
+        walletAddress: input.walletAddress,
+        approved: true
+      });
+      await upsertInvestorAllowlist({
+        userId: input.userId,
+        projectId: project.id,
+        walletAddress: input.walletAddress,
+        approved: true,
+        txHash: result.txHash ?? null
+      });
+      attempts.push({
+        projectId: project.id,
+        projectTitle: project.title,
+        ok: true,
+        txHash: result.txHash ?? null
+      });
+    } catch (error) {
+      attempts.push({
+        projectId: project.id,
+        projectTitle: project.title,
+        ok: false,
+        error: error instanceof Error ? error.message.slice(0, 300) : 'ALLOWLIST_FAILED'
+      });
+    }
+  }
+
+  return attempts;
+}
 
 /**
  * Try to close allowlist gaps before charging: KYC-approved investors should be
@@ -105,15 +187,16 @@ export async function ensureInvestorAllowlistForProjects(input: {
     return { attempted: false, remainingGaps: [] };
   }
 
-  const { autoAllowlistInvestorWallet } = await import(
-    '../blockchain/autoAllowlistInvestorWallet'
-  );
-  await autoAllowlistInvestorWallet(input.userId);
+  const attempts = await allowlistInvestorWalletWithReport({
+    userId: input.userId,
+    walletAddress: input.walletAddress,
+    projectIds: gaps.map((gap) => gap.projectId)
+  });
 
   const remainingGaps = await findAllowlistGaps({
     walletAddress: input.walletAddress,
     projectIds: input.projectIds
   });
 
-  return { attempted: true, remainingGaps };
+  return { attempted: true, remainingGaps, attempts };
 }
