@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { refreshBorrowRatesCache } from '../../../../lib/lending/fetchLiveBorrowRates';
-import { listAdminAssets, listInfrastructureRepairCandidates, listMorphoLiquidityProbeCandidates, resolveInfrastructureRepairStep } from '../../../../lib/admin/assetsService';
+import { listAdminAssets, listInfrastructureRepairCandidates, resolveInfrastructureRepairStep } from '../../../../lib/admin/assetsService';
 import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
 import { executeProjectInfrastructureRepair } from '../../../../lib/blockchain/projectTokenDeploy';
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
@@ -24,7 +24,6 @@ export async function GET(request: Request) {
     const paymentReconciliation = await reconcilePayments();
     const portfolioSnapshots = await recordPortfolioSnapshotsForActiveInvestors(100);
     const candidates = await listInfrastructureRepairCandidates(3);
-    const liquidityCandidates = await listMorphoLiquidityProbeCandidates(12);
     const activeAssets = await listAdminAssets('ACTIVE');
     const repairs = [];
     const queued = [];
@@ -72,18 +71,36 @@ export async function GET(request: Request) {
       }
     }
 
-    const { probeMorphoLiquidityStatus } = await import('../../../../lib/lending/morphoLiquidityCheck');
-    for (const asset of liquidityCandidates) {
+    /**
+     * Reconciling against the markets the chain actually has replaces probing
+     * each asset with a recomputed market id: a market created with a different
+     * LLTV or oracle used to read as empty, so an asset stayed marked illiquid
+     * while its liquidity sat untouched, and only a manual pass could fix it.
+     */
+    let morphoReconcile: unknown = null;
+    try {
+      const { JsonRpcProvider } = await import('ethers');
+      const { reconcileMorphoMarkets } = await import(
+        '../../../../lib/lending/reconcileMorphoMarkets'
+      );
+      const rpc = new JsonRpcProvider(
+        process.env.LENDING_BASE_RPC_URL?.trim() ||
+          process.env.BASE_RPC_URL?.trim() ||
+          'https://mainnet.base.org'
+      );
       try {
-        const probe = await probeMorphoLiquidityStatus(asset);
-        liquidityProbes.push({ projectId: asset.id, status: probe.status });
-      } catch (error) {
-        liquidityProbes.push({
-          projectId: asset.id,
-          status: 'FAILED',
-          error: error instanceof Error ? error.message : 'probe failed'
-        });
+        const reconciled = await reconcileMorphoMarkets({ provider: rpc });
+        morphoReconcile = reconciled.summary;
+        for (const row of reconciled.rows) {
+          liquidityProbes.push({ projectId: row.projectId, status: row.liquidityAfter ?? 'UNKNOWN' });
+        }
+      } finally {
+        rpc.destroy();
       }
+    } catch (error) {
+      morphoReconcile = {
+        error: error instanceof Error ? error.message.slice(0, 200) : 'MORPHO_RECONCILE_FAILED'
+      };
     }
 
     for (const asset of activeAssets.slice(0, 5)) {
@@ -125,7 +142,8 @@ export async function GET(request: Request) {
       securityReports,
       paymentReconciliation,
       portfolioSnapshots: portfolioSnapshots.length,
-      liquidityProbes
+      liquidityProbes,
+      morphoReconcile
     });
   } catch (error) {
     console.error('[cron/refresh-borrow-rates]', error);
