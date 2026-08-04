@@ -11,7 +11,7 @@ import { roundUsdc } from './formatUsdPrecise';
  * Steps 2 and 3 are signed by Sanova wallets, so without this the platform
  * absorbed the gas of an investor-driven movement.
  */
-export const DEFAULT_INVESTOR_GAS_COVERAGE_USD = 0.25;
+export const DEFAULT_INVESTOR_GAS_COVERAGE_USD = 0.1;
 
 export function investorGasCoverageUsd(): number {
   const raw = process.env.RWA_INVESTOR_GAS_COVERAGE_USD?.trim();
