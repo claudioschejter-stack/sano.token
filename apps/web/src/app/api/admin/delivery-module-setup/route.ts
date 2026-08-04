@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { JsonRpcProvider } from 'ethers';
+import { JsonRpcProvider, Wallet } from 'ethers';
 import { prisma } from '@sanova/database';
 import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
 import {
@@ -119,12 +119,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const deployKey =
+      process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim() ||
+      process.env.TREASURY_OWNER_PRIVATE_KEY?.trim() ||
+      null;
+
     const result = await setupDeliveryOperatorModule({
       safeAddress,
       vaults,
       operatorAddress,
       moduleAddress: body.moduleAddress ?? null,
-      signer
+      signer,
+      deploySigner: deployKey ? new Wallet(deployKey, provider) : null
     });
 
     const ok = result.steps.every((step) => step.ok);

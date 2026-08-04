@@ -93,7 +93,13 @@ export async function setupDeliveryOperatorModule(input: {
   operatorAddress: string;
   moduleAddress?: string | null;
   rpcUrl?: string;
+  /** Safe owner: signs the steps the Safe governs. */
   signer: Signer;
+  /**
+   * Deploys the module. Contract creation has no recipient, which Privy's
+   * transaction API rejects, so a plain key is used when one is available.
+   */
+  deploySigner?: Signer | null;
 }): Promise<DeliveryModuleSetupResult> {
   const safe = getAddress(input.safeAddress);
   const operatorAddress = getAddress(input.operatorAddress);
@@ -113,7 +119,11 @@ export async function setupDeliveryOperatorModule(input: {
 
   if (!moduleAddress) {
     try {
-      const factory = new ContractFactory(MODULE_ABI, MODULE_BYTECODE, input.signer);
+      const factory = new ContractFactory(
+        MODULE_ABI,
+        MODULE_BYTECODE,
+        input.deploySigner ?? input.signer
+      );
       const deployed = await factory.deploy(safe);
       await deployed.waitForDeployment();
       moduleAddress = getAddress(await deployed.getAddress());

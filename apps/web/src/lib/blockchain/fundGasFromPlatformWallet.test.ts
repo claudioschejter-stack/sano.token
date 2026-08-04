@@ -47,6 +47,25 @@ beforeEach(() => {
 });
 
 describe('fundGasFromPlatformWallet', () => {
+  it('does nothing when the recipient is already funded', async () => {
+    balances.set(TARGET, parseEther('0.009'));
+    const result = await fundGasFromPlatformWallet({ provider, to: TARGET, amountEth: 0.003 });
+    expect(result).toMatchObject({ code: 'ALREADY_FUNDED' });
+    expect(sent).toHaveLength(0);
+  });
+
+  it('sends anyway when forced', async () => {
+    balances.set(TARGET, parseEther('0.009'));
+    const result = await fundGasFromPlatformWallet({
+      provider,
+      to: TARGET,
+      amountEth: 0.003,
+      force: true
+    });
+    expect(result.ok).toBe(true);
+    expect(sent).toHaveLength(1);
+  });
+
   it('sends from the wallet that can spare the most', async () => {
     const result = await fundGasFromPlatformWallet({ provider, to: TARGET, amountEth: 0.003 });
     expect(result.ok).toBe(true);

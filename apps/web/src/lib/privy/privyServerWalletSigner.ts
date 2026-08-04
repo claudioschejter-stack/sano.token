@@ -45,15 +45,16 @@ export class PrivyServerWalletSigner extends AbstractSigner {
   }
 
   async sendTransaction(tx: TransactionRequest): Promise<TransactionResponse> {
-    if (!tx.to) {
-      throw new Error('PRIVY_SEND_TRANSACTION_TO_REQUIRED');
+    // No `to` means contract creation, which is how modules get deployed.
+    if (!tx.to && !tx.data) {
+      throw new Error('PRIVY_SEND_TRANSACTION_EMPTY');
     }
 
     const send = (sponsor: boolean) =>
       privySendTransaction({
         walletId: this.walletId,
         chainId: this.chainId,
-        to: String(tx.to),
+        to: tx.to ? String(tx.to) : null,
         data: typeof tx.data === 'string' ? tx.data : tx.data ? String(tx.data) : '0x',
         value: typeof tx.value === 'bigint' ? tx.value : tx.value ? BigInt(tx.value) : 0n,
         sponsor

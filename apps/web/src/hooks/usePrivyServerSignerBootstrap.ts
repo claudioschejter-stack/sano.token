@@ -12,7 +12,9 @@ const QUORUM_ID = process.env.NEXT_PUBLIC_PRIVY_AUTHORIZATION_KEY_QUORUM_ID?.tri
  * authorization key as a signer on the investor embedded wallet so cron /
  * server auto-settle can Transfer without a browser login.
  *
- * If the signer is already present, Privy returns PATCH 400 — treat as success.
+ * Asks the server first: Privy answers PATCH 400 when the signer is already
+ * present, and even though that is harmless, the browser logs the failed
+ * request, so every session showed an error that looked like a bug.
  */
 export function usePrivyServerSignerBootstrap() {
   const { authenticated, address } = usePrivyEmbeddedWallet();
@@ -24,12 +26,26 @@ export function usePrivyServerSignerBootstrap() {
     if (attemptedFor.current === address.toLowerCase()) return;
     attemptedFor.current = address.toLowerCase();
 
-    void addSigners({
-      address,
-      signers: [{ signerId: QUORUM_ID, policyIds: [] }]
-    }).catch((error) => {
-      if (isAddSignersAlreadyPresentError(error)) return;
-      console.warn('[usePrivyServerSignerBootstrap] addSigners failed', error);
-    });
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/privy/signer-status?address=${encodeURIComponent(address)}`,
+          { credentials: 'same-origin' }
+        );
+        if (response.ok) {
+          const { granted } = (await response.json()) as { granted: boolean | null };
+          if (granted === true) return;
+        }
+      } catch {
+        // Undetermined: fall through and attempt the grant.
+      }
+
+      try {
+        await addSigners({ address, signers: [{ signerId: QUORUM_ID, policyIds: [] }] });
+      } catch (error) {
+        if (isAddSignersAlreadyPresentError(error)) return;
+        console.warn('[usePrivyServerSignerBootstrap] addSigners failed', error);
+      }
+    })();
   }, [addSigners, address, authenticated]);
 }
