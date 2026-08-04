@@ -9,7 +9,8 @@ import { privyApiBase, privyHeaders } from './privyHttp';
 export type PrivySendTransactionInput = {
   walletId: string;
   chainId: number;
-  to: string;
+  /** Omit for contract creation, which has no recipient. */
+  to?: string | null;
   data?: string;
   value?: bigint;
   idempotencyKey?: string;
@@ -37,17 +38,20 @@ export async function privySendTransaction(input: PrivySendTransactionInput): Pr
 
   // Existing server-wallet callers use `/api/v1/...` on api.privy.io.
   const url = `${privyApiBase()}/api/v1/wallets/${walletId}/rpc`;
+  const transaction: Record<string, unknown> = {
+    data: input.data?.trim() || '0x',
+    value: toHexQuantity(input.value ?? 0n),
+    chain_id: input.chainId
+  };
+  // Contract creation carries no `to`, and sending an empty one is rejected.
+  if (input.to) {
+    transaction.to = getAddress(input.to);
+  }
+
   const body: Record<string, unknown> = {
     method: 'eth_sendTransaction',
     caip2: `eip155:${input.chainId}`,
-    params: {
-      transaction: {
-        to: getAddress(input.to),
-        data: input.data?.trim() || '0x',
-        value: toHexQuantity(input.value ?? 0n),
-        chain_id: input.chainId
-      }
-    }
+    params: { transaction }
   };
 
   if (input.sponsor) {
