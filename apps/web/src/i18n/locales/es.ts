@@ -2649,6 +2649,8 @@ export const es = {
     sectionTokens: 'Tokenes',
     sectionTokensHint: 'Posiciones RWA tokenizadas',
     sectionTokensEmpty: 'Sin posiciones en tokens RWA.',
+    walletVerifiedTokens: 'Verificado en tu wallet (on-chain)',
+    walletPendingTokens: 'En tu wallet: {tokens} · entrega en proceso',
     sectionStablecoins: 'Stablecoins',
     sectionStablecoinsHint: 'USDC en cada red',
     sectionStablecoinsEmpty: 'Sin posiciones en stablecoins.',
