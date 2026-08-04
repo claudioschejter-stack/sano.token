@@ -83,6 +83,12 @@ export type ExpireStaleReservationsResult = {
   releasedTokens: number;
 };
 
+/** How long a payment under review may hold its tokens out of stock. */
+function manualReviewHoldMinutes(): number {
+  const raw = Number(process.env.MANUAL_REVIEW_HOLD_MINUTES ?? 720);
+  return Number.isFinite(raw) && raw > 0 ? Math.min(raw, 7 * 24 * 60) : 720;
+}
+
 /**
  * Return supply for any expired reservation, regardless of owner.
  * `PAYMENT_ORDER_TTL_MINUTES` only sets `expiresAt`; without this sweep the
@@ -91,14 +97,36 @@ export type ExpireStaleReservationsResult = {
 export async function expireStaleCartReservations(
   limit = 200
 ): Promise<ExpireStaleReservationsResult> {
+  const now = new Date();
+
+  /**
+   * `MANUAL_REVIEW` held its reservation forever: it is not past `expiresAt`
+   * from the sweep's point of view and nothing else releases it, so a purchase
+   * flagged for review — or a fiat rail waiting on treasury USDC that never
+   * arrived — kept its tokens out of stock indefinitely.
+   *
+   * Reviews get a longer window than a checkout because someone has to look at
+   * them, but not an unlimited one: after it, the tokens go back on sale and
+   * the payment can be re-taken.
+   */
+  const reviewCutoff = new Date(now.getTime() - manualReviewHoldMinutes() * 60_000);
+
   const stale = await prisma.paymentIntent.findMany({
     where: {
-      status: { in: ['REQUIRES_PAYMENT', 'PENDING'] },
-      expiresAt: { lte: new Date() }
+      OR: [
+        {
+          status: { in: ['REQUIRES_PAYMENT', 'PENDING'] },
+          expiresAt: { lte: now }
+        },
+        {
+          status: 'MANUAL_REVIEW',
+          updatedAt: { lte: reviewCutoff }
+        }
+      ]
     },
     orderBy: { expiresAt: 'asc' },
     take: limit,
-    select: { id: true, projectId: true, tokenCount: true, metadata: true }
+    select: { id: true, projectId: true, tokenCount: true, metadata: true, status: true }
   });
 
   const expiredIntentIds: string[] = [];
@@ -118,7 +146,10 @@ export async function expireStaleCartReservations(
             ...metadata,
             supplyReserved: false,
             expiredAt: new Date().toISOString(),
-            expiredReason: 'RESERVATION_TTL_ELAPSED'
+            expiredReason:
+              intent.status === 'MANUAL_REVIEW'
+                ? 'MANUAL_REVIEW_HOLD_ELAPSED'
+                : 'RESERVATION_TTL_ELAPSED'
           } as Prisma.InputJsonObject
         }
       });

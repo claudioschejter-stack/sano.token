@@ -119,18 +119,24 @@ describe('expireStaleCartReservations', () => {
     expect(result.releasedTokens).toBe(6);
   });
 
-  it('only looks at open intents already past expiresAt', async () => {
+  it('sweeps open intents past expiresAt, and reviews past their hold', async () => {
     mockFindMany.mockResolvedValue([]);
 
     await expireStaleCartReservations();
 
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          status: { in: ['REQUIRES_PAYMENT', 'PENDING'] },
-          expiresAt: expect.objectContaining({ lte: expect.any(Date) })
-        })
-      })
-    );
+    const where = mockFindMany.mock.calls[0][0].where as {
+      OR: Array<Record<string, any>>;
+    };
+
+    expect(where.OR).toEqual([
+      {
+        status: { in: ['REQUIRES_PAYMENT', 'PENDING'] },
+        expiresAt: { lte: expect.any(Date) }
+      },
+      {
+        status: 'MANUAL_REVIEW',
+        updatedAt: { lte: expect.any(Date) }
+      }
+    ]);
   });
 });
