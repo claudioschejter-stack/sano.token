@@ -58,6 +58,66 @@ async function recordOwnershipTransfers(projectId: string, transfers?: Ownership
  * contracts and the KYC module is scoped to the token, so whitelisting works
  * from day one without a manual step.
  */
+/**
+ * A vault the delivery module does not know about cannot be handed to an
+ * investor without a Safe signature, so a new asset would silently reintroduce
+ * manual work at its first sale.
+ */
+async function allowVaultInDeliveryModule(projectId: string) {
+  const { deliveryOperatorModuleAddress, setupDeliveryOperatorModule } = await import(
+    './deliveryOperatorModule'
+  );
+  const moduleAddress = deliveryOperatorModuleAddress();
+  if (!moduleAddress) {
+    return;
+  }
+
+  const asset = await getAdminAsset(projectId);
+  const vaultAddress = asset?.vaultAddress?.trim();
+  const kycTokenAddress = asset?.contractAddress?.trim();
+  if (!vaultAddress || !kycTokenAddress) {
+    return;
+  }
+
+  const { governanceSafeAddress } = await import('./assetGovernance');
+  const safeAddress = governanceSafeAddress();
+  if (!safeAddress) {
+    return;
+  }
+
+  const { JsonRpcProvider } = await import('ethers');
+  const { resolveTreasuryOwnerSigner } = await import('./treasuryOwnerSigner');
+  const { resolveChainId, resolveChainRpcUrl } = await import('./explorerUrls');
+  const chainId = resolveChainId();
+  const provider = new JsonRpcProvider(resolveChainRpcUrl(chainId));
+
+  try {
+    const signer = await resolveTreasuryOwnerSigner(provider, chainId);
+    if (!signer) {
+      return;
+    }
+    const result = await setupDeliveryOperatorModule({
+      safeAddress,
+      vaults: [{ vaultAddress, kycTokenAddress }],
+      operatorAddress: await signer.getAddress(),
+      moduleAddress,
+      signer
+    });
+    const allowStep = result.steps.find((step) => step.step === 'allow_vault');
+    await appendDeploymentEvent(projectId, {
+      step: 'ASSET_GOVERNANCE',
+      status: allowStep?.ok ? 'SUCCESS' : 'FAILED',
+      message: allowStep?.ok
+        ? `Entrega automática habilitada: vault ${vaultAddress} en el módulo ${moduleAddress}.`
+        : `Entrega automática pendiente: ${allowStep?.error ?? 'sin datos'}`,
+      txHash: allowStep?.txHash ?? null,
+      address: moduleAddress
+    });
+  } finally {
+    provider.destroy();
+  }
+}
+
 async function applyGovernanceAfterDeploy(projectId: string) {
   try {
     const { enforceAssetGovernance } = await import('./assetGovernance');
@@ -73,6 +133,8 @@ async function applyGovernanceAfterDeploy(projectId: string) {
       txHash: steps.find((step) => step.ok && step.txHash)?.txHash ?? null,
       address: null
     });
+
+    await allowVaultInDeliveryModule(projectId).catch(() => undefined);
   } catch (error) {
     await appendDeploymentEvent(projectId, {
       step: 'ASSET_GOVERNANCE',
