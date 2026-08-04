@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
+import { JsonRpcProvider, formatEther } from 'ethers';
 import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
 import { getLinkedWalletForUser } from '../../../../lib/investor/linkedWalletPolicy';
+import { baseRpcUrls } from '../../../../lib/payments/stablecoinNetworks';
+import {
+  privyOperatorWalletId,
+  privySponsorServerTransactions,
+  resolveRwaOperatorAddressEnv
+} from '../../../../lib/privy/config';
 import {
   ensureInvestorAllowlistForProjects,
   findAllowlistGaps
@@ -21,6 +28,38 @@ async function resolveUserId(input: { userId?: string | null; email?: string | n
     select: { id: true }
   });
   return user?.id ?? '';
+}
+
+/**
+ * Whitelisting is signed by the RWA operator server wallet, which pays gas in
+ * ETH unless app sponsorship covers it. Surfaced so ops can see where to top up.
+ */
+async function operatorStatus() {
+  const address = resolveRwaOperatorAddressEnv();
+  let ethBalance: string | null = null;
+
+  if (address) {
+    for (const url of baseRpcUrls()) {
+      const provider = new JsonRpcProvider(url, 8453, { staticNetwork: true });
+      try {
+        ethBalance = formatEther(await provider.getBalance(address));
+        provider.destroy();
+        break;
+      } catch {
+        provider.destroy();
+      }
+    }
+  }
+
+  return {
+    address,
+    walletIdConfigured: Boolean(privyOperatorWalletId()),
+    ethBalance,
+    gasSponsorshipEnabled: privySponsorServerTransactions(),
+    fundGasHint: address
+      ? `Send Base ETH to ${address} (0.005 ETH covers many setKyc calls) or GET /api/cron/fund-gas?to=${address}`
+      : null
+  };
 }
 
 async function tokenizedProjectIds(explicit?: string | null): Promise<string[]> {
@@ -61,6 +100,7 @@ export async function GET(request: NextRequest) {
     walletAddress,
     projectsChecked: projectIds.length,
     allowlisted: gaps.length === 0,
+    operator: await operatorStatus(),
     gaps
   });
 }
@@ -105,6 +145,7 @@ export async function POST(request: NextRequest) {
       attempted: result.attempted,
       // Per-project reason: without it a silent failure looked like a no-op.
       attempts: result.attempts ?? [],
+      operator: await operatorStatus(),
       remainingGaps: result.remainingGaps
     });
   } catch (error) {

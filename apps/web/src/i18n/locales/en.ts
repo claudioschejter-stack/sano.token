@@ -2924,7 +2924,7 @@ export const en = {
     cryptoWalletExactAmountLabel: "Exact amount to pay",
     cryptoWalletReceiveAmountLabel: "Amount to load into your wallet",
     cryptoWalletPayableIncludesGas:
-      "Investment {investment} USDC + network gas {gas} USDC (User pays on Base)",
+      "Investment {investment} USDC + network gas {gas} USDC (covers transfer, whitelisting and token delivery on Base)",
     cryptoWalletGasQuoteCountdown: "Quote valid for 0:{seconds}",
     cryptoWalletGasQuoteRefreshing: "Updating gas quote…",
     cryptoWalletOnBaseNote: "on Base Network · no conversion",
@@ -3084,7 +3084,7 @@ export const en = {
       title: 'Cost breakdown',
       investment: 'Investment amount',
       providerFee: 'Provider fee + FX',
-      networkFee: 'Network gas (Base, USDC)',
+      networkFee: 'Network gas (Base, USDC) — transfer + whitelisting + delivery',
       conversionNote: 'Conversion to USDC Base',
       conversionValue: 'Included in total',
       included: 'Included',

@@ -2968,7 +2968,7 @@ export const es = {
     cryptoWalletExactAmountLabel: 'Monto exacto a pagar',
     cryptoWalletReceiveAmountLabel: 'Monto a cargar en tu cartera',
     cryptoWalletPayableIncludesGas:
-      'Inversión {investment} USDC + gas de red {gas} USDC (User pays en Base)',
+      'Inversión {investment} USDC + gas de red {gas} USDC (cubre transferencia, habilitación y entrega de tokens en Base)',
     cryptoWalletGasQuoteCountdown: 'Cotización válida por 0:{seconds}',
     cryptoWalletGasQuoteRefreshing: 'Actualizando cotización de gas…',
     cryptoWalletOnBaseNote: 'en Base Network · sin conversión',
@@ -3129,7 +3129,7 @@ export const es = {
       title: 'Detalle de costos',
       investment: 'Monto de inversión',
       providerFee: 'Comisión del proveedor + FX',
-      networkFee: 'Gas de red (Base, USDC)',
+      networkFee: 'Gas de red (Base, USDC) — transferencia + habilitación + entrega',
       conversionNote: 'Conversión a USDC Base',
       conversionValue: 'Incluida en el total',
       included: 'Incluido',
