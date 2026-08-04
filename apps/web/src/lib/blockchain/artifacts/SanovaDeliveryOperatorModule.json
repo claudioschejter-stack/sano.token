@@ -1,0 +1,339 @@
+{
+  "contractName": "SanovaDeliveryOperatorModule",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "safe_",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "cap",
+          "type": "uint256"
+        }
+      ],
+      "name": "AmountAboveCap",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotOperator",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotSafe",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        }
+      ],
+      "name": "RecipientNotApproved",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        }
+      ],
+      "name": "SafeExecutionFailed",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        }
+      ],
+      "name": "VaultNotAllowed",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAddress",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "ZeroAmount",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "operator",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "allowed",
+          "type": "bool"
+        }
+      ],
+      "name": "OperatorUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "operator",
+          "type": "address"
+        }
+      ],
+      "name": "SharesDelivered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "kycToken",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "maxPerTx",
+          "type": "uint256"
+        }
+      ],
+      "name": "VaultAllowedUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "canDeliver",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "investor",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "deliverShares",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "isOperator",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "maxDeliveryPerTx",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "safe",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "operator",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "allowed",
+          "type": "bool"
+        }
+      ],
+      "name": "setOperator",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "vault",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "kycToken",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "maxPerTx",
+          "type": "uint256"
+        }
+      ],
+      "name": "setVaultAllowed",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "vaultKycToken",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x60a060405234801561000f575f80fd5b5060405161099738038061099783398101604081905261002e91610066565b6001600160a01b0381166100555760405163d92e233d60e01b815260040160405180910390fd5b6001600160a01b0316608052610093565b5f60208284031215610076575f80fd5b81516001600160a01b038116811461008c575f80fd5b9392505050565b6080516108d86100bf5f395f818160b60152818161029d0152818161037c01526105f301526108d85ff3fe608060405234801561000f575f80fd5b5060043610610085575f3560e01c8063558a729711610058578063558a7297146101325780636d70f7ae14610145578063779be2da14610167578063ea8a7dae1461017a575f80fd5b8063025947cc14610089578063186f0354146100b15780631c84ea91146100f05780634e98d83914610105575b5f80fd5b61009c610097366004610783565b6101a2565b60405190151581526020015b60405180910390f35b6100d87f000000000000000000000000000000000000000000000000000000000000000081565b6040516001600160a01b0390911681526020016100a8565b6101036100fe366004610783565b610292565b005b6101246101133660046107bc565b60026020525f908152604090205481565b6040519081526020016100a8565b6101036101403660046107e5565b610371565b61009c6101533660046107bc565b5f6020819052908152604090205460ff1681565b610103610175366004610783565b61043d565b6100d86101883660046107bc565b60016020525f90815260409020546001600160a01b031681565b6001600160a01b038084165f908152600160205260408120549091168015806101d257506001600160a01b038416155b806101db575082155b156101e9575f91505061028b565b6001600160a01b0385165f90815260026020526040902054801580159061020f57508084115b1561021e575f9250505061028b565b604051631990731960e21b81526001600160a01b038681166004830152831690636641cc6490602401602060405180830381865afa158015610262573d5f803e3d5ffd5b505050506040513d601f19601f82011682018060405250810190610286919061081a565b925050505b9392505050565b336001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016146102db57604051634ee2123760e11b815260040160405180910390fd5b6001600160a01b0383166103025760405163d92e233d60e01b815260040160405180910390fd5b6001600160a01b038381165f81815260016020908152604080832080546001600160a01b0319169588169586179055600282529182902085905590518481527fc8c98a43d3adb5d3374c23f834c706c2bd5a5c0324e0cbc2495f9d20eae30a95910160405180910390a3505050565b336001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016146103ba57604051634ee2123760e11b815260040160405180910390fd5b6001600160a01b0382166103e15760405163d92e233d60e01b815260040160405180910390fd5b6001600160a01b0382165f8181526020818152604091829020805460ff191685151590811790915591519182527f966c160e1c4dbc7df8d69af4ace01e9297c3cf016397b7914971f2fbfa32672d910160405180910390a25050565b335f9081526020819052604090205460ff1661046c57604051631f0853c160e21b815260040160405180910390fd5b6001600160a01b038084165f9081526001602052604090205416806104b4576040516318ef3f8360e01b81526001600160a01b03851660048201526024015b60405180910390fd5b6001600160a01b0383166104db5760405163d92e233d60e01b815260040160405180910390fd5b815f036104fb57604051631f2a200560e01b815260040160405180910390fd5b6001600160a01b0384165f90815260026020526040902054801580159061052157508083115b1561055857604051634c1a306160e11b81526001600160a01b038616600482015260248101849052604481018290526064016104ab565b604051631990731960e21b81526001600160a01b038581166004830152831690636641cc6490602401602060405180830381865afa15801561059c573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906105c0919061081a565b6105f0576040516301de9d2360e41b81526001600160a01b038087166004830152851660248201526044016104ab565b5f7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663468721a7875f88886040516024016106499291906001600160a01b03929092168252602082015260400190565b60408051601f198184030181529181526020820180516001600160e01b031663a9059cbb60e01b179052516001600160e01b031960e086901b168152610696939291905f90600401610835565b6020604051808303815f875af11580156106b2573d5f803e3d5ffd5b505050506040513d601f19601f820116820180604052508101906106d6919061081a565b905080610709576040516371995c9d60e11b81526001600160a01b038088166004830152861660248201526044016104ab565b336001600160a01b0316856001600160a01b0316876001600160a01b03167ffc88a168e951e66f1f818d895d81edb0ffba7ecf2118fde9a8ae28537381f1348760405161075891815260200190565b60405180910390a4505050505050565b80356001600160a01b038116811461077e575f80fd5b919050565b5f805f60608486031215610795575f80fd5b61079e84610768565b92506107ac60208501610768565b9150604084013590509250925092565b5f602082840312156107cc575f80fd5b61028b82610768565b80151581146107e2575f80fd5b50565b5f80604083850312156107f6575f80fd5b6107ff83610768565b9150602083013561080f816107d5565b809150509250929050565b5f6020828403121561082a575f80fd5b815161028b816107d5565b60018060a01b03851681525f60208560208401526080604084015284518060808501525f5b818110156108765786810183015185820160a00152820161085a565b505f60a0828601015260a0601f19601f8301168501019250505060ff831660608301529594505050505056fea2646970667358221220fdf980c9ac74423bf853d29256e844abd620fa4544716e9d09cfcae5ce900b5264736f6c63430008180033"
+}

@@ -13,6 +13,7 @@ import {
 import { privyOperatorWalletId, resolveRwaOperatorAddressEnv } from '../privy/config';
 import { auditAssetGovernance, governanceSafeAddress } from '../blockchain/assetGovernance';
 import { kycOperatorModuleAddress } from '../blockchain/kycOperatorModule';
+import { deliveryOperatorModuleAddress } from '../blockchain/deliveryOperatorModule';
 import { readSafeOwners, readSafeThreshold } from '../blockchain/safeExec';
 import { usdcDecimals, usdcTokenAddress } from '../payments/paymentConfig';
 
@@ -72,6 +73,9 @@ export type PlatformAlignmentReport = {
     safeOwners: string[];
     safeThreshold: number | null;
     kycModule: string | null;
+    deliveryModule: string | null;
+    /** Whether the Safe can go to threshold 2 with checkout still automatic. */
+    readyForMultisig: boolean;
     usdcBalance: string | null;
   };
   governance: Awaited<ReturnType<typeof auditAssetGovernance>>;
@@ -410,6 +414,33 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
       });
     }
 
+    const deliveryModule = deliveryOperatorModuleAddress();
+    if (!deliveryModule) {
+      issues.push({
+        section: 'treasury',
+        code: 'DELIVERY_MODULE_MISSING',
+        severity: 'WARN',
+        detail:
+          'La entrega de shares depende de firmar con el Safe, así que subirlo a threshold 2 dejaría cada compra esperando una firma manual',
+        fix: 'Desplegá el módulo de entrega con POST /api/admin/delivery-module-setup antes de subir el threshold.'
+      });
+    }
+
+    /**
+     * The whole point of the modules is that the Safe can be closed without
+     * putting a manual signature inside checkout.
+     */
+    const automationReady = Boolean(kycModule && deliveryModule);
+    if (safeThreshold !== null && safeThreshold > 1 && !automationReady) {
+      issues.push({
+        section: 'treasury',
+        code: 'THRESHOLD_BLOCKS_AUTOMATION',
+        severity: 'BLOCKER',
+        detail: `El Safe está en threshold ${safeThreshold} y falta ${kycModule ? 'el módulo de entrega' : 'el módulo de KYC'}: el checkout no puede completarse solo`,
+        fix: 'Desplegá los módulos faltantes, o bajá el Safe a threshold 1 hasta tenerlos.'
+      });
+    }
+
     let usdcBalance: string | null = null;
     const usdc = usdcTokenAddress();
     if (usdc && stablecoinTreasury) {
@@ -495,6 +526,8 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
         safeOwners,
         safeThreshold,
         kycModule,
+        deliveryModule,
+        readyForMultisig: automationReady,
         usdcBalance
       },
       governance,

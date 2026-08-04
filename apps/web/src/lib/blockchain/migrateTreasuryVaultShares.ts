@@ -3,6 +3,13 @@ import type { AdminAssetRecord } from '../admin/assetsService';
 import { resolveTreasuryOwnerSigner } from './treasuryOwnerSigner';
 import { resolveTreasuryAddress } from './treasuryPolicy';
 import { execAsOwner } from './safeExec';
+import { resolveRwaOperatorSigner } from './rwaOperatorSigner';
+import { setInvestorKycAllowlist } from './kycAllowlist';
+import {
+  deliverSharesViaModule,
+  deliveryOperatorModuleAddress,
+  moduleCanDeliver
+} from './deliveryOperatorModule';
 
 const TOKEN_ABI = [
   'function kycApproved(address) view returns (bool)',
@@ -67,18 +74,27 @@ export async function migrateTreasuryVaultSharesToWallet(input: {
 
   const chainId = input.asset.chainId ?? 8453;
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
-  const signer = await resolveTreasuryOwnerSigner(provider, chainId);
-  if (!signer) {
+
+  /**
+   * Delivery runs through the module whenever it is wired, so a threshold-2
+   * Safe does not put a manual signature in the middle of every purchase. The
+   * Safe-owner signer is only needed for the fallback path.
+   */
+  const moduleAddress = deliveryOperatorModuleAddress();
+  const operatorSigner = moduleAddress ? await resolveRwaOperatorSigner(provider, chainId).catch(() => null) : null;
+  const signer = await resolveTreasuryOwnerSigner(provider, chainId).catch(() => null);
+
+  if (!signer && !operatorSigner) {
     return {
       ok: false,
       code: 'TREASURY_SIGNER_MISSING',
       detail:
-        'Configurá PRIVY_SAFE_OWNER_WALLET_ID + TREASURY_OWNER_ADDRESS o TREASURY_OWNER_PRIVATE_KEY.'
+        'Configurá PRIVY_SAFE_OWNER_WALLET_ID + TREASURY_OWNER_ADDRESS, o el operador de entrega con DELIVERY_OPERATOR_MODULE_ADDRESS.'
     };
   }
 
   try {
-    const assetContract = new Contract(token, TOKEN_ABI, signer);
+    const assetContract = new Contract(token, TOKEN_ABI, provider);
     const vaultContract = new Contract(vault, VAULT_ABI, provider);
 
     const treasuryShares = (await vaultContract.balanceOf(treasury)) as bigint;
@@ -97,22 +113,54 @@ export async function migrateTreasuryVaultSharesToWallet(input: {
 
     const recipientKyc = await assetContract.kycApproved(recipient);
     if (!recipientKyc) {
-      const setKycData = new Interface(TOKEN_ABI).encodeFunctionData('setKyc', [recipient, true]);
-      await execAsTreasury({
-        treasuryAddress: treasury,
-        signer,
-        target: token,
-        data: setKycData
+      // Prefers the KYC module, so this works with the Safe above threshold 1.
+      await setInvestorKycAllowlist({
+        tokenAddress: token,
+        walletAddress: recipient,
+        approved: true
       });
     }
 
-    const transferData = new Interface(VAULT_ABI).encodeFunctionData('transfer', [recipient, amount]);
-    const txHash = await execAsTreasury({
-      treasuryAddress: treasury,
-      signer,
-      target: vault,
-      data: transferData
-    });
+    let txHash: string | null = null;
+    if (moduleAddress && operatorSigner) {
+      const usable = await moduleCanDeliver({
+        moduleAddress,
+        vaultAddress: vault,
+        investorAddress: recipient,
+        amount,
+        operatorAddress: await operatorSigner.getAddress(),
+        provider
+      });
+      if (usable) {
+        txHash = await deliverSharesViaModule({
+          moduleAddress,
+          vaultAddress: vault,
+          investorAddress: recipient,
+          amount,
+          signer: operatorSigner
+        });
+      }
+    }
+
+    if (!txHash) {
+      if (!signer) {
+        return {
+          ok: false,
+          code: 'DELIVERY_MODULE_UNAVAILABLE',
+          detail: `El módulo ${moduleAddress ?? 'no configurado'} no puede entregar este vault y no hay firmante del Safe.`
+        };
+      }
+      const transferData = new Interface(VAULT_ABI).encodeFunctionData('transfer', [
+        recipient,
+        amount
+      ]);
+      txHash = await execAsTreasury({
+        treasuryAddress: treasury,
+        signer,
+        target: vault,
+        data: transferData
+      });
+    }
 
     const recipientShares = (await vaultContract.balanceOf(recipient)) as bigint;
     if (recipientShares < amount) {
