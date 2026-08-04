@@ -14,6 +14,7 @@ import { normalizeCartLineItems } from './normalizeCartLineItems';
 import { isPrismaTransactionTimeoutError } from './prismaTransactionErrors';
 import { findPendingUsdcCartPurchase } from './privyInboundUsdcService';
 import { findAvailabilityShortfalls } from './assertProjectAvailability';
+import { ensureInvestorAllowlistForProjects } from './ensureInvestorAllowlist';
 import { quoteBaseUserPaysGasUsd } from './baseUserPaysGasQuote';
 import { closeStaleOpenCartBatches } from './closeStaleCartBatches';
 import { autoReconcileTreasuryPaymentForUser } from './reconcileCryptoSettlement';
@@ -396,6 +397,34 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
   const treasuryAddress = getStablecoinNetwork('BASE').treasuryAddress;
   if (!treasuryAddress) {
     return { ok: false, status: 'failed', error: 'TREASURY_NOT_CONFIGURED', balanceUsdc };
+  }
+
+  // The purchase gate runs at confirm time, so check (and try to fix) the token
+  // allowlist before moving money — otherwise the investor pays and cannot be credited.
+  const allowlist = await ensureInvestorAllowlistForProjects({
+    userId: input.userId,
+    walletAddress: walletRef.address,
+    projectIds: [...new Set(intents.map((row) => row.projectId))]
+  }).catch((error) => {
+    console.error('[pay-sanova] allowlist pre-check failed', error);
+    return { attempted: false, remainingGaps: [] };
+  });
+
+  if (allowlist.remainingGaps.length > 0) {
+    console.warn('[pay-sanova] blocked settle for allowlist gap', {
+      userId: input.userId,
+      batchId: pending.batchId,
+      gaps: allowlist.remainingGaps
+    });
+    return {
+      ok: false,
+      status: 'failed',
+      error: allowlist.remainingGaps.some((gap) => gap.onChainApproved === false)
+        ? 'ONCHAIN_ALLOWLIST_NOT_APPROVED'
+        : 'ALLOWLIST_NOT_APPROVED',
+      batchId: pending.batchId,
+      balanceUsdc
+    };
   }
 
   // Never take USDC for tokens that are no longer available: supply can sell out
