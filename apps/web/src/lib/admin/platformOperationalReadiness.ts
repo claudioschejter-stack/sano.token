@@ -1,6 +1,7 @@
 import { Contract, JsonRpcProvider, isAddress } from 'ethers';
 import { listAdminAssets, type AdminAssetRecord } from './assetsService';
 import { inferEmissionProfileFromAsset } from './emissionProfiles';
+import { isVaultTokenStandard } from './vaultStandards';
 import { getErc4626OnChainIssues, isErc4626OnChainReady } from './erc4626LaunchGate';
 import { getMorphoPostDeployIssues, getTreasuryReadinessIssues } from './erc4626MorphoGate';
 import { readTreasuryVaultReadiness } from '../blockchain/verifyTreasuryVaultShares';
@@ -261,11 +262,21 @@ async function auditBaseMorphoProject(asset: AdminAssetRecord): Promise<ProjectO
     issues.push(issue.code + (issue.detail ? `: ${issue.detail}` : ''));
   }
 
+  // Having an address is not the same as being deployed, and borrow requires both.
   checks.push({
     id: 'token_deployed',
     label: 'Token desplegado',
-    status: asset.contractAddress ? 'OK' : 'FAIL',
-    detail: asset.contractAddress ?? asset.tokenDeployStatus
+    status: asset.contractAddress && asset.tokenDeployStatus === 'DEPLOYED' ? 'OK' : 'FAIL',
+    detail: asset.contractAddress
+      ? `${asset.contractAddress} (${asset.tokenDeployStatus})`
+      : asset.tokenDeployStatus
+  });
+
+  checks.push({
+    id: 'token_standard',
+    label: 'Estándar del token',
+    status: isVaultTokenStandard(asset.tokenStandard) ? 'OK' : 'FAIL',
+    detail: asset.tokenStandard ?? 'sin definir'
   });
 
   checks.push({
@@ -331,11 +342,50 @@ async function auditBaseMorphoProject(asset: AdminAssetRecord): Promise<ProjectO
     detail: asset.morphoLiquidityStatus ?? 'unknown'
   });
 
+  /**
+   * `readyToBorrow` also depends on the token standard, the vault funding status
+   * and the automation circuit breaker, none of which had a check of their own.
+   * So the report could say an asset was not ready while every listed check
+   * passed, which tells you the answer and hides the reason.
+   */
+  const morphoTargetForBorrow = asset.collateralTargets.find(
+    (target) => target.protocol === 'MORPHO'
+  );
+
+  checks.push({
+    id: 'vault_funded',
+    label: 'Vault fondeado',
+    status: asset.vaultFundingStatus === 'FUNDED' ? 'OK' : 'FAIL',
+    detail: asset.vaultFundingStatus ?? 'unknown'
+  });
+
+  checks.push({
+    id: 'morpho_oracle',
+    label: 'Oracle del mercado Morpho',
+    status: morphoTargetForBorrow?.oracleAddress ? 'OK' : 'FAIL',
+    detail: morphoTargetForBorrow?.oracleAddress ?? 'sin oracle registrado'
+  });
+
+  checks.push({
+    id: 'automation_circuit_breaker',
+    label: 'Cortacircuitos de automatización',
+    status: asset.automationCircuitBreaker ? 'FAIL' : 'OK',
+    detail: asset.automationCircuitBreaker ? 'activo: bloquea el borrow' : 'inactivo'
+  });
+
+  const borrowBlockers = checks
+    .filter((check) => check.status === 'FAIL')
+    .map((check) => check.id);
+
   checks.push({
     id: 'ready_to_borrow',
     label: 'Listo para borrow',
     status: asset.readyToBorrow ? 'OK' : 'WARN',
-    detail: asset.readyToBorrow ? 'yes' : 'no'
+    detail: asset.readyToBorrow
+      ? 'yes'
+      : borrowBlockers.length
+        ? `no — falta: ${borrowBlockers.join(', ')}`
+        : 'no — todas las condiciones listadas pasan; revisar tokenStandard y tokenDeployStatus'
   });
 
   const hasFail = checks.some((check) => check.status === 'FAIL') || issues.length > 0;
