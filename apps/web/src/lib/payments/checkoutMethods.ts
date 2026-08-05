@@ -87,7 +87,7 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
   {
     id: 'LOCAL_RAIL',
     label: 'Rails locales',
-    description: 'dLocal / EBANX u otros rails locales habilitados.',
+    description: 'EBANX u otros rails locales habilitados.',
     configured: paymentGatewayConfigured('LOCAL_RAIL'),
     automatic: true,
     supportsDeposit: true,

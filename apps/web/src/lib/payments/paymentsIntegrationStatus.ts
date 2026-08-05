@@ -15,7 +15,6 @@ export const WEBHOOK_PATHS = {
   transak: '/api/webhooks/transak',
   bridge: '/api/webhooks/bridge',
   ripio: '/api/webhooks/ripio',
-  dlocal: '/api/webhooks/dlocal',
   ebanx: '/api/webhooks/ebanx',
   astropay: '/api/webhooks/astropay',
   macroClick: '/api/webhooks/macro-click'
@@ -93,9 +92,9 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
     },
     {
       id: 'local-rails',
-      label: 'Rails locales (dLocal / EBANX)',
+      label: 'Rails locales (EBANX)',
       configured: paymentGatewayConfigured('LOCAL_RAIL'),
-      envKeys: ['LOCAL_RAILS_ENABLED', 'DLOCAL_API_KEY', 'EBANX_API_KEY', 'ASTROPAY_API_KEY']
+      envKeys: ['LOCAL_RAILS_ENABLED', 'EBANX_API_KEY', 'ASTROPAY_API_KEY']
     },
     {
       id: 'astropay',

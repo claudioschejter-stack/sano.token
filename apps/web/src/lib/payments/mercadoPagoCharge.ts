@@ -1,3 +1,5 @@
+import { resolveArsPerUsd } from './arsFxRate';
+
 const MERCADOPAGO_LOCAL_CURRENCY: Record<string, string> = {
   AR: 'ARS'
 };
@@ -27,11 +29,10 @@ export function resolveMercadoPagoChargeAmount(
 
   const envKey = MERCADOPAGO_FX_ENV_KEYS[currency];
   const parsedFx = envKey ? Number(process.env[envKey]) : NaN;
-  const fallbackFx = Number(process.env.DLOCAL_FX_ARS);
+
+  // Only ARS has a shared resolver; other currencies keep their own defaults.
   const defaultFx =
-    Number.isFinite(fallbackFx) && fallbackFx > 0
-      ? fallbackFx
-      : MERCADOPAGO_FX_DEFAULTS[currency] ?? 1;
+    currency === 'ARS' ? resolveArsPerUsd(envKey) : MERCADOPAGO_FX_DEFAULTS[currency] ?? 1;
   const fxRate = Number.isFinite(parsedFx) && parsedFx > 0 ? parsedFx : defaultFx;
 
   return {

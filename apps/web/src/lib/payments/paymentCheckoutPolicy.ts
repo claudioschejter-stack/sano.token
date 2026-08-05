@@ -1,5 +1,4 @@
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
-import { isDLocalLocalRailRow } from './dlocalCountryCoverage';
 import { isLocalRailAggregatorConfigured } from './paymentProviderAvailability';
 
 export type CheckoutFlowMode = 'purchase' | 'deposit';
@@ -37,7 +36,8 @@ function isLocalRailCheckoutRow(row: PaymentCheckoutRow): boolean {
   if (row.method !== 'LOCAL_RAIL') {
     return false;
   }
-  return isDLocalLocalRailRow(row) || row.provider === 'ebanx';
+  // dLocal was the aggregator behind most local rails; the account is closed.
+  return row.provider === 'ebanx';
 }
 
 function localRailCheckoutEnabled(row: PaymentCheckoutRow): boolean {

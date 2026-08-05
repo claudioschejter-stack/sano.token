@@ -12,7 +12,7 @@ export type PrivyFundingInput = {
 };
 
 /**
- * After dLocal (or fiat rail) webhook confirms payment, credit USDC to the
+ * After a fiat rail webhook confirms payment, credit USDC to the
  * investor's Privy embedded wallet on Base. Production path uses treasury
  * settlement + on-chain transfer; this service records intent and triggers
  * client-side completion when auto-transfer is not yet wired server-side.
@@ -48,7 +48,7 @@ export async function fundPrivyWalletAfterFiatPayment(input: PrivyFundingInput) 
   }
 
   const fundingRecord = {
-    policy: 'dlocal_to_usdc_base',
+    policy: 'fiat_to_usdc_base',
     amountUsd: input.amountUsd,
     provider: input.provider,
     providerPaymentId: input.providerPaymentId,

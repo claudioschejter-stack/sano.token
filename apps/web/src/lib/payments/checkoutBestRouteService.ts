@@ -7,7 +7,7 @@ import { ripioConfigured } from './ripioClient';
 import { quoteBaseCryptoCheckoutGasUsd } from './baseUserPaysGasQuote';
 
 // ---------------------------------------------------------------------------
-// FX table (fallback rates; production should use MERCADOPAGO_FX_ARS / DLOCAL env)
+// FX table (fallback rates; production should use FX_ARS or a per-rail override)
 // ---------------------------------------------------------------------------
 
 const FX_TABLE: Record<string, { currency: string; rate: number }> = {

@@ -8,7 +8,7 @@ function option(id: string, overrides: Partial<DepositPaymentOption> = {}): Depo
     groupId: 'argentina',
     method: 'LOCAL_RAIL',
     label: id,
-    provider: 'dlocal',
+    provider: 'ebanx',
     providerRail: id,
     platformFeeUsd: 1,
     gasFeeUsd: 0.1,

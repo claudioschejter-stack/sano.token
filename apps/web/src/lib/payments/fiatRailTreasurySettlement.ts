@@ -8,7 +8,7 @@ import { confirmCartBatchByProvider } from './cartCheckoutService';
 import { confirmPlatformDeposit } from './platformWalletService';
 import { fundPrivyWalletAfterFiatPayment } from './privyWalletFundingService';
 
-export const FIAT_RAIL_TREASURY_PROVIDERS = new Set(['dlocal', 'ebanx']);
+export const FIAT_RAIL_TREASURY_PROVIDERS = new Set(['ebanx']);
 
 export type FiatRailWebhookInput = {
   externalReference: string;

@@ -7,7 +7,7 @@ const sampleOption: DepositPaymentOption = {
   groupId: 'argentina',
   method: 'LOCAL_RAIL',
   label: 'Modo',
-  provider: 'dlocal',
+  provider: 'ebanx',
   providerRail: 'modo_qr',
   platformFeeUsd: 1,
   gasFeeUsd: 0,
