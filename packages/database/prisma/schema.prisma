@@ -1331,3 +1331,43 @@ enum TokenMovementAsset {
   USDC
   RWA_SHARE
 }
+
+/// Money that arrived and could not be routed to a purchase or a rent period.
+///
+/// Webhooks used to answer `ignored: unmatched_reference` and move on, so a
+/// transfer without a usable reference left no trace: nobody knew it had
+/// arrived and nobody was owed it. Recording it is what makes it recoverable.
+model UnmatchedPayment {
+  id                String                 @id @default(cuid())
+  provider          String
+  providerPaymentId String
+  /// Raw reference as the provider sent it, kept even when unusable.
+  externalReference String?
+  amount            Decimal                @db.Decimal(20, 6)
+  currency          String
+  /// Best-effort USD value, for matching against open orders.
+  amountUsd         Decimal?               @db.Decimal(20, 6)
+  payerName         String?
+  payerTaxId        String?
+  occurredAt        DateTime               @default(now())
+  status            UnmatchedPaymentStatus @default(PENDING)
+  /// What it was assigned to, once someone decides.
+  resolvedKind      String?
+  resolvedRef       String?
+  resolvedAt        DateTime?
+  resolvedBy        String?
+  note              String?
+  payload           Json?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  @@unique([provider, providerPaymentId])
+  @@index([status])
+  @@index([occurredAt])
+}
+
+enum UnmatchedPaymentStatus {
+  PENDING
+  ASSIGNED
+  DISMISSED
+}
