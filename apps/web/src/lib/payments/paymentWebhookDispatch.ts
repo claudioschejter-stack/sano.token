@@ -19,6 +19,11 @@ type PaymentWebhookDispatchInput = {
 export async function dispatchPaymentWebhook(input: PaymentWebhookDispatchInput) {
   const reference = input.externalReference.trim();
   if (!reference) {
+    // Paid money with no reference is not something to ignore.
+    if (input.paid) {
+      await parkUnmatched(input, null);
+      return { ok: true, parked: 'missing_reference' };
+    }
     return { ok: true, ignored: 'missing_reference' };
   }
 
@@ -109,5 +114,35 @@ export async function dispatchPaymentWebhook(input: PaymentWebhookDispatchInput)
     return { ok: true, paymentIntent };
   }
 
+  if (input.paid) {
+    /**
+     * The reference did not resolve to anything, and the money already moved.
+     * Ignoring it here is how a transfer disappears: nobody knows it arrived
+     * and nobody is owed it.
+     */
+    await parkUnmatched(input, reference);
+    return { ok: true, parked: 'unmatched_reference' };
+  }
+
   return { ok: true, ignored: 'unmatched_reference' };
+}
+
+async function parkUnmatched(input: PaymentWebhookDispatchInput, reference: string | null) {
+  const { recordUnmatchedPayment } = await import('./unmatchedPayments');
+  const payload = input.payload ?? {};
+  const amount = Number(
+    (payload.amount as number | string | undefined) ??
+      (payload.Monto as number | string | undefined) ??
+      0
+  );
+
+  await recordUnmatchedPayment({
+    provider: input.provider,
+    providerPaymentId: input.providerPaymentId?.trim() || reference || `${input.provider}-${Date.now()}`,
+    externalReference: reference,
+    amount: Number.isFinite(amount) ? amount : 0,
+    currency: String(payload.currency ?? payload.Moneda ?? 'ARS'),
+    payerName: typeof payload.payerName === 'string' ? payload.payerName : null,
+    payload
+  });
 }
