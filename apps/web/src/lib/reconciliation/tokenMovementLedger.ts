@@ -1,14 +1,27 @@
 import { prisma, type Prisma } from '@sanova/database';
 import { ethers } from 'ethers';
 
+export type TokenMovementKindName =
+  | 'USDC_PAYMENT'
+  | 'USDC_GAS_FEE'
+  | 'USDC_REFUND'
+  | 'USDC_RENT_PAYOUT'
+  | 'USDC_YIELD_PAYOUT'
+  | 'USDC_TREASURY_TRANSFER'
+  | 'RWA_SHARE_MINT'
+  | 'RWA_SHARE_BURN'
+  | 'RWA_SHARE_TRANSFER'
+  | 'RWA_SHARE_DELIVERY'
+  | 'MORPHO_SUPPLY'
+  | 'MORPHO_WITHDRAW'
+  | 'MORPHO_BORROW'
+  | 'MORPHO_REPAY'
+  | 'MORPHO_COLLATERAL_IN'
+  | 'MORPHO_COLLATERAL_OUT'
+  | 'MORPHO_LIQUIDATION';
+
 export type RecordMovementInput = {
-  kind:
-    | 'USDC_PAYMENT'
-    | 'USDC_GAS_FEE'
-    | 'USDC_REFUND'
-    | 'RWA_SHARE_MINT'
-    | 'RWA_SHARE_BURN'
-    | 'RWA_SHARE_TRANSFER';
+  kind: TokenMovementKindName;
   asset: 'USDC' | 'RWA_SHARE';
   contractAddress: string;
   chainId?: number;
