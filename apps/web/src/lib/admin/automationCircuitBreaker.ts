@@ -29,3 +29,30 @@ export async function activateCircuitBreaker(projectId: string, reason: string) 
   await notifyCircuitBreaker(projectId, asset?.title ?? projectId, reason);
   return asset;
 }
+
+/**
+ * Clear the breaker once whatever tripped it is fixed.
+ *
+ * There was no way to do this. A breaker that can only be thrown is not a
+ * breaker, it is a dead end: an asset stayed blocked from borrowing long after
+ * the failure was resolved, and nothing in the product said why or how to undo
+ * it.
+ *
+ * The accumulated failure count is cleared with it, because five past failures
+ * block automation on their own and would trip the breaker again on the next
+ * attempt.
+ */
+export async function resetCircuitBreaker(projectId: string, reason: string) {
+  const asset = await updateAdminAsset(projectId, {
+    automationCircuitBreaker: false,
+    automationFailureCount: 0
+  });
+
+  await appendDeploymentEvent(projectId, {
+    step: 'CIRCUIT_BREAKER',
+    status: 'SUCCESS',
+    message: `Circuit breaker liberado: ${reason}`
+  });
+
+  return asset;
+}
