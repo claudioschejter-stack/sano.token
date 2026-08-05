@@ -158,16 +158,69 @@ export async function allowlistInvestorWalletWithReport(input: {
         txHash: result.txHash ?? null
       });
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'ALLOWLIST_FAILED';
+
+      /**
+       * `setKyc` is timelocked on the token: past the deployment window the
+       * action has to be scheduled and wait out `adminActionDelay`. Privy only
+       * relays "execution reverted", so without starting the clock here the
+       * failure looked permanent and retrying could never fix it.
+       */
+      let scheduled: string | null = null;
+      if (/revert/i.test(message)) {
+        scheduled = await startKycTimelock(project.contractAddress!, input.walletAddress).catch(
+          () => null
+        );
+      }
+
       attempts.push({
         projectId: project.id,
         projectTitle: project.title,
         ok: false,
-        error: error instanceof Error ? error.message.slice(0, 300) : 'ALLOWLIST_FAILED'
+        error: scheduled ? `${scheduled} · ${message.slice(0, 200)}` : message.slice(0, 300)
       });
     }
   }
 
   return attempts;
+}
+
+/** Returns a human-readable note about when the approval becomes possible. */
+async function startKycTimelock(
+  tokenAddress: string,
+  investorAddress: string
+): Promise<string | null> {
+  const { JsonRpcProvider } = await import('ethers');
+  const { scheduleTokenKyc } = await import('../blockchain/scheduleTokenKyc');
+  const rpc = new JsonRpcProvider(
+    process.env.BASE_RPC_URL?.trim() ||
+      process.env.LENDING_BASE_RPC_URL?.trim() ||
+      'https://mainnet.base.org'
+  );
+
+  try {
+    const result = await scheduleTokenKyc({
+      provider: rpc,
+      tokenAddress,
+      investorAddress
+    });
+
+    if (result.ok === true) {
+      return result.readyAt
+        ? `TIMELOCK_AGENDADO: aprobable a partir de ${new Date(result.readyAt * 1000).toISOString()}`
+        : 'TIMELOCK_AGENDADO';
+    }
+
+    const { code, detail } = result;
+    if (code === 'SCHEDULED_NOT_READY') {
+      return `TIMELOCK_PENDIENTE: ${detail ?? ''}`.trim();
+    }
+    return `TIMELOCK_${code}`;
+  } catch {
+    return null;
+  } finally {
+    rpc.destroy();
+  }
 }
 
 /**
