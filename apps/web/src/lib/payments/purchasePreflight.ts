@@ -118,16 +118,16 @@ export async function purchasePreflight(input: {
 
     const treasury = resolveTreasuryAddress();
     const vault = project.vaultAddress?.trim();
-    let sharesNeeded: bigint | null = null;
+    // Derived from the order alone, so it is always known.
+    const sharesNeeded = vaultSharesForTokenCount(tokenCount);
 
     if (vault && treasury) {
-      sharesNeeded = vaultSharesForTokenCount(tokenCount);
       const shares = await readWithRetry(
         () => new Contract(vault, ERC20_ABI, provider).balanceOf(treasury) as Promise<bigint>
       );
       checks.push({
         id: 'treasury_shares',
-        ok: shares !== null && sharesNeeded !== null && shares >= sharesNeeded,
+        ok: shares !== null && shares >= sharesNeeded,
         detail:
           shares === null
             ? 'no se pudo leer el balance de shares'
@@ -182,7 +182,7 @@ export async function purchasePreflight(input: {
 
     const moduleAddress = deliveryOperatorModuleAddress();
     const operator = resolveRwaOperatorAddressEnv();
-    if (moduleAddress && operator && vault && sharesNeeded !== null) {
+    if (moduleAddress && operator && vault) {
       const usable = await moduleCanDeliver({
         moduleAddress,
         vaultAddress: vault,
