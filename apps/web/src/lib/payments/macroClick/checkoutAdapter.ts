@@ -1,3 +1,4 @@
+import { resolveArsPerUsd } from '../arsFxRate';
 import { buildMacroClickCheckoutForm } from './checkoutFormBuilder';
 import { encodeMacroClickCommerceRef } from './commerceRef';
 import { isMacroClickConfigured } from './config';
@@ -44,7 +45,7 @@ export function createMacroClickHostedCheckout(input: {
   }
 
   const currency = input.currency ?? 'ARS';
-  const fx = input.fxArsPerUsd ?? Number(process.env.MACRO_CLICK_FX_ARS ?? process.env.RIPIO_FX_ARS ?? '1050');
+  const fx = input.fxArsPerUsd ?? resolveArsPerUsd('MACRO_CLICK_FX_ARS');
   const localAmount =
     currency === 'USD' ? input.amount : Number.isFinite(fx) && fx > 0 ? input.amount * fx : input.amount;
 

@@ -1,8 +1,5 @@
 import { checkoutBaseUrl } from './paymentConfig';
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
-import { createDLocalPayment } from './dlocalAdapter';
-import { buildDLocalGoOpenCheckoutUrl } from './dlocalGoAdapter';
-import { mapDLocalPaymentMethodId, resolveDLocalChargeAmount } from './dlocalPaymentMethods';
 import { createEbanxPayment } from './ebanxAdapter';
 import { createWiseManualCheckout } from './wiseManualCheckout';
 
@@ -55,110 +52,6 @@ export function createAstroPayCheckout(input: LocalRailRequest): LocalRailResult
   };
 }
 
-export async function createDLocalCheckout(input: LocalRailRequest): Promise<LocalRailResult> {
-  const country = input.country?.trim().toUpperCase() || process.env.DLOCAL_DEFAULT_COUNTRY?.trim().toUpperCase() || 'AR';
-
-  const apiResult = await createDLocalPayment({
-    externalId: input.depositId,
-    amountUsd: input.amountUsd,
-    country,
-    providerRail: input.row.providerRail,
-    userEmail: input.userEmail,
-    successUrl: redirectUrl(input),
-    backUrl: backUrl(input),
-    description: input.row.label
-  });
-
-  if (apiResult.providerCheckoutUrl || apiResult.metadata.configured) {
-    return {
-      provider: 'dlocal',
-      providerPaymentId: apiResult.providerPaymentId,
-      providerCheckoutUrl: apiResult.providerCheckoutUrl,
-      metadata: {
-        ...apiResult.metadata,
-        rail: input.row.providerRail,
-        optionId: input.row.id,
-        label: input.row.label,
-        country,
-        settlementPolicy: 'treasury_first',
-        awaitingTreasuryUsdc: true
-      }
-    };
-  }
-
-  const apiKey = process.env.DLOCAL_API_KEY?.trim();
-  if (!apiKey) {
-    return {
-      provider: 'dlocal',
-      metadata: { configured: false, rail: input.row.providerRail, optionId: input.row.id }
-    };
-  }
-
-  const base = (
-    process.env.DLOCAL_CHECKOUT_BASE_URL?.trim() ||
-    (process.env.DLOCAL_GO_MERCHANT_ID?.trim()
-      ? 'https://checkout.dlocalgo.com'
-      : 'https://checkout.dlocal.com')
-  ).replace(/\/$/, '');
-  const paymentMethodId = mapDLocalPaymentMethodId(country, input.row.providerRail);
-  const charge = resolveDLocalChargeAmount(country, input.amountUsd);
-
-  const openCheckoutUrl = buildDLocalGoOpenCheckoutUrl({
-    amountLocal: charge.amount,
-    currency: charge.currency,
-    externalId: input.depositId,
-    successUrl: redirectUrl(input),
-    backUrl: backUrl(input),
-    email: input.userEmail
-  });
-  if (openCheckoutUrl) {
-    return {
-      provider: 'dlocal',
-      providerPaymentId: input.depositId,
-      providerCheckoutUrl: openCheckoutUrl,
-      metadata: {
-        configured: true,
-        rail: input.row.providerRail,
-        optionId: input.row.id,
-        label: input.row.label,
-        country,
-        mode: 'dlocal_go_open_checkout',
-        settlementPolicy: 'treasury_first',
-        awaitingTreasuryUsdc: true
-      }
-    };
-  }
-
-  const params = new URLSearchParams({
-    amount: charge.amount.toFixed(2),
-    currency: charge.currency,
-    external_id: input.depositId,
-    payment_method_id: paymentMethodId,
-    country,
-    success_url: redirectUrl(input),
-    back_url: backUrl(input)
-  });
-
-  if (input.userEmail) {
-    params.set('email', input.userEmail);
-  }
-
-  return {
-    provider: 'dlocal',
-    providerPaymentId: input.depositId,
-    providerCheckoutUrl: `${base}/payments?${params.toString()}`,
-    metadata: {
-      configured: true,
-      rail: input.row.providerRail,
-      optionId: input.row.id,
-      label: input.row.label,
-      country,
-      mode: 'redirect_fallback',
-      settlementPolicy: 'treasury_first',
-      awaitingTreasuryUsdc: true
-    }
-  };
-}
 
 export async function createLocalRailCheckout(input: LocalRailRequest): Promise<LocalRailResult> {
   if (input.row.provider === 'wise') {
@@ -204,13 +97,6 @@ export async function createLocalRailCheckout(input: LocalRailRequest): Promise<
           label: input.row.label
         }
       };
-    }
-  }
-
-  if (input.row.provider === 'dlocal') {
-    const dlocal = await createDLocalCheckout(input);
-    if (dlocal.metadata?.configured) {
-      return dlocal;
     }
   }
 

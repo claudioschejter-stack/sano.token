@@ -1428,7 +1428,7 @@ export const es = {
       nubank: 'Nubank',
       pix: 'Pix (Brasil)',
       lemon: 'Lemon',
-      ripio: 'Ripio Wallet (dLocal)',
+      ripio: 'Ripio Wallet',
       bonbit: 'Bonbit',
       belo: 'Belo',
       bitso: 'Bitso',
@@ -1527,7 +1527,7 @@ export const es = {
     globalCardsHint: 'más cómodo, comisión mayor',
     argentinaPaymentsTitle: 'Pagos en Argentina',
     argentinaPaymentsBody:
-      'Stripe no procesa tarjetas argentinas ni Modo. Usá Mercado Pago, transferencia (dLocal) o USDC para menor costo.',
+      'Stripe no procesa tarjetas argentinas ni Modo. Usá Mercado Pago, transferencia bancaria o USDC para menor costo.',
     wisePendingTitle: 'Transferencia Wise — incluye la referencia',
     wisePendingBody:
       'Envía la transferencia por Wise con los datos abajo. Debes incluir la referencia {reference} para que tesorería acredite tu cuenta.',

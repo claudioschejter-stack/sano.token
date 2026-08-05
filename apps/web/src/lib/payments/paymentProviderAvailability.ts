@@ -8,16 +8,12 @@ import { isPrivyOnRampConfigured } from './privyOnRampPolicy';
 import { paymentGatewayConfigured } from './paymentConfig';
 import { isMacroClickConfigured } from './macroClick/config';
 
-export function isDLocalConfigured(): boolean {
-  return Boolean(process.env.DLOCAL_API_KEY?.trim() || process.env.LOCAL_RAILS_ENABLED === 'true');
-}
-
 export function isEbanxConfigured(): boolean {
   return Boolean(process.env.EBANX_API_KEY?.trim() || process.env.LOCAL_RAILS_ENABLED === 'true');
 }
 
 export function isLocalRailAggregatorConfigured(): boolean {
-  return isDLocalConfigured() || isEbanxConfigured();
+  return isEbanxConfigured();
 }
 
 export function isAstroPayConfigured(): boolean {
@@ -44,7 +40,6 @@ export function isPaymentProviderConfigured(provider: PaymentProviderId): boolea
       return isStripeConfigured();
     case 'mercado_pago':
       return paymentGatewayConfigured('MERCADO_PAGO');
-    case 'dlocal':
     case 'ebanx':
       return isLocalRailAggregatorConfigured();
     case 'astropay':

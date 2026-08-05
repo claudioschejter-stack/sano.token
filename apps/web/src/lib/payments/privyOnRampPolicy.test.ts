@@ -27,9 +27,9 @@ describe('privyOnRampPolicy', () => {
   });
 
   it('offers Privy on-ramp in Argentina when Privy is configured', () => {
-    process.env.DLOCAL_API_KEY = 'test';
+    process.env.EBANX_API_KEY = 'test';
     process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
     expect(shouldOfferPrivyOnRampForCountry('AR')).toBe(true);
-    delete process.env.DLOCAL_API_KEY;
+    delete process.env.EBANX_API_KEY;
   });
 });

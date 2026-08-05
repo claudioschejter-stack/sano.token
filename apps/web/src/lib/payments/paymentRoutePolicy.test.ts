@@ -1,57 +1,51 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { buildDepositPaymentOptions } from './depositPaymentOptions';
+import { buildDepositPaymentOptions, getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { PRIVY_ON_RAMP_OPTION_ID } from './privyOnRampPolicy';
-import { checkoutRowAllowedForMode } from './paymentCheckoutPolicy';
-import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 
+/**
+ * dLocal was the aggregator behind the local rails of most countries, and the
+ * account is closed. These cover what a buyer is actually offered now: the
+ * Privy on-ramp everywhere those rails used to be.
+ */
 describe('paymentRoutePolicy', () => {
   const env = process.env;
 
   beforeEach(() => {
     process.env = { ...env };
+    process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
   });
 
   afterEach(() => {
     process.env = env;
   });
 
-  it('MX purchase: SPEI and Privy on-ramp when dLocal and Privy configured', () => {
-    process.env.DLOCAL_API_KEY = 'test-key';
-    process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
+  it('no longer offers the rails that only existed through dLocal', () => {
+    for (const id of ['spei', 'phonepe', 'pix', 'modo', 'brubank', 'galicia']) {
+      expect(getPaymentCheckoutRowById(id)).toBeNull();
+    }
+  });
 
-    const spei = getPaymentCheckoutRowById('spei');
-    expect(spei).not.toBeNull();
-    expect(checkoutRowAllowedForMode(spei!, 'purchase')).toBe(true);
-
+  it('routes MX through the Privy on-ramp', () => {
     const quote = buildDepositPaymentOptions(100, 'MX', 17.5, { mode: 'purchase' });
-    expect(quote.options.some((row) => row.id === 'spei' && row.configured)).toBe(true);
+    expect(quote.options.some((row) => row.id === 'spei')).toBe(false);
     expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(true);
   });
 
-  it('IN purchase: UPI (PhonePe) and Privy when dLocal and Privy configured', () => {
-    process.env.DLOCAL_API_KEY = 'test-key';
-    process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
-
+  it('routes IN through the Privy on-ramp', () => {
     const quote = buildDepositPaymentOptions(100, 'IN', 83, { mode: 'purchase' });
-    expect(quote.options.some((row) => row.id === 'phonepe' && row.configured)).toBe(true);
+    expect(quote.options.some((row) => row.id === 'phonepe')).toBe(false);
     expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(true);
   });
 
-  it('GB purchase: Privy on-ramp when configured (no dLocal local rails)', () => {
-    process.env.DLOCAL_API_KEY = 'test-key';
-    process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
-
+  it('routes GB through the Privy on-ramp', () => {
     const quote = buildDepositPaymentOptions(100, 'GB', 0.79, { mode: 'purchase' });
     expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(true);
   });
 
-  it('MX: Privy visible only when dLocal is not configured', () => {
-    delete process.env.DLOCAL_API_KEY;
-    delete process.env.LOCAL_RAILS_ENABLED;
-    process.env.NEXT_PUBLIC_PRIVY_APP_ID = 'privy-test';
-
-    const quote = buildDepositPaymentOptions(100, 'MX', 17.5, { mode: 'purchase' });
-    expect(quote.options.some((row) => row.id === 'spei' && row.configured)).toBe(false);
-    expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(true);
+  it('still offers Argentina its own rails, which do not depend on dLocal', () => {
+    const quote = buildDepositPaymentOptions(100, 'AR', 1050, { mode: 'purchase' });
+    expect(quote.options.length).toBeGreaterThan(0);
+    // Mercado Pago and USDC survive; the dLocal-backed wallets do not.
+    expect(quote.options.some((row) => row.id === 'modo')).toBe(false);
   });
 });

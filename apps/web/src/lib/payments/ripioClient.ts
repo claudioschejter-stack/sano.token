@@ -1,3 +1,4 @@
+import { resolveArsPerUsd } from './arsFxRate';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { isProductionRuntime } from '../runtime/environment';
 import type { StablecoinNetworkId } from './stablecoinNetworks';
@@ -58,8 +59,7 @@ export function ripioChainForNetwork(networkId?: string | null): { chain: string
 }
 
 export function resolveRipioFiatAmount(amountUsd: number): { currency: string; amount: string } {
-  const fx = Number(process.env.RIPIO_FX_ARS ?? process.env.DLOCAL_FX_ARS ?? 1050);
-  const fxRate = Number.isFinite(fx) && fx > 0 ? fx : 1050;
+  const fxRate = resolveArsPerUsd('RIPIO_FX_ARS');
   return {
     currency: 'ARS',
     amount: (amountUsd * fxRate).toFixed(2)

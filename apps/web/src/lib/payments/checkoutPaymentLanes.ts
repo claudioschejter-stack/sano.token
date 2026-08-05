@@ -89,7 +89,6 @@ export function classifyCheckoutPaymentLane(option: DepositPaymentOption): Check
     option.method === 'LOCAL_RAIL' ||
     option.provider === 'mercado_pago' ||
     option.provider === 'ripio' ||
-    option.provider === 'dlocal' ||
     option.provider === 'astropay'
   ) {
     return 'electronic_wallet';

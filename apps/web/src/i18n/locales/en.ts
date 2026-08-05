@@ -1413,7 +1413,7 @@ export const en = {
       nubank: "Nubank",
       pix: "Pix (Brazil)",
       lemon: "Lemon",
-      ripio: "Ripio Wallet (dLocal)",
+      ripio: "Ripio Wallet",
       bonbit: "Bonbit",
       belo: "Belo",
       bitso: "Bitso",
@@ -1512,7 +1512,7 @@ export const en = {
     globalCardsHint: "convenient, higher fees",
     argentinaPaymentsTitle: "Payments in Argentina",
     argentinaPaymentsBody:
-      "Stripe does not process local Argentine cards or Modo. Use Mercado Pago, bank transfer (dLocal), or USDC for the lowest fees.",
+      "Stripe does not process local Argentine cards or Modo. Use Mercado Pago, bank transfer, or USDC for the lowest fees.",
     wisePendingTitle: "Wise transfer — include reference",
     wisePendingBody:
       "Send your transfer via Wise using the bank details below. You must include reference {reference} so treasury can credit your account.",
