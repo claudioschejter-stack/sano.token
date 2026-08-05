@@ -70,6 +70,7 @@ import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
 import { PaymentGateway } from '../payments/gateway';
 import { formatUsdPrecise } from '../../lib/payments/formatUsdPrecise';
 import { SimplifiedCheckout, type EnsureCheckoutReferenceOptions } from '../payments/simplified';
+import { MacroClickPayButton } from '../payments/gateway/MacroClickPayButton';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -1367,6 +1368,18 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     deposit?.provider === 'ripio' ||
     checkout?.provider === 'ripio';
 
+  /**
+   * Macro needs the buyer to be POSTed to its hosted form with encrypted
+   * fields. Without that step the rail reached checkout and then dead-ended on
+   * a "pending" message with nothing to pay with.
+   */
+  const isMacroPending =
+    selectedDepositOption?.provider === 'macro_click' ||
+    deposit?.provider === 'macro_click' ||
+    checkout?.provider === 'macro_click';
+  const macroCurrency: 'ARS' | 'USD' =
+    selectedDepositOption?.id === 'macro_click_usd' ? 'USD' : 'ARS';
+
   const renderDepositOption = (option: DepositPaymentOption, displayLabel?: string) => {
     const selected = selectedDepositOptionId === option.id;
     const localizedLabel = resolvePaymentCheckoutLabel(option.id, option.label, c.paymentMethods);
@@ -1886,7 +1899,9 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   ? c.wisePendingTitle
                   : isRipioPending
                     ? 'Transferencia Ripio pendiente'
-                    : c.localRailPendingTitle}
+                    : isMacroPending
+                      ? 'Completá el pago en tu banco'
+                      : c.localRailPendingTitle}
               </p>
               <p className="text-xs text-terminal-muted">
                 {isWisePending
@@ -1912,6 +1927,17 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-primary">
                   {formatMessage(c.wiseReferenceLabel, { reference: pendingReference })}
                 </p>
+              ) : null}
+              {isMacroPending ? (
+                <MacroClickPayButton
+                  referenceId={pendingReference}
+                  referenceKind={mode === 'deposit' ? 'deposit' : 'cart'}
+                  amountUsd={totalUsd}
+                  currency={macroCurrency}
+                  label={selectedDepositOption?.label}
+                  redirectPath={depositReturnTo}
+                  onError={(message) => setError(message)}
+                />
               ) : null}
               <Link
                 href={depositReturnTo}

@@ -1,5 +1,6 @@
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
 import { isLocalRailAggregatorConfigured } from './paymentProviderAvailability';
+import { isMacroClickConfigured } from './macroClick/config';
 
 export type CheckoutFlowMode = 'purchase' | 'deposit';
 
@@ -37,11 +38,22 @@ function isLocalRailCheckoutRow(row: PaymentCheckoutRow): boolean {
     return false;
   }
   // dLocal was the aggregator behind most local rails; the account is closed.
-  return row.provider === 'ebanx';
+  return row.provider === 'ebanx' || row.provider === 'macro_click';
 }
 
 function localRailCheckoutEnabled(row: PaymentCheckoutRow): boolean {
-  return isLocalRailCheckoutRow(row) && isLocalRailAggregatorConfigured();
+  if (!isLocalRailCheckoutRow(row)) {
+    return false;
+  }
+  /**
+   * Macro is a direct integration, not an aggregator, so it must not be gated
+   * behind the aggregator flag. It was excluded from checkout for exactly this
+   * reason: the rail was built and configured, and the policy still hid it.
+   */
+  if (row.provider === 'macro_click') {
+    return isMacroClickConfigured();
+  }
+  return isLocalRailAggregatorConfigured();
 }
 
 export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: CheckoutFlowMode): boolean {
