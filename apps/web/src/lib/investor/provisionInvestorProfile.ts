@@ -149,6 +149,7 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
     }
 
     await backfillPrivyWalletIfPending(user.id, user.investorId, user.email);
+    await startKycTimelockForInvestor(user.id);
 
     return user.investorId;
   }
@@ -213,6 +214,26 @@ export async function provisionInvestorProfileOnKycApproval(userId: string): Pro
   });
 
   await backfillPrivyWalletIfPending(user.id, investorId, user.email);
+  await startKycTimelockForInvestor(user.id);
 
   return investorId;
+}
+
+/**
+ * The token's KYC timelock takes 24 hours, so it starts here rather than at
+ * checkout: the wait runs during onboarding instead of in front of a purchase.
+ * Read after the backfill, which is what may have just linked the wallet.
+ */
+async function startKycTimelockForInvestor(userId: string): Promise<void> {
+  try {
+    const fresh = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { walletAddress: true }
+    });
+    const { scheduleInvestorKycOnChain } = await import('./scheduleInvestorKycOnChain');
+    await scheduleInvestorKycOnChain({ userId, walletAddress: fresh?.walletAddress ?? null });
+  } catch (error) {
+    // Never block KYC approval; the checkout allowlist check still covers it.
+    console.warn('[provisionInvestorProfile] KYC timelock scheduling failed', error);
+  }
 }
