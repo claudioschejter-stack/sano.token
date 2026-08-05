@@ -65,6 +65,8 @@ export async function recordSettlementMovements(input: {
 
         await recordTokenMovement({
           kind: isPayment ? 'USDC_PAYMENT' : 'USDC_GAS_FEE',
+          // The settlement knows which leg was the payment and which the fee.
+          authoritative: true,
           asset: 'USDC',
           contractAddress: network.tokenAddress,
           fromAddress: from,

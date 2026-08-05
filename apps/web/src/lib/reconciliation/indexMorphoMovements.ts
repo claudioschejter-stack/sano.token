@@ -142,6 +142,8 @@ export async function indexMorphoMovements(input?: {
 
         await recordTokenMovement({
           kind,
+          // Morpho's own event names the operation; nothing is being inferred.
+          authoritative: true,
           asset: isCollateral ? 'RWA_SHARE' : 'USDC',
           contractAddress: morpho,
           fromAddress: counterparty ?? morpho,

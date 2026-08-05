@@ -99,6 +99,8 @@ export async function refundCryptoPurchase(input: {
   ) {
     await recordTokenMovement({
       kind: 'USDC_REFUND',
+      // A refund and a rent payout look identical on-chain; this one knows.
+      authoritative: true,
       asset: 'USDC',
       contractAddress: network.tokenAddress,
       fromAddress: network.treasuryAddress,

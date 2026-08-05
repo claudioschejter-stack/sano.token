@@ -22,6 +22,13 @@ export type TokenMovementKindName =
 
 export type RecordMovementInput = {
   kind: TokenMovementKindName;
+  /**
+   * The caller knows what this movement was, rather than inferring it from the
+   * addresses involved. A refund and a rent payout are both treasury to
+   * investor, so whoever guesses must never overwrite whoever knows — and the
+   * transfer indexer can run before the refund is recorded.
+   */
+  authoritative?: boolean;
   asset: 'USDC' | 'RWA_SHARE';
   contractAddress: string;
   chainId?: number;
@@ -82,6 +89,8 @@ export async function recordTokenMovement(input: RecordMovementInput) {
       userId: input.userId ?? undefined,
       investorId: input.investorId ?? undefined,
       paymentIntentId: input.paymentIntentId ?? undefined,
+      // Only a caller that knows the intent may correct an inferred kind.
+      kind: input.authoritative ? input.kind : undefined,
       metadata: (input.metadata ?? {}) as Prisma.InputJsonObject
     }
   });
