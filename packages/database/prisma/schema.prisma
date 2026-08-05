@@ -1371,3 +1371,22 @@ enum UnmatchedPaymentStatus {
   ASSIGNED
   DISMISSED
 }
+
+/// Which investor a Bridge virtual account belongs to.
+///
+/// Bridge issues one account per customer, so an incoming wire is identified by
+/// which account received it rather than by a reference the sender has to type
+/// correctly. Nothing recorded that mapping, so a deposit without a usable
+/// reference could not be attributed to anyone.
+model BridgeVirtualAccount {
+  id               String   @id @default(cuid())
+  virtualAccountId String   @unique
+  bridgeCustomerId String
+  userId           String
+  currency         String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([userId])
+  @@index([bridgeCustomerId])
+}

@@ -22,6 +22,10 @@ type BridgeEventObject = {
   state?: string;
   status?: string;
   deposit_id?: string;
+  /** Bridge issues one virtual account per customer; this says which received it. */
+  virtual_account_id?: string;
+  virtual_account?: { id?: string };
+  customer_id?: string;
 };
 
 function pickString(...values: unknown[]): string | null {
@@ -122,6 +126,19 @@ export async function POST(request: Request) {
     }
   }
 
+  /**
+   * No usable reference, but Bridge issues one virtual account per customer, so
+   * the account that received the wire says who sent it. That is a stronger
+   * signal than a memo the sender has to type correctly, and it was being
+   * discarded: the deposit was ignored and nobody knew it had arrived.
+   */
+  if (paid && !paymentReference && !batchId) {
+    const attributed = await attributeByVirtualAccount(data, event);
+    if (attributed) {
+      return NextResponse.json(attributed);
+    }
+  }
+
   if (!conversionRef && !batchId) {
     return NextResponse.json({ ok: true, ignored: eventType || 'unhandled_bridge_event' });
   }
@@ -165,4 +182,72 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json(result);
+}
+
+/**
+ * Attribute a wire by the virtual account that received it.
+ *
+ * Settles the investor's open order when there is exactly one; otherwise the
+ * payment lands in the unmatched inbox already tied to a person, which is the
+ * hard part of reconciling a wire. Guessing between two open orders would
+ * credit the wrong one.
+ */
+async function attributeByVirtualAccount(
+  data: BridgeEventObject,
+  event: Record<string, unknown>
+): Promise<Record<string, unknown> | null> {
+  const virtualAccountId = pickString(
+    data.virtual_account_id,
+    (data.virtual_account as { id?: string } | undefined)?.id
+  );
+  const bridgeCustomerId = pickString(data.customer_id);
+  if (!virtualAccountId && !bridgeCustomerId) {
+    return null;
+  }
+
+  const { resolveVirtualAccountOwner, resolveOpenBatchForUser } = await import(
+    '../../../../lib/payments/bridgeVirtualAccountRegistry'
+  );
+  const owner = await resolveVirtualAccountOwner({ virtualAccountId, bridgeCustomerId });
+  if (!owner) {
+    return null;
+  }
+
+  const providerPaymentId =
+    pickString(data.id, data.deposit_id) ?? `bridge-${owner.virtualAccountId}-${Date.now()}`;
+  const batchId = await resolveOpenBatchForUser(owner.userId);
+
+  if (batchId) {
+    const { dispatchPaymentWebhook: dispatch } = await import(
+      '../../../../lib/payments/paymentWebhookDispatch'
+    );
+    const result = await dispatch({
+      externalReference: batchId,
+      provider: 'bridge',
+      providerPaymentId,
+      paid: true,
+      failed: false,
+      payload: { ...event, provider: 'bridge', attributedByVirtualAccount: owner.virtualAccountId }
+    });
+    return { ...result, attributedBy: 'virtual_account', userId: owner.userId };
+  }
+
+  const { recordUnmatchedPayment } = await import('../../../../lib/payments/unmatchedPayments');
+  const rawAmount = pickAmount(data.amount_usdc, data.usdc_amount, data.amount);
+  const amount = Number(rawAmount ?? 0);
+  await recordUnmatchedPayment({
+    provider: 'bridge',
+    providerPaymentId,
+    externalReference: owner.virtualAccountId,
+    amount,
+    currency: 'USD',
+    payload: { ...event, userId: owner.userId, virtualAccountId: owner.virtualAccountId }
+  });
+
+  return {
+    ok: true,
+    parked: 'no_single_open_order',
+    userId: owner.userId,
+    virtualAccountId: owner.virtualAccountId
+  };
 }

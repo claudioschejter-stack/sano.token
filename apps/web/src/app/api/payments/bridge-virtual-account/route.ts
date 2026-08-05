@@ -6,6 +6,7 @@ import type {
   BridgeVirtualAccountInstructions
 } from '../../../../lib/checkout/paymentRouteTypes';
 import { isProductionRuntime } from '../../../../lib/runtime/environment';
+import { rememberVirtualAccount } from '../../../../lib/payments/bridgeVirtualAccountRegistry';
 import {
   bridgeSourceCurrencyForCountry,
   createBridgeKycLink,
@@ -141,6 +142,19 @@ export async function GET(request: Request): Promise<NextResponse> {
       sourceCurrency,
       referenceId
     });
+
+    /**
+     * Remember whose account this is. A wire arriving later is identified by
+     * the account that received it, which the sender cannot get wrong, instead
+     * of by a memo they have to type correctly.
+     */
+    await rememberVirtualAccount({
+      virtualAccountId: account.id,
+      bridgeCustomerId: customer.id,
+      userId,
+      currency: sourceCurrency
+    });
+
     const instructions = buildInstructionsFromBridgeAccount(
       account,
       amountUsd,
