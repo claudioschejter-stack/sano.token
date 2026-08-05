@@ -8,7 +8,15 @@ import { confirmCartBatchByProvider } from './cartCheckoutService';
 import { confirmPlatformDeposit } from './platformWalletService';
 import { fundPrivyWalletAfterFiatPayment } from './privyWalletFundingService';
 
-export const FIAT_RAIL_TREASURY_PROVIDERS = new Set(['ebanx']);
+/**
+ * Rails that must not confirm on their own webhook.
+ *
+ * Bridge used to confirm a purchase and deliver tokens the moment it said
+ * "paid", without checking the USDC had reached the treasury. A provider saying
+ * money moved is a claim; USDC on Base is the fact, and only the fact should
+ * release tokens.
+ */
+export const FIAT_RAIL_TREASURY_PROVIDERS = new Set(['ebanx', 'bridge']);
 
 export type FiatRailWebhookInput = {
   externalReference: string;
