@@ -27,6 +27,54 @@ const TOKEN_ABI = [
   'function owner() view returns (address)'
 ];
 
+/** Returns the tx hash when the module could schedule, or null to fall back. */
+async function scheduleThroughModule(input: {
+  provider: JsonRpcProvider;
+  tokenAddress: string;
+  investorAddress: string;
+  approved: boolean;
+}): Promise<string | null> {
+  try {
+    const {
+      kycOperatorModuleAddress,
+      moduleCanSchedule,
+      moduleCanWhitelist,
+      scheduleKycViaModule
+    } = await import('./kycOperatorModule');
+
+    const moduleAddress = kycOperatorModuleAddress();
+    if (!moduleAddress) return null;
+
+    const { isRwaOperatorConfigured, resolveRwaOperatorSigner } = await import('./rwaOperatorSigner');
+    if (!isRwaOperatorConfigured()) return null;
+
+    const signer = await resolveRwaOperatorSigner(input.provider, resolveChainId());
+    if (!signer) return null;
+
+    const operatorAddress = await signer.getAddress();
+    const [scopedForToken, canSchedule] = await Promise.all([
+      moduleCanWhitelist({
+        moduleAddress,
+        tokenAddress: input.tokenAddress,
+        operatorAddress,
+        provider: input.provider
+      }),
+      moduleCanSchedule({ moduleAddress, provider: input.provider })
+    ]);
+    if (!scopedForToken || !canSchedule) return null;
+
+    return await scheduleKycViaModule({
+      moduleAddress,
+      tokenAddress: input.tokenAddress,
+      investorAddress: input.investorAddress,
+      approved: input.approved,
+      signer
+    });
+  } catch {
+    return null;
+  }
+}
+
 /** Mirrors `keccak256(abi.encode("SET_KYC", account, approved))` in the token. */
 export function kycActionId(investor: string, approved: boolean): string {
   return keccak256(
@@ -129,6 +177,28 @@ export async function scheduleTokenKyc(input: {
   }
 
   const token = new Contract(input.tokenAddress, TOKEN_ABI, input.provider);
+
+  /**
+   * Prefer the module: it lets the operator schedule alone, so this keeps
+   * working when the Safe moves to two signatures. Falls back to the Safe for
+   * modules deployed before scheduling existed.
+   */
+  const viaModule = await scheduleThroughModule({
+    provider: input.provider,
+    tokenAddress: input.tokenAddress,
+    investorAddress: input.investorAddress,
+    approved
+  });
+  if (viaModule) {
+    const after = await readKycTimelock(input);
+    return {
+      ok: true,
+      actionId: kycActionId(input.investorAddress, approved),
+      readyAt: after?.readyAt ?? null,
+      txHash: viaModule
+    };
+  }
+
   const owner = await readWithRetry(() => token.owner() as Promise<string>);
   if (!owner) {
     return { ok: false, code: 'OWNER_READ_FAILED' };

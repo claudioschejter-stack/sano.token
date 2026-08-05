@@ -13,6 +13,7 @@ interface ISafeModuleExecutor {
 
 interface IKycToken {
     function setKyc(address account, bool approved) external;
+    function scheduleAdminAction(bytes32 actionId) external;
 }
 
 /**
@@ -40,6 +41,7 @@ contract SanovaKycOperatorModule {
     event OperatorUpdated(address indexed operator, bool allowed);
     event TokenAllowedUpdated(address indexed token, bool allowed);
     event KycUpdated(address indexed token, address indexed investor, bool approved, address indexed operator);
+    event KycScheduled(address indexed token, address indexed investor, bool approved, address indexed operator);
 
     error NotSafe();
     error NotOperator();
@@ -74,6 +76,40 @@ contract SanovaKycOperatorModule {
         if (token == address(0)) revert ZeroAddress();
         isTokenAllowed[token] = allowed;
         emit TokenAllowedUpdated(token, allowed);
+    }
+
+    /**
+     * @notice Start the token's timelock for one investor's whitelisting.
+     *
+     * `setKyc` on the token is timelocked: the action must be scheduled and then
+     * wait out the token's admin delay. Without this the operator could only
+     * ever perform the second half, so whitelisting reverted and the Safe had to
+     * schedule by hand — which stops being automatic the moment the Safe needs
+     * two signatures.
+     *
+     * The action id is computed here rather than accepted as an argument, so an
+     * operator can only ever schedule a whitelisting. It cannot schedule a mint,
+     * an unpause or a delay change.
+     */
+    function scheduleKyc(address token, address investor, bool approved) external onlyOperator {
+        if (!isTokenAllowed[token]) revert TokenNotAllowed(token);
+        if (investor == address(0)) revert ZeroAddress();
+
+        bytes32 actionId = kycActionId(investor, approved);
+        bool ok = ISafeModuleExecutor(safe).execTransactionFromModule(
+            token,
+            0,
+            abi.encodeCall(IKycToken.scheduleAdminAction, (actionId)),
+            0
+        );
+        if (!ok) revert SafeExecutionFailed(token, investor);
+
+        emit KycScheduled(token, investor, approved, msg.sender);
+    }
+
+    /// @notice The token's action id for whitelisting `investor`, for off-chain checks.
+    function kycActionId(address investor, bool approved) public pure returns (bytes32) {
+        return keccak256(abi.encode("SET_KYC", investor, approved));
     }
 
     /// @notice Whitelist (or revoke) one investor on an allowlisted token.
