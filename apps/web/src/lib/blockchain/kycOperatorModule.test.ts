@@ -16,12 +16,26 @@ describe('SanovaKycOperatorModule artifact', () => {
     expect(fns).toEqual([
       'isOperator',
       'isTokenAllowed',
+      'kycActionId',
       'safe',
+      'scheduleKyc',
       'setKyc',
       'setKycBatch',
       'setOperator',
       'setTokenAllowed'
     ]);
+  });
+
+  it('only lets scheduling name a whitelisting, never an arbitrary action', () => {
+    const schedule = KycOperatorModuleArtifact.abi.find(
+      (entry: { type: string; name?: string }) =>
+        entry.type === 'function' && entry.name === 'scheduleKyc'
+    ) as { inputs: Array<{ type: string }> };
+
+    // No bytes32 argument: the action id is derived inside the module, so an
+    // operator cannot schedule a mint, an unpause or a delay change.
+    expect(schedule.inputs.map((row) => row.type)).toEqual(['address', 'address', 'bool']);
+    expect(schedule.inputs.some((row) => row.type === 'bytes32')).toBe(false);
   });
 
   it('cannot mint, pause or transfer ownership', () => {

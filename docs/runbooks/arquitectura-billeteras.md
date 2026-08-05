@@ -27,7 +27,7 @@ Cada rol es una wallet Privy distinta. Ninguna tiene poder de owner.
 
 | Rol | Env | Alcance | Gas |
 |---|---|---|---|
-| Compliance (whitelist) | `PRIVY_OPERATOR_WALLET_ID` + `RWA_OPERATOR_ADDRESS` | solo `setKyc`, vía `SanovaKycOperatorModule` | ETH propio |
+| Compliance (whitelist) | `PRIVY_OPERATOR_WALLET_ID` + `RWA_OPERATOR_ADDRESS` | solo `scheduleKyc` y `setKyc`, vía `SanovaKycOperatorModule` | ETH propio |
 | Entrega de shares | mismo operador, vía `SanovaDeliveryOperatorModule` | solo `transfer` de vaults habilitados, y solo hacia inversores ya whitelisteados | ETH propio |
 | Safe owner de operación | `PRIVY_SAFE_OWNER_WALLET_ID` + `TREASURY_OWNER_ADDRESS` | firma transacciones del Safe (setup de módulos, gobernanza) | ETH propio |
 | Liquidez Morpho | `PRIVY_MORPHO_LIQUIDITY_WALLET_ID` | supply/withdraw en Morpho | ETH propio |
@@ -103,7 +103,13 @@ Los casos con firma manual son los que justifican la multifirma. El resto no la 
 
 Un módulo de Safe ejecuta sin recolectar firmas — por eso importa que su alcance sea mínimo.
 
-`SanovaKycOperatorModule` solo puede llamar `setKyc` sobre tokens que el Safe habilitó explícitamente, y solo desde operadores que el Safe autorizó.
+`SanovaKycOperatorModule` solo puede llamar `setKyc` y `scheduleKyc` sobre tokens que el Safe habilitó explícitamente, y solo desde operadores que el Safe autorizó.
+
+El agendado merece una aclaración. `setKyc` en el token tiene un timelock de 24 horas: hay que agendar la acción y esperar. Si el módulo llevara solo `setKyc`, el agendado tendría que firmarlo el Safe, y a threshold 2 eso significaría intervención manual en cada alta de inversor. Por eso el módulo también agenda.
+
+Lo que lo mantiene seguro es que **el identificador de la acción se calcula dentro del módulo**, a partir del inversor y del valor de aprobación. No se acepta como argumento. Así el operador solo puede agendar una habilitación: no puede agendar un `mint`, un `unpause` ni un cambio del propio retardo, que son las otras acciones que el token protege con el mismo mecanismo.
+
+Los módulos desplegados antes de que existiera `scheduleKyc` no lo tienen. La app lo detecta y cae al agendado por el Safe, que funciona a threshold 1. Para cerrar el Safe a dos firmas hay que desplegar el módulo actualizado con `POST /api/admin/kyc-module-setup`.
 
 `SanovaDeliveryOperatorModule` solo puede transferir shares de vaults que el Safe habilitó, y solo hacia direcciones que el token ya marcó `kycApproved`. Esa última condición es la que impide que un operador comprometido vacíe el Safe hacia una dirección propia: tendría que pasar antes por el alta de KYC. Además admite un tope por transacción por vault.
 

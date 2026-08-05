@@ -37,6 +37,44 @@ export async function moduleCanWhitelist(input: {
   }
 }
 
+/**
+ * Whether this module can also start the token's KYC timelock.
+ *
+ * Modules deployed before `scheduleKyc` existed cannot, and for those the Safe
+ * has to schedule — which stops being automatic at threshold 2.
+ */
+export async function moduleCanSchedule(input: {
+  moduleAddress: string;
+  provider: JsonRpcProvider;
+}): Promise<boolean> {
+  try {
+    const module = new Contract(input.moduleAddress, MODULE_ABI, input.provider);
+    // Present only on modules that carry scheduling.
+    await module.kycActionId('0x0000000000000000000000000000000000000001', true);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Start the token's KYC timelock through the module, signed by the operator. */
+export async function scheduleKycViaModule(input: {
+  moduleAddress: string;
+  tokenAddress: string;
+  investorAddress: string;
+  approved: boolean;
+  signer: Signer;
+}): Promise<string> {
+  const module = new Contract(input.moduleAddress, MODULE_ABI, input.signer);
+  const tx = await module.scheduleKyc(
+    getAddress(input.tokenAddress),
+    getAddress(input.investorAddress),
+    input.approved
+  );
+  const receipt = await tx.wait();
+  return receipt?.hash ?? tx.hash;
+}
+
 /** `setKyc` through the module, signed by the compliance operator. */
 export async function setKycViaModule(input: {
   moduleAddress: string;
