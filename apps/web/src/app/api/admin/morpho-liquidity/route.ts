@@ -141,7 +141,14 @@ export async function POST(request: NextRequest) {
       amountUsdc: body.amountUsdc,
       receiver: body.receiver
     });
-    return NextResponse.json({ ok: result.ok, result }, { status: result.ok ? 200 : 409 });
+
+    // Spell out the one case whose numbers look like a failure and are not.
+    const note =
+      result.ok && !result.confirmed
+        ? `La transacción ${result.txHash} salió bien pero las lecturas no llegaron a reflejarla. Verificá el balance en un minuto; no la repitas.`
+        : undefined;
+
+    return NextResponse.json({ ok: result.ok, result, note }, { status: result.ok ? 200 : 409 });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'WITHDRAW_FAILED';
     console.error('[admin/morpho-liquidity] POST', error);

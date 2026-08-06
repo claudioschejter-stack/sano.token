@@ -8,6 +8,12 @@ let asset: Record<string, unknown> | null;
 let totalSupply = 5000n * 10n ** 18n;
 let treasuryShares = 5000n * 10n ** 18n;
 let create2FactoryCode = '0x60806040';
+let kycTimelock: Record<string, unknown> | null = {
+  ready: true,
+  readyAt: null,
+  alreadyApproved: false,
+  inSetupWindow: false
+};
 
 vi.mock('../admin/assetsService', () => ({
   getAdminAsset: async () => asset,
@@ -31,7 +37,10 @@ vi.mock('./vaultRecipientAllowlist', () => ({
   setVaultAdminDelay: async () => ({ ok: true, status: 'APPLIED', txHash: '0x1', delaySeconds: 3600 })
 }));
 vi.mock('./kycAllowlist', () => ({ setInvestorKycAllowlist: async () => ({ txHash: '0x2' }) }));
-vi.mock('./scheduleTokenKyc', () => ({ scheduleTokenKyc: async () => ({ ok: false, code: 'X' }) }));
+vi.mock('./scheduleTokenKyc', () => ({
+  scheduleTokenKyc: async () => ({ ok: false, code: 'X' }),
+  readKycTimelock: async () => kycTimelock
+}));
 vi.mock('./deliveryOperatorModule', () => ({
   deliveryOperatorModuleAddress: () => null,
   setupDeliveryOperatorModule: async () => ({ steps: [] })
@@ -74,6 +83,7 @@ beforeEach(() => {
   totalSupply = 5000n * 10n ** 18n;
   treasuryShares = 5000n * 10n ** 18n;
   create2FactoryCode = '0x60806040';
+  kycTimelock = { ready: true, readyAt: null, alreadyApproved: false, inSetupWindow: false };
   asset = {
     id: 'p1',
     title: 'Activo',

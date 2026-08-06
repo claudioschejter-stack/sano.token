@@ -19,9 +19,10 @@ import { resolveChainId } from './explorerUrls';
 import { execAsOwner } from './safeExec';
 import { readWithRetry } from './rpcRetry';
 import { readVaultShareDecimals, vaultSharesForTokens } from './vaultShareUnits';
+import { confirmOnChain } from './confirmOnChain';
 import { ensureVaultRecipientAllowed, setVaultAdminDelay } from './vaultRecipientAllowlist';
 import { setInvestorKycAllowlist } from './kycAllowlist';
-import { scheduleTokenKyc } from './scheduleTokenKyc';
+import { readKycTimelock, scheduleTokenKyc } from './scheduleTokenKyc';
 import {
   deliveryOperatorModuleAddress,
   setupDeliveryOperatorModule
@@ -450,32 +451,56 @@ export async function advanceVaultMigration(input: {
     if (alreadyKyc === true) {
       steps.push({ step: 'token_kyc', status: 'OK', detail: 'el vault nuevo ya está aprobado en el token' });
     } else {
-      try {
-        const result = await setInvestorKycAllowlist({
-          tokenAddress: token,
-          walletAddress: newVault,
-          approved: true
-        });
-        steps.push({ step: 'token_kyc', status: 'OK', detail: 'aprobado', txHash: result.txHash });
-      } catch (error) {
-        const scheduled = await scheduleTokenKyc({
-          provider,
-          tokenAddress: token,
-          investorAddress: newVault
-        }).catch(() => null);
+      /**
+       * Ask the timelock before trying.
+       *
+       * This runs on every call by design, and `setKyc` inside a running
+       * timelock does not fail politely — it broadcasts and reverts, spending
+       * gas to learn what the contract would have told us for free.
+       */
+      const timelock = await readKycTimelock({
+        provider,
+        tokenAddress: token,
+        investorAddress: newVault
+      }).catch(() => null);
+
+      if (timelock && !timelock.ready && timelock.readyAt) {
         permissionsPending = true;
         steps.push({
           step: 'token_kyc',
           status: 'PENDING',
-          detail:
-            scheduled?.ok === true
-              ? `timelock agendado, ejecutable a partir de ${
-                  scheduled.readyAt ? new Date(scheduled.readyAt * 1000).toISOString() : 'dentro de 24 h'
-                }`
-              : `${scheduled?.ok === false ? scheduled.code : 'SCHEDULE_FAILED'}: ${
-                  error instanceof Error ? error.message.slice(0, 160) : ''
-                }`
+          detail: `timelock corriendo, ejecutable a partir de ${new Date(timelock.readyAt * 1000).toISOString()}`
         });
+      } else {
+        try {
+          const result = await setInvestorKycAllowlist({
+            tokenAddress: token,
+            walletAddress: newVault,
+            approved: true
+          });
+          steps.push({ step: 'token_kyc', status: 'OK', detail: 'aprobado', txHash: result.txHash });
+        } catch (error) {
+          const scheduled = await scheduleTokenKyc({
+            provider,
+            tokenAddress: token,
+            investorAddress: newVault
+          }).catch(() => null);
+          permissionsPending = true;
+          steps.push({
+            step: 'token_kyc',
+            status: 'PENDING',
+            detail:
+              scheduled?.ok === true
+                ? `timelock agendado, ejecutable a partir de ${
+                    scheduled.readyAt
+                      ? new Date(scheduled.readyAt * 1000).toISOString()
+                      : 'dentro de 24 h'
+                  }`
+                : `${scheduled?.ok === false ? scheduled.code : 'SCHEDULE_FAILED'}: ${
+                    error instanceof Error ? error.message.slice(0, 160) : ''
+                  }`
+          });
+        }
       }
     }
 
@@ -621,23 +646,33 @@ export async function advanceVaultMigration(input: {
      * the migration is exactly right.
      */
     const newDecimals = await readVaultShareDecimals({ provider, vaultAddress: newVault });
-    const newShares = await readWithRetry(
-      () => new Contract(newVault!, VAULT_ABI, provider).balanceOf(treasury) as Promise<bigint>
-    );
     const expected =
       newDecimals === null ? null : vaultSharesForTokens(asset.totalTokens, newDecimals);
 
-    if (newShares === null || expected === null) {
-      steps.push({ step: 'verify', status: 'BLOCKED', detail: 'no se pudo verificar el balance nuevo' });
+    if (expected === null) {
+      steps.push({ step: 'verify', status: 'BLOCKED', detail: 'no se pudo leer decimals() del vault nuevo' });
       return finish('Verificá a mano el balance del vault nuevo antes de reapuntar el proyecto.');
     }
-    if (newShares < expected) {
+
+    // The deposit already happened; give the reads time to show it.
+    const newVaultReader = new Contract(newVault, VAULT_ABI, provider);
+    const verification = await confirmOnChain({
+      read: () => newVaultReader.balanceOf(treasury) as Promise<bigint>,
+      satisfied: (balance) => balance >= expected
+    });
+    const newShares = verification.value;
+
+    if (!verification.confirmed) {
       steps.push({
         step: 'verify',
         status: 'BLOCKED',
-        detail: `la tesorería tiene ${formatUnits(newShares, newDecimals!)} y debería tener ${asset.totalTokens}`
+        detail: `la tesorería tiene ${
+          newShares === null ? 'un balance ilegible' : formatUnits(newShares, newDecimals!)
+        } y debería tener ${asset.totalTokens}`
       });
-      return finish('No reapunté el proyecto: el vault nuevo no quedó con el cupo completo.');
+      return finish(
+        'No reapunté el proyecto: el vault nuevo no quedó con el cupo completo. Volvé a llamar esto: si el depósito ya pasó, la próxima lectura lo va a ver.'
+      );
     }
     steps.push({
       step: 'verify',

@@ -3,6 +3,7 @@ import { resolveMorphoLiquiditySigner } from '../blockchain/morphoLiquiditySigne
 import { resolveTreasuryAddress } from '../blockchain/treasuryPolicy';
 import { waitForAutomationTx } from '../blockchain/automationTx';
 import { readWithRetry } from '../blockchain/rpcRetry';
+import { confirmOnChain } from '../blockchain/confirmOnChain';
 import { getLendingChainConfig } from './baseContracts';
 
 /**
@@ -43,9 +44,30 @@ export type WithdrawMorphoLiquidityResult =
       receiver: string;
       amountUsdc: string;
       txHash: string;
+      /**
+       * Whether the chain was seen to reflect the withdrawal. False only means
+       * the reads did not catch up in time — the receipt already succeeded.
+       */
+      confirmed: boolean;
       remainingSuppliedUsdc: string;
     }
   | { ok: false; code: string; detail?: string };
+
+/** Poll until the supplier's position shows the withdrawal, or say it did not. */
+async function confirmWithdrawal(input: {
+  reader: Contract;
+  marketId: string;
+  supplier: string;
+  sharesBefore: bigint;
+}): Promise<{ confirmed: boolean; suppliedRaw: bigint | null }> {
+  const outcome = await confirmOnChain({
+    read: () => input.reader.position(input.marketId, input.supplier) as Promise<bigint[]>,
+    satisfied: (position) => position[0] < input.sharesBefore
+  });
+
+  const market = await readWithRetry(() => input.reader.market(input.marketId) as Promise<bigint[]>);
+  return { confirmed: outcome.confirmed, suppliedRaw: market ? market[0] : null };
+}
 
 export async function withdrawMorphoLiquidity(input: {
   marketId: string;
@@ -154,7 +176,19 @@ export async function withdrawMorphoLiquidity(input: {
     );
     const receipt = await waitForAutomationTx(tx);
 
-    const after = await readWithRetry(() => reader.market(marketId) as Promise<bigint[]>);
+    /**
+     * Read the result until it reflects the withdrawal.
+     *
+     * A read fired straight after the receipt can land on a node that has not
+     * applied that block yet, and then the response reports the balance the
+     * money just left — which reads exactly like a failure that did not happen.
+     */
+    const confirmation = await confirmWithdrawal({
+      reader,
+      marketId,
+      supplier,
+      sharesBefore: position[0]
+    });
 
     return {
       ok: true,
@@ -163,7 +197,11 @@ export async function withdrawMorphoLiquidity(input: {
       receiver: getAddress(receiver),
       amountUsdc: formatUnits(wanted, decimals),
       txHash: receipt?.hash ?? tx.hash,
-      remainingSuppliedUsdc: after ? formatUnits(after[0], decimals) : 'no se pudo leer'
+      confirmed: confirmation.confirmed,
+      remainingSuppliedUsdc:
+        confirmation.suppliedRaw === null
+          ? 'no se pudo leer'
+          : formatUnits(confirmation.suppliedRaw, decimals)
     };
   } catch (error) {
     return {

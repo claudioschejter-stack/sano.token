@@ -11,6 +11,7 @@ import {
   moduleCanDeliver
 } from './deliveryOperatorModule';
 import { readVaultShareDecimals, vaultSharesForTokens } from './vaultShareUnits';
+import { confirmOnChain } from './confirmOnChain';
 
 const TOKEN_ABI = [
   'function kycApproved(address) view returns (bool)',
@@ -183,12 +184,22 @@ export async function migrateTreasuryVaultSharesToWallet(input: {
       });
     }
 
-    const recipientShares = (await vaultContract.balanceOf(recipient)) as bigint;
-    if (recipientShares < amount) {
+    /**
+     * The transfer already succeeded; this is only about the read catching up.
+     * Asserting the first answer would report a delivered purchase as failed,
+     * and the balance a node has not updated yet looks exactly like one that
+     * never moved.
+     */
+    const verification = await confirmOnChain({
+      read: () => vaultContract.balanceOf(recipient) as Promise<bigint>,
+      satisfied: (balance) => balance >= amount
+    });
+
+    if (!verification.confirmed) {
       return {
         ok: false,
         code: 'TRANSFER_NOT_VERIFIED',
-        detail: `expected>=${amount.toString()} got=${recipientShares.toString()}`
+        detail: `expected>=${amount.toString()} got=${verification.value?.toString() ?? 'ilegible'} — la transacción se envió, la lectura no llegó a confirmarla`
       };
     }
 
