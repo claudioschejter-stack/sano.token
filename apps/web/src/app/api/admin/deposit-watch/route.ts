@@ -6,22 +6,32 @@ import {
   watchAddressesForDeposits
 } from '../../../../lib/payments/alchemyWebhookAddresses';
 import { isPendingInvestorWallet } from '../../../../lib/investor/provisionInvestorProfile';
+import { getStablecoinNetwork } from '../../../../lib/payments/stablecoinNetworks';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
 
-async function investorWallets(): Promise<string[]> {
+/**
+ * Every address whose inbound USDC the platform has to act on.
+ *
+ * The investors' wallets, plus the treasury: money arriving there is a fiat
+ * payment completing its second half, and hearing about it turns a confirmation
+ * that waited for a daily cron into one that happens in seconds.
+ */
+async function watchedAddresses(): Promise<string[]> {
   const users = await prisma.user.findMany({
     where: { walletAddress: { not: null } },
     select: { walletAddress: true }
   });
 
+  const treasury = getStablecoinNetwork('BASE').treasuryAddress?.trim();
+
   return [
     ...new Set(
-      users
-        .map((row) => row.walletAddress?.trim())
-        .filter((row): row is string => Boolean(row) && !isPendingInvestorWallet(row!))
+      [...users.map((row) => row.walletAddress?.trim()), treasury].filter(
+        (row): row is string => Boolean(row) && !isPendingInvestorWallet(row!)
+      )
     )
   ];
 }
@@ -32,7 +42,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const wallets = await investorWallets();
+  const wallets = await watchedAddresses();
   return NextResponse.json({
     ok: true,
     managed: isAlchemyWebhookManaged(),
@@ -67,7 +77,7 @@ export async function POST(_request: NextRequest) {
     );
   }
 
-  const wallets = await investorWallets();
+  const wallets = await watchedAddresses();
   const result = await watchAddressesForDeposits(wallets);
 
   if (result.ok === false) {
