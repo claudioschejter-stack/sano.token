@@ -3,7 +3,9 @@ import { notifyAutomationIssue } from '../admin/automationAlerts';
 import { deliverVaultSharesForPaymentIntent } from '../blockchain/investorVaultShareDelivery';
 import { expirePaymentIntent } from './paymentService';
 
-function isUndeliveredVaultPurchase(metadata: Record<string, unknown> | null | undefined): boolean {
+export function isUndeliveredVaultPurchase(
+  metadata: Record<string, unknown> | null | undefined
+): boolean {
   if (!metadata || metadata.purchaseMode !== 'ERC4626_DEPOSIT') {
     return false;
   }

@@ -20,6 +20,7 @@ import { maskRpcUrl } from '../blockchain/maskRpcUrl';
 import { privyApiBase, privyHeaders } from '../privy/privyHttp';
 import { readSafeOwners, readSafeThreshold } from '../blockchain/safeExec';
 import { usdcDecimals, usdcTokenAddress } from '../payments/paymentConfig';
+import { auditShareDelivery, type ShareDeliveryAudit } from '../payments/shareDeliveryAudit';
 
 export type AlignmentSeverity = 'BLOCKER' | 'WARN';
 
@@ -87,6 +88,8 @@ export type PlatformAlignmentReport = {
   };
   governance: Awaited<ReturnType<typeof auditAssetGovernance>>;
   supply: ProjectSupplyAlignment[];
+  /** Paid purchases against the shares the investors actually hold. */
+  delivery: ShareDeliveryAudit;
   ledger: {
     openCartBatches: number;
     settledIntentsWithoutMovement: number;
@@ -586,6 +589,33 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
       }
     }
 
+    /**
+     * The supply audit compares the database with itself, so a purchase whose
+     * USDC arrived and whose shares never moved reads as aligned there. Asking
+     * the vault is what keeps a debt to an investor from showing up green.
+     */
+    const delivery = await auditShareDelivery();
+    for (const row of delivery.pending) {
+      issues.push({
+        section: 'delivery',
+        code: 'SHARES_NOT_DELIVERED',
+        severity: 'BLOCKER',
+        detail: `${row.email ?? row.paymentIntentId}: pagó ${row.tokenCount} token(s) de ${row.projectTitle} y no los recibió (${row.deliveryStatus}${row.deliveryDetail ? `: ${row.deliveryDetail}` : ''})`,
+        fix: `Reintentá la entrega con POST /api/admin/share-delivery {"paymentIntentId":"${row.paymentIntentId}"}, o devolvé el pago con POST /api/admin/crypto-reconcile action=refund.`
+      });
+    }
+    for (const holding of delivery.holdings) {
+      // A balance the RPC refused to answer says nothing about what is owed.
+      if (!holding.shortfallTokens || chainMisreads) continue;
+      issues.push({
+        section: 'delivery',
+        code: 'SHARE_BALANCE_SHORTFALL',
+        severity: 'BLOCKER',
+        detail: `${holding.email ?? holding.recipient} debería tener ${holding.expectedTokens} share(s) de ${holding.projectTitle} y tiene ${holding.onchainShares}`,
+        fix: 'Corré POST /api/admin/share-delivery para completar la entrega pendiente.'
+      });
+    }
+
     const ledger = await auditLedger();
     if (ledger.settledIntentsWithoutMovement > 0) {
       issues.push({
@@ -638,6 +668,7 @@ export async function auditPlatformAlignment(): Promise<PlatformAlignmentReport>
       },
       governance,
       supply,
+      delivery,
       ledger,
       legacySecrets: secrets
     };
