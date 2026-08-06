@@ -2,8 +2,22 @@ import { Contract, JsonRpcProvider } from 'ethers';
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { resolveChainId } from './explorerUrls';
 import { isRwaOperatorConfigured } from './rwaOperatorSigner';
+import { readVaultShareDecimals } from './vaultShareUnits';
 
-const MORPHO_PRICE_SCALE_DECIMALS = 24n;
+/**
+ * Morpho values collateral as `amount * price / 1e36`, with both amounts in
+ * their smallest units. So the price of one whole collateral token is
+ * `microUsd * 10 ** (36 - collateralDecimals)`.
+ *
+ * The collateral is vault shares, and a vault's share decimals are the asset's
+ * plus its `_decimalsOffset` — raised to 3 as an inflation-attack mitigation.
+ * The old constant folded in 18 decimals, which was right for the vaults
+ * deployed before that change and would value a share of any later vault a
+ * thousand times too high: an investor could have borrowed far past what their
+ * collateral is worth.
+ */
+const MORPHO_PRICE_BASE_DECIMALS = 36n;
+const DEFAULT_COLLATERAL_DECIMALS = 18;
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 84532 || chainId === 8453) {
@@ -12,18 +26,48 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
 }
 
-export function fixedUsdPriceToMorphoOraclePrice(pricePerTokenUsd: number): bigint | null {
+export function fixedUsdPriceToMorphoOraclePrice(
+  pricePerTokenUsd: number,
+  /** The collateral's own decimals — for a vault, `vault.decimals()`. */
+  collateralDecimals: number = DEFAULT_COLLATERAL_DECIMALS
+): bigint | null {
   if (!Number.isFinite(pricePerTokenUsd) || pricePerTokenUsd <= 0) {
+    return null;
+  }
+  if (
+    !Number.isInteger(collateralDecimals) ||
+    collateralDecimals < 0 ||
+    BigInt(collateralDecimals) > MORPHO_PRICE_BASE_DECIMALS
+  ) {
     return null;
   }
 
   const microUsd = BigInt(Math.round(pricePerTokenUsd * 1_000_000));
-  return microUsd * 10n ** (MORPHO_PRICE_SCALE_DECIMALS - 6n);
+  return microUsd * 10n ** (MORPHO_PRICE_BASE_DECIMALS - BigInt(collateralDecimals));
 }
 
 export async function validateOraclePricing(asset: AdminAssetRecord) {
-  const expected = fixedUsdPriceToMorphoOraclePrice(asset.pricePerToken);
   const hasMorpho = asset.collateralTargets.some((target) => target.protocol === 'MORPHO');
+
+  /**
+   * The expected price depends on the collateral's unit, so comparing against a
+   * default would flag a correctly deployed oracle as wrong on any vault
+   * carrying the decimals offset.
+   */
+  let collateralDecimals: number | undefined;
+  if (asset.vaultAddress) {
+    const chain = asset.chainId ?? resolveChainId();
+    const reader = new JsonRpcProvider(resolveRpcUrl(chain));
+    try {
+      collateralDecimals =
+        (await readVaultShareDecimals({ provider: reader, vaultAddress: asset.vaultAddress })) ??
+        undefined;
+    } finally {
+      reader.destroy();
+    }
+  }
+
+  const expected = fixedUsdPriceToMorphoOraclePrice(asset.pricePerToken, collateralDecimals);
   if (!expected) {
     return { ok: false, message: 'Precio por token inválido para oracle.' };
   }
@@ -65,7 +109,10 @@ export async function validateOraclePricing(asset: AdminAssetRecord) {
       try {
         const navPerAsset = Number(await navOracle.navPerAssetMicroUsd()) / 1_000_000;
         const onChainPrice = BigInt(await navOracle.price());
-        const navExpected = fixedUsdPriceToMorphoOraclePrice(navPerAsset || asset.pricePerToken);
+        const navExpected = fixedUsdPriceToMorphoOraclePrice(
+          navPerAsset || asset.pricePerToken,
+          collateralDecimals
+        );
         if (navExpected) {
           const toleranceBps = Number(process.env.MORPHO_ORACLE_TOLERANCE_BPS ?? '100');
           const diff = onChainPrice > navExpected ? onChainPrice - navExpected : navExpected - onChainPrice;

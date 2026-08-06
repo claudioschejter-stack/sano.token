@@ -320,6 +320,25 @@ export async function advanceVaultMigration(input: {
       detail: morpho ? 'forzado: revisá el mercado después' : 'sin mercado registrado atado al vault'
     });
 
+    /**
+     * A NAV oracle holds its vault as an immutable, and an emptied vault does not
+     * report a price of zero: with no supply the ERC-4626 rate falls back to 1:1,
+     * so the stale oracle would keep quoting the old price for a vault holding
+     * nothing. Naming it is the difference between a follow-up and a silent lie.
+     */
+    const staleOracle = asset.collateralTargets.find(
+      (target) => target.protocol === 'MORPHO' && target.oracleAddress
+    )?.oracleAddress;
+    if (staleOracle) {
+      steps.push({
+        step: 'oracle',
+        status: 'PENDING',
+        detail: `el oracle ${staleOracle} quedó atado al vault viejo y su vault es inmutable: hay que desplegar uno nuevo antes de volver a usar este activo como colateral`
+      });
+    } else {
+      steps.push({ step: 'oracle', status: 'OK', detail: 'sin oracle atado al vault viejo' });
+    }
+
     const signer = await resolveTreasuryOwnerSigner(provider, chainId);
     if (!signer) {
       steps.push({
@@ -661,7 +680,24 @@ export async function advanceVaultMigration(input: {
       });
     }
 
-    await updateAdminAsset(asset.id, { vaultAddress: newVault });
+    /**
+     * Drop the oracle and market bound to the old vault along with the pointer.
+     * Leaving them would let the platform quote a price for a vault the project
+     * no longer uses, and an emptied vault still answers with the old rate.
+     */
+    const collateralTargets = asset.collateralTargets.map((target) =>
+      target.protocol === 'MORPHO' && (target.oracleAddress || target.externalId)
+        ? {
+            ...target,
+            status: 'READY' as const,
+            oracleAddress: null,
+            externalId: null,
+            notes: `Vault migrado a ${newVault}: hay que volver a desplegar oracle y mercado.`
+          }
+        : target
+    );
+
+    await updateAdminAsset(asset.id, { vaultAddress: newVault, collateralTargets });
     await appendDeploymentEvent(asset.id, {
       step: 'VAULT_DEPLOY',
       status: 'SUCCESS',
