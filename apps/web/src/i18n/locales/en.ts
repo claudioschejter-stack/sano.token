@@ -1695,6 +1695,16 @@ export const en = {
     receiveUsdcSubtitle:
       "This is your Sanova account. Send USDC from Ripio or another wallet to this address — do not use the treasury.",
     receiveUsdcBalanceLabel: "USDC balance in your wallet",
+    receiveUsdcWithdrawCta: "Withdraw my USDC",
+    receiveUsdcWithdrawSending: "Sending…",
+    receiveUsdcWithdrawHint:
+      "Sent to your linked wallet on Base. We leave a few cents behind to pay the transfer fee.",
+    receiveUsdcWithdrawSent: "Sent {amount} USDC to {destination}.",
+    receiveUsdcWithdrawNeedsDestination:
+      "Link the wallet you want to withdraw to first, from My Wallet.",
+    receiveUsdcWithdrawNeedsGas:
+      "The balance cannot cover the transfer fee. You need a few more cents of USDC.",
+    receiveUsdcWithdrawFailed: "We could not send the withdrawal. Try again in a moment.",
     receiveUsdcWaiting: "Waiting for your deposit on Base…",
     receiveUsdcDetected: "Deposit detected. Your balance is available.",
     receiveUsdcCopy: "Copy address",
