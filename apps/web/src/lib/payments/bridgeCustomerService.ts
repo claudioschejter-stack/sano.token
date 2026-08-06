@@ -5,6 +5,7 @@ import {
   getOrCreateBridgeCustomer,
   isBridgeCustomerReady
 } from './bridgeClient';
+import { safeLogValue } from '../logging/safeLogValue';
 
 /**
  * The investor's second onboarding, the one Bridge requires.
@@ -166,7 +167,7 @@ export async function ensureBridgeOnboarding(input: {
 
     return toState(saved);
   } catch (error) {
-    console.error('[bridgeCustomerService] ensure failed', input.userId, error);
+    console.error('[bridgeCustomerService] ensure failed', safeLogValue(input.userId), error);
     // Fall back to what we knew: a Bridge outage is not a change of status.
     return existing ? toState(existing) : { ...NOT_CONFIGURED, status: 'not_started' };
   }
@@ -193,7 +194,7 @@ export async function startBridgeOnboardingAfterKyc(userId: string): Promise<voi
     email: user.email,
     fullName: user.name?.trim() || user.email
   }).catch((error) => {
-    console.error('[bridgeCustomerService] start after KYC failed', userId, error);
+    console.error('[bridgeCustomerService] start after KYC failed', safeLogValue(userId), error);
     return NOT_CONFIGURED;
   });
 }

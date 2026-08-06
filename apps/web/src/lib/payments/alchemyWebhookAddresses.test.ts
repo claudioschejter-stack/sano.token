@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 const calls: Array<{ body: Record<string, unknown>; token: string | undefined }> = [];
 let responseOk = true;

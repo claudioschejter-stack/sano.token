@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStablecoinNetwork } from '../../../../lib/payments/stablecoinNetworks';
 import { ingestInboundUsdcTransfer } from '../../../../lib/payments/privyInboundUsdcService';
 import { autoSettlePrivyCartForUser } from '../../../../lib/payments/privyAutoSettleService';
+import { safeLogValue } from '../../../../lib/logging/safeLogValue';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
       txHash: row.hash,
       blockNumber: row.blockNum ? Number.parseInt(row.blockNum, 16) || 0 : 0
     }).catch((error) => {
-      console.error('[webhooks/alchemy] ingest failed', row.hash, error);
+      console.error('[webhooks/alchemy] ingest failed', safeLogValue(row.hash), error);
       return { recorded: false, userId: null, reason: 'INGEST_FAILED' as const };
     });
 
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
     if (outcome.recorded && outcome.userId && !settled.has(outcome.userId)) {
       settled.add(outcome.userId);
       await autoSettlePrivyCartForUser(outcome.userId).catch((error) => {
-        console.error('[webhooks/alchemy] auto-settle failed', outcome.userId, error);
+        console.error('[webhooks/alchemy] auto-settle failed', safeLogValue(outcome.userId), error);
       });
     }
   }
