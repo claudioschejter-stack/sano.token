@@ -1,29 +1,42 @@
 /**
  * Pure token/share accounting used by the reconciliation report.
- * Vault shares use 18 decimals; 1 RWA token = 1e18 shares.
+ *
+ * One RWA token is one vault share, but not one fixed number of wei: an
+ * ERC-4626 vault's share decimals are the asset's plus its `_decimalsOffset`,
+ * and that offset was raised to 3 as an inflation-attack mitigation. So the
+ * decimals belong to the vault being read, and this file will not guess them —
+ * a report that silently multiplies a holding by a thousand is worse than one
+ * that says it could not read the vault.
  */
 
-export const SHARE_DECIMALS = 18;
-const SHARE_UNIT = 10n ** BigInt(SHARE_DECIMALS);
+/** The asset token's decimals, which a vault with no offset also reports. */
+export const DEFAULT_SHARE_DECIMALS = 18;
 
 export type ReconcileStatus = 'MATCH' | 'SHORT_ONCHAIN' | 'EXTRA_ONCHAIN' | 'UNKNOWN';
 
-/** Whole tokens represented by a raw share amount (string wei-like value). */
-export function sharesToTokens(rawShares: string | bigint | null | undefined): number | null {
+/** Whole tokens represented by a raw share amount, in the vault's own units. */
+export function sharesToTokens(
+  rawShares: string | bigint | null | undefined,
+  shareDecimals: number | null | undefined
+): number | null {
   if (rawShares === null || rawShares === undefined || rawShares === '') return null;
+  if (shareDecimals === null || shareDecimals === undefined || !Number.isInteger(shareDecimals)) {
+    return null;
+  }
   try {
     const value = typeof rawShares === 'bigint' ? rawShares : BigInt(rawShares);
     // Keep 6 decimals of a token so partial shares are visible instead of rounded away.
-    const scaled = (value * 1_000_000n) / SHARE_UNIT;
+    const scaled = (value * 1_000_000n) / 10n ** BigInt(shareDecimals);
     return Number(scaled) / 1_000_000;
   } catch {
     return null;
   }
 }
 
-export function tokensToShares(tokenCount: number): bigint {
+export function tokensToShares(tokenCount: number, shareDecimals: number): bigint {
   if (!Number.isFinite(tokenCount) || tokenCount <= 0) return 0n;
-  return BigInt(Math.round(tokenCount)) * SHARE_UNIT;
+  if (!Number.isInteger(shareDecimals) || shareDecimals < 0) return 0n;
+  return BigInt(Math.round(tokenCount)) * 10n ** BigInt(shareDecimals);
 }
 
 /**
@@ -112,6 +125,8 @@ export function reconcileProjectSupplyMath(input: {
   bookedByInvestments: number;
   vaultTotalSupplyShares?: string | null;
   treasuryShares?: string | null;
+  /** Read from the vault. Without it the on-chain comparison stays UNKNOWN. */
+  shareDecimals?: number | null;
 }): ProjectSupplyReconciliation {
   const soldByAvailability = input.totalTokens - input.availableTokens;
   const supplyDeltaTokens = Number((soldByAvailability - input.bookedByInvestments).toFixed(6));
@@ -122,8 +137,11 @@ export function reconcileProjectSupplyMath(input: {
         ? 'SHORT_ONCHAIN'
         : 'EXTRA_ONCHAIN';
 
-  const totalSupplyTokens = sharesToTokens(input.vaultTotalSupplyShares ?? null);
-  const treasuryTokens = sharesToTokens(input.treasuryShares ?? null);
+  const totalSupplyTokens = sharesToTokens(
+    input.vaultTotalSupplyShares ?? null,
+    input.shareDecimals
+  );
+  const treasuryTokens = sharesToTokens(input.treasuryShares ?? null, input.shareDecimals);
   const investorTokensOnChain =
     totalSupplyTokens !== null && treasuryTokens !== null
       ? Number((totalSupplyTokens - treasuryTokens).toFixed(6))

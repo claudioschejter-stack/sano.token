@@ -127,7 +127,8 @@ export async function purchasePreflight(input: {
     const shareDecimals = vault
       ? await readVaultShareDecimals({ provider, vaultAddress: vault })
       : null;
-    const sharesNeeded = vaultSharesForTokens(tokenCount, shareDecimals ?? 18);
+    const sharesNeeded =
+      shareDecimals === null ? null : vaultSharesForTokens(tokenCount, shareDecimals);
 
     if (vault && shareDecimals === null) {
       checks.push({
@@ -142,13 +143,13 @@ export async function purchasePreflight(input: {
       const shares = await readWithRetry(
         () => new Contract(vault, ERC20_ABI, provider).balanceOf(treasury) as Promise<bigint>
       );
+      const readable = shares !== null && shareDecimals !== null && sharesNeeded !== null;
       checks.push({
         id: 'treasury_shares',
-        ok: shares !== null && shares >= sharesNeeded,
-        detail:
-          shares === null
-            ? 'no se pudo leer el balance de shares'
-            : `${formatUnits(shares, shareDecimals ?? 18)} shares en la tesorería`,
+        ok: readable && shares >= sharesNeeded,
+        detail: readable
+          ? `${formatUnits(shares, shareDecimals)} shares en la tesorería`
+          : 'no se pudo leer el balance de shares en las unidades del vault',
         fix: 'Revisá la entrega de shares a la tesorería en el pipeline de deploy.'
       });
     }

@@ -116,6 +116,7 @@ export async function reconcileInvestorHoldings(
     const { hashes, pending } = collectDeliveryHashes(metadataRows);
 
     let onChainShares: string | null = null;
+    let shareDecimals: number | null = null;
     if (row.vaultAddress && walletAddress) {
       const position = await readVaultPosition({
         walletAddress,
@@ -123,9 +124,10 @@ export async function reconcileInvestorHoldings(
         chainId: row.chainId
       });
       onChainShares = position?.shares ?? null;
+      shareDecimals = position?.shareDecimals ?? null;
     }
 
-    const onChainTokens = sharesToTokens(onChainShares);
+    const onChainTokens = sharesToTokens(onChainShares, shareDecimals);
     const { status, deltaTokens } = compareHolding({
       bookedTokens: row.bookedTokens,
       onChainTokens
@@ -227,6 +229,7 @@ export async function reconcileProjectSupply(input: {
 
   let totalSupplyShares: string | null = null;
   let treasuryShares: string | null = null;
+  let supplyShareDecimals: number | null = null;
   if (project.vaultAddress) {
     const supply = await readVaultSupplyAndBalance({
       vaultAddress: project.vaultAddress,
@@ -234,6 +237,7 @@ export async function reconcileProjectSupply(input: {
     });
     totalSupplyShares = supply.totalSupplyShares;
     treasuryShares = supply.holderShares;
+    supplyShareDecimals = supply.shareDecimals;
   }
 
   const math = reconcileProjectSupplyMath({
@@ -241,7 +245,8 @@ export async function reconcileProjectSupply(input: {
     availableTokens: project.availableTokens,
     bookedByInvestments,
     vaultTotalSupplyShares: totalSupplyShares,
-    treasuryShares
+    treasuryShares,
+    shareDecimals: supplyShareDecimals
   });
 
   const projectIntents = await prisma.paymentIntent.findMany({
