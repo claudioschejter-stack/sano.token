@@ -96,7 +96,7 @@ export function PrivyReceiveUsdcCard() {
     setWithdrawing(true);
     setWithdrawResult(null);
     try {
-      const res = await fetch('/api/wallet/privy-usdc-withdrawals', {
+      const res: Response = await fetch('/api/wallet/privy-usdc-withdrawals', {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
@@ -112,12 +112,11 @@ export function PrivyReceiveUsdcCard() {
       if (data.ok && data.withdrawal) {
         setWithdrawResult({
           kind: 'ok',
-          message: formatMessage(w.receiveUsdcWithdrawSent, {
-            amount: data.withdrawal.amountUsdc,
+          message: formatMessage(w.receiveUsdcWithdrawRequested, {
+            amount: Number(data.withdrawal.amountUsdc).toFixed(2),
             destination: `${data.withdrawal.destination.slice(0, 6)}…${data.withdrawal.destination.slice(-4)}`
           })
         });
-        setBalanceUsdc(null);
       } else {
         setWithdrawResult({
           kind: 'error',
@@ -213,7 +212,7 @@ export function PrivyReceiveUsdcCard() {
           className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-terminal-border bg-terminal-bg px-4 py-2.5 text-sm font-semibold text-terminal-text disabled:opacity-50"
         >
           {withdrawing ? <Loader2 size={16} className="animate-spin" /> : <ArrowUpRight size={16} />}
-          {withdrawing ? w.receiveUsdcWithdrawSending : w.receiveUsdcWithdrawCta}
+          {withdrawing ? w.receiveUsdcWithdrawRequesting : w.receiveUsdcWithdrawCta}
         </button>
         <p className="text-[11px] leading-relaxed text-terminal-muted">
           {w.receiveUsdcWithdrawHint}
@@ -241,6 +240,9 @@ function withdrawErrorMessage(
   }
   if (code === 'INSUFFICIENT_USDC_FOR_GAS') {
     return w.receiveUsdcWithdrawNeedsGas;
+  }
+  if (code === 'WITHDRAWAL_ALREADY_PENDING') {
+    return w.receiveUsdcWithdrawPending;
   }
   return w.receiveUsdcWithdrawFailed;
 }

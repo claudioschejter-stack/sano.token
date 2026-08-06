@@ -130,6 +130,8 @@ enum PlatformWithdrawalStatus {
 enum PlatformWithdrawalMethod {
   STABLECOIN
   FIAT
+  /// USDC already on-chain in the investor's Sanova wallet, not ledger balance.
+  SANOVA_WALLET_USDC
 }
 
 enum ProjectOperatingEntryType {
