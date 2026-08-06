@@ -12,16 +12,22 @@ const EVENTS = new Interface([
   'event SupplyCollateral(bytes32 indexed id, address indexed caller, address indexed onBehalf, uint256 assets)'
 ]);
 
+const VAULT = '0x2222222222222222222222222222222222222222';
+
 const recorded: Array<Record<string, unknown>> = [];
 let logs: Array<{ topics: string[]; data: string; transactionHash: string; index: number; blockNumber: number }> = [];
 let collateralTargets: unknown = [{ protocol: 'MORPHO', externalId: OUR_MARKET }];
+let vaultShareDecimals: number | null = 18;
 
 vi.mock('@sanova/database', () => ({
   prisma: {
     project: {
-      findMany: async () => [{ id: 'proj-1', collateralTargets }]
+      findMany: async () => [{ id: 'proj-1', vaultAddress: VAULT, collateralTargets }]
     }
   }
+}));
+vi.mock('../blockchain/vaultShareUnits', () => ({
+  readVaultShareDecimals: async () => vaultShareDecimals
 }));
 
 vi.mock('../lending/baseContracts', () => ({ getLendingChainConfig: () => ({ morpho: MORPHO }) }));
@@ -80,6 +86,7 @@ beforeEach(() => {
   recorded.length = 0;
   logs = [];
   collateralTargets = [{ protocol: 'MORPHO', externalId: OUR_MARKET }];
+  vaultShareDecimals = 18;
 });
 
 describe('indexMorphoMovements', () => {
@@ -113,6 +120,27 @@ describe('indexMorphoMovements', () => {
       asset: 'RWA_SHARE',
       decimals: 18
     });
+  });
+
+  /** Collateral is vault shares, so the unit comes from the vault. */
+  it('books collateral in the vault own share unit', async () => {
+    vaultShareDecimals = 21;
+    logs = [log('SupplyCollateral', OUR_MARKET)];
+    await indexMorphoMovements({ provider });
+    expect(recorded[0]).toMatchObject({ asset: 'RWA_SHARE', decimals: 21 });
+  });
+
+  /**
+   * These rows are permanent. Writing a guessed unit into the ledger becomes an
+   * error nobody can detect afterwards, so the movement is skipped instead.
+   */
+  it('skips collateral rather than write a guessed unit into the ledger', async () => {
+    vaultShareDecimals = null;
+    logs = [log('SupplyCollateral', OUR_MARKET)];
+    const result = await indexMorphoMovements({ provider });
+
+    expect(recorded).toHaveLength(0);
+    expect(result.skipped.join(' ')).toContain('decimals()');
   });
 
   it('ignores markets that are not ours', async () => {

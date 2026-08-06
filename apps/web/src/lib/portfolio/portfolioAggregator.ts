@@ -106,7 +106,15 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
   const rwaPositions = investments.map((investment) => {
     const onChain = onChainByProject.get(investment.projectId);
     const bookedValueUsd = investment.purchasePriceUsd.toNumber();
-    const valueUsd = onChain && onChain.assetsUsd > 0 ? onChain.assetsUsd : bookedValueUsd;
+    /**
+     * The chain knows how many tokens are held; only the project knows what one
+     * is worth. Multiplying here is what keeps the on-chain value in dollars.
+     */
+    const onChainValueUsd =
+      onChain && onChain.assetTokens > 0
+        ? onChain.assetTokens * investment.project.pricePerToken.toNumber()
+        : 0;
+    const valueUsd = onChainValueUsd > 0 ? onChainValueUsd : bookedValueUsd;
 
     return {
       id: investment.id,
@@ -123,9 +131,11 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
         vaultAddress: investment.project.vaultAddress,
         chainId: investment.project.chainId,
         txHash: investment.txHash,
-        onChainVerified: Boolean(onChain?.verified && onChain.assetsUsd > 0),
+        onChainVerified: Boolean(onChain?.verified && onChain.assetTokens > 0),
         vaultShares: onChain?.shares ?? null,
-        onChainAssetsUsd: onChain?.assetsUsd ?? null,
+        vaultShareDecimals: onChain?.shareDecimals ?? null,
+        onChainAssetTokens: onChain?.assetTokens ?? null,
+        onChainAssetsUsd: onChainValueUsd > 0 ? onChainValueUsd : null,
         bookedValueUsd
       }
     };

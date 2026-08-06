@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'VAULT_NOT_DEPLOYED' }, { status: 422 });
   }
 
-  let shareAmount: bigint | undefined;
+  let tokenCount: number | undefined;
   if (body.tokenCount && body.tokenCount > 0 && user?.investorId) {
     const investment = await prisma.investment.findFirst({
       where: {
@@ -55,14 +55,14 @@ export async function POST(request: Request) {
       select: { tokenCount: true }
     });
 
-    const tokensToMove = Math.min(body.tokenCount, investment?.tokenCount ?? body.tokenCount);
-    shareAmount = BigInt(tokensToMove) * 10n ** 18n;
+    tokenCount = Math.min(body.tokenCount, investment?.tokenCount ?? body.tokenCount);
   }
 
+  // Sized against the vault's own decimals rather than a hardcoded 1e18.
   const result = await migrateTreasuryVaultSharesToWallet({
     asset,
     recipientWallet,
-    shareAmount
+    tokenCount
   });
 
   if (result.ok === false) {

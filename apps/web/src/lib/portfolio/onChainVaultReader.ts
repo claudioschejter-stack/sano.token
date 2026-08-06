@@ -3,15 +3,28 @@ import { getStablecoinNetwork } from '../payments/stablecoinNetworks';
 
 const ERC4626_ABI = [
   'function balanceOf(address account) view returns (uint256)',
-  'function convertToAssets(uint256 shares) view returns (uint256)'
+  'function convertToAssets(uint256 shares) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+  'function asset() view returns (address)'
 ];
+const ERC20_DECIMALS_ABI = ['function decimals() view returns (uint8)'];
 
 export type OnChainVaultPosition = {
   vaultAddress: string;
   chainId: number;
   walletAddress: string;
   shares: string;
-  assetsUsd: number;
+  /**
+   * Underlying asset tokens the shares are worth, scaled by the asset's own
+   * decimals. Not a USD amount: the price per token lives in the project, so
+   * only the caller can turn this into money. It used to be called `assetsUsd`
+   * and formatted with USDC's 6 decimals against an 18-decimal asset, which
+   * would have shown the first investor to actually receive a share a portfolio
+   * a trillion times too large, with a verified check beside it.
+   */
+  assetTokens: number;
+  /** The vault's share decimals, which the offset makes vault-specific. */
+  shareDecimals: number;
   assetDecimals: number;
   verified: boolean;
 };
@@ -58,23 +71,33 @@ export async function readVaultPosition(input: {
   }
 
   const network = getStablecoinNetwork('BASE');
-  const decimals = input.assetDecimals ?? network.decimals;
 
   try {
     const provider = new ethers.JsonRpcProvider(rpcUrl);
     const vault = new ethers.Contract(input.vaultAddress, ERC4626_ABI, provider);
     const shares = (await vault.balanceOf(input.walletAddress)) as bigint;
-    const assets =
-      shares > 0n ? ((await vault.convertToAssets(shares)) as bigint) : 0n;
-    const assetsUsd = Number(ethers.formatUnits(assets, decimals));
+    const shareDecimals = Number((await vault.decimals()) as bigint);
+
+    // The underlying's decimals, asked of the underlying.
+    let assetDecimals = input.assetDecimals ?? null;
+    if (assetDecimals === null) {
+      const assetAddress = (await vault.asset()) as string;
+      assetDecimals = Number(
+        (await new ethers.Contract(assetAddress, ERC20_DECIMALS_ABI, provider).decimals()) as bigint
+      );
+    }
+
+    const assets = shares > 0n ? ((await vault.convertToAssets(shares)) as bigint) : 0n;
+    const assetTokens = Number(ethers.formatUnits(assets, assetDecimals));
 
     return {
       vaultAddress: ethers.getAddress(input.vaultAddress),
       chainId: input.chainId ?? network.chainId ?? 8453,
       walletAddress: ethers.getAddress(input.walletAddress),
       shares: shares.toString(),
-      assetsUsd,
-      assetDecimals: decimals,
+      assetTokens,
+      shareDecimals,
+      assetDecimals,
       verified: true
     };
   } catch (error) {

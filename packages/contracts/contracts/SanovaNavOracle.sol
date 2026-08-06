@@ -6,12 +6,25 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 
 interface IERC4626Nav {
     function convertToAssets(uint256 shares) external view returns (uint256 assets);
+    function decimals() external view returns (uint8);
+    function asset() external view returns (address);
+}
+
+interface IErc20Decimals {
+    function decimals() external view returns (uint8);
 }
 
 /// @notice Morpho-compatible NAV oracle for ERC-4626 RWA vault collateral.
 /// @dev Combines on-chain ERC-4626 exchange rate with auditor-updated NAV per underlying asset.
 ///      Returns the price of 1 vault share quoted in USDC, scaled per Morpho (1e36 base).
-///      Formula: price = convertToAssets(1e18) * navPerAssetMicroUsd * 1e18 / 1e18 / 1e6
+///      Formula: price = convertToAssets(shareUnit) * navPerAssetMicroUsd / assetUnit * morphoScale
+///
+///      Every unit is read from the vault rather than assumed. A share is not
+///      always 1e18: ERC-4626 reports the asset's decimals plus its offset, and
+///      that offset was raised to 3 as an inflation-attack mitigation. Hardcoding
+///      1e18 priced a thousandth of a share against a whole one, so a vault
+///      carrying the offset would have reported collateral worth a thousand times
+///      less than it is — quietly, since the old vaults made the constant right.
 ///
 ///      Security model:
 ///      - NAV updates go through a 24h timelock (proposeNav → commitPendingNav) after setup.
@@ -43,8 +56,14 @@ contract SanovaNavOracle is Ownable, Pausable {
     }
     PendingNavUpdate public pendingNavUpdate;
 
-    uint256 private constant MORPHO_PRICE_MULTIPLIER = 1e18;
-    uint256 private constant SHARE_UNIT = 1e18;
+    /// @dev One whole vault share, in the vault's own share units.
+    uint256 public immutable shareUnit;
+
+    /// @dev One whole underlying asset token, which `navPerAssetMicroUsd` prices.
+    uint256 public immutable assetUnit;
+
+    /// @dev Morpho's 1e36 base, divided by the collateral's unit as Morpho requires.
+    uint256 public immutable morphoScale;
 
     event NavUpdated(uint256 navPerAssetMicroUsd, bytes32 auditHash, uint256 timestamp, address indexed updater);
     event NavUpdateProposed(uint256 navPerAssetMicroUsd, bytes32 auditHash, uint256 effectiveAt, address indexed proposer);
@@ -66,6 +85,13 @@ contract SanovaNavOracle is Ownable, Pausable {
         updater = updater_;
         lastNavUpdateAt = block.timestamp;
         setupExpiresAt = block.timestamp + 1 hours;
+
+        uint8 shareDecimals = IERC4626Nav(vault_).decimals();
+        uint8 assetDecimals = IErc20Decimals(IERC4626Nav(vault_).asset()).decimals();
+        require(shareDecimals <= 30 && assetDecimals <= 30, "SANOVA: decimals out of range");
+        shareUnit = 10 ** shareDecimals;
+        assetUnit = 10 ** assetDecimals;
+        morphoScale = 1e36 / (10 ** shareDecimals);
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -74,9 +100,9 @@ contract SanovaNavOracle is Ownable, Pausable {
 
     /// @notice Morpho Blue oracle interface — price of 1 collateral share in USDC, scaled 1e36.
     function price() external view whenNotPaused returns (uint256) {
-        uint256 assetsPerShare = vault.convertToAssets(SHARE_UNIT);
-        uint256 valueMicroUsd = (assetsPerShare * navPerAssetMicroUsd) / SHARE_UNIT;
-        return valueMicroUsd * MORPHO_PRICE_MULTIPLIER;
+        uint256 assetsPerShare = vault.convertToAssets(shareUnit);
+        uint256 valueMicroUsd = (assetsPerShare * navPerAssetMicroUsd) / assetUnit;
+        return valueMicroUsd * morphoScale;
     }
 
     // ─────────────────────────────────────────────────────────────────

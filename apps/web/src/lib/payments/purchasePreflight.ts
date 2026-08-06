@@ -9,7 +9,7 @@ import {
   moduleCanDeliver
 } from '../blockchain/deliveryOperatorModule';
 import { resolveRwaOperatorAddressEnv } from '../privy/config';
-import { vaultSharesForTokenCount } from '../blockchain/investorVaultShareDelivery';
+import { readVaultShareDecimals, vaultSharesForTokens } from '../blockchain/vaultShareUnits';
 
 /**
  * Every condition a purchase needs, checked before charging anybody.
@@ -118,20 +118,38 @@ export async function purchasePreflight(input: {
 
     const treasury = resolveTreasuryAddress();
     const vault = project.vaultAddress?.trim();
-    // Derived from the order alone, so it is always known.
-    const sharesNeeded = vaultSharesForTokenCount(tokenCount);
+
+    /**
+     * Sized by the vault, not by assumption: an ERC-4626 vault's share decimals
+     * are the asset's plus its offset, so vaults built before and after that
+     * offset was raised do not share a unit.
+     */
+    const shareDecimals = vault
+      ? await readVaultShareDecimals({ provider, vaultAddress: vault })
+      : null;
+    const sharesNeeded =
+      shareDecimals === null ? null : vaultSharesForTokens(tokenCount, shareDecimals);
+
+    if (vault && shareDecimals === null) {
+      checks.push({
+        id: 'vault_share_decimals',
+        ok: false,
+        detail: 'no se pudo leer decimals() del vault',
+        fix: 'Sin eso no se puede calcular cuántas shares entregar, y suponerlo entregaría una cantidad equivocada.'
+      });
+    }
 
     if (vault && treasury) {
       const shares = await readWithRetry(
         () => new Contract(vault, ERC20_ABI, provider).balanceOf(treasury) as Promise<bigint>
       );
+      const readable = shares !== null && shareDecimals !== null && sharesNeeded !== null;
       checks.push({
         id: 'treasury_shares',
-        ok: shares !== null && shares >= sharesNeeded,
-        detail:
-          shares === null
-            ? 'no se pudo leer el balance de shares'
-            : `${formatUnits(shares, 18)} shares en la tesorería`,
+        ok: readable && shares >= sharesNeeded,
+        detail: readable
+          ? `${formatUnits(shares, shareDecimals)} shares en la tesorería`
+          : 'no se pudo leer el balance de shares en las unidades del vault',
         fix: 'Revisá la entrega de shares a la tesorería en el pipeline de deploy.'
       });
     }
@@ -178,6 +196,40 @@ export async function purchasePreflight(input: {
           fix: 'POST /api/admin/kyc-timelock con el email del inversor.'
         });
       }
+    }
+
+    /**
+     * Ask the vault itself whether this exact transfer would go through.
+     *
+     * Every other check here reads a permission and infers the outcome, and
+     * that inference is what let a purchase pass preflight and then revert on
+     * delivery: the module's own `canDeliver` only knows about KYC, while the
+     * vault also refuses recipients that carry code — which is every Privy
+     * wallet, because they are delegated through EIP-7702. Simulating the call
+     * covers that gate and any future one.
+     */
+    if (vault && treasury) {
+      const transferData = new Contract(vault, [
+        'function transfer(address,uint256) returns (bool)'
+      ]).interface.encodeFunctionData('transfer', [wallet, sharesNeeded]);
+
+      let simulation: string | null = null;
+      try {
+        await provider.call({ from: treasury, to: vault, data: transferData });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const revert = /execution reverted:?\s*"?([^"]*)"?/i.exec(message);
+        simulation = revert?.[1]?.trim() || message.slice(0, 200);
+      }
+
+      checks.push({
+        id: 'delivery_simulation',
+        ok: simulation === null,
+        detail: simulation === null ? 'la entrega no revierte' : `revierte: ${simulation}`,
+        fix: /receiver not allowed/i.test(simulation ?? '')
+          ? 'La wallet del inversor es un contrato (Privy delega vía EIP-7702) y el vault exige externalContractAllowed. Corré POST /api/admin/vault-recipient para agendar y aplicar la habilitación.'
+          : 'Revisá el motivo del revert antes de cobrar: la entrega va a fallar igual.'
+      });
     }
 
     const moduleAddress = deliveryOperatorModuleAddress();
