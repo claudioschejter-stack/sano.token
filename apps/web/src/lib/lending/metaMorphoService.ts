@@ -1,5 +1,6 @@
-import { Contract, JsonRpcProvider, MaxUint256, id, getAddress } from 'ethers';
+import { Contract, JsonRpcProvider, id, getAddress } from 'ethers';
 import { getLendingChainConfig } from './baseContracts';
+import { ensureAllowance } from '../blockchain/ensureAllowance';
 import type { MorphoMarketParams } from './protocols/morphoBorrow';
 import { morphoMarketId } from './protocols/morphoBorrow';
 import { resolveMorphoChainId } from '../blockchain/explorerUrls';
@@ -190,8 +191,12 @@ export async function setupMetaMorphoForMarket(
       const balance = await usdcContract.balanceOf(walletAddress);
 
       if (balance >= seedAmount) {
-        const approveTx = await usdcContract.approve(vaultAddress, MaxUint256);
-        await approveTx.wait();
+        await ensureAllowance({
+          token: usdc,
+          owner: walletAddress,
+          spender: vaultAddress,
+          signer: wallet
+        });
 
         const vault = new Contract(
           vaultAddress,

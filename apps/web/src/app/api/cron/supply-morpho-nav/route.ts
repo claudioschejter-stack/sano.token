@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { Contract, JsonRpcProvider, MaxUint256, formatUnits } from 'ethers';
+import { Contract, JsonRpcProvider, formatUnits } from 'ethers';
 import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 import { resolveMorphoLiquiditySigner } from '../../../../lib/blockchain/morphoLiquiditySigner';
 import { buildDefaultMorphoMarketParams } from '../../../../lib/lending/protocols/morphoBorrow';
 import { getLendingChainConfig } from '../../../../lib/lending/baseContracts';
+import { ensureAllowance } from '../../../../lib/blockchain/ensureAllowance';
 import { getAdminAsset, updateAdminAsset } from '../../../../lib/admin/assetsService';
 import { checkMorphoLiquidity } from '../../../../lib/lending/morphoLiquidityCheck';
 
@@ -84,8 +85,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, skipped: true, reason: 'NO_USDC_BALANCE' });
     }
 
-    const approveTx = await usdcContract.approve(morpho, MaxUint256);
-    await approveTx.wait();
+    // This runs on a schedule, so a redundant approve is a recurring cost.
+    await ensureAllowance({
+      token: usdc,
+      owner: walletAddress,
+      spender: morpho,
+      signer: wallet
+    });
 
     const morphoContract = new Contract(morpho, MORPHO_SUPPLY_ABI, wallet);
     const marketParams = {

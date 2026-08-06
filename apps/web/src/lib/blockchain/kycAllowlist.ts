@@ -8,6 +8,8 @@ import {
   setKycViaModule
 } from './kycOperatorModule';
 import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from './rwaOperatorSigner';
+import { readKycTimelock } from './scheduleTokenKyc';
+import { readWithRetry } from './rpcRetry';
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 84532 || chainId === 8453) {
@@ -34,6 +36,46 @@ export async function setInvestorKycAllowlist(input: {
     }
 
     const token = new Contract(input.tokenAddress, SanovaAssetTokenArtifact.abi, wallet);
+
+    /**
+     * Ask the token before spending anything, for two reasons.
+     *
+     * `setKyc` is not idempotent: the token deletes the scheduled action once it
+     * runs, so approving somebody who is already approved reverts rather than
+     * doing nothing. Re-linking a wallet used to broadcast one doomed
+     * transaction per project.
+     *
+     * And inside a running timelock it reverts too. Both answers are free to
+     * read, so the check belongs here, where every caller passes through, rather
+     * than in each of them.
+     */
+    const current = await readWithRetry(
+      () => token.kycApproved(input.walletAddress) as Promise<boolean>
+    );
+    if (current !== null && current === input.approved) {
+      return {
+        chainId,
+        txHash: null as string | null,
+        walletAddress: input.walletAddress,
+        approved: input.approved,
+        via: 'already_set' as const
+      };
+    }
+
+    const timelock = await readKycTimelock({
+      provider,
+      tokenAddress: input.tokenAddress,
+      investorAddress: input.walletAddress,
+      approved: input.approved
+    }).catch(() => null);
+
+    if (timelock && !timelock.ready) {
+      throw new Error(
+        timelock.readyAt
+          ? `KYC_TIMELOCK_PENDING: ejecutable a partir de ${new Date(timelock.readyAt * 1000).toISOString()}`
+          : 'KYC_TIMELOCK_NOT_SCHEDULED: hay que agendar la acción antes de poder ejecutarla'
+      );
+    }
 
     /**
      * Two-tier authority: when a Safe owns the token, whitelisting goes through

@@ -2,7 +2,6 @@ import {
   Contract,
   Interface,
   JsonRpcProvider,
-  MaxUint256,
   formatUnits,
   getAddress,
   isAddress,
@@ -16,6 +15,7 @@ import { waitForAutomationTx } from '../blockchain/automationTx';
 import { getLendingChainConfig } from './baseContracts';
 import { checkMorphoLiquidity } from './morphoLiquidityCheck';
 import { getAdminAsset } from '../admin/assetsService';
+import { ensureAllowance } from '../blockchain/ensureAllowance';
 
 /** UV3 / Añelo Apart Hotel Urban View Morpho Blue market (Base). */
 export const UV3_PROJECT_ID = 'proj-anelo-apart-hotel-urban-view';
@@ -207,8 +207,13 @@ export async function fundMorphoUv3FromTreasury(input?: {
       };
     }
 
-    const approveTx = await morphoUsdc.approve(morpho, MaxUint256);
-    await waitForAutomationTx(approveTx);
+    // Infinite once, not infinite every day.
+    await ensureAllowance({
+      token: usdc,
+      owner: await morphoSigner.getAddress(),
+      spender: morpho,
+      signer: morphoSigner
+    });
 
     const morphoWrite = new Contract(morpho, MORPHO_SUPPLY_ABI, morphoSigner);
     const marketParams = {
