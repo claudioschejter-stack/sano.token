@@ -22,6 +22,31 @@ import { autoReconcileTreasuryPaymentForUser } from './reconcileCryptoSettlement
 import { recordSettlementMovements } from './recordSettlementMovements';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 
+/** Poll until the payment has the confirmations verification will ask for. */
+async function waitForConfirmations(txHash: string): Promise<void> {
+  const network = getStablecoinNetwork('BASE');
+  if (!network.rpcUrl) return;
+
+  const { JsonRpcProvider } = await import('ethers');
+  const { paymentMinimumConfirmations } = await import('./paymentConfig');
+  const needed = paymentMinimumConfirmations();
+  const provider = new JsonRpcProvider(network.rpcUrl);
+  const deadline = Date.now() + 25_000;
+
+  try {
+    while (Date.now() < deadline) {
+      const receipt = await provider.getTransactionReceipt(txHash).catch(() => null);
+      if (receipt) {
+        const head = await provider.getBlockNumber().catch(() => null);
+        if (head !== null && head - receipt.blockNumber + 1 >= needed) return;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    }
+  } finally {
+    provider.destroy();
+  }
+}
+
 export type PaySanovaCartResult =
   | {
       ok: true;
@@ -175,10 +200,22 @@ async function transferToTreasuryAndVerify(input: {
     return settledOrFailure('PRIVY_TRANSFER_TX_HASH_PENDING');
   }
 
+  /**
+   * Wait for the transaction rather than for the clock.
+   *
+   * Verification needs confirmations, and the old loop slept 2.5s before even
+   * looking, then retried on a 3s grid — so a payment that was ready in one
+   * Base block still took several seconds to be recognised. Polling the receipt
+   * returns the moment it exists.
+   */
+  await waitForConfirmations(txHash);
+
   let verified = false;
   let lastVerifyError: unknown = null;
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 2500 : 3000));
+    if (attempt > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
     try {
       await verifyCartUsdcPayment({
         userId: input.userId,

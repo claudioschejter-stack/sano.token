@@ -1,4 +1,4 @@
-import { AbiCoder, Contract, JsonRpcProvider, getAddress, keccak256 } from 'ethers';
+import { AbiCoder, Contract, JsonRpcProvider, getAddress, keccak256, toUtf8Bytes } from 'ethers';
 import { resolveTreasuryOwnerSigner } from './treasuryOwnerSigner';
 import { resolveChainId } from './explorerUrls';
 import { execAsOwner } from './safeExec';
@@ -23,12 +23,20 @@ import { readWithRetry } from './rpcRetry';
 const VAULT_ABI = [
   'function externalContractAllowed(address) view returns (bool)',
   'function setExternalContractAllowed(address account, bool allowed)',
+  'function setAdminActionDelay(uint256 delaySeconds)',
   'function scheduleAdminAction(bytes32 actionId)',
   'function adminActionReadyAt(bytes32) view returns (uint256)',
   'function adminActionDelay() view returns (uint256)',
   'function setupExpiresAt() view returns (uint256)',
   'function owner() view returns (address)'
 ];
+
+/** The vault's own fixed action id for changing its delay. */
+const SET_DELAY_ACTION_ID = keccak256(toUtf8Bytes('SET_ADMIN_ACTION_DELAY'));
+
+/** The contract's own bounds: anything outside them reverts. */
+const MIN_DELAY_SECONDS = 3600;
+const MAX_DELAY_SECONDS = 7 * 24 * 3600;
 
 /** Mirrors the vault's `keccak256(abi.encode("SET_EXTERNAL_CONTRACT_ALLOWED", account, allowed))`. */
 export function externalContractActionId(account: string, allowed: boolean): string {
@@ -161,4 +169,94 @@ export async function ensureVaultRecipientAllowed(input: {
 
   const after = await readVaultRecipientState(input);
   return { ok: true, status: 'SCHEDULED', txHash, readyAt: after?.readyAt ?? null };
+}
+
+export type VaultDelayResult =
+  | { ok: true; status: 'ALREADY_AT_TARGET'; delaySeconds: number }
+  | { ok: true; status: 'APPLIED' | 'SCHEDULED'; txHash: string; delaySeconds: number; readyAt?: number | null }
+  | { ok: false; code: string; detail?: string; readyAt?: number | null };
+
+/**
+ * Shorten the vault's admin delay, which is what every investor allowance waits
+ * on.
+ *
+ * The delay is a compliance feature and the contract will not go below an hour,
+ * so this trades a 24-hour wait per investor for a one-hour one — and since the
+ * allowance is now scheduled during onboarding, an hour is time the investor
+ * spends verifying identity anyway. Changing it is itself timelocked, so this
+ * schedules on the first call and applies on a later one.
+ */
+export async function setVaultAdminDelay(input: {
+  provider: JsonRpcProvider;
+  vaultAddress: string;
+  delaySeconds?: number;
+}): Promise<VaultDelayResult> {
+  const target = Math.trunc(input.delaySeconds ?? MIN_DELAY_SECONDS);
+  if (target < MIN_DELAY_SECONDS || target > MAX_DELAY_SECONDS) {
+    return {
+      ok: false,
+      code: 'DELAY_OUT_OF_RANGE',
+      detail: `el contrato acepta entre ${MIN_DELAY_SECONDS} y ${MAX_DELAY_SECONDS} segundos`
+    };
+  }
+
+  const vault = new Contract(getAddress(input.vaultAddress), VAULT_ABI, input.provider);
+  const [currentRaw, readyAtRaw, setupRaw, owner] = await Promise.all([
+    readWithRetry(() => vault.adminActionDelay() as Promise<bigint>),
+    readWithRetry(() => vault.adminActionReadyAt(SET_DELAY_ACTION_ID) as Promise<bigint>),
+    readWithRetry(() => vault.setupExpiresAt() as Promise<bigint>),
+    readWithRetry(() => vault.owner() as Promise<string>)
+  ]);
+
+  if (currentRaw === null || !owner) {
+    return { ok: false, code: 'VAULT_READ_FAILED' };
+  }
+  if (Number(currentRaw) === target) {
+    return { ok: true, status: 'ALREADY_AT_TARGET', delaySeconds: target };
+  }
+
+  const signer = await resolveTreasuryOwnerSigner(input.provider, resolveChainId());
+  if (!signer) {
+    return { ok: false, code: 'SAFE_OWNER_SIGNER_MISSING' };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const readyAt = readyAtRaw === null ? 0 : Number(readyAtRaw);
+  const inSetupWindow = (setupRaw === null ? 0 : Number(setupRaw)) > now;
+
+  if (inSetupWindow || (readyAt > 0 && now >= readyAt)) {
+    const txHash = await execAsOwner({
+      owner: getAddress(owner),
+      signer,
+      target: getAddress(input.vaultAddress),
+      data: vault.interface.encodeFunctionData('setAdminActionDelay', [target])
+    });
+    return { ok: true, status: 'APPLIED', txHash, delaySeconds: target };
+  }
+
+  if (readyAt > 0) {
+    return {
+      ok: false,
+      code: 'SCHEDULED_NOT_READY',
+      detail: `aplicable a partir de ${new Date(readyAt * 1000).toISOString()}`,
+      readyAt
+    };
+  }
+
+  const txHash = await execAsOwner({
+    owner: getAddress(owner),
+    signer,
+    target: getAddress(input.vaultAddress),
+    data: vault.interface.encodeFunctionData('scheduleAdminAction', [SET_DELAY_ACTION_ID])
+  });
+  const after = await readWithRetry(
+    () => vault.adminActionReadyAt(SET_DELAY_ACTION_ID) as Promise<bigint>
+  );
+  return {
+    ok: true,
+    status: 'SCHEDULED',
+    txHash,
+    delaySeconds: target,
+    readyAt: after === null ? null : Number(after)
+  };
 }

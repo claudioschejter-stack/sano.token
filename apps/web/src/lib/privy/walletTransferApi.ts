@@ -148,7 +148,9 @@ export async function privyWaitForTransferTxHash(input: {
 
   for (let i = 0; i < attempts; i += 1) {
     if (i > 0) {
-      await new Promise((r) => setTimeout(r, i === 1 ? 1500 : 2500));
+      // Tight at first: Privy usually has the hash within a second, and a coarse
+      // grid was adding seconds to every checkout for nothing.
+      await new Promise((r) => setTimeout(r, i <= 2 ? 500 : i <= 5 ? 1200 : 2500));
     }
     const url = `${privyApiBase()}/v1/wallets/${walletId}/actions/${actionId}?include=steps`;
     const response = await fetch(url, {

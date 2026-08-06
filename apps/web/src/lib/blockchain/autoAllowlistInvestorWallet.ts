@@ -50,7 +50,7 @@ export async function autoAllowlistInvestorWallet(userId: string): Promise<void>
 
     const projects = await prisma.project.findMany({
       where: { contractAddress: { not: null }, isActive: true },
-      select: { id: true, title: true, contractAddress: true }
+      select: { id: true, title: true, contractAddress: true, vaultAddress: true }
     });
 
     if (!projects.length) {
@@ -86,10 +86,39 @@ export async function autoAllowlistInvestorWallet(userId: string): Promise<void>
       }
     }
 
+    /**
+     * Vaults deployed before the receiver check was narrowed also demand
+     * `externalContractAllowed` for the investor, and that allowance is
+     * timelocked. Starting it here is what keeps the wait inside onboarding
+     * instead of turning an investor's first purchase into a 24-hour block.
+     */
+    const vaultProjects = projects.filter((project) => project.vaultAddress?.trim());
+    if (vaultProjects.length) {
+      const { allowVaultRecipientWithReport } = await import(
+        '../payments/ensureInvestorAllowlist'
+      );
+      const vaultAttempts = await allowVaultRecipientWithReport({
+        walletAddress,
+        projectIds: vaultProjects.map((project) => project.id)
+      }).catch((err) => {
+        console.error('[autoAllowlist] vault recipient allowance failed', err);
+        return [];
+      });
+      for (const attempt of vaultAttempts) {
+        results.push({
+          project: `${attempt.projectTitle} (vault)`,
+          success: attempt.ok,
+          txHash: attempt.txHash ?? undefined,
+          error: attempt.error
+        });
+      }
+    }
+
     const succeeded = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
     console.info(
-      `[autoAllowlist] Whitelist complete for ${walletAddress}: ${succeeded} succeeded, ${failed} failed`
+      `[autoAllowlist] Whitelist complete for ${walletAddress}: ${succeeded} succeeded, ${failed} failed`,
+      results.filter((r) => !r.success)
     );
   } catch (err) {
     console.error('[autoAllowlist] Unexpected error for userId', userId, err);

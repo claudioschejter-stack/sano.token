@@ -175,9 +175,17 @@ export function CryptoWalletPanel({
     Number(cryptoWallet.networkFeeQuoteTtlSec) || GAS_QUOTE_TTL_SEC
   );
 
-  // Countdown + requote when the 30s window expires.
+  /**
+   * Countdown + requote when the 30s window expires.
+   *
+   * Only while the amount can still change. Once the payment is signed it is
+   * fixed, so a clock next to it just suggests something is still pending and
+   * the requote keeps polling for a quote nobody will use.
+   */
+  const quoteIsLive = phase !== 'done' && phase !== 'settling';
+
   useEffect(() => {
-    if (mode !== 'purchase' || investmentUsdc <= 0) return;
+    if (mode !== 'purchase' || investmentUsdc <= 0 || !quoteIsLive) return;
     let cancelled = false;
     let tickId: number | null = null;
     let refreshing = false;
@@ -232,7 +240,7 @@ export function CryptoWalletPanel({
       cancelled = true;
       if (tickId != null) window.clearInterval(tickId);
     };
-  }, [mode, investmentUsdc, country, serverAddress, quoteTtlSec]);
+  }, [mode, investmentUsdc, country, serverAddress, quoteTtlSec, quoteIsLive]);
 
   useEffect(() => {
     if (mode !== 'purchase') return;
@@ -1131,7 +1139,7 @@ export function CryptoWalletPanel({
         ) : (
           <p className="mt-0.5 text-xs text-terminal-muted">{sc.cryptoWalletOnBaseNote}</p>
         )}
-        {mode === 'purchase' ? (
+        {mode === 'purchase' && quoteIsLive ? (
           <p className="mt-2 inline-flex items-center justify-center gap-1.5 text-[11px] font-medium text-terminal-muted">
             {quoteRefreshing ? (
               <Loader2 size={12} className="animate-spin text-terminal-primary" />
