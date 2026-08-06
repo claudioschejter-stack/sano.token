@@ -2,6 +2,7 @@ import { prisma, Prisma } from '@sanova/database';
 import { getAdminAsset } from '../admin/assetsService';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { migrateTreasuryVaultSharesToWallet } from './migrateTreasuryVaultShares';
+import { sharesAlreadyDelivered } from '../payments/shareDeliveryAudit';
 
 const SHARE_DECIMALS = 18;
 const DELIVERY_LOCK_MS = 2 * 60 * 1000;
@@ -138,6 +139,34 @@ export async function deliverVaultSharesForPaymentIntent(paymentIntentId: string
       }
     });
     return { status: 'SKIPPED' as const, reason: 'INVALID_TOKEN_COUNT' };
+  }
+
+  /**
+   * A previous attempt may have broadcast the transfer and died before it could
+   * write the hash — a checkout function running out of time does exactly that.
+   * The chain is the only witness, so ask it before sending a second one.
+   */
+  const already = await sharesAlreadyDelivered({
+    vaultAddress: asset.vaultAddress,
+    recipient,
+    userId: intent.userId,
+    projectId: intent.projectId
+  }).catch(() => null);
+
+  if (already?.covered) {
+    await prisma.paymentIntent.update({
+      where: { id: paymentIntentId },
+      data: {
+        metadata: {
+          ...metadata,
+          shareReceiverWallet: recipient,
+          vaultShareDeliveryStatus: 'DELIVERED_ONCHAIN',
+          vaultShareDeliveryDetail: `${already.onchainShares} shares en ${recipient}`,
+          vaultShareDeliveryAt: new Date().toISOString()
+        } as Prisma.InputJsonObject
+      }
+    });
+    return { status: 'ALREADY_DELIVERED' as const, shares: already.onchainShares ?? undefined };
   }
 
   const delivery = await migrateTreasuryVaultSharesToWallet({

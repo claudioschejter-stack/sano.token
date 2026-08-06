@@ -175,14 +175,47 @@ export async function getCartBatchStatus(
 
   const confirmedCount = intents.filter((row) => row.status === 'CONFIRMED').length;
 
+  /**
+   * The investor already paid and is watching this endpoint for their tokens,
+   * so a delivery that failed during checkout gets another chance here rather
+   * than waiting for the nightly reconciliation. The delivery claims the intent
+   * before transferring, so overlapping polls cannot double-send.
+   */
+  const retried = await retryDeliveryForBatch(intents);
+  const rows = retried ? await loadCartBatchIntentsAnyStatus(userId, batchId) : intents;
+
   return {
     found: true,
     batchId,
     allConfirmed: confirmedCount === intents.length,
     confirmedCount,
     totalCount: intents.length,
-    paymentIntents: intents.map(serializeIntent)
+    paymentIntents: rows.map(serializeIntent)
   };
+}
+
+/** Returns whether any delivery was attempted, so the caller can reload rows. */
+async function retryDeliveryForBatch(
+  intents: Array<{ id: string; status: string; metadata: unknown }>
+): Promise<boolean> {
+  const { isUndeliveredVaultPurchase } = await import('./paymentReconciliation');
+  const owed = intents.filter(
+    (row) =>
+      row.status === 'CONFIRMED' &&
+      isUndeliveredVaultPurchase(row.metadata as Record<string, unknown>)
+  );
+  if (!owed.length) {
+    return false;
+  }
+
+  for (const row of owed) {
+    try {
+      await deliverVaultSharesAfterPayment(row.id);
+    } catch (error) {
+      console.error('[getCartBatchStatus] vault share delivery retry failed', row.id, error);
+    }
+  }
+  return true;
 }
 
 function investmentTxHashForBatchLine(onChainTxHash: string | null | undefined, intentId: string): string {

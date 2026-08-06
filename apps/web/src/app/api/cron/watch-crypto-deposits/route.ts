@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 import { scanAllPendingCryptoQrDeposits } from '../../../../lib/payments/platformWalletService';
 import { autoSettleAllReadyPrivyCarts } from '../../../../lib/payments/privyAutoSettleService';
 import { scanAllPrivyInboundWallets } from '../../../../lib/payments/privyInboundUsdcService';
@@ -33,7 +33,7 @@ async function runStage(name: string, run: () => Promise<unknown>): Promise<Stag
  * - MANUAL_REVIEW fiat rails awaiting USDC on Base treasury
  */
 export async function GET(request: Request) {
-  if (!isCronRequestAuthorized(request)) {
+  if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

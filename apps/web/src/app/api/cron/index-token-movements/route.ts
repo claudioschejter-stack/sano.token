@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 import { indexTokenMovements } from '../../../../lib/reconciliation/indexTokenMovements';
 import { indexMorphoMovements } from '../../../../lib/reconciliation/indexMorphoMovements';
 
@@ -16,7 +16,7 @@ export const maxDuration = 300;
  * because a missed pass used to leave a permanent hole in the ledger.
  */
 export async function GET(request: Request) {
-  if (!isCronRequestAuthorized(request)) {
+  if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

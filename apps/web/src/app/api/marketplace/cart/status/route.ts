@@ -6,6 +6,12 @@ import {
 import { getCartBatchStatus } from '../../../../../lib/payments/cartCheckoutService';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+/**
+ * This poll retries a share delivery the investor is still waiting for, which
+ * means broadcasting a transfer and waiting for its receipt.
+ */
+export const maxDuration = 60;
 
 export async function GET(request: Request) {
   const ctx = await requireMarketplacePurchaseSession();
