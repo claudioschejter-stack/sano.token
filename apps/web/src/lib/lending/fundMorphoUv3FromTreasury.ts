@@ -95,6 +95,23 @@ export async function fundMorphoUv3FromTreasury(input?: {
     return { ok: false, error: 'INVALID_ADDRESSES' };
   }
 
+  /**
+   * The market, its oracle and its collateral are pinned above. If the project
+   * has since moved to another vault, nobody can post this market's collateral
+   * any more, and supplying into it would be sending treasury USDC — investor
+   * money — somewhere it can never be borrowed from. This runs on a daily cron,
+   * so it would keep doing it.
+   */
+  const asset = await getAdminAsset(UV3_PROJECT_ID).catch(() => null);
+  const currentVault = asset?.vaultAddress?.trim();
+  if (currentVault && currentVault.toLowerCase() !== UV3_COLLATERAL.toLowerCase()) {
+    return {
+      ok: true,
+      skipped: true,
+      reason: `PROJECT_VAULT_CHANGED: el proyecto usa ${currentVault} y este mercado tiene como colateral ${UV3_COLLATERAL}. Hay que crear el mercado del vault nuevo y actualizar estas constantes.`
+    };
+  }
+
   const { morpho, usdc, chainId } = getLendingChainConfig();
   const provider = new JsonRpcProvider(resolveRpcUrl());
 
