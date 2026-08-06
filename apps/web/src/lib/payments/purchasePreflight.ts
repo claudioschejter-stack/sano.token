@@ -9,7 +9,7 @@ import {
   moduleCanDeliver
 } from '../blockchain/deliveryOperatorModule';
 import { resolveRwaOperatorAddressEnv } from '../privy/config';
-import { vaultSharesForTokenCount } from '../blockchain/investorVaultShareDelivery';
+import { readVaultShareDecimals, vaultSharesForTokens } from '../blockchain/vaultShareUnits';
 
 /**
  * Every condition a purchase needs, checked before charging anybody.
@@ -118,8 +118,25 @@ export async function purchasePreflight(input: {
 
     const treasury = resolveTreasuryAddress();
     const vault = project.vaultAddress?.trim();
-    // Derived from the order alone, so it is always known.
-    const sharesNeeded = vaultSharesForTokenCount(tokenCount);
+
+    /**
+     * Sized by the vault, not by assumption: an ERC-4626 vault's share decimals
+     * are the asset's plus its offset, so vaults built before and after that
+     * offset was raised do not share a unit.
+     */
+    const shareDecimals = vault
+      ? await readVaultShareDecimals({ provider, vaultAddress: vault })
+      : null;
+    const sharesNeeded = vaultSharesForTokens(tokenCount, shareDecimals ?? 18);
+
+    if (vault && shareDecimals === null) {
+      checks.push({
+        id: 'vault_share_decimals',
+        ok: false,
+        detail: 'no se pudo leer decimals() del vault',
+        fix: 'Sin eso no se puede calcular cuántas shares entregar, y suponerlo entregaría una cantidad equivocada.'
+      });
+    }
 
     if (vault && treasury) {
       const shares = await readWithRetry(
@@ -131,7 +148,7 @@ export async function purchasePreflight(input: {
         detail:
           shares === null
             ? 'no se pudo leer el balance de shares'
-            : `${formatUnits(shares, 18)} shares en la tesorería`,
+            : `${formatUnits(shares, shareDecimals ?? 18)} shares en la tesorería`,
         fix: 'Revisá la entrega de shares a la tesorería en el pipeline de deploy.'
       });
     }

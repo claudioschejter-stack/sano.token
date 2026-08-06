@@ -1,7 +1,7 @@
 import { Contract, Interface, JsonRpcProvider, type Signer, isAddress } from 'ethers';
 import { getAdminAsset } from '../admin/assetsService';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
-import { vaultSharesForTokenCount } from './investorVaultShareDelivery';
+import { readVaultShareDecimals, vaultSharesForTokens } from './vaultShareUnits';
 import { usdcDecimals, usdcTokenAddress } from '../payments/paymentConfig';
 import { waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
@@ -104,7 +104,11 @@ export async function settleSecondaryP2pOnChain(
 
   const operatorAddress = await operator.getAddress();
 
-  const shareAmount = vaultSharesForTokenCount(input.tokenCount);
+  const shareDecimals = await readVaultShareDecimals({ provider, vaultAddress: vault });
+  if (shareDecimals === null) {
+    throw new Error('VAULT_DECIMALS_UNREADABLE');
+  }
+  const shareAmount = vaultSharesForTokens(input.tokenCount, shareDecimals);
   if (shareAmount <= 0n) {
     throw new Error('INVALID_TOKEN_COUNT');
   }
@@ -206,7 +210,11 @@ export async function settlePlatformBuybackOnChain(input: {
     throw new Error('ON_CHAIN_SETTLEMENT_OPERATOR_MISSING');
   }
 
-  const shareAmount = vaultSharesForTokenCount(input.tokenCount);
+  const shareDecimals = await readVaultShareDecimals({ provider, vaultAddress: vault });
+  if (shareDecimals === null) {
+    throw new Error('VAULT_DECIMALS_UNREADABLE');
+  }
+  const shareAmount = vaultSharesForTokens(input.tokenCount, shareDecimals);
   if (shareAmount <= 0n) {
     throw new Error('INVALID_TOKEN_COUNT');
   }
