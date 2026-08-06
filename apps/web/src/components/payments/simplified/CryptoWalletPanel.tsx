@@ -375,10 +375,14 @@ export function CryptoWalletPanel({
       if (code === 'ALLOWLIST_NOT_APPROVED' || code === 'ONCHAIN_ALLOWLIST_NOT_APPROVED') {
         return sc.cryptoWalletAllowlistRequired;
       }
+      if (code === 'VAULT_RECIPIENT_NOT_ALLOWED') {
+        return sc.cryptoWalletVaultRecipientPending;
+      }
       return sc.cryptoWalletAutoSettleError.replace('{error}', errorCode);
     },
     [
       sc.cryptoWalletAllowlistRequired,
+      sc.cryptoWalletVaultRecipientPending,
       sc.cryptoWalletAutoSettleBalanceReadFailed,
       sc.cryptoWalletAutoSettleError,
       sc.cryptoWalletAutoSettleNotConfigured,

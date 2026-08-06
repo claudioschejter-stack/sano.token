@@ -93,14 +93,16 @@ contract SanovaAssetToken is ERC20, Ownable, Pausable {
         _mint(to, amount);
     }
 
+    /// @dev See `SanovaRwaVault._update`: a KYC-cleared counterparty is not an
+    ///      external contract, and EIP-7702 gives ordinary wallets code.
     function _update(address from, address to, uint256 value) internal override whenNotPaused {
         if (from != address(0) && to != address(0)) {
             require(kycApproved[from] && kycApproved[to], "SANOVA: transfer requires KYC");
         }
-        if (from != address(0) && from.code.length > 0) {
+        if (from != address(0) && from.code.length > 0 && !kycApproved[from]) {
             require(externalContractAllowed[from], "SANOVA: contract sender not allowed");
         }
-        if (to != address(0) && to.code.length > 0) {
+        if (to != address(0) && to.code.length > 0 && !kycApproved[to]) {
             require(externalContractAllowed[to], "SANOVA: contract receiver not allowed");
         }
         super._update(from, to, value);

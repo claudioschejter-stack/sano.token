@@ -180,6 +180,40 @@ export async function purchasePreflight(input: {
       }
     }
 
+    /**
+     * Ask the vault itself whether this exact transfer would go through.
+     *
+     * Every other check here reads a permission and infers the outcome, and
+     * that inference is what let a purchase pass preflight and then revert on
+     * delivery: the module's own `canDeliver` only knows about KYC, while the
+     * vault also refuses recipients that carry code — which is every Privy
+     * wallet, because they are delegated through EIP-7702. Simulating the call
+     * covers that gate and any future one.
+     */
+    if (vault && treasury) {
+      const transferData = new Contract(vault, [
+        'function transfer(address,uint256) returns (bool)'
+      ]).interface.encodeFunctionData('transfer', [wallet, sharesNeeded]);
+
+      let simulation: string | null = null;
+      try {
+        await provider.call({ from: treasury, to: vault, data: transferData });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const revert = /execution reverted:?\s*"?([^"]*)"?/i.exec(message);
+        simulation = revert?.[1]?.trim() || message.slice(0, 200);
+      }
+
+      checks.push({
+        id: 'delivery_simulation',
+        ok: simulation === null,
+        detail: simulation === null ? 'la entrega no revierte' : `revierte: ${simulation}`,
+        fix: /receiver not allowed/i.test(simulation ?? '')
+          ? 'La wallet del inversor es un contrato (Privy delega vía EIP-7702) y el vault exige externalContractAllowed. Corré POST /api/admin/vault-recipient para agendar y aplicar la habilitación.'
+          : 'Revisá el motivo del revert antes de cobrar: la entrega va a fallar igual.'
+      });
+    }
+
     const moduleAddress = deliveryOperatorModuleAddress();
     const operator = resolveRwaOperatorAddressEnv();
     if (moduleAddress && operator && vault) {

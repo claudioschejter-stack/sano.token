@@ -426,9 +426,12 @@ export async function paySanovaCartForUser(input: PaySanovaCartInput): Promise<P
     return {
       ok: false,
       status: 'failed',
-      error: allowlist.remainingGaps.some((gap) => gap.onChainApproved === false)
-        ? 'ONCHAIN_ALLOWLIST_NOT_APPROVED'
-        : 'ALLOWLIST_NOT_APPROVED',
+      error: allowlist.remainingGaps.every((gap) => gap.reason === 'VAULT_RECIPIENT')
+        ? // Blaming the KYC here sent us looking in the wrong place for hours.
+          'VAULT_RECIPIENT_NOT_ALLOWED'
+        : allowlist.remainingGaps.some((gap) => gap.onChainApproved === false)
+          ? 'ONCHAIN_ALLOWLIST_NOT_APPROVED'
+          : 'ALLOWLIST_NOT_APPROVED',
       batchId: pending.batchId,
       balanceUsdc
     };
