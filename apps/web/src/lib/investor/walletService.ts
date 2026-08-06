@@ -6,6 +6,7 @@ import { isPendingInvestorWallet } from './provisionInvestorProfile';
 import { syncUserAccountStatus } from '../onboarding/syncUserAccount';
 import { sanitizeWalletProvider } from './walletDisplayName';
 import { recordLinkedCryptoWallet } from './linkedWalletsService';
+import { watchInvestorWalletForDeposits } from '../payments/alchemyWebhookAddresses';
 
 function normalizeWalletAddress(walletAddress: string): string {
   const trimmed = walletAddress.trim();
@@ -148,6 +149,13 @@ export async function linkUserWallet(
   } catch (error) {
     console.error('[linkUserWallet] recordLinkedCryptoWallet failed', error);
   }
+
+  /**
+   * A wallet the deposit webhook does not watch is a wallet whose deposits are
+   * only found by the block scan, which looks at a recent window: funded a week
+   * after it was created, the money would arrive unnoticed.
+   */
+  void watchInvestorWalletForDeposits(normalized);
 
   return { walletAddress: normalized, walletProvider: providerLabel };
 }
