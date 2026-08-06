@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 import { migrateTreasuryFromLegacySafe } from '../../../../lib/blockchain/migrateTreasuryFromLegacySafe';
 
 export const maxDuration = 300;
 
 /** Cron — fund legacy Safe owner gas (from Morpho Privy) and migrate vault shares to Privy treasury. */
 export async function GET(request: Request) {
-  if (!isCronRequestAuthorized(request)) {
+  if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

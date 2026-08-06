@@ -8,14 +8,14 @@ import { enqueueAutomationJob } from '../../../../lib/admin/automationJobs';
 import { recordRwaSecurityReport } from '../../../../lib/blockchain/rwaSecurityReport';
 import { reconcilePayments } from '../../../../lib/payments/paymentReconciliation';
 import { recordPortfolioSnapshotsForActiveInvestors } from '../../../../lib/portfolio/portfolioAggregator';
-import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 /** Vercel Cron — daily maintenance: rates cache + infrastructure repair (no token emission). */
 export async function GET(request: Request) {
-  if (!isCronRequestAuthorized(request)) {
+  if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

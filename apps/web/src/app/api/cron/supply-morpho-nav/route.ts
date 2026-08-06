@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { Contract, JsonRpcProvider, MaxUint256, formatUnits } from 'ethers';
-import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 import { resolveMorphoLiquiditySigner } from '../../../../lib/blockchain/morphoLiquiditySigner';
 import { buildDefaultMorphoMarketParams } from '../../../../lib/lending/protocols/morphoBorrow';
 import { getLendingChainConfig } from '../../../../lib/lending/baseContracts';
@@ -25,7 +25,7 @@ const ERC20_ABI = [
 
 /** Cron — supply full Morpho Liquidity wallet USDC into NAV market + refresh admin state. */
 export async function GET(request: Request) {
-  if (!isCronRequestAuthorized(request)) {
+  if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

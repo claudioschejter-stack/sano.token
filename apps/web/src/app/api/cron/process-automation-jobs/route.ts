@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { processAutomationJobs } from '../../../../lib/admin/automationJobs';
-import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 import { captureAutomationError } from '../../../../lib/observability/captureAutomationError';
 
 export const maxDuration = 300;
 
 /** Cron — drain AutomationJob queue (deploy pipeline, yield, explorer). */
 export async function GET(request: Request) {
-  if (!isCronRequestAuthorized(request)) {
+  if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

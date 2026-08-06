@@ -82,6 +82,60 @@ async function resolveRecipient(intent: {
 }
 
 /**
+ * Whether the investor already holds every share their confirmed purchases of
+ * this project owe them.
+ *
+ * A delivery killed mid-flight — the checkout function running out of time
+ * after the transfer was broadcast — leaves no record of the hash, and the
+ * retry would happily send a second one. Asking the vault what arrived is what
+ * makes the retry safe to run as often as we like.
+ */
+export async function sharesAlreadyDelivered(input: {
+  vaultAddress: string;
+  recipient: string;
+  userId: string;
+  projectId: string;
+}): Promise<{ covered: boolean; owedTokens: number; onchainShares: string | null }> {
+  const vault = normalise(input.vaultAddress);
+  const recipient = normalise(input.recipient);
+  if (!vault || !recipient) {
+    return { covered: false, owedTokens: 0, onchainShares: null };
+  }
+
+  const confirmed = await prisma.paymentIntent.findMany({
+    where: { userId: input.userId, projectId: input.projectId, status: 'CONFIRMED' },
+    select: { tokenCount: true, metadata: true }
+  });
+
+  const owedTokens = confirmed
+    .filter(
+      (row) => (row.metadata as Record<string, unknown>)?.purchaseMode === 'ERC4626_DEPOSIT'
+    )
+    .reduce((sum, row) => sum + row.tokenCount, 0);
+
+  if (owedTokens <= 0) {
+    return { covered: false, owedTokens: 0, onchainShares: null };
+  }
+
+  const provider = new JsonRpcProvider(rpcUrl());
+  try {
+    const contract = new Contract(vault, VAULT_ABI, provider);
+    const balance = await readWithRetry(() => contract.balanceOf(recipient) as Promise<bigint>);
+    if (balance === null) {
+      return { covered: false, owedTokens, onchainShares: null };
+    }
+    const onchainShares = formatUnits(balance, SHARE_DECIMALS);
+    return {
+      covered: Number(onchainShares) >= owedTokens,
+      owedTokens,
+      onchainShares
+    };
+  } finally {
+    provider.destroy();
+  }
+}
+
+/**
  * Confirmed vault purchases checked against the chain: whether delivery ran at
  * all, and whether the investor actually holds the shares.
  *

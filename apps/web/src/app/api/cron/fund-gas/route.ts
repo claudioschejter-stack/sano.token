@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isAddress, JsonRpcProvider } from 'ethers';
-import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 import { resolveMorphoLiquiditySigner } from '../../../../lib/blockchain/morphoLiquiditySigner';
 import { getLendingChainConfig } from '../../../../lib/lending/baseContracts';
 
@@ -10,7 +10,7 @@ const DEFAULT_TOPUP_WEI = 5_000_000_000_000_000n; // 0.005 ETH
 
 /** Cron — send Base ETH from Morpho Privy wallet to fund gas for Safe ops. */
 export async function GET(request: Request) {
-  if (!isCronRequestAuthorized(request)) {
+  if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

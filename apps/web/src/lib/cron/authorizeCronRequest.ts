@@ -19,3 +19,19 @@ export function isCronRequestAuthorized(request: Request): boolean {
   }
   return Boolean(externalSecret) && header === `Bearer ${externalSecret}`;
 }
+
+/**
+ * Same authorization, plus a signed-in admin.
+ *
+ * These routes are the platform's maintenance controls, and an operator with an
+ * admin session is more privileged than whoever holds the cron secret. Without
+ * this, running one by hand means digging the secret out of Vercel and pasting
+ * it into a fetch, which is both friction and a good way to leak it.
+ */
+export async function isCronRequestAllowed(request: Request): Promise<boolean> {
+  if (isCronRequestAuthorized(request)) {
+    return true;
+  }
+  const { requireAdminSession } = await import('../admin/requireAdmin');
+  return Boolean(await requireAdminSession().catch(() => null));
+}

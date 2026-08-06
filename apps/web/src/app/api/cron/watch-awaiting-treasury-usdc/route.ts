@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isCronRequestAuthorized } from '../../../../lib/cron/authorizeCronRequest';
+import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
 import { scanAwaitingTreasuryUsdcSettlements } from '../../../../lib/payments/postPaymentSettlementOrchestrator';
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,7 @@ export const maxDuration = 60;
 
 /** Dedicated sweep for fiat rails waiting on USDC Base treasury settlement. */
 export async function GET(request: Request) {
-  if (!isCronRequestAuthorized(request)) {
+  if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
