@@ -47,7 +47,7 @@ vi.mock('../privy/walletTransferApi', () => ({
   privyWaitForTransferTxHash: async () => '0xhash'
 }));
 
-const { withdrawPrivyUsdc } = await import('./withdrawPrivyUsdc');
+const { withdrawPrivyUsdc, quotePrivyUsdcWithdrawal } = await import('./withdrawPrivyUsdc');
 
 beforeEach(() => {
   balance = 100;
@@ -146,5 +146,43 @@ describe('withdrawPrivyUsdc', () => {
     const result = await withdrawPrivyUsdc({ userId: 'u-1', amountUsdc: 10 });
 
     expect(result).toMatchObject({ ok: false, code: 'DESTINATION_ADDRESS_REQUIRED' });
+  });
+
+  /**
+   * The request and the authorisation are separate moments, so the amount is
+   * re-quoted before signing: a balance that moved in between must not produce a
+   * transfer that reverts on the way out.
+   */
+  it('re-quotes at authorisation and refuses an amount that no longer fits', async () => {
+    balance = 5;
+
+    const result = await withdrawPrivyUsdc({ userId: 'u-1', amountUsdc: 25 });
+
+    expect(result).toMatchObject({ ok: false, code: 'AMOUNT_ABOVE_WITHDRAWABLE' });
+    expect(transfers).toHaveLength(0);
+  });
+
+  it('ties the Privy idempotency key to the authorisation, not the click', async () => {
+    await withdrawPrivyUsdc({
+      userId: 'u-1',
+      amountUsdc: 10,
+      destinationAddress: EXTERNAL,
+      requestId: 'sanova-wallet-usdc-payout:wd-1'
+    });
+
+    expect(transfers[0]).toMatchObject({ idempotencyKey: 'sanova-wallet-usdc-payout:wd-1' });
+  });
+});
+
+describe('quotePrivyUsdcWithdrawal', () => {
+  it('quotes net of the fee without moving anything', async () => {
+    const quote = await quotePrivyUsdcWithdrawal({ userId: 'u-1' });
+
+    expect(quote.ok).toBe(true);
+    if (quote.ok) {
+      expect(quote.amountUsdc).toBeLessThan(quote.heldUsdc);
+      expect(quote.gasReserveUsdc).toBeGreaterThan(0);
+    }
+    expect(transfers).toHaveLength(0);
   });
 });

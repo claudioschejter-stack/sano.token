@@ -3,6 +3,7 @@ import { prisma } from '@sanova/database';
 export type NotificationType =
   | 'kyc_approved'
   | 'purchase_confirmed'
+  | 'withdrawal_requested'
   | 'withdrawal_confirmed'
   | 'withdrawal_rejected';
 

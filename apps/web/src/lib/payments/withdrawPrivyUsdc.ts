@@ -39,32 +39,33 @@ export type WithdrawPrivyUsdcResult =
     }
   | { ok: false; code: string; detail?: string };
 
-async function gasReserveUsdc(input: {
-  from: string;
-  destination: string;
-  token: string;
-}): Promise<number> {
-  const transferData = new Interface([
-    'function transfer(address,uint256) returns (bool)'
-  ]).encodeFunctionData('transfer', [input.destination, 1n]);
+export type PrivyUsdcWithdrawalQuote =
+  | {
+      ok: true;
+      walletId: string;
+      from: string;
+      destination: string;
+      /** What the investor gets, after the fee is set aside. */
+      amountUsdc: number;
+      gasReserveUsdc: number;
+      heldUsdc: number;
+    }
+  | { ok: false; code: string; detail?: string };
 
-  const quote = await quoteBaseUserPaysGasUsd({
-    transactions: [{ to: input.token, data: transferData }],
-    fromAddress: input.from
-  }).catch(() => null);
-
-  const quoted = Number(quote?.networkFeeUsd);
-  // Doubled: the quote is a point-in-time estimate and the fee is taken later.
-  return Math.max(MIN_GAS_RESERVE_USDC, Number.isFinite(quoted) ? quoted * 2 : 0);
-}
-
-export async function withdrawPrivyUsdc(input: {
+/**
+ * Everything that has to be true before a withdrawal is worth queueing, and the
+ * amount net of the fee.
+ *
+ * Split out from the transfer so the investor's request and the admin's
+ * authorisation can be separate moments: the request validates and quotes, the
+ * authorisation signs. Quoting twice is cheap; discovering at authorisation time
+ * that the destination was never linked is not.
+ */
+export async function quotePrivyUsdcWithdrawal(input: {
   userId: string;
-  /** Omit to withdraw everything the gas reserve allows. */
   amountUsdc?: number;
-  /** Must be a wallet already linked to this account. Defaults to the linked one. */
   destinationAddress?: string;
-}): Promise<WithdrawPrivyUsdcResult> {
+}): Promise<PrivyUsdcWithdrawalQuote> {
   const walletRef = await resolveInvestorPrivyWalletIdForUser(input.userId).catch(() => null);
   if (!walletRef?.walletId || !walletRef.address) {
     return { ok: false, code: 'SANOVA_WALLET_NOT_FOUND' };
@@ -94,22 +95,18 @@ export async function withdrawPrivyUsdc(input: {
     };
   }
 
-  const balance = await readWalletUsdcBalanceDetailed(walletRef.address).catch(() => null);
-  if (!balance || balance.balance === null) {
-    return { ok: false, code: 'USDC_BALANCE_READ_FAILED' };
-  }
-
   const token = usdcTokenAddress();
   if (!token) {
     return { ok: false, code: 'USDC_TOKEN_NOT_CONFIGURED' };
   }
 
+  const balance = await readWalletUsdcBalanceDetailed(walletRef.address).catch(() => null);
+  if (!balance || balance.balance === null) {
+    return { ok: false, code: 'USDC_BALANCE_READ_FAILED' };
+  }
+
   const held = balance.balance;
-  const reserve = await gasReserveUsdc({
-    from: walletRef.address,
-    destination,
-    token
-  });
+  const reserve = await gasReserveUsdc({ from: walletRef.address, destination, token });
   const withdrawable = Math.max(0, Math.floor((held - reserve) * 1e6) / 1e6);
 
   if (withdrawable <= 0) {
@@ -121,9 +118,7 @@ export async function withdrawPrivyUsdc(input: {
   }
 
   const amount =
-    input.amountUsdc === undefined
-      ? withdrawable
-      : Math.floor(input.amountUsdc * 1e6) / 1e6;
+    input.amountUsdc === undefined ? withdrawable : Math.floor(input.amountUsdc * 1e6) / 1e6;
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return { ok: false, code: 'INVALID_WITHDRAWAL_AMOUNT' };
@@ -136,21 +131,78 @@ export async function withdrawPrivyUsdc(input: {
     };
   }
 
+  return {
+    ok: true,
+    walletId: walletRef.walletId,
+    from: walletRef.address,
+    destination,
+    amountUsdc: amount,
+    gasReserveUsdc: reserve,
+    heldUsdc: held
+  };
+}
+
+async function gasReserveUsdc(input: {
+  from: string;
+  destination: string;
+  token: string;
+}): Promise<number> {
+  const transferData = new Interface([
+    'function transfer(address,uint256) returns (bool)'
+  ]).encodeFunctionData('transfer', [input.destination, 1n]);
+
+  const quote = await quoteBaseUserPaysGasUsd({
+    transactions: [{ to: input.token, data: transferData }],
+    fromAddress: input.from
+  }).catch(() => null);
+
+  const quoted = Number(quote?.networkFeeUsd);
+  // Doubled: the quote is a point-in-time estimate and the fee is taken later.
+  return Math.max(MIN_GAS_RESERVE_USDC, Number.isFinite(quoted) ? quoted * 2 : 0);
+}
+
+/**
+ * Sign and send a withdrawal the admin already authorised.
+ *
+ * Re-quotes rather than trusting what was queued: the balance and the fee move
+ * between the request and the authorisation, and a queued amount that no longer
+ * fits would revert on the way out.
+ */
+export async function withdrawPrivyUsdc(input: {
+  userId: string;
+  /** Omit to withdraw everything the gas reserve allows. */
+  amountUsdc?: number;
+  /** Must be a wallet already linked to this account. Defaults to the linked one. */
+  destinationAddress?: string;
+  /** Ties the Privy idempotency key to one authorisation, not one click. */
+  requestId?: string;
+}): Promise<WithdrawPrivyUsdcResult> {
+  const quote = await quotePrivyUsdcWithdrawal(input);
+  if (quote.ok === false) {
+    return quote;
+  }
+
+  const { walletId, from, destination, amountUsdc: amount, gasReserveUsdc: reserve, heldUsdc: held } =
+    quote;
+  const token = usdcTokenAddress()!;
+
   let txHash: string | null = null;
   try {
     const transfer = await privyTransferUsdc({
-      walletId: walletRef.walletId,
+      walletId,
       amountUsdc: amount,
       destinationAddress: destination,
       chain: 'base',
       requireAuthorizationSignature: true,
-      /** One withdrawal per account, amount and destination, not one per click. */
-      idempotencyKey: `privy-usdc-withdrawal:${input.userId}:${destination}:${amount}`
+      /** One withdrawal per authorisation, not one per click. */
+      idempotencyKey:
+        input.requestId?.trim() ||
+        `privy-usdc-withdrawal:${input.userId}:${destination}:${amount}`
     });
     txHash = transfer.txHash;
     if (!txHash && transfer.actionId) {
       txHash = await privyWaitForTransferTxHash({
-        walletId: walletRef.walletId,
+        walletId,
         actionId: transfer.actionId,
         attempts: 14
       });
@@ -182,7 +234,7 @@ export async function withdrawPrivyUsdc(input: {
       authoritative: true,
       asset: 'USDC',
       contractAddress: token,
-      fromAddress: walletRef.address,
+      fromAddress: from,
       toAddress: destination,
       amountRaw: parseUnits(amount.toFixed(usdcDecimals()), usdcDecimals()).toString(),
       decimals: usdcDecimals(),

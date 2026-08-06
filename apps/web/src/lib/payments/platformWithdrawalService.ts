@@ -203,6 +203,27 @@ export async function confirmPlatformWithdrawal(input: {
   let reference = input.reference?.trim() ?? '';
   let bridgeTransfer: Awaited<ReturnType<typeof executeBridgeFiatPayout>> | null = null;
 
+  /**
+   * A withdrawal from the investor's own Sanova wallet is signed by the platform
+   * on authorisation, so the admin approves rather than pasting a hash. It also
+   * re-quotes, because the balance and the fee move between the request and the
+   * click; if the amount no longer fits, this fails before anything is sent.
+   */
+  if (withdrawal.method === 'SANOVA_WALLET_USDC' && !reference) {
+    const { withdrawPrivyUsdc } = await import('./withdrawPrivyUsdc');
+    const sent = await withdrawPrivyUsdc({
+      userId: withdrawal.userId,
+      amountUsdc: Number(withdrawal.amountUsd),
+      destinationAddress: withdrawal.destinationAddress ?? undefined,
+      requestId: `sanova-wallet-usdc-payout:${withdrawal.id}`
+    });
+
+    if (sent.ok === false) {
+      throw new Error(sent.detail ? `${sent.code}:${sent.detail}` : sent.code);
+    }
+    reference = sent.txHash;
+  }
+
   const wantsBridge =
     Boolean(input.useBridgePayout) ||
     (withdrawal.method === 'FIAT' && !reference && withdrawalSupportsBridgePayout(payoutDetails));
@@ -232,7 +253,19 @@ export async function confirmPlatformWithdrawal(input: {
   }
 
   let verification: { ok: boolean; reason?: string; confirmations?: number } = { ok: false, reason: 'SKIPPED' };
-  if (withdrawal.method === 'STABLECOIN' && withdrawal.destinationAddress) {
+  if (withdrawal.method === 'SANOVA_WALLET_USDC' && withdrawal.destinationAddress) {
+    // This one leaves the investor's wallet, not the treasury.
+    const sanovaWallet = (withdrawal.metadata as Record<string, unknown> | null)?.[
+      'sanovaWalletAddress'
+    ];
+    verification = await verifyUsdcTransferOnBase({
+      txHash: reference,
+      expectedTo: withdrawal.destinationAddress,
+      expectedAmountUsd: Number(withdrawal.amountUsd),
+      expectedFrom: typeof sanovaWallet === 'string' ? sanovaWallet : null,
+      stablecoinNetwork: withdrawal.stablecoinNetwork
+    });
+  } else if (withdrawal.method === 'STABLECOIN' && withdrawal.destinationAddress) {
     const network = getStablecoinNetwork(withdrawal.stablecoinNetwork);
     verification = await verifyUsdcTransferOnBase({
       txHash: reference,

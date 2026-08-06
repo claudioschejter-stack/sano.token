@@ -1713,10 +1713,13 @@ export const es = {
       'Esta es tu cuenta Sanova. Mandá USDC desde Ripio u otra billetera a esta dirección — no uses la tesorería.',
     receiveUsdcBalanceLabel: 'Saldo USDC en tu wallet',
     receiveUsdcWithdrawCta: 'Retirar mi USDC',
-    receiveUsdcWithdrawSending: 'Enviando…',
+    receiveUsdcWithdrawRequesting: 'Solicitando…',
     receiveUsdcWithdrawHint:
-      'Se envía a tu wallet vinculada, en la red Base. Dejamos unos centavos para pagar el gas de la transferencia.',
-    receiveUsdcWithdrawSent: 'Enviamos {amount} USDC a {destination}.',
+      'Se envía a tu wallet vinculada, en la red Base. Descontamos el gas de la transferencia y Sanova autoriza el envío.',
+    receiveUsdcWithdrawRequested:
+      'Pedimos autorización para enviarte {amount} USDC a {destination}. Te avisamos cuando salga.',
+    receiveUsdcWithdrawPending:
+      'Ya tenés un retiro esperando autorización. Te avisamos cuando salga.',
     receiveUsdcWithdrawNeedsDestination:
       'Primero vinculá la wallet a la que querés retirar, desde Mi Cartera.',
     receiveUsdcWithdrawNeedsGas:
