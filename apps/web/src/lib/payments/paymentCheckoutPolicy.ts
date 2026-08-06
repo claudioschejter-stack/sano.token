@@ -1,6 +1,6 @@
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
-import { isLocalRailAggregatorConfigured } from './paymentProviderAvailability';
 import { isMacroClickConfigured } from './macroClick/config';
+import { ripioConfigured } from './ripioClient';
 
 export type CheckoutFlowMode = 'purchase' | 'deposit';
 
@@ -38,7 +38,7 @@ const PURCHASE_DIRECT_USDC = new Set(['USDC_ONCHAIN', 'COINBASE']);
  * Providers that stay hidden until they work end to end. Kept as a list rather
  * than deleted so re-enabling one is a decision, not an archaeology exercise.
  */
-const RETIRED_PROVIDERS = new Set(['ramp', 'wise', 'astropay', 'ebanx', 'transak', 'ripio']);
+const RETIRED_PROVIDERS = new Set(['ramp', 'wise', 'astropay', 'ebanx', 'transak']);
 
 const RETIRED_OPTION_IDS = new Set(['binance_pay', 'binance_usdc']);
 
@@ -90,8 +90,15 @@ export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: Checkou
   }
 
   if (mode === 'purchase') {
+    /**
+     * Mercado Pago cannot fund a purchase, and the code already says so:
+     * `/api/payments/mercadopago/process` answers `MP_CART_DISABLED_USE_ONRAMP`.
+     * The reason is structural — a purchase has to land as USDC in the treasury
+     * and MP delivers pesos into an MP account, so it needs a converter behind
+     * it. Listing it here put a button in front of investors that returns a 400.
+     */
     if (DEPOSIT_MP_OPTION_IDS.has(row.id) || row.method === 'MERCADO_PAGO') {
-      return true;
+      return false;
     }
     if (row.method === 'CUSTODIAL_STABLECOIN') {
       return false;
@@ -111,9 +118,14 @@ export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: Checkou
     return row.method === 'USDC_ONCHAIN' && isDirectBaseUsdcRow(row);
   }
 
-  // deposit: on-ramps + USDC Base + MP (vía Ripio en backend)
+  /**
+   * Deposits through Mercado Pago settle by handing the pesos to Ripio, which
+   * sends USDC to the treasury. Without Ripio configured that chain has no
+   * second half, and the deposit would sit in an MP account with nothing to
+   * convert it.
+   */
   if (row.method === 'MERCADO_PAGO' || DEPOSIT_MP_OPTION_IDS.has(row.id)) {
-    return true;
+    return ripioConfigured();
   }
   if (isPurchaseOnRampRow(row) || row.method === 'USDC_ONCHAIN') {
     return isDirectBaseUsdcRow(row) || isPurchaseOnRampRow(row);

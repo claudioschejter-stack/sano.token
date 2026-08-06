@@ -41,14 +41,37 @@ describe('depositPaymentOptions', () => {
     }
   });
 
-  it('purchase mode in Argentina includes Mercado Pago but not Stripe', () => {
+  /**
+   * A purchase has to land as USDC in the treasury, and Mercado Pago delivers
+   * pesos into an MP account. `/api/payments/mercadopago/process` refuses a cart
+   * with `MP_CART_DISABLED_USE_ONRAMP`, so listing it here put a button in front
+   * of investors that answers 400.
+   */
+  it('purchase mode in Argentina offers no Mercado Pago and no Stripe', () => {
     process.env.MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-test';
     process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY = 'APP_USR-public';
     const quote = buildDepositPaymentOptions(100, 'AR', 1050, { linkedWalletAddress: '0xabc', mode: 'purchase' });
-    expect(quote.options.some((row) => row.method === 'MERCADO_PAGO')).toBe(true);
+
+    expect(quote.options.some((row) => row.method === 'MERCADO_PAGO')).toBe(false);
     expect(quote.options.some((row) => row.provider === 'stripe')).toBe(false);
     expect(
-      quote.options.some((row) => row.method === 'RIPIO' || row.method === 'TRANSAK' || row.method === 'BRIDGE')
+      quote.options.some((row) => row.method === 'TRANSAK' || row.method === 'BRIDGE')
     ).toBe(true);
+  });
+
+  /** Deposits can use it, but only while the converter behind it exists. */
+  it('offers Mercado Pago for deposits only when Ripio can convert the pesos', () => {
+    process.env.MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-test';
+    process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY = 'APP_USR-public';
+
+    delete process.env.RIPIO_CLIENT_ID;
+    delete process.env.RIPIO_CLIENT_SECRET;
+    const without = buildDepositPaymentOptions(100, 'AR', 1050, { mode: 'deposit' });
+    expect(without.options.some((row) => row.method === 'MERCADO_PAGO')).toBe(false);
+
+    process.env.RIPIO_CLIENT_ID = 'ripio-id';
+    process.env.RIPIO_CLIENT_SECRET = 'ripio-secret';
+    const withRipio = buildDepositPaymentOptions(100, 'AR', 1050, { mode: 'deposit' });
+    expect(withRipio.options.some((row) => row.method === 'MERCADO_PAGO')).toBe(true);
   });
 });
