@@ -1,6 +1,7 @@
-import { Contract, JsonRpcProvider, MaxUint256 } from 'ethers';
+import { Contract, JsonRpcProvider } from 'ethers';
 import type { MorphoMarketParams } from './protocols/morphoBorrow';
 import { getLendingChainConfig } from './baseContracts';
+import { ensureAllowance } from '../blockchain/ensureAllowance';
 import { resolveMorphoSeedUsdcForProject } from './morphoSeedLiquidity';
 import { resolveMorphoLiquiditySigner } from '../blockchain/morphoLiquiditySigner';
 
@@ -72,8 +73,7 @@ export async function seedMorphoLiquidityIfConfigured(
   const seedAmount = balance < amount ? balance : amount;
   const seededUsd = Number(seedAmount) / 10 ** Number(decimals);
 
-  const approveTx = await usdcContract.approve(morpho, MaxUint256);
-  await approveTx.wait();
+  await ensureAllowance({ token: usdc, owner: walletAddress, spender: morpho, signer: wallet });
   const morphoContract = new Contract(morpho, MORPHO_SUPPLY_ABI, wallet);
   const marketParams = {
     loanToken: params.loanToken,

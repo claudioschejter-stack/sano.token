@@ -126,6 +126,7 @@ export async function updateNavOraclePrice(
         'function commitPendingNav()',
         'function pendingNavUpdate() view returns (uint256 navPerAssetMicroUsd, bytes32 auditHash, uint256 effectiveAt)',
         'function setupExpiresAt() view returns (uint256)',
+        'function navPerAssetMicroUsd() view returns (uint256)',
         'function price() view returns (uint256)'
       ],
       wallet
@@ -136,6 +137,26 @@ export async function updateNavOraclePrice(
     const setupExpiresAt = BigInt(await oracle.setupExpiresAt());
     const nowSec = BigInt(Math.floor(Date.now() / 1000));
     const inSetupWindow = nowSec <= setupExpiresAt;
+
+    /**
+     * The oracle rejects a move of more than 20% in one update, and setting the
+     * NAV it already holds changes nothing. Both are free to read, and the second
+     * one is what a re-run of an admin action looks like.
+     */
+    const currentNav = (await oracle.navPerAssetMicroUsd().catch(() => null)) as bigint | null;
+    if (currentNav !== null && currentNav === BigInt(navPerAssetMicroUsd)) {
+      return { status: 'SKIPPED', reason: 'El oracle ya tiene ese NAV.' };
+    }
+    if (currentNav !== null && currentNav > 0n) {
+      const next = BigInt(navPerAssetMicroUsd);
+      const delta = next > currentNav ? next - currentNav : currentNav - next;
+      if (delta * 10_000n > currentNav * 2_000n) {
+        return {
+          status: 'SKIPPED',
+          reason: `El cambio de NAV supera el 20% que el oracle acepta: ${currentNav} → ${next}. Hacelo en pasos.`
+        };
+      }
+    }
 
     const tx = await oracle.updateNav(navPerAssetMicroUsd, auditHash);
     const receipt = await tx.wait();

@@ -48,6 +48,23 @@ export async function GET(request: Request) {
       );
     }
 
+    /**
+     * A top-up is only a top-up when the wallet needs it. This route was reading
+     * the sender's balance and never the recipient's, so calling it twice sent
+     * twice — and it is reachable from a cron.
+     */
+    const recipientBalance = await provider.getBalance(to);
+    if (recipientBalance >= value) {
+      return NextResponse.json({
+        ok: true,
+        skipped: true,
+        reason: 'RECIPIENT_ALREADY_FUNDED',
+        to,
+        balanceWei: recipientBalance.toString(),
+        wantedWei: value.toString()
+      });
+    }
+
     const tx = await signer.sendTransaction({ to, value });
     const receipt = await tx.wait();
 
