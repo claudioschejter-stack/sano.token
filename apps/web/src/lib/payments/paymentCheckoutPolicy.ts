@@ -1,6 +1,6 @@
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
 import { isMacroClickConfigured } from './macroClick/config';
-import { ripioConfigured } from './ripioClient';
+import { ripioConfigured } from './ripioAvailability';
 
 export type CheckoutFlowMode = 'purchase' | 'deposit';
 
@@ -31,7 +31,7 @@ const STRIPE_OPTION_IDS = new Set([
  * artefact, not a Transak integration. Transak itself is retired by provider
  * below, which is the field that says who actually collects the money.
  */
-const PURCHASE_ON_RAMP_METHODS = new Set(['BRIDGE', 'TRANSAK']);
+const PURCHASE_ON_RAMP_METHODS = new Set(['BRIDGE', 'TRANSAK', 'RIPIO']);
 const PURCHASE_DIRECT_USDC = new Set(['USDC_ONCHAIN', 'COINBASE']);
 
 /**

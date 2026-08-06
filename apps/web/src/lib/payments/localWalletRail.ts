@@ -1,6 +1,6 @@
 import { isMacroClickConfigured } from './macroClick/config';
 import { getBridgeApiKey } from './bridgeClient';
-import { ripioConfigured } from './ripioClient';
+import { ripioConfigured } from './ripioAvailability';
 import { normalizePaymentCountry, isPaymentCountrySanctioned } from './paymentCountry';
 
 /**
@@ -17,7 +17,15 @@ import { normalizePaymentCountry, isPaymentCountrySanctioned } from './paymentCo
  * they already use to pay for coffee.
  */
 
-export type LocalRailId = 'pix' | 'spei' | 'bre_b' | 'ars_bank' | 'sepa' | 'ach' | 'fps';
+export type LocalRailId =
+  | 'pix'
+  | 'spei'
+  | 'bre_b'
+  | 'ars_cvu'
+  | 'ars_bank'
+  | 'sepa'
+  | 'ach'
+  | 'fps';
 
 export type LocalRailPresentation =
   /** A code the investor's wallet scans, or their phone opens directly. */
@@ -32,7 +40,7 @@ export type LocalWalletRail = {
   /** What the button says: the rail's own name where people know it. */
   label: string;
   /** Provider that actually collects the money. */
-  provider: 'bridge' | 'macro_click';
+  provider: 'bridge' | 'macro_click' | 'ripio';
   presentation: LocalRailPresentation;
   /** Settles in seconds or minutes, as opposed to business days. */
   instant: boolean;
@@ -87,23 +95,22 @@ function railForCountry(country: string): Omit<LocalWalletRail, 'configured'> | 
   }
   if (country === 'AR') {
     /**
-     * Bridge issues no ARS virtual accounts, so Argentina runs on Macro — and
-     * Macro is not a rail that ends in USDC. It deposits pesos into a bank
-     * account, and something else has to convert them: Ripio when configured, a
-     * person otherwise. The purchase only confirms once USDC reaches the
-     * treasury, so promising minutes here would promise the payment's speed and
-     * not the investor's tokens.
+     * Bridge issues no ARS virtual accounts, so Argentina runs on Ripio, which
+     * hands back a CVU and alias per order and sends USDC straight to the Base
+     * treasury. A CVU is the Argentine equivalent of a CLABE: every wallet in
+     * the country — Mercado Pago, Ualá, Lemon, Belo — can transfer to one, which
+     * is what makes a single instrument reach all of them.
+     *
+     * It also solves attribution for free: the CVU belongs to that order, so the
+     * payer never has to type a reference somebody could get wrong.
      */
-    const converted = ripioConfigured();
     return {
-      railId: 'ars_bank',
-      label: 'Transferencia o billetera',
-      provider: 'macro_click',
-      presentation: 'hosted',
-      instant: converted,
-      settlementHint: converted
-        ? 'Los tokens se acreditan cuando se convierte a USDC, en minutos'
-        : 'Los tokens se acreditan cuando Sanova convierte el pago a USDC'
+      railId: 'ars_cvu',
+      label: 'CVU o alias',
+      provider: 'ripio',
+      presentation: 'account_details',
+      instant: true,
+      settlementHint: 'Llega en minutos y se convierte a USDC automáticamente'
     };
   }
   if (EUR_COUNTRIES.has(country)) {
@@ -140,7 +147,51 @@ function railForCountry(country: string): Omit<LocalWalletRail, 'configured'> | 
 }
 
 function providerConfigured(provider: LocalWalletRail['provider']): boolean {
-  return provider === 'macro_click' ? isMacroClickConfigured() : Boolean(getBridgeApiKey());
+  if (provider === 'macro_click') return isMacroClickConfigured();
+  if (provider === 'ripio') return ripioConfigured();
+  return Boolean(getBridgeApiKey());
+}
+
+/**
+ * The rail for a bank transfer, which is not always the wallet rail.
+ *
+ * In most countries one instrument serves both: a CLABE is paid from a banking
+ * app or from Nu, indistinguishably. Argentina is the exception — Ripio's CVU is
+ * what wallets reach, and Macro is the bank's own form, better suited to larger
+ * transfers and immediate debit.
+ */
+function bankRailForCountry(country: string): Omit<LocalWalletRail, 'configured'> | null {
+  if (country === 'AR') {
+    return {
+      railId: 'ars_bank',
+      label: 'Transferencia bancaria',
+      provider: 'macro_click',
+      presentation: 'hosted',
+      instant: false,
+      settlementHint: 'Los tokens se acreditan cuando Sanova convierte el pago a USDC'
+    };
+  }
+  return railForCountry(country);
+}
+
+/** The bank-transfer option for a country, resolved like the wallet one. */
+export function resolveLocalBankRail(countryInput?: string | null): LocalWalletRailResolution {
+  const country = normalizePaymentCountry(countryInput);
+
+  if (isPaymentCountrySanctioned(country)) {
+    return { available: false, reason: 'SANCTIONED_COUNTRY', country };
+  }
+
+  const base = bankRailForCountry(country);
+  if (!base) {
+    return { available: false, reason: 'NO_LOCAL_RAIL', country };
+  }
+
+  const configured = providerConfigured(base.provider);
+  const rail: LocalWalletRail = { ...base, configured };
+  return configured
+    ? { available: true, rail }
+    : { available: false, reason: 'PROVIDER_NOT_CONFIGURED', country, rail };
 }
 
 /** The single local option to offer this investor, or why there is none. */

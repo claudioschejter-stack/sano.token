@@ -10,9 +10,7 @@ type RipioTokenCache = {
 
 let tokenCache: RipioTokenCache | null = null;
 
-export function ripioConfigured(): boolean {
-  return Boolean(process.env.RIPIO_CLIENT_ID?.trim() && process.env.RIPIO_CLIENT_SECRET?.trim());
-}
+export { ripioConfigured } from './ripioAvailability';
 
 export function ripioApiBaseUrl(): string {
   const configured = process.env.RIPIO_API_BASE_URL?.trim();

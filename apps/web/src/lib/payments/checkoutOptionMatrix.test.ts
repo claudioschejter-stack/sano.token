@@ -11,7 +11,7 @@ vi.mock('../privy/config', () => ({ isPrivyEnabled: () => privyEnabled }));
 vi.mock('./privyOnRampPolicy', () => ({ isPrivyOnRampConfigured: () => privyOnRamp }));
 vi.mock('./bridgeClient', () => ({ getBridgeApiKey: () => bridgeKey }));
 vi.mock('./macroClick/config', () => ({ isMacroClickConfigured: () => macroConfigured }));
-vi.mock('./ripioClient', () => ({ ripioConfigured: () => ripioReady }));
+vi.mock('./ripioAvailability', () => ({ ripioConfigured: () => ripioReady }));
 
 const { checkoutCoverageForCountry, checkoutCoverageMatrix } = await import('./checkoutOptionMatrix');
 
@@ -63,14 +63,29 @@ describe('checkoutCoverageForCountry', () => {
   });
 
   /**
-   * The country with the highest wallet adoption in the region is the one with
-   * no wallet button: Macro is a bank form, not something Ualá or Lemon can pay.
+   * Argentina is the country where the two buckets have different providers:
+   * Ripio's CVU is what any wallet can transfer to, and Macro's form is the bank
+   * route. Collapsing them would have left the region's most wallet-heavy market
+   * without a wallet button.
    */
-  it('names Argentina missing wallet rail instead of pretending Macro is one', () => {
+  it('gives Argentina a wallet option through Ripio and a bank one through Macro', () => {
+    expect(optionOf('AR', 'virtual_wallet')).toMatchObject({
+      available: true,
+      provider: 'ripio'
+    });
+    expect(optionOf('AR', 'bank_transfer')).toMatchObject({
+      available: true,
+      provider: 'macro_click'
+    });
+  });
+
+  it('names Argentina wallet gap when Ripio is not configured', () => {
+    ripioReady = false;
     const wallet = optionOf('AR', 'virtual_wallet');
 
     expect(wallet.available).toBe(false);
-    expect(wallet.missing).toContain('QR interoperable');
+    expect(wallet.missing).toContain('ripio');
+    // Macro still covers the bank route, so the country is not dark.
     expect(optionOf('AR', 'bank_transfer').available).toBe(true);
   });
 

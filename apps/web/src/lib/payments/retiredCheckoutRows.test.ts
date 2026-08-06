@@ -18,17 +18,23 @@ describe('retired checkout rows', () => {
   it('hides the providers that never worked end to end', () => {
     for (const mode of ['purchase', 'deposit'] as const) {
       const providers = providersFor(mode);
-      for (const retired of ['ramp', 'wise', 'astropay', 'ebanx', 'transak', 'ripio', 'stripe']) {
+      for (const retired of ['ramp', 'wise', 'astropay', 'ebanx', 'transak', 'stripe']) {
         expect(providers.has(retired as never), `${retired} in ${mode}`).toBe(false);
       }
     }
   });
 
-  it('keeps the ones that do: USDC, Macro and Bridge', () => {
+  /**
+   * Ripio is the one that collects pesos on a CVU and sends USDC to the Base
+   * treasury, which is the only automatic path Argentina has. Retiring it would
+   * have left the country without a wallet rail.
+   */
+  it('keeps the ones that do: USDC, Macro, Bridge and Ripio', () => {
     const providers = providersFor('purchase');
     expect(providers.has('usdc')).toBe(true);
     expect(providers.has('macro_click')).toBe(true);
     expect(providers.has('bridge')).toBe(true);
+    expect(providers.has('ripio')).toBe(true);
   });
 
   /**

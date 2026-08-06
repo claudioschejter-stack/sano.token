@@ -7,9 +7,9 @@ let ripioReady = true;
 
 vi.mock('./macroClick/config', () => ({ isMacroClickConfigured: () => macroConfigured }));
 vi.mock('./bridgeClient', () => ({ getBridgeApiKey: () => bridgeKey }));
-vi.mock('./ripioClient', () => ({ ripioConfigured: () => ripioReady }));
+vi.mock('./ripioAvailability', () => ({ ripioConfigured: () => ripioReady }));
 
-const { resolveLocalWalletRail, localWalletRailCoverage } = await import('./localWalletRail');
+const { resolveLocalWalletRail, resolveLocalBankRail, localWalletRailCoverage } = await import('./localWalletRail');
 
 beforeEach(() => {
   macroConfigured = true;
@@ -50,14 +50,30 @@ describe('resolveLocalWalletRail', () => {
     expect(result.available && result.rail.railId).toBe('bre_b');
   });
 
-  /** Bridge issues no ARS virtual accounts, so Argentina cannot ride Bridge. */
-  it('keeps Argentina on Macro rather than Bridge', () => {
+  /**
+   * Bridge issues no ARS virtual accounts, so Argentina rides Ripio, whose CVU
+   * every wallet in the country can transfer to — and which converts to USDC on
+   * its own.
+   */
+  it('sends Argentina to Ripio CVU, not to Bridge', () => {
     const result = resolveLocalWalletRail('AR');
 
     expect(result.available).toBe(true);
     if (result.available) {
-      expect(result.rail.provider).toBe('macro_click');
+      expect(result.rail).toMatchObject({
+        railId: 'ars_cvu',
+        provider: 'ripio',
+        instant: true
+      });
     }
+  });
+
+  it('says Argentina is unavailable when Ripio is not configured', () => {
+    ripioReady = false;
+    const result = resolveLocalWalletRail('AR');
+
+    expect(result).toMatchObject({ available: false, reason: 'PROVIDER_NOT_CONFIGURED' });
+    expect(result.available === false && result.rail?.provider).toBe('ripio');
   });
 
   it('treats the euro zone as one rail', () => {
@@ -68,18 +84,25 @@ describe('resolveLocalWalletRail', () => {
   });
 
   /**
-   * Bridge's rails end in USDC on Base; Macro ends in pesos in a bank account.
-   * Calling Argentina instant would promise the payment's speed and not the
-   * investor's tokens, which only arrive once somebody converts.
+   * The bank rail is not always the wallet rail. Argentina is the case: a CVU is
+   * what wallets reach, and Macro's form is for larger transfers and immediate
+   * debit — and unlike Ripio it ends in pesos, so the tokens wait for somebody
+   * to convert.
    */
-  it('does not call Argentina instant when nothing converts the pesos', () => {
-    ripioReady = false;
-    const result = resolveLocalWalletRail('AR');
+  it('separates the bank rail from the wallet rail in Argentina', () => {
+    const wallet = resolveLocalWalletRail('AR');
+    const bank = resolveLocalBankRail('AR');
 
-    expect(result.available).toBe(true);
-    if (result.available) {
-      expect(result.rail.instant).toBe(false);
-      expect(result.rail.settlementHint).toContain('convierte');
+    expect(wallet.available && wallet.rail.provider).toBe('ripio');
+    expect(bank.available && bank.rail.provider).toBe('macro_click');
+    expect(bank.available && bank.rail.instant).toBe(false);
+  });
+
+  it('uses the same rail for wallet and bank where one instrument serves both', () => {
+    for (const country of ['MX', 'BR', 'US']) {
+      const wallet = resolveLocalWalletRail(country);
+      const bank = resolveLocalBankRail(country);
+      expect(wallet.available && wallet.rail.railId).toBe(bank.available && bank.rail.railId);
     }
   });
 

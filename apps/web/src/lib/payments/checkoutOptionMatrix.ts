@@ -1,6 +1,10 @@
 import { isPrivyOnRampConfigured } from './privyOnRampPolicy';
 import { isPrivyEnabled } from '../privy/config';
-import { resolveLocalWalletRail, type LocalWalletRail } from './localWalletRail';
+import {
+  resolveLocalBankRail,
+  resolveLocalWalletRail,
+  type LocalWalletRail
+} from './localWalletRail';
 import { normalizePaymentCountry, isPaymentCountrySanctioned } from './paymentCountry';
 
 /**
@@ -52,9 +56,13 @@ export type CountryCheckoutCoverage = {
   options: CheckoutOptionStatus[];
 };
 
-/** Rails an investor pays from a wallet app, as opposed to a bank app. */
+/**
+ * Rails an investor pays from a wallet app, as opposed to a bank form. Anything
+ * that resolves to a code or an account number qualifies: those are what wallets
+ * can send to.
+ */
 function railIsWalletReadable(rail: LocalWalletRail): boolean {
-  return rail.presentation === 'qr' || rail.railId === 'spei' || rail.railId === 'bre_b';
+  return rail.presentation !== 'hosted';
 }
 
 function cryptoWallet(): CheckoutOptionStatus {
@@ -117,7 +125,7 @@ function virtualWallet(country: string): CheckoutOptionStatus {
 }
 
 function bankTransfer(country: string): CheckoutOptionStatus {
-  const resolution = resolveLocalWalletRail(country);
+  const resolution = resolveLocalBankRail(country);
   const rail = resolution.available ? resolution.rail : resolution.rail;
 
   if (!rail) {
