@@ -3,6 +3,7 @@ import { prisma } from '@sanova/database';
 import { getLendingChainConfig } from '../lending/baseContracts';
 import { usdcDecimals } from '../payments/paymentConfig';
 import { readWithRetry } from '../blockchain/rpcRetry';
+import { readVaultShareDecimals } from '../blockchain/vaultShareUnits';
 import { recordTokenMovement, type TokenMovementKindName } from './tokenMovementLedger';
 import { platformAddressRegistry } from './platformAddressRegistry';
 import { resolveLedgerStartBlock } from './ledgerWatermark';
@@ -62,12 +63,16 @@ export async function indexMorphoMovements(input?: {
 }): Promise<IndexMorphoMovementsResult> {
   const projects = await prisma.project.findMany({
     where: { vaultAddress: { not: null } },
-    select: { id: true, collateralTargets: true }
+    select: { id: true, vaultAddress: true, collateralTargets: true }
   });
 
   /** Only our markets: Morpho hosts thousands of unrelated ones. */
   const projectByMarketId = new Map<string, string>();
+  const vaultByProject = new Map<string, string>();
   for (const project of projects) {
+    if (project.vaultAddress) {
+      vaultByProject.set(project.id, project.vaultAddress);
+    }
     const targets = Array.isArray(project.collateralTargets)
       ? (project.collateralTargets as Array<Record<string, unknown>>)
       : [];
@@ -140,6 +145,23 @@ export async function indexMorphoMovements(input?: {
 
         const isCollateral = COLLATERAL_EVENTS.has(parsed.name);
 
+        /**
+         * Collateral is the project's vault shares, whose unit belongs to the
+         * vault. These rows are permanent, so a guessed unit becomes a permanent
+         * error in the ledger.
+         */
+        let collateralDecimals: number | null = null;
+        if (isCollateral) {
+          const vaultAddress = vaultByProject.get(projectId);
+          collateralDecimals = vaultAddress
+            ? await readVaultShareDecimals({ provider, vaultAddress })
+            : null;
+          if (collateralDecimals === null) {
+            skipped.push(`${projectId}: no se pudo leer decimals() del vault`);
+            continue;
+          }
+        }
+
         await recordTokenMovement({
           kind,
           // Morpho's own event names the operation; nothing is being inferred.
@@ -149,7 +171,7 @@ export async function indexMorphoMovements(input?: {
           fromAddress: counterparty ?? morpho,
           toAddress: morpho,
           amountRaw: amountOf(parsed.name, args).toString(),
-          decimals: isCollateral ? 18 : usdcDecimals(),
+          decimals: isCollateral ? collateralDecimals! : usdcDecimals(),
           txHash: log.transactionHash,
           logIndex: log.index,
           blockNumber: log.blockNumber,

@@ -4,15 +4,7 @@ import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { migrateTreasuryVaultSharesToWallet } from './migrateTreasuryVaultShares';
 import { sharesAlreadyDelivered } from '../payments/shareDeliveryAudit';
 
-const SHARE_DECIMALS = 18;
 const DELIVERY_LOCK_MS = 2 * 60 * 1000;
-
-export function vaultSharesForTokenCount(tokenCount: number): bigint {
-  if (!Number.isInteger(tokenCount) || tokenCount <= 0) {
-    return 0n;
-  }
-  return BigInt(tokenCount) * 10n ** BigInt(SHARE_DECIMALS);
-}
 
 function deliveryAlreadyComplete(metadata: Record<string, unknown>): boolean {
   return (
@@ -126,8 +118,7 @@ export async function deliverVaultSharesForPaymentIntent(paymentIntentId: string
     return { status: 'SKIPPED' as const, reason: 'VAULT_NOT_CONFIGURED' };
   }
 
-  const shareAmount = vaultSharesForTokenCount(intent.tokenCount);
-  if (shareAmount <= 0n) {
+  if (!Number.isInteger(intent.tokenCount) || intent.tokenCount <= 0) {
     await prisma.paymentIntent.update({
       where: { id: paymentIntentId },
       data: {
@@ -172,7 +163,8 @@ export async function deliverVaultSharesForPaymentIntent(paymentIntentId: string
   const delivery = await migrateTreasuryVaultSharesToWallet({
     asset,
     recipientWallet: recipient,
-    shareAmount
+    // Sized against the vault's own decimals, not a hardcoded 1e18.
+    tokenCount: intent.tokenCount
   });
 
   if (!delivery.ok) {

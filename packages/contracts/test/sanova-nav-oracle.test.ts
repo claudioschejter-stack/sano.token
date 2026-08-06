@@ -15,12 +15,14 @@ type SanovaAssetToken = Contract & {
 type SanovaRwaVault = Contract & {
   deposit: (assets: bigint, receiver: string) => Promise<ContractTransactionResponse>;
   convertToAssets: (shares: bigint) => Promise<bigint>;
+  decimals: () => Promise<bigint>;
 };
 
 type SanovaNavOracle = Contract & {
   price: () => Promise<bigint>;
   updateNav: (nav: bigint, auditHash: string) => Promise<ContractTransactionResponse>;
   navPerAssetMicroUsd: () => Promise<bigint>;
+  shareUnit: () => Promise<bigint>;
 };
 
 const hardhatEthers = (
@@ -74,19 +76,24 @@ describe('SanovaNavOracle', () => {
       owner.address
     )) as SanovaNavOracle;
 
-    // The vault applies a 3-decimal virtual-shares offset (inflation-attack mitigation, see
-    // SanovaRwaVault._decimalsOffset), so 1 share is intentionally NOT worth 1 underlying asset
-    // right after the first deposit. Derive the expected price from the vault's own exchange
-    // rate instead of assuming a 1:1 ratio, so this test verifies the oracle's formula
-    // (assetsPerShare * nav) rather than the vault's internal share-minting math.
-    const assetsPerShare = await vault.convertToAssets(10n ** 18n);
-    const expectedPrice = (nav: bigint) => (assetsPerShare * nav / 10n ** 18n) * 10n ** 18n;
+    /**
+     * Assert what Morpho actually computes, not the shape of our formula.
+     *
+     * Morpho values collateral as `amount * price / 1e36`, so one whole share
+     * has to come out at the audited NAV — $20 in USDC micro-units. Checking the
+     * formula against itself is what let the old `1e18` constant look correct: it
+     * priced a thousandth of a share on a vault whose shares carry the
+     * inflation-attack offset, and the test reproduced the same mistake.
+     */
+    const shareUnit = await oracle.shareUnit();
+    expect(shareUnit).to.equal(10n ** (await vault.decimals()));
 
-    const price = await oracle.price();
-    expect(price).to.equal(expectedPrice(navPerAssetMicroUsd));
+    const valueOfOneShare = (price: bigint) => (shareUnit * price) / 10n ** 36n;
+
+    expect(valueOfOneShare(await oracle.price())).to.equal(navPerAssetMicroUsd);
 
     await (oracle.connect(updater as any) as SanovaNavOracle).updateNav(21_000_000n, ethersId('audit-q1-2026'));
     expect(await oracle.navPerAssetMicroUsd()).to.equal(21_000_000n);
-    expect(await oracle.price()).to.equal(expectedPrice(21_000_000n));
+    expect(valueOfOneShare(await oracle.price())).to.equal(21_000_000n);
   });
 });

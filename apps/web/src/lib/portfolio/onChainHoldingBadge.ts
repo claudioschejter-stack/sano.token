@@ -22,7 +22,14 @@ export function onChainHoldingBadge(input: {
     typeof metadata.vaultShares === 'string' || typeof metadata.vaultShares === 'number'
       ? String(metadata.vaultShares)
       : null;
-  const onChainTokens = sharesToTokens(rawShares);
+  /**
+   * Recorded next to the shares by whoever read them. Without it the badge
+   * cannot say anything, and claiming "verified" from a guessed unit is exactly
+   * the failure this badge exists to catch.
+   */
+  const shareDecimals =
+    typeof metadata.vaultShareDecimals === 'number' ? metadata.vaultShareDecimals : null;
+  const onChainTokens = sharesToTokens(rawShares, shareDecimals);
   const { status } = compareHolding({ bookedTokens: input.bookedTokens, onChainTokens });
 
   return {

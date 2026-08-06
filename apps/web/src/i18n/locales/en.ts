@@ -3030,6 +3030,8 @@ export const en = {
       "Link your Sanova wallet in your profile for one-tap pay. Meanwhile use “My wallet”.",
     cryptoWalletAllowlistRequired:
       "Your wallet is not allowlisted yet (KYC). Finish verification or contact Sanova.",
+    cryptoWalletVaultRecipientPending:
+      "We are enabling your wallet to receive this asset's tokens. The contract enforces a 24-hour wait and we already started it: you will be able to buy as soon as it ends, with nothing to do.",
     cryptoWalletSanovaAddressLabel: "Your Sanova account address (Base · USDC)",
     cryptoWalletQrHintPrivy: "Scan from Ripio or another app to send USDC to your Sanova wallet.",
     cryptoWalletPrivyAddress: "Your Sanova wallet",

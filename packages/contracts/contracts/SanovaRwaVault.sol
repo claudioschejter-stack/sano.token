@@ -121,14 +121,24 @@ contract SanovaRwaVault is ERC4626, Ownable, Pausable {
         return 3;
     }
 
+    /**
+     * @dev The contract-code checks exist to keep shares out of public liquidity
+     *      pools, which a pool can never pass because only the fiduciary grants
+     *      `kycApproved`. They must not also reject the investors: wallets are
+     *      routinely delegated through EIP-7702, so an ordinary personal wallet
+     *      carries code and used to fail as an "external contract" — taking the
+     *      payment and reverting the delivery. A counterparty the fiduciary has
+     *      already verified is not an external contract, so `externalContractAllowed`
+     *      is only asked about addresses that KYC has not cleared.
+     */
     function _update(address from, address to, uint256 value) internal override whenNotPaused {
         if (from != address(0) && to != address(0)) {
             require(kycAsset.kycApproved(from) && kycAsset.kycApproved(to), "SANOVA: share transfer requires KYC");
         }
-        if (from != address(0) && from.code.length > 0) {
+        if (from != address(0) && from.code.length > 0 && !kycAsset.kycApproved(from)) {
             require(externalContractAllowed[from], "SANOVA: contract sender not allowed");
         }
-        if (to != address(0) && to.code.length > 0) {
+        if (to != address(0) && to.code.length > 0 && !kycAsset.kycApproved(to)) {
             require(externalContractAllowed[to], "SANOVA: contract receiver not allowed");
         }
         super._update(from, to, value);

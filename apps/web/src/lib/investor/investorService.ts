@@ -227,11 +227,19 @@ export async function getPortfolioForUser(userId: string) {
         })
       : new Map();
 
-  const totalCollateralUsd = investor.investments.reduce((sum, investment) => {
+  /** Asset tokens held on-chain, priced by the project they belong to. */
+  const onChainValueUsdFor = (investment: {
+    projectId: string;
+    project: { pricePerToken: { toNumber(): number } };
+  }): number => {
     const onChain = onChainByProject.get(investment.projectId);
-    const valueUsd =
-      onChain && onChain.assetsUsd > 0 ? onChain.assetsUsd : investment.purchasePriceUsd.toNumber();
-    return sum + valueUsd;
+    if (!onChain || onChain.assetTokens <= 0) return 0;
+    return onChain.assetTokens * investment.project.pricePerToken.toNumber();
+  };
+
+  const totalCollateralUsd = investor.investments.reduce((sum, investment) => {
+    const onChainValue = onChainValueUsdFor(investment);
+    return sum + (onChainValue > 0 ? onChainValue : investment.purchasePriceUsd.toNumber());
   }, 0);
 
   return {
@@ -256,7 +264,7 @@ export async function getPortfolioForUser(userId: string) {
     activePositions: investor.investments.map((investment) => {
       const onChain = onChainByProject.get(investment.projectId);
       const purchasePriceUsd = investment.purchasePriceUsd.toString();
-      const onChainValueUsd = onChain?.assetsUsd ?? 0;
+      const onChainValueUsd = onChainValueUsdFor(investment);
       const chainId = onChain?.chainId ?? investment.project.chainId ?? null;
 
       return {
@@ -275,7 +283,9 @@ export async function getPortfolioForUser(userId: string) {
           ? {
               verified: onChain.verified,
               shares: onChain.shares,
-              assetsUsd: onChain.assetsUsd.toFixed(6),
+              shareDecimals: onChain.shareDecimals,
+              assetTokens: onChain.assetTokens.toFixed(6),
+              assetsUsd: onChainValueUsd.toFixed(6),
               walletAddress: onChain.walletAddress,
               explorerUrl: onChain.explorerUrl,
               txExplorerUrl:

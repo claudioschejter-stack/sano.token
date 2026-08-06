@@ -10,6 +10,7 @@ import {
   deliveryOperatorModuleAddress,
   moduleCanDeliver
 } from './deliveryOperatorModule';
+import { readVaultShareDecimals, vaultSharesForTokens } from './vaultShareUnits';
 
 const TOKEN_ABI = [
   'function kycApproved(address) view returns (bool)',
@@ -56,6 +57,13 @@ export async function migrateTreasuryVaultSharesToWallet(input: {
   asset: AdminAssetRecord;
   recipientWallet: string;
   shareAmount?: bigint;
+  /**
+   * Whole tokens to deliver, sized here against the vault's own decimals.
+   * Preferred over `shareAmount`: an ERC-4626 vault's share decimals are the
+   * asset's plus its offset, so a caller computing the raw amount has to know a
+   * detail of the contract it is talking to.
+   */
+  tokenCount?: number;
 }): Promise<MigrateTreasurySharesResult> {
   const treasury = resolveTreasuryAddress();
   const vault = input.asset.vaultAddress?.trim();
@@ -102,7 +110,20 @@ export async function migrateTreasuryVaultSharesToWallet(input: {
       return { ok: false, code: 'TREASURY_NO_SHARES', detail: treasury };
     }
 
-    const amount = input.shareAmount ?? treasuryShares;
+    let requested = input.shareAmount;
+    if (input.tokenCount !== undefined) {
+      const decimals = await readVaultShareDecimals({ provider, vaultAddress: vault });
+      if (decimals === null) {
+        return {
+          ok: false,
+          code: 'VAULT_DECIMALS_UNREADABLE',
+          detail: `no se pudo leer decimals() de ${vault}; entregar una cantidad supuesta seria peor`
+        };
+      }
+      requested = vaultSharesForTokens(input.tokenCount, decimals);
+    }
+
+    const amount = requested ?? treasuryShares;
     if (amount <= 0n || amount > treasuryShares) {
       return {
         ok: false,

@@ -6,6 +6,7 @@ import { recordTokenMovement } from './tokenMovementLedger';
 import { platformAddressRegistry, type PlatformAddress } from './platformAddressRegistry';
 import { resolveLedgerStartBlock } from './ledgerWatermark';
 import { attributeMovement, classifyMovement, classifyShareMovement } from './classifyMovement';
+import { readVaultShareDecimals } from '../blockchain/vaultShareUnits';
 
 const TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const RPC_CHUNK = 9_500;
@@ -161,9 +162,21 @@ export async function indexTokenMovements(input?: {
   let shareIndexed = 0;
   for (const project of projects) {
     if (!project.vaultAddress) continue;
+    /**
+     * Asked of the vault, because the ledger keeps these rows forever: writing a
+     * guessed unit into history is how a report ends up a thousand times off
+     * with no way to tell after the fact.
+     */
+    const shareDecimals = await withProvider((provider) =>
+      readVaultShareDecimals({ provider, vaultAddress: project.vaultAddress! })
+    ).catch(() => null);
+    if (shareDecimals === null) {
+      console.error('[indexTokenMovements] vault decimals unreadable, skipping', project.id);
+      continue;
+    }
     shareIndexed += await indexTransfers({
       contractAddress: project.vaultAddress,
-      decimals: 18,
+      decimals: shareDecimals,
       asset: 'RWA_SHARE',
       projectId: project.id,
       lookbackBlocks,

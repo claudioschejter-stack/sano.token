@@ -11,6 +11,13 @@ export type AllowlistGap = {
   dbApproved: boolean;
   /** `kycApproved(wallet)` on the project asset token. */
   onChainApproved: boolean | null;
+  /**
+   * `externalContractAllowed(wallet)` on the vault. Null when the wallet is a
+   * plain EOA, which the vault lets through on its own.
+   */
+  vaultRecipientAllowed?: boolean | null;
+  /** Which gate is blocking, since the fixes are different transactions. */
+  reason?: 'KYC' | 'VAULT_RECIPIENT';
 };
 
 async function readOnChainKyc(input: {
@@ -24,6 +31,37 @@ async function readOnChainKyc(input: {
       const approved = Boolean(await token.kycApproved(input.walletAddress));
       provider.destroy();
       return approved;
+    } catch {
+      provider.destroy();
+    }
+  }
+  return null;
+}
+
+/**
+ * Whether the vault would accept this wallet as a share recipient.
+ *
+ * Returns null for an address without code: the vault only gates contract
+ * recipients, and Privy's EIP-7702 delegation is what makes an ordinary
+ * investor wallet look like one.
+ */
+async function readVaultRecipientAllowed(input: {
+  vaultAddress: string;
+  walletAddress: string;
+}): Promise<boolean | null> {
+  const abi = ['function externalContractAllowed(address) view returns (bool)'];
+  for (const url of baseRpcUrls()) {
+    const provider = new JsonRpcProvider(url, 8453, { staticNetwork: true });
+    try {
+      const code = await provider.getCode(input.walletAddress);
+      if (code === '0x' || code.length <= 2) {
+        provider.destroy();
+        return null;
+      }
+      const vault = new Contract(input.vaultAddress, abi, provider);
+      const allowed = Boolean(await vault.externalContractAllowed(input.walletAddress));
+      provider.destroy();
+      return allowed;
     } catch {
       provider.destroy();
     }
@@ -69,15 +107,42 @@ export async function findAllowlistGaps(input: {
       : null;
 
     // `null` means the chain could not be read — do not block on that alone.
-    if (dbApproved && onChainApproved !== false) continue;
+    if (!dbApproved || onChainApproved === false) {
+      gaps.push({
+        projectId: project.id,
+        projectTitle: project.title,
+        walletAddress: wallet,
+        dbApproved,
+        onChainApproved,
+        reason: 'KYC'
+      });
+      continue;
+    }
 
-    gaps.push({
-      projectId: project.id,
-      projectTitle: project.title,
-      walletAddress: wallet,
-      dbApproved,
-      onChainApproved
+    /**
+     * KYC is not enough: the vault refuses a recipient that carries code unless
+     * it is allowlisted, and a Privy wallet carries an EIP-7702 delegation. This
+     * is what let a purchase take the money and then revert on delivery with
+     * `SANOVA: contract receiver not allowed`.
+     */
+    const vaultAddress = project.vaultAddress?.trim();
+    if (!vaultAddress) continue;
+
+    const vaultRecipientAllowed = await readVaultRecipientAllowed({
+      vaultAddress,
+      walletAddress: wallet
     });
+    if (vaultRecipientAllowed === false) {
+      gaps.push({
+        projectId: project.id,
+        projectTitle: project.title,
+        walletAddress: wallet,
+        dbApproved,
+        onChainApproved,
+        vaultRecipientAllowed,
+        reason: 'VAULT_RECIPIENT'
+      });
+    }
   }
 
   return gaps;
@@ -185,6 +250,78 @@ export async function allowlistInvestorWalletWithReport(input: {
   return attempts;
 }
 
+/**
+ * Allowlist the wallet as a share recipient on each project's vault, doing
+ * whichever half of the timelock is available: schedule it, or apply it once the
+ * clock has run out.
+ */
+export async function allowVaultRecipientWithReport(input: {
+  walletAddress: string;
+  projectIds: string[];
+}): Promise<AllowlistAttempt[]> {
+  const projects = await prisma.project.findMany({
+    where: { id: { in: input.projectIds } },
+    select: { id: true, title: true, vaultAddress: true }
+  });
+
+  const { ensureVaultRecipientAllowed } = await import('../blockchain/vaultRecipientAllowlist');
+  const attempts: AllowlistAttempt[] = [];
+
+  for (const project of projects) {
+    const vaultAddress = project.vaultAddress?.trim();
+    if (!vaultAddress) continue;
+
+    const provider = new JsonRpcProvider(baseRpcUrls()[0], 8453, { staticNetwork: true });
+    try {
+      const result = await ensureVaultRecipientAllowed({
+        provider,
+        vaultAddress,
+        recipient: input.walletAddress
+      });
+
+      if (result.ok === false) {
+        attempts.push({
+          projectId: project.id,
+          projectTitle: project.title,
+          ok: false,
+          error: `VAULT_RECIPIENT_${result.code}${result.detail ? `: ${result.detail}` : ''}`
+        });
+      } else {
+        const scheduledUntil =
+          result.status === 'SCHEDULED' && result.readyAt
+            ? new Date(result.readyAt * 1000).toISOString()
+            : null;
+        attempts.push({
+          projectId: project.id,
+          projectTitle: project.title,
+          ok: result.status === 'ALLOWED' || result.status === 'ALREADY_ALLOWED',
+          txHash: 'txHash' in result ? result.txHash : null,
+          error:
+            result.status === 'SCHEDULED'
+              ? `VAULT_RECIPIENT_TIMELOCK_AGENDADO: habilitable a partir de ${
+                  scheduledUntil ?? 'las próximas 24 h'
+                }`
+              : undefined
+        });
+      }
+    } catch (error) {
+      attempts.push({
+        projectId: project.id,
+        projectTitle: project.title,
+        ok: false,
+        error:
+          error instanceof Error
+            ? `VAULT_RECIPIENT_FAILED: ${error.message.slice(0, 200)}`
+            : 'VAULT_RECIPIENT_FAILED'
+      });
+    } finally {
+      provider.destroy();
+    }
+  }
+
+  return attempts;
+}
+
 /** Returns a human-readable note about when the approval becomes possible. */
 async function startKycTimelock(
   tokenAddress: string,
@@ -240,11 +377,24 @@ export async function ensureInvestorAllowlistForProjects(input: {
     return { attempted: false, remainingGaps: [] };
   }
 
-  const attempts = await allowlistInvestorWalletWithReport({
-    userId: input.userId,
-    walletAddress: input.walletAddress,
-    projectIds: gaps.map((gap) => gap.projectId)
-  });
+  const kycGaps = gaps.filter((gap) => gap.reason !== 'VAULT_RECIPIENT');
+  const attempts = kycGaps.length
+    ? await allowlistInvestorWalletWithReport({
+        userId: input.userId,
+        walletAddress: input.walletAddress,
+        projectIds: kycGaps.map((gap) => gap.projectId)
+      })
+    : [];
+
+  const vaultGaps = gaps.filter((gap) => gap.reason === 'VAULT_RECIPIENT');
+  if (vaultGaps.length) {
+    attempts.push(
+      ...(await allowVaultRecipientWithReport({
+        walletAddress: input.walletAddress,
+        projectIds: vaultGaps.map((gap) => gap.projectId)
+      }))
+    );
+  }
 
   const remainingGaps = await findAllowlistGaps({
     walletAddress: input.walletAddress,

@@ -12,6 +12,9 @@ let shareBalance = 5000n * 10n ** 18n;
 let timelock: Record<string, unknown> | null;
 let canDeliver = true;
 let operatorEth = parseUnits('0.005', 18);
+/** Revert reason the simulated delivery should raise, or null when it passes. */
+let deliveryRevert: string | null = null;
+let shareDecimals: number | null = 18;
 
 vi.mock('@sanova/database', () => ({
   prisma: { project: { findUnique: async () => project } }
@@ -32,13 +35,16 @@ vi.mock('../blockchain/deliveryOperatorModule', () => ({
 vi.mock('../privy/config', () => ({
   resolveRwaOperatorAddressEnv: () => '0x1AEBdA193D90bcdeC23584eB2d7043DFD515b856'
 }));
-vi.mock('../blockchain/investorVaultShareDelivery', () => ({
-  vaultSharesForTokenCount: (count: number) => BigInt(count) * 10n ** 18n
+vi.mock('../blockchain/vaultShareUnits', () => ({
+  readVaultShareDecimals: async () => shareDecimals,
+  vaultSharesForTokens: (count: number, decimals: number) =>
+    count > 0 ? BigInt(count) * 10n ** BigInt(decimals) : 0n
 }));
 
 vi.mock('ethers', async () => {
   const actual = await vi.importActual<typeof import('ethers')>('ethers');
   class FakeContract {
+    interface = { encodeFunctionData: () => '0x' };
     constructor(public address: string) {}
     async balanceOf() {
       return this.address.toLowerCase() === VAULT.toLowerCase() ? shareBalance : usdcBalance;
@@ -50,6 +56,12 @@ vi.mock('ethers', async () => {
   class FakeProvider {
     async getBalance() {
       return operatorEth;
+    }
+    async call() {
+      if (deliveryRevert) {
+        throw new Error(`execution reverted: "${deliveryRevert}"`);
+      }
+      return '0x';
     }
     destroy() {}
   }
@@ -68,6 +80,8 @@ beforeEach(() => {
   shareBalance = 5000n * 10n ** 18n;
   canDeliver = true;
   operatorEth = parseUnits('0.005', 18);
+  deliveryRevert = null;
+  shareDecimals = 18;
   timelock = { alreadyApproved: true, ready: true, readyAt: null, inSetupWindow: false };
   project = {
     id: 'p1',
@@ -138,6 +152,47 @@ describe('purchasePreflight', () => {
     canDeliver = false;
     const report = await purchasePreflight({ projectId: 'p1', investorWallet: WALLET, tokenCount: 1 });
     expect(checkOf(report, 'delivery_module')?.ok).toBe(false);
+  });
+
+  /**
+   * The module's permissions were all green for the purchase that took the money
+   * and then reverted: the vault refused the recipient for having code, which
+   * only simulating the transfer can see.
+   */
+  it('catches a vault that would refuse the recipient even with the module green', async () => {
+    deliveryRevert = 'SANOVA: contract receiver not allowed';
+    const report = await purchasePreflight({ projectId: 'p1', investorWallet: WALLET, tokenCount: 1 });
+
+    expect((report as { canPurchase: boolean }).canPurchase).toBe(false);
+    expect(checkOf(report, 'delivery_simulation')?.ok).toBe(false);
+    expect(checkOf(report, 'delivery_simulation')?.detail).toContain('contract receiver not allowed');
+    expect(checkOf(report, 'delivery_module')?.ok).toBe(true);
+  });
+
+  it('passes the simulation when the delivery would go through', async () => {
+    const report = await purchasePreflight({ projectId: 'p1', investorWallet: WALLET, tokenCount: 1 });
+    expect(checkOf(report, 'delivery_simulation')?.ok).toBe(true);
+  });
+
+  /**
+   * A vault carrying the inflation-attack offset holds shares at 21 decimals, so
+   * the same treasury balance means a thousand times fewer tokens.
+   */
+  it('reads the treasury balance in the vault own share units', async () => {
+    shareDecimals = 21;
+    shareBalance = 5000n * 10n ** 21n;
+    const report = await purchasePreflight({ projectId: 'p1', investorWallet: WALLET, tokenCount: 1 });
+
+    expect(checkOf(report, 'treasury_shares')?.ok).toBe(true);
+    expect(checkOf(report, 'treasury_shares')?.detail).toContain('5000.0 shares');
+  });
+
+  it('refuses to size a delivery when the vault decimals cannot be read', async () => {
+    shareDecimals = null;
+    const report = await purchasePreflight({ projectId: 'p1', investorWallet: WALLET, tokenCount: 1 });
+
+    expect((report as { canPurchase: boolean }).canPurchase).toBe(false);
+    expect(checkOf(report, 'vault_share_decimals')?.ok).toBe(false);
   });
 
   it('rejects an address that is not one', async () => {

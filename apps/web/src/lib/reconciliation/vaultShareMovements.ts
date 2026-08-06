@@ -5,7 +5,8 @@ import { sharesToTokens } from './tokenReconciliationMath';
 const TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TOTAL_SUPPLY_ABI = [
   'function totalSupply() view returns (uint256)',
-  'function balanceOf(address account) view returns (uint256)'
+  'function balanceOf(address account) view returns (uint256)',
+  'function decimals() view returns (uint8)'
 ];
 const RPC_CHUNK = 9_500;
 const DEFAULT_LOOKBACK_BLOCKS = 200_000;
@@ -54,6 +55,10 @@ export async function readVaultShareMovements(input: {
     try {
       const latest = await provider.getBlockNumber();
       const movements: VaultShareMovement[] = [];
+      // The vault's own share unit: reading it once beats assuming it per log.
+      const shareDecimals = Number(
+        (await new ethers.Contract(vault, ERC20_TOTAL_SUPPLY_ABI, provider).decimals()) as bigint
+      );
 
       for (let end = latest; end > latest - lookback; end -= RPC_CHUNK) {
         const start = Math.max(0, end - RPC_CHUNK + 1);
@@ -82,7 +87,7 @@ export async function readVaultShareMovements(input: {
             from,
             to,
             shares: shares.toString(),
-            tokens: sharesToTokens(shares),
+            tokens: sharesToTokens(shares, shareDecimals),
             kind:
               from === ethers.ZeroAddress
                 ? 'MINT'
@@ -110,7 +115,12 @@ export async function readVaultShareMovements(input: {
 export async function readVaultSupplyAndBalance(input: {
   vaultAddress: string;
   holderAddress?: string | null;
-}): Promise<{ totalSupplyShares: string | null; holderShares: string | null }> {
+}): Promise<{
+  totalSupplyShares: string | null;
+  holderShares: string | null;
+  /** Carried alongside the raw amounts: they mean nothing without it. */
+  shareDecimals: number | null;
+}> {
   const vault = ethers.getAddress(input.vaultAddress);
 
   for (const url of baseRpcUrls()) {
@@ -118,6 +128,7 @@ export async function readVaultSupplyAndBalance(input: {
     try {
       const contract = new ethers.Contract(vault, ERC20_TOTAL_SUPPLY_ABI, provider);
       const totalSupply = (await contract.totalSupply()) as bigint;
+      const shareDecimals = Number((await contract.decimals()) as bigint);
       let holderShares: bigint | null = null;
       if (input.holderAddress?.trim()) {
         holderShares = (await contract.balanceOf(
@@ -127,12 +138,13 @@ export async function readVaultSupplyAndBalance(input: {
       provider.destroy();
       return {
         totalSupplyShares: totalSupply.toString(),
-        holderShares: holderShares === null ? null : holderShares.toString()
+        holderShares: holderShares === null ? null : holderShares.toString(),
+        shareDecimals
       };
     } catch {
       provider.destroy();
     }
   }
 
-  return { totalSupplyShares: null, holderShares: null };
+  return { totalSupplyShares: null, holderShares: null, shareDecimals: null };
 }

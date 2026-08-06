@@ -37,23 +37,38 @@ describe('auditTreasuryCoverage', () => {
 });
 
 describe('sharesToTokens', () => {
-  it('converts 18-decimal shares to whole tokens', () => {
-    expect(sharesToTokens('1000000000000000000')).toBe(1);
-    expect(sharesToTokens('2500000000000000000')).toBe(2.5);
-    expect(sharesToTokens(0n)).toBe(0);
+  it('converts shares in the units it is given', () => {
+    expect(sharesToTokens('1000000000000000000', 18)).toBe(1);
+    expect(sharesToTokens('2500000000000000000', 18)).toBe(2.5);
+    expect(sharesToTokens(0n, 18)).toBe(0);
+  });
+
+  /**
+   * A vault carrying the inflation-attack offset holds shares at 21 decimals.
+   * Reading its balances as 18 would report a thousand times the real holding.
+   */
+  it('converts a vault carrying the decimals offset', () => {
+    expect(sharesToTokens((1n * 10n ** 21n).toString(), 21)).toBe(1);
+    expect(sharesToTokens((5000n * 10n ** 21n).toString(), 21)).toBe(5000);
+  });
+
+  it('returns null rather than guessing when the unit is unknown', () => {
+    expect(sharesToTokens('1000000000000000000', null)).toBeNull();
+    expect(sharesToTokens('1000000000000000000', undefined)).toBeNull();
   });
 
   it('returns null for unknown values', () => {
-    expect(sharesToTokens(null)).toBeNull();
-    expect(sharesToTokens('not-a-number')).toBeNull();
+    expect(sharesToTokens(null, 18)).toBeNull();
+    expect(sharesToTokens('not-a-number', 18)).toBeNull();
   });
 });
 
 describe('tokensToShares', () => {
   it('round-trips token counts', () => {
-    expect(tokensToShares(3)).toBe(3_000000000000000000n);
-    expect(sharesToTokens(tokensToShares(7))).toBe(7);
-    expect(tokensToShares(0)).toBe(0n);
+    expect(tokensToShares(3, 18)).toBe(3_000000000000000000n);
+    expect(sharesToTokens(tokensToShares(7, 18), 18)).toBe(7);
+    expect(sharesToTokens(tokensToShares(7, 21), 21)).toBe(7);
+    expect(tokensToShares(0, 18)).toBe(0n);
   });
 });
 
@@ -94,13 +109,43 @@ describe('reconcileProjectSupplyMath', () => {
       availableTokens: 4986,
       bookedByInvestments: 14,
       vaultTotalSupplyShares: (5000n * 10n ** 18n).toString(),
-      treasuryShares: (4986n * 10n ** 18n).toString()
+      treasuryShares: (4986n * 10n ** 18n).toString(),
+      shareDecimals: 18
     });
 
     expect(result.soldByAvailability).toBe(14);
     expect(result.supplyStatus).toBe('MATCH');
     expect(result.investorTokensOnChain).toBe(14);
     expect(result.onChainStatus).toBe('MATCH');
+  });
+
+  it('matches the same way on a vault carrying the decimals offset', () => {
+    const result = reconcileProjectSupplyMath({
+      totalTokens: 5000,
+      availableTokens: 4986,
+      bookedByInvestments: 14,
+      vaultTotalSupplyShares: (5000n * 10n ** 21n).toString(),
+      treasuryShares: (4986n * 10n ** 21n).toString(),
+      shareDecimals: 21
+    });
+
+    expect(result.investorTokensOnChain).toBe(14);
+    expect(result.onChainStatus).toBe('MATCH');
+  });
+
+  /** Without the unit, the on-chain leg has to abstain rather than invent a number. */
+  it('stays unknown on-chain when the share unit was not read', () => {
+    const result = reconcileProjectSupplyMath({
+      totalTokens: 5000,
+      availableTokens: 4986,
+      bookedByInvestments: 14,
+      vaultTotalSupplyShares: (5000n * 10n ** 18n).toString(),
+      treasuryShares: (4986n * 10n ** 18n).toString(),
+      shareDecimals: null
+    });
+
+    expect(result.investorTokensOnChain).toBeNull();
+    expect(result.onChainStatus).toBe('UNKNOWN');
   });
 
   it('detects reserved-but-unbooked supply', () => {
@@ -122,7 +167,8 @@ describe('reconcileProjectSupplyMath', () => {
       availableTokens: 4986,
       bookedByInvestments: 14,
       vaultTotalSupplyShares: (5000n * 10n ** 18n).toString(),
-      treasuryShares: (4990n * 10n ** 18n).toString()
+      treasuryShares: (4990n * 10n ** 18n).toString(),
+      shareDecimals: 18
     });
 
     expect(result.investorTokensOnChain).toBe(10);

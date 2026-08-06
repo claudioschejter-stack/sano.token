@@ -10,6 +10,7 @@ import {
 import { ensureAutomationSignerReady, sendAutomationTx, waitForAutomationTx } from './automationTx';
 import { getLendingChainConfig } from '../lending/baseContracts';
 import { fixedUsdPriceToMorphoOraclePrice } from './pricingOracleValidation';
+import { readVaultShareDecimals } from './vaultShareUnits';
 import { deployNavOracleForVault, shouldUseNavOracle } from './navOracleService';
 import { setupMetaMorphoForMarket } from '../lending/metaMorphoService';
 import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from './rwaOperatorSigner';
@@ -41,8 +42,13 @@ function resolveRpcUrl(chainId: number): string {
   return process.env.LENDING_BASE_RPC_URL?.trim() || process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
 }
 
-async function deployFixedPriceOracle(wallet: Signer, pricePerTokenUsd: number): Promise<string | null> {
-  const oraclePrice = fixedUsdPriceToMorphoOraclePrice(pricePerTokenUsd);
+async function deployFixedPriceOracle(
+  wallet: Signer,
+  pricePerTokenUsd: number,
+  /** The vault's share decimals: the price Morpho wants depends on them. */
+  collateralDecimals: number
+): Promise<string | null> {
+  const oraclePrice = fixedUsdPriceToMorphoOraclePrice(pricePerTokenUsd, collateralDecimals);
   if (!oraclePrice) {
     return null;
   }
@@ -60,8 +66,9 @@ async function deployFixedPriceOracle(wallet: Signer, pricePerTokenUsd: number):
 async function resolveOracleAddress(
   wallet: Signer,
   vaultAddress: string,
-  pricePerTokenUsd: number
-): Promise<{ address: string | null; type: 'nav' | 'fixed' }> {
+  pricePerTokenUsd: number,
+  provider: JsonRpcProvider
+): Promise<{ address: string | null; type: 'nav' | 'fixed'; reason?: string }> {
   const configured = process.env.MORPHO_ORACLE_ADDRESS?.trim();
   if (configured) {
     return { address: configured, type: shouldUseNavOracle() ? 'nav' : 'fixed' };
@@ -74,7 +81,21 @@ async function resolveOracleAddress(
     }
   }
 
-  const fixed = await deployFixedPriceOracle(wallet, pricePerTokenUsd);
+  /**
+   * The fixed price is denominated per whole share, so it cannot be built
+   * without knowing what a whole share is. Deploying with a guessed unit would
+   * mis-price the collateral by a factor of a thousand.
+   */
+  const collateralDecimals = await readVaultShareDecimals({ provider, vaultAddress });
+  if (collateralDecimals === null) {
+    return {
+      address: null,
+      type: 'fixed',
+      reason: `No se pudo leer decimals() del vault ${vaultAddress}: sin eso el precio del oracle quedaría mal escalado.`
+    };
+  }
+
+  const fixed = await deployFixedPriceOracle(wallet, pricePerTokenUsd, collateralDecimals);
   return { address: fixed, type: 'fixed' };
 }
 
@@ -103,15 +124,15 @@ export async function createMorphoMarketForVault(
       return { status: 'SKIPPED', reason: `La wallet operador ${walletAddress} no tiene gas en chain ${chainId}.` };
     }
 
-    const { address: oracleAddress, type: oracleType } = await resolveOracleAddress(
-      wallet,
-      vaultAddress,
-      pricePerTokenUsd
-    );
+    const {
+      address: oracleAddress,
+      type: oracleType,
+      reason: oracleReason
+    } = await resolveOracleAddress(wallet, vaultAddress, pricePerTokenUsd, provider);
     if (!oracleAddress) {
       return {
         status: 'SKIPPED',
-        reason: 'No se pudo crear oracle Morpho: pricePerToken inválido.'
+        reason: oracleReason ?? 'No se pudo crear oracle Morpho: pricePerToken inválido.'
       };
     }
 

@@ -2,10 +2,10 @@ import { Contract, JsonRpcProvider, formatUnits, getAddress, isAddress } from 'e
 import { prisma } from '@sanova/database';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { readWithRetry } from '../blockchain/rpcRetry';
+import { readVaultShareDecimals } from '../blockchain/vaultShareUnits';
 import { vaultShareDeliveryUiState } from './vaultShareDeliveryStatus';
 
 const VAULT_ABI = ['function balanceOf(address) view returns (uint256)'];
-const SHARE_DECIMALS = 18;
 
 export type ShareDeliveryIntent = {
   paymentIntentId: string;
@@ -120,11 +120,14 @@ export async function sharesAlreadyDelivered(input: {
   const provider = new JsonRpcProvider(rpcUrl());
   try {
     const contract = new Contract(vault, VAULT_ABI, provider);
-    const balance = await readWithRetry(() => contract.balanceOf(recipient) as Promise<bigint>);
-    if (balance === null) {
+    const [balance, decimals] = await Promise.all([
+      readWithRetry(() => contract.balanceOf(recipient) as Promise<bigint>),
+      readVaultShareDecimals({ provider, vaultAddress: vault })
+    ]);
+    if (balance === null || decimals === null) {
       return { covered: false, owedTokens, onchainShares: null };
     }
-    const onchainShares = formatUnits(balance, SHARE_DECIMALS);
+    const onchainShares = formatUnits(balance, decimals);
     return {
       covered: Number(onchainShares) >= owedTokens,
       owedTokens,
@@ -250,9 +253,13 @@ export async function auditShareDelivery(input?: {
   try {
     for (const entry of expected.values()) {
       const vault = new Contract(entry.vaultAddress, VAULT_ABI, provider);
-      const balance = await readWithRetry(() => vault.balanceOf(entry.recipient) as Promise<bigint>);
-      const onchainTokens =
-        balance === null ? null : Number(formatUnits(balance, SHARE_DECIMALS));
+      const [balance, decimals] = await Promise.all([
+        readWithRetry(() => vault.balanceOf(entry.recipient) as Promise<bigint>),
+        readVaultShareDecimals({ provider, vaultAddress: entry.vaultAddress })
+      ]);
+      const readable = balance !== null && decimals !== null;
+      const onchainShares = readable ? formatUnits(balance, decimals) : null;
+      const onchainTokens = onchainShares === null ? null : Number(onchainShares);
 
       holdings.push({
         projectId: entry.projectId,
@@ -261,7 +268,7 @@ export async function auditShareDelivery(input?: {
         recipient: entry.recipient,
         email: entry.email,
         expectedTokens: entry.tokens,
-        onchainShares: balance === null ? null : formatUnits(balance, SHARE_DECIMALS),
+        onchainShares,
         shortfallTokens:
           onchainTokens === null ? null : Math.max(0, entry.tokens - onchainTokens)
       });
