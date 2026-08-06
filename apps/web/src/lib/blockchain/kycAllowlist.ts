@@ -8,6 +8,7 @@ import {
   setKycViaModule
 } from './kycOperatorModule';
 import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from './rwaOperatorSigner';
+import { confirmKycState } from './confirmKycState';
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 84532 || chainId === 8453) {
@@ -58,8 +59,12 @@ export async function setInvestorKycAllowlist(input: {
           approved: input.approved,
           signer: wallet
         });
-        const verified = await token.kycApproved(input.walletAddress);
-        if (Boolean(verified) !== input.approved) {
+        const verified = await confirmKycState({
+          token,
+          walletAddress: input.walletAddress,
+          approved: input.approved
+        });
+        if (!verified) {
           throw new Error('Module transaction confirmed but kycApproved did not match requested state.');
         }
         return {
@@ -75,8 +80,12 @@ export async function setInvestorKycAllowlist(input: {
     // Direct owner call (operator wallet must be the token owner).
     const tx = await token.setKyc(input.walletAddress, input.approved);
     const receipt = await waitForAutomationTx(tx);
-    const verified = await token.kycApproved(input.walletAddress);
-    if (Boolean(verified) !== input.approved) {
+    const verified = await confirmKycState({
+      token,
+      walletAddress: input.walletAddress,
+      approved: input.approved
+    });
+    if (!verified) {
       throw new Error('Allowlist transaction confirmed but kycApproved did not match requested state.');
     }
     return {
