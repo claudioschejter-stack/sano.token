@@ -12,6 +12,14 @@ export type BridgeApiCustomer = {
   type?: string;
   kyc_status?: string;
   tos_status?: string;
+  /** Overall customer state, e.g. active / rejected. */
+  status?: string;
+  /**
+   * Rails this customer may use, each approved separately. A customer can be
+   * verified and still lack `spei` or `pix`, which is why readiness is not one
+   * flag.
+   */
+  endorsements?: Array<{ name?: string; status?: string } | string>;
 };
 
 export type BridgeKycLink = {

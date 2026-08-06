@@ -8,6 +8,7 @@ import { retrieveDiditDecision } from './diditService';
 import { persistDiditMedia } from './diditMedia';
 import { isContactVerificationComplete } from './contactVerification';
 import { syncUserAccountStatus } from './syncUserAccount';
+import { startBridgeOnboardingAfterKyc } from '../payments/bridgeCustomerService';
 
 type DiditPayload = Record<string, unknown>;
 
@@ -83,6 +84,14 @@ export async function finalizeApprovedKyc(input: {
   await provisionInvestorProfileOnKycApproval(input.userId);
   await notifyKycApproved(input.userId);
   void autoAllowlistInvestorWallet(input.userId);
+
+  /**
+   * Bridge will not accept our verification, so the investor has a second
+   * onboarding to complete before local rails work. Starting it here means the
+   * form lands while they are still in paperwork mode, instead of appearing
+   * between somebody and a purchase they already decided to make.
+   */
+  void startBridgeOnboardingAfterKyc(input.userId);
 }
 
 export async function applyDiditToUser(input: {
