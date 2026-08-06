@@ -7,6 +7,7 @@ const TREASURY = '0xa993743CFB85E8d6481Ef60bb3D397F49604A592';
 let asset: Record<string, unknown> | null;
 let totalSupply = 5000n * 10n ** 18n;
 let treasuryShares = 5000n * 10n ** 18n;
+let create2FactoryCode = '0x60806040';
 
 vi.mock('../admin/assetsService', () => ({
   getAdminAsset: async () => asset,
@@ -55,6 +56,9 @@ vi.mock('ethers', async () => {
     }
   }
   class FakeProvider {
+    async getCode() {
+      return create2FactoryCode;
+    }
     destroy() {}
   }
   return { ...actual, Contract: FakeContract, JsonRpcProvider: FakeProvider };
@@ -69,6 +73,7 @@ function stepOf(report: { steps: Array<{ step: string; status: string; detail: s
 beforeEach(() => {
   totalSupply = 5000n * 10n ** 18n;
   treasuryShares = 5000n * 10n ** 18n;
+  create2FactoryCode = '0x60806040';
   asset = {
     id: 'p1',
     title: 'Activo',
@@ -116,6 +121,25 @@ describe('advanceVaultMigration', () => {
 
     const forced = await advanceVaultMigration({ projectId: 'p1', dryRun: true, force: true });
     expect(stepOf(forced, 'morpho')?.status).toBe('SKIPPED');
+  });
+
+  /**
+   * The deployment used to be the last step needing a bare private key, which is
+   * exactly what moving governance into the Safe was meant to retire.
+   */
+  it('plans to deploy through the Safe when the CREATE2 proxy is present', async () => {
+    const report = await advanceVaultMigration({ projectId: 'p1', dryRun: true });
+
+    expect(stepOf(report, 'deployer')?.status).toBe('OK');
+    expect(stepOf(report, 'deployer')?.detail).toContain('no hace falta ninguna clave suelta');
+  });
+
+  it('warns that a key would be needed where no CREATE2 proxy exists', async () => {
+    create2FactoryCode = '0x';
+    const report = await advanceVaultMigration({ projectId: 'p1', dryRun: true });
+
+    expect(stepOf(report, 'deployer')?.status).toBe('PENDING');
+    expect(stepOf(report, 'deployer')?.detail).toContain('TOKEN_DEPLOY_PRIVATE_KEY');
   });
 
   it('reports a project that does not exist', async () => {

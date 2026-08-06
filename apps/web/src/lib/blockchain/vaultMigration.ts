@@ -3,9 +3,13 @@ import {
   ContractFactory,
   JsonRpcProvider,
   Wallet,
+  concat,
   formatUnits,
   getAddress,
-  isAddress
+  getCreate2Address,
+  isAddress,
+  keccak256,
+  toUtf8Bytes
 } from 'ethers';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
 import { appendDeploymentEvent, getAdminAsset, updateAdminAsset } from '../admin/assetsService';
@@ -63,6 +67,92 @@ const TOKEN_ABI = [
 ];
 
 const STATE_EXTERNAL_ID = 'VAULT_MIGRATION_NEW_VAULT';
+
+/**
+ * Arachnid's deterministic deployment proxy, present on Base and most EVM
+ * chains. Send it a 32-byte salt followed by the init code and it deploys via
+ * CREATE2.
+ *
+ * This is what lets the Safe deploy the vault itself. Contract creation carries
+ * no recipient and Privy rejects those, which used to mean the one remaining
+ * step that needed a bare private key — the exact thing this whole architecture
+ * is trying to retire. Calling the proxy is an ordinary transaction with a
+ * recipient, so it goes through the Safe like everything else, and the address
+ * is known before it exists.
+ */
+const CREATE2_DEPLOYER = getAddress('0x4e59b44847b379578588920cA78FbF26c0B4956C');
+
+async function deployReplacementVault(input: {
+  provider: JsonRpcProvider;
+  signer: Awaited<ReturnType<typeof resolveTreasuryOwnerSigner>>;
+  treasury: string;
+  token: string;
+  name: string;
+  symbol: string;
+  projectId: string;
+}): Promise<{ address: string; txHash: string | null; via: string }> {
+  const factory = new ContractFactory(
+    SanovaRwaVaultArtifact.abi,
+    SanovaRwaVaultArtifact.bytecode
+  );
+  const deployTx = await factory.getDeployTransaction(
+    input.token,
+    input.name,
+    input.symbol,
+    input.treasury
+  );
+  const initCode = deployTx.data as string;
+  const salt = keccak256(toUtf8Bytes(`SANOVA_VAULT_MIGRATION:${input.projectId}`));
+  const predicted = getCreate2Address(CREATE2_DEPLOYER, salt, keccak256(initCode));
+
+  // Deterministic, so a repeated run finds its own earlier deployment.
+  const already = await input.provider.getCode(predicted).catch(() => '0x');
+  if (already && already !== '0x') {
+    return { address: predicted, txHash: null, via: 'create2_ya_desplegado' };
+  }
+
+  const factoryCode = await input.provider.getCode(CREATE2_DEPLOYER).catch(() => '0x');
+  if (factoryCode && factoryCode !== '0x' && input.signer) {
+    const txHash = await execAsOwner({
+      owner: input.treasury,
+      signer: input.signer,
+      target: CREATE2_DEPLOYER,
+      data: concat([salt, initCode])
+    });
+    const after = await input.provider.getCode(predicted).catch(() => '0x');
+    if (!after || after === '0x') {
+      throw new Error(`CREATE2_SIN_CODIGO: la transacción ${txHash} no dejó código en ${predicted}`);
+    }
+    return { address: predicted, txHash, via: 'create2_desde_safe' };
+  }
+
+  /**
+   * Only if the chain has no CREATE2 proxy: a bare key sending the creation
+   * transaction directly.
+   */
+  const deployKey =
+    process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim() ||
+    process.env.TREASURY_OWNER_PRIVATE_KEY?.trim() ||
+    null;
+  if (!deployKey) {
+    throw new Error(
+      'DEPLOYER_NO_DISPONIBLE: no hay proxy CREATE2 en esta red ni TOKEN_DEPLOY_PRIVATE_KEY configurada'
+    );
+  }
+
+  const keyed = new ContractFactory(
+    SanovaRwaVaultArtifact.abi,
+    SanovaRwaVaultArtifact.bytecode,
+    new Wallet(deployKey, input.provider)
+  );
+  const deployed = await keyed.deploy(input.token, input.name, input.symbol, input.treasury);
+  await deployed.waitForDeployment();
+  return {
+    address: getAddress(await deployed.getAddress()),
+    txHash: deployed.deploymentTransaction()?.hash ?? null,
+    via: 'clave_de_despliegue'
+  };
+}
 
 export type MigrationStepStatus = 'OK' | 'PENDING' | 'BLOCKED' | 'SKIPPED';
 
@@ -241,6 +331,15 @@ export async function advanceVaultMigration(input: {
     }
 
     if (input.dryRun) {
+      const factoryCode = await provider.getCode(CREATE2_DEPLOYER).catch(() => '0x');
+      const hasFactory = Boolean(factoryCode && factoryCode !== '0x');
+      steps.push({
+        step: 'deployer',
+        status: hasFactory ? 'OK' : 'PENDING',
+        detail: hasFactory
+          ? `el Safe despliega vía el proxy CREATE2 ${CREATE2_DEPLOYER}: no hace falta ninguna clave suelta`
+          : 'no hay proxy CREATE2 en esta red, así que el despliegue necesitaría TOKEN_DEPLOY_PRIVATE_KEY'
+      });
       steps.push({
         step: 'plan',
         status: 'PENDING',
@@ -266,44 +365,39 @@ export async function advanceVaultMigration(input: {
         return finish('Reintentá: el RPC no respondió.');
       }
 
-      /**
-       * Contract creation carries no recipient, which Privy's transaction API
-       * rejects, so this is the one step that still needs a plain key.
-       */
-      const deployKey =
-        process.env.TOKEN_DEPLOY_PRIVATE_KEY?.trim() ||
-        process.env.TREASURY_OWNER_PRIVATE_KEY?.trim() ||
-        null;
-      if (!deployKey) {
+      let deployment: { address: string; txHash: string | null; via: string };
+      try {
+        // Owned by the Safe from birth, which also allowlists it as a holder.
+        deployment = await deployReplacementVault({
+          provider,
+          signer,
+          treasury,
+          token,
+          name,
+          symbol,
+          projectId: asset.id
+        });
+      } catch (error) {
         steps.push({
           step: 'deploy_vault',
           status: 'BLOCKED',
-          detail: 'desplegar un contrato no tiene destinatario y Privy lo rechaza: hace falta TOKEN_DEPLOY_PRIVATE_KEY'
+          detail: error instanceof Error ? error.message.slice(0, 250) : 'DEPLOY_FAILED'
         });
-        return finish('Poné TOKEN_DEPLOY_PRIVATE_KEY en Vercel para este paso, y borrala después.');
+        return finish('No se pudo desplegar el vault de reemplazo.');
       }
 
-      const factory = new ContractFactory(
-        SanovaRwaVaultArtifact.abi,
-        SanovaRwaVaultArtifact.bytecode,
-        new Wallet(deployKey, provider)
-      );
-      // Owned by the Safe from birth, which also allowlists it as a holder.
-      const deployed = await factory.deploy(token, name, symbol, treasury);
-      await deployed.waitForDeployment();
-      newVault = getAddress(await deployed.getAddress());
-
+      newVault = deployment.address;
       await recordNewVault({
         projectId: asset.id,
         address: newVault,
-        txHash: deployed.deploymentTransaction()?.hash ?? null
+        txHash: deployment.txHash
       });
 
       steps.push({
         step: 'deploy_vault',
         status: 'OK',
-        detail: `${newVault} (${name} / ${symbol})`,
-        txHash: deployed.deploymentTransaction()?.hash
+        detail: `${newVault} (${name} / ${symbol}) vía ${deployment.via}`,
+        txHash: deployment.txHash ?? undefined
       });
 
       /**
