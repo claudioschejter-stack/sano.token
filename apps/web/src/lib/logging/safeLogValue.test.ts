@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { safeLogValue } from './safeLogValue';
+import { safeLogId, safeLogValue } from './safeLogValue';
 
 /**
  * A newline inside a logged value lets whoever supplied it write what looks like
@@ -35,5 +35,33 @@ describe('safeLogValue', () => {
     expect(safeLogValue(undefined)).toBe('undefined');
     expect(safeLogValue(42)).toBe('42');
     expect(safeLogValue({ secret: 'x' })).toBe('[object]');
+  });
+});
+
+/**
+ * Hashes, user ids and addresses have a known alphabet, so the safer rule is to
+ * say what is permitted rather than to enumerate what is dangerous — anything a
+ * denylist forgets is exactly what somebody would look for.
+ */
+describe('safeLogId', () => {
+  it('passes a real identifier through untouched', () => {
+    const hash = `0x${'ab'.repeat(32)}`;
+    expect(safeLogId(hash)).toBe(hash);
+    expect(safeLogId('cmsgvx9ui0000js04igvhs1pp')).toBe('cmsgvx9ui0000js04igvhs1pp');
+  });
+
+  it('drops anything an identifier could not contain', () => {
+    expect(safeLogId('0xabc\n[auth] admin ok')).toBe('0xabcauthadminok');
+    expect(safeLogId('0xabc\r\nDROP')).toBe('0xabcDROP');
+    expect(safeLogId('a b\tc')).toBe('abc');
+  });
+
+  it('says so instead of logging nothing when nothing survives', () => {
+    expect(safeLogId('\n\n')).toBe('(vacío)');
+    expect(safeLogId(null)).toBe('(vacío)');
+  });
+
+  it('truncates an identifier long enough to bury the line', () => {
+    expect(safeLogId('a'.repeat(500)).length).toBeLessThanOrEqual(81);
   });
 });
