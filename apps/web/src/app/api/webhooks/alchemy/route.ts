@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getStablecoinNetwork } from '../../../../lib/payments/stablecoinNetworks';
 import { ingestInboundUsdcTransfer } from '../../../../lib/payments/privyInboundUsdcService';
 import { autoSettlePrivyCartForUser } from '../../../../lib/payments/privyAutoSettleService';
+import { scanAwaitingTreasuryUsdcSettlements } from '../../../../lib/payments/postPaymentSettlementOrchestrator';
 import { safeLogId } from '../../../../lib/logging/safeLogValue';
 
 export const dynamic = 'force-dynamic';
@@ -68,15 +69,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'INVALID_JSON' }, { status: 400 });
   }
 
-  const usdc = getStablecoinNetwork('BASE').tokenAddress?.toLowerCase();
+  const network = getStablecoinNetwork('BASE');
+  const usdc = network.tokenAddress?.toLowerCase();
+  const treasury = network.treasuryAddress?.toLowerCase() ?? null;
   const activity = payload.event?.activity ?? [];
   const results: Array<{ txHash: string; recorded: boolean; reason?: string }> = [];
   const settled = new Set<string>();
+  let treasuryInflow = false;
 
   for (const row of activity) {
     // Only USDC, and only the token contract we settle in.
     const contract = row.rawContract?.address?.toLowerCase();
     if (!row.hash || !row.toAddress || !row.value || (usdc && contract !== usdc)) {
+      continue;
+    }
+
+    /**
+     * USDC reaching the treasury is a fiat payment completing its second half:
+     * Macro or Ripio collected pesos, converted, and sent it here. That used to
+     * be discovered by a daily cron, so a payment made in the morning could take
+     * until the next day to confirm — with the investor's tokens waiting.
+     */
+    if (treasury && row.toAddress.toLowerCase() === treasury) {
+      treasuryInflow = true;
+      results.push({ txHash: row.hash, recorded: false, reason: 'TREASURY_INFLOW' });
       continue;
     }
 
@@ -106,10 +122,24 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  /**
+   * Run the sweep once for the whole batch, not once per transfer: it matches
+   * every payment waiting on treasury USDC, so calling it repeatedly would do
+   * the same work again.
+   */
+  let treasurySettled: unknown = null;
+  if (treasuryInflow) {
+    treasurySettled = await scanAwaitingTreasuryUsdcSettlements().catch((error) => {
+      console.error('[webhooks/alchemy] treasury sweep failed', error);
+      return null;
+    });
+  }
+
   return NextResponse.json({
     ok: true,
     received: activity.length,
     recorded: results.filter((row) => row.recorded).length,
+    treasurySettled,
     results
   });
 }
