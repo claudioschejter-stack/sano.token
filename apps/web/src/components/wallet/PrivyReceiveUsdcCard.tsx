@@ -1,8 +1,9 @@
 'use client';
 
-import { CheckCircle2, Copy, Loader2, ShoppingBag, Wallet } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, Copy, Loader2, ShoppingBag, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { formatMessage } from '../../i18n';
 import { useTranslation } from '../../i18n/LocaleProvider';
 
 type WatchPayload = {
@@ -27,6 +28,11 @@ export function PrivyReceiveUsdcCard() {
   const [copied, setCopied] = useState(false);
   const [pendingBatchId, setPendingBatchId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawResult, setWithdrawResult] = useState<{
+    kind: 'ok' | 'error';
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +84,51 @@ export function PrivyReceiveUsdcCard() {
     void navigator.clipboard.writeText(receiveAddress);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
+  };
+
+  /**
+   * The card could only take money in. Everything the platform did with this
+   * balance pointed inwards — receive it, or spend it on a purchase — while the
+   * FAQ told investors they could withdraw at any time.
+   */
+  const handleWithdraw = async () => {
+    if (withdrawing) return;
+    setWithdrawing(true);
+    setWithdrawResult(null);
+    try {
+      const res = await fetch('/api/wallet/privy-usdc-withdrawals', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      });
+      const data = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        detail?: string;
+        withdrawal?: { amountUsdc: string; destination: string };
+      };
+
+      if (data.ok && data.withdrawal) {
+        setWithdrawResult({
+          kind: 'ok',
+          message: formatMessage(w.receiveUsdcWithdrawSent, {
+            amount: data.withdrawal.amountUsdc,
+            destination: `${data.withdrawal.destination.slice(0, 6)}…${data.withdrawal.destination.slice(-4)}`
+          })
+        });
+        setBalanceUsdc(null);
+      } else {
+        setWithdrawResult({
+          kind: 'error',
+          message: data.detail || withdrawErrorMessage(data.error, w)
+        });
+      }
+    } catch {
+      setWithdrawResult({ kind: 'error', message: w.receiveUsdcWithdrawFailed });
+    } finally {
+      setWithdrawing(false);
+    }
   };
 
   return (
@@ -153,6 +204,43 @@ export function PrivyReceiveUsdcCard() {
           </Link>
         ) : null}
       </div>
+
+      <div className="space-y-2 border-t border-terminal-border pt-3">
+        <button
+          type="button"
+          onClick={() => void handleWithdraw()}
+          disabled={withdrawing || !receiveAddress || balanceUsdc === 0}
+          className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-terminal-border bg-terminal-bg px-4 py-2.5 text-sm font-semibold text-terminal-text disabled:opacity-50"
+        >
+          {withdrawing ? <Loader2 size={16} className="animate-spin" /> : <ArrowUpRight size={16} />}
+          {withdrawing ? w.receiveUsdcWithdrawSending : w.receiveUsdcWithdrawCta}
+        </button>
+        <p className="text-[11px] leading-relaxed text-terminal-muted">
+          {w.receiveUsdcWithdrawHint}
+        </p>
+        {withdrawResult ? (
+          <p
+            className={`text-[11px] font-medium ${
+              withdrawResult.kind === 'ok' ? 'text-terminal-success' : 'text-amber-500'
+            }`}
+          >
+            {withdrawResult.message}
+          </p>
+        ) : null}
+      </div>
     </section>
   );
+}
+
+function withdrawErrorMessage(
+  code: string | undefined,
+  w: { [key: string]: string }
+): string {
+  if (code === 'DESTINATION_ADDRESS_REQUIRED' || code === 'WALLET_NOT_LINKED_TO_ACCOUNT') {
+    return w.receiveUsdcWithdrawNeedsDestination;
+  }
+  if (code === 'INSUFFICIENT_USDC_FOR_GAS') {
+    return w.receiveUsdcWithdrawNeedsGas;
+  }
+  return w.receiveUsdcWithdrawFailed;
 }

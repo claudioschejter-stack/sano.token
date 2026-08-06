@@ -1314,6 +1314,8 @@ enum TokenMovementKind {
   USDC_RENT_PAYOUT
   USDC_YIELD_PAYOUT
   USDC_TREASURY_TRANSFER
+  /// The investor taking their own USDC out to a wallet they control.
+  USDC_INVESTOR_WITHDRAWAL
   RWA_SHARE_MINT
   RWA_SHARE_BURN
   RWA_SHARE_TRANSFER
