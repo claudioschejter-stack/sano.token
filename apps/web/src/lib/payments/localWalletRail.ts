@@ -1,5 +1,6 @@
 import { isMacroClickConfigured } from './macroClick/config';
 import { getBridgeApiKey } from './bridgeClient';
+import { ripioConfigured } from './ripioClient';
 import { normalizePaymentCountry, isPaymentCountrySanctioned } from './paymentCountry';
 
 /**
@@ -85,14 +86,24 @@ function railForCountry(country: string): Omit<LocalWalletRail, 'configured'> | 
     };
   }
   if (country === 'AR') {
-    /** Bridge issues no ARS virtual accounts, so Argentina runs on Macro. */
+    /**
+     * Bridge issues no ARS virtual accounts, so Argentina runs on Macro — and
+     * Macro is not a rail that ends in USDC. It deposits pesos into a bank
+     * account, and something else has to convert them: Ripio when configured, a
+     * person otherwise. The purchase only confirms once USDC reaches the
+     * treasury, so promising minutes here would promise the payment's speed and
+     * not the investor's tokens.
+     */
+    const converted = ripioConfigured();
     return {
       railId: 'ars_bank',
       label: 'Transferencia o billetera',
       provider: 'macro_click',
       presentation: 'hosted',
-      instant: true,
-      settlementHint: 'Llega en minutos'
+      instant: converted,
+      settlementHint: converted
+        ? 'Los tokens se acreditan cuando se convierte a USDC, en minutos'
+        : 'Los tokens se acreditan cuando Sanova convierte el pago a USDC'
     };
   }
   if (EUR_COUNTRIES.has(country)) {

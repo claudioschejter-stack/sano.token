@@ -3,14 +3,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 let macroConfigured = true;
 let bridgeKey: string | null = 'bridge-key';
 
+let ripioReady = true;
+
 vi.mock('./macroClick/config', () => ({ isMacroClickConfigured: () => macroConfigured }));
 vi.mock('./bridgeClient', () => ({ getBridgeApiKey: () => bridgeKey }));
+vi.mock('./ripioClient', () => ({ ripioConfigured: () => ripioReady }));
 
 const { resolveLocalWalletRail, localWalletRailCoverage } = await import('./localWalletRail');
 
 beforeEach(() => {
   macroConfigured = true;
   bridgeKey = 'bridge-key';
+  ripioReady = true;
 });
 
 /**
@@ -60,6 +64,22 @@ describe('resolveLocalWalletRail', () => {
     for (const country of ['ES', 'DE', 'PT', 'IT']) {
       const result = resolveLocalWalletRail(country);
       expect(result.available && result.rail.railId).toBe('sepa');
+    }
+  });
+
+  /**
+   * Bridge's rails end in USDC on Base; Macro ends in pesos in a bank account.
+   * Calling Argentina instant would promise the payment's speed and not the
+   * investor's tokens, which only arrive once somebody converts.
+   */
+  it('does not call Argentina instant when nothing converts the pesos', () => {
+    ripioReady = false;
+    const result = resolveLocalWalletRail('AR');
+
+    expect(result.available).toBe(true);
+    if (result.available) {
+      expect(result.rail.instant).toBe(false);
+      expect(result.rail.settlementHint).toContain('convierte');
     }
   });
 
