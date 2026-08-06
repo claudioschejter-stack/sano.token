@@ -34,7 +34,7 @@ const FAQ_SCHEMA_ITEMS = [
   {
     question: '¿Cómo recibo los rendimientos?',
     answer:
-      'Los rendimientos se distribuyen en USDC sobre la red Base directamente a tu wallet Privy. Podés retirarlos a cualquier wallet externa en cualquier momento.'
+      'Los rendimientos se distribuyen en USDC sobre la red Base directamente a tu wallet Sanova. Desde Mi Cartera podés retirarlos, en cualquier momento, a una wallet que hayas vinculado a tu cuenta.'
   },
   {
     question: '¿Cuál es el monto mínimo de inversión?',

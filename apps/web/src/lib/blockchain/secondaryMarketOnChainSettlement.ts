@@ -2,6 +2,7 @@ import { Contract, Interface, JsonRpcProvider, type Signer, isAddress } from 'et
 import { getAdminAsset } from '../admin/assetsService';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
 import { readVaultShareDecimals, vaultSharesForTokens } from './vaultShareUnits';
+import { ensureSellerVaultAllowance } from '../secondaryMarket/ensureSellerVaultAllowance';
 import { usdcDecimals, usdcTokenAddress } from '../payments/paymentConfig';
 import { waitForAutomationTx } from './automationTx';
 import { resolveTreasuryAddress } from './treasuryPolicy';
@@ -133,9 +134,21 @@ export async function settleSecondaryP2pOnChain(
       throw new Error('INSUFFICIENT_SELLER_ON_CHAIN_SHARES');
     }
 
-    const sellerVaultAllowance = (await vaultContract.allowance(sellerWallet, operatorAddress)) as bigint;
-    if (sellerVaultAllowance < shareAmount) {
-      throw new Error('SELLER_VAULT_ALLOWANCE_REQUIRED');
+    // Same as the buyback: the seller's allowance is granted here, not demanded.
+    const sellerAllowance = await ensureSellerVaultAllowance({
+      userId: input.sellerUserId,
+      vaultAddress: vault,
+      operatorAddress,
+      shareAmount,
+      chainId,
+      provider
+    });
+    if (sellerAllowance.ok === false) {
+      throw new Error(
+        sellerAllowance.detail
+          ? `${sellerAllowance.code}:${sellerAllowance.detail}`
+          : sellerAllowance.code
+      );
     }
 
     const buyerUsdcBalance = (await new Contract(usdc, ['function balanceOf(address) view returns (uint256)'], provider).balanceOf(
@@ -230,9 +243,21 @@ export async function settlePlatformBuybackOnChain(input: {
       throw new Error('INSUFFICIENT_SELLER_ON_CHAIN_SHARES');
     }
 
-    const sellerVaultAllowance = (await vaultContract.allowance(sellerWallet, operatorAddress)) as bigint;
-    if (sellerVaultAllowance < shareAmount) {
-      throw new Error('SELLER_VAULT_ALLOWANCE_REQUIRED');
+    /**
+     * Grant the allowance as part of the sale instead of demanding it first.
+     * There was no screen or endpoint to give it, so this check turned "Vender"
+     * into a button that always failed.
+     */
+    const allowance = await ensureSellerVaultAllowance({
+      userId: input.sellerUserId,
+      vaultAddress: vault,
+      operatorAddress,
+      shareAmount,
+      chainId,
+      provider
+    });
+    if (allowance.ok === false) {
+      throw new Error(allowance.detail ? `${allowance.code}:${allowance.detail}` : allowance.code);
     }
 
     await ensureRecipientKyc(assetContract, treasury, operator, treasury);

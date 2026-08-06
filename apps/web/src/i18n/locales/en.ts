@@ -1566,6 +1566,12 @@ export const en = {
     emptyBuy: "No buy bids",
     emptySell: "No sell offers",
     holdingAvailable: "Available: {count}",
+    publishTitle: "Publish your sell offer",
+    publishTokens: "Tokens",
+    publishPrice: "Price per token (USD)",
+    publishCta: "Publish",
+    publishSuccess: "Your offer is live on the book.",
+    publishError: "We could not publish the offer.",
     checkoutEyebrow: "Secondary market",
     checkoutTitle: "Processing order",
     checkoutSubtitle: "Your order is executed automatically against the internal ledger.",
@@ -1695,6 +1701,19 @@ export const en = {
     receiveUsdcSubtitle:
       "This is your Sanova account. Send USDC from Ripio or another wallet to this address — do not use the treasury.",
     receiveUsdcBalanceLabel: "USDC balance in your wallet",
+    receiveUsdcWithdrawCta: "Withdraw my USDC",
+    receiveUsdcWithdrawRequesting: "Requesting…",
+    receiveUsdcWithdrawHint:
+      "Sent to your linked wallet on Base. We deduct the transfer fee and Sanova authorises the payout.",
+    receiveUsdcWithdrawRequested:
+      "We asked for authorisation to send you {amount} USDC to {destination}. We will let you know when it goes out.",
+    receiveUsdcWithdrawPending:
+      "You already have a withdrawal waiting for authorisation. We will let you know when it goes out.",
+    receiveUsdcWithdrawNeedsDestination:
+      "Link the wallet you want to withdraw to first, from My Wallet.",
+    receiveUsdcWithdrawNeedsGas:
+      "The balance cannot cover the transfer fee. You need a few more cents of USDC.",
+    receiveUsdcWithdrawFailed: "We could not send the withdrawal. Try again in a moment.",
     receiveUsdcWaiting: "Waiting for your deposit on Base…",
     receiveUsdcDetected: "Deposit detected. Your balance is available.",
     receiveUsdcCopy: "Copy address",

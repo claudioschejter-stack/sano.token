@@ -233,6 +233,52 @@ async function listRecentPrivyInbounds(userId: string): Promise<PrivyInboundReco
  * Scans Base USDC Transfer logs where `to` is the investor's linked Privy wallet.
  * Attribution is unambiguous: each investor has their own receive address.
  */
+/**
+ * Record a transfer somebody told us about, instead of one we went looking for.
+ *
+ * The scan reads a window of recent blocks, so a deposit older than the window
+ * is invisible until an admin goes hunting: if the cron did not run and the
+ * investor did not have the page open, their money arrived and the platform
+ * never noticed. A notification carries the transfer itself, which removes both
+ * the window and most of the RPC reads.
+ *
+ * Idempotent on the transaction hash, because a provider that guarantees
+ * delivery guarantees it more than once.
+ */
+export async function ingestInboundUsdcTransfer(input: {
+  toAddress: string;
+  fromAddress: string;
+  amountUsd: number;
+  txHash: string;
+  blockNumber: number;
+}): Promise<{ recorded: boolean; userId: string | null; reason?: string }> {
+  const to = input.toAddress.trim().toLowerCase();
+  if (!to || !(input.amountUsd > 0)) {
+    return { recorded: false, userId: null, reason: 'INVALID_TRANSFER' };
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { walletAddress: { equals: to, mode: 'insensitive' } },
+    select: { id: true }
+  });
+
+  if (!user) {
+    // Not an investor wallet: treasury and operator inflows have their own indexer.
+    return { recorded: false, userId: null, reason: 'ADDRESS_NOT_AN_INVESTOR' };
+  }
+
+  const deposit = await recordPrivyInboundDeposit({
+    userId: user.id,
+    amountUsd: input.amountUsd,
+    from: input.fromAddress,
+    to: input.toAddress,
+    txHash: input.txHash,
+    blockNumber: input.blockNumber
+  });
+
+  return { recorded: Boolean(deposit), userId: user.id, reason: deposit ? undefined : 'ALREADY_RECORDED' };
+}
+
 export async function scanPrivyInboundForUser(userId: string): Promise<PrivyInboundScanResult> {
   // Reconcile canonical receive address before scanning so checkout copy/paste
   // and balance/watch never diverge across Privy client vs server wallets.

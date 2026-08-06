@@ -16,6 +16,7 @@ import type {
   SecondaryMarketProperty
 } from '../../types/secondaryMarket';
 import { SecondaryMarketLedger } from './SecondaryMarketLedger';
+import { PublishListingForm } from './PublishListingForm';
 
 type SecondaryMarketViewProps = {
   initialFeed: SecondaryMarketFeed;
@@ -246,6 +247,24 @@ export function SecondaryMarketView({ initialFeed }: SecondaryMarketViewProps) {
                 onSelectBuy={() => goToPlatformBuyback(property, property.platformBuyback)}
                 onSelectSell={(order) => handleSelectSell(property, order)}
               />
+
+              {kycApproved ? (
+                <PublishListingForm
+                  projectId={property.listing.id}
+                  availableToSell={holding?.availableToSell ?? 0}
+                  referencePriceUsd={property.listing.pricePerTokenUsd}
+                  labels={{
+                    title: sm.publishTitle,
+                    tokens: sm.publishTokens,
+                    price: sm.publishPrice,
+                    cta: sm.publishCta,
+                    publishing: sm.publishing,
+                    success: sm.publishSuccess,
+                    error: sm.publishError
+                  }}
+                  onPublished={() => void refresh()}
+                />
+              ) : null}
             </article>
           );
         })}

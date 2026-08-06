@@ -3,7 +3,7 @@ import { getStablecoinNetwork } from './stablecoinNetworks';
 
 export const BRIDGE_API_BASE = 'https://api.bridge.xyz/v0';
 
-export type BridgeSourceCurrency = 'usd' | 'eur' | 'mxn' | 'brl' | 'gbp';
+export type BridgeSourceCurrency = 'usd' | 'eur' | 'mxn' | 'brl' | 'gbp' | 'cop';
 
 export type BridgeApiCustomer = {
   id: string;
@@ -12,6 +12,14 @@ export type BridgeApiCustomer = {
   type?: string;
   kyc_status?: string;
   tos_status?: string;
+  /** Overall customer state, e.g. active / rejected. */
+  status?: string;
+  /**
+   * Rails this customer may use, each approved separately. A customer can be
+   * verified and still lack `spei` or `pix`, which is why readiness is not one
+   * flag.
+   */
+  endorsements?: Array<{ name?: string; status?: string } | string>;
 };
 
 export type BridgeKycLink = {
@@ -79,7 +87,17 @@ export function getBridgeDeveloperFeePercent(): string {
   return '0.8';
 }
 
-/** Map investor country → Bridge VA source currency. AR stays on MP/Ripio (not Bridge). */
+/**
+ * Map investor country → Bridge VA source currency.
+ *
+ * Each of these is the country's own instant rail, which every local wallet
+ * already speaks: SPEI in Mexico, Pix in Brazil, Bre-B in Colombia. That is what
+ * makes one integration cover every wallet in a country instead of one
+ * integration per wallet.
+ *
+ * Argentina is the exception: Bridge issues no ARS virtual accounts, so it stays
+ * on Macro / Ripio.
+ */
 export function bridgeSourceCurrencyForCountry(country: string): BridgeSourceCurrency {
   switch (country.trim().toUpperCase()) {
     case 'EU':
@@ -97,6 +115,8 @@ export function bridgeSourceCurrencyForCountry(country: string): BridgeSourceCur
       return 'mxn';
     case 'BR':
       return 'brl';
+    case 'CO':
+      return 'cop';
     case 'GB':
       return 'gbp';
     case 'US':
@@ -110,13 +130,14 @@ export function bridgeSourceCurrencyForCountry(country: string): BridgeSourceCur
 export function isBridgeWireCountry(country: string): boolean {
   const c = country.trim().toUpperCase();
   if (c === 'AR') return false;
-  return ['US', 'EU', 'GB', 'CA', 'AU', 'MX', 'BR', 'DE', 'FR', 'ES', 'IT', 'NL', 'PT', 'IE'].includes(c);
+  return ['US', 'EU', 'GB', 'CA', 'AU', 'MX', 'BR', 'CO', 'DE', 'FR', 'ES', 'IT', 'NL', 'PT', 'IE'].includes(c);
 }
 
 export function settlementHintForRails(rails: string[] | undefined, currency: string): string {
   const set = new Set((rails ?? []).map((r) => r.toLowerCase()));
   if (set.has('pix') || currency === 'BRL') return 'Minutos (Pix)';
   if (set.has('spei') || currency === 'MXN') return 'Minutos / mismo día (SPEI)';
+  if (set.has('bre_b') || currency === 'COP') return 'Minutos (Bre-B)';
   if (set.has('faster_payments') || currency === 'GBP') return 'Minutos (Faster Payments)';
   if (set.has('sepa') || currency === 'EUR') return '1–2 días hábiles (SEPA)';
   return '1–3 días hábiles (ACH/Wire)';

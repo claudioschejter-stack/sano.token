@@ -1581,6 +1581,12 @@ export const es = {
     emptyBuy: 'Sin ofertas de compra',
     emptySell: 'Sin ofertas de venta',
     holdingAvailable: 'Disponibles: {count}',
+    publishTitle: 'Publicar tu oferta de venta',
+    publishTokens: 'Tokens',
+    publishPrice: 'Precio por token (USD)',
+    publishCta: 'Publicar',
+    publishSuccess: 'Tu oferta quedó publicada en el libro.',
+    publishError: 'No se pudo publicar la oferta.',
     checkoutEyebrow: 'Mercado secundario',
     checkoutTitle: 'Procesando operación',
     checkoutSubtitle: 'La operación se ejecuta automáticamente en el libro interno.',
@@ -1712,6 +1718,19 @@ export const es = {
     receiveUsdcSubtitle:
       'Esta es tu cuenta Sanova. Mandá USDC desde Ripio u otra billetera a esta dirección — no uses la tesorería.',
     receiveUsdcBalanceLabel: 'Saldo USDC en tu wallet',
+    receiveUsdcWithdrawCta: 'Retirar mi USDC',
+    receiveUsdcWithdrawRequesting: 'Solicitando…',
+    receiveUsdcWithdrawHint:
+      'Se envía a tu wallet vinculada, en la red Base. Descontamos el gas de la transferencia y Sanova autoriza el envío.',
+    receiveUsdcWithdrawRequested:
+      'Pedimos autorización para enviarte {amount} USDC a {destination}. Te avisamos cuando salga.',
+    receiveUsdcWithdrawPending:
+      'Ya tenés un retiro esperando autorización. Te avisamos cuando salga.',
+    receiveUsdcWithdrawNeedsDestination:
+      'Primero vinculá la wallet a la que querés retirar, desde Mi Cartera.',
+    receiveUsdcWithdrawNeedsGas:
+      'El saldo no alcanza a cubrir el gas de la transferencia. Necesitás unos centavos más de USDC.',
+    receiveUsdcWithdrawFailed: 'No pudimos enviar el retiro. Probá de nuevo en un momento.',
     receiveUsdcWaiting: 'Esperando tu depósito en Base…',
     receiveUsdcDetected: 'Depósito detectado. Tu saldo ya está disponible.',
     receiveUsdcCopy: 'Copiar dirección',

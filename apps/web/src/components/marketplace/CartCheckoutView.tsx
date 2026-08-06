@@ -71,6 +71,7 @@ import { PaymentGateway } from '../payments/gateway';
 import { formatUsdPrecise } from '../../lib/payments/formatUsdPrecise';
 import { SimplifiedCheckout, type EnsureCheckoutReferenceOptions } from '../payments/simplified';
 import { MacroClickPayButton } from '../payments/gateway/MacroClickPayButton';
+import { LocalRailInstructions } from '../payments/LocalRailInstructions';
 
 type CartCheckoutResult = {
   batchId: string;
@@ -1380,6 +1381,17 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const macroCurrency: 'ARS' | 'USD' =
     selectedDepositOption?.id === 'macro_click_usd' ? 'USD' : 'ARS';
 
+  /**
+   * Bridge collects on the investor's own national rail, so a pending payment
+   * has to show them the thing they act on: a Pix code to scan, or a CLABE to
+   * paste into their bank. Without it the screen said "pending" and gave them
+   * nothing to do about it.
+   */
+  const isBridgePending =
+    selectedDepositOption?.provider === 'bridge' ||
+    deposit?.provider === 'bridge' ||
+    checkout?.provider === 'bridge';
+
   const renderDepositOption = (option: DepositPaymentOption, displayLabel?: string) => {
     const selected = selectedDepositOptionId === option.id;
     const localizedLabel = resolvePaymentCheckoutLabel(option.id, option.label, c.paymentMethods);
@@ -1937,6 +1949,13 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
                   label={selectedDepositOption?.label}
                   redirectPath={depositReturnTo}
                   onError={(message) => setError(message)}
+                />
+              ) : null}
+              {isBridgePending ? (
+                <LocalRailInstructions
+                  amountUsd={totalUsd}
+                  referenceId={pendingReference}
+                  country={depositCountry}
                 />
               ) : null}
               <Link

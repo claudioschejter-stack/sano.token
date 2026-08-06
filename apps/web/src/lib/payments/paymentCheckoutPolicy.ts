@@ -1,6 +1,6 @@
 import type { PaymentCheckoutRow } from './paymentCheckoutCatalog';
-import { isLocalRailAggregatorConfigured } from './paymentProviderAvailability';
 import { isMacroClickConfigured } from './macroClick/config';
+import { ripioConfigured } from './ripioAvailability';
 
 export type CheckoutFlowMode = 'purchase' | 'deposit';
 
@@ -12,8 +12,39 @@ const STRIPE_OPTION_IDS = new Set([
   'paypal'
 ]);
 
-const PURCHASE_ON_RAMP_METHODS = new Set(['RIPIO', 'TRANSAK', 'BRIDGE']);
+/**
+ * Three rails, not fourteen.
+ *
+ * The catalogue carried every provider ever considered, and most of them were
+ * half-built: Ramp always answered "not integrated", Stripe was disabled in
+ * code, Wise was a set of manual instructions, AstroPay and Binance Pay were
+ * partial. Offering them is not offering fourteen options — it is offering
+ * fourteen ways to fail, each of which has to be maintained, debugged and
+ * reconciled.
+ *
+ * What survives is what works end to end: USDC directly, Macro for Argentina,
+ * and Bridge for every other country's own instant rail. Turning the rest off is
+ * one list; keeping them alive is permanent work.
+ */
+/**
+ * `TRANSAK` stays because the Privy on-ramp rides that method name — a naming
+ * artefact, not a Transak integration. Transak itself is retired by provider
+ * below, which is the field that says who actually collects the money.
+ */
+const PURCHASE_ON_RAMP_METHODS = new Set(['BRIDGE', 'TRANSAK', 'RIPIO']);
 const PURCHASE_DIRECT_USDC = new Set(['USDC_ONCHAIN', 'COINBASE']);
+
+/**
+ * Providers that stay hidden until they work end to end. Kept as a list rather
+ * than deleted so re-enabling one is a decision, not an archaeology exercise.
+ */
+const RETIRED_PROVIDERS = new Set(['ramp', 'wise', 'astropay', 'ebanx', 'transak']);
+
+const RETIRED_OPTION_IDS = new Set(['binance_pay', 'binance_usdc']);
+
+export function isRetiredCheckoutRow(row: PaymentCheckoutRow): boolean {
+  return RETIRED_PROVIDERS.has(row.provider) || RETIRED_OPTION_IDS.has(row.id);
+}
 
 /** Mercado Pago solo para depósito; compras fiat van por on-ramp → USDC Base treasury. */
 const DEPOSIT_MP_OPTION_IDS = new Set(['mercadopago_wallet', 'mercado_pago']);
@@ -37,8 +68,8 @@ function isLocalRailCheckoutRow(row: PaymentCheckoutRow): boolean {
   if (row.method !== 'LOCAL_RAIL') {
     return false;
   }
-  // dLocal was the aggregator behind most local rails; the account is closed.
-  return row.provider === 'ebanx' || row.provider === 'macro_click';
+  // dLocal is closed and EBANX never worked end to end; Macro is the live one.
+  return row.provider === 'macro_click';
 }
 
 function localRailCheckoutEnabled(row: PaymentCheckoutRow): boolean {
@@ -50,20 +81,24 @@ function localRailCheckoutEnabled(row: PaymentCheckoutRow): boolean {
    * behind the aggregator flag. It was excluded from checkout for exactly this
    * reason: the rail was built and configured, and the policy still hid it.
    */
-  if (row.provider === 'macro_click') {
-    return isMacroClickConfigured();
-  }
-  return isLocalRailAggregatorConfigured();
+  return isMacroClickConfigured();
 }
 
 export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: CheckoutFlowMode): boolean {
-  if (isStripeCheckoutRow(row)) {
+  if (isStripeCheckoutRow(row) || isRetiredCheckoutRow(row)) {
     return false;
   }
 
   if (mode === 'purchase') {
+    /**
+     * Mercado Pago cannot fund a purchase, and the code already says so:
+     * `/api/payments/mercadopago/process` answers `MP_CART_DISABLED_USE_ONRAMP`.
+     * The reason is structural — a purchase has to land as USDC in the treasury
+     * and MP delivers pesos into an MP account, so it needs a converter behind
+     * it. Listing it here put a button in front of investors that returns a 400.
+     */
     if (DEPOSIT_MP_OPTION_IDS.has(row.id) || row.method === 'MERCADO_PAGO') {
-      return true;
+      return false;
     }
     if (row.method === 'CUSTODIAL_STABLECOIN') {
       return false;
@@ -83,9 +118,14 @@ export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: Checkou
     return row.method === 'USDC_ONCHAIN' && isDirectBaseUsdcRow(row);
   }
 
-  // deposit: on-ramps + USDC Base + MP (vía Ripio en backend)
+  /**
+   * Deposits through Mercado Pago settle by handing the pesos to Ripio, which
+   * sends USDC to the treasury. Without Ripio configured that chain has no
+   * second half, and the deposit would sit in an MP account with nothing to
+   * convert it.
+   */
   if (row.method === 'MERCADO_PAGO' || DEPOSIT_MP_OPTION_IDS.has(row.id)) {
-    return true;
+    return ripioConfigured();
   }
   if (isPurchaseOnRampRow(row) || row.method === 'USDC_ONCHAIN') {
     return isDirectBaseUsdcRow(row) || isPurchaseOnRampRow(row);

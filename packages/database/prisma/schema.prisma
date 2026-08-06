@@ -130,6 +130,8 @@ enum PlatformWithdrawalStatus {
 enum PlatformWithdrawalMethod {
   STABLECOIN
   FIAT
+  /// USDC already on-chain in the investor's Sanova wallet, not ledger balance.
+  SANOVA_WALLET_USDC
 }
 
 enum ProjectOperatingEntryType {
@@ -1314,6 +1316,8 @@ enum TokenMovementKind {
   USDC_RENT_PAYOUT
   USDC_YIELD_PAYOUT
   USDC_TREASURY_TRANSFER
+  /// The investor taking their own USDC out to a wallet they control.
+  USDC_INVESTOR_WITHDRAWAL
   RWA_SHARE_MINT
   RWA_SHARE_BURN
   RWA_SHARE_TRANSFER
@@ -1389,4 +1393,30 @@ model BridgeVirtualAccount {
 
   @@index([userId])
   @@index([bridgeCustomerId])
+}
+
+/// The investor's identity on Bridge, which is not the same as their identity here.
+///
+/// Bridge verifies its own customers before it will issue a virtual account, and
+/// does not accept another provider's verification unless the developer is
+/// approved for its reliance model. So an investor Didit already cleared still
+/// has a second onboarding to complete, and this remembers where it stands
+/// instead of asking Bridge on every page load.
+model BridgeCustomer {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  customerId String   @unique
+  /// Bridge's own status: not_started, incomplete, under_review, approved, rejected.
+  kycStatus  String   @default("not_started")
+  tosStatus  String   @default("pending")
+  /// Hosted links the investor still has to complete, when they do.
+  kycLink    String?
+  tosLink    String?
+  /// Rails granted, e.g. base, spei, pix. Empty until Bridge approves them.
+  endorsements Json   @default("[]")
+  lastCheckedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([kycStatus])
 }
