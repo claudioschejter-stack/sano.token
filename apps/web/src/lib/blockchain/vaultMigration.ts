@@ -549,10 +549,33 @@ export async function advanceVaultMigration(input: {
     }
 
     // ---- Step 3: move the shares ----------------------------------------
-    const shares = await readWithRetry(() => oldVaultContract.balanceOf(treasury) as Promise<bigint>);
-    if (shares === null) {
-      steps.push({ step: 'move_shares', status: 'BLOCKED', detail: 'no se pudo leer el balance' });
-      return finish('Reintentá: el RPC no respondió.');
+    /**
+     * Once the project points at the replacement, there is nothing to redeem.
+     *
+     * Running this again used to treat the current vault as the old one and
+     * redeem the shares straight out of it, leaving the project pointing at an
+     * empty vault with the tokens loose in the Safe. The call has to be safe to
+     * repeat: that is the whole premise of a migration that runs in stages.
+     */
+    const alreadyMigrated = oldVault.toLowerCase() === newVault.toLowerCase();
+
+    let shares = 0n;
+    let redeemed = 0n;
+    /** Block anchor for the verification read: the last write this run made. */
+    let lastWriteTx: string | null = null;
+    if (alreadyMigrated) {
+      steps.push({
+        step: 'redeem_old_vault',
+        status: 'SKIPPED',
+        detail: 'el proyecto ya apunta al vault nuevo: no hay vault viejo del que rescatar'
+      });
+    } else {
+      const held = await readWithRetry(() => oldVaultContract.balanceOf(treasury) as Promise<bigint>);
+      if (held === null) {
+        steps.push({ step: 'move_shares', status: 'BLOCKED', detail: 'no se pudo leer el balance' });
+        return finish('Reintentá: el RPC no respondió.');
+      }
+      shares = held;
     }
 
     /**
@@ -586,16 +609,44 @@ export async function advanceVaultMigration(input: {
         detail: `${formatUnits(shares, oldDecimals)} shares rescatadas por ${formatUnits(assets, 18)} tokens`,
         txHash: redeemTx
       });
-    } else {
+      redeemed = assets;
+      lastWriteTx = redeemTx;
+    } else if (!alreadyMigrated) {
       steps.push({ step: 'redeem_old_vault', status: 'SKIPPED', detail: 'el vault viejo ya está vacío' });
     }
 
-    const heldAssets = await readWithRetry(
-      () => tokenContract.balanceOf(treasury) as Promise<bigint>
-    );
+    /**
+     * After a redeem the balance has to be read as at least what came out.
+     *
+     * A single read here can land on a node that has not applied the redeem and
+     * answer with the balance from before — zero. That is a successful read of a
+     * stale value, so no retry helper catches it, and the deposit gets skipped
+     * for "no loose tokens" while 5000 of them sit in the Safe.
+     */
+    const heldAssets =
+      redeemed > 0n
+        ? (
+            await confirmOnChain({
+              read: () => tokenContract.balanceOf(treasury) as Promise<bigint>,
+              satisfied: (balance) => balance >= redeemed
+            })
+          ).value
+        : await readWithRetry(() => tokenContract.balanceOf(treasury) as Promise<bigint>);
+
     if (heldAssets === null) {
       steps.push({ step: 'deposit_new_vault', status: 'BLOCKED', detail: 'no se pudo leer el balance de tokens' });
       return finish('Reintentá: el RPC no respondió.');
+    }
+    if (redeemed > 0n && heldAssets < redeemed) {
+      steps.push({
+        step: 'deposit_new_vault',
+        status: 'BLOCKED',
+        detail: `el redeem sacó ${formatUnits(redeemed, 18)} tokens pero la tesorería lee ${formatUnits(
+          heldAssets,
+          18
+        )}: las lecturas no se pusieron al día`
+      });
+      return finish('Los tokens están en la tesorería pero el RPC va atrasado. Reintentá en un minuto.');
     }
 
     if (heldAssets > 0n) {
@@ -632,6 +683,7 @@ export async function advanceVaultMigration(input: {
         detail: `${formatUnits(heldAssets, 18)} tokens depositados`,
         txHash: depositTx
       });
+      lastWriteTx = depositTx;
     } else {
       steps.push({
         step: 'deposit_new_vault',
@@ -654,10 +706,26 @@ export async function advanceVaultMigration(input: {
       return finish('Verificá a mano el balance del vault nuevo antes de reapuntar el proyecto.');
     }
 
-    // The deposit already happened; give the reads time to show it.
+    /**
+     * Read as of the block that carried the last write, not "latest".
+     *
+     * `latest` on a load-balanced RPC can be a node several blocks behind, and a
+     * balance from before the migration satisfies this check just as well as the
+     * real one — which is how a run that emptied the vault reported the full
+     * quota sitting in it. Naming the block turns a stale answer into an error
+     * the confirmation loop retries, instead of a false green.
+     */
+    const anchor = lastWriteTx
+      ? await provider
+          .getTransactionReceipt(lastWriteTx)
+          .then((receipt) => receipt?.blockNumber ?? null)
+          .catch(() => null)
+      : null;
+
     const newVaultReader = new Contract(newVault, VAULT_ABI, provider);
     const verification = await confirmOnChain({
-      read: () => newVaultReader.balanceOf(treasury) as Promise<bigint>,
+      read: () =>
+        newVaultReader.balanceOf(treasury, anchor ? { blockTag: anchor } : {}) as Promise<bigint>,
       satisfied: (balance) => balance >= expected
     });
     const newShares = verification.value;
@@ -745,6 +813,21 @@ export async function advanceVaultMigration(input: {
       'Migración completa. Corré el preflight y una compra de prueba; el vault viejo queda vacío y sin uso.',
       true
     );
+  } catch (error) {
+    /**
+     * A migration that crashes mid-way has usually already done something on
+     * chain — deployed the vault, scheduled a timelock, moved the shares. If the
+     * throw escapes, the caller gets a 500 with none of that, and the only way
+     * to find out what happened is to read the chain by hand. Keep the steps and
+     * name the crash as one more of them.
+     */
+    steps.push({
+      step: 'error',
+      status: 'BLOCKED',
+      detail: error instanceof Error ? error.message.slice(0, 300) : 'MIGRATION_CRASHED'
+    });
+    console.error('[vaultMigration] unexpected failure', error);
+    return finish('La migración cortó por un error inesperado. Los pasos de arriba sí se hicieron.');
   } finally {
     provider.destroy();
   }
