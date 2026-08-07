@@ -108,21 +108,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'TOTP_SECRET_ILEGIBLE' }, { status: 500 });
   }
 
-  let verified = false;
+  /**
+   * Both factors are evaluated, never gated on what the submission looks like.
+   * Each verifier decides for itself whether the input it got is its credential,
+   * so the only thing steering this flow is the result of those checks.
+   */
+  let verified = secret !== null && verifyTotpCode(secret, code);
 
-  if (secret !== null && code && /^\d{6}$/.test(code.trim())) {
-    verified = verifyTotpCode(secret, code.trim());
-  }
-
-  // Verificar backup code (si no pasó TOTP)
-  if (!verified && backupCode) {
-    const hashes = unusedBackupCodes.map((bc) => bc.codeHash);
-    const matchIndex = await verifyBackupCode(backupCode, hashes);
+  if (!verified) {
+    const matchIndex = await verifyBackupCode(
+      backupCode,
+      unusedBackupCodes.map((bc) => bc.codeHash)
+    );
 
     if (matchIndex >= 0) {
-      const matchedCode = unusedBackupCodes[matchIndex];
       await prisma.backupCode.update({
-        where: { id: matchedCode.id },
+        where: { id: unusedBackupCodes[matchIndex].id },
         data: { usedAt: new Date() }
       });
       verified = true;
