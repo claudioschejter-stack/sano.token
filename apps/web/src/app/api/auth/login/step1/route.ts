@@ -3,12 +3,22 @@ import { verifyCredentials } from '../../../../../lib/auth/credentialsService';
 import { bypassesTotpGateForRole } from '../../../../../lib/auth/adminAuthPolicy';
 import { is2faLocked, issueTempTotpToken, lockoutRemainingSeconds } from '../../../../../lib/auth/totpService';
 import { issueMobilePasswordLoginToken } from '../../../../../lib/auth/passkeyService';
+import { isMobileUserAgent } from '../../../../../lib/auth/isMobileUserAgent';
 import { prisma } from '@sanova/database';
 
 type LoginChannel = 'pwa' | 'mobile-web' | 'desktop-web';
 
-function isMobileChannel(channel?: string | null): boolean {
-  return channel === 'pwa' || channel === 'mobile-web';
+/**
+ * Mobile skips the second factor, so claiming to be mobile cannot be enough.
+ *
+ * The channel arrives in the request body, which means anyone with a password
+ * could send `channel: 'pwa'` from a desktop browser and skip the second factor
+ * entirely — the exemption for phones was an open door for everyone. The
+ * User-Agent has to agree, and that one the client does not choose freely.
+ */
+function isMobileLogin(channel: string | null | undefined, userAgent: string): boolean {
+  const claimsMobile = channel === 'pwa' || channel === 'mobile-web';
+  return claimsMobile && isMobileUserAgent(userAgent);
 }
 
 /**
@@ -85,15 +95,25 @@ export async function POST(request: Request) {
     );
   }
 
-  // Mobile/PWA is fingerprint-only: it never shows the TOTP screen, even for
-  // users who enabled 2FA from desktop. Instead of the `credentials` provider
-  // (which would block on totpEnabled), issue a one-time login token redeemed
-  // via the same safe path as a real passkey login.
-  if (isMobileChannel(body.channel)) {
+  // Mobile/PWA is fingerprint-only: it never shows the second factor screen,
+  // even for users who enabled 2FA from desktop. Instead of the `credentials`
+  // provider (which would block on totpEnabled), issue a one-time login token
+  // redeemed via the same safe path as a real passkey login.
+  if (isMobileLogin(body.channel, request.headers.get('user-agent') ?? '')) {
     const loginToken = await issueMobilePasswordLoginToken(authUser.id, email);
     return NextResponse.json({ ok: true, requiresTOTP: false, loginToken });
   }
 
+  /**
+   * Desktop gets a code by email. The token only says which account is halfway
+   * through logging in; the verification screen asks for the code itself, so the
+   * password login and the OAuth gate reach it the same way.
+   */
   const tempToken = await issueTempTotpToken(authUser.id);
-  return NextResponse.json({ ok: true, requiresTOTP: true, tempToken });
+  return NextResponse.json({
+    ok: true,
+    requiresTOTP: true,
+    requiresEmailCode: true,
+    tempToken
+  });
 }

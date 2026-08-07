@@ -224,6 +224,11 @@ enum AccountStatus {
 enum VerificationChannel {
   EMAIL
   PHONE
+  /**
+   * Second factor at login, kept apart from EMAIL on purpose: a code issued to
+   * confirm a contact address must not open a session, and the other way round.
+   */
+  EMAIL_LOGIN
 }
 
 model User {

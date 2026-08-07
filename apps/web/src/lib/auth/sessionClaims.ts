@@ -3,6 +3,7 @@ import { bypassesTotpGateForRole } from './adminAuthPolicy';
 import { isAccountOperational } from '../onboarding/accountStatus';
 import { resolveOperationalWalletAddress } from '../investor/provisionInvestorProfile';
 import { is2faLocked, issueTempTotpToken, lockoutRemainingSeconds } from './totpService';
+import { isMobileUserAgent } from './isMobileUserAgent';
 
 export type SessionAuthClaims = {
   accessToken?: string;
@@ -55,8 +56,26 @@ export async function loadAccountOperational(userId: string): Promise<boolean> {
 }
 
 /**
- * After OAuth identity is verified, either issue a full session or defer to TOTP
- * (same policy as password login step1 + passkey verify).
+ * Is this OAuth callback happening on a phone?
+ *
+ * Phones do not get a second factor — they authenticate with biometrics — but
+ * this runs inside a NextAuth callback, where the request is not passed in. When
+ * the headers cannot be read the answer is "no", so an unknown device is treated
+ * as a desktop and still asked for the code: the wrong guess has to be the one
+ * that adds a step, not the one that removes it.
+ */
+async function isMobileRequest(): Promise<boolean> {
+  try {
+    const { headers } = await import('next/headers');
+    return isMobileUserAgent((await headers()).get('user-agent'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * After OAuth identity is verified, either issue a full session or defer to the
+ * second factor (same policy as password login step1 + passkey verify).
  */
 export async function applyOAuthTotpGate(
   userId: string,
@@ -79,7 +98,7 @@ export async function applyOAuthTotpGate(
     select: { totpEnabled: true, locked2faUntil: true }
   });
 
-  if (user?.totpEnabled) {
+  if (user?.totpEnabled && !(await isMobileRequest())) {
     if (is2faLocked(user)) {
       throw new OAuthTotpLockedError(lockoutRemainingSeconds(user));
     }

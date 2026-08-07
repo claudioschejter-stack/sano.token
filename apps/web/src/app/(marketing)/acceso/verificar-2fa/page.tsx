@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { TOTPVerificationPage } from '../../../../components/auth/TOTPVerificationPage';
+import { EmailCodeVerificationPage } from '../../../../components/auth/EmailCodeVerificationPage';
 import { resolveServerLocale } from '../../../../i18n/detectLocaleServer';
 import { messagesByLocale } from '../../../../i18n';
 
@@ -12,5 +12,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function Verificar2FAPage() {
-  return <TOTPVerificationPage />;
+  return <EmailCodeVerificationPage />;
 }
