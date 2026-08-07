@@ -83,10 +83,22 @@ export async function POST(request: Request) {
 
   let verified = false;
 
-  // Verificar código TOTP
+  /**
+   * A secret that will not decrypt must not take the backup code down with it.
+   *
+   * This threw straight out of the handler, so the response was a 500 and the
+   * request never reached the fallback below — the one way back in for someone
+   * whose authenticator stopped matching. An undecryptable secret is exactly the
+   * case where the backup code is the only thing left.
+   */
+  let secretUnreadable = false;
   if (code && /^\d{6}$/.test(code.trim())) {
-    const secret = decryptTotpSecret(user.totpSecret);
-    verified = verifyTotpCode(secret, code.trim());
+    try {
+      verified = verifyTotpCode(decryptTotpSecret(user.totpSecret), code.trim());
+    } catch (error) {
+      secretUnreadable = true;
+      console.error('[totp/login-verify] no se pudo leer el secreto', user.id, error);
+    }
   }
 
   // Verificar backup code (si no pasó TOTP)
@@ -103,6 +115,15 @@ export async function POST(request: Request) {
       });
       verified = true;
     }
+  }
+
+  /**
+   * Do not spend an attempt on a failure that is ours. The code may have been
+   * right; there is no way to tell, and five of these would lock the account for
+   * something the user cannot fix by typing more carefully.
+   */
+  if (!verified && secretUnreadable && !backupCode) {
+    return NextResponse.json({ error: 'TOTP_SECRET_ILEGIBLE' }, { status: 500 });
   }
 
   if (!verified) {
