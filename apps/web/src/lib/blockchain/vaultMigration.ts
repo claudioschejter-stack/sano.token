@@ -745,6 +745,21 @@ export async function advanceVaultMigration(input: {
       'Migración completa. Corré el preflight y una compra de prueba; el vault viejo queda vacío y sin uso.',
       true
     );
+  } catch (error) {
+    /**
+     * A migration that crashes mid-way has usually already done something on
+     * chain — deployed the vault, scheduled a timelock, moved the shares. If the
+     * throw escapes, the caller gets a 500 with none of that, and the only way
+     * to find out what happened is to read the chain by hand. Keep the steps and
+     * name the crash as one more of them.
+     */
+    steps.push({
+      step: 'error',
+      status: 'BLOCKED',
+      detail: error instanceof Error ? error.message.slice(0, 300) : 'MIGRATION_CRASHED'
+    });
+    console.error('[vaultMigration] unexpected failure', error);
+    return finish('La migración cortó por un error inesperado. Los pasos de arriba sí se hicieron.');
   } finally {
     provider.destroy();
   }
