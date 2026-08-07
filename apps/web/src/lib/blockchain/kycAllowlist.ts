@@ -10,6 +10,34 @@ import {
 import { isRwaOperatorConfigured, resolveRwaOperatorSigner } from './rwaOperatorSigner';
 import { readKycTimelock } from './scheduleTokenKyc';
 import { readWithRetry } from './rpcRetry';
+import { confirmOnChain } from './confirmOnChain';
+
+/**
+ * The whitelist write only counts once a read shows it.
+ *
+ * Reading `kycApproved` straight after the receipt can hit a node that has not
+ * applied the block yet and answer with the state from before. Calling that a
+ * failure is the expensive mistake: the investor is approved on chain, but the
+ * purchase is filed as broken and the share never gets delivered.
+ */
+async function confirmKycApproved(input: {
+  token: Contract;
+  input: { walletAddress: string; approved: boolean };
+  via: string;
+}): Promise<void> {
+  const outcome = await confirmOnChain({
+    read: () => input.token.kycApproved(input.input.walletAddress) as Promise<boolean>,
+    satisfied: (value) => Boolean(value) === input.input.approved
+  });
+
+  if (!outcome.confirmed) {
+    throw new Error(
+      `ALLOWLIST_NOT_CONFIRMED: la transacción vía ${input.via} se confirmó pero kycApproved sigue leyendo ${String(
+        outcome.value
+      )}. Puede ser retraso del RPC: verificá antes de reintentar.`
+    );
+  }
+}
 
 function resolveRpcUrl(chainId: number): string {
   if (chainId === 84532 || chainId === 8453) {
@@ -100,10 +128,7 @@ export async function setInvestorKycAllowlist(input: {
           approved: input.approved,
           signer: wallet
         });
-        const verified = await token.kycApproved(input.walletAddress);
-        if (Boolean(verified) !== input.approved) {
-          throw new Error('Module transaction confirmed but kycApproved did not match requested state.');
-        }
+        await confirmKycApproved({ token, input, via: 'módulo' });
         return {
           chainId,
           txHash,
@@ -117,10 +142,7 @@ export async function setInvestorKycAllowlist(input: {
     // Direct owner call (operator wallet must be the token owner).
     const tx = await token.setKyc(input.walletAddress, input.approved);
     const receipt = await waitForAutomationTx(tx);
-    const verified = await token.kycApproved(input.walletAddress);
-    if (Boolean(verified) !== input.approved) {
-      throw new Error('Allowlist transaction confirmed but kycApproved did not match requested state.');
-    }
+    await confirmKycApproved({ token, input, via: 'dueño del token' });
     return {
       chainId,
       txHash: receipt?.hash ?? tx.hash,
