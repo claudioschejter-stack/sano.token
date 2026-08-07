@@ -2560,7 +2560,12 @@ export const es = {
     attemptsRemaining: '{count} intento{plural} restante{plural}',
     sessionCreationError: 'Error al crear la sesión. Intentá de nuevo.',
     troubleSigningIn: '¿Problemas para acceder?',
-    contactSupport: 'Contactar soporte'
+    contactSupport: 'Contactar soporte',
+    emailCodeDesc: 'Te enviamos un código de 6 dígitos a {email}.',
+    emailCodeDescGeneric: 'Te enviamos un código de 6 dígitos a tu correo.',
+    emailCodeResend: 'Enviar el código de nuevo',
+    emailCodeResendIn: 'Podés pedir otro código en {seconds}s',
+    emailCodeSendFailed: 'No pudimos enviar el código. Probá de nuevo en un momento.'
   },
   authSplash: {
     tagline: 'RWA Tokenization'
