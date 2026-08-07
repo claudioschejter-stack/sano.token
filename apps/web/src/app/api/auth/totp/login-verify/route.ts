@@ -81,24 +81,49 @@ export async function POST(request: Request) {
     );
   }
 
-  let verified = false;
-
-  // Verificar código TOTP
-  if (code && /^\d{6}$/.test(code.trim())) {
-    const secret = decryptTotpSecret(user.totpSecret);
-    verified = verifyTotpCode(secret, code.trim());
+  /**
+   * Decide what this account can still authenticate with before looking at
+   * anything the request sent.
+   *
+   * `decryptTotpSecret` threw straight out of the handler, so an unreadable
+   * secret answered 500 and the request never reached the backup code below —
+   * the one way back in for someone whose authenticator stopped matching. And
+   * the guard that skipped the failed-attempt counter for that case read
+   * `!backupCode`, which let the request decide whether the brute-force lockout
+   * applied. Both problems come from mixing our own failure with the user's, so
+   * the state of the factors is settled here, out of reach of the input.
+   */
+  let secret: string | null = null;
+  try {
+    secret = decryptTotpSecret(user.totpSecret);
+  } catch (error) {
+    console.error('[totp/login-verify] no se pudo leer el secreto', user.id, error);
   }
 
-  // Verificar backup code (si no pasó TOTP)
-  if (!verified && backupCode) {
-    const availableCodes = user.backupCodes.filter((bc) => !bc.usedAt);
-    const hashes = availableCodes.map((bc) => bc.codeHash);
-    const matchIndex = await verifyBackupCode(backupCode, hashes);
+  const unusedBackupCodes = user.backupCodes.filter((bc) => !bc.usedAt);
+
+  if (secret === null && unusedBackupCodes.length === 0) {
+    // Neither factor can succeed, so no submission could have been wrong. This
+    // costs no attempt because it depends only on server state.
+    return NextResponse.json({ error: 'TOTP_SECRET_ILEGIBLE' }, { status: 500 });
+  }
+
+  /**
+   * Both factors are evaluated, never gated on what the submission looks like.
+   * Each verifier decides for itself whether the input it got is its credential,
+   * so the only thing steering this flow is the result of those checks.
+   */
+  let verified = secret !== null && verifyTotpCode(secret, code);
+
+  if (!verified) {
+    const matchIndex = await verifyBackupCode(
+      backupCode,
+      unusedBackupCodes.map((bc) => bc.codeHash)
+    );
 
     if (matchIndex >= 0) {
-      const matchedCode = availableCodes[matchIndex];
       await prisma.backupCode.update({
-        where: { id: matchedCode.id },
+        where: { id: unusedBackupCodes[matchIndex].id },
         data: { usedAt: new Date() }
       });
       verified = true;

@@ -76,10 +76,23 @@ export function getTotpUri(secret: string, email: string): string {
   return authenticator.keyuri(email, TOTP_ISSUER, secret);
 }
 
-export function verifyTotpCode(secret: string, token: string): boolean {
+/**
+ * Whether this submission is the current code.
+ *
+ * The shape check lives here rather than at the call site on purpose: when the
+ * caller decides whether to verify based on what the code looks like, the
+ * request controls whether the check runs at all. Anything that is not six
+ * digits is simply not the code, which is an answer this function can give.
+ */
+export function verifyTotpCode(secret: string, token: string | null | undefined): boolean {
+  const submitted = (token ?? '').replace(/\s+/g, '');
+  if (!/^\d{6}$/.test(submitted)) {
+    return false;
+  }
+
   // Allow ±2 steps (~60s) for phone clock drift during mobile onboarding.
   authenticator.options = { window: 2 };
-  return authenticator.check(token, normalizeTotpSecret(secret));
+  return authenticator.check(submitted, normalizeTotpSecret(secret));
 }
 
 // ---------------------------------------------------------------------------
@@ -100,8 +113,23 @@ export async function hashBackupCodes(codes: string[]): Promise<string[]> {
   return Promise.all(codes.map((code) => bcrypt.hash(code.replace('-', '').toUpperCase(), BCRYPT_ROUNDS)));
 }
 
-export async function verifyBackupCode(rawCode: string, hashes: string[]): Promise<number> {
-  const normalized = rawCode.replace('-', '').replace(/\s/g, '').toUpperCase();
+/**
+ * Index of the matching backup code, or -1.
+ *
+ * Same reasoning as `verifyTotpCode`: an empty or malformed submission is not a
+ * match, decided here instead of by a branch around the call. Bailing out before
+ * the bcrypt comparisons also keeps an empty body from costing one hash per
+ * stored code on every failed login.
+ */
+export async function verifyBackupCode(
+  rawCode: string | null | undefined,
+  hashes: string[]
+): Promise<number> {
+  const normalized = (rawCode ?? '').replace('-', '').replace(/\s/g, '').toUpperCase();
+  if (normalized.length < 5) {
+    return -1;
+  }
+
   for (let i = 0; i < hashes.length; i++) {
     const match = await bcrypt.compare(normalized, hashes[i]);
     if (match) return i;

@@ -36,7 +36,12 @@ export function TOTPVerificationPage() {
       body: JSON.stringify({ tempToken, ...opts })
     });
 
-    const data = (await res.json()) as {
+    /**
+     * A 500 renders an HTML error page, and parsing it throws — which left the
+     * button spinning forever with nothing on screen. Failing to read the answer
+     * is itself an answer.
+     */
+    const data = (await res.json().catch(() => ({}))) as {
       loginToken?: string;
       error?: string;
       remainingAttempts?: number;
