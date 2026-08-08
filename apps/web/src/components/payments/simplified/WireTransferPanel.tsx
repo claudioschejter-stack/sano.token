@@ -84,7 +84,9 @@ export function WireTransferPanel({
     );
   }
 
-  const transakUrl = wire.provider === 'transak' ? wire.widgetUrl : null;
+  // Bridge shows account details; Macro posts to its own hosted form. Neither
+  // hands back a widget URL, which is what this used to render for Transak.
+  const hostedWidgetUrl = null;
   const pixPayload = instructions?.brCode;
   const displayCurrency = instructions?.currency ?? 'USD';
 
@@ -220,11 +222,11 @@ export function WireTransferPanel({
         </div>
       ) : null}
 
-      {isDesktop && transakUrl ? (
+      {isDesktop && hostedWidgetUrl ? (
         <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
           <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(transakUrl)}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(hostedWidgetUrl)}`}
               alt={sc.wireQrAlt}
               width={QR_SIZE}
               height={QR_SIZE}
@@ -233,7 +235,7 @@ export function WireTransferPanel({
           </div>
           <p className="text-center text-[11px] text-terminal-muted">{sc.wireScanToStart}</p>
           <a
-            href={transakUrl}
+            href={hostedWidgetUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs font-semibold text-terminal-primary"
@@ -244,9 +246,9 @@ export function WireTransferPanel({
         </div>
       ) : null}
 
-      {isMobile && transakUrl ? (
+      {isMobile && hostedWidgetUrl ? (
         <a
-          href={transakUrl}
+          href={hostedWidgetUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary px-4 py-3 text-sm font-semibold text-white"
