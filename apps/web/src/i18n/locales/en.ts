@@ -142,6 +142,7 @@ export const en = {
       institutional: "Institutional"
     },
     tokensAvailable: "available tokens",
+    tokensPlaced: "tokens placed",
     tokensAvailableOfTotal: "{available} / {total} available",
     availableSectionTitle: "Available properties",
     availableSectionSubtitle: "Units with tokens available for sale on the primary marketplace.",

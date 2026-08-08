@@ -4,6 +4,7 @@ import { mercadoPagoAccessToken } from './mercadoPagoClient';
 import { isMercadoPagoPixConfigured } from './mercadoPagoPix/config';
 import { getBridgeApiKey, isBridgeWireCountry } from './bridgeClient';
 import { ripioConfigured } from './ripioClient';
+import { isMacroClickConfigured } from './macroClick/config';
 import { quoteBaseCryptoCheckoutGasUsd } from './baseUserPaysGasQuote';
 
 // ---------------------------------------------------------------------------
@@ -137,7 +138,7 @@ export type SimplifiedCryptoWalletMethod = {
 };
 
 export type SimplifiedCardMethod = {
-  provider: 'privy' | 'mercado_pago_embedded' | 'transak';
+  provider: 'privy' | 'mercado_pago_embedded' | 'macro_click';
   configured: boolean;
   totalUsd: number;
   totalLocal: number;
@@ -149,7 +150,7 @@ export type SimplifiedCardMethod = {
 };
 
 export type SimplifiedWireMethod = {
-  provider: 'transak' | 'bridge';
+  provider: 'macro_click' | 'bridge';
   configured: boolean;
   totalUsd: number;
   totalLocal: number;
@@ -184,11 +185,15 @@ export type CheckoutBestRoutes = {
 const FEES: Record<string, number> = {
   mercado_pago_fiat: 280, // AR, ~2.8%
   pix_br: 25, // Pix BR ~0.25%
-  transak_fiat: 180, // ~1.8% global
-  transak_card: 199, // Transak card ~1.99%
-  transak_wire: 80, // Transak bank transfer ~0.8%
+  macro_card: 199, // Macro hosted button, debit/credit
+  macro_wire: 80, // Macro transfer
   bridge_wire: 80 // Bridge VA ACH/wire developer fee ballpark
 };
+
+/** Where Macro can collect. Its licence is Argentine; nothing else is claimed. */
+function isMacroCountry(country: string): boolean {
+  return country === 'AR';
+}
 
 function bridgeApiConfigured(): boolean {
   return Boolean(getBridgeApiKey());
@@ -198,21 +203,34 @@ function prefersBridgeWire(country: string): boolean {
   return isBridgeWireCountry(country) && bridgeApiConfigured();
 }
 
+/**
+ * Transak is retired.
+ *
+ * It was the fallback for the card, the transfer and the wallet lane in every
+ * country nobody else covered, which made it look like broad coverage while
+ * nothing was actually verified through it. Argentina now pays cards and
+ * transfers through Macro, which is the bank the operation already runs on.
+ *
+ * Where no provider is configured the lane reports itself unavailable. That is
+ * the honest answer, and it is also the useful one: a lane that offers itself and
+ * fails at the last step costs the investor a checkout, while one that says no up
+ * front costs nothing.
+ */
 function fiatFeeBpsForCountry(country: string): number {
   if (country === 'AR') return FEES.mercado_pago_fiat + FX_BUFFER_BPS;
   if (country === 'BR') return FEES.pix_br + FX_BUFFER_BPS;
-  return FEES.transak_fiat + FX_BUFFER_BPS;
+  return FEES.mercado_pago_fiat + FX_BUFFER_BPS;
 }
 
 function fiatConfiguredForCountry(country: string): boolean {
   if (country === 'AR') return Boolean(mercadoPagoAccessToken());
   if (country === 'BR') return isMercadoPagoPixConfigured();
-  return Boolean(process.env.TRANSAK_API_KEY?.trim());
+  return false;
 }
 
-function fiatProviderForCountry(country: string): 'mercado_pago' | 'transak' {
+function fiatProviderForCountry(country: string): 'mercado_pago' | null {
   if (country === 'AR' || country === 'BR') return 'mercado_pago';
-  return 'transak';
+  return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -241,7 +259,7 @@ export async function resolveCheckoutBestRoutes(input: {
     totalLocal: fiatLocal.totalLocal,
     displayCurrency: fiatLocal.displayCurrency,
     feeBps: fiatFeeBps,
-    widgetUrl: transakWidgetUrl({ amountUsd: fiatLocal.totalUsd, country: c, referenceId }),
+    widgetUrl: null,
     mpPreferenceId: null,
     staticQrData: process.env.FIAT_STATIC_QR_DATA?.trim() || null
   };
@@ -283,30 +301,32 @@ export async function resolveCheckoutBestRoutes(input: {
     stablecoinNetwork: 'BASE'
   };
 
-  // --- Card ---
-  const cardFeeBps = FEES.transak_card + FX_BUFFER_BPS;
+  /**
+   * Card through Macro, which is the bank the operation already runs on.
+   *
+   * Its hosted button takes debit and credit, settles to the treasury and reports
+   * back by webhook — the same path the transfer lane uses, so one integration
+   * covers both instead of a separate provider per card.
+   */
+  const macroReady = isMacroClickConfigured();
+  const cardFeeBps = FEES.macro_card + FX_BUFFER_BPS;
   const cardLocal = resolveLocalAmount(amountUsd, c, cardFeeBps);
-  const cardWidgetUrl = transakWidgetUrl({
-    amountUsd: cardLocal.totalUsd,
-    country: c,
-    referenceId,
-    paymentMethod: 'credit_debit_card'
-  });
   const card: SimplifiedCardMethod = {
-    provider: 'transak',
-    configured: Boolean(cardWidgetUrl),
+    provider: 'macro_click',
+    configured: macroReady && isMacroCountry(c),
     totalUsd: Number(cardLocal.totalUsd.toFixed(2)),
     totalLocal: cardLocal.totalLocal,
     displayCurrency: cardLocal.displayCurrency,
     feeBps: cardFeeBps,
-    widgetUrl: cardWidgetUrl,
+    widgetUrl: null,
     mpPublicKey: null,
     mpSandbox: false
   };
 
-  // --- Wire: Bridge VA for US/EU (+ peers); Transak bank_transfer elsewhere (incl. AR backup) ---
+  // --- Wire: Bridge virtual account where it reaches; Macro in Argentina ---
   const useBridgeWire = prefersBridgeWire(c);
-  const wireFeeBps = (useBridgeWire ? FEES.bridge_wire : FEES.transak_wire) + FX_BUFFER_BPS;
+  const useMacroWire = !useBridgeWire && macroReady && isMacroCountry(c);
+  const wireFeeBps = (useBridgeWire ? FEES.bridge_wire : FEES.macro_wire) + FX_BUFFER_BPS;
   /**
    * Quote the transfer in the payer's own currency, like every other lane.
    *
@@ -316,22 +336,14 @@ export async function resolveCheckoutBestRoutes(input: {
    * investor pays in local currency either way.
    */
   const wireLocal = resolveLocalAmount(amountUsd, c, wireFeeBps);
-  const wireWidgetUrl = useBridgeWire
-    ? null
-    : transakWidgetUrl({
-        amountUsd: wireLocal.totalUsd,
-        country: c,
-        referenceId,
-        paymentMethod: 'bank_transfer'
-      });
   const wire: SimplifiedWireMethod = {
-    provider: useBridgeWire ? 'bridge' : 'transak',
-    configured: useBridgeWire ? bridgeApiConfigured() : Boolean(wireWidgetUrl),
+    provider: useBridgeWire ? 'bridge' : 'macro_click',
+    configured: useBridgeWire ? bridgeApiConfigured() : useMacroWire,
     totalUsd: Number(wireLocal.totalUsd.toFixed(2)),
     totalLocal: wireLocal.totalLocal,
     displayCurrency: wireLocal.displayCurrency,
     feeBps: wireFeeBps,
-    widgetUrl: wireWidgetUrl
+    widgetUrl: null
   };
 
   const ripioFeeBps = 140;
