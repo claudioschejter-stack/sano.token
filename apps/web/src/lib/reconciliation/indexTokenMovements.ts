@@ -48,6 +48,28 @@ async function indexTransfers(input: {
   const contract = ethers.getAddress(input.contractAddress);
 
   return withProvider(async (provider) => {
+    /**
+     * When each movement happened, which a log does not carry.
+     *
+     * Every indexed row landed with `occurredAt` null, so the ledger could say
+     * what moved and between whom but not when — and "when" is most of what a
+     * ledger is for. Blocks are cached because a batch of transfers usually
+     * shares a handful of them.
+     */
+    const blockTimes = new Map<number, Date | null>();
+    const occurredAt = async (blockNumber: number): Promise<Date | null> => {
+      const cached = blockTimes.get(blockNumber);
+      if (cached !== undefined) return cached;
+      // The timestamp is the least important field in the row: if it cannot be
+      // read, the movement still gets written without it.
+      const at = await Promise.resolve()
+        .then(() => provider.getBlock(blockNumber))
+        .then((block) => (block ? new Date(block.timestamp * 1000) : null))
+        .catch(() => null);
+      blockTimes.set(blockNumber, at);
+      return at;
+    };
+
     const latest = await provider.getBlockNumber();
     // Resume where the ledger left off, so a skipped run leaves no hole.
     const startBlock = await resolveLedgerStartBlock({
@@ -111,6 +133,7 @@ async function indexTransfers(input: {
           txHash: log.transactionHash,
           logIndex: log.index,
           blockNumber: log.blockNumber,
+          occurredAt: await occurredAt(log.blockNumber),
           projectId: input.projectId ?? null,
           userId: attribution.userId,
           investorId: attribution.investorId,
