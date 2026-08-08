@@ -24,7 +24,10 @@ Argentina keeps **Mercado Pago + Ripio + Privy USDC** (Bridge excluded for `AR`)
 | `BRIDGE_WEBHOOK_PUBLIC_KEY` | RSA public key for `X-Webhook-Signature` (`t=,v0=`) |
 | `BRIDGE_WEBHOOK_SECRET` | Legacy HMAC only (tests); not used by Bridge dashboard |
 | `BASE_STABLECOIN_TREASURY_ADDRESS` / `TREASURY_WALLET_ADDRESS` | VA destination |
-| `BRIDGE_ALLOW_SIMULATED_VA` | Must stay unset/`false` in production |
+
+Simulated deposit details are development-only and cannot be enabled in
+production: a missing key or a failing Bridge call answers with an error there,
+rather than with an account nobody controls.
 
 ## 2. Register webhook
 

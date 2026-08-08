@@ -165,6 +165,18 @@ export function WireTransferPanel({
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{vaError}</p>
       ) : null}
 
+      {/**
+       * Say it when the account is a demo one. The simulated payload is a
+       * plausible-looking US account, and this banner used to be suppressed for
+       * exactly that case, so the only difference between real instructions and
+       * details that lead nowhere was invisible on screen.
+       */}
+      {vaError === 'SIMULATED_VA' ? (
+        <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+          {pg.bridgeSimulatedNotice}
+        </p>
+      ) : null}
+
       {kyc ? (
         <div className="space-y-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
           <p className="text-sm font-semibold text-blue-900">{pg.bridgeKycTitle}</p>
