@@ -27,7 +27,7 @@ function formatLocalAmount(totalLocal: number, displayCurrency: string): string 
 /**
  * Which provider serves the virtual wallet lane, and at what price.
  *
- * Ripio and the Transak wallet flow are the same thing to an investor — pay
+ * Ripio and the generic wallet on-ramp are the same thing to an investor — pay
  * from the wallet app on your phone — and listing them separately made the menu
  * show five options where there are four, asking the investor to choose between
  * two names they have no way to compare. Whichever is configured and cheaper

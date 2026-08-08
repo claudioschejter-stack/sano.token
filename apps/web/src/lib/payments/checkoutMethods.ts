@@ -49,15 +49,6 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     supportsPurchase: true
   },
   {
-    id: 'TRANSAK',
-    label: 'Transak',
-    description: 'On-ramp global con tarjeta o transferencia.',
-    configured: paymentGatewayConfigured('TRANSAK'),
-    automatic: true,
-    supportsDeposit: true,
-    supportsPurchase: true
-  },
-  {
     id: 'RIPIO',
     label: 'Ripio',
     description: 'On-ramp ARS → USDC en Base con transferencia o Mercado Pago.',

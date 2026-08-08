@@ -1,6 +1,6 @@
 # Sanova Global — Web3 Onboarding, Payments & Lending Architecture
 
-> **Stack:** Base L2 · Didit (KYC) · Privy (embedded wallets) · dLocal → Privy On-Ramp · Morpho Blue · Steakhouse vaults
+> **Stack:** Base L2 · Didit (KYC) · Privy (embedded wallets) · Macro Click de Pago → Bridge · Morpho Blue · Steakhouse vaults
 
 ## 1. Identity & compliance layer (Didit — preserved)
 
@@ -59,33 +59,38 @@ sequenceDiagram
 
 ---
 
-## 3. Payment cascade (dLocal → Privy On-Ramp)
+## 3. Payment rails (Macro where it collects, Bridge elsewhere)
 
 ```mermaid
 flowchart TD
   subgraph geo [Geo / availability]
-    C[User country + DLOCAL_API_KEY]
+    C[Investor country]
   end
 
-  C --> D{dLocal operational?}
-  D -->|MX IN AR BR…| E[dLocal SPEI / UPI / Pix]
-  D -->|other| F[Privy On-Ramp]
+  C --> D{Macro collects here?}
+  D -->|AR| E[Macro Click de Pago: card + transfer]
+  D -->|other| F{Bridge virtual account country?}
+  F -->|US EU MX BR GB…| G[Bridge VA: ACH/wire, SEPA, SPEI, Pix, FPS]
+  F -->|no| H[USDC on Base only]
 
-  E --> G[dLocal webhook paid]
-  G --> H[privyWalletFundingService]
-  H --> I[USDC on Base → user embedded wallet]
-  I --> J[Vault share delivery / treasury confirm]
-
-  F --> K[useFundWallet USDC Base]
-  K --> L[payToTreasury / purchase confirm]
+  E --> I[Provider webhook paid]
+  G --> I
+  I --> J[fiatRailTreasurySettlement]
+  J --> K[USDC on Base → treasury]
+  K --> L[Vault share delivery / purchase confirm]
 ```
 
-| Priority | Rail | User sees | Backend |
-|----------|------|-----------|---------|
-| 1 | dLocal | Local fiat (SPEI, UPI, Pix) | Webhook → auto USDC credit to Privy wallet |
-| 2 | Privy On-Ramp | Card / Apple Pay | Client fund → treasury settlement |
+| Priority | Rail | Investor sees | Backend |
+|----------|------|---------------|---------|
+| 1 | Macro (Click de Pago) | Card and bank transfer in ARS | Hosted checkout → webhook → treasury settlement |
+| 2 | Bridge | Virtual account in their own currency | VA credited → webhook → treasury settlement |
+| 3 | Privy on-ramp (`PRIVY_ONRAMP`) | Card / Apple Pay | Client fund → treasury settlement |
+| — | USDC on Base | Direct wallet transfer | On-chain confirm |
 
-**Policy:** `paymentRoutePolicy.ts`, `privyOnRampPolicy.ts`, `dlocalCountryCoverage.ts`
+Bitso Business is under evaluation as an additional collector; it plugs into
+`fiatRailPolicy.ts` rather than into each panel.
+
+**Policy:** `fiatRailPolicy.ts`, `checkoutRailPolicy.ts`, `privyOnRampPolicy.ts`
 
 **Settlement:** `fiatRailTreasurySettlement.ts` + `privyWalletFundingService.ts`
 

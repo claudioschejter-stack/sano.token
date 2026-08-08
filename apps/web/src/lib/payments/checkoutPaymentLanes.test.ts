@@ -62,9 +62,9 @@ describe('checkoutPaymentLanes', () => {
           totalUsd: 101,
           configured: true
         }),
-        option('transak', {
-          method: 'TRANSAK',
-          provider: 'transak',
+        option('privy_on_ramp', {
+          method: 'PRIVY_ONRAMP',
+          provider: 'privy',
           groupId: 'international',
           totalUsd: 103,
           configured: true

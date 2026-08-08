@@ -85,7 +85,7 @@ export function WireTransferPanel({
   }
 
   // Bridge shows account details; Macro posts to its own hosted form. Neither
-  // hands back a widget URL, which is what this used to render for Transak.
+  // hands back a widget URL to embed.
   const hostedWidgetUrl = null;
   const pixPayload = instructions?.brCode;
   const displayCurrency = instructions?.currency ?? 'USD';
@@ -137,8 +137,8 @@ export function WireTransferPanel({
       <PaymentFeeBreakdown
         amountUsd={amountUsd}
         totalUsd={wire.totalUsd}
-        gatewayChargedBy={wire.provider === 'bridge' ? 'Bridge' : 'Transak'}
-        fxChargedBy={wire.provider === 'bridge' ? 'Bridge' : 'Transak'}
+        gatewayChargedBy={wire.provider === 'bridge' ? 'Bridge' : 'Banco Macro'}
+        fxChargedBy={wire.provider === 'bridge' ? 'Bridge' : 'Banco Macro'}
       />
 
       {vaError && vaError !== 'SIMULATED_VA' ? (

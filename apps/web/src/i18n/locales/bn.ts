@@ -1135,7 +1135,6 @@ export const bn = {
     amountPlaceholder: "USD পরিমাণ",
     methodAuto: "স্বয়ংক্রিয়: সস্তা বিকল্প",
     methodUsdc: "ইউএসডিসি অন-চেইন",
-    methodTransak: "Transak (fiat → crypto)",
     methodBridge: "সেতু",
     methodStripe: "স্ট্রাইপ",
     methodMercadoPago: "পেমেন্ট মার্কেট",

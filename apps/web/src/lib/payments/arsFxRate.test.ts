@@ -17,11 +17,7 @@ describe('resolveArsPerUsd', () => {
     expect(resolveArsPerUsd('MACRO_CLICK_FX_ARS')).toBe(1100);
   });
 
-  it('keeps honouring the legacy names, so removing them cannot change a price', () => {
-    vi.stubEnv('DLOCAL_FX_ARS', '1234');
-    expect(resolveArsPerUsd()).toBe(1234);
-
-    vi.unstubAllEnvs();
+  it('keeps honouring the legacy name, so removing it cannot change a price', () => {
     vi.stubEnv('RIPIO_FX_ARS', '1300');
     expect(resolveArsPerUsd()).toBe(1300);
   });

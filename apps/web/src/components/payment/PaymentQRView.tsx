@@ -1,16 +1,14 @@
 'use client';
 
 import { QRCodeSVG } from 'qrcode.react';
-import { CreditCard, ExternalLink, Wallet } from 'lucide-react';
+import { ExternalLink, Wallet } from 'lucide-react';
 import { useState } from 'react';
 import { MpQrInPersonCheckout } from '../payments/qr/MpQrInPersonCheckout';
 
 type PaymentQRViewProps = {
-  fiatUrl: string;
   cryptoUri: string | null;
   treasuryAddress: string | null;
   chainId: number;
-  hasFiat: boolean;
   hasCrypto: boolean;
   mpQrConfigured?: boolean;
 };
@@ -98,11 +96,9 @@ function QRCard({
 }
 
 export function PaymentQRView({
-  fiatUrl,
   cryptoUri,
   treasuryAddress,
   chainId,
-  hasFiat,
   hasCrypto,
   mpQrConfigured = false
 }: PaymentQRViewProps) {
@@ -115,29 +111,11 @@ export function PaymentQRView({
       <div>
         <h1 className="text-2xl font-bold text-terminal-text">Cobrar pagos</h1>
         <p className="mt-1 text-sm text-terminal-muted">
-          Compartí estos QR con tus inversores para recibir fondos — fiat o cripto.
+          Compartí estos QR con tus inversores para recibir fondos.
         </p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Fiat QR */}
-        {hasFiat ? (
-          <QRCard
-            title="Pago con tarjeta / banco"
-            subtitle="El usuario paga en su moneda local → llega USDC"
-            icon={<CreditCard size={20} />}
-            value={fiatUrl}
-            accentClass="bg-gradient-to-r from-amber-500 to-orange-500"
-            ctaLabel="Abrir Transak"
-            ctaHref={fiatUrl}
-            badge="FIAT → USDC"
-          />
-        ) : (
-          <div className="flex items-center justify-center rounded-2xl border border-dashed border-terminal-border p-8 text-center text-sm text-terminal-muted">
-            Transak no configurado.<br />Agregar <code className="text-xs">TRANSAK_API_KEY</code> en Vercel.
-          </div>
-        )}
-
+      <div className="grid gap-6">
         {/* Crypto QR */}
         {hasCrypto && cryptoUri ? (
           <QRCard
@@ -164,12 +142,12 @@ export function PaymentQRView({
         <p className="text-sm font-semibold text-terminal-text">¿Cómo funciona?</p>
         <div className="grid gap-3 text-xs text-terminal-muted sm:grid-cols-2">
           <div className="space-y-1">
-            <p className="font-medium text-terminal-text">QR Fiat (naranja)</p>
-            <p>El inversor escanea → abre Transak en su navegador → paga con tarjeta o transferencia bancaria → los fondos llegan como USDC a la cuenta de la plataforma automáticamente.</p>
-          </div>
-          <div className="space-y-1">
             <p className="font-medium text-terminal-text">QR Cripto (azul)</p>
             <p>El inversor escanea con MetaMask, Trust Wallet, Coinbase Wallet u otra wallet EVM → envía USDC en Base directamente a la dirección de la plataforma sin intermediarios.</p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-medium text-terminal-text">QR Mercado Pago</p>
+            <p>Para cobros presenciales en pesos: el inversor escanea con su billetera argentina y el pago se acredita por webhook. Tarjeta y transferencia se cobran por Macro desde el checkout, que necesita monto y referencia.</p>
           </div>
         </div>
         {treasuryAddress && (

@@ -50,7 +50,7 @@ El tratamiento de datos personales se realiza en cumplimiento de la **Ley N° 25
       ],
       bullets: [
         '**Proveedores KYC/AML y biometría** (ej. Didit u otros habilitados).',
-        '**Pasarelas de pago y on-ramps** (Stripe, Mercado Pago, Coinbase, Transak u otros) solo para ejecutar pagos autorizados por usted.',
+        '**Pasarelas de pago y on-ramps** (Stripe, Mercado Pago, Coinbase, Banco Macro, Bridge u otros) solo para ejecutar pagos autorizados por usted.',
         '**Infraestructura tecnológica** (hosting, RPC, email, analytics operativo) bajo acuerdos de procesamiento.',
         '**Escribanos, registros, bancos y custodios** cuando sea necesario para traslados de dominio, cuentas del Compartimento o activos internacionales.',
         '**Asesores legales, contables y auditores** del Fideicomiso bajo deber de confidencialidad.',

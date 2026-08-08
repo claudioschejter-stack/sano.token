@@ -16,7 +16,6 @@ export type PaymentProviderId =
   | 'astropay'
   | 'bridge'
   | 'wise'
-  | 'transak'
   | 'ripio'
   | 'ramp'
   | 'binance'
@@ -288,19 +287,6 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     sortOrder: 510
   },
   {
-    id: 'transak',
-    groupId: 'international',
-    method: 'TRANSAK',
-    label: 'Tarjeta de débito, crédito y transferencia',
-    provider: 'transak',
-    providerRail: 'on_ramp',
-    fallbackFeeBps: 180,
-    fallbackGasUsd: 0.08,
-    fallbackNetworkUsd: 0.04,
-    usesLocalCurrency: true,
-    sortOrder: 540
-  },
-  {
     id: 'ramp',
     groupId: 'international',
     method: 'RAMP',
@@ -316,7 +302,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
   {
     id: 'privy_on_ramp',
     groupId: 'international',
-    method: 'TRANSAK',
+    method: 'PRIVY_ONRAMP',
     label: 'Tarjeta / Apple Pay (Privy)',
     provider: 'privy',
     providerRail: 'privy_on_ramp',

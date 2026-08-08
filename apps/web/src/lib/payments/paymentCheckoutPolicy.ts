@@ -26,19 +26,14 @@ const STRIPE_OPTION_IDS = new Set([
  * and Bridge for every other country's own instant rail. Turning the rest off is
  * one list; keeping them alive is permanent work.
  */
-/**
- * `TRANSAK` stays because the Privy on-ramp rides that method name — a naming
- * artefact, not a Transak integration. Transak itself is retired by provider
- * below, which is the field that says who actually collects the money.
- */
-const PURCHASE_ON_RAMP_METHODS = new Set(['BRIDGE', 'TRANSAK', 'RIPIO']);
+const PURCHASE_ON_RAMP_METHODS = new Set(['BRIDGE', 'PRIVY_ONRAMP', 'RIPIO']);
 const PURCHASE_DIRECT_USDC = new Set(['USDC_ONCHAIN', 'COINBASE']);
 
 /**
  * Providers that stay hidden until they work end to end. Kept as a list rather
  * than deleted so re-enabling one is a decision, not an archaeology exercise.
  */
-const RETIRED_PROVIDERS = new Set(['ramp', 'wise', 'astropay', 'ebanx', 'transak']);
+const RETIRED_PROVIDERS = new Set(['ramp', 'wise', 'astropay', 'ebanx']);
 
 const RETIRED_OPTION_IDS = new Set(['binance_pay', 'binance_usdc']);
 
@@ -68,7 +63,7 @@ function isLocalRailCheckoutRow(row: PaymentCheckoutRow): boolean {
   if (row.method !== 'LOCAL_RAIL') {
     return false;
   }
-  // dLocal is closed and EBANX never worked end to end; Macro is the live one.
+  // EBANX never worked end to end; Macro is the live local rail.
   return row.provider === 'macro_click';
 }
 

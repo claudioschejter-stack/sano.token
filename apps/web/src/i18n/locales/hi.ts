@@ -1135,7 +1135,6 @@ export const hi = {
     amountPlaceholder: "अमरीकी डालर राशि",
     methodAuto: "स्वचालित: सस्ता विकल्प",
     methodUsdc: "यूएसडीसी ऑन-चेन",
-    methodTransak: "ट्रांसक (फ़िएट → क्रिप्टो)",
     methodBridge: "पुल",
     methodStripe: "पट्टी",
     methodMercadoPago: "भुगतान बाज़ार",

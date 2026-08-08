@@ -24,7 +24,7 @@ const METHODS = new Set<PaymentMethod>([
   'MERCADO_PAGO',
   'COINBASE',
   'CUSTODIAL_STABLECOIN',
-  'TRANSAK',
+  'PRIVY_ONRAMP',
   'BRIDGE'
 ]);
 

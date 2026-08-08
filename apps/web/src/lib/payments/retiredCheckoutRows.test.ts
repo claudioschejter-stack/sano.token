@@ -18,7 +18,7 @@ describe('retired checkout rows', () => {
   it('hides the providers that never worked end to end', () => {
     for (const mode of ['purchase', 'deposit'] as const) {
       const providers = providersFor(mode);
-      for (const retired of ['ramp', 'wise', 'astropay', 'ebanx', 'transak', 'stripe']) {
+      for (const retired of ['ramp', 'wise', 'astropay', 'ebanx', 'stripe']) {
         expect(providers.has(retired as never), `${retired} in ${mode}`).toBe(false);
       }
     }
@@ -37,12 +37,7 @@ describe('retired checkout rows', () => {
     expect(providers.has('ripio')).toBe(true);
   });
 
-  /**
-   * The Privy on-ramp is filed under the `TRANSAK` method, which is a naming
-   * artefact rather than a Transak integration. Retiring by method would have
-   * taken down a working card on-ramp.
-   */
-  it('keeps the Privy on-ramp, which only shares a method name with Transak', () => {
+  it('keeps the Privy card on-ramp', () => {
     const privyRow = PAYMENT_CHECKOUT_ROWS.find((row) => row.id === 'privy_on_ramp');
     expect(privyRow).toBeDefined();
     expect(isRetiredCheckoutRow(privyRow!)).toBe(false);
@@ -50,9 +45,8 @@ describe('retired checkout rows', () => {
   });
 
   it('retires by provider, so a row is judged by who collects the money', () => {
-    const transak = PAYMENT_CHECKOUT_ROWS.find((row) => row.provider === 'transak');
-    if (transak) {
-      expect(isRetiredCheckoutRow(transak)).toBe(true);
-    }
+    const retired = PAYMENT_CHECKOUT_ROWS.find((row) => row.provider === 'wise');
+    expect(retired).toBeDefined();
+    expect(isRetiredCheckoutRow(retired!)).toBe(true);
   });
 });

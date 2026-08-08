@@ -55,7 +55,7 @@ describe('depositPaymentOptions', () => {
     expect(quote.options.some((row) => row.method === 'MERCADO_PAGO')).toBe(false);
     expect(quote.options.some((row) => row.provider === 'stripe')).toBe(false);
     expect(
-      quote.options.some((row) => row.method === 'TRANSAK' || row.method === 'BRIDGE')
+      quote.options.some((row) => row.method === 'PRIVY_ONRAMP' || row.method === 'BRIDGE')
     ).toBe(true);
   });
 

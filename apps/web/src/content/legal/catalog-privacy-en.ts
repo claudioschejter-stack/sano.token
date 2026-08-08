@@ -50,7 +50,7 @@ Personal data is processed in compliance with **Law No. 25,326 on Personal Data 
       ],
       bullets: [
         '**KYC/AML and biometrics providers** (e.g. Didit or other enabled vendors).',
-        '**Payment gateways and on-ramps** (Stripe, Mercado Pago, Coinbase, Transak or others) only to execute payments authorized by you.',
+        '**Payment gateways and on-ramps** (Stripe, Mercado Pago, Coinbase, Banco Macro, Bridge or others) only to execute payments authorized by you.',
         '**Technology infrastructure** (hosting, RPC, email, operational analytics) under processing agreements.',
         '**Notaries, registries, banks and custodians** when needed for title transfers, Compartment accounts or international assets.',
         '**Legal, accounting and audit advisors** of the Trust under confidentiality duties.',

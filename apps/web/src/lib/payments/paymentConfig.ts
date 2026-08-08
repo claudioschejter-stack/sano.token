@@ -5,7 +5,7 @@ export type PaymentMethodId =
   | 'USDC_ONCHAIN'
   | 'LOCAL_RAIL'
   | 'BRIDGE'
-  | 'TRANSAK'
+  | 'PRIVY_ONRAMP'
   | 'RIPIO'
   | 'RAMP'
   | 'STRIPE'
@@ -59,8 +59,9 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
     return Boolean(process.env.BRIDGE_API_KEY);
   }
 
-  if (method === 'TRANSAK') {
-    return Boolean(process.env.TRANSAK_API_KEY);
+  /** The card on-ramp is provisioned by Privy, so the Privy app id is the key. */
+  if (method === 'PRIVY_ONRAMP') {
+    return Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID?.trim());
   }
 
   if (method === 'RIPIO') {

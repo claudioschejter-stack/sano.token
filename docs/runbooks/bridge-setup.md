@@ -89,7 +89,7 @@ Idempotency key: `bridge-payout:{withdrawalId}`. Transfer id is stored as `txHas
 |------|----------|
 | Crypto wallets | Privy / on-chain USDC Base |
 | Fiat wallets AR | Mercado Pago, Ripio |
-| Cards | Transak / Privy on-ramp |
+| Cards | Macro Click de Pago (AR) / Privy on-ramp |
 | Bank transfer US/EU/MX/BR/GB | Bridge Virtual Account (on-ramp) |
 | Bank payout US/EU/MX | Bridge External Account + Transfer (admin “Pay via Bridge”) |
 | Withdrawals AR | Admin-mediated bank/digital wallet |

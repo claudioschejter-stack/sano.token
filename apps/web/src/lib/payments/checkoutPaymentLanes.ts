@@ -16,7 +16,6 @@ export type CheckoutPaymentLaneId = 'electronic_wallet' | 'crypto_wallet' | 'car
 const CRYPTO_WALLET_IDS = new Set<string>([...WALLET_CHECKOUT_ORDER, 'walletconnect_usdc']);
 
 const CARD_BACKEND_IDS = new Set<string>([
-  'transak',
   'bridge',
   'coinbase_commerce',
   'privy_on_ramp',
@@ -61,7 +60,7 @@ function isCardBackendOption(option: DepositPaymentOption): boolean {
   if (FIAT_ON_RAMP_SOURCE_IDS.includes(option.id as (typeof FIAT_ON_RAMP_SOURCE_IDS)[number])) {
     return true;
   }
-  if (option.method === 'TRANSAK' || option.method === 'BRIDGE') {
+  if (option.method === 'PRIVY_ONRAMP' || option.method === 'BRIDGE') {
     return option.id !== 'coinbase_pay';
   }
   if (option.method === 'COINBASE' && option.provider === 'coinbase') {

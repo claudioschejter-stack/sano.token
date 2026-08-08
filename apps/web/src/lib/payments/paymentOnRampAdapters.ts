@@ -28,112 +28,9 @@ type OnRampResult = {
   metadata?: Record<string, unknown>;
 };
 
-const TRANSAK_HOST = {
-  PRODUCTION: 'https://global.transak.com',
-  STAGING: 'https://global-stg.transak.com'
-} as const;
-
-function transakHost() {
-  const env = (process.env.TRANSAK_ENV ?? 'PRODUCTION').trim().toUpperCase();
-  return env === 'STAGING' ? TRANSAK_HOST.STAGING : TRANSAK_HOST.PRODUCTION;
-}
-
-function transakDefaultPaymentMethod(rail: string | null | undefined): string | undefined {
-  switch (rail) {
-    case 'debit_card':
-    case 'credit_card':
-      return 'credit_debit_card';
-    case 'international_transfer':
-      return 'bank_transfer';
-    default:
-      return undefined;
-  }
-}
-
 /** Todos los on-ramps fiat depositan USDC en treasury Base (Morpho). */
 function baseTreasuryAddress(): string | null {
   return getStablecoinNetwork('BASE').treasuryAddress;
-}
-
-export function createTransakOnRampCheckout(input: OnRampRequest): OnRampResult {
-  const apiKey = process.env.TRANSAK_API_KEY?.trim();
-  if (!apiKey) {
-    return { provider: 'transak', metadata: { configured: false } };
-  }
-
-  const walletAddress = baseTreasuryAddress();
-  if (!walletAddress) {
-    return { provider: 'transak', metadata: { configured: true, error: 'TREASURY_NOT_CONFIGURED' } };
-  }
-
-  const params = new URLSearchParams({
-    apiKey,
-    environment: transakHost().includes('stg') ? 'STAGING' : 'PRODUCTION',
-    cryptoCurrencyCode: 'USDC',
-    network: 'base',
-    walletAddress,
-    disableWalletAddressForm: 'true',
-    fiatAmount: input.amountUsd.toFixed(2),
-    fiatCurrency: 'USD',
-    partnerOrderId: input.depositId,
-    redirectURL: input.redirectPath
-      ? `${checkoutBaseUrl()}${input.redirectPath}`
-      : `${checkoutBaseUrl()}/marketplace/carrito?mode=deposit&deposit=${input.depositId}&status=success`,
-    hideMenu: 'true'
-  });
-
-  if (input.userEmail) {
-    params.set('email', input.userEmail);
-  }
-
-  const paymentMethod = transakDefaultPaymentMethod(input.paymentOptionRail);
-  if (paymentMethod) {
-    params.set('defaultPaymentMethod', paymentMethod);
-  }
-
-  return {
-    provider: 'transak',
-    providerPaymentId: input.depositId,
-    providerCheckoutUrl: `${transakHost()}/?${params.toString()}`,
-    metadata: { configured: true, network: 'BASE', mode: 'on_ramp', settlement: 'treasury_first' }
-  };
-}
-
-export function createTransakOffRampCheckout(input: {
-  withdrawalId: string;
-  amountUsd: number;
-  walletAddress: string;
-  userEmail?: string | null;
-}): OnRampResult {
-  const apiKey = process.env.TRANSAK_API_KEY?.trim();
-  if (!apiKey) {
-    return { provider: 'transak', metadata: { configured: false } };
-  }
-
-  const params = new URLSearchParams({
-    apiKey,
-    environment: transakHost().includes('stg') ? 'STAGING' : 'PRODUCTION',
-    productsAvailed: 'SELL',
-    cryptoCurrencyCode: 'USDC',
-    network: 'base',
-    walletAddress: input.walletAddress,
-    fiatAmount: input.amountUsd.toFixed(2),
-    fiatCurrency: 'USD',
-    partnerOrderId: input.withdrawalId,
-    redirectURL: `${checkoutBaseUrl()}/dashboard/portfolio?withdrawal=${input.withdrawalId}&status=success`,
-    hideMenu: 'true'
-  });
-
-  if (input.userEmail) {
-    params.set('email', input.userEmail);
-  }
-
-  return {
-    provider: 'transak',
-    providerPaymentId: input.withdrawalId,
-    providerCheckoutUrl: `${transakHost()}/?${params.toString()}`,
-    metadata: { configured: true, mode: 'off_ramp' }
-  };
 }
 
 export function createBridgeOnRampCheckout(input: OnRampRequest): OnRampResult {
@@ -273,11 +170,8 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
         });
       }
       return { provider: 'coinbase', metadata: { configured: Boolean(process.env.COINBASE_COMMERCE_API_KEY) } };
-    case 'TRANSAK':
-      if (checkoutRow?.id === PRIVY_ON_RAMP_OPTION_ID || checkoutRow?.provider === 'privy') {
-        return createPrivyOnRampCheckout(baseInput);
-      }
-      return createTransakOnRampCheckout(baseInput);
+    case 'PRIVY_ONRAMP':
+      return createPrivyOnRampCheckout(baseInput);
     case 'RIPIO':
       return createRipioOnRampCheckout({
         ...baseInput,
