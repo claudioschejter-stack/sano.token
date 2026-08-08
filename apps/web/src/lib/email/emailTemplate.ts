@@ -1,5 +1,6 @@
 import { isRtlEmailLocale } from './emailMessages';
-import { LEGAL_CONTACT_EMAIL, LEGAL_SITE_URL } from '../legal/legalConfig';
+import { LEGAL_SITE_URL } from '../legal/legalConfig';
+import { emailContactAddress } from './emailSender';
 
 /**
  * Shared HTML shell for every transactional email. Centralizing this improves
@@ -11,6 +12,8 @@ export function renderEmailShell(input: { locale?: string | null; bodyHtml: stri
   const dir = isRtlEmailLocale(input.locale) ? 'rtl' : 'ltr';
   const align = dir === 'rtl' ? 'right' : 'left';
   const siteUrl = LEGAL_SITE_URL.replace(/\/$/, '');
+  // On the sending domain, so nothing in the message points somewhere else.
+  const contact = emailContactAddress();
 
   return `
     <div dir="${dir}" style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.5;text-align:${align};max-width:560px;margin:0 auto">
@@ -20,7 +23,7 @@ export function renderEmailShell(input: { locale?: string | null; bodyHtml: stri
         Sanova Global · <a href="${siteUrl}" style="color:#94a3b8;text-decoration:underline">${siteUrl.replace(/^https?:\/\//, '')}</a>
       </p>
       <p style="color:#94a3b8;font-size:12px;margin:0">
-        <a href="mailto:${LEGAL_CONTACT_EMAIL}" style="color:#94a3b8;text-decoration:underline">${LEGAL_CONTACT_EMAIL}</a>
+        <a href="mailto:${contact}" style="color:#94a3b8;text-decoration:underline">${contact}</a>
       </p>
     </div>
   `;

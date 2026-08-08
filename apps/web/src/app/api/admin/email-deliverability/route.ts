@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
+import { emailContactAddress, emailFromAddress, emailSenderDomain } from '../../../../lib/email/emailSender';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -18,21 +19,6 @@ export const runtime = 'nodejs';
  * the DNS itself for DMARC, which Resend does not manage and whose absence is the
  * usual reason a correctly signed message still gets filtered.
  */
-
-function fromAddress(): string {
-  return (
-    process.env.ONBOARDING_FROM_EMAIL?.trim() ||
-    process.env.CONTACT_FROM_EMAIL?.trim() ||
-    'Sanova Global <no-reply@sanovacapital.com>'
-  );
-}
-
-function domainOf(from: string): string | null {
-  const match = /<([^>]+)>/.exec(from);
-  const address = (match?.[1] ?? from).trim();
-  const at = address.lastIndexOf('@');
-  return at === -1 ? null : address.slice(at + 1).toLowerCase();
-}
 
 type ResendDomain = {
   id: string;
@@ -79,8 +65,8 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const from = fromAddress();
-  const domain = domainOf(from);
+  const from = emailFromAddress();
+  const domain = emailSenderDomain(from);
   const apiKey = process.env.RESEND_API_KEY?.trim();
 
   const checks: Array<{ id: string; ok: boolean; detail: string; fix?: string }> = [];
@@ -163,10 +149,30 @@ export async function GET() {
       : `Agregá un TXT en _dmarc.${domain} con: v=DMARC1; p=none; rua=mailto:dmarc@${domain}`
   });
 
+  /**
+   * A contact on another domain is a cross-domain link inside a message that is
+   * otherwise just a six digit code — the shape filters are built to distrust.
+   */
+  const contact = emailContactAddress();
+  const contactDomain = emailSenderDomain(contact);
+  checks.push({
+    id: 'contact_same_domain',
+    ok: contactDomain === domain,
+    detail:
+      contactDomain === domain
+        ? `El contacto del pie (${contact}) está en el mismo dominio que firma el correo.`
+        : `El contacto del pie (${contact}) está en otro dominio que el remitente (${domain}).`,
+    fix:
+      contactDomain === domain
+        ? undefined
+        : `Cargá EMAIL_CONTACT_ADDRESS con una casilla de ${domain} que alguien lea.`
+  });
+
   return NextResponse.json({
     ok: checks.every((row) => row.ok),
     from,
     domain,
+    contact,
     checks
   });
 }

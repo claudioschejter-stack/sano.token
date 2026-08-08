@@ -1,3 +1,5 @@
+import { emailContactAddress, emailFromAddress } from './emailSender';
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -29,10 +31,15 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
     return { ok: false, error: 'RESEND_NOT_CONFIGURED' };
   }
 
-  const from =
-    process.env.ONBOARDING_FROM_EMAIL?.trim() ||
-    process.env.CONTACT_FROM_EMAIL?.trim() ||
-    'Sanova Global <no-reply@sanovacapital.com>';
+  const from = emailFromAddress();
+  /**
+   * Reply to an address someone reads, not to `no-reply`.
+   *
+   * A reply address that bounces is a small negative on its own, and it also
+   * throws away the one channel an investor reaches for when the code does not
+   * arrive — which is exactly the situation this is meant to survive.
+   */
+  const replyTo = process.env.CONTACT_FROM_EMAIL?.trim() || emailContactAddress();
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -44,7 +51,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       body: JSON.stringify({
         from,
         to: [input.to],
-        reply_to: process.env.CONTACT_FROM_EMAIL?.trim() || from,
+        reply_to: replyTo,
         subject: input.subject,
         text: input.text,
         html: input.html.includes('<') ? input.html : `<p>${escapeHtml(input.html)}</p>`,
