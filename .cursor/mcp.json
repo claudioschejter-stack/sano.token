@@ -6,11 +6,9 @@
     "stripe": {
       "url": "https://mcp.stripe.com"
     },
-    "dlocal-integration": {
-      "url": "https://mcp.dlocal.com/integration",
-      "headers": {
-        "x-merchant-id": "YOUR_MERCHANT_ID"
-      }
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com"
     }
   }
 }
