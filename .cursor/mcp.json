@@ -5,10 +5,6 @@
     },
     "stripe": {
       "url": "https://mcp.stripe.com"
-    },
-    "vercel": {
-      "type": "http",
-      "url": "https://mcp.vercel.com"
     }
   }
 }
