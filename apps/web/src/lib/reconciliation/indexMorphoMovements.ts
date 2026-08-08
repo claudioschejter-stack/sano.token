@@ -44,6 +44,23 @@ const KIND_BY_EVENT: Record<string, TokenMovementKindName> = {
 /** Collateral moves in vault shares; everything else moves in USDC. */
 const COLLATERAL_EVENTS = new Set(['SupplyCollateral', 'WithdrawCollateral']);
 
+/**
+ * Ask only for the events of our own markets.
+ *
+ * The query used to have no topics at all, so it requested every log Morpho
+ * Blue emitted on Base across 9500 blocks — a contract with more traffic than
+ * anything Sanova does. Every chunk came back over the provider's response cap
+ * and the run reported the whole span as skipped, which is why no lending
+ * movement was ever recorded. Morpho puts the market id in the first indexed
+ * topic, so both filters are free.
+ */
+function eventTopicFilter(marketIds: string[]): Array<string[]> {
+  const eventTopics = Object.keys(KIND_BY_EVENT).map(
+    (name) => MORPHO_EVENTS.getEvent(name)!.topicHash
+  );
+  return [eventTopics, marketIds];
+}
+
 function amountOf(name: string, args: Record<string, unknown>): bigint {
   if (name === 'Liquidate') {
     return BigInt(String(args.repaidAssets ?? 0));
@@ -110,11 +127,29 @@ export async function indexMorphoMovements(input?: {
     });
 
     let indexed = 0;
+    const topics = eventTopicFilter([...projectByMarketId.keys()]);
+
+    /**
+     * A log carries no timestamp, and a ledger without "when" is half a ledger.
+     * But the timestamp is the least important field in the row: if it cannot be
+     * read, the movement still gets written without it.
+     */
+    const blockTimes = new Map<number, Date | null>();
+    const blockTime = async (blockNumber: number): Promise<Date | null> => {
+      const cached = blockTimes.get(blockNumber);
+      if (cached !== undefined) return cached;
+      const at = await Promise.resolve()
+        .then(() => provider.getBlock(blockNumber))
+        .then((block) => (block ? new Date(block.timestamp * 1000) : null))
+        .catch(() => null);
+      blockTimes.set(blockNumber, at);
+      return at;
+    };
 
     for (let start = startBlock; start <= latest; start += RPC_CHUNK) {
       const end = Math.min(start + RPC_CHUNK - 1, latest);
       const logs = await readWithRetry(() =>
-        provider.getLogs({ address: morpho, fromBlock: start, toBlock: end })
+        provider.getLogs({ address: morpho, fromBlock: start, toBlock: end, topics })
       );
       if (!logs) {
         skipped.push(`bloques ${start}-${end}`);
@@ -175,6 +210,7 @@ export async function indexMorphoMovements(input?: {
           txHash: log.transactionHash,
           logIndex: log.index,
           blockNumber: log.blockNumber,
+          occurredAt: await blockTime(log.blockNumber),
           projectId,
           userId: entry?.userId ?? null,
           investorId: entry?.investorId ?? null,

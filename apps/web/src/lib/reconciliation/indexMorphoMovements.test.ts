@@ -77,19 +77,67 @@ function log(name: 'Borrow' | 'Repay' | 'SupplyCollateral', marketId: string, in
   };
 }
 
+let lastLogQuery: { topics?: unknown } | null = null;
+
 const provider = {
   getBlockNumber: async () => 300,
-  getLogs: async () => logs
+  getLogs: async (query: { topics?: unknown }) => {
+    lastLogQuery = query;
+    return logs;
+  },
+  getBlock: async (blockNumber: number) => ({ timestamp: 1_760_000_000 + blockNumber })
 } as never;
 
 beforeEach(() => {
   recorded.length = 0;
   logs = [];
+  lastLogQuery = null;
   collateralTargets = [{ protocol: 'MORPHO', externalId: OUR_MARKET }];
   vaultShareDecimals = 18;
 });
 
 describe('indexMorphoMovements', () => {
+  /**
+   * The query used to have no topics, so it asked for every log Morpho Blue
+   * emitted on Base. That response is far over any provider's cap, so every
+   * chunk failed and the whole span came back as skipped — which is why no
+   * lending movement was ever recorded in production.
+   */
+  it('pide solo los eventos de nuestros mercados, no todo lo de Morpho', async () => {
+    logs = [log('Borrow', OUR_MARKET)];
+    await indexMorphoMovements({ provider });
+
+    const topics = lastLogQuery?.topics as Array<string[]> | undefined;
+    expect(topics).toBeDefined();
+    expect(topics).toHaveLength(2);
+    // Seven event signatures, and the market ids Morpho indexes as first topic.
+    expect(topics![0]).toHaveLength(7);
+    expect(topics![1]).toEqual([OUR_MARKET]);
+  });
+
+  it('registra la fecha del bloque, que el log no trae', async () => {
+    logs = [log('Borrow', OUR_MARKET)];
+    await indexMorphoMovements({ provider });
+
+    expect(recorded[0].occurredAt).toBeInstanceOf(Date);
+  });
+
+  it('escribe el movimiento aunque no se pueda leer la fecha del bloque', async () => {
+    logs = [log('Borrow', OUR_MARKET)];
+    const noBlocks = {
+      getBlockNumber: async () => 300,
+      getLogs: async () => logs,
+      getBlock: async () => {
+        throw new Error('RPC down');
+      }
+    } as never;
+
+    const result = await indexMorphoMovements({ provider: noBlocks });
+
+    expect(result.indexed).toBe(1);
+    expect(recorded[0].occurredAt).toBeNull();
+  });
+
   it('records a borrow, which no token transfer of ours would show', async () => {
     logs = [log('Borrow', OUR_MARKET)];
     const result = await indexMorphoMovements({ provider });
