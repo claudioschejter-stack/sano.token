@@ -1,4 +1,5 @@
 import { enabledStablecoinNetworks, getStablecoinNetwork } from './stablecoinNetworks';
+import { isMacroClickConfigured } from './macroClick/config';
 
 export type PaymentMethodId =
   | 'INTERNAL_BALANCE'
@@ -47,9 +48,15 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
     return enabledStablecoinNetworks().length > 0;
   }
 
+  /**
+   * Macro is a direct bank integration, not one of the aggregators, so its own
+   * credentials are enough. Measuring the rail only by the aggregator flag left
+   * a fully configured Macro checkout throwing `PAYMENT_METHOD_NOT_CONFIGURED`.
+   */
   if (method === 'LOCAL_RAIL') {
     return Boolean(
-      process.env.LOCAL_RAILS_ENABLED === 'true' ||
+      isMacroClickConfigured() ||
+        process.env.LOCAL_RAILS_ENABLED === 'true' ||
         process.env.EBANX_API_KEY ||
         process.env.ASTROPAY_API_KEY
     );
