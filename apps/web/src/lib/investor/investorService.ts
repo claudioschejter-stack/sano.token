@@ -255,13 +255,23 @@ export async function getPortfolioForUser(userId: string) {
     }
   }
 
-  const totalCollateralUsd = [...investmentsByProject.values()].reduce((sum, group) => {
-    const onChainValue = onChainValueUsdFor(group[0]);
-    if (onChainValue > 0) {
-      return sum + onChainValue;
-    }
-    return sum + group.reduce((booked, row) => booked + row.purchasePriceUsd.toNumber(), 0);
-  }, 0);
+  /**
+   * Collateral is what the chain confirms, and nothing else.
+   *
+   * This used to fall back to the booked purchase price when the chain showed
+   * nothing, which let a database row stand in for tokens nobody holds. Demo
+   * rows written by a seeding script — 6.2 million dollars of them, with hashes
+   * like `seed-claudio-proj-anelo-services` — went straight into this total, and
+   * `availableCreditUsd` is a percentage of it.
+   *
+   * The same rule covers a case that is not a mistake at all: a real purchase
+   * whose shares have not been delivered yet contributes nothing either. You
+   * cannot borrow against shares you have not received.
+   */
+  const totalCollateralUsd = [...investmentsByProject.values()].reduce(
+    (sum, group) => sum + onChainValueUsdFor(group[0]),
+    0
+  );
 
   return {
     investor: {
