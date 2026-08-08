@@ -103,40 +103,73 @@ export async function aggregatePortfolioForUser(userId: string): Promise<Aggrega
         })
       : new Map();
 
-  const rwaPositions = investments.map((investment) => {
-    const onChain = onChainByProject.get(investment.projectId);
-    const bookedValueUsd = investment.purchasePriceUsd.toNumber();
+  /**
+   * One position per asset, not per purchase.
+   *
+   * The chain reports a single balance per wallet and project, so a row per
+   * purchase multiplied that same balance by the price once for each row: two
+   * purchases of one token each showed up as two rows of $40, and the portfolio
+   * total added them into $80 for $40 of holdings. The error grew with every
+   * purchase. Buying more of something you already own is one bigger position.
+   */
+  const byProject = new Map<string, typeof investments>();
+  for (const investment of investments) {
+    const group = byProject.get(investment.projectId);
+    if (group) {
+      group.push(investment);
+    } else {
+      byProject.set(investment.projectId, [investment]);
+    }
+  }
+
+  const rwaPositions = [...byProject.values()].map((group) => {
+    // Ordered by purchasedAt desc, so the first is the latest.
+    const latest = group[0];
+    const project = latest.project;
+    const onChain = onChainByProject.get(latest.projectId);
+
+    const tokenCount = group.reduce((sum, row) => sum + row.tokenCount, 0);
+    const bookedValueUsd = group.reduce((sum, row) => sum + row.purchasePriceUsd.toNumber(), 0);
+
     /**
      * The chain knows how many tokens are held; only the project knows what one
      * is worth. Multiplying here is what keeps the on-chain value in dollars.
      */
     const onChainValueUsd =
       onChain && onChain.assetTokens > 0
-        ? onChain.assetTokens * investment.project.pricePerToken.toNumber()
+        ? onChain.assetTokens * project.pricePerToken.toNumber()
         : 0;
     const valueUsd = onChainValueUsd > 0 ? onChainValueUsd : bookedValueUsd;
 
     return {
-      id: investment.id,
+      id: latest.id,
       type: 'RWA_TOKEN' as const,
-      label: investment.project.title,
-      amount: investment.tokenCount,
-      currency: investment.project.tokenSymbol ?? 'RWA',
+      label: project.title,
+      amount: tokenCount,
+      currency: project.tokenSymbol ?? 'RWA',
       valueUsdc: valueUsd,
       valueUsd,
       metadata: {
-        projectId: investment.projectId,
-        pricePerTokenUsd: investment.project.pricePerToken.toString(),
-        purchasedAt: investment.purchasedAt.toISOString(),
-        vaultAddress: investment.project.vaultAddress,
-        chainId: investment.project.chainId,
-        txHash: investment.txHash,
+        projectId: latest.projectId,
+        pricePerTokenUsd: project.pricePerToken.toString(),
+        purchasedAt: latest.purchasedAt.toISOString(),
+        vaultAddress: project.vaultAddress,
+        chainId: project.chainId,
+        txHash: latest.txHash,
         onChainVerified: Boolean(onChain?.verified && onChain.assetTokens > 0),
         vaultShares: onChain?.shares ?? null,
         vaultShareDecimals: onChain?.shareDecimals ?? null,
         onChainAssetTokens: onChain?.assetTokens ?? null,
         onChainAssetsUsd: onChainValueUsd > 0 ? onChainValueUsd : null,
-        bookedValueUsd
+        bookedValueUsd,
+        /** Each purchase stays visible, so grouping does not hide the history. */
+        purchases: group.map((row) => ({
+          investmentId: row.id,
+          tokenCount: row.tokenCount,
+          purchasePriceUsd: row.purchasePriceUsd.toNumber(),
+          purchasedAt: row.purchasedAt.toISOString(),
+          txHash: row.txHash
+        }))
       }
     };
   });
