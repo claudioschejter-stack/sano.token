@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, ExternalLink, Loader2, QrCode, Smartphone } from 'lucide-react';
+import { CheckCircle2, Loader2, QrCode, Smartphone } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
@@ -258,7 +258,6 @@ export function FiatWalletPanel({
   // BCRA-interoperable wallets pre-fill the amount when scanning it).
   // -------------------------------------------------------------------------
   if (isMp && isAR) {
-    const transakUrl = fiatWallet.widgetUrl;
     const qrNotConfigured = qrError === 'MP_QR_NOT_CONFIGURED' || qrError === 'MP_ACCESS_TOKEN_NOT_CONFIGURED';
 
     return (
@@ -382,17 +381,6 @@ export function FiatWalletPanel({
                 {sc.fiatWalletQrNotConfiguredBodySuffix}
               </p>
             </div>
-            {transakUrl && (
-              <a
-                href={transakUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-xs font-medium text-terminal-primary hover:underline"
-              >
-                <ExternalLink className="h-3 w-3" />
-                {sc.fiatWalletPayWithCardMeanwhile}
-              </a>
-            )}
           </div>
         ) : qrError ? (
           <div className="rounded-lg border border-red-500/30 bg-red-900/20 px-3 py-2.5">
@@ -429,7 +417,6 @@ export function FiatWalletPanel({
   // Brazil: single Pix QR (Copia e Cola) via Mercado Pago Payments API.
   // -------------------------------------------------------------------------
   if (isBR) {
-    const transakUrl = fiatWallet.widgetUrl;
     const pixNotConfigured = pixError === 'MERCADOPAGO_BR_NOT_CONFIGURED';
 
     return (
@@ -559,17 +546,6 @@ export function FiatWalletPanel({
                 {sc.fiatWalletPixNotConfiguredBody}
               </p>
             </div>
-            {transakUrl && (
-              <a
-                href={transakUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-xs font-medium text-terminal-primary hover:underline"
-              >
-                <ExternalLink className="h-3 w-3" />
-                {sc.fiatWalletPayWithCardMeanwhile}
-              </a>
-            )}
           </div>
         ) : pixError ? (
           <div className="rounded-lg border border-red-500/30 bg-red-900/20 px-3 py-2.5">
@@ -589,95 +565,14 @@ export function FiatWalletPanel({
     );
   }
 
-  // -------------------------------------------------------------------------
-  // Other countries: Transak fiat widget (unchanged fallback)
-  // -------------------------------------------------------------------------
-  const transakUrl = fiatWallet.widgetUrl;
-  if (!transakUrl) {
-    return (
-      <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
-        <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
-      </section>
-    );
-  }
-
+  /**
+   * Outside Argentina and Brazil no wallet rail collects for Sanova. Saying so
+   * here is cheaper for the investor than a lane that opens and then cannot take
+   * the money: the transfer lane (Bridge) and USDC are the paths that do work.
+   */
   return (
-    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
-      <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-terminal-primary/10 p-2 text-terminal-primary">
-          <QrCode size={18} />
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-terminal-text">{sc.fiatWalletTitle}</h3>
-          <p className="mt-0.5 text-xs text-terminal-muted">{sc.fiatWalletTransakHint}</p>
-        </div>
-      </div>
-
-      {isDesktop ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
-          <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(transakUrl)}`}
-              alt="Transak QR"
-              width={QR_SIZE}
-              height={QR_SIZE}
-              className="block rounded"
-            />
-          </div>
-          <p className="text-[11px] text-terminal-muted">{sc.fiatWalletScanToPay}</p>
-          <a
-            href={transakUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs font-medium text-terminal-primary hover:underline"
-          >
-            {sc.fiatWalletOpenWeb}
-            <ExternalLink className="h-3 w-3" />
-          </a>
-        </div>
-      ) : (
-        <>
-          <a
-            href={transakUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary px-4 py-3 text-sm font-semibold text-white"
-          >
-            <Smartphone size={16} />
-            {sc.fiatWalletPayNowCta.replace(
-              '{amount}',
-              formatLocalAmount(fiatWallet.totalLocal, fiatWallet.displayCurrency)
-            )}
-          </a>
-          <iframe
-            src={transakUrl}
-            allow="camera; microphone; payment"
-            className="h-[580px] w-full rounded-xl border border-terminal-border"
-            title="Transak Fiat Wallet"
-          />
-          {fiatApps.filter((a) => a.installed !== false).length > 0 && (
-            <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-widest text-terminal-muted">
-                {sc.fiatWalletAppsTitle}
-              </p>
-              {fiatApps
-                .filter((a) => a.installed !== false)
-                .map((app) => (
-                  <MobileAppRow key={app.id} app={app} />
-                ))}
-            </div>
-          )}
-        </>
-      )}
-
-      <PaymentFeeBreakdown
-        amountUsd={amountUsd}
-        totalUsd={fiatWallet.totalUsd}
-        feeBps={fiatWallet.feeBps}
-        providerLabel="Transak"
-        gatewayChargedBy="Transak"
-        fxChargedBy="Transak"
-      />
+    <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
+      <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
     </section>
   );
 }

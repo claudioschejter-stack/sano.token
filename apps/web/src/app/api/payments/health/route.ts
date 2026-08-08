@@ -48,7 +48,7 @@ export async function GET() {
       ripio: paymentGatewayConfigured('RIPIO'),
       astropay: Boolean(process.env.ASTROPAY_API_KEY?.trim()),
       bridge: paymentGatewayConfigured('BRIDGE'),
-      transak: paymentGatewayConfigured('TRANSAK')
+      privyOnRamp: paymentGatewayConfigured('PRIVY_ONRAMP')
     },
     mercadoPagoProbe,
     mercadoPagoEmbeddedProbe,

@@ -1135,7 +1135,6 @@ export const mr = {
     amountPlaceholder: "USD रक्कम",
     methodAuto: "स्वयंचलित: स्वस्त पर्याय",
     methodUsdc: "USDC ऑन-चेन",
-    methodTransak: "ट्रान्सक (फियाट → क्रिप्टो)",
     methodBridge: "ब्रिज",
     methodStripe: "पट्टी",
     methodMercadoPago: "पेमेंट मार्केट",

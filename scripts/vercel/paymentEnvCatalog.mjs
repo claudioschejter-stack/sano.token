@@ -75,12 +75,6 @@ export const PAYMENT_ENV_GROUPS = [
     keys: ['COINBASE_COMMERCE_API_KEY', 'COINBASE_COMMERCE_WEBHOOK_SECRET']
   },
   {
-    id: 'transak',
-    label: 'Transak on/off-ramp',
-    required: false,
-    keys: ['TRANSAK_API_KEY', 'TRANSAK_WEBHOOK_SECRET', 'TRANSAK_ENV']
-  },
-  {
     id: 'ripio',
     label: 'Ripio on-ramp (ARS → USDC)',
     required: false,
@@ -108,19 +102,9 @@ export const PAYMENT_ENV_GROUPS = [
   },
   {
     id: 'local-rails',
-    label: 'Rails locales (dLocal / EBANX)',
+    label: 'Rails locales (EBANX)',
     required: false,
-    keys: [
-      'LOCAL_RAILS_ENABLED',
-      'DLOCAL_API_KEY',
-      'DLOCAL_X_TRANS_KEY',
-      'DLOCAL_SECRET_KEY',
-      'DLOCAL_NOTIFICATION_SECRET',
-      'DLOCAL_API_BASE_URL',
-      'DLOCAL_CHECKOUT_BASE_URL',
-      'DLOCAL_DEFAULT_COUNTRY',
-      'EBANX_API_KEY'
-    ]
+    keys: ['LOCAL_RAILS_ENABLED', 'EBANX_API_KEY']
   },
   {
     id: 'astropay',
@@ -204,11 +188,6 @@ export function resolvePaymentEnv(env) {
   }
   if (!resolved.BASE_STABLECOIN_CHAIN_ID?.trim()) resolved.BASE_STABLECOIN_CHAIN_ID = '8453';
   if (!resolved.BASE_RPC_URL?.trim()) resolved.BASE_RPC_URL = 'https://mainnet.base.org';
-  if (!resolved.TRANSAK_ENV?.trim()) resolved.TRANSAK_ENV = 'PRODUCTION';
-  if (!resolved.DLOCAL_DEFAULT_COUNTRY?.trim()) resolved.DLOCAL_DEFAULT_COUNTRY = 'AR';
-  if (!resolved.DLOCAL_CHECKOUT_BASE_URL?.trim()) {
-    resolved.DLOCAL_CHECKOUT_BASE_URL = 'https://checkout.dlocal.com';
-  }
 
   return resolved;
 }
@@ -270,7 +249,6 @@ export const WEBHOOK_PATHS = {
   STRIPE: '/api/webhooks/stripe',
   MERCADOPAGO: '/api/webhooks/mercadopago',
   COINBASE: '/api/webhooks/coinbase',
-  TRANSAK: '/api/webhooks/transak',
   BRIDGE: '/api/webhooks/bridge',
   RIPIO: '/api/webhooks/ripio',
   MACRO_CLICK: '/api/webhooks/macro-click'

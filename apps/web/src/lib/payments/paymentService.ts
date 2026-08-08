@@ -16,7 +16,7 @@ import {
   createMercadoPagoCheckout,
   createStripeCheckout
 } from './paymentGatewayAdapters';
-import { createBridgeOnRampCheckout, createTransakOnRampCheckout } from './paymentOnRampAdapters';
+import { createBridgeOnRampCheckout, createPrivyOnRampCheckout } from './paymentOnRampAdapters';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
@@ -151,8 +151,8 @@ async function attachProviderCheckout(input: {
     });
   }
 
-  if (input.method === 'TRANSAK') {
-    return createTransakOnRampCheckout({
+  if (input.method === 'PRIVY_ONRAMP') {
+    return createPrivyOnRampCheckout({
       depositId: input.intentId,
       amountUsd: input.amountUsd,
       userId: input.userId,
@@ -183,7 +183,7 @@ const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
   'STRIPE',
   'MERCADO_PAGO',
   'COINBASE',
-  'TRANSAK',
+  'PRIVY_ONRAMP',
   'RIPIO',
   'BRIDGE',
   'RAMP'

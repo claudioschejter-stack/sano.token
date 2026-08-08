@@ -1135,7 +1135,6 @@ export const ar = {
     amountPlaceholder: "المبلغ بالدولار الأمريكي",
     methodAuto: "تلقائي: خيار أرخص",
     methodUsdc: "USDC على السلسلة",
-    methodTransak: "Transak (عملات ورقية → تشفير)",
     methodBridge: "كوبري",
     methodStripe: "شريط",
     methodMercadoPago: "سوق الدفع",

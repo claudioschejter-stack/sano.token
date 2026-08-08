@@ -77,7 +77,17 @@ export async function GET(request: Request): Promise<NextResponse> {
   const email = session?.user?.email;
 
   const apiKey = getBridgeApiKey();
-  const allowSimulated = !isProductionRuntime() || process.env.BRIDGE_ALLOW_SIMULATED_VA === 'true';
+  /**
+   * Simulated deposit details are for development, and only there.
+   *
+   * The fallback hands back a hardcoded US account — Lead Bank, routing
+   * 101019644 — which looks exactly like real wire instructions. There used to be
+   * a `BRIDGE_ALLOW_SIMULATED_VA` override that turned it on in production too;
+   * an env var whose only possible effect is an investor wiring money to an
+   * account nobody controls is not a switch worth having. In production a missing
+   * key or a failing Bridge call answers with an error instead.
+   */
+  const allowSimulated = !isProductionRuntime();
 
   if (!apiKey) {
     if (!allowSimulated) {

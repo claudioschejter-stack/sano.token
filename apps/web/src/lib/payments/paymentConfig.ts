@@ -1,11 +1,12 @@
 import { enabledStablecoinNetworks, getStablecoinNetwork } from './stablecoinNetworks';
+import { isMacroClickConfigured } from './macroClick/config';
 
 export type PaymentMethodId =
   | 'INTERNAL_BALANCE'
   | 'USDC_ONCHAIN'
   | 'LOCAL_RAIL'
   | 'BRIDGE'
-  | 'TRANSAK'
+  | 'PRIVY_ONRAMP'
   | 'RIPIO'
   | 'RAMP'
   | 'STRIPE'
@@ -47,9 +48,15 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
     return enabledStablecoinNetworks().length > 0;
   }
 
+  /**
+   * Macro is a direct bank integration, not one of the aggregators, so its own
+   * credentials are enough. Measuring the rail only by the aggregator flag left
+   * a fully configured Macro checkout throwing `PAYMENT_METHOD_NOT_CONFIGURED`.
+   */
   if (method === 'LOCAL_RAIL') {
     return Boolean(
-      process.env.LOCAL_RAILS_ENABLED === 'true' ||
+      isMacroClickConfigured() ||
+        process.env.LOCAL_RAILS_ENABLED === 'true' ||
         process.env.EBANX_API_KEY ||
         process.env.ASTROPAY_API_KEY
     );
@@ -59,8 +66,9 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
     return Boolean(process.env.BRIDGE_API_KEY);
   }
 
-  if (method === 'TRANSAK') {
-    return Boolean(process.env.TRANSAK_API_KEY);
+  /** The card on-ramp is provisioned by Privy, so the Privy app id is the key. */
+  if (method === 'PRIVY_ONRAMP') {
+    return Boolean(process.env.NEXT_PUBLIC_PRIVY_APP_ID?.trim());
   }
 
   if (method === 'RIPIO') {

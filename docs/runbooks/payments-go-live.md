@@ -23,7 +23,7 @@ Admin: `GET /api/admin/payments/status` (authenticated).
 | Group | Keys | Status target |
 |-------|------|---------------|
 | Treasury | `BASE_STABLECOIN_TREASURY_ADDRESS`, `BASE_USDC_TOKEN_ADDRESS`, `BASE_RPC_URL`, `CRON_SECRET` | Required |
-| Bridge VA | `BRIDGE_API_KEY`, `BRIDGE_WEBHOOK_PUBLIC_KEY`; keep `BRIDGE_ALLOW_SIMULATED_VA` unset/`false` | Required for non-AR wire |
+| Bridge VA | `BRIDGE_API_KEY`, `BRIDGE_WEBHOOK_PUBLIC_KEY` | Required for non-AR wire |
 | MP | `MERCADOPAGO_ACCESS_TOKEN`, `MERCADOPAGO_WEBHOOK_SECRET`, `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | Required for AR |
 | Ripio | `RIPIO_CLIENT_ID`, `RIPIO_CLIENT_SECRET`, `RIPIO_WEBHOOK_SECRET`, `RIPIO_ENV=PRODUCTION`, `RIPIO_CHAIN=BASE`, `RIPIO_FX_ARS` | Required for AR→USDC |
 | Privy | `NEXT_PUBLIC_PRIVY_APP_ID`, `PRIVY_APP_SECRET` | Required for embedded wallet / USDC pay |

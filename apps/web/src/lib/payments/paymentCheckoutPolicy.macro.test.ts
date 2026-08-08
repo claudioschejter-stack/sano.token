@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { checkoutRowAllowedForMode } from './paymentCheckoutPolicy';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
+import { paymentGatewayConfigured } from './paymentConfig';
 
 /**
  * Macro's backend was complete — hosted form, encryption, webhook, settlement —
@@ -56,6 +57,19 @@ describe('Macro in checkout', () => {
     configureMacro();
     // No LOCAL_RAILS_ENABLED, no EBANX key: Macro still shows.
     expect(checkoutRowAllowedForMode(macroRow('macro_click_debin'), 'purchase')).toBe(true);
+  });
+
+  /**
+   * The row was visible but the checkout still refused it: `LOCAL_RAIL` counted
+   * as configured only when the aggregator flag or an EBANX key was set, so a
+   * Macro cart threw `PAYMENT_METHOD_NOT_CONFIGURED` at the last step.
+   */
+  it('counts the local rail as configured on Macro credentials alone', () => {
+    unconfigureMacro();
+    expect(paymentGatewayConfigured('LOCAL_RAIL')).toBe(false);
+
+    configureMacro();
+    expect(paymentGatewayConfigured('LOCAL_RAIL')).toBe(true);
   });
 
   it('names the payment method, never the bank behind it', () => {

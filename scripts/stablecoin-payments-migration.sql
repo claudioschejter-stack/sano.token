@@ -1,7 +1,7 @@
 -- Idempotent production migration for stablecoin wallets and payment intents.
 -- Safe to run multiple times against Supabase/Postgres.
 
-CREATE TYPE "PaymentMethod" AS ENUM ('INTERNAL_BALANCE', 'USDC_ONCHAIN', 'LOCAL_RAIL', 'BRIDGE', 'TRANSAK', 'RAMP', 'STRIPE', 'MERCADO_PAGO', 'COINBASE', 'CUSTODIAL_STABLECOIN');
+CREATE TYPE "PaymentMethod" AS ENUM ('INTERNAL_BALANCE', 'USDC_ONCHAIN', 'LOCAL_RAIL', 'BRIDGE', 'PRIVY_ONRAMP', 'RAMP', 'STRIPE', 'MERCADO_PAGO', 'COINBASE', 'CUSTODIAL_STABLECOIN');
 
 DO $$ BEGIN
   ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'INTERNAL_BALANCE';
@@ -16,7 +16,7 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_object THEN NULL;
 END $$;
 DO $$ BEGIN
-  ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'TRANSAK';
+  ALTER TYPE "PaymentMethod" ADD VALUE IF NOT EXISTS 'PRIVY_ONRAMP';
 EXCEPTION WHEN undefined_object THEN NULL;
 END $$;
 DO $$ BEGIN

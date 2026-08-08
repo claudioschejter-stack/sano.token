@@ -11,7 +11,7 @@ describe('isExternalUsdcPaymentOptionId', () => {
 
   it('rejects Sanova-linked or fiat options', () => {
     expect(isExternalUsdcPaymentOptionId('privy_usdc')).toBe(false);
-    expect(isExternalUsdcPaymentOptionId('transak')).toBe(false);
+    expect(isExternalUsdcPaymentOptionId('privy_on_ramp')).toBe(false);
     expect(isExternalUsdcPaymentOptionId(null)).toBe(false);
   });
 });

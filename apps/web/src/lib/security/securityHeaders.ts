@@ -55,7 +55,7 @@ export function applySecurityHeaders(
     "base-uri 'self'",
     "object-src 'none'",
     "frame-ancestors 'self'",
-    "form-action 'self' https://checkout.stripe.com https://commerce.coinbase.com https://www.mercadopago.com https://www.mercadopago.com.ar https://global.transak.com https://pay.google.com https://www.paypal.com",
+    "form-action 'self' https://checkout.stripe.com https://commerce.coinbase.com https://www.mercadopago.com https://www.mercadopago.com.ar https://pay.google.com https://www.paypal.com",
     "img-src 'self' data: blob: https:",
     "font-src 'self' data: https:",
     "style-src 'self' 'unsafe-inline' https:",

@@ -18,7 +18,7 @@ type Props = {
 /**
  * Debit and credit card through Macro's hosted button.
  *
- * It replaced an embedded Transak widget. The widget looked nicer — the form
+ * It replaced an embedded third-party widget. The widget looked nicer — the form
  * lived inside the page and reported completion by postMessage — but it was a
  * second provider to trust with card data, on top of the bank the operation
  * already runs on. Macro collects the card, settles to the treasury and reports

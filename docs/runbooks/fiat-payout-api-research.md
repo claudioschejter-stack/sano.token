@@ -1,6 +1,6 @@
 # Phase 3 — Fiat payout API research (follow-up)
 
-Status: **open / non-blocking — keep admin-mediated**. Fiat withdrawals stay on the admin confirm/reject flow (`PlatformWithdrawal` + `AdminWithdrawalsView`) even after Bridge on-ramp/VA go live. Automated money-out requires a commercial agreement with a provider (Bridge off-ramp, MP Money Out, dLocal payouts, etc.).
+Status: **open / non-blocking — keep admin-mediated**. Fiat withdrawals stay on the admin confirm/reject flow (`PlatformWithdrawal` + `AdminWithdrawalsView`) even after Bridge on-ramp/VA go live. Automated money-out requires a commercial agreement with a provider (Bridge off-ramp, MP Money Out, Macro, Bitso Business, etc.).
 
 ## Candidates
 
@@ -9,7 +9,7 @@ Status: **open / non-blocking — keep admin-mediated**. Fiat withdrawals stay o
 | **Mercado Pago** | Money Out / payouts API (AR) | Needs MP business account approved for payouts; not available with checkout-only credentials. |
 | **Ripio** | Off-ramp / withdrawal APIs | Confirm if partner can push ARS to CVU/alias of end users. |
 | **Bridge** | Fiat off-ramp rails | Strong US/EU; AR coverage must be confirmed. |
-| **dLocal** | Payouts API | Common LATAM payouts; requires merchant payout KYC. |
+| **Bitso Business** | Payouts / SPEI + LATAM rails | Under commercial evaluation; would need payout KYC. |
 
 ## When a payout API is approved
 

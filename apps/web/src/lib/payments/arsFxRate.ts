@@ -14,7 +14,12 @@
 const DEFAULT_ARS_PER_USD = 1050;
 
 const CANONICAL = 'FX_ARS';
-const LEGACY = ['RIPIO_FX_ARS', 'DLOCAL_FX_ARS'];
+/**
+ * `RIPIO_FX_ARS` stays because Ripio is live — dropping it would silently change
+ * the peso amount for anyone whose environment only has that one set, which is
+ * the kind of change that shows up as a wrong charge rather than as an error.
+ */
+const LEGACY = ['RIPIO_FX_ARS'];
 
 function parse(value: string | undefined): number | null {
   const parsed = Number(value);

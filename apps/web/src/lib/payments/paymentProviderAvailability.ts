@@ -48,8 +48,6 @@ export function isPaymentProviderConfigured(provider: PaymentProviderId): boolea
       return paymentGatewayConfigured('BRIDGE');
     case 'wise':
       return isWiseConfigured();
-    case 'transak':
-      return paymentGatewayConfigured('TRANSAK');
     case 'ripio':
       return paymentGatewayConfigured('RIPIO');
     case 'ramp':
