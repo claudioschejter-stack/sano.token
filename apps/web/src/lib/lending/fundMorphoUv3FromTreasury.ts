@@ -17,14 +17,89 @@ import { checkMorphoLiquidity } from './morphoLiquidityCheck';
 import { getAdminAsset } from '../admin/assetsService';
 import { ensureAllowance } from '../blockchain/ensureAllowance';
 
-/** UV3 / Añelo Apart Hotel Urban View Morpho Blue market (Base). */
+/** UV3 / Añelo Apart Hotel Urban View. */
 export const UV3_PROJECT_ID = 'proj-anelo-apart-hotel-urban-view';
-export const UV3_MARKET_ID =
-  '0xacc94a3f8cf6c3bd4060d02a2888027540db4a147dc2d7249472b1623d102209';
-export const UV3_ORACLE = '0x81bc0d8e0207E140b3101EB8Ffd2C387bD30AAEa';
-export const UV3_COLLATERAL = '0x125782B1302be9a2f58849f8A86F25F78009b367';
-export const UV3_IRM = '0x46415998764C29aB2a25CbeA6254146D50D22687';
-export const UV3_LLTV = 625000000000000000n;
+
+/**
+ * The market is resolved at run time, not pinned here.
+ *
+ * It used to be four hardcoded addresses, and they went stale the moment the
+ * project moved to a corrected vault: the market id, the oracle and the
+ * collateral all pointed at a vault that had been emptied. A daily cron would
+ * have kept supplying treasury USDC — investor money — into a market whose
+ * collateral nobody could post any more.
+ *
+ * The project's registered market id is the only thing worth remembering, and
+ * the parameters come from the chain, which cannot disagree with itself.
+ */
+export type ResolvedMorphoMarket = {
+  marketId: string;
+  params: { loanToken: string; collateralToken: string; oracle: string; irm: string; lltv: bigint };
+};
+
+function registeredMarketId(collateralTargets: unknown): string | null {
+  const targets = Array.isArray(collateralTargets)
+    ? (collateralTargets as Array<Record<string, unknown>>)
+    : [];
+  for (const target of targets) {
+    const id = typeof target.externalId === 'string' ? target.externalId.trim() : '';
+    if (target.protocol === 'MORPHO' && /^0x[0-9a-fA-F]{64}$/.test(id)) {
+      return id;
+    }
+  }
+  return null;
+}
+
+export async function resolveProjectMorphoMarket(input: {
+  provider: JsonRpcProvider;
+  morphoAddress: string;
+  projectId: string;
+}): Promise<{ ok: true; market: ResolvedMorphoMarket } | { ok: false; reason: string }> {
+  const asset = await getAdminAsset(input.projectId).catch(() => null);
+  const vault = asset?.vaultAddress?.trim();
+  if (!vault) {
+    return { ok: false, reason: 'PROJECT_HAS_NO_VAULT' };
+  }
+
+  const marketId = registeredMarketId(asset?.collateralTargets);
+  if (!marketId) {
+    return {
+      ok: false,
+      reason:
+        'NO_MORPHO_MARKET_REGISTERED: corré POST /api/admin/assets/<projectId>/register-collateral con protocols ["MORPHO"] para crear el mercado del vault actual.'
+    };
+  }
+
+  const morpho = new Contract(input.morphoAddress, MORPHO_PARAMS_ABI, input.provider);
+  const params = (await morpho.idToMarketParams(marketId)) as unknown as [
+    string,
+    string,
+    string,
+    string,
+    bigint
+  ];
+
+  if (params[1].toLowerCase() !== vault.toLowerCase()) {
+    return {
+      ok: false,
+      reason: `MARKET_COLLATERAL_MISMATCH: el proyecto usa ${vault} y el mercado registrado tiene como colateral ${params[1]}.`
+    };
+  }
+
+  return {
+    ok: true,
+    market: {
+      marketId,
+      params: {
+        loanToken: params[0],
+        collateralToken: params[1],
+        oracle: params[2],
+        irm: params[3],
+        lltv: params[4]
+      }
+    }
+  };
+}
 
 const DEFAULT_TREASURY_SAFE = '0xa993743CFB85E8d6481Ef60bb3D397F49604A592';
 const DEFAULT_MORPHO_WALLET = '0xa27450116E04eb845d741767d9e798Ccf828fDC1';
@@ -41,6 +116,10 @@ const ERC20_ABI = [
 const SAFE_ABI = [
   'function execTransaction(address to,uint256 value,bytes data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address payable refundReceiver,bytes signatures) payable returns (bool success)',
   'function getOwners() view returns (address[])'
+];
+
+const MORPHO_PARAMS_ABI = [
+  'function idToMarketParams(bytes32) view returns (address loanToken,address collateralToken,address oracle,address irm,uint256 lltv)'
 ];
 
 const MORPHO_SUPPLY_ABI = [
@@ -95,27 +174,27 @@ export async function fundMorphoUv3FromTreasury(input?: {
     return { ok: false, error: 'INVALID_ADDRESSES' };
   }
 
-  /**
-   * The market, its oracle and its collateral are pinned above. If the project
-   * has since moved to another vault, nobody can post this market's collateral
-   * any more, and supplying into it would be sending treasury USDC — investor
-   * money — somewhere it can never be borrowed from. This runs on a daily cron,
-   * so it would keep doing it.
-   */
-  const asset = await getAdminAsset(UV3_PROJECT_ID).catch(() => null);
-  const currentVault = asset?.vaultAddress?.trim();
-  if (currentVault && currentVault.toLowerCase() !== UV3_COLLATERAL.toLowerCase()) {
-    return {
-      ok: true,
-      skipped: true,
-      reason: `PROJECT_VAULT_CHANGED: el proyecto usa ${currentVault} y este mercado tiene como colateral ${UV3_COLLATERAL}. Hay que crear el mercado del vault nuevo y actualizar estas constantes.`
-    };
-  }
-
   const { morpho, usdc, chainId } = getLendingChainConfig();
   const provider = new JsonRpcProvider(resolveRpcUrl());
 
   try {
+    /**
+     * Resolve the market before moving any money, and refuse if its collateral
+     * is not the project's current vault. Supplying into a market nobody can
+     * post collateral to would be sending treasury USDC — investor money —
+     * somewhere it can never be borrowed from, once a day, forever.
+     */
+    const resolved = await resolveProjectMorphoMarket({
+      provider,
+      morphoAddress: morpho,
+      projectId: UV3_PROJECT_ID
+    });
+
+    if (resolved.ok === false) {
+      return { ok: true, skipped: true, reason: resolved.reason };
+    }
+
+    const { marketId, params: marketParams } = resolved.market;
     const usdcContract = new Contract(usdc, ERC20_ABI, provider);
     const decimals = Number(await usdcContract.decimals());
     const requested = parseUnits(amountUsdc.toFixed(decimals), decimals);
@@ -134,7 +213,7 @@ export async function fundMorphoUv3FromTreasury(input?: {
 
     const transferAmount = treasuryBalance < requested ? treasuryBalance : requested;
     const morphoContract = new Contract(morpho, MORPHO_SUPPLY_ABI, provider);
-    const marketBefore = await morphoContract.market(UV3_MARKET_ID);
+    const marketBefore = await morphoContract.market(marketId);
     const supplyBefore = formatUnits(marketBefore.totalSupplyAssets, decimals);
 
     const morphoSigner = await resolveMorphoLiquiditySigner(provider, chainId);
@@ -215,21 +294,16 @@ export async function fundMorphoUv3FromTreasury(input?: {
       signer: morphoSigner
     });
 
+    // `marketParams` came from the chain for this market id, so supply cannot
+    // land in a different market than the one that was just checked.
     const morphoWrite = new Contract(morpho, MORPHO_SUPPLY_ABI, morphoSigner);
-    const marketParams = {
-      loanToken: usdc,
-      collateralToken: UV3_COLLATERAL,
-      oracle: UV3_ORACLE,
-      irm: UV3_IRM,
-      lltv: UV3_LLTV
-    };
     const onBehalf = await morphoSigner.getAddress();
     await morphoWrite.supply.staticCall(marketParams, transferAmount, 0, onBehalf, '0x');
     const supplyTx = await morphoWrite.supply(marketParams, transferAmount, 0, onBehalf, '0x');
     const supplyReceipt = await waitForAutomationTx(supplyTx);
     const supplyTxHash = supplyReceipt?.hash ?? supplyTx.hash;
 
-    const marketAfter = await morphoContract.market(UV3_MARKET_ID);
+    const marketAfter = await morphoContract.market(marketId);
     const supplyAfter = formatUnits(marketAfter.totalSupplyAssets, decimals);
 
     const asset = await getAdminAsset(UV3_PROJECT_ID);
