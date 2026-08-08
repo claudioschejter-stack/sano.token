@@ -1,3 +1,5 @@
+import { emailContactAddress, emailFromAddress } from './emailSender';
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -11,6 +13,13 @@ type TransactionalEmailInput = {
   subject: string;
   text: string;
   html: string;
+  /**
+   * Marks the message as transactional rather than bulk.
+   *
+   * The cost of a filter's wrong guess is asymmetric: a promotional message in
+   * spam is a lost impression, a second factor in spam is a locked account.
+   */
+  category?: 'auth' | 'notification';
 };
 
 type SendResult = { ok: boolean; error?: string };
@@ -22,10 +31,15 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
     return { ok: false, error: 'RESEND_NOT_CONFIGURED' };
   }
 
-  const from =
-    process.env.ONBOARDING_FROM_EMAIL?.trim() ||
-    process.env.CONTACT_FROM_EMAIL?.trim() ||
-    'Sanova Global <no-reply@sanovacapital.com>';
+  const from = emailFromAddress();
+  /**
+   * Reply to an address someone reads, not to `no-reply`.
+   *
+   * A reply address that bounces is a small negative on its own, and it also
+   * throws away the one channel an investor reaches for when the code does not
+   * arrive — which is exactly the situation this is meant to survive.
+   */
+  const replyTo = process.env.CONTACT_FROM_EMAIL?.trim() || emailContactAddress();
 
   try {
     const response = await fetch('https://api.resend.com/emails', {
@@ -37,10 +51,21 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
       body: JSON.stringify({
         from,
         to: [input.to],
-        reply_to: process.env.CONTACT_FROM_EMAIL?.trim() || from,
+        reply_to: replyTo,
         subject: input.subject,
         text: input.text,
-        html: input.html.includes('<') ? input.html : `<p>${escapeHtml(input.html)}</p>`
+        html: input.html.includes('<') ? input.html : `<p>${escapeHtml(input.html)}</p>`,
+        /**
+         * `Auto-Submitted` says this was generated in response to something the
+         * recipient just did, which is what separates a login code from a
+         * newsletter.
+         *
+         * Two headers are deliberately absent. `List-Unsubscribe` marks bulk mail,
+         * and nobody unsubscribes from their own login code. `X-Priority: 1` is
+         * worse than useless: legitimate senders rarely set it and spammers
+         * routinely do, so it costs reputation instead of buying urgency.
+         */
+        headers: { 'Auto-Submitted': 'auto-generated' }
       })
     });
 
