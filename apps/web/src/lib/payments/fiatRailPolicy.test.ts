@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resolveFiatRail } from './fiatRailPolicy';
+import { wireLaneRenderer } from './fiatRailCoverage';
 
 /**
  * Macro wherever Macro can collect, Bridge wherever it cannot.
@@ -70,5 +71,33 @@ describe('resolveFiatRail', () => {
     const decision = resolveFiatRail({ country: 'JP', kind: 'transfer', ...configured });
     expect(decision.provider).toBeNull();
     expect(decision.reason).toBe('no_collector_for_country');
+  });
+});
+
+/**
+ * El panel de transferencia decidía por "¿vino una URL de widget?", y ya no viene
+ * ninguna, así que caía en Bridge para todos los países — incluida Argentina, que
+ * Bridge excluye a propósito. El inversor argentino veía un error de Bridge donde
+ * tenía que estar Macro.
+ */
+describe('wireLaneRenderer', () => {
+  it('en Argentina muestra el formulario de Macro, no una cuenta de Bridge', () => {
+    expect(wireLaneRenderer({ provider: 'macro_click', country: 'AR' })).toBe('macro_hosted_form');
+  });
+
+  it('nunca pide una cuenta virtual en un país que Bridge no abre', () => {
+    for (const country of ['AR', 'JP', 'CN']) {
+      expect(wireLaneRenderer({ provider: 'bridge', country })).not.toBe('bridge_virtual_account');
+    }
+  });
+
+  it('muestra la cuenta virtual donde Bridge sí la abre', () => {
+    for (const country of ['US', 'DE', 'MX', 'BR', 'GB', 'CO']) {
+      expect(wireLaneRenderer({ provider: 'bridge', country })).toBe('bridge_virtual_account');
+    }
+  });
+
+  it('cierra el carril cuando el cobrador y el país se contradicen', () => {
+    expect(wireLaneRenderer({ provider: 'macro_click', country: 'US' })).toBe('unavailable');
   });
 });
