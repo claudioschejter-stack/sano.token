@@ -152,7 +152,8 @@ export type SimplifiedWireMethod = {
   provider: 'transak' | 'bridge';
   configured: boolean;
   totalUsd: number;
-  displayCurrency: 'USD';
+  totalLocal: number;
+  displayCurrency: string;
   feeBps: number;
   widgetUrl: string | null;
 };
@@ -306,11 +307,19 @@ export async function resolveCheckoutBestRoutes(input: {
   // --- Wire: Bridge VA for US/EU (+ peers); Transak bank_transfer elsewhere (incl. AR backup) ---
   const useBridgeWire = prefersBridgeWire(c);
   const wireFeeBps = (useBridgeWire ? FEES.bridge_wire : FEES.transak_wire) + FX_BUFFER_BPS;
-  const wireTotal = amountUsd * (1 + wireFeeBps / 10_000);
+  /**
+   * Quote the transfer in the payer's own currency, like every other lane.
+   *
+   * It used to show USD while the wallet and card lanes showed pesos, so the
+   * cheapest option looked like the most expensive: 20.20 next to 21.294 reads
+   * as a smaller number until you notice they are different currencies. The
+   * investor pays in local currency either way.
+   */
+  const wireLocal = resolveLocalAmount(amountUsd, c, wireFeeBps);
   const wireWidgetUrl = useBridgeWire
     ? null
     : transakWidgetUrl({
-        amountUsd: Number(wireTotal.toFixed(2)),
+        amountUsd: wireLocal.totalUsd,
         country: c,
         referenceId,
         paymentMethod: 'bank_transfer'
@@ -318,8 +327,9 @@ export async function resolveCheckoutBestRoutes(input: {
   const wire: SimplifiedWireMethod = {
     provider: useBridgeWire ? 'bridge' : 'transak',
     configured: useBridgeWire ? bridgeApiConfigured() : Boolean(wireWidgetUrl),
-    totalUsd: Number(wireTotal.toFixed(2)),
-    displayCurrency: 'USD',
+    totalUsd: Number(wireLocal.totalUsd.toFixed(2)),
+    totalLocal: wireLocal.totalLocal,
+    displayCurrency: wireLocal.displayCurrency,
     feeBps: wireFeeBps,
     widgetUrl: wireWidgetUrl
   };

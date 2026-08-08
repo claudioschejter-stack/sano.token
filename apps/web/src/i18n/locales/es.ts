@@ -2936,8 +2936,9 @@ export const es = {
   simplifiedCheckout: {
     fiatWallet: 'Billetera electrónica',
     cryptoWallet: 'Billetera cripto',
-    card: 'Tarjeta de débito o crédito',
-    wire: 'Transferencia Bancaria',
+    virtualWallet: 'Billetera virtual',
+    card: 'Tarjeta de débito',
+    wire: 'Transferencia',
     selectMethod: 'Elegí cómo pagar',
     backToMethods: 'Volver a formas de pago',
     probing: 'Detectando apps instaladas…',
