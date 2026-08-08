@@ -237,9 +237,30 @@ export async function getPortfolioForUser(userId: string) {
     return onChain.assetTokens * investment.project.pricePerToken.toNumber();
   };
 
-  const totalCollateralUsd = investor.investments.reduce((sum, investment) => {
-    const onChainValue = onChainValueUsdFor(investment);
-    return sum + (onChainValue > 0 ? onChainValue : investment.purchasePriceUsd.toNumber());
+  /**
+   * Group the purchases by asset before valuing anything.
+   *
+   * The chain reports one balance per wallet and project, so adding it up per
+   * purchase counted the same tokens twice — and this total is what
+   * `availableCreditUsd` is derived from, so the platform would have offered
+   * credit against collateral that does not exist.
+   */
+  const investmentsByProject = new Map<string, typeof investor.investments>();
+  for (const investment of investor.investments) {
+    const group = investmentsByProject.get(investment.projectId);
+    if (group) {
+      group.push(investment);
+    } else {
+      investmentsByProject.set(investment.projectId, [investment]);
+    }
+  }
+
+  const totalCollateralUsd = [...investmentsByProject.values()].reduce((sum, group) => {
+    const onChainValue = onChainValueUsdFor(group[0]);
+    if (onChainValue > 0) {
+      return sum + onChainValue;
+    }
+    return sum + group.reduce((booked, row) => booked + row.purchasePriceUsd.toNumber(), 0);
   }, 0);
 
   return {
@@ -261,9 +282,13 @@ export async function getPortfolioForUser(userId: string) {
       totalCollateralUsd: totalCollateralUsd.toFixed(2),
       availableCreditUsd: (totalCollateralUsd * DEFAULT_MAX_LTV).toFixed(2)
     },
-    activePositions: investor.investments.map((investment) => {
+    // One position per asset: buying more of what you own is a bigger holding,
+    // not a second one that happens to have the same name.
+    activePositions: [...investmentsByProject.values()].map((group) => {
+      const investment = group[0];
       const onChain = onChainByProject.get(investment.projectId);
-      const purchasePriceUsd = investment.purchasePriceUsd.toString();
+      const tokenCount = group.reduce((sum, row) => sum + row.tokenCount, 0);
+      const bookedUsd = group.reduce((sum, row) => sum + row.purchasePriceUsd.toNumber(), 0);
       const onChainValueUsd = onChainValueUsdFor(investment);
       const chainId = onChain?.chainId ?? investment.project.chainId ?? null;
 
@@ -271,8 +296,8 @@ export async function getPortfolioForUser(userId: string) {
         id: investment.id,
         projectId: investment.projectId,
         projectTitle: investment.project.title,
-        tokenCount: investment.tokenCount,
-        purchasePriceUsd,
+        tokenCount,
+        purchasePriceUsd: bookedUsd.toFixed(2),
         purchasedAt: investment.purchasedAt.toISOString(),
         status: investment.status,
         txHash: investment.txHash,
@@ -292,7 +317,7 @@ export async function getPortfolioForUser(userId: string) {
                 investment.txHash && chainId ? buildTxExplorerUrl(chainId, investment.txHash) : null
             }
           : null,
-        currentValueUsd: (onChainValueUsd > 0 ? onChainValueUsd : Number(purchasePriceUsd)).toFixed(2)
+        currentValueUsd: (onChainValueUsd > 0 ? onChainValueUsd : bookedUsd).toFixed(2)
       };
     })
   };

@@ -173,6 +173,21 @@ async function transferToTreasuryAndVerify(input: {
     };
   };
 
+  /**
+   * Time each leg of the settlement.
+   *
+   * "The purchase is slow" is not something anyone can act on: most of the wait
+   * is block confirmations, which no code change shortens, and the rest is spread
+   * across four calls. Logging the split is what turns the next round of this
+   * into a measurement instead of a guess.
+   */
+  const phases: Array<[string, number]> = [];
+  let phaseStart = Date.now();
+  const mark = (name: string) => {
+    phases.push([name, Date.now() - phaseStart]);
+    phaseStart = Date.now();
+  };
+
   let txHash: string | null = null;
   try {
     const transfer = await privyTransferUsdc({
@@ -196,6 +211,8 @@ async function transferToTreasuryAndVerify(input: {
     return settledOrFailure(classifyPrivySendError(message));
   }
 
+  mark('privy_transfer');
+
   if (!txHash) {
     return settledOrFailure('PRIVY_TRANSFER_TX_HASH_PENDING');
   }
@@ -209,6 +226,7 @@ async function transferToTreasuryAndVerify(input: {
    * returns the moment it exists.
    */
   await waitForConfirmations(txHash);
+  mark('confirmations');
 
   let verified = false;
   let lastVerifyError: unknown = null;
@@ -235,29 +253,51 @@ async function transferToTreasuryAndVerify(input: {
     }
   }
 
+  // Verification is where the share delivery happens, so this is the slow one.
+  mark('verify_and_deliver');
+
   if (!verified) {
     const message = lastVerifyError instanceof Error ? lastVerifyError.message : 'VERIFY_FAILED';
     return settledOrFailure(message);
   }
 
-  // One purchase must leave exactly one batch: close siblings from earlier retries.
-  await closeStaleOpenCartBatches({
-    userId: input.userId,
-    keepBatchId: input.batchId,
-    reason: 'SETTLED_CART_BATCH'
-  }).catch((error) => {
-    console.error('[pay-sanova] stale batch cleanup failed', error);
-  });
+  /**
+   * Bookkeeping the buyer is waiting on, so at least do it at once.
+   *
+   * Closing sibling batches and writing the ledger touch different rows and
+   * neither reads the other's result, but they ran in sequence — the second
+   * fetching a receipt over RPC while the buyer watched a spinner. On Next 14
+   * there is no `after()`, so deferring past the response risks the function
+   * being frozen with the ledger unwritten; running them together is the part
+   * that is safe to change.
+   */
+  await Promise.all([
+    // One purchase must leave exactly one batch: close siblings from earlier retries.
+    closeStaleOpenCartBatches({
+      userId: input.userId,
+      keepBatchId: input.batchId,
+      reason: 'SETTLED_CART_BATCH'
+    }).catch((error) => {
+      console.error('[pay-sanova] stale batch cleanup failed', error);
+    }),
+    // Bitácora: treasury payment + paymaster gas fee from the same receipt.
+    recordSettlementMovements({
+      txHash,
+      payerAddress: input.walletAddress,
+      treasuryAddress: input.treasuryAddress,
+      userId: input.userId
+    }).catch((error) => {
+      console.error('[pay-sanova] movement ledger write failed', error);
+    })
+  ]);
+  mark('bookkeeping');
 
-  // Bitácora: treasury payment + paymaster gas fee from the same receipt.
-  await recordSettlementMovements({
-    txHash,
-    payerAddress: input.walletAddress,
-    treasuryAddress: input.treasuryAddress,
-    userId: input.userId
-  }).catch((error) => {
-    console.error('[pay-sanova] movement ledger write failed', error);
-  });
+  console.info(
+    '[pay-sanova] settled in',
+    phases.reduce((total, [, ms]) => total + ms, 0),
+    'ms',
+    Object.fromEntries(phases)
+  );
 
   return {
     ok: true,
