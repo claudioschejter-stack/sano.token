@@ -18,7 +18,7 @@ jobs:
           cache: npm
 
       - name: Cache Hardhat Solidity compilers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/hardhat-nodejs
           key: hardhat-solc-${{ runner.os }}-0.8.24-v1
@@ -75,7 +75,7 @@ jobs:
           python-version: '3.11'
 
       - name: Cache Hardhat Solidity compilers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/hardhat-nodejs
           key: hardhat-solc-${{ runner.os }}-0.8.24-v1
