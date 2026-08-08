@@ -89,6 +89,7 @@ export async function issueLoginEmailCode(input: {
   const copy = m.verificationCode;
 
   const result = await sendTransactionalEmail({
+    category: 'auth',
     to: input.email,
     subject: copy.subject,
     text: [`${copy.label} ${code}`, '', copy.expiry, copy.ignore, '', m.common.brand].join('\n'),
