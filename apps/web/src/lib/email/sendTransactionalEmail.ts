@@ -14,9 +14,8 @@ type TransactionalEmailInput = {
   /**
    * Marks the message as transactional rather than bulk.
    *
-   * A login code with no such marking looks like any other automated mail to a
-   * filter, and the cost of the wrong guess is asymmetric: a promotional message
-   * in spam is a lost impression, a second factor in spam is a locked account.
+   * The cost of a filter's wrong guess is asymmetric: a promotional message in
+   * spam is a lost impression, a second factor in spam is a locked account.
    */
   category?: 'auth' | 'notification';
 };
@@ -50,15 +49,16 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
         text: input.text,
         html: input.html.includes('<') ? input.html : `<p>${escapeHtml(input.html)}</p>`,
         /**
-         * `Auto-Submitted` and a high priority tell filters this was generated in
-         * response to something the recipient just did, which is what separates a
-         * login code from a newsletter. Deliberately no `List-Unsubscribe`: on a
-         * transactional message it signals bulk, which is the opposite.
+         * `Auto-Submitted` says this was generated in response to something the
+         * recipient just did, which is what separates a login code from a
+         * newsletter.
+         *
+         * Two headers are deliberately absent. `List-Unsubscribe` marks bulk mail,
+         * and nobody unsubscribes from their own login code. `X-Priority: 1` is
+         * worse than useless: legitimate senders rarely set it and spammers
+         * routinely do, so it costs reputation instead of buying urgency.
          */
-        headers:
-          input.category === 'auth'
-            ? { 'Auto-Submitted': 'auto-generated', 'X-Priority': '1' }
-            : { 'Auto-Submitted': 'auto-generated' }
+        headers: { 'Auto-Submitted': 'auto-generated' }
       })
     });
 
