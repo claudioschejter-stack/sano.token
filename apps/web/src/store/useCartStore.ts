@@ -14,12 +14,29 @@ export type CartItem = {
   tokenSymbol?: string | null;
 };
 
+/**
+ * The batch the cart was handed over to, remembered until it is known settled.
+ *
+ * Clearing used to happen only in the callback of the tab that paid. Reload it,
+ * switch tabs, or finish through a path that resolves server-side, and the paid
+ * item stayed in the cart looking unpaid — which invites buying it twice. This
+ * is what lets the next load ask the server how that batch ended.
+ */
+export type CommittedCartBatch = {
+  batchId: string;
+  projectIds: string[];
+};
+
 type CartState = {
   items: CartItem[];
+  committedBatch: CommittedCartBatch | null;
   addItem: (item: Omit<CartItem, 'tokenCount'> & { tokenCount?: number }) => void;
   removeItem: (projectId: string) => void;
   setTokenCount: (projectId: string, tokenCount: number) => void;
   clearCart: () => void;
+  commitBatch: (batchId: string, projectIds: string[]) => void;
+  /** Drop what that batch paid for, keeping anything added afterwards. */
+  settleCommittedBatch: (batchId: string) => void;
   reconcileInventory: (
     rows: Array<{ projectId: string; availableTokens: number; pricePerTokenUsd: number }>
   ) => void;
@@ -31,6 +48,7 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      committedBatch: null,
       addItem: (item) => {
         const tokenCount = Math.max(1, Math.min(item.tokenCount ?? 1, item.availableTokens));
         set((state) => {
@@ -62,7 +80,25 @@ export const useCartStore = create<CartState>()(
           })
         }));
       },
-      clearCart: () => set({ items: [] }),
+      clearCart: () => set({ items: [], committedBatch: null }),
+      commitBatch: (batchId, projectIds) => set({ committedBatch: { batchId, projectIds } }),
+      settleCommittedBatch: (batchId) => {
+        set((state) => {
+          if (state.committedBatch?.batchId !== batchId) {
+            return state;
+          }
+          /**
+           * Only what that batch paid for. Buying one more of something you
+           * already own is a normal thing to do, so an item added after the
+           * handover has to survive.
+           */
+          const paid = new Set(state.committedBatch.projectIds);
+          return {
+            items: state.items.filter((row) => !paid.has(row.projectId)),
+            committedBatch: null
+          };
+        });
+      },
       reconcileInventory: (rows) => {
         const byProject = new Map(rows.map((row) => [row.projectId, row]));
         set((state) => {

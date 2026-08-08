@@ -2892,7 +2892,8 @@ export const en = {
   simplifiedCheckout: {
     fiatWallet: "Electronic wallet",
     cryptoWallet: "Crypto wallet",
-    card: "Debit / credit card",
+    virtualWallet: "Virtual wallet",
+    card: "Debit card",
     wire: "Bank transfer",
     selectMethod: "Choose how to pay",
     backToMethods: "Back to payment methods",

@@ -24,46 +24,44 @@ function formatLocalAmount(totalLocal: number, displayCurrency: string): string 
   }).format(totalLocal);
 }
 
-function getLocalWalletLabel(country: string): string {
-  const map: Record<string, string> = {
-    AR: 'Billeteras Digitales (Argentina)',
-    BR: 'Carteiras Digitais (Brasil)',
-    MX: 'Billeteras Digitales (México)',
-    CO: 'Billeteras Digitales (Colombia)',
-    PE: 'Billeteras Digitales (Perú)',
-    CL: 'Billeteras Digitales (Chile)',
-    UY: 'Billeteras Digitales (Uruguay)',
-    PY: 'Billeteras Digitales (Paraguay)',
-    BO: 'Billeteras Digitales (Bolivia)',
-    VE: 'Billeteras Digitales (Venezuela)',
-    EC: 'Billeteras Digitales (Ecuador)',
-    US: 'Digital Wallets (USA)',
-    CA: 'Digital Wallets (Canada)',
-    GB: 'Digital Wallets (UK)',
-    DE: 'Digital Wallets (Deutschland)',
-    FR: 'Portefeuilles Numériques (France)',
-    ES: 'Billeteras Digitales (España)',
-    IN: 'Digital Wallets (India)',
-    NG: 'Digital Wallets (Nigeria)',
-    KE: 'Digital Wallets (Kenya)',
-    ZA: 'Digital Wallets (South Africa)',
-    JP: 'デジタルウォレット (日本)',
-    CN: '数字钱包 (中国)',
-    ID: 'Dompet Digital (Indonesia)',
-    PH: 'Digital Wallets (Philippines)',
-    TH: 'กระเป๋าเงินดิจิทัล (ไทย)',
-    MY: 'Digital Wallets (Malaysia)',
-    SG: 'Digital Wallets (Singapore)',
-    TK: 'Digital Wallets (Turkey)',
-    EG: 'المحافظ الرقمية (مصر)',
-    SA: 'المحافظ الرقمية (السعودية)',
-    AE: 'Digital Wallets (UAE)',
-    AU: 'Digital Wallets (Australia)',
-    NZ: 'Digital Wallets (New Zealand)',
-    PK: 'Digital Wallets (Pakistan)',
-    BD: 'ডিজিটাল ওয়ালেট (বাংলাদেশ)',
-  };
-  return map[country.toUpperCase()] ?? 'Billeteras Digitales';
+/**
+ * Which provider serves the virtual wallet lane, and at what price.
+ *
+ * Ripio and the Transak wallet flow are the same thing to an investor — pay
+ * from the wallet app on your phone — and listing them separately made the menu
+ * show five options where there are four, asking the investor to choose between
+ * two names they have no way to compare. Whichever is configured and cheaper
+ * wins; the label stays the same either way.
+ */
+function virtualWalletLane(routes: CheckoutBestRoutes): {
+  id: SimplifiedMethod;
+  configured: boolean;
+  totalUsd: number;
+  totalLocal: number;
+  displayCurrency: string;
+} {
+  const candidates = [
+    {
+      id: 'ripio' as const,
+      configured: routes.ripio.configured,
+      totalUsd: routes.ripio.totalUsd,
+      totalLocal: routes.ripio.totalLocal,
+      displayCurrency: routes.ripio.displayCurrency
+    },
+    {
+      id: 'fiat_wallet' as const,
+      configured: routes.fiatWallet.configured,
+      totalUsd: routes.fiatWallet.totalUsd,
+      totalLocal: routes.fiatWallet.totalLocal,
+      displayCurrency: routes.fiatWallet.displayCurrency
+    }
+  ];
+
+  const usable = candidates.filter((row) => row.configured);
+  if (usable.length === 0) {
+    return { ...candidates[1], configured: false };
+  }
+  return usable.reduce((best, row) => (row.totalUsd < best.totalUsd ? row : best));
 }
 
 function isMethodConfigured(routes: CheckoutBestRoutes, id: SimplifiedMethod): boolean {
@@ -109,7 +107,16 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
 
+  /**
+   * Four ways to pay, the same four everywhere.
+   *
+   * Not four providers: four things an investor recognises. Which company
+   * actually collects the money changes by country, and that is precisely what
+   * they should never have to think about.
+   */
   const methods = useMemo(() => {
+    const virtual = virtualWalletLane(routes);
+
     const all: {
       id: SimplifiedMethod;
       label: string;
@@ -121,16 +128,6 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
       configured: boolean;
     }[] = [
       {
-        id: 'fiat_wallet',
-        label: getLocalWalletLabel(routes.country),
-        amount: formatLocalAmount(routes.fiatWallet.totalLocal, routes.fiatWallet.displayCurrency),
-        totalUsd: routes.fiatWallet.totalUsd,
-        Icon: Smartphone,
-        color: 'text-emerald-400',
-        bgColor: 'bg-emerald-400/10',
-        configured: routes.fiatWallet.configured
-      },
-      {
         id: 'crypto_wallet',
         label: sc.cryptoWallet,
         amount: `${Number(routes.cryptoWallet.totalUsd.toFixed(6))} USDC`,
@@ -141,14 +138,14 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
         configured: routes.cryptoWallet.configured
       },
       {
-        id: 'ripio',
-        label: sc.ripioMethod,
-        amount: formatLocalAmount(routes.ripio.totalLocal, routes.ripio.displayCurrency),
-        totalUsd: routes.ripio.totalUsd,
+        id: virtual.id,
+        label: sc.virtualWallet,
+        amount: formatLocalAmount(virtual.totalLocal, virtual.displayCurrency),
+        totalUsd: virtual.totalUsd,
         Icon: Smartphone,
-        color: 'text-sky-400',
-        bgColor: 'bg-sky-400/10',
-        configured: routes.ripio.configured
+        color: 'text-emerald-400',
+        bgColor: 'bg-emerald-400/10',
+        configured: virtual.configured
       },
       {
         id: 'card',
@@ -163,7 +160,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
       {
         id: 'wire',
         label: sc.wire,
-        amount: `USD ${routes.wire.totalUsd.toFixed(2)}`,
+        amount: formatLocalAmount(routes.wire.totalLocal, routes.wire.displayCurrency),
         totalUsd: routes.wire.totalUsd,
         Icon: Building2,
         color: 'text-amber-400',
@@ -175,7 +172,7 @@ export function SimplifiedMethodSelector({ routes, selected, onSelect, loading }
     return all
       .filter((method) => method.configured)
       .sort((a, b) => a.totalUsd - b.totalUsd);
-  }, [routes, sc.card, sc.cryptoWallet, sc.ripioMethod, sc.wire]);
+  }, [routes, sc.card, sc.cryptoWallet, sc.virtualWallet, sc.wire]);
 
   const cheapestId = methods[0]?.id ?? null;
 

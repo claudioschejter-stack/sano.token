@@ -234,9 +234,55 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const items = useCartStore((state) => state.items);
   const removeItem = useCartStore((state) => state.removeItem);
   const clearCart = useCartStore((state) => state.clearCart);
+  const committedBatch = useCartStore((state) => state.committedBatch);
+  const commitBatch = useCartStore((state) => state.commitBatch);
+  const settleCommittedBatch = useCartStore((state) => state.settleCommittedBatch);
   const cartTotalUsd = useCartStore((state) => state.totalUsd());
   const cartItemCount = useCartStore((state) => state.itemCount());
   const reconcileInventory = useCartStore((state) => state.reconcileInventory);
+
+  /**
+   * Ask the server how the last handed-over batch ended.
+   *
+   * The cart lives in the browser and used to be cleared only by the callback of
+   * the tab that paid. A reload, a second tab, or a flow that resolves
+   * server-side left a paid token sitting in the cart looking unpaid, which
+   * invites paying for it twice. The batch is the link back to the truth.
+   */
+  useEffect(() => {
+    if (mode !== 'purchase' || !committedBatch) {
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const response = await fetch(
+          `/api/marketplace/cart/status?batch=${encodeURIComponent(committedBatch.batchId)}`,
+          { cache: 'no-store' }
+        );
+        if (!response.ok || cancelled) return;
+        const data = (await response.json()) as {
+          status?: { found?: boolean; allConfirmed?: boolean };
+          allConfirmed?: boolean;
+          found?: boolean;
+        };
+        const confirmed = data.status?.allConfirmed ?? data.allConfirmed ?? false;
+        const found = data.status?.found ?? data.found ?? false;
+        // Only a confirmed batch clears anything. An unknown one is left alone:
+        // forgetting it would hide a payment that is still in flight.
+        if (!cancelled && found && confirmed) {
+          settleCommittedBatch(committedBatch.batchId);
+        }
+      } catch {
+        // Leave the cart as it is; the next load asks again.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [committedBatch, mode, settleCommittedBatch]);
 
   useEffect(() => {
     if (mode !== 'purchase' || items.length === 0) {
@@ -1071,6 +1117,15 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           }
           setCheckout(data.checkout);
           setBatchId(data.checkout.batchId);
+          /**
+           * Remember which items were handed to this batch. If the tab that pays
+           * never gets to run its callback, the next load can ask the server how
+           * the batch ended instead of leaving a paid item sitting in the cart.
+           */
+          commitBatch(
+            data.checkout.batchId,
+            items.map((row) => row.projectId)
+          );
           const gatewayMeta = (data.checkout as { gateway?: { providerCheckoutUrl?: string } }).gateway;
           const resolved = {
             referenceId: data.checkout.batchId,
@@ -1090,7 +1145,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         return null;
       }
     },
-    [items, linkedWalletAddress, mode, simplifiedRefCache, totalUsd]
+    [commitBatch, items, linkedWalletAddress, mode, simplifiedRefCache, totalUsd]
   );
 
   const applyCartPostPurchaseStatus = (intents: PublicPaymentIntent[]) => {
