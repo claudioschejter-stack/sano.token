@@ -4,6 +4,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { SiteAnalytics } from '../components/analytics/SiteAnalytics';
 import { PwaRegister } from '../components/PwaRegister';
+import { StaleBuildRecovery } from '../components/app/StaleBuildRecovery';
 import { WhatsAppFloat } from '../components/WhatsAppFloat';
 import { AppProviders } from '../components/providers/AppProviders';
 import { SiteJsonLd } from '../components/seo/SiteJsonLd';
@@ -56,6 +57,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Analytics />
         <SpeedInsights />
         <AppProviders>
+          <StaleBuildRecovery />
           <PwaRegister />
           {children}
           <WhatsAppFloat />
