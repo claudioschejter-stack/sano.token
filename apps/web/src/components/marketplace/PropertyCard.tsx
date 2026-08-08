@@ -7,6 +7,7 @@ import { useLocalCurrency } from '../../hooks/useLocalCurrency';
 import type { LaunchContracts, LaunchMediaItem } from '../../lib/admin/launchTypes';
 import type { SystemRole } from '../../lib/auth/roles';
 import type { SecondaryMarketHolding } from '../../types/secondaryMarket';
+import { placementProgress } from '../../lib/marketplace/placementProgress';
 import { LaunchContractsPanel } from './LaunchContractsPanel';
 import { PropertyCardActions } from './PropertyCardActions';
 
@@ -21,7 +22,11 @@ export type PropertyCardProps = {
   pricePerTokenUsd: number;
   availableTokens: number;
   totalTokens: number;
-  soldPercent: number;
+  /**
+   * Kept for callers that still pass it. The card derives the progress from the
+   * token counts instead, so the bar and the number under it cannot drift apart.
+   */
+  soldPercent?: number;
   jurisdiction?: string | null;
   fiscalRegime?: string;
   tokenInstrumentType?: 'DEBT' | 'EQUITY';
@@ -66,7 +71,6 @@ export function PropertyCard({
   pricePerTokenUsd,
   availableTokens,
   totalTokens,
-  soldPercent,
   tokenInstrumentType = 'EQUITY',
   maturityDate,
   tokenSymbol,
@@ -130,6 +134,7 @@ export function PropertyCard({
   const isExternalMedia = heroUrl.startsWith('http');
 
   const estimatedAnnualYieldUsd = pricePerTokenUsd * (apyPercent / 100);
+  const placement = placementProgress({ availableTokens, totalTokens });
   const isSoldOut = availableTokens <= 0;
   const isScarce = !isSoldOut && totalTokens > 0 && availableTokens / totalTokens <= 0.2;
 
@@ -239,16 +244,18 @@ export function PropertyCard({
               <>
                 <div className={`mb-1 flex items-center justify-between text-xs ${mutedText}`}>
                   <span>{t.propertyCard.placementProgress}</span>
-                  <span className={`font-mono ${bodyText}`}>{soldPercent}%</span>
+                  <span className={`font-mono ${bodyText}`}>{placement.label}</span>
                 </div>
                 <div className={`h-1.5 overflow-hidden rounded-full ${isLight ? 'bg-slate-100' : 'bg-terminal-bg'}`}>
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-terminal-primary to-terminal-success transition-all duration-500"
-                    style={{ width: `${soldPercent}%` }}
+                    style={{ width: `${placement.percent}%` }}
                   />
                 </div>
+                {/* Counted the same way as the bar, so the two cannot disagree. */}
                 <p className={`mt-1 min-h-4 text-xs ${mutedText}`}>
-                  {availableTokens.toLocaleString()} / {totalTokens.toLocaleString()} {t.marketplace.tokensAvailable}
+                  {placement.placedTokens.toLocaleString()} / {totalTokens.toLocaleString()}{' '}
+                  {t.marketplace.tokensPlaced}
                 </p>
               </>
             ) : (
