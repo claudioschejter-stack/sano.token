@@ -88,10 +88,19 @@ export async function issueLoginEmailCode(input: {
    */
   const copy = m.verificationCode;
 
+  /**
+   * The code goes in the subject, first.
+   *
+   * It shows in the notification and the inbox list, so most logins never need
+   * the message opened — and when the message does land in spam, a subject that
+   * starts with the code is findable by searching for it. It also removes the
+   * reason to put a link in a login email, which is the pattern phishing filters
+   * are built to distrust.
+   */
   const result = await sendTransactionalEmail({
     category: 'auth',
     to: input.email,
-    subject: copy.subject,
+    subject: `${code} · ${copy.subject}`,
     text: [`${copy.label} ${code}`, '', copy.expiry, copy.ignore, '', m.common.brand].join('\n'),
     html: renderEmailShell({
       locale: user?.preferredLocale,
