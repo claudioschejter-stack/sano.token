@@ -56,13 +56,15 @@ Requires `CRON_SECRET` / Vercel cron auth. For near-real-time settle after MP/Ri
 4. Send small ACH/wire/SEPA/SPEI/Pix to the VA.  
 5. Confirm webhook delivery in Bridge dashboard and Sanova deposit/cart credit.
 
-### B) Argentina (MP → Ripio)
+### B) Argentina (Macro / MP → Ripio → USDC Base)
 
-1. AR investor pays with Mercado Pago / digital wallet.  
+1. AR investor pays with Macro Click (ARS) or Mercado Pago / digital wallet.  
 2. Expect interim `MANUAL_REVIEW` / `awaitingTreasuryUsdc`.  
-3. Ripio conversion should enqueue → USDC to Base treasury.  
-4. Ripio webhook with `txnHash` → status `CONFIRMED`.  
-5. If Ripio fails: send USDC manually to treasury (`treasury_ops`) and wait for cron/reconcile.
+3. Macro ARS webhook enqueues Ripio on-ramp with **exact pesos** (`bank_transfer`) and destination = Base treasury. Metadata: `macroRipioBridge`, `ripioExternalRef`, CVU instructions.  
+4. Sandbox: `simulateDeposit` runs automatically after the Ripio order is created. Production: treasury must fund that Ripio CVU with the Macro ARS (no Macro→Ripio payout API yet).  
+5. Macro **USD** charges cannot use Ripio AR (ARS-only) → `conversionProvider: treasury_ops` / `RIPIO_ONRAMP_ARS_ONLY`.  
+6. Ripio webhook `ON-RAMP.WITHDRAWAL.COMPLETED` with `txnHash` → status `CONFIRMED`.  
+7. If Ripio fails: send USDC manually to treasury and wait for cron/reconcile.
 
 ### C) Privy / USDC
 

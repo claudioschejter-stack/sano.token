@@ -56,12 +56,56 @@ export function ripioChainForNetwork(networkId?: string | null): { chain: string
   };
 }
 
-export function resolveRipioFiatAmount(amountUsd: number): { currency: string; amount: string } {
+export function resolveRipioFiatAmount(
+  amountUsd: number,
+  options?: { exactArs?: number | null }
+): { currency: string; amount: string } {
+  if (
+    typeof options?.exactArs === 'number' &&
+    Number.isFinite(options.exactArs) &&
+    options.exactArs > 0
+  ) {
+    return {
+      currency: 'ARS',
+      amount: options.exactArs.toFixed(2)
+    };
+  }
+
   const fxRate = resolveArsPerUsd('RIPIO_FX_ARS');
   return {
     currency: 'ARS',
     amount: (amountUsd * fxRate).toFixed(2)
   };
+}
+
+/**
+ * Sandbox-only: pretend the ARS bank transfer already hit Ripio's CVU so the
+ * on-ramp can mint USDC without a real SPEI/transfero from Macro's bank.
+ */
+export async function simulateRipioOnRampDeposit(input: {
+  amount: number;
+  aliasOrCvu: string;
+  paymentMethodType?: string;
+}): Promise<void> {
+  if (!ripioSandbox()) {
+    throw new Error('RIPIO_SIMULATE_PRODUCTION_FORBIDDEN');
+  }
+  if (!Number.isFinite(input.amount) || input.amount <= 0) {
+    throw new Error('RIPIO_SIMULATE_INVALID_AMOUNT');
+  }
+  const aliasOrCvu = input.aliasOrCvu.trim();
+  if (!aliasOrCvu) {
+    throw new Error('RIPIO_SIMULATE_MISSING_CVU');
+  }
+
+  await ripioApi('/api/v1/simulateDeposit/', {
+    method: 'POST',
+    body: {
+      paymentMethodType: input.paymentMethodType ?? 'bank_transfer',
+      amount: input.amount,
+      alias_or_cvu: aliasOrCvu
+    }
+  });
 }
 
 async function acquireRipioAccessToken(): Promise<string> {
@@ -129,12 +173,14 @@ export async function ripioApi<T>(
   });
 
   const text = await response.text();
-  const parsed = text
+  // simulateDeposit (and similar sandbox calls) return 200 with a zero-length body.
+  const parsed = text.trim()
     ? (JSON.parse(text) as T & { detail?: { message?: string }; type?: string })
     : ({} as T & { detail?: { message?: string }; type?: string });
 
   if (!response.ok) {
-    const message = parsed.detail?.message ?? parsed.type ?? text.slice(0, 200);
+    const message =
+      parsed.detail?.message ?? parsed.type ?? (text.slice(0, 200) || `HTTP_${response.status}`);
     throw new Error(`RIPIO_${response.status}:${message}`);
   }
 

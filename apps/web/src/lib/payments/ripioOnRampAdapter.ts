@@ -7,19 +7,28 @@ import {
   ripioChainForNetwork,
   ripioConfigured,
   ripioPaymentMethodType,
-  resolveRipioFiatAmount
+  ripioSandbox,
+  resolveRipioFiatAmount,
+  simulateRipioOnRampDeposit
 } from './ripioClient';
 import { resolveRipioCustomerId } from './ripioCustomerService';
 
 type RipioCheckoutInput = {
   depositId: string;
   amountUsd: number;
+  /** When set (e.g. Macro Monto in ARS), quote this exact peso amount instead of FX(USD). */
+  fiatAmountArs?: number | null;
   stablecoinNetwork?: string | null;
   userEmail?: string | null;
   userId?: string | null;
   walletAddress?: string | null;
   redirectPath?: string | null;
   paymentOptionRail?: string | null;
+  /**
+   * After creating the on-ramp order in sandbox, call simulateDeposit so the
+   * fiat leg completes without a real bank transfer (Macro→Ripio CVU).
+   */
+  autoSimulateSandboxDeposit?: boolean;
 };
 
 type RipioCheckoutResult = {
@@ -86,7 +95,7 @@ export async function createRipioOnRampCheckout(input: RipioCheckoutInput): Prom
     });
 
     const { chain, currency } = ripioChainForNetwork(network.id);
-    const fiat = resolveRipioFiatAmount(input.amountUsd);
+    const fiat = resolveRipioFiatAmount(input.amountUsd, { exactArs: input.fiatAmountArs });
     const paymentMethodType = ripioPaymentMethodType(input.paymentOptionRail);
 
     const quote = await ripioApi<RipioQuoteResponse>('/api/v1/quotes/', {
@@ -119,6 +128,31 @@ export async function createRipioOnRampCheckout(input: RipioCheckoutInput): Prom
     const instructions = order.fiatPaymentInstructions ?? {};
     const redirect = buildRipioReturnUrl(input);
 
+    let sandboxDepositSimulated: boolean | undefined;
+    let sandboxDepositError: string | undefined;
+    if (input.autoSimulateSandboxDeposit && ripioSandbox()) {
+      const aliasOrCvu =
+        (typeof instructions.cvu === 'string' && instructions.cvu.trim()) ||
+        (typeof instructions.alias === 'string' && instructions.alias.trim()) ||
+        '';
+      if (aliasOrCvu) {
+        try {
+          await simulateRipioOnRampDeposit({
+            amount: Number(fiat.amount),
+            aliasOrCvu,
+            paymentMethodType
+          });
+          sandboxDepositSimulated = true;
+        } catch (error) {
+          sandboxDepositSimulated = false;
+          sandboxDepositError = error instanceof Error ? error.message : 'RIPIO_SIMULATE_FAILED';
+        }
+      } else {
+        sandboxDepositSimulated = false;
+        sandboxDepositError = 'RIPIO_SIMULATE_MISSING_CVU';
+      }
+    }
+
     return {
       provider: 'ripio',
       providerPaymentId: order.transaction?.transactionId ?? quote.quoteId,
@@ -126,12 +160,14 @@ export async function createRipioOnRampCheckout(input: RipioCheckoutInput): Prom
       metadata: {
         configured: true,
         mode: 'ripio_on_ramp',
-        sandbox: chain.includes('SEPOLIA') || currency === 'RTEST',
+        sandbox: ripioSandbox() || chain.includes('SEPOLIA') || currency === 'RTEST',
         network: network.id,
         chain,
         targetCurrency: currency,
         fiatCurrency: fiat.currency,
         fiatAmount: fiat.amount,
+        fiatAmountSource:
+          typeof input.fiatAmountArs === 'number' && input.fiatAmountArs > 0 ? 'exact_ars' : 'fx_usd',
         quotedToAmount: quote.finalToAmount ?? quote.toAmount ?? null,
         quoteRate: quote.rate ?? null,
         paymentMethodType,
@@ -140,7 +176,9 @@ export async function createRipioOnRampCheckout(input: RipioCheckoutInput): Prom
         fiatPaymentInstructions: instructions,
         instructions: formatRipioFiatInstructions(instructions),
         transactionId: order.transaction?.transactionId ?? null,
-        transactionStatus: order.transaction?.status ?? null
+        transactionStatus: order.transaction?.status ?? null,
+        ...(sandboxDepositSimulated !== undefined ? { sandboxDepositSimulated } : {}),
+        ...(sandboxDepositError ? { sandboxDepositError } : {})
       }
     };
   } catch (error) {

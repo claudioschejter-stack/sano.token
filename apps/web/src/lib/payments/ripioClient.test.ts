@@ -23,6 +23,13 @@ describe('ripioClient', () => {
     expect(fiat.amount).toBe('10000.00');
   });
 
+  it('prefers an exact Macro ARS amount over FX', () => {
+    process.env.RIPIO_FX_ARS = '1000';
+    const fiat = resolveRipioFiatAmount(10, { exactArs: 10500.25 });
+    expect(fiat.currency).toBe('ARS');
+    expect(fiat.amount).toBe('10500.25');
+  });
+
   it('validates webhook signatures', () => {
     const secret = 'ripio-test-secret';
     const payload = '{"eventType":"ON-RAMP.WITHDRAWAL.COMPLETED"}';

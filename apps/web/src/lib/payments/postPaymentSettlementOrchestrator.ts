@@ -73,10 +73,55 @@ async function findMatchingTreasuryUsdcTransfer(expectedAmountUsd: number): Prom
   return null;
 }
 
+function isMacroClickProvider(provider: string): boolean {
+  return provider === 'macro_click' || provider.startsWith('macro_click');
+}
+
+async function loadExistingConversionMeta(
+  resolved: NonNullable<ResolvedCheckoutReference>
+): Promise<Record<string, unknown> | null> {
+  if (resolved.kind === 'deposit') {
+    const deposit = await prisma.platformDeposit.findUnique({
+      where: { id: resolved.depositId },
+      select: { metadata: true }
+    });
+    return (deposit?.metadata as Record<string, unknown>) ?? null;
+  }
+  if (resolved.kind === 'payment_intent') {
+    const intent = await prisma.paymentIntent.findUnique({
+      where: { id: resolved.intentId },
+      select: { metadata: true }
+    });
+    return (intent?.metadata as Record<string, unknown>) ?? null;
+  }
+  const intents = await loadCartBatchIntentsAnyStatus(resolved.userId, resolved.batchId);
+  return (intents[0]?.metadata as Record<string, unknown>) ?? null;
+}
+
+function resolveMacroLocalArs(input: {
+  fiatCurrency?: 'ARS' | 'USD' | null;
+  localAmount?: number | null;
+  prior?: Record<string, unknown> | null;
+}): number | null {
+  if (input.fiatCurrency === 'USD') return null;
+  if (typeof input.localAmount === 'number' && Number.isFinite(input.localAmount) && input.localAmount > 0) {
+    return input.localAmount;
+  }
+  const priorLocal = input.prior?.localAmount;
+  if (typeof priorLocal === 'number' && Number.isFinite(priorLocal) && priorLocal > 0) {
+    const priorCurrency =
+      typeof input.prior?.currency === 'string' ? input.prior.currency.toUpperCase() : null;
+    if (!priorCurrency || priorCurrency === 'ARS') return priorLocal;
+  }
+  return null;
+}
+
 /**
- * After MP/Pix fiat is paid: queue conversion metadata and optionally create a Ripio
- * conversion order keyed to the same partner reference (ops/webhook completes USDC).
- * Settlement always waits for USDC on Base treasury — never confirms on fiat alone.
+ * After Macro / MP / Pix fiat is paid: queue conversion metadata and optionally create a Ripio
+ * on-ramp order so ARS can become USDC on Base treasury.
+ * Settlement always waits for USDC on Base — never confirms on fiat alone.
+ *
+ * Macro ARS → Ripio bank_transfer (exact pesos). Macro USD cannot use Ripio AR (ARS-only).
  */
 export async function enqueueFiatToUsdcConversion(input: {
   externalReference: string;
@@ -84,6 +129,8 @@ export async function enqueueFiatToUsdcConversion(input: {
   amountUsd: number;
   userId?: string | null;
   userEmail?: string | null;
+  fiatCurrency?: 'ARS' | 'USD' | null;
+  localAmount?: number | null;
 }): Promise<{ queued: boolean; ripio?: Record<string, unknown> }> {
   const reference = input.externalReference.trim();
   if (!reference) {
@@ -91,32 +138,91 @@ export async function enqueueFiatToUsdcConversion(input: {
   }
 
   const resolved = await resolveCheckoutReferenceByPartnerOrderId(reference);
-  let ripioMeta: Record<string, unknown> | undefined;
+  const priorMeta = resolved ? await loadExistingConversionMeta(resolved) : null;
 
-  if (ripioConfigured() && input.userId && input.userEmail) {
+  if (typeof priorMeta?.ripioExternalRef === 'string' && priorMeta.ripioExternalRef.trim()) {
+    return {
+      queued: true,
+      ripio: {
+        ripioConversionQueued: true,
+        ripioExternalRef: priorMeta.ripioExternalRef,
+        ripioIdempotentReuse: true
+      }
+    };
+  }
+
+  const macro = isMacroClickProvider(input.provider);
+  const fiatCurrency =
+    input.fiatCurrency === 'ARS' || input.fiatCurrency === 'USD'
+      ? input.fiatCurrency
+      : typeof priorMeta?.currency === 'string' &&
+          (priorMeta.currency.toUpperCase() === 'ARS' || priorMeta.currency.toUpperCase() === 'USD')
+        ? (priorMeta.currency.toUpperCase() as 'ARS' | 'USD')
+        : macro
+          ? 'ARS'
+          : null;
+
+  let ripioMeta: Record<string, unknown> | undefined;
+  let conversionProvider: 'ripio' | 'treasury_ops' = ripioConfigured() ? 'ripio' : 'treasury_ops';
+  let conversionBlockedReason: string | null = null;
+
+  if (macro && fiatCurrency === 'USD') {
+    conversionProvider = 'treasury_ops';
+    conversionBlockedReason = 'RIPIO_ONRAMP_ARS_ONLY';
+  } else if (ripioConfigured() && input.userId && input.userEmail) {
+    const exactArs = macro ? resolveMacroLocalArs({ fiatCurrency, localAmount: input.localAmount, prior: priorMeta }) : null;
+    const paymentOptionRail =
+      input.provider.includes('pix') || input.provider === 'mercado_pago'
+        ? 'mercado_pago'
+        : macro
+          ? 'bank_transfer'
+          : undefined;
+
     const ripio = await createRipioOnRampCheckout({
       depositId: reference,
       amountUsd: input.amountUsd,
+      fiatAmountArs: exactArs,
       userId: input.userId,
       userEmail: input.userEmail,
-      paymentOptionRail:
-        input.provider.includes('pix') || input.provider === 'mercado_pago' ? 'mercado_pago' : undefined,
+      paymentOptionRail,
+      autoSimulateSandboxDeposit: macro,
       redirectPath: `/marketplace/carrito?status=pending&ref=${encodeURIComponent(reference)}`
     });
+
+    const ripioError = typeof ripio.metadata?.error === 'string' ? ripio.metadata.error : null;
+    if (ripioError) {
+      conversionProvider = 'treasury_ops';
+      conversionBlockedReason = ripioError;
+    }
+
     ripioMeta = {
-      ripioConversionQueued: true,
+      ripioConversionQueued: !ripioError,
       ripioProviderPaymentId: ripio.providerPaymentId ?? null,
       ripioExternalRef:
         typeof ripio.metadata?.ripioExternalRef === 'string' ? ripio.metadata.ripioExternalRef : null,
-      ripioMetadata: ripio.metadata ?? null
+      ripioMetadata: ripio.metadata ?? null,
+      ...(macro
+        ? {
+            macroRipioBridge: true,
+            ripioAwaitingFiatFunding: !ripio.metadata?.sandboxDepositSimulated && !ripioError,
+            macroLocalAmountArs: exactArs,
+            macroFiatCurrency: fiatCurrency
+          }
+        : {})
     };
+  } else if (!ripioConfigured()) {
+    conversionProvider = 'treasury_ops';
+    conversionBlockedReason = 'RIPIO_NOT_CONFIGURED';
   }
 
   const conversionPayload = {
     fiatToUsdcConversionQueuedAt: new Date().toISOString(),
     awaitingTreasuryUsdc: true,
     settlementPolicy: 'treasury_first',
-    conversionProvider: ripioConfigured() ? 'ripio' : 'treasury_ops',
+    conversionProvider,
+    ...(conversionBlockedReason ? { conversionBlockedReason } : {}),
+    ...(fiatCurrency ? { currency: fiatCurrency } : {}),
+    ...(typeof input.localAmount === 'number' ? { localAmount: input.localAmount } : {}),
     ...ripioMeta
   };
 
