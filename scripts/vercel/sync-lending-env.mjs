@@ -59,11 +59,26 @@ const cronSecret =
   env.CRON_SECRET?.trim() ||
   createHash('sha256').update(randomBytes(32)).digest('hex');
 
+/**
+ * Never push the public Base endpoint over a dedicated one.
+ *
+ * This used to default both RPC variables to `https://mainnet.base.org`, so
+ * running the sync overwrote an Alchemy endpoint with the rate-limited public
+ * one — and a throttled read is what made the RWA security report invent
+ * allowlist violations.
+ */
+const alchemyBaseRpc =
+  env.ALCHEMY_BASE_RPC_URL?.trim() ||
+  (env.ALCHEMY_API_KEY?.trim()
+    ? `https://base-mainnet.g.alchemy.com/v2/${env.ALCHEMY_API_KEY.trim()}`
+    : '');
+const baseRpc = env.BASE_RPC_URL?.trim() || alchemyBaseRpc || 'https://mainnet.base.org';
+
 const vars = [
   ['CRON_SECRET', cronSecret],
-  ['BASE_RPC_URL', env.BASE_RPC_URL || 'https://mainnet.base.org'],
+  ['BASE_RPC_URL', baseRpc],
   ['LENDING_CHAIN_ID', env.LENDING_CHAIN_ID || '8453'],
-  ['LENDING_BASE_RPC_URL', env.LENDING_BASE_RPC_URL || env.BASE_RPC_URL || 'https://mainnet.base.org'],
+  ['LENDING_BASE_RPC_URL', env.LENDING_BASE_RPC_URL?.trim() || baseRpc],
   ['LENDING_RATES_CACHE_TTL_MINUTES', env.LENDING_RATES_CACHE_TTL_MINUTES || '15'],
   ['LENDING_ONCHAIN_RATES', env.LENDING_ONCHAIN_RATES || 'true'],
   ['TOKEN_DEPLOY_CHAIN_ID', env.TOKEN_DEPLOY_CHAIN_ID || '8453'],
