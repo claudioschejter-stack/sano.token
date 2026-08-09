@@ -1,6 +1,7 @@
 import { prisma, Prisma } from '@sanova/database';
 import { ethers } from 'ethers';
 import { getLinkedWalletForUser } from '../investor/linkedWalletPolicy';
+import { PENDING_INVESTOR_WALLET_PREFIX } from '../investor/provisionInvestorProfile';
 import { ensureSanovaReceiveWalletForUser } from '../investor/sanovaReceiveWallet';
 import { readWalletUsdcBalanceDetailed } from '../portfolio/onChainUsdcReader';
 import { paymentMinimumConfirmations, paymentOrderTtlMinutes } from './paymentConfig';
@@ -416,7 +417,25 @@ export async function scanAllPrivyInboundWallets() {
 
   const linkedUsers = await prisma.user.findMany({
     where: {
-      OR: [{ walletAddress: { not: null } }, { investor: { walletAddress: { not: null } } }]
+      OR: [
+        { walletAddress: { not: null } },
+        /**
+         * `Investor.walletAddress` is not nullable, so `not: null` is not a valid
+         * filter on it — Prisma rejected the whole query with "Argument `not`
+         * must not be null", and this scan threw on every cron run instead of
+         * scanning anything. It is the safety net for USDC landing in an
+         * investor's wallet when the Alchemy webhook misses it, so it failing
+         * silently meant nobody was watching the fallback.
+         *
+         * The column holds a `pending:<userId>` placeholder until the wallet
+         * exists, so "has a wallet" means "is not a placeholder".
+         */
+        {
+          investor: {
+            walletAddress: { not: { startsWith: PENDING_INVESTOR_WALLET_PREFIX } }
+          }
+        }
+      ]
     },
     select: { id: true },
     take: 200,
