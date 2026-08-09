@@ -6,6 +6,10 @@ import { executeProjectInfrastructureRepair } from '../../../../lib/blockchain/p
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
 import { enqueueAutomationJob } from '../../../../lib/admin/automationJobs';
 import { superviseRwaSecurity } from '../../../../lib/blockchain/superviseRwaSecurity';
+import {
+  describeMigrationReadiness,
+  readMigrationReadiness
+} from '../../../../lib/admin/databaseSchemaReadiness';
 import { reconcilePayments } from '../../../../lib/payments/paymentReconciliation';
 import { recordPortfolioSnapshotsForActiveInvestors } from '../../../../lib/portfolio/portfolioAggregator';
 import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
@@ -17,6 +21,33 @@ export const maxDuration = 300;
 export async function GET(request: Request) {
   if (!(await isCronRequestAllowed(request))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  /**
+   * Say it out loud when the database is behind the code.
+   *
+   * Applying a migration is a manual step, so it gets forgotten — the enum the
+   * card on-ramp needed sat unapplied while the code requiring it was live, and
+   * the only way to find out was an investor hitting a 500. A check nobody opens
+   * is not a check.
+   */
+  let schemaReadiness: unknown = null;
+  try {
+    const migrations = await readMigrationReadiness();
+    schemaReadiness = migrations;
+    if (!migrations.ok) {
+      const described = describeMigrationReadiness(migrations);
+      await notifyAutomationIssue({
+        projectId: 'platform',
+        title: 'Base de datos atrasada respecto del código desplegado',
+        message: `${described.detail}${described.fix ? `\n${described.fix}` : ''}`,
+        severity: 'critical'
+      });
+    }
+  } catch (error) {
+    schemaReadiness = {
+      error: error instanceof Error ? error.message.slice(0, 200) : 'SCHEMA_READINESS_FAILED'
+    };
   }
 
   try {
@@ -148,7 +179,8 @@ export async function GET(request: Request) {
       paymentReconciliation,
       portfolioSnapshots: portfolioSnapshots.length,
       liquidityProbes,
-      morphoReconcile
+      morphoReconcile,
+      schemaReadiness
     });
   } catch (error) {
     console.error('[cron/refresh-borrow-rates]', error);

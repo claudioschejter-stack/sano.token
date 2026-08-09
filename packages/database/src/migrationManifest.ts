@@ -1,0 +1,33 @@
+// Generado por scripts/generate-migration-manifest.mjs — no editar a mano.
+// Las migraciones que este build espera encontrar aplicadas en la base.
+export const EXPECTED_MIGRATIONS: readonly string[] = [
+  '20250602120000_baseline',
+  '20250602120100_add_operating_foreign_keys',
+  '20250602193000_add_investor_access_enabled',
+  '20250604120000_add_user_wallet_provider',
+  '20250605120000_project_automation_lock',
+  '20260625000000_add_waitlist_entry',
+  '20260626000000_add_totp_2fa',
+  '20260701000000_user_preferences_theme_pwa',
+  '20260701120000_add_passkeys_webauthn',
+  '20260702120000_mercado_pago_qr_orders',
+  '20260703120000_mercado_pago_pix_payments',
+  '20260704000000_add_notifications',
+  '20260705160000_add_registration_attempts',
+  '20260705180000_kyc_archive_and_prizes',
+  '20260706120000_registration_onboarding_fields',
+  '20260708210000_add_account_approved_email_sent_at',
+  '20260711180000_add_portal_gate_pwa_fields',
+  '20260714010000_add_investor_loans_enabled',
+  '20260717170000_add_linked_wallets_and_fiat_payout',
+  '20260804010000_add_token_movements',
+  '20260805000000_project_supply_floor',
+  '20260805010000_token_movement_kinds',
+  '20260805020000_unmatched_payments',
+  '20260805030000_bridge_virtual_accounts',
+  '20260806000000_investor_usdc_withdrawal_kind',
+  '20260806010000_sanova_wallet_withdrawal_method',
+  '20260806020000_bridge_customer',
+  '20260807220000_email_login_verification_channel',
+  '20260808190000_rename_transak_method_to_privy_onramp'
+] as const;
