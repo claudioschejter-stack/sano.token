@@ -95,6 +95,15 @@ describe('isPublicBaseRpc', () => {
     expect(isPublicBaseRpc('https://mainnet.base.org')).toBe(true);
     expect(isPublicBaseRpc('https://base-mainnet.g.alchemy.com/v2/k')).toBe(false);
   });
+
+  it('compares hosts, so a public host as a prefix of another does not fool it', () => {
+    // `startsWith` matching used to call this public and hide the real host.
+    expect(isPublicBaseRpc('https://mainnet.base.org.attacker.example/rpc')).toBe(false);
+  });
+
+  it('treats an unparseable endpoint as public rather than trusted', () => {
+    expect(isPublicBaseRpc('not-a-url')).toBe(true);
+  });
 });
 
 describe('describeBaseRpc', () => {
@@ -112,5 +121,20 @@ describe('describeBaseRpc', () => {
     expect(described.provider).toBe('public');
     expect(described.dedicated).toBe(false);
     expect(described.failoverCount).toBeGreaterThan(0);
+  });
+
+  it('does not accept a host that merely mentions alchemy.com as the provider', () => {
+    process.env.BASE_RPC_URL = 'https://alchemy.com.attacker.example/rpc';
+    expect(describeBaseRpc().provider).toBe('configured');
+  });
+
+  it('does not accept alchemy.com in a query string as the provider', () => {
+    process.env.BASE_RPC_URL = 'https://attacker.example/rpc?ref=alchemy.com';
+    expect(describeBaseRpc().provider).toBe('configured');
+  });
+
+  it('accepts the real Alchemy subdomain', () => {
+    process.env.BASE_RPC_URL = 'https://base-mainnet.g.alchemy.com/v2/key';
+    expect(describeBaseRpc().provider).toBe('alchemy');
   });
 });

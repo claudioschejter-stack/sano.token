@@ -170,6 +170,30 @@ describe('generateRwaSecurityReport', () => {
     expect(check?.detail).toContain('sin límite');
     expect(check?.detail).not.toContain(UINT256_MAX.toString());
   });
+
+  it('cannot judge the daily limit when totalAssets is unreadable', async () => {
+    // The expected maximum is a share of totalAssets, so without it there is
+    // nothing to compare the configured limit against.
+    totalAssets = null;
+
+    const report = await generateRwaSecurityReport(asset());
+    const check = checkOf(report, 'Límite diario');
+
+    expect(check?.status).toBe('unknown');
+    expect(report.failures).toHaveLength(0);
+    expect(report.balances.totalAssets).toBeNull();
+  });
+
+  it('does not claim the treasury lost its shares when the balance is unreadable', async () => {
+    treasuryShares = null;
+
+    const report = await generateRwaSecurityReport(asset());
+    const check = checkOf(report, 'Treasury mantiene shares');
+
+    expect(check?.status).toBe('unknown');
+    expect(check?.detail).not.toContain('sin shares');
+    expect(report.failures).toHaveLength(0);
+  });
 });
 
 describe('recordRwaSecurityReport', () => {

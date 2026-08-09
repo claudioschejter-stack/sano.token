@@ -24,10 +24,35 @@ const PUBLIC_BASE_RPCS = [
   'https://1rpc.io/base'
 ];
 
-export function isPublicBaseRpc(url: string | null | undefined): boolean {
+const PUBLIC_BASE_RPC_HOSTS = new Set(['mainnet.base.org', 'base.llamarpc.com', '1rpc.io']);
+
+/**
+ * Compare hosts, never substrings.
+ *
+ * `url.includes('alchemy.com')` also matches `https://attacker.example/?x=alchemy.com`
+ * and `https://alchemy.com.attacker.example`, so a hostile value could pass
+ * itself off as the dedicated provider and suppress the "estás en el RPC
+ * público" warning that makes a degraded report actionable.
+ */
+function rpcHostname(url: string | null | undefined): string | null {
   const raw = url?.trim();
-  if (!raw) return true;
-  return PUBLIC_BASE_RPCS.some((candidate) => raw.startsWith(candidate));
+  if (!raw) return null;
+  try {
+    return new URL(raw).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function isAlchemyHost(hostname: string | null): boolean {
+  return hostname === 'alchemy.com' || (hostname?.endsWith('.alchemy.com') ?? false);
+}
+
+export function isPublicBaseRpc(url: string | null | undefined): boolean {
+  const hostname = rpcHostname(url);
+  // An unset or unparseable endpoint is what degrades to the public one.
+  if (!hostname) return true;
+  return PUBLIC_BASE_RPC_HOSTS.has(hostname);
 }
 
 /** Alchemy from a bare key, so one variable is enough to leave the public RPC. */
@@ -86,7 +111,7 @@ export function describeBaseRpc(): BaseRpcDescription {
   const dedicated = !isPublicBaseRpc(primary);
 
   return {
-    provider: primary.includes('alchemy.com') ? 'alchemy' : dedicated ? 'configured' : 'public',
+    provider: isAlchemyHost(rpcHostname(primary)) ? 'alchemy' : dedicated ? 'configured' : 'public',
     url: maskRpcUrl(primary),
     dedicated,
     failoverCount: Math.max(0, urls.length - 1)
