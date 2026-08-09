@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@sanova/database';
 import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
+import {
+  describeMigrationReadiness,
+  readMigrationReadiness
+} from '../../../../lib/admin/databaseSchemaReadiness';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -52,35 +56,23 @@ export async function GET() {
     });
   }
 
-  const lastMigrations = await prisma
-    .$queryRaw<Array<{ migration_name: string; finished_at: Date | null }>>`
-      SELECT migration_name, finished_at
-      FROM "_prisma_migrations"
-      ORDER BY started_at DESC
-      LIMIT 5
-    `
-    .catch(() => null);
-
-  const unfinished = lastMigrations?.filter((row) => row.finished_at === null) ?? [];
+  /**
+   * Compare what this build expects against what the database has, instead of
+   * only asking whether the rows that exist look finished. A migration nobody
+   * ran has no row, so the old check called that healthy.
+   */
+  const migrations = await readMigrationReadiness();
+  const described = describeMigrationReadiness(migrations);
   checks.push({
-    id: 'migrations_finished',
-    ok: unfinished.length === 0,
-    detail:
-      lastMigrations === null
-        ? 'no se pudo leer _prisma_migrations'
-        : unfinished.length === 0
-          ? 'las últimas migraciones terminaron bien'
-          : `quedaron sin terminar: ${unfinished.map((row) => row.migration_name).join(', ')}`,
-    fix: unfinished.length === 0 ? undefined : 'Una migración a medio aplicar bloquea las siguientes.'
+    id: 'migrations_applied',
+    ok: migrations.ok,
+    detail: described.detail,
+    fix: described.fix
   });
 
   return NextResponse.json({
     ok: checks.every((row) => row.ok),
     checks,
-    appliedRecently:
-      lastMigrations?.map((row) => ({
-        name: row.migration_name,
-        finishedAt: row.finished_at?.toISOString() ?? null
-      })) ?? null
+    migrations
   });
 }
