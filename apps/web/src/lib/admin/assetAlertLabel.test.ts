@@ -4,7 +4,7 @@ import { assetAlertLabel, assetCode } from './assetAlertLabel';
 /** Los dos edificios de Añelo, como están realmente en producción. */
 const UV2 = {
   title: 'APART HOTEL URBAN VIEW - AÑELO',
-  tokenSymbol: 'ANELO UV2 RWA',
+  tokenSymbol: 'ANELOUV2',
   contractAddress: '0x1dD753e74C68E5Acfa4846D5336e7D552C999664'
 };
 const UV3 = {
@@ -15,7 +15,7 @@ const UV3 = {
 
 describe('assetCode', () => {
   it('usa el símbolo del token, que es lo que separa UV2 de UV3', () => {
-    expect(assetCode(UV2)).toBe('ANELO UV2 RWA');
+    expect(assetCode(UV2)).toBe('ANELOUV2');
     expect(assetCode(UV3)).toBe('UV3RWA');
   });
 
@@ -39,7 +39,7 @@ describe('assetAlertLabel', () => {
 
   it('distingue los dos edificios cuyos títulos son las mismas palabras', () => {
     expect(assetAlertLabel(UV2)).not.toBe(assetAlertLabel(UV3));
-    expect(assetAlertLabel(UV2).startsWith('[ANELO UV2 RWA]')).toBe(true);
+    expect(assetAlertLabel(UV2).startsWith('[ANELOUV2]')).toBe(true);
     expect(assetAlertLabel(UV3).startsWith('[UV3RWA]')).toBe(true);
   });
 

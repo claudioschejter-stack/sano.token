@@ -416,6 +416,14 @@ async function executeProjectTokenDeployUnlocked(
       const updated = await updateAdminAsset(projectId, {
         tokenDeployStatus,
         contractAddress: result.contractAddress,
+        /**
+         * Guardar lo que el contrato tiene, no lo que se pidió. El deploy
+         * normaliza el símbolo (sin espacios, ocho caracteres) y le agrega
+         * " Equity" al nombre, así que la base venía quedando con otro código que
+         * la cadena — y ese código es el que ahora identifica las alertas.
+         */
+        tokenName: result.onChainTokenName,
+        tokenSymbol: result.onChainTokenSymbol,
         vaultAddress,
         vaultFundingStatus:
           isVaultTokenStandard(asset.tokenStandard)

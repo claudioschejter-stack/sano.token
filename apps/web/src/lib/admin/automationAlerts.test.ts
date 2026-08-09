@@ -31,7 +31,7 @@ beforeEach(() => {
   slack.length = 0;
   lookupThrows = false;
   projects = {
-    'proj-uv2': { tokenSymbol: 'ANELO UV2 RWA', contractAddress: '0x1dD753e74C68E5Acfa4846D5336e7D552C999664' },
+    'proj-uv2': { tokenSymbol: 'ANELOUV2', contractAddress: '0x1dD753e74C68E5Acfa4846D5336e7D552C999664' },
     'proj-uv3': { tokenSymbol: 'UV3RWA', contractAddress: '0x481fAa4102Fb080e8291cA49d1e70bA42d36c8F1' }
   };
   process.env.AUTH_ADMIN_EMAILS = 'ops@sanova.test';
@@ -65,7 +65,7 @@ describe('notifyAutomationIssue', () => {
     await notifyAutomationIssue({ projectId: 'proj-uv3', title, message: 'x' });
 
     expect(emails[0].subject).not.toBe(emails[1].subject);
-    expect(emails[0].subject).toContain('ANELO UV2 RWA');
+    expect(emails[0].subject).toContain('ANELOUV2');
     expect(emails[1].subject).toContain('UV3RWA');
   });
 
@@ -106,7 +106,7 @@ describe('notifyAutomationIssue', () => {
 
     await notifyAutomationIssue({ projectId: 'proj-uv2', title: 'x', message: 'y' });
 
-    expect(slack[0]).toContain('ANELO UV2 RWA');
+    expect(slack[0]).toContain('ANELOUV2');
   });
 
   it('no manda nada si no hay destinatarios configurados', async () => {
