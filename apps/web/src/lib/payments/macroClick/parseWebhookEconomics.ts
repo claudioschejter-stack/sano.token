@@ -62,8 +62,10 @@ export function parseMacroClickWebhookEconomics(
     typeof additional?.localAmount === 'number' && Number.isFinite(additional.localAmount)
       ? additional.localAmount
       : null;
+  const montoRaw =
+    (payload as MacroClickWebhookPayload).Monto ?? (payload as Record<string, unknown>).monto;
   const localFromMonto = parseMacroMontoToMajorUnits(
-    (payload as MacroClickWebhookPayload).Monto ?? (payload as Record<string, unknown>).monto
+    typeof montoRaw === 'string' || typeof montoRaw === 'number' ? montoRaw : undefined
   );
   const localAmount = localFromInfo ?? localFromMonto;
 
