@@ -1,5 +1,6 @@
 import { dispatchApprovedLocalWalletPayment } from '../localWalletWebhookSettlement';
 import { decodeMacroClickCommerceRef, resolveMacroClickPaymentReference } from './commerceRef';
+import { parseMacroClickWebhookEconomics } from './parseWebhookEconomics';
 import {
   isMacroClickPaymentFailed,
   isMacroClickPaymentSuccessful,
@@ -42,11 +43,21 @@ export async function handleMacroClickWebhook(payload: MacroClickWebhookPayload)
   }
 
   if (isMacroClickPaymentSuccessful(payload)) {
+    const economics = parseMacroClickWebhookEconomics(payload);
     return dispatchApprovedLocalWalletPayment({
       externalReference: paymentRef,
       provider: 'macro_click',
       providerPaymentId: String(payload.TransaccionPlataformaId ?? paymentRef),
-      payload: { ...payload, provider: 'macro_click' }
+      amountUsd: economics.amountUsd,
+      fiatCurrency: economics.currency,
+      localAmount: economics.localAmount,
+      payload: {
+        ...payload,
+        provider: 'macro_click',
+        ...(economics.currency ? { fiatCurrency: economics.currency } : {}),
+        ...(economics.localAmount != null ? { localAmount: economics.localAmount } : {}),
+        ...(economics.amountUsd != null ? { amountUsd: economics.amountUsd } : {})
+      }
     });
   }
 

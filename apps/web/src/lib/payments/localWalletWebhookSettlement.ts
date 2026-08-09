@@ -8,6 +8,10 @@ export type LocalWalletSettlementInput = {
   provider: 'mercado_pago' | 'modo' | string;
   providerPaymentId?: string | null;
   amountUsd?: number | null;
+  /** Local fiat currency charged by the collector (Macro ARS/USD). */
+  fiatCurrency?: 'ARS' | 'USD' | null;
+  /** Local major units charged (e.g. Macro Monto in pesos). */
+  localAmount?: number | null;
   payload: Record<string, unknown>;
 };
 
@@ -101,6 +105,19 @@ export async function dispatchApprovedLocalWalletPayment(input: LocalWalletSettl
     userEmail = user?.email ?? null;
   }
 
+  const fiatCurrency =
+    input.fiatCurrency === 'ARS' || input.fiatCurrency === 'USD'
+      ? input.fiatCurrency
+      : input.payload.fiatCurrency === 'ARS' || input.payload.fiatCurrency === 'USD'
+        ? input.payload.fiatCurrency
+        : null;
+  const localAmount =
+    typeof input.localAmount === 'number' && Number.isFinite(input.localAmount)
+      ? input.localAmount
+      : typeof input.payload.localAmount === 'number' && Number.isFinite(input.payload.localAmount)
+        ? input.payload.localAmount
+        : null;
+
   if (userId && conversionAmount > 0) {
     try {
       await enqueueFiatToUsdcConversion({
@@ -108,7 +125,9 @@ export async function dispatchApprovedLocalWalletPayment(input: LocalWalletSettl
         provider: input.provider,
         amountUsd: conversionAmount,
         userId,
-        userEmail
+        userEmail,
+        fiatCurrency,
+        localAmount
       });
     } catch (error) {
       console.error('[dispatchApprovedLocalWalletPayment] conversion enqueue failed', error);

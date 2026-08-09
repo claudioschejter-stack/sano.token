@@ -1,22 +1,7 @@
 import { creditAndDistributeOperatingRent } from '../../yield/creditAndDistributeRent';
+import { parseMacroMontoToMajorUnits } from './parseWebhookEconomics';
 import type { MacroClickCommerceRef, MacroClickWebhookPayload } from './types';
 import { MACRO_CLICK_ESTADO } from './types';
-
-function parseMacroMontoToMajorUnits(monto: string | number | undefined): number | null {
-  if (typeof monto === 'number' && Number.isFinite(monto)) {
-    // Macro may send major units with comma ("1500,50") as string; numeric often pesos
-    return monto > 100_000 ? monto / 100 : monto;
-  }
-  if (typeof monto !== 'string' || !monto.trim()) return null;
-  const normalized = monto.trim().replace(/\./g, '').replace(',', '.');
-  const value = Number(normalized);
-  if (!Number.isFinite(value)) return null;
-  // Heuristic: if no decimal separator in original and looks like cents integer
-  if (!monto.includes(',') && !monto.includes('.') && Number.isInteger(value) && value >= 1000) {
-    return value / 100;
-  }
-  return value;
-}
 
 export function isMacroClickPaymentSuccessful(payload: MacroClickWebhookPayload): boolean {
   const estadoId = Number(payload.EstadoId);
