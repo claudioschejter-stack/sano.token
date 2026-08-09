@@ -69,7 +69,7 @@ export function alchemyBaseRpcUrl(): string | null {
 
 export function resolveBaseMainnetRpcUrls(): string[] {
   const seen = new Set<string>();
-  const urls: string[] = [];
+  const candidates: string[] = [];
 
   for (const pick of [
     () => process.env.LENDING_BASE_RPC_URL?.trim(),
@@ -82,10 +82,21 @@ export function resolveBaseMainnetRpcUrls(): string[] {
     const url = pick();
     if (!url || seen.has(url)) continue;
     seen.add(url);
-    urls.push(url);
+    candidates.push(url);
   }
 
-  return urls;
+  /**
+   * A dedicated endpoint wins over a public one no matter which variable it came
+   * from. `scripts/vercel/sync-lending-env.mjs` writes
+   * `LENDING_BASE_RPC_URL=https://mainnet.base.org` when nothing is set, and that
+   * variable is read first — so adding an Alchemy key would have been a silent
+   * no-op, which is the same class of failure this module exists to remove. A
+   * configured public URL is a leftover default, not a preference.
+   */
+  return [
+    ...candidates.filter((url) => !isPublicBaseRpc(url)),
+    ...candidates.filter((url) => isPublicBaseRpc(url))
+  ];
 }
 
 export function resolveBaseMainnetRpcUrl(): string {

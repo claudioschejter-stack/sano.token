@@ -19,6 +19,19 @@ import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
 import { AbiCoder, Contract, JsonRpcProvider, getAddress, keccak256 } from 'ethers';
 
+/**
+ * Resolve the endpoint through the same module the server uses.
+ *
+ * This script had its own copy of the precedence rules and its own
+ * `includes('mainnet.base.org')` check — and that substring comparison is the
+ * bug CodeQL flagged in `baseRpc.ts`, reintroduced here by copying the logic.
+ * Two implementations of one decision is how it happened twice.
+ */
+import {
+  describeBaseRpc,
+  resolveBaseMainnetRpcUrl
+} from '../../apps/web/src/lib/blockchain/baseRpc';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../../.env.local') });
 
@@ -97,19 +110,22 @@ async function main() {
     select: { id: true, title: true, contractAddress: true, vaultAddress: true }
   });
 
-  const alchemyKey = process.env.ALCHEMY_API_KEY?.trim();
-  const rpc =
-    process.env.ALCHEMY_BASE_RPC_URL?.trim() ||
-    process.env.LENDING_BASE_RPC_URL?.trim() ||
-    process.env.BASE_RPC_URL?.trim() ||
-    (alchemyKey ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}` : null) ||
-    'https://mainnet.base.org';
-  if (rpc === 'https://mainnet.base.org') {
+  const rpc = resolveBaseMainnetRpcUrl();
+  const described = describeBaseRpc();
+
+  if (described.dedicated) {
+    console.log(`RPC: ${described.provider} (${described.url ?? 'n/a'})`);
+  } else {
     console.log(
       'RPC: endpoint público de Base — limita ráfagas de eth_call, esperá lecturas ilegibles.\n' +
         'Para un resultado fiable: ALCHEMY_API_KEY=... npx tsx scripts/ops/inspect-rwa-security-timelocks.ts'
     );
   }
+
+  // The pauses exist only to stay under the public endpoint's burst limit; a
+  // dedicated one turns a 30-second run into a couple of seconds.
+  const throttle = described.dedicated ? async () => {} : sleep;
+
   const provider = new JsonRpcProvider(rpc, 8453, { staticNetwork: true });
   const now = Math.floor(Date.now() / 1000);
 
@@ -125,7 +141,7 @@ async function main() {
 
     for (const { label, address } of contracts) {
       const contract = new Contract(getAddress(address), ABI, provider);
-      await sleep(1000);
+      await throttle(1000);
 
       const owner = await read('owner', () => contract.owner() as Promise<string>);
       const delay = await read('adminActionDelay', () => contract.adminActionDelay() as Promise<bigint>);
@@ -142,7 +158,7 @@ async function main() {
       );
 
       for (const [name, policyAddress] of POLICY_ADDRESSES) {
-        await sleep(900);
+        await throttle(900);
         const allowed = await read(name, () =>
           contract.externalContractAllowed(getAddress(policyAddress)) as Promise<boolean>
         );
@@ -154,7 +170,7 @@ async function main() {
           console.log(`   allowlist ${name}: ILEGIBLE (no concluir que falta)`);
           continue;
         }
-        await sleep(900);
+        await throttle(900);
         const readyAt = await read(`${name}-clock`, () =>
           contract.adminActionReadyAt(allowActionId(policyAddress)) as Promise<bigint>
         );
@@ -163,7 +179,7 @@ async function main() {
 
       if (label !== 'vault') continue;
 
-      await sleep(900);
+      await throttle(900);
       const totalAssets = await read('totalAssets', () => contract.totalAssets() as Promise<bigint>);
       const limit = await read('dailyWithdrawalLimit', () => contract.dailyWithdrawalLimit() as Promise<bigint>);
       const treasuryShares = await read('treasuryShares', () => contract.balanceOf(TREASURY) as Promise<bigint>);
@@ -183,7 +199,7 @@ async function main() {
         continue;
       }
 
-      await sleep(900);
+      await throttle(900);
       const readyAt = await read('limit-clock', () =>
         contract.adminActionReadyAt(limitActionId(target)) as Promise<bigint>
       );
