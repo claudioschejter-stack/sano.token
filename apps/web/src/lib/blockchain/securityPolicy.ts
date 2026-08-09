@@ -95,6 +95,7 @@ export async function configureInitialContractSecurity(input: {
   );
 
   const wallet = input.asset.runner;
+  const notAllowed: string[] = [];
 
   for (const address of allowed) {
     try {
@@ -121,23 +122,36 @@ export async function configureInitialContractSecurity(input: {
       if (isTreasury) {
         throw new Error(`setExternalContractAllowed(${address}) falló: ${detail}`);
       }
+      notAllowed.push(`${address}: ${detail}`);
       console.warn(`[securityPolicy] skip non-treasury allow for ${address}: ${detail}`);
     }
   }
 
+  /**
+   * Anything the setup window did not cover has to go through the contract's
+   * 24h timelock, and this function cannot wait for it. Report what is still
+   * missing instead of returning as if the vault were configured: the daily
+   * limit stays at the constructor's `type(uint256).max` until someone runs the
+   * repair, and swallowing the failure is how a vault ended up with unlimited
+   * withdrawals while the deploy reported success.
+   */
+  const unresolved: string[] = [...notAllowed];
+
   if (input.vaultContract) {
+    const limit = resolveDailyWithdrawalLimit(input.totalAssets);
     try {
-      const limit = resolveDailyWithdrawalLimit(input.totalAssets);
       const currentLimit = await input.vaultContract.dailyWithdrawalLimit();
       if (currentLimit > limit) {
         await input.vaultContract.setDailyWithdrawalLimit.staticCall(limit);
         const limitTx = await sendAutomationTx(() => input.vaultContract!.setDailyWithdrawalLimit(limit), wallet);
         await waitForAutomationTx(limitTx);
       }
-    } catch {
-      // Non-fatal: vault defaults to unlimited withdrawals during the 1h bootstrap window.
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : 'setDailyWithdrawalLimit failed';
+      unresolved.push(`dailyWithdrawalLimit=${limit.toString()}: ${detail}`);
+      console.warn(`[securityPolicy] daily withdrawal limit not applied: ${detail}`);
     }
   }
 
-  return { allowedContracts: allowed };
+  return { allowedContracts: allowed, unresolved };
 }

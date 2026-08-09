@@ -117,6 +117,7 @@ export type DeploymentEvent = {
     | 'READY_TO_BORROW'
     | 'SYNTHETIC_RWA_FLOW'
     | 'SECURITY_REPORT'
+    | 'SECURITY_REPAIR'
     | 'BALANCE_MONITOR'
     | 'YIELD_CONVERT'
     | 'YIELD_DISTRIBUTE';
