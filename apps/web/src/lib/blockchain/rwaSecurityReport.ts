@@ -1,7 +1,6 @@
 import { Contract, JsonRpcProvider } from 'ethers';
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { appendDeploymentEvent } from '../admin/assetsService';
-import { assetAlertLabel } from '../admin/assetAlertLabel';
 import { activateCircuitBreaker } from '../admin/automationCircuitBreaker';
 import { notifyAutomationIssue } from '../admin/automationAlerts';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
@@ -273,7 +272,7 @@ export async function recordRwaSecurityReport(
     if (options.notify !== false) {
       await notifyAutomationIssue({
         projectId: asset.id,
-        title: assetAlertLabel(asset),
+        title: asset.title,
         message: failures.length
           ? lines.join('\n')
           : `Security report incompleto por lecturas RPC fallidas, sin anomalías confirmadas.\n${lines.join('\n')}`,

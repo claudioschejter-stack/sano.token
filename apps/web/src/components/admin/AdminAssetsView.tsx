@@ -7,6 +7,7 @@ import { createIntlFormatters } from '../../i18n/formatters';
 import { useLocale, useTranslation } from '../../i18n/LocaleProvider';
 import type { Messages } from '../../i18n/locales/en';
 import type { AdminAssetRecord } from '../../lib/admin/assetsService';
+import { assetCode } from '../../lib/admin/assetAlertLabel';
 import {
   isMorphoBorrowReadyAsset,
   isMorphoCollateralAsset
@@ -121,8 +122,12 @@ function AdminAssetsTable({
                     <Fragment key={asset.id}>
                       <tr className="transition-colors hover:bg-terminal-bg/60">
                         <td className="px-6 py-4">
+                          {/* El código encima del título, no debajo: es lo que
+                              distingue dos proyectos que se llaman igual. */}
+                          <p className="font-mono text-xs font-semibold text-terminal-primary">
+                            {assetCode(asset) ?? '—'}
+                          </p>
                           <p className="font-medium text-terminal-text">{asset.title}</p>
-                          <p className="mt-1 font-mono text-xs text-terminal-muted">{asset.tokenSymbol}</p>
                           {asset.activeInvestments > 0 ? (
                             <p className="mt-1 text-xs text-terminal-muted">
                               {t.adminAssets.activeInvestments.replace(
@@ -585,7 +590,16 @@ export function AdminAssetsView() {
                   key={asset.id}
                   className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-terminal-border bg-terminal-bg px-3 py-2 text-sm"
                 >
-                  <span className="font-medium text-terminal-text">{asset.title}</span>
+                  {/* El código va primero: acá se hace clic para configurar un
+                      préstamo, y dos proyectos pueden tener títulos iguales. */}
+                  <span className="font-medium text-terminal-text">
+                    {assetCode(asset) ? (
+                      <span className="mr-2 font-mono text-xs text-terminal-primary">
+                        {assetCode(asset)}
+                      </span>
+                    ) : null}
+                    {asset.title}
+                  </span>
                   <div className="flex flex-wrap gap-2">
                     <Link
                       href={`/dashboard/loans/${asset.id}`}
