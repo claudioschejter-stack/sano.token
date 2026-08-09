@@ -87,6 +87,30 @@ describe('resolveBaseMainnetRpcUrls', () => {
     const urls = resolveBaseMainnetRpcUrls();
     expect(urls.filter((url) => url === 'https://base.example.dedicated/rpc')).toHaveLength(1);
   });
+
+  it('prefers Alchemy over a leftover public URL configured in a higher-priority variable', () => {
+    // sync-lending-env used to write this value, and it is read before Alchemy.
+    process.env.LENDING_BASE_RPC_URL = 'https://mainnet.base.org';
+    process.env.ALCHEMY_API_KEY = 'abc123key';
+
+    expect(resolveBaseMainnetRpcUrl()).toContain('alchemy.com');
+    expect(baseRpcIsDedicated()).toBe(true);
+    expect(describeBaseRpc().provider).toBe('alchemy');
+  });
+
+  it('still keeps that public URL as failover rather than dropping it', () => {
+    process.env.LENDING_BASE_RPC_URL = 'https://mainnet.base.org';
+    process.env.ALCHEMY_API_KEY = 'abc123key';
+
+    expect(resolveBaseMainnetRpcUrls()).toContain('https://mainnet.base.org');
+  });
+
+  it('prefers a dedicated endpoint set in a lower-priority variable', () => {
+    process.env.LENDING_BASE_RPC_URL = 'https://mainnet.base.org';
+    process.env.BLOCKCHAIN_RPC_URL = 'https://base.example.dedicated/rpc';
+
+    expect(resolveBaseMainnetRpcUrl()).toBe('https://base.example.dedicated/rpc');
+  });
 });
 
 describe('isPublicBaseRpc', () => {
