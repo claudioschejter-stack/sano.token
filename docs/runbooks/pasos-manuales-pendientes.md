@@ -146,12 +146,26 @@ directa (puerto 5432). Si esa no es alcanzable desde donde estés, se puede apli
 el SQL de la migración a mano y registrar la fila en `_prisma_migrations` con el
 checksum sha256 del archivo `migration.sql`.
 
-**Deuda conocida:** dos migraciones de julio (`20260701000000_user_preferences_theme_pwa`
-y `20260701120000_add_passkeys_webauthn`) tienen un checksum guardado distinto del
-archivo actual, porque se editaron después de aplicarse. `migrate deploy` va a
-rechazarlas por eso. Hay que decidir entre volver los archivos a su contenido
-original o actualizar el checksum guardado; en ambos casos el efecto en la base ya
-está aplicado.
+### Estado de `_prisma_migrations` (2026-08-09)
+
+Limpio: 29 archivos, 29 filas, cero pendientes, cero checksums divergentes, cero
+duplicados. `migrate deploy` corre sin quejarse.
+
+Lo que había y se corrigió, por si vuelve a aparecer el patrón:
+
+- `20260701000000_user_preferences_theme_pwa` tenía el **checksum vacío**: la fila
+  se insertó a mano sin calcularlo. Se escribió el hash del archivo, después de
+  verificar que las tres columnas que declara existen en la base.
+- `20260626000000_add_totp_2fa` tenía **dos filas**, ambas con el checksum correcto
+  — un registro repetido, probablemente un `migrate resolve --applied` sobre algo
+  que ya estaba registrado. Se conservó la que tiene una ventana real de aplicación
+  y se borró la otra.
+
+El criterio en los dos casos fue el mismo: **el archivo es la verdad y la base ya
+lo refleja**, así que se corrige el registro, no el esquema. Antes de tocar
+`_prisma_migrations` conviene comprobar que los objetos que declara la migración
+—columnas, tablas, índices, constraints— efectivamente existan. Si no existen, el
+problema es al revés y hay que aplicar el SQL, no ajustar el checksum.
 
 ---
 
