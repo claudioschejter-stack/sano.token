@@ -217,7 +217,15 @@ function summarize(input: {
 
 export async function recordRwaSecurityReport(
   asset: AdminAssetRecord,
-  options: { activateBreaker?: boolean } = {}
+  options: {
+    activateBreaker?: boolean;
+    /**
+     * Callers that report, repair and then re-check would send one alert per
+     * pass, including one about a finding they fixed seconds later. They send
+     * their own, once, describing the final state.
+     */
+    notify?: boolean;
+  } = {}
 ) {
   const report = await generateRwaSecurityReport(asset);
   const { failures, unknowns } = report;
@@ -252,14 +260,16 @@ export async function recordRwaSecurityReport(
         : [])
     ];
 
-    await notifyAutomationIssue({
-      projectId: asset.id,
-      title: asset.title,
-      message: failures.length
-        ? lines.join('\n')
-        : `Security report incompleto por lecturas RPC fallidas, sin anomalías confirmadas.\n${lines.join('\n')}`,
-      severity: failures.length ? 'critical' : 'warning'
-    });
+    if (options.notify !== false) {
+      await notifyAutomationIssue({
+        projectId: asset.id,
+        title: asset.title,
+        message: failures.length
+          ? lines.join('\n')
+          : `Security report incompleto por lecturas RPC fallidas, sin anomalías confirmadas.\n${lines.join('\n')}`,
+        severity: failures.length ? 'critical' : 'warning'
+      });
+    }
 
     // Only a confirmed on-chain anomaly may block the asset. An unreadable
     // contract is a problem with our RPC, not with the asset.

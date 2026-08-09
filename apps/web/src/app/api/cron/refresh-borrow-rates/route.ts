@@ -5,7 +5,7 @@ import { notifyAutomationIssue } from '../../../../lib/admin/automationAlerts';
 import { executeProjectInfrastructureRepair } from '../../../../lib/blockchain/projectTokenDeploy';
 import { shouldBlockAutomation } from '../../../../lib/admin/automationCircuitBreaker';
 import { enqueueAutomationJob } from '../../../../lib/admin/automationJobs';
-import { recordRwaSecurityReport } from '../../../../lib/blockchain/rwaSecurityReport';
+import { superviseRwaSecurity } from '../../../../lib/blockchain/superviseRwaSecurity';
 import { reconcilePayments } from '../../../../lib/payments/paymentReconciliation';
 import { recordPortfolioSnapshotsForActiveInvestors } from '../../../../lib/portfolio/portfolioAggregator';
 import { isCronRequestAllowed } from '../../../../lib/cron/authorizeCronRequest';
@@ -103,11 +103,16 @@ export async function GET(request: Request) {
       };
     }
 
+    /**
+     * Report *and* repair. The security config the report asks for needs a
+     * timelocked admin action, so the daily cadence is what applies it: one run
+     * schedules, a later run executes. Left as a report alone, the finding just
+     * repeated every morning.
+     */
     for (const asset of activeAssets.slice(0, 5)) {
       if (!asset.contractAddress) continue;
       try {
-        const report = await recordRwaSecurityReport(asset, { activateBreaker: true });
-        securityReports.push({ projectId: asset.id, ok: report.ok });
+        securityReports.push(await superviseRwaSecurity(asset));
       } catch (error) {
         securityReports.push({
           projectId: asset.id,
