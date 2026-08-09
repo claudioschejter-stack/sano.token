@@ -1,4 +1,39 @@
+import { prisma } from '@sanova/database';
+import { assetAlertLabel } from './assetAlertLabel';
 import { sendTransactionalEmail } from '../email/sendTransactionalEmail';
+
+/**
+ * Put the token code in front of every alert, wherever it came from.
+ *
+ * Eight call sites pass a project title, and a title does not identify a project:
+ * Añelo's UV2 and UV3 have the same words in a different order and neither says
+ * which building it is. Resolving the code here instead of at each caller means
+ * the alert added next month is unambiguous without anyone remembering to make
+ * it so.
+ *
+ * Never let this stop an alert. A database that cannot answer is a reason to send
+ * the message as it came, not a reason to stay quiet.
+ */
+async function withProjectCode(
+  projectId: string,
+  title: string
+): Promise<{ headline: string; contractAddress: string | null }> {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { tokenSymbol: true, contractAddress: true }
+    });
+    if (!project) {
+      return { headline: title, contractAddress: null };
+    }
+    return {
+      headline: assetAlertLabel({ title, ...project }),
+      contractAddress: project.contractAddress ?? null
+    };
+  } catch {
+    return { headline: title, contractAddress: null };
+  }
+}
 
 async function notifySlack(text: string) {
   const webhook = process.env.AUTOMATION_SLACK_WEBHOOK_URL?.trim();
@@ -34,16 +69,24 @@ export async function notifyAutomationIssue(input: {
   }
 
   const severity = input.severity ?? 'warning';
-  const slackLine = `[Sanova RWA ${severity}] ${input.title} — ${input.message} (project: ${input.projectId})`;
+  const { headline, contractAddress } = await withProjectCode(input.projectId, input.title);
+
+  // The contract is what an operator acts on, so name it rather than make them
+  // look it up — that lookup is where the wrong project gets picked.
+  const reference = contractAddress
+    ? `${input.projectId} · token ${contractAddress}`
+    : input.projectId;
+
+  const slackLine = `[Sanova RWA ${severity}] ${headline} — ${input.message} (project: ${reference})`;
   await notifySlack(slackLine);
 
   await Promise.all(
     recipients.map((to) =>
       sendTransactionalEmail({
         to,
-        subject: `Sanova RWA ${severity} alert: ${input.title}`,
-        text: `${input.message}\n\nProject: ${input.projectId}`,
-        html: `<p>${input.message}</p><p><strong>Project:</strong> ${input.projectId}</p>`
+        subject: `Sanova RWA ${severity} alert: ${headline}`,
+        text: `${input.message}\n\nProject: ${reference}`,
+        html: `<p>${input.message}</p><p><strong>Project:</strong> ${reference}</p>`
       })
     )
   );

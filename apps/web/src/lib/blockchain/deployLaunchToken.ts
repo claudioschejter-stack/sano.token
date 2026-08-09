@@ -25,7 +25,15 @@ export type DeployLaunchTokenInput = {
   chainId?: number | null;
 };
 
-function buildOnChainTokenName(name: string, instrumentType?: TokenInstrumentType): string {
+/**
+ * What the contract will actually be called.
+ *
+ * Exported because these two transformations are why the database and the chain
+ * disagreed: the request said "ANELO UV2 RWA" and the contract ended up holding
+ * "ANELOUV2", so the platform identified the asset by a code Basescan does not
+ * show. Whoever changes them should see the tests that pin them.
+ */
+export function buildOnChainTokenName(name: string, instrumentType?: TokenInstrumentType): string {
   const base = name.trim();
   const suffix = instrumentType === 'DEBT' ? ' Debt Note' : instrumentType === 'EQUITY' ? ' Equity' : '';
   return `${base}${suffix}`.slice(0, 64);
@@ -35,6 +43,18 @@ export type DeployLaunchTokenResult =
   | {
       status: 'DEPLOYED';
       contractAddress: string;
+      /**
+       * What the contracts actually hold, which is not what was asked for.
+       *
+       * `normalizeSymbol` strips spaces and truncates to eight characters, and
+       * `buildOnChainTokenName` appends " Equity" — so "ANELO UV2 RWA" became
+       * "ANELOUV2" on chain while the project kept the request. The platform then
+       * showed, and identified alerts by, a code the contract does not have: an
+       * operator cross-checking on Basescan finds a different token than the
+       * email named. Returning these lets the caller store the truth.
+       */
+      onChainTokenName: string;
+      onChainTokenSymbol: string;
       vaultAddress?: string;
       vaultFundingStatus?: VaultFundingStatus;
       vaultFundingAmount?: string | null;
@@ -54,7 +74,8 @@ type VaultFundingResult = {
   error: string | null;
 };
 
-function normalizeSymbol(symbol: string): string {
+/** ERC20 symbols here are uppercase alphanumerics, at most eight characters. */
+export function normalizeSymbol(symbol: string): string {
   const cleaned = symbol.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
   return cleaned.slice(0, 8) || 'RWA';
 }
@@ -272,6 +293,8 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
       return {
         status: 'DEPLOYED',
         contractAddress,
+        onChainTokenName: tokenName,
+        onChainTokenSymbol: symbol,
         chainId,
         txHash: mintReceipt?.hash ?? 'mint-submitted',
         ownershipTransfers,
@@ -373,6 +396,8 @@ async function deploySanovaContracts(input: DeployLaunchTokenInput): Promise<Dep
     return {
       status: 'DEPLOYED',
       contractAddress,
+      onChainTokenName: tokenName,
+      onChainTokenSymbol: symbol,
       vaultAddress,
       vaultFundingStatus: funding.status,
       vaultFundingAmount: funding.amount,
@@ -402,6 +427,9 @@ export async function deployLaunchToken(input: DeployLaunchTokenInput): Promise<
       return {
         status: 'DEPLOYED',
         contractAddress: result.contractAddress,
+        // Thirdweb's demo path deploys with the values as given.
+        onChainTokenName: input.tokenName,
+        onChainTokenSymbol: input.tokenSymbol,
         chainId: result.chainId,
         txHash: result.txHash
       };

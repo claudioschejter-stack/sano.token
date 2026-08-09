@@ -1,5 +1,4 @@
 import type { AdminAssetRecord } from '../admin/assetsService';
-import { assetAlertLabel } from '../admin/assetAlertLabel';
 import { notifyAutomationIssue } from '../admin/automationAlerts';
 import { activateCircuitBreaker, resetCircuitBreaker } from '../admin/automationCircuitBreaker';
 import { describeBaseRpc } from './baseRpc';
@@ -113,7 +112,8 @@ async function notifySupervision(input: {
 
   await notifyAutomationIssue({
     projectId: input.asset.id,
-    title: assetAlertLabel(input.asset),
+    // El código del token lo agrega notifyAutomationIssue, para todas las alertas.
+    title: input.asset.title,
     message: lines.join('\n') || 'Security report OK.',
     severity
   });

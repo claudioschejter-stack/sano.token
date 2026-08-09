@@ -1,31 +1,38 @@
 /**
- * Name an asset in a way that says *which* asset.
+ * Name an asset by its token code, not by its title.
  *
  * Añelo has two Urban View buildings, UV2 and UV3, with separate tokens, vaults
  * and investors. Their titles carry the same words in a different order —
  * "APART HOTEL URBAN VIEW - AÑELO" and "AÑELO - APART HOTEL URBAN VIEW" — and
- * neither mentions UV2 or UV3. Two alerts arriving about "APART HOTEL URBAN
- * VIEW - AÑELO" are indistinguishable, and acting on the wrong contract is worse
- * than not acting: one of them holds investors' money.
+ * neither mentions UV2 or UV3. Two alerts about "APART HOTEL URBAN VIEW - AÑELO"
+ * are indistinguishable, and acting on the wrong contract is worse than not
+ * acting: one of them holds investors' money.
  *
- * The token symbol is what actually separates them (`ANELO UV2 RWA` vs
- * `UV3RWA`), so it belongs wherever the asset is named for an operator.
+ * So the code leads. `[UV3RWA] AÑELO - APART HOTEL URBAN VIEW` can be read wrong
+ * only by ignoring the first thing on the line.
  */
-export function assetAlertLabel(asset: {
+
+export type AssetIdentity = {
   title: string;
   tokenSymbol?: string | null;
   contractAddress?: string | null;
-}): string {
-  const symbol = asset.tokenSymbol?.trim();
-  if (symbol) {
-    return `${asset.title} [${symbol}]`;
-  }
+};
 
-  // No symbol yet (asset not deployed): the address is the next best identifier.
+/** Short, stable identifier: the token symbol, else the token address. */
+export function assetCode(asset: AssetIdentity): string | null {
+  const symbol = asset.tokenSymbol?.trim();
+  if (symbol) return symbol;
+
+  // Not deployed yet, or deployed without a symbol: the address still separates it.
   const address = asset.contractAddress?.trim();
   if (address) {
-    return `${asset.title} [${address.slice(0, 10)}…]`;
+    return address.length > 12 ? `${address.slice(0, 10)}…` : address;
   }
 
-  return asset.title;
+  return null;
+}
+
+export function assetAlertLabel(asset: AssetIdentity): string {
+  const code = assetCode(asset);
+  return code ? `[${code}] ${asset.title}` : asset.title;
 }
