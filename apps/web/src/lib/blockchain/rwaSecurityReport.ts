@@ -5,6 +5,7 @@ import { activateCircuitBreaker } from '../admin/automationCircuitBreaker';
 import { notifyAutomationIssue } from '../admin/automationAlerts';
 import SanovaAssetTokenArtifact from './artifacts/SanovaAssetToken.json';
 import SanovaRwaVaultArtifact from './artifacts/SanovaRwaVault.json';
+import { describeBaseRpc } from './baseRpc';
 import { resolveChainId } from './explorerUrls';
 import { readWithRetry } from './rpcRetry';
 import { resolveChainRpcUrl } from './supportedChains';
@@ -253,10 +254,18 @@ export async function recordRwaSecurityReport(
   });
 
   if (!report.ok) {
+    const rpc = describeBaseRpc();
     const lines = [
       ...failures.map((entry) => `${entry.label}: ${entry.detail}`),
       ...(unknowns.length
-        ? [`No se pudo verificar (RPC): ${unknowns.map((entry) => entry.label).join(', ')}`]
+        ? [
+            `No se pudo verificar (RPC): ${unknowns.map((entry) => entry.label).join(', ')}`,
+            // The public endpoint rate-limits bursts of eth_call, which is the
+            // usual reason a check comes back unreadable.
+            rpc.dedicated
+              ? `RPC: ${rpc.provider} (${rpc.url ?? 'n/a'})`
+              : 'RPC: endpoint público de Base (limita ráfagas de eth_call). Configurá ALCHEMY_API_KEY o BASE_RPC_URL.'
+          ]
         : [])
     ];
 

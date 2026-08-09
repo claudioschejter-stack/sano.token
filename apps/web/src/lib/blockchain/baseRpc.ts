@@ -1,8 +1,46 @@
+import { maskRpcUrl } from './maskRpcUrl';
+
+/**
+ * Which Base endpoint the server talks to, in one place.
+ *
+ * There were three resolvers and about eighty inline
+ * `process.env.X || 'https://mainnet.base.org'` fallbacks, each reading a
+ * different variable: `resolveChainRpcUrl` only looked at `BASE_RPC_URL`, this
+ * module also accepted `LENDING_BASE_RPC_URL`, and the payments one added
+ * `NEXT_PUBLIC_BASE_RPC_URL`. So a dedicated endpoint configured under one name
+ * left other subsystems silently on the public one.
+ *
+ * Silently is the problem. `mainnet.base.org` throttles bursts of `eth_call`,
+ * ethers reports the throttle as "missing revert data", and the RWA security
+ * report read that as a contract answering "no" — inventing allowlist
+ * violations and blocking real assets. The endpoint in use is now something the
+ * platform can state, not guess.
+ */
+
+/** Public endpoints, used only as failover. They rate-limit under load. */
 const PUBLIC_BASE_RPCS = [
   'https://mainnet.base.org',
   'https://base.llamarpc.com',
   'https://1rpc.io/base'
 ];
+
+export function isPublicBaseRpc(url: string | null | undefined): boolean {
+  const raw = url?.trim();
+  if (!raw) return true;
+  return PUBLIC_BASE_RPCS.some((candidate) => raw.startsWith(candidate));
+}
+
+/** Alchemy from a bare key, so one variable is enough to leave the public RPC. */
+export function alchemyBaseRpcUrl(): string | null {
+  const explicit = process.env.ALCHEMY_BASE_RPC_URL?.trim();
+  if (explicit) return explicit;
+
+  const key =
+    process.env.ALCHEMY_API_KEY?.trim() ||
+    process.env.ALCHEMY_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_ALCHEMY_KEY?.trim();
+  return key ? `https://base-mainnet.g.alchemy.com/v2/${key}` : null;
+}
 
 export function resolveBaseMainnetRpcUrls(): string[] {
   const seen = new Set<string>();
@@ -11,7 +49,9 @@ export function resolveBaseMainnetRpcUrls(): string[] {
   for (const pick of [
     () => process.env.LENDING_BASE_RPC_URL?.trim(),
     () => process.env.BASE_RPC_URL?.trim(),
+    () => process.env.NEXT_PUBLIC_BASE_RPC_URL?.trim(),
     () => process.env.BLOCKCHAIN_RPC_URL?.trim(),
+    alchemyBaseRpcUrl,
     ...PUBLIC_BASE_RPCS.map((url) => () => url)
   ]) {
     const url = pick();
@@ -27,6 +67,32 @@ export function resolveBaseMainnetRpcUrl(): string {
   return resolveBaseMainnetRpcUrls()[0] ?? PUBLIC_BASE_RPCS[0];
 }
 
+/** True when reads go to an endpoint we pay for rather than a shared public one. */
+export function baseRpcIsDedicated(): boolean {
+  return !isPublicBaseRpc(resolveBaseMainnetRpcUrl());
+}
+
+export type BaseRpcDescription = {
+  provider: 'alchemy' | 'configured' | 'public';
+  /** Masked: provider keys live in the URL path or query. */
+  url: string | null;
+  dedicated: boolean;
+  failoverCount: number;
+};
+
+export function describeBaseRpc(): BaseRpcDescription {
+  const urls = resolveBaseMainnetRpcUrls();
+  const primary = urls[0] ?? PUBLIC_BASE_RPCS[0];
+  const dedicated = !isPublicBaseRpc(primary);
+
+  return {
+    provider: primary.includes('alchemy.com') ? 'alchemy' : dedicated ? 'configured' : 'public',
+    url: maskRpcUrl(primary),
+    dedicated,
+    failoverCount: Math.max(0, urls.length - 1)
+  };
+}
+
 function isRetryableRpcError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;
   const info = (error as { info?: { error?: { code?: number; message?: string } } }).info;
@@ -39,9 +105,7 @@ function isRetryableRpcError(error: unknown): boolean {
   );
 }
 
-export async function withBaseMainnetRpc<T>(
-  run: (rpcUrl: string) => Promise<T>
-): Promise<T> {
+export async function withBaseMainnetRpc<T>(run: (rpcUrl: string) => Promise<T>): Promise<T> {
   const urls = resolveBaseMainnetRpcUrls();
   let lastError: unknown;
 

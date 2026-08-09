@@ -1,3 +1,5 @@
+import { resolveBaseMainnetRpcUrl, resolveBaseMainnetRpcUrls } from '../blockchain/baseRpc';
+
 export type StablecoinNetworkId = 'BASE';
 
 export type StablecoinNetwork = {
@@ -18,16 +20,13 @@ export const DEFAULT_STABLECOIN_NETWORK: StablecoinNetworkId = 'BASE';
 /** Canonical Base mainnet USDC — used when env is missing so server balance/settle cannot silently fail. */
 export const DEFAULT_BASE_USDC_TOKEN_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
-/** Public endpoints that answer JSON-RPC without Cloudflare/HTML challenges from Vercel. */
-const BASE_RPC_FALLBACKS = ['https://mainnet.base.org', 'https://base.publicnode.com'] as const;
-
+/**
+ * One resolver for the whole server. This used to read its own subset of the
+ * env vars, so a dedicated endpoint set under a name it did not check left
+ * payments reading balances through the public rate-limited RPC.
+ */
 export function baseRpcUrls(): string[] {
-  const primary =
-    envString('BASE_RPC_URL') ||
-    envString('NEXT_PUBLIC_BASE_RPC_URL') ||
-    envString('LENDING_BASE_RPC_URL');
-  const urls = [primary, ...BASE_RPC_FALLBACKS].filter((url): url is string => Boolean(url));
-  return [...new Set(urls)];
+  return resolveBaseMainnetRpcUrls();
 }
 
 export function stablecoinNetworks(): StablecoinNetwork[] {
@@ -53,7 +52,7 @@ export function stablecoinNetworks(): StablecoinNetwork[] {
         envString('NEXT_PUBLIC_BASE_USDC_ADDRESS') ||
         DEFAULT_BASE_USDC_TOKEN_ADDRESS,
       treasuryAddress: envString('BASE_STABLECOIN_TREASURY_ADDRESS') || sharedTreasury,
-      rpcUrl: rpcUrls[0] ?? 'https://mainnet.base.org',
+      rpcUrl: rpcUrls[0] ?? resolveBaseMainnetRpcUrl(),
       cheapestRank: 1
     }
   ];

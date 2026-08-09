@@ -1,6 +1,7 @@
 import type { AdminAssetRecord } from '../admin/assetsService';
 import { notifyAutomationIssue } from '../admin/automationAlerts';
 import { activateCircuitBreaker, resetCircuitBreaker } from '../admin/automationCircuitBreaker';
+import { describeBaseRpc } from './baseRpc';
 import { repairRwaSecurityConfig } from './repairRwaSecurityConfig';
 import { recordRwaSecurityReport, type SecurityCheck } from './rwaSecurityReport';
 import { isTreasuryOwnerSignerConfigured } from './treasuryOwnerSigner';
@@ -88,8 +89,12 @@ async function notifySupervision(input: {
     lines.push('Esperando timelock:', ...input.pending.map((entry) => `  · ${entry}`));
   }
   if (report.unknowns.length > 0) {
+    const rpc = describeBaseRpc();
     lines.push(
-      `No se pudo verificar (RPC): ${report.unknowns.map((entry) => entry.label).join(', ')}`
+      `No se pudo verificar (RPC): ${report.unknowns.map((entry) => entry.label).join(', ')}`,
+      rpc.dedicated
+        ? `RPC: ${rpc.provider} (${rpc.url ?? 'n/a'})`
+        : 'RPC: endpoint público de Base (limita ráfagas de eth_call). Configurá ALCHEMY_API_KEY o BASE_RPC_URL.'
     );
   }
   if (input.repairError) {

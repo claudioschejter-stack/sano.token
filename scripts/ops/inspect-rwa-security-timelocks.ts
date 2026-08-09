@@ -97,10 +97,19 @@ async function main() {
     select: { id: true, title: true, contractAddress: true, vaultAddress: true }
   });
 
+  const alchemyKey = process.env.ALCHEMY_API_KEY?.trim();
   const rpc =
+    process.env.ALCHEMY_BASE_RPC_URL?.trim() ||
     process.env.LENDING_BASE_RPC_URL?.trim() ||
     process.env.BASE_RPC_URL?.trim() ||
+    (alchemyKey ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}` : null) ||
     'https://mainnet.base.org';
+  if (rpc === 'https://mainnet.base.org') {
+    console.log(
+      'RPC: endpoint público de Base — limita ráfagas de eth_call, esperá lecturas ilegibles.\n' +
+        'Para un resultado fiable: ALCHEMY_API_KEY=... npx tsx scripts/ops/inspect-rwa-security-timelocks.ts'
+    );
+  }
   const provider = new JsonRpcProvider(rpc, 8453, { staticNetwork: true });
   const now = Math.floor(Date.now() / 1000);
 
