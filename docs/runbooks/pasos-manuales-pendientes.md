@@ -5,87 +5,80 @@ impacto.
 
 ---
 
-## 1. Pasar Vercel a Pro y ajustar la frecuencia de los crons
+## 1. Cargar `CRON_EXTERNAL_SECRET` como secret del repo en GitHub
 
-**Por qué importa:** los nueve crons corren **una vez por día** porque el plan
-Hobby no permite más. Eso no es una preferencia, es lo que hace que:
-
-- la reparación de seguridad RWA tarde **dos días** en converger (una corrida
-  agenda la acción con timelock, la siguiente la aplica),
-- un alquiler cobrado espere hasta 24 h para distribuirse,
-- una reserva vencida bloquee stock hasta 24 h de más,
-- un pago fiat cuyo webhook falló espere hasta 24 h para que lo encuentre la red
-  de seguridad.
+**Por qué importa:** los crons nativos de Vercel corren **una vez por día** porque
+el plan Hobby no permite más. Eso es lo que hace que un pago cobrado espere hasta
+24 h para acreditarse, que una reserva vencida bloquee stock, y que la reparación
+de seguridad RWA tarde dos días en converger (una corrida agenda el timelock, otra
+lo aplica).
 
 El camino rápido de los pagos **no** depende de esto: el webhook de Alchemy avisa
 cuando llega el USDC y liquida en segundos. Los crons son la red de seguridad.
 
+**No hace falta pagar Pro.** El repo ya resolvía esto a medias:
+`CRON_EXTERNAL_SECRET` existe en `authorizeCronRequest` con un comentario que dice
+textualmente que es para un scheduler externo que pinga más seguido que el límite
+de Hobby, y `.github/workflows/watch-crypto-deposits.yml` ya lo usaba para un
+endpoint. `scheduled-maintenance.yml` lo extiende al resto. Para un curl de
+segundos, GitHub Actions es gratis.
+
+Los `crons` de `apps/web/vercel.json` quedan **puestos a propósito** como red de
+seguridad diaria: si el workflow se desactiva, el sistema funciona un día tarde en
+vez de no funcionar.
+
 **Pasos:**
 
-1. Vercel → equipo → **Settings** → **Billing** → **Upgrade to Pro**.
-2. En el repo, editar `apps/web/vercel.json` con estas frecuencias:
+1. Sacar el valor de `CRON_EXTERNAL_SECRET` de Vercel → **Settings** →
+   **Environment Variables**. Si no existe, generarlo con `openssl rand -hex 32` y
+   cargarlo ahí primero.
+2. GitHub → repo → **Settings** → **Secrets and variables** → **Actions** →
+   **New repository secret**, con nombre exactamente `CRON_EXTERNAL_SECRET`.
+3. **Actions** → *Scheduled maintenance (free cron)* → **Run workflow**,
+   eligiendo `watch-awaiting-treasury-usdc`, para comprobar que responde
+   `HTTP 200`. Un **401** significa que el secret no coincide con el de Vercel.
 
-```json
-{
-  "crons": [
-    { "path": "/api/cron/refresh-borrow-rates", "schedule": "0 */6 * * *" },
-    { "path": "/api/cron/process-yield-batches", "schedule": "0 6 * * *" },
-    { "path": "/api/cron/process-automation-jobs", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/migrate-treasury-to-privy", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/auto-distribute-rent", "schedule": "0 10 * * *" },
-    { "path": "/api/cron/watch-crypto-deposits", "schedule": "*/10 * * * *" },
-    { "path": "/api/cron/watch-awaiting-treasury-usdc", "schedule": "*/10 * * * *" },
-    { "path": "/api/cron/expire-stale-reservations", "schedule": "*/30 * * * *" },
-    { "path": "/api/cron/index-token-movements", "schedule": "0 */4 * * *" }
-  ]
-}
-```
+**Las frecuencias y su criterio**, para que se puedan discutir:
 
-**El criterio detrás de cada frecuencia**, para que se pueda discutir:
-
-| Cron | Frecuencia | Por qué |
+| Endpoint | Frecuencia | Por qué |
 |---|---|---|
-| `watch-awaiting-treasury-usdc` | 10 min | Es la red de seguridad de los pagos fiat. Cada minuto que tarda es plata cobrada con tokens sin entregar. |
-| `watch-crypto-deposits` | 10 min | Igual, para depósitos cripto que el webhook no vio. |
-| `process-automation-jobs` | 15 min | Es la cola: la latencia acá se suma a todo lo demás. |
-| `expire-stale-reservations` | 30 min | Una reserva vencida bloquea stock que otro inversor podría comprar. |
-| `refresh-borrow-rates` | 6 h | Incluye el reporte y la reparación de seguridad. Con timelock de 1 h en el vault, cuatro corridas por día alcanzan para converger el mismo día. |
+| `watch-crypto-deposits` | 5 min (ya existía) | Depósitos cripto que el webhook no vio. |
+| `watch-awaiting-treasury-usdc` | 10 min | Red de seguridad de los pagos fiat. Cada minuto es plata cobrada con tokens sin entregar. |
+| `process-automation-jobs` | 15 min | Es la cola: su latencia se suma a todo lo demás. |
+| `expire-stale-reservations` | 2 h | Una reserva vencida bloquea stock que otro inversor podría comprar. |
+| `refresh-borrow-rates` | 6 h | Reporte y reparación de seguridad, y el aviso de esquema atrasado. Con timelock de 1 h en el vault, cuatro corridas por día convergen el mismo día. |
+| `sync-deposit-watch` | 6 h | Re-declara la lista de direcciones del webhook, por si se recreó. |
 | `index-token-movements` | 4 h | Reconciliación, no bloquea a nadie. |
-| `process-yield-batches`, `auto-distribute-rent`, `migrate-treasury-to-privy` | diario | Son procesos de negocio con cadencia diaria; más seguido no aporta. |
 
-3. Commit, merge y deploy. Vercel valida las expresiones cron en el build: si
-   sigue en Hobby, el deploy falla con un error de límite de plan. Es decir, no
-   hay riesgo de que quede a medias.
+**Dos límites de GitHub Actions**, para no descubrirlos en producción:
 
-**Verificación:** Vercel → proyecto → **Settings** → **Cron Jobs** debe listar los
-nueve con la nueva frecuencia y un "Next run" coherente.
+- los schedules **se retrasan** bajo carga; no hay garantía de puntualidad,
+- en un repo sin actividad por **60 días** GitHub los desactiva y avisa por mail.
+
+Ninguno de los dos es grave *porque* los crons de Vercel siguen puestos.
+
+**Costo:** los repos públicos no consumen minutos; los privados tienen 2000
+min/mes gratis. Este workflow usa del orden de 15 min/mes.
 
 ---
 
-## 2. Registrar las direcciones en el webhook de depósitos
+## 2. El webhook de depósitos ya se sincroniza solo
 
-**Por qué importa:** el webhook de Alchemy es lo que hace que un depósito se
-acredite en segundos. Solo notifica las direcciones que tiene en su lista, y
-**Alchemy no informa cuáles ya vigila**, así que no se puede saber por consulta si
-está completo. Las billeteras nuevas se registran solas al crearse; las anteriores
-a esa funcionalidad, y todas si el webhook se recreó, hay que recargarlas.
+**Qué hacía falta antes:** el webhook de Alchemy es lo que hace que un depósito se
+acredite en segundos. Solo notifica las direcciones de su lista, y **Alchemy no
+informa cuáles ya vigila**, así que no se puede verificar por consulta. Peor:
+recrear el webhook la vacía en silencio, con el dinero del inversor esperando.
 
-La treasury también está en la lista: el USDC que llega ahí es la segunda mitad de
-un pago fiat.
+**Ahora** `/api/cron/sync-deposit-watch` re-declara la lista completa cada 6 h
+desde el workflow. Re-declarar es idempotente, así que el caso "se recreó el
+webhook y nadie se enteró" se arregla solo en menos de seis horas.
 
-**Pasos:**
-
-1. Entrar al panel de admin de Sanova con una cuenta admin.
-2. `GET /api/admin/db-readiness` primero, para confirmar que la base está al día.
-3. `POST /api/admin/deposit-watch` sin cuerpo. Es idempotente: correrlo de más no
-   hace daño.
-4. La respuesta trae `registered` con la cantidad de direcciones enviadas.
+Para correrlo a mano: **Actions** → *Scheduled maintenance* → **Run workflow** →
+`sync-deposit-watch`. O `POST /api/admin/deposit-watch` con sesión de admin, que
+sigue existiendo.
 
 Si responde `ALCHEMY_WEBHOOK_NOT_MANAGED`, faltan `ALCHEMY_NOTIFY_AUTH_TOKEN` o
 `ALCHEMY_WEBHOOK_ID` en el entorno.
-
-**Cuándo repetirlo:** cada vez que se recree el webhook en Alchemy. Al recrearlo
-se pierde la lista y los depósitos vuelven a depender del cron, en silencio.
 
 ---
 
@@ -171,10 +164,22 @@ problema es al revés y hay que aplicar el SQL, no ajustar el checksum.
 
 ## 6. Decisiones de negocio que bloquean código
 
-- **Los dos proyectos Urban View duplicados.** `proj-anelo-apart-hotel-urban-view`
-  tiene 2 tokens vendidos de 5000; `proj-apart-hotel-urban-view-anelo-mplonxbv`
-  tiene 0 de 5000. Tokens y vaults distintos, cada uno alerta por separado y cada
-  uno consume automatización. Hay que decidir cuál queda y desactivar el otro.
+- **Renombrar UV2 y UV3 para que se distingan.** No son un duplicado: son dos
+  edificios distintos en Añelo, con tokens, vaults e inversores separados.
+
+  | Proyecto | Símbolo | Token | Vendidos |
+  |---|---|---|---|
+  | `proj-apart-hotel-urban-view-anelo-mplonxbv` | `ANELO UV2 RWA` | `0x1dD753…` | 0 de 5000 |
+  | `proj-anelo-apart-hotel-urban-view` | `UV3RWA` | `0x481fAa…` | 2 de 5000 |
+
+  El problema es que sus títulos tienen **las mismas palabras en otro orden** —
+  "APART HOTEL URBAN VIEW - AÑELO" y "AÑELO - APART HOTEL URBAN VIEW" — y ninguno
+  menciona UV2 ni UV3. Las alertas ya se desambiguan solas con el símbolo del
+  token, pero el inversor sigue viendo dos títulos indistinguibles en el
+  marketplace. Conviene que digan UV2 y UV3. Es una decisión de producto: el
+  título es lo que se publica.
+
+  De paso: el nombre del token de UV2 dice `URVAN VIEW` en lugar de `URBAN VIEW`.
 - **Fondear el CVU de Ripio con los ARS que cobra Macro.** No hay API de payout
   Macro→Ripio, así que hoy es una transferencia manual. Hay que definir quién la
   hace y con qué frecuencia, o el on-ramp queda creado esperando fiat.
