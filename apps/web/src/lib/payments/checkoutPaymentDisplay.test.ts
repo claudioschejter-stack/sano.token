@@ -57,8 +57,7 @@ describe('checkoutPaymentDisplay', () => {
     const sections = buildCheckoutDisplaySections(
       [
         option('electronic_wallet'),
-        option('transak', { method: 'TRANSAK', groupId: 'international', configured: true }),
-        option('bridge', { method: 'BRIDGE', groupId: 'international', configured: false }),
+        option('bridge', { method: 'BRIDGE', groupId: 'international', configured: true }),
         option('ripio_on_ramp', { method: 'RIPIO', groupId: 'argentina', configured: true }),
         option('mercadopago_wallet', { method: 'MERCADO_PAGO', groupId: 'argentina', configured: true }),
         option('wise', { method: 'BRIDGE', groupId: 'international', configured: true })
@@ -67,7 +66,7 @@ describe('checkoutPaymentDisplay', () => {
     );
 
     expect(sections.walletOptions).toHaveLength(1);
-    expect(sections.fiatOnRampBaseOption?.id).toBe('transak');
+    expect(sections.fiatOnRampBaseOption?.id).toBe('bridge');
     expect(sections.fiatOnRampOptions).toHaveLength(3);
     expect(sections.fiatOnRampOptions.map((row) => row.label)).toEqual([
       'Transferencia internacional',
@@ -83,7 +82,7 @@ describe('checkoutPaymentDisplay', () => {
     const displayId = buildFiatOnRampDisplayId('debit_card');
     expect(parseFiatOnRampDisplayId(displayId)).toBe('debit_card');
     expect(
-      resolveCheckoutPaymentSelection(displayId, 'transak', null)
-    ).toEqual({ paymentOptionId: 'transak', paymentOptionRail: 'debit_card' });
+      resolveCheckoutPaymentSelection(displayId, 'bridge', null)
+    ).toEqual({ paymentOptionId: 'bridge', paymentOptionRail: 'debit_card' });
   });
 });

@@ -1135,7 +1135,6 @@ export const ru = {
     amountPlaceholder: "сумма в долларах США",
     methodAuto: "Автомат: более дешевый вариант",
     methodUsdc: "USDC ончейн",
-    methodTransak: "Трансак (фиат → криптовалюта)",
     methodBridge: "Мост",
     methodStripe: "Полоса",
     methodMercadoPago: "Платежный рынок",

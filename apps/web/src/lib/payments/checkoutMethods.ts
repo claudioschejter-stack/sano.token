@@ -49,15 +49,6 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     supportsPurchase: true
   },
   {
-    id: 'TRANSAK',
-    label: 'Transak',
-    description: 'On-ramp global con tarjeta o transferencia.',
-    configured: paymentGatewayConfigured('TRANSAK'),
-    automatic: true,
-    supportsDeposit: true,
-    supportsPurchase: true
-  },
-  {
     id: 'RIPIO',
     label: 'Ripio',
     description: 'On-ramp ARS → USDC en Base con transferencia o Mercado Pago.',
@@ -86,9 +77,23 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
   },
   {
     id: 'LOCAL_RAIL',
-    label: 'Rails locales',
-    description: 'EBANX u otros rails locales habilitados.',
+    label: 'Click de Pago (Banco Macro)',
+    description: 'Tarjeta y transferencia en pesos; acreditación automática por webhook del banco.',
     configured: paymentGatewayConfigured('LOCAL_RAIL'),
+    automatic: true,
+    supportsDeposit: true,
+    supportsPurchase: true
+  },
+  /**
+   * The card on-ramp has to stay listed: `parsePaymentMethod` derives the set of
+   * accepted methods from this list, so dropping it made a checkout that names
+   * the method fall back to USDC instead of opening the card lane.
+   */
+  {
+    id: 'PRIVY_ONRAMP',
+    label: 'Tarjeta / Apple Pay (Privy)',
+    description: 'On-ramp de tarjeta donde no cobra Macro; liquida USDC en Base.',
+    configured: paymentGatewayConfigured('PRIVY_ONRAMP'),
     automatic: true,
     supportsDeposit: true,
     supportsPurchase: true

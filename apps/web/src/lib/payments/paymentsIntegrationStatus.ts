@@ -12,7 +12,6 @@ export const WEBHOOK_PATHS = {
   stripe: '/api/webhooks/stripe',
   mercadopago: '/api/webhooks/mercadopago',
   coinbase: '/api/webhooks/coinbase',
-  transak: '/api/webhooks/transak',
   bridge: '/api/webhooks/bridge',
   ripio: '/api/webhooks/ripio',
   ebanx: '/api/webhooks/ebanx',
@@ -60,12 +59,6 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
       label: 'Coinbase Commerce',
       configured: paymentGatewayConfigured('COINBASE'),
       envKeys: ['COINBASE_COMMERCE_API_KEY', 'COINBASE_COMMERCE_WEBHOOK_SECRET']
-    },
-    {
-      id: 'transak',
-      label: 'Transak on-ramp',
-      configured: paymentGatewayConfigured('TRANSAK'),
-      envKeys: ['TRANSAK_API_KEY', 'TRANSAK_WEBHOOK_SECRET']
     },
     {
       id: 'bridge',
@@ -134,7 +127,6 @@ export function getPaymentsProductionSummary(siteUrl: string) {
         (item) =>
           [
             'stripe',
-            'transak',
             'mercadopago',
             'macro-click',
             'ripio',

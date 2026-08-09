@@ -22,7 +22,7 @@ type Props = {
   networkFeeIncluded?: boolean;
   /** Start expanded so gas/fees are visible without an extra tap. */
   defaultOpen?: boolean;
-  /** Who charges the gateway fee (Mercado Pago, Transak, etc.) */
+  /** Who charges the gateway fee (Mercado Pago, Banco Macro, Bridge, etc.) */
   gatewayChargedBy?: string;
   /** Who charges FX/conversion */
   fxChargedBy?: string;

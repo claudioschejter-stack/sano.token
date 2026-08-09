@@ -3,9 +3,9 @@ import { buildDepositPaymentOptions, getPaymentCheckoutRowById } from './deposit
 import { PRIVY_ON_RAMP_OPTION_ID } from './privyOnRampPolicy';
 
 /**
- * dLocal was the aggregator behind the local rails of most countries, and the
- * account is closed. These cover what a buyer is actually offered now: the
- * Privy on-ramp everywhere those rails used to be.
+ * An aggregator used to sit behind the per-wallet local rails of most countries
+ * and it is gone. These cover what a buyer is actually offered now: the Privy
+ * on-ramp everywhere those rails used to be.
  */
 describe('paymentRoutePolicy', () => {
   const env = process.env;
@@ -19,7 +19,7 @@ describe('paymentRoutePolicy', () => {
     process.env = env;
   });
 
-  it('no longer offers the rails that only existed through dLocal', () => {
+  it('no longer offers the rails that only existed through the aggregator', () => {
     for (const id of ['spei', 'phonepe', 'pix', 'modo', 'brubank', 'galicia']) {
       expect(getPaymentCheckoutRowById(id)).toBeNull();
     }
@@ -42,10 +42,10 @@ describe('paymentRoutePolicy', () => {
     expect(quote.options.find((row) => row.id === PRIVY_ON_RAMP_OPTION_ID)?.configured).toBe(true);
   });
 
-  it('still offers Argentina its own rails, which do not depend on dLocal', () => {
+  it('still offers Argentina its own rails, which never went through an aggregator', () => {
     const quote = buildDepositPaymentOptions(100, 'AR', 1050, { mode: 'purchase' });
     expect(quote.options.length).toBeGreaterThan(0);
-    // Mercado Pago and USDC survive; the dLocal-backed wallets do not.
+    // Mercado Pago, Macro and USDC survive; the aggregator-backed wallets do not.
     expect(quote.options.some((row) => row.id === 'modo')).toBe(false);
   });
 });

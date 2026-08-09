@@ -1135,7 +1135,6 @@ export const ja = {
     amountPlaceholder: "米ドル金額",
     methodAuto: "自動: 安価なオプション",
     methodUsdc: "USDC オンチェーン",
-    methodTransak: "トランザック（法定通貨→仮想通貨）",
     methodBridge: "橋",
     methodStripe: "ストライプ",
     methodMercadoPago: "決済市場",

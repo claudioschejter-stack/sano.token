@@ -1,6 +1,6 @@
 'use client';
 
-import { Building2, Copy, ExternalLink, Smartphone } from 'lucide-react';
+import { Building2, Copy, ExternalLink } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../../../i18n/LocaleProvider';
 import type { SimplifiedWireMethod } from '../../../lib/payments/checkoutBestRouteService';
@@ -8,8 +8,9 @@ import type {
   BridgeKycGate,
   BridgeVirtualAccountInstructions
 } from '../../../lib/checkout/paymentRouteTypes';
-import { useDeviceDetection } from '../../../hooks/useDeviceDetection';
 import { PaymentFeeBreakdown } from './PaymentFeeBreakdown';
+import { MacroClickPayButton } from '../gateway/MacroClickPayButton';
+import { wireLaneRenderer } from '../../../lib/payments/fiatRailCoverage';
 
 const QR_SIZE = 200;
 
@@ -32,12 +33,12 @@ export function WireTransferPanel({
   const t = useTranslation();
   const sc = t.simplifiedCheckout;
   const pg = t.paymentGateway;
-  const { isDesktop, isMobile } = useDeviceDetection();
   const [instructions, setInstructions] = useState<BridgeVirtualAccountInstructions | null>(null);
   const [kyc, setKyc] = useState<BridgeKycGate | null>(null);
   const [vaError, setVaError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
-  const useBridgeVa = wire.provider === 'bridge' || !wire.widgetUrl;
+  const renderer = wireLaneRenderer({ provider: wire.provider, country });
+  const useBridgeVa = renderer === 'bridge_virtual_account';
 
   useEffect(() => {
     if (!referenceId || !useBridgeVa) return;
@@ -84,8 +85,27 @@ export function WireTransferPanel({
     );
   }
 
+  if (renderer === 'macro_hosted_form' && referenceId) {
+    return (
+      <MacroTransferSection
+        wire={wire}
+        amountUsd={amountUsd}
+        referenceId={referenceId}
+        onPending={onPending}
+      />
+    );
+  }
+
+  if (renderer === 'unavailable') {
+    return (
+      <section className="rounded-xl border border-terminal-border bg-terminal-card p-5">
+        <p className="text-sm text-terminal-muted">{sc.notConfigured}</p>
+      </section>
+    );
+  }
+
   // Bridge shows account details; Macro posts to its own hosted form. Neither
-  // hands back a widget URL, which is what this used to render for Transak.
+  // hands back a widget URL to embed.
   const hostedWidgetUrl = null;
   const pixPayload = instructions?.brCode;
   const displayCurrency = instructions?.currency ?? 'USD';
@@ -137,12 +157,24 @@ export function WireTransferPanel({
       <PaymentFeeBreakdown
         amountUsd={amountUsd}
         totalUsd={wire.totalUsd}
-        gatewayChargedBy={wire.provider === 'bridge' ? 'Bridge' : 'Transak'}
-        fxChargedBy={wire.provider === 'bridge' ? 'Bridge' : 'Transak'}
+        gatewayChargedBy="Bridge"
+        fxChargedBy="Bridge"
       />
 
       {vaError && vaError !== 'SIMULATED_VA' ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{vaError}</p>
+      ) : null}
+
+      {/**
+       * Say it when the account is a demo one. The simulated payload is a
+       * plausible-looking US account, and this banner used to be suppressed for
+       * exactly that case, so the only difference between real instructions and
+       * details that lead nowhere was invisible on screen.
+       */}
+      {vaError === 'SIMULATED_VA' ? (
+        <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+          {pg.bridgeSimulatedNotice}
+        </p>
       ) : null}
 
       {kyc ? (
@@ -222,41 +254,82 @@ export function WireTransferPanel({
         </div>
       ) : null}
 
-      {isDesktop && hostedWidgetUrl ? (
-        <div className="flex flex-col items-center gap-3 rounded-xl border border-terminal-border bg-terminal-bg p-4">
-          <div className="rounded-lg border-4 border-white bg-white p-1 shadow-lg">
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=${QR_SIZE}x${QR_SIZE}&margin=8&data=${encodeURIComponent(hostedWidgetUrl)}`}
-              alt={sc.wireQrAlt}
-              width={QR_SIZE}
-              height={QR_SIZE}
-              className="block rounded"
-            />
-          </div>
-          <p className="text-center text-[11px] text-terminal-muted">{sc.wireScanToStart}</p>
-          <a
-            href={hostedWidgetUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-terminal-primary"
-          >
-            <ExternalLink size={12} />
-            {sc.wireOpenInBrowser}
-          </a>
+    </section>
+  );
+}
+
+/**
+ * Argentina pays the transfer through Macro's hosted form, the same integration
+ * the card lane uses, so the bank reports both back on one webhook.
+ */
+function MacroTransferSection({
+  wire,
+  amountUsd,
+  referenceId,
+  onPending
+}: {
+  wire: SimplifiedWireMethod;
+  amountUsd: number;
+  referenceId: string;
+  onPending?: () => void;
+}) {
+  const t = useTranslation();
+  const sc = t.simplifiedCheckout;
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    onPending?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [referenceId]);
+
+  const total =
+    wire.displayCurrency === 'USD'
+      ? `USD ${wire.totalUsd.toFixed(2)}`
+      : new Intl.NumberFormat('es-AR', {
+          style: 'currency',
+          currency: wire.displayCurrency
+        }).format(wire.totalLocal);
+
+  return (
+    <section className="space-y-4 rounded-xl border border-terminal-border bg-terminal-card p-5">
+      <div className="flex items-center gap-3">
+        <div className="rounded-xl bg-amber-400/10 p-2.5 text-amber-400">
+          <Building2 size={18} />
         </div>
+        <div>
+          <h3 className="text-sm font-semibold text-terminal-text">{sc.wireTitle}</h3>
+          <p className="mt-0.5 text-xs text-terminal-muted">Transferencia 3.0 · DEBIN · Banco Macro</p>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-terminal-border bg-terminal-bg px-4 py-3.5">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-terminal-muted">
+          {sc.wireTotalToPay}
+        </p>
+        <p className="mt-1 text-2xl font-bold text-terminal-text">{total}</p>
+        <p className="mt-0.5 text-[11px] text-terminal-muted">
+          {sc.wireReceiveNote.replace('{amount}', amountUsd.toFixed(2))}
+        </p>
+      </div>
+
+      <PaymentFeeBreakdown
+        amountUsd={amountUsd}
+        totalUsd={wire.totalUsd}
+        gatewayChargedBy="Banco Macro"
+        fxChargedBy="Banco Macro"
+      />
+
+      {error ? (
+        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">{error}</p>
       ) : null}
 
-      {isMobile && hostedWidgetUrl ? (
-        <a
-          href={hostedWidgetUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-terminal-primary px-4 py-3 text-sm font-semibold text-white"
-        >
-          <Smartphone size={16} />
-          {sc.wireStartTransferMobile}
-        </a>
-      ) : null}
+      <MacroClickPayButton
+        referenceId={referenceId}
+        referenceKind="cart"
+        amountUsd={wire.totalUsd}
+        currency={wire.displayCurrency === 'ARS' ? 'ARS' : 'USD'}
+        onError={setError}
+      />
     </section>
   );
 }

@@ -1135,7 +1135,6 @@ export const zh = {
     amountPlaceholder: "美元金额",
     methodAuto: "自动：更便宜的选择",
     methodUsdc: "USDC 上链",
-    methodTransak: "Transak（法定货币 → 加密货币）",
     methodBridge: "桥",
     methodStripe: "条纹",
     methodMercadoPago: "支付市场",

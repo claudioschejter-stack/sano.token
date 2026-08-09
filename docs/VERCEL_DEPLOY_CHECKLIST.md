@@ -93,7 +93,6 @@ El workflow KYC está en código (`INVESTOR_KYC_WORKFLOW_ID` en `apps/web/src/li
 | `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | Checkout embebido |
 | `MODO_WEBHOOK_SECRET` | MODO QR |
 | `RIPIO_API_KEY` + `RIPIO_CLIENT_ID/SECRET` | Ripio on-ramp |
-| `DLOCAL_GO_MERCHANT_ID` / `DLOCAL_GO_OPEN_LINK_TOKEN` | dLocal Go |
 
 Verificar webhooks:
 - `https://www.sanovacapital.com/api/webhooks/mercadopago`

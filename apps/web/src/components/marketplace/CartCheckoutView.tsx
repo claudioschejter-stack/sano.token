@@ -67,7 +67,6 @@ import {
   type MercadoPagoEmbeddedSession
 } from '../../lib/payments/mercadoPagoEmbeddedService';
 import { MercadoPagoWalletBrick } from '../payments/MercadoPagoWalletBrick';
-import { PaymentGateway } from '../payments/gateway';
 import { formatUsdPrecise } from '../../lib/payments/formatUsdPrecise';
 import { SimplifiedCheckout, type EnsureCheckoutReferenceOptions } from '../payments/simplified';
 import { MacroClickPayButton } from '../payments/gateway/MacroClickPayButton';

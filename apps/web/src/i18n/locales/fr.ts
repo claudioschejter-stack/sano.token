@@ -1135,7 +1135,6 @@ export const fr = {
     amountPlaceholder: "Montant en USD",
     methodAuto: "Automatique : option moins chère",
     methodUsdc: "USDC en chaîne",
-    methodTransak: "Transak (fiat → crypto)",
     methodBridge: "Pont",
     methodStripe: "Bande",
     methodMercadoPago: "Marché des paiements",

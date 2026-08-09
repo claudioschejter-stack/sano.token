@@ -9,7 +9,6 @@ export const WALLET_CHECKOUT_ORDER = [
 ] as const;
 
 export const FIAT_ON_RAMP_SOURCE_IDS = [
-  'transak',
   'bridge',
   'coinbase_commerce',
   'coinbase_pay',

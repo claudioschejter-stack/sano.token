@@ -1135,7 +1135,6 @@ export const id = {
     amountPlaceholder: "jumlah USD",
     methodAuto: "Otomatis: pilihan yang lebih murah",
     methodUsdc: "USDC dalam rantai",
-    methodTransak: "Transak (fiat → kripto)",
     methodBridge: "Menjembatani",
     methodStripe: "Garis",
     methodMercadoPago: "Pasar Pembayaran",

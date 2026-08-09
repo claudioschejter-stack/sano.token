@@ -1135,7 +1135,6 @@ export const sw = {
     amountPlaceholder: "Kiasi cha USD",
     methodAuto: "Moja kwa moja: chaguo nafuu",
     methodUsdc: "USDC kwenye mnyororo",
-    methodTransak: "Transak (fiat → crypto)",
     methodBridge: "Daraja",
     methodStripe: "Mstari",
     methodMercadoPago: "Soko la Malipo",

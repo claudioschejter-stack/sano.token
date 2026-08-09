@@ -75,7 +75,6 @@ export function quoteCheapestPaymentRoutes(input: CheapestPaymentRouteInput): Pa
     }
     routes.push(
       route('BRIDGE', 'bridge', 'Bridge', amountUsd, 80, 'Mas barato para on/off-ramp empresarial con volumen'),
-      route('TRANSAK', 'transak', 'Transak', amountUsd, 180, 'On-ramp global rapido'),
       route('RAMP', 'ramp', 'Ramp Network', amountUsd, 200, 'Fallback global fiat-cripto')
     );
   }

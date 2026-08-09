@@ -40,10 +40,8 @@ console.log('=== Tareas manuales — Pasarela Sanova ===\n');
 const priority = [
   { id: 'stripe', label: 'Stripe (tarjetas, Apple/Google Pay)', keys: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'] },
   { id: 'mercadopago', label: 'Mercado Pago Argentina', keys: ['MERCADOPAGO_ACCESS_TOKEN', 'MERCADOPAGO_WEBHOOK_SECRET'] },
-  { id: 'dlocal', label: 'dLocal (Modo, bancos AR, Pix)', keys: ['DLOCAL_API_KEY'] },
   { id: 'astropay', label: 'AstroPay (wallets LATAM)', keys: ['ASTROPAY_API_KEY'] },
-  { id: 'bridge', label: 'Bridge / Wise internacional', keys: ['BRIDGE_API_KEY', 'WISE_API_KEY'] },
-  { id: 'transak', label: 'Transak on-ramp global', keys: ['TRANSAK_API_KEY', 'TRANSAK_WEBHOOK_SECRET'] }
+  { id: 'bridge', label: 'Bridge / Wise internacional', keys: ['BRIDGE_API_KEY', 'WISE_API_KEY'] }
 ];
 
 for (const item of priority) {

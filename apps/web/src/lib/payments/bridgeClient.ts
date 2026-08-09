@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getStablecoinNetwork } from './stablecoinNetworks';
+import { bridgeCollectsIn } from './fiatRailCoverage';
 
 export const BRIDGE_API_BASE = 'https://api.bridge.xyz/v0';
 
@@ -128,9 +129,7 @@ export function bridgeSourceCurrencyForCountry(country: string): BridgeSourceCur
 }
 
 export function isBridgeWireCountry(country: string): boolean {
-  const c = country.trim().toUpperCase();
-  if (c === 'AR') return false;
-  return ['US', 'EU', 'GB', 'CA', 'AU', 'MX', 'BR', 'CO', 'DE', 'FR', 'ES', 'IT', 'NL', 'PT', 'IE'].includes(c);
+  return bridgeCollectsIn(country);
 }
 
 export function settlementHintForRails(rails: string[] | undefined, currency: string): string {

@@ -1135,7 +1135,6 @@ export const ur = {
     amountPlaceholder: "USD کی رقم",
     methodAuto: "خودکار: سستا آپشن",
     methodUsdc: "یو ایس ڈی سی آن چین",
-    methodTransak: "Transak (fiat → crypto)",
     methodBridge: "پل",
     methodStripe: "دھاری",
     methodMercadoPago: "ادائیگی کی منڈی",
