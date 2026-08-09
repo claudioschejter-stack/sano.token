@@ -1,5 +1,6 @@
 import type { AdminAssetRecord } from './assetsService';
 import { appendDeploymentEvent, updateAdminAsset } from './assetsService';
+import { assetAlertLabel } from './assetAlertLabel';
 import { notifyCircuitBreaker } from './automationAlerts';
 
 export function globalAutomationDisabled(): boolean {
@@ -26,7 +27,7 @@ export async function activateCircuitBreaker(projectId: string, reason: string) 
     message: `Circuit breaker activado: ${reason}`
   });
   const asset = await updateAdminAsset(projectId, { automationCircuitBreaker: true });
-  await notifyCircuitBreaker(projectId, asset?.title ?? projectId, reason);
+  await notifyCircuitBreaker(projectId, asset ? assetAlertLabel(asset) : projectId, reason);
   return asset;
 }
 

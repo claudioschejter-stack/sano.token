@@ -1,40 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@sanova/database';
 import { requireAdminSession } from '../../../../lib/admin/requireAdmin';
 import {
   isAlchemyWebhookManaged,
   watchAddressesForDeposits
 } from '../../../../lib/payments/alchemyWebhookAddresses';
-import { isPendingInvestorWallet } from '../../../../lib/investor/provisionInvestorProfile';
-import { getStablecoinNetwork } from '../../../../lib/payments/stablecoinNetworks';
+import { depositWatchTargets } from '../../../../lib/payments/depositWatchTargets';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 export const maxDuration = 300;
-
-/**
- * Every address whose inbound USDC the platform has to act on.
- *
- * The investors' wallets, plus the treasury: money arriving there is a fiat
- * payment completing its second half, and hearing about it turns a confirmation
- * that waited for a daily cron into one that happens in seconds.
- */
-async function watchedAddresses(): Promise<string[]> {
-  const users = await prisma.user.findMany({
-    where: { walletAddress: { not: null } },
-    select: { walletAddress: true }
-  });
-
-  const treasury = getStablecoinNetwork('BASE').treasuryAddress?.trim();
-
-  return [
-    ...new Set(
-      [...users.map((row) => row.walletAddress?.trim()), treasury].filter(
-        (row): row is string => Boolean(row) && !isPendingInvestorWallet(row!)
-      )
-    )
-  ];
-}
 
 /** Admin: how many investor wallets exist to be watched, and whether it is wired. */
 export async function GET() {
@@ -42,7 +16,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const wallets = await watchedAddresses();
+  const wallets = await depositWatchTargets();
   return NextResponse.json({
     ok: true,
     managed: isAlchemyWebhookManaged(),
@@ -77,7 +51,7 @@ export async function POST(_request: NextRequest) {
     );
   }
 
-  const wallets = await watchedAddresses();
+  const wallets = await depositWatchTargets();
   const result = await watchAddressesForDeposits(wallets);
 
   if (result.ok === false) {

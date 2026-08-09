@@ -1,0 +1,89 @@
+name: Scheduled maintenance (free cron)
+
+# El plan Hobby de Vercel permite una sola corrida por día por cron, y eso es lo
+# que hacía que un pago cobrado esperara hasta 24 h para acreditarse, que una
+# reserva vencida bloqueara stock, y que la reparación de seguridad RWA tardara
+# dos días en converger (una corrida agenda el timelock, otra lo aplica).
+#
+# GitHub Actions cubre eso sin costo: cada job es un curl de segundos. Los
+# `crons` de apps/web/vercel.json quedan como red de seguridad diaria; la
+# frecuencia real la da este workflow.
+#
+# Se pega al alias *.vercel.app y no al dominio propio: www.sanovacapital.com
+# pasa por Cloudflare, que le tira un "managed challenge" a las IPs de los
+# runners y curl no lo puede resolver, así que volvía un 403 opaco sin importar
+# el token. El alias resuelve directo al deployment y ahí decide la auth de la app.
+#
+# Dos límites honestos de GitHub Actions, para no descubrirlos en producción:
+#   - los schedules se retrasan bajo carga; no hay garantía de puntualidad
+#   - en un repo sin actividad por 60 días GitHub los desactiva y avisa por mail
+# Por eso los crons nativos de Vercel se dejan puestos: si esto se apaga, el
+# sistema sigue funcionando un día tarde en vez de no funcionar.
+
+on:
+  schedule:
+    # Redes de seguridad de liquidación: cada minuto acá es plata cobrada con
+    # tokens sin entregar.
+    - cron: '*/10 * * * *'
+    # La cola de automatización: su latencia se suma a todo lo demás.
+    - cron: '*/15 * * * *'
+    # Reservas vencidas bloqueando stock que otro inversor podría comprar.
+    - cron: '25 */2 * * *'
+    # Reporte + reparación de seguridad RWA, y el aviso de esquema atrasado.
+    # Cuatro por día alcanzan para converger el timelock de 1 h el mismo día.
+    - cron: '40 */6 * * *'
+    # Reconciliación de movimientos: no bloquea a nadie.
+    - cron: '50 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      endpoint:
+        description: 'Endpoint de cron a disparar a mano'
+        required: true
+        type: choice
+        options:
+          - watch-awaiting-treasury-usdc
+          - process-automation-jobs
+          - expire-stale-reservations
+          - refresh-borrow-rates
+          - index-token-movements
+          - sync-deposit-watch
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolver qué endpoints toca esta corrida
+        id: plan
+        run: |
+          set -euo pipefail
+          case "${{ github.event.schedule }}" in
+            '*/10 * * * *')  ENDPOINTS='watch-awaiting-treasury-usdc' ;;
+            '*/15 * * * *')  ENDPOINTS='process-automation-jobs' ;;
+            '25 */2 * * *')  ENDPOINTS='expire-stale-reservations' ;;
+            '40 */6 * * *')  ENDPOINTS='refresh-borrow-rates sync-deposit-watch' ;;
+            '50 */4 * * *')  ENDPOINTS='index-token-movements' ;;
+            *)               ENDPOINTS='${{ github.event.inputs.endpoint }}' ;;
+          esac
+          echo "endpoints=$ENDPOINTS" >> "$GITHUB_OUTPUT"
+          echo "A disparar: $ENDPOINTS"
+
+      - name: Disparar
+        env:
+          CRON_EXTERNAL_SECRET: ${{ secrets.CRON_EXTERNAL_SECRET }}
+        run: |
+          set -uo pipefail
+          FAILED=0
+          for ENDPOINT in ${{ steps.plan.outputs.endpoints }}; do
+            echo "→ $ENDPOINT"
+            # Sin --fail: interesa ver el cuerpo de la respuesta cuando algo sale
+            # mal, no solo un exit code. Un 401 acá significa que falta el secret.
+            STATUS=$(curl --show-error --silent --max-time 280 \
+              -o /tmp/response.json -w '%{http_code}' \
+              -H "Authorization: Bearer ${CRON_EXTERNAL_SECRET}" \
+              "https://sano-token-web.vercel.app/api/cron/${ENDPOINT}") || STATUS=000
+            echo "   HTTP $STATUS"
+            head -c 2000 /tmp/response.json || true
+            echo
+            if [ "$STATUS" != "200" ]; then FAILED=1; fi
+          done
+          exit $FAILED

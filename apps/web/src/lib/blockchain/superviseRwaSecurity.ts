@@ -1,4 +1,5 @@
 import type { AdminAssetRecord } from '../admin/assetsService';
+import { assetAlertLabel } from '../admin/assetAlertLabel';
 import { notifyAutomationIssue } from '../admin/automationAlerts';
 import { activateCircuitBreaker, resetCircuitBreaker } from '../admin/automationCircuitBreaker';
 import { describeBaseRpc } from './baseRpc';
@@ -112,7 +113,7 @@ async function notifySupervision(input: {
 
   await notifyAutomationIssue({
     projectId: input.asset.id,
-    title: input.asset.title,
+    title: assetAlertLabel(input.asset),
     message: lines.join('\n') || 'Security report OK.',
     severity
   });
