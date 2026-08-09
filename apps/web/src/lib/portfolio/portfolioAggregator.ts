@@ -1,4 +1,5 @@
 import { prisma, Prisma } from '@sanova/database';
+import { failures, mapWithConcurrency, successes } from '../concurrency/mapWithConcurrency';
 import { readMorphoOnChainDebtUsd } from './onChainMorphoDebtReader';
 import { readVaultPositionsForProjects } from './onChainVaultReader';
 import { readWalletUsdcBalances } from './onChainUsdcReader';
@@ -320,6 +321,18 @@ export async function recordPortfolioSnapshot(
   });
 }
 
+/**
+ * How many investors to aggregate at once.
+ *
+ * Each snapshot reads the chain — USDC balance and Morpho debt — so doing them
+ * one after another made the run grow linearly with the investor base, inside a
+ * function that Vercel stops at 300 seconds. On the public RPC that serial
+ * pacing was self-defence: bursts came back as `missing revert data`. With a
+ * dedicated endpoint the reads can overlap, and a bounded window keeps the
+ * burst small enough not to trade one failure mode for another.
+ */
+const SNAPSHOT_CONCURRENCY = 8;
+
 export async function recordPortfolioSnapshotsForActiveInvestors(limit = 100) {
   const users = await prisma.user.findMany({
     where: {
@@ -329,11 +342,17 @@ export async function recordPortfolioSnapshotsForActiveInvestors(limit = 100) {
     take: limit
   });
 
-  const snapshots = [];
-  for (const user of users) {
-    snapshots.push(await recordPortfolioSnapshot(user.id));
+  const results = await mapWithConcurrency(users, SNAPSHOT_CONCURRENCY, (user) =>
+    recordPortfolioSnapshot(user.id)
+  );
+
+  for (const { item, error } of failures(results)) {
+    // One investor's snapshot must not cost everyone else's, which is what the
+    // serial loop did: it threw and abandoned the rest of the list.
+    console.error('[recordPortfolioSnapshotsForActiveInvestors] failed', item.id, error);
   }
-  return snapshots;
+
+  return successes(results);
 }
 
 function buildStablecoinPositions(deposits: Array<{
