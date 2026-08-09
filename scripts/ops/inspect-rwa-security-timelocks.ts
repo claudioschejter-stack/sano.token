@@ -98,18 +98,25 @@ async function main() {
   });
 
   const alchemyKey = process.env.ALCHEMY_API_KEY?.trim();
-  const rpc =
+  const dedicated =
     process.env.ALCHEMY_BASE_RPC_URL?.trim() ||
     process.env.LENDING_BASE_RPC_URL?.trim() ||
     process.env.BASE_RPC_URL?.trim() ||
-    (alchemyKey ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}` : null) ||
-    'https://mainnet.base.org';
-  if (rpc === 'https://mainnet.base.org') {
+    (alchemyKey ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}` : null);
+  const onPublicRpc = !dedicated || dedicated.includes('mainnet.base.org');
+  const rpc = dedicated ?? 'https://mainnet.base.org';
+
+  if (onPublicRpc) {
     console.log(
       'RPC: endpoint público de Base — limita ráfagas de eth_call, esperá lecturas ilegibles.\n' +
         'Para un resultado fiable: ALCHEMY_API_KEY=... npx tsx scripts/ops/inspect-rwa-security-timelocks.ts'
     );
   }
+
+  // The pauses exist only to stay under the public endpoint's burst limit; a
+  // dedicated one turns a 30-second run into a couple of seconds.
+  const throttle = onPublicRpc ? sleep : async () => {};
+
   const provider = new JsonRpcProvider(rpc, 8453, { staticNetwork: true });
   const now = Math.floor(Date.now() / 1000);
 
@@ -125,7 +132,7 @@ async function main() {
 
     for (const { label, address } of contracts) {
       const contract = new Contract(getAddress(address), ABI, provider);
-      await sleep(1000);
+      await throttle(1000);
 
       const owner = await read('owner', () => contract.owner() as Promise<string>);
       const delay = await read('adminActionDelay', () => contract.adminActionDelay() as Promise<bigint>);
@@ -142,7 +149,7 @@ async function main() {
       );
 
       for (const [name, policyAddress] of POLICY_ADDRESSES) {
-        await sleep(900);
+        await throttle(900);
         const allowed = await read(name, () =>
           contract.externalContractAllowed(getAddress(policyAddress)) as Promise<boolean>
         );
@@ -154,7 +161,7 @@ async function main() {
           console.log(`   allowlist ${name}: ILEGIBLE (no concluir que falta)`);
           continue;
         }
-        await sleep(900);
+        await throttle(900);
         const readyAt = await read(`${name}-clock`, () =>
           contract.adminActionReadyAt(allowActionId(policyAddress)) as Promise<bigint>
         );
@@ -163,7 +170,7 @@ async function main() {
 
       if (label !== 'vault') continue;
 
-      await sleep(900);
+      await throttle(900);
       const totalAssets = await read('totalAssets', () => contract.totalAssets() as Promise<bigint>);
       const limit = await read('dailyWithdrawalLimit', () => contract.dailyWithdrawalLimit() as Promise<bigint>);
       const treasuryShares = await read('treasuryShares', () => contract.balanceOf(TREASURY) as Promise<bigint>);
@@ -183,7 +190,7 @@ async function main() {
         continue;
       }
 
-      await sleep(900);
+      await throttle(900);
       const readyAt = await read('limit-clock', () =>
         contract.adminActionReadyAt(limitActionId(target)) as Promise<bigint>
       );
