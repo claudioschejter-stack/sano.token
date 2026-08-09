@@ -19,6 +19,19 @@ import { fileURLToPath } from 'node:url';
 import { PrismaClient } from '@prisma/client';
 import { AbiCoder, Contract, JsonRpcProvider, getAddress, keccak256 } from 'ethers';
 
+/**
+ * Resolve the endpoint through the same module the server uses.
+ *
+ * This script had its own copy of the precedence rules and its own
+ * `includes('mainnet.base.org')` check — and that substring comparison is the
+ * bug CodeQL flagged in `baseRpc.ts`, reintroduced here by copying the logic.
+ * Two implementations of one decision is how it happened twice.
+ */
+import {
+  describeBaseRpc,
+  resolveBaseMainnetRpcUrl
+} from '../../apps/web/src/lib/blockchain/baseRpc';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 config({ path: resolve(__dirname, '../../.env.local') });
 
@@ -97,16 +110,12 @@ async function main() {
     select: { id: true, title: true, contractAddress: true, vaultAddress: true }
   });
 
-  const alchemyKey = process.env.ALCHEMY_API_KEY?.trim();
-  const dedicated =
-    process.env.ALCHEMY_BASE_RPC_URL?.trim() ||
-    process.env.LENDING_BASE_RPC_URL?.trim() ||
-    process.env.BASE_RPC_URL?.trim() ||
-    (alchemyKey ? `https://base-mainnet.g.alchemy.com/v2/${alchemyKey}` : null);
-  const onPublicRpc = !dedicated || dedicated.includes('mainnet.base.org');
-  const rpc = dedicated ?? 'https://mainnet.base.org';
+  const rpc = resolveBaseMainnetRpcUrl();
+  const described = describeBaseRpc();
 
-  if (onPublicRpc) {
+  if (described.dedicated) {
+    console.log(`RPC: ${described.provider} (${described.url ?? 'n/a'})`);
+  } else {
     console.log(
       'RPC: endpoint público de Base — limita ráfagas de eth_call, esperá lecturas ilegibles.\n' +
         'Para un resultado fiable: ALCHEMY_API_KEY=... npx tsx scripts/ops/inspect-rwa-security-timelocks.ts'
@@ -115,7 +124,7 @@ async function main() {
 
   // The pauses exist only to stay under the public endpoint's burst limit; a
   // dedicated one turns a 30-second run into a couple of seconds.
-  const throttle = onPublicRpc ? sleep : async () => {};
+  const throttle = described.dedicated ? async () => {} : sleep;
 
   const provider = new JsonRpcProvider(rpc, 8453, { staticNetwork: true });
   const now = Math.floor(Date.now() / 1000);
