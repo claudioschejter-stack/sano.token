@@ -19,7 +19,47 @@ export { deriveSettlementPhase };
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 const ERC20_TRANSFER_ABI = ['event Transfer(address indexed from,address indexed to,uint256 value)'];
-const WATCH_LOOKBACK_BLOCKS = 3000;
+
+/**
+ * How far back to look for the USDC that completes a fiat payment.
+ *
+ * This was a fixed 3000 blocks. Base produces a block every two seconds, so that
+ * is a hundred minutes — and the cron that uses it as the safety net runs once a
+ * day. The net covered seven percent of the gap it existed to cover: if the
+ * Alchemy webhook missed the transfer (address never registered, delivery
+ * failed, or the webhook was recreated and lost its address list, which
+ * `alchemyWebhookAddresses` warns about), the money arrived, the cron looked at
+ * the wrong hundred minutes, and the investor's purchase stayed in review with
+ * nothing left to find it.
+ *
+ * So the window is derived from how long the payment has actually been waiting.
+ */
+const BASE_BLOCK_SECONDS = 2;
+const MIN_LOOKBACK_BLOCKS = 3000;
+/** ~30 days. Past this the payment is an ops problem, not a scanning one. */
+const MAX_LOOKBACK_BLOCKS = 1_296_000;
+/** Slack for block-time variance and clock skew between us and the chain. */
+const LOOKBACK_SAFETY_BLOCKS = 600;
+/** Public Base caps `eth_getLogs` at 10k blocks; stay under it on any provider. */
+const LOG_RANGE_CHUNK_BLOCKS = 9000;
+
+export function lookbackBlocksForWait(input: {
+  waitingSinceMs?: number | null;
+  nowMs?: number;
+}): number {
+  const now = input.nowMs ?? Date.now();
+  const since = input.waitingSinceMs;
+
+  if (typeof since !== 'number' || !Number.isFinite(since) || since > now) {
+    return MIN_LOOKBACK_BLOCKS;
+  }
+
+  const waitedBlocks = Math.ceil((now - since) / 1000 / BASE_BLOCK_SECONDS);
+  return Math.min(
+    MAX_LOOKBACK_BLOCKS,
+    Math.max(MIN_LOOKBACK_BLOCKS, waitedBlocks + LOOKBACK_SAFETY_BLOCKS)
+  );
+}
 
 function amountToleranceMatch(actual: bigint, expected: bigint): boolean {
   if (actual === expected) return true;
@@ -29,7 +69,10 @@ function amountToleranceMatch(actual: bigint, expected: bigint): boolean {
   return diff <= tol;
 }
 
-async function findMatchingTreasuryUsdcTransfer(expectedAmountUsd: number): Promise<string | null> {
+async function findMatchingTreasuryUsdcTransfer(
+  expectedAmountUsd: number,
+  options: { waitingSinceMs?: number | null } = {}
+): Promise<string | null> {
   const network = getStablecoinNetwork('BASE');
   if (!network.rpcUrl || !network.tokenAddress || !network.treasuryAddress || network.kind !== 'EVM') {
     return null;
@@ -44,33 +87,61 @@ async function findMatchingTreasuryUsdcTransfer(expectedAmountUsd: number): Prom
     const expectedTo = ethers.getAddress(network.treasuryAddress);
     const expectedAmount = ethers.parseUnits(expectedAmountUsd.toFixed(network.decimals), network.decimals);
     const latestBlock = await provider.getBlockNumber();
-    const fromBlock = Math.max(0, latestBlock - WATCH_LOOKBACK_BLOCKS);
+    const lookback = lookbackBlocksForWait({ waitingSinceMs: options.waitingSinceMs });
+    const fromBlock = Math.max(0, latestBlock - lookback);
+    const topics = [USDC_TRANSFER_TOPIC, null, ethers.zeroPadValue(expectedTo, 32)];
 
-    const logs = await provider.getLogs({
-      address: network.tokenAddress,
-      topics: [USDC_TRANSFER_TOPIC, null, ethers.zeroPadValue(expectedTo, 32)],
-      fromBlock,
-      toBlock: latestBlock
-    });
+    // Newest chunk first, so a recent transfer is found without reading the
+    // whole window.
+    let toBlock = latestBlock;
+    while (toBlock >= fromBlock) {
+      const chunkFrom = Math.max(fromBlock, toBlock - LOG_RANGE_CHUNK_BLOCKS + 1);
+      const logs = await provider.getLogs({
+        address: network.tokenAddress,
+        topics,
+        fromBlock: chunkFrom,
+        toBlock
+      });
 
-    for (const log of [...logs].reverse()) {
-      const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
-      if (!parsed) continue;
-      const value = parsed.args.value as bigint;
-      if (!amountToleranceMatch(value, expectedAmount)) continue;
+      for (const log of [...logs].reverse()) {
+        const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
+        if (!parsed) continue;
+        const value = parsed.args.value as bigint;
+        if (!amountToleranceMatch(value, expectedAmount)) continue;
 
-      const receipt = await provider.getTransactionReceipt(log.transactionHash);
-      const confirmations = receipt ? latestBlock - receipt.blockNumber + 1 : 0;
-      if (!receipt || receipt.status !== 1 || confirmations < paymentMinimumConfirmations()) {
-        continue;
+        const receipt = await provider.getTransactionReceipt(log.transactionHash);
+        const confirmations = receipt ? latestBlock - receipt.blockNumber + 1 : 0;
+        if (!receipt || receipt.status !== 1 || confirmations < paymentMinimumConfirmations()) {
+          continue;
+        }
+        return log.transactionHash;
       }
-      return log.transactionHash;
+
+      if (chunkFrom === fromBlock) break;
+      toBlock = chunkFrom - 1;
     }
   } finally {
     provider.destroy();
   }
 
   return null;
+}
+
+/**
+ * When this payment started waiting for USDC. The conversion timestamp is the
+ * honest start; `createdAt` is the fallback for rows written before it existed.
+ */
+export function waitingSinceMsOf(row: {
+  createdAt: Date;
+  metadata: unknown;
+}): number {
+  const metadata = (row.metadata as Record<string, unknown>) ?? {};
+  const queuedAt = metadata.fiatToUsdcConversionQueuedAt;
+  if (typeof queuedAt === 'string') {
+    const parsed = Date.parse(queuedAt);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return row.createdAt.getTime();
 }
 
 function isMacroClickProvider(provider: string): boolean {
@@ -264,9 +335,13 @@ export async function enqueueFiatToUsdcConversion(input: {
   return { queued: true, ripio: ripioMeta };
 }
 
-async function settleIfUsdcFound(reference: NonNullable<ResolvedCheckoutReference>, provider: string) {
+async function settleIfUsdcFound(
+  reference: NonNullable<ResolvedCheckoutReference>,
+  provider: string,
+  waitingSinceMs?: number | null
+) {
   const expectedAmountUsd = await resolveExpectedAmountUsd(reference);
-  const txHash = await findMatchingTreasuryUsdcTransfer(expectedAmountUsd);
+  const txHash = await findMatchingTreasuryUsdcTransfer(expectedAmountUsd, { waitingSinceMs });
   if (!txHash) {
     return { settled: false as const };
   }
@@ -306,7 +381,8 @@ export async function scanAwaitingTreasuryUsdcSettlements() {
     try {
       const outcome = await settleIfUsdcFound(
         { kind: 'deposit', depositId: deposit.id },
-        String(metadata.fiatRailProvider ?? deposit.provider ?? 'treasury_usdc_watch')
+        String(metadata.fiatRailProvider ?? deposit.provider ?? 'treasury_usdc_watch'),
+        waitingSinceMsOf(deposit)
       );
       if (outcome.settled) confirmed.push(deposit.id);
     } catch (error) {
@@ -331,7 +407,8 @@ export async function scanAwaitingTreasuryUsdcSettlements() {
       try {
         const outcome = await settleIfUsdcFound(
           { kind: 'cart', batchId, userId: intent.userId },
-          String(metadata.fiatRailProvider ?? intent.provider ?? 'treasury_usdc_watch')
+          String(metadata.fiatRailProvider ?? intent.provider ?? 'treasury_usdc_watch'),
+          waitingSinceMsOf(intent)
         );
         if (outcome.settled) confirmed.push(batchId);
       } catch (error) {
@@ -341,7 +418,8 @@ export async function scanAwaitingTreasuryUsdcSettlements() {
       try {
         const outcome = await settleIfUsdcFound(
           { kind: 'payment_intent', intentId: intent.id, userId: intent.userId },
-          String(metadata.fiatRailProvider ?? intent.provider ?? 'treasury_usdc_watch')
+          String(metadata.fiatRailProvider ?? intent.provider ?? 'treasury_usdc_watch'),
+          waitingSinceMsOf(intent)
         );
         if (outcome.settled) confirmed.push(intent.id);
       } catch (error) {
@@ -384,7 +462,11 @@ export async function scanTreasuryForPendingCartUsdcBatch(userId: string, batchI
       ? metadata.qrWatchAmountUsd
       : payable.reduce((sum, row) => sum + row.amountUsd.toNumber(), 0);
 
-  const txHash = await findMatchingTreasuryUsdcTransfer(watchAmountUsd);
+  // A QR the investor left open for hours must still be findable; the window
+  // follows the intent's own age instead of a fixed hundred minutes.
+  const txHash = await findMatchingTreasuryUsdcTransfer(watchAmountUsd, {
+    waitingSinceMs: waitingSinceMsOf(first)
+  });
   if (!txHash) {
     return { found: true, allConfirmed: false, paymentIntents: intents };
   }
