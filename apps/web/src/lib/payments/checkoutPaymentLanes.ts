@@ -15,7 +15,46 @@ export type CheckoutPaymentLaneId = 'electronic_wallet' | 'crypto_wallet' | 'car
 
 const CRYPTO_WALLET_IDS = new Set<string>([...WALLET_CHECKOUT_ORDER, 'walletconnect_usdc']);
 
-const CARD_BACKEND_IDS = new Set<string>(['bridge', 'privy_on_ramp']);
+/**
+ * Los cobradores que cobran con tarjeta. El checkout alojado de Macro entra acá:
+ * su API declara nueve marcas de tarjeta habilitadas y ninguna billetera, así que
+ * clasificarlo como "billetera electrónica" —donde caía por ser LOCAL_RAIL—
+ * escondía el pago con tarjeta en pesos donde nadie lo iba a buscar.
+ */
+const CARD_BACKEND_IDS = new Set<string>([
+  'bridge',
+  'privy_on_ramp',
+  'macro_click_ars',
+  'macro_click_usd'
+]);
+
+/**
+ * En Argentina cobra Macro. Es una decisión de negocio y no un hecho de precio, así
+ * que va como preferencia explícita: meterla como un precio más bajo del real
+ * mentiría en la comparación que el inversor ve.
+ */
+const PREFERRED_CARD_BACKEND_BY_COUNTRY: Record<string, string[]> = {
+  AR: ['macro_click_ars']
+};
+
+export function pickCardBackend(
+  options: DepositPaymentOption[],
+  country: string
+): DepositPaymentOption | null {
+  const configured = options.filter((row) => isCardBackendOption(row) && row.configured);
+  if (configured.length === 0) {
+    return null;
+  }
+
+  for (const preferredId of PREFERRED_CARD_BACKEND_BY_COUNTRY[country] ?? []) {
+    const preferred = configured.find((row) => row.id === preferredId);
+    if (preferred) {
+      return preferred;
+    }
+  }
+
+  return [...configured].sort(compareDepositPaymentOptions)[0] ?? null;
+}
 
 const COUNTRY_LABELS: Record<string, string> = {
   AR: 'Argentina',
@@ -124,10 +163,7 @@ export function buildCheckoutPaymentLaneBundle(input: {
   optionsByLane.crypto_wallet = [...optionsByLane.crypto_wallet].sort(compareDepositPaymentOptions);
   optionsByLane.electronic_wallet = [...optionsByLane.electronic_wallet].sort(compareDepositPaymentOptions);
 
-  const cardBackends = input.options
-    .filter((row) => isCardBackendOption(row) && row.configured)
-    .sort(compareDepositPaymentOptions);
-  const cheapestCardBackend = cardBackends[0] ?? null;
+  const cheapestCardBackend = pickCardBackend(input.options, normalizedCountry);
 
   const cardDisplayOptions = cheapestCardBackend
     ? buildFiatOnRampDisplayOptions(cheapestCardBackend, input.fiatOnRampLabels).map((row) => ({

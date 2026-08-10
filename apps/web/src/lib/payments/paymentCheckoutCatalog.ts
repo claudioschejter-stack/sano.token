@@ -157,7 +157,16 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     id: 'macro_click_ars',
     groupId: 'argentina',
     method: 'LOCAL_RAIL',
-    label: 'Transferencia bancaria (ARS)',
+    /**
+     * El checkout alojado de Macro cobra con tarjeta, no con transferencia: su API
+     * declara nueve marcas habilitadas (Visa y Mastercard débito y crédito, Cabal,
+     * Naranja, AMEX, Maestro) y ninguna billetera. La etiqueta anterior mandaba al
+     * inversor a buscar un CBU en una pantalla que le pide una tarjeta.
+     *
+     * Sin nombrar al banco, que es regla del catálogo: el inversor no necesita
+     * saber quién procesa, y nombrarlo sugiere que hace falta una cuenta ahí.
+     */
+    label: 'Tarjeta de débito y crédito (en pesos)',
     provider: 'macro_click',
     providerRail: 'macro_click_hosted_ars',
     fallbackFeeBps: 180,
@@ -171,7 +180,7 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     id: 'macro_click_usd',
     groupId: 'argentina',
     method: 'LOCAL_RAIL',
-    label: 'Transferencia bancaria (USD)',
+    label: 'Tarjeta en dólares',
     provider: 'macro_click',
     providerRail: 'macro_click_hosted_usd',
     fallbackFeeBps: 180,
@@ -185,7 +194,8 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     id: 'macro_click_debin',
     groupId: 'argentina',
     method: 'LOCAL_RAIL',
-    label: 'Débito inmediato desde tu banco',
+    /** DEBIN sí es una transferencia: se debita de la cuenta que el inversor autoriza. */
+    label: 'Transferencia desde tu banco (DEBIN)',
     provider: 'macro_click',
     providerRail: 'macro_click_debin',
     fallbackFeeBps: 120,

@@ -67,6 +67,13 @@ export type MacroClickDebinRequest = {
   amountCents: number;
   commerceTransactionId: string;
   concept?: string;
+  /**
+   * Obligatorio para la API: sin él responde "El dato Email no puede ser nulo o
+   * vacío" y el DEBIN no se crea. El tipo no lo pedía, así que el compilador dejaba
+   * pasar una llamada que la API rechaza siempre.
+   */
+  payerEmail: string;
+  payerName?: string;
 };
 
 export type MacroClickLinkPagoRequest = {
