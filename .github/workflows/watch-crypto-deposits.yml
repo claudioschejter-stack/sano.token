@@ -1,18 +1,14 @@
 name: Watch crypto deposits (backup)
 
-# Vercel Hobby plan only allows one cron invocation per day, but the crypto
-# deposit backup scan (client-side polling is the primary detection path) is
-# more useful running every few minutes. This workflow pings the same
-# endpoint on a tighter schedule using a separate secret so it doesn't touch
-# the native Vercel cron's CRON_SECRET.
+# El plan Hobby de Vercel permite una sola corrida de cron por día, pero este
+# barrido de respaldo (la detección primaria es el webhook de Alchemy) sirve
+# corriendo cada pocos minutos. Usa un secret aparte para no tocar el CRON_SECRET
+# del cron nativo de Vercel.
 #
-# NOTE: this hits the *.vercel.app production alias, not the custom domain
-# (www.sanovacapital.com). The custom domain is proxied through Cloudflare,
-# which issues a JS "managed challenge" to GitHub Actions runner IPs before
-# the request ever reaches our app -- curl can't solve that challenge, so it
-# always came back as an opaque 403 regardless of the bearer token. The
-# *.vercel.app alias resolves straight to the deployment and isn't proxied
-# by Cloudflare, so the app's own auth check (401/200) is what decides.
+# Se pega al alias *.vercel.app y no al dominio propio: www.sanovacapital.com pasa
+# por Cloudflare, que le tira un "managed challenge" a las IPs de los runners y
+# curl no lo puede resolver, así que volvía un 403 opaco sin importar el token. El
+# alias resuelve directo al deployment y ahí decide la auth de la app.
 on:
   schedule:
     - cron: '*/5 * * * *'
@@ -22,8 +18,15 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+
+      # El endpoint devuelve 200 con `ok:false` cuando una de sus etapas se
+      # rompe, para no ponerse en rojo por un scan degradado. El costo real de eso
+      # fue que `privyInbound` tiró excepción en cada corrida durante semanas
+      # —la red de seguridad de los depósitos, muerta— mientras este workflow se
+      # veía verde, porque `curl --fail` solo mira el código de estado. El script
+      # lee el cuerpo.
       - name: Trigger watch-crypto-deposits endpoint
-        run: |
-          curl --fail --show-error --silent \
-            -H "Authorization: Bearer ${{ secrets.CRON_EXTERNAL_SECRET }}" \
-            "https://sano-token-web.vercel.app/api/cron/watch-crypto-deposits"
+        env:
+          CRON_EXTERNAL_SECRET: ${{ secrets.CRON_EXTERNAL_SECRET }}
+        run: node scripts/ci/ping-cron-endpoint.mjs watch-crypto-deposits
