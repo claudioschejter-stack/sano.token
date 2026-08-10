@@ -378,11 +378,30 @@ function buildAutomationMetaEvent(meta: AutomationMeta): DeploymentEvent {
   };
 }
 
+function isAutomationMetaEvent(event: DeploymentEvent): boolean {
+  return event.step === 'PREFLIGHT' && event.externalId === 'AUTOMATION_META';
+}
+
 function replaceAutomationMetaEvent(events: DeploymentEvent[], meta: AutomationMeta): DeploymentEvent[] {
-  return [
-    buildAutomationMetaEvent(meta),
-    ...events.filter((event) => !(event.step === 'PREFLIGHT' && event.externalId === 'AUTOMATION_META'))
-  ].slice(0, 50);
+  return [buildAutomationMetaEvent(meta), ...events.filter((event) => !isAutomationMetaEvent(event))].slice(
+    0,
+    50
+  );
+}
+
+/**
+ * El estado operativo se guarda como un evento PREFLIGHT sintético dentro de
+ * `deploymentEvents`, porque no hay columna donde ponerlo. Sirve para persistir,
+ * pero no es un evento: no pasó nada, y su mensaje no describe ninguna falla.
+ *
+ * Fuera de la persistencia hay que sacarlo. Va primero en el arreglo y lleva
+ * status FAILED cuando el breaker está activo, así que el panel de préstamos —que
+ * muestra `find(status === 'FAILED').message` como último error— tapaba la causa
+ * real con "Estado operativo automatizado actualizado.". Todo lo que este
+ * pseudo-evento contiene ya se expone como campo estructurado del asset.
+ */
+export function operatorVisibleEvents(events: DeploymentEvent[]): DeploymentEvent[] {
+  return events.filter((event) => !isAutomationMetaEvent(event));
 }
 
 function slugifyTitle(title: string): string {
@@ -574,7 +593,7 @@ function mapProject(project: {
       project.equitySharePercent != null ? Number(project.equitySharePercent) : null,
     tokenDeployStatus: project.tokenDeployStatus as TokenDeployStatus,
     collateralTargets,
-    deploymentEvents: events,
+    deploymentEvents: operatorVisibleEvents(events),
     automationReadiness: readiness,
     automationFailureCount: meta.automationFailureCount,
     automationCircuitBreaker: meta.automationCircuitBreaker,
