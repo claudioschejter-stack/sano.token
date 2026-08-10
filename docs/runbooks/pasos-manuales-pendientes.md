@@ -100,12 +100,55 @@ ALCHEMY_API_KEY=... DATABASE_URL="$POSTGRES_URL" \
 
 Si la primera línea dice `RPC: endpoint público de Base`, la variable no llegó.
 
+### Por qué la key de Alchemy bloquea la liberación del circuit breaker
+
+No es solo velocidad. El reporte de seguridad distingue tres estados por chequeo:
+`ok`, `fail` y `unknown`. `unknown` es "no pude leer la cadena", y por diseño **no
+activa ni libera** el breaker: activar sobre una lectura fallida daría falsos
+positivos, y liberar sería peor.
+
+Contra el RPC público de Base, con rate limit, muchos chequeos vuelven `unknown`.
+El resultado es que el breaker queda trabado: nunca junta un reporte limpio que
+justifique liberarlo. Cargar `ALCHEMY_API_KEY` es lo que permite que el ciclo
+cierre.
+
+Estado verificado el 2026-08-10 a las 02:40 UTC — los dos assets siguen bloqueados:
+
+| Asset | Token | Vault | Breaker |
+|---|---|---|---|
+| `UV3RWA` | `0x481fAa…` | `0x56dB99…` | activo |
+| `ANELOUV2` | `0x1dD753…` | `0x95F135…` | activo |
+
+Las fallas que reportan son de allowlist (cuatro direcciones por contrato) y, en el
+vault de UV3, el límite diario en `uint256.max` en lugar de 500 tokens.
+
+### Cuándo esperar la reparación
+
+La repara `superviseRwaSecurity`, que corre dentro de `refresh-borrow-rates`. En
+GitHub Actions está agendado `40 */6` (04:40, 10:40, 16:40, 22:40 ART), o sea
+cuatro corridas por día. La primera de esas corridas todavía no había disparado
+cuando se escribió esto: el workflow es nuevo y GitHub arranca los schedules con
+retraso.
+
+Cada corrida hace un movimiento del timelock: una lo agenda, la siguiente lo
+aplica. Con cuatro por día, el vault de UV3 (timelock de 1 h) converge el mismo
+día; los cambios de token (24 h) tardan dos corridas separadas por un día.
+
+Para ver el estado sin esperar el mail, el inspector lista los timelocks pendientes
+con su hora de ejecución:
+
+```bash
+ALCHEMY_API_KEY=... DATABASE_URL="$POSTGRES_URL" \
+  npx tsx scripts/ops/inspect-rwa-security-timelocks.ts
+```
+
 ---
 
-## 4. Borrar de Vercel las variables de dLocal
+## 4. Borrar de Vercel las variables de los proveedores retirados
 
-Desde #138 no las usa nada. Siguen cargadas y el build las viene reportando como
-no declaradas en `turbo.json`.
+Ninguna la lee nadie, así que no urge: no rompen nada y no cambian el
+comportamiento. Ensucian el panel y el build las reporta como no declaradas en
+`turbo.json`.
 
 Vercel → **Settings** → **Environment Variables** → borrar:
 
@@ -115,7 +158,20 @@ DLOCAL_X_TRANS_KEY        DLOCAL_NOTIFICATION_SECRET
 DLOCAL_SMARTFIELDS_API_KEY
 DLOCAL_API_BASE_URL       DLOCAL_CHECKOUT_BASE_URL
 DLOCAL_GO_MERCHANT_ID     DLOCAL_GO_OPEN_LINK_TOKEN
+
+STRIPE_SECRET_KEY         STRIPE_WEBHOOK_SECRET
+COINBASE_COMMERCE_API_KEY COINBASE_COMMERCE_WEBHOOK_SECRET
+RAMP_WEBHOOK_SECRET       BINANCE_PAY_API_KEY
+EBANX_WEBHOOK_SECRET      EBANX_API_BASE_URL
+ASTROPAY_WEBHOOK_SECRET
+WISE_API_KEY              WISE_RECEIVE_USD_DETAILS
+WISE_RECEIVE_EUR_DETAILS  WISE_RECEIVE_GBP_DETAILS
+STABLECOIN_CUSTODIAL_WALLET_ADDRESS
 ```
+
+Las de dLocal salieron en #138, el resto en #151 y #152. `COINBASE_ADVANCED_TRADE_API_KEY`
+**se queda**: es del rail de conversión de yield, que no tiene nada que ver con el
+checkout de Coinbase Commerce.
 
 ---
 
@@ -180,6 +236,9 @@ problema es al revés y hay que aplicar el SQL, no ajustar el checksum.
   título es lo que se publica.
 
   De paso: el nombre del token de UV2 dice `URVAN VIEW` en lugar de `URBAN VIEW`.
+  El typo está **en la cadena y es inmutable** (ERC-20 no permite renombrar), así
+  que la base se alineó a lo que dice el contrato en vez de mostrar algo distinto.
+  Se decidió dejarlo así.
 - **Fondear el CVU de Ripio con los ARS que cobra Macro.** No hay API de payout
   Macro→Ripio, así que hoy es una transferencia manual. Hay que definir quién la
   hace y con qué frecuencia, o el on-ramp queda creado esperando fiat.
