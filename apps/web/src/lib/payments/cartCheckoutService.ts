@@ -17,6 +17,8 @@ import { createLocalRailCheckout } from './localRailAdapter';
 import { createBridgeOnRampCheckout, createPrivyOnRampCheckout } from './paymentOnRampAdapters';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { createMacroClickHostedCheckout } from './macroClick/checkoutAdapter';
+import { resolveArsChargeForUsdc } from './effectiveArsRate';
+import { createRipioQuoteFetcher } from './ripioArsQuote';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
 import { scorePaymentRisk } from './paymentRisk';
 import {
@@ -254,6 +256,26 @@ async function attachCartGatewayCheckout(input: {
 
   if (input.method === 'LOCAL_RAIL' && checkoutRow?.provider === 'macro_click') {
     const currency = checkoutRow.providerRail.includes('usd') ? 'USD' : 'ARS';
+    /**
+     * Los pesos se cobran contra la cotización de Ripio, que es quien los convierte,
+     * y no contra una variable fija. Con la variable, cobrar 20 dólares a 1050
+     * cuando el precio real es 1400 deja a la treasury 5 USDC corta en cada compra.
+     * Si la cotización no se puede obtener, la decisión cae a la variable fija y
+     * viaja marcada como estimación.
+     */
+    const arsCharge =
+      currency === 'ARS'
+        ? await resolveArsChargeForUsdc({
+            targetUsdc: input.totalUsd,
+            providerFxKey: 'MACRO_CLICK_FX_ARS',
+            fetchQuote: createRipioQuoteFetcher({
+              userId: input.userId,
+              userEmail: input.userEmail,
+              paymentOptionRail: checkoutRow.providerRail
+            })
+          })
+        : null;
+
     return createMacroClickHostedCheckout({
       referenceId: input.batchId,
       referenceKind: 'cart',
@@ -263,7 +285,8 @@ async function attachCartGatewayCheckout(input: {
       userId: input.userId,
       userEmail: input.userEmail,
       clientIp: '127.0.0.1',
-      redirectPath
+      redirectPath,
+      arsCharge
     });
   }
 
