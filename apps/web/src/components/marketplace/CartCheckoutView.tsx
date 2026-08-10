@@ -139,7 +139,7 @@ function investorFirstName(fullName: string): string {
 }
 
 function optionUsesUsdc(option: DepositPaymentOption): boolean {
-  return option.method === 'USDC_ONCHAIN' || option.method === 'CUSTODIAL_STABLECOIN';
+  return option.method === 'USDC_ONCHAIN';
 }
 
 function formatMoneyAmount(amount: number, useUsdc: boolean, locale: string): string {
@@ -410,7 +410,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
   const showPaymentMethods =
     (mode === 'deposit' && totalUsd > 0) || (mode === 'purchase' && items.length > 0);
   const requiresWallet =
-    selectedDepositOption?.method === 'CUSTODIAL_STABLECOIN' ||
     selectedDepositOption?.method === 'USDC_ONCHAIN';
   const isWalletConnectUsdc = selectedDepositOptionId === 'walletconnect_usdc';
   const isWalletConnectSession =
@@ -889,7 +888,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           }
         }
 
-        if (paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') {
+        if (paymentMethod === 'USDC_ONCHAIN') {
           const autoPaid = await attemptAutoUsdcTreasuryPayment(totalUsd, { depositId: data.deposit.id });
           if (!autoPaid) {
             setStatus('manual');
@@ -989,7 +988,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
 
       if (
         paymentMethod !== 'USDC_ONCHAIN' &&
-        paymentMethod !== 'CUSTODIAL_STABLECOIN' &&
         paymentMethod !== 'LOCAL_RAIL' &&
         !data.checkout.payToAddress
       ) {
@@ -998,7 +996,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
         return;
       }
 
-      if (paymentMethod === 'USDC_ONCHAIN' || paymentMethod === 'CUSTODIAL_STABLECOIN') {
+      if (paymentMethod === 'USDC_ONCHAIN') {
         const checkoutTotalUsd = Number(data.checkout.totalUsd);
         const autoPaid = await attemptAutoUsdcTreasuryPayment(
           Number.isFinite(checkoutTotalUsd) && checkoutTotalUsd > 0 ? checkoutTotalUsd : totalUsd,
@@ -1245,7 +1243,7 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
     if (
       !isWalletUsdcCheckoutOption(selectedDepositOptionId) ||
       !isEvmAutoUsdcNetwork(stablecoinNetwork) ||
-      (paymentMethod !== 'USDC_ONCHAIN' && paymentMethod !== 'CUSTODIAL_STABLECOIN')
+      (paymentMethod !== 'USDC_ONCHAIN')
     ) {
       return false;
     }

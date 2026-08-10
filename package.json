@@ -32,7 +32,6 @@
     "vercel:sync-walletconnect": "node scripts/vercel/sync-walletconnect-env.mjs",
     "vercel:check-walletconnect": "node scripts/verify-walletconnect-setup.mjs",
     "verify:usdc-checkout": "node scripts/verify-usdc-checkout-ready.mjs",
-    "verify:stripe-setup": "node scripts/verify-stripe-setup.mjs",
     "verify:morpho-borrow": "npx tsx scripts/verify-morpho-borrow-ready.ts",
     "yield:distribute": "npx tsx scripts/distribute-yield-batch.ts",
     "yield:pipeline": "npx tsx scripts/run-yield-pipeline.ts",

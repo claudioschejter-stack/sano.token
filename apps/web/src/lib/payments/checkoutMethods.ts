@@ -40,15 +40,6 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     supportsPurchase: true
   },
   {
-    id: 'COINBASE',
-    label: 'Coinbase Commerce',
-    description: 'Checkout cripto / on-ramp internacional.',
-    configured: paymentGatewayConfigured('COINBASE'),
-    automatic: true,
-    supportsDeposit: true,
-    supportsPurchase: true
-  },
-  {
     id: 'RIPIO',
     label: 'Ripio',
     description: 'On-ramp ARS → USDC en Base con transferencia o Mercado Pago.',
@@ -62,15 +53,6 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     label: 'Bridge',
     description: 'On/off-ramp empresarial con confirmación automática.',
     configured: paymentGatewayConfigured('BRIDGE'),
-    automatic: true,
-    supportsDeposit: true,
-    supportsPurchase: true
-  },
-  {
-    id: 'CUSTODIAL_STABLECOIN',
-    label: 'Stablecoin custodial',
-    description: 'Depósito a wallet custodial autorizada del Fiduciario.',
-    configured: paymentGatewayConfigured('CUSTODIAL_STABLECOIN'),
     automatic: true,
     supportsDeposit: true,
     supportsPurchase: true
@@ -94,15 +76,6 @@ const CHECKOUT_METHODS: CheckoutMethodOption[] = [
     label: 'Tarjeta / Apple Pay (Privy)',
     description: 'On-ramp de tarjeta donde no cobra Macro; liquida USDC en Base.',
     configured: paymentGatewayConfigured('PRIVY_ONRAMP'),
-    automatic: true,
-    supportsDeposit: true,
-    supportsPurchase: true
-  },
-  {
-    id: 'RAMP',
-    label: 'Ramp Network',
-    description: 'On-ramp fiat → cripto (si está configurado).',
-    configured: paymentGatewayConfigured('RAMP'),
     automatic: true,
     supportsDeposit: true,
     supportsPurchase: true

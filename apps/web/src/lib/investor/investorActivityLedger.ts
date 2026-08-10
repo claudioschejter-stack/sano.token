@@ -126,7 +126,7 @@ export async function getInvestorActivityLedger(
       where: {
         userId,
         status: 'CONFIRMED',
-        method: { in: ['USDC_ONCHAIN', 'CUSTODIAL_STABLECOIN'] }
+        method: { in: ['USDC_ONCHAIN'] }
       },
       orderBy: { createdAt: 'desc' },
       take: limit * 3,

@@ -43,15 +43,13 @@ describe('resolveCheckoutWalletConnector', () => {
     expect(connector?.id).toBe('metaMaskSDK');
   });
 
-  it('picks binance wallet connector directly', () => {
-    const connector = resolveCheckoutWalletConnector('binance_usdc', connectors);
-    expect(connector?.id).toBe('wallet.binance.com');
-  });
-
-  it('falls back to WalletConnect when Binance W3W connector is absent', () => {
-    const withoutBinance = connectors.filter((connector) => connector.id !== 'wallet.binance.com');
-    const connector = resolveCheckoutWalletConnector('binance_usdc', withoutBinance);
-    expect(connector?.id).toBe('walletConnect');
+  /**
+   * La opción de Binance se retiró: el SDK W3W nunca se registró y para esas
+   * wallets ya está WalletConnect. Un id que no resuelve es mejor que uno que
+   * abre un connector muerto.
+   */
+  it('ya no resuelve la opción de Binance', () => {
+    expect(resolveCheckoutWalletConnector('binance_usdc' as never, connectors)).toBeUndefined();
   });
 
   it('picks direct walletConnect on iOS for coinbase', () => {
@@ -92,7 +90,7 @@ describe('mobileWalletTargetForOption', () => {
     vi.mocked(isAndroidDevice).mockReturnValue(false);
     expect(mobileWalletTargetForOption('electronic_wallet')).toBe('coinbase');
     expect(mobileWalletTargetForOption('metamask_usdc')).toBe('metamask');
-    expect(mobileWalletTargetForOption('binance_usdc')).toBeNull();
+    expect(mobileWalletTargetForOption('binance_usdc' as never)).toBeNull();
   });
 
   it('returns null on android (modal walletconnect handles deep links)', () => {

@@ -41,14 +41,12 @@ describe('checkoutPaymentDisplay', () => {
   it('orders wallet options for checkout', () => {
     const sorted = sortWalletCheckoutOptions([
       option('walletconnect_usdc'),
-      option('binance_usdc'),
       option('electronic_wallet'),
       option('metamask_usdc')
     ]);
     expect(sorted.map((row) => row.id)).toEqual([
       'electronic_wallet',
       'metamask_usdc',
-      'binance_usdc',
       'walletconnect_usdc'
     ]);
   });
@@ -60,7 +58,7 @@ describe('checkoutPaymentDisplay', () => {
         option('bridge', { method: 'BRIDGE', groupId: 'international', configured: true }),
         option('ripio_on_ramp', { method: 'RIPIO', groupId: 'argentina', configured: true }),
         option('mercadopago_wallet', { method: 'MERCADO_PAGO', groupId: 'argentina', configured: true }),
-        option('wise', { method: 'BRIDGE', groupId: 'international', configured: true })
+        option('privy_on_ramp', { method: 'PRIVY_ONRAMP', groupId: 'international', configured: true })
       ],
       fiatLabels
     );
@@ -75,7 +73,10 @@ describe('checkoutPaymentDisplay', () => {
     ]);
     expect(sections.fiatOnRampOptions.every((row) => row.usesLocalCurrency === false)).toBe(true);
     expect(sections.ripioEwalletOption?.id).toBe('ripio_on_ramp');
-    expect(sections.independentOptions.map((row) => row.id)).toEqual(['mercadopago_wallet', 'wise']);
+    expect(sections.independentOptions.map((row) => row.id)).toEqual([
+      'mercadopago_wallet',
+      'privy_on_ramp'
+    ]);
   });
 
   it('resolves fiat display ids to provider source and rail', () => {

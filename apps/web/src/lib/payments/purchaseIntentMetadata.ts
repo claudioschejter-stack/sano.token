@@ -53,11 +53,11 @@ export function buildPurchaseIntentMetadata(input: BuildPurchaseIntentMetadataIn
     stablecoinNetworkKind: input.network.kind,
     cheapestRecommendedMethod: 'USDC_ONCHAIN_BASE',
     usdcTokenAddress:
-      input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? input.network.tokenAddress : null,
+      input.method === 'USDC_ONCHAIN' ? input.network.tokenAddress : null,
     usdcDecimals:
-      input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? input.network.decimals : null,
+      input.method === 'USDC_ONCHAIN' ? input.network.decimals : null,
     treasuryAddress:
-      input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? input.network.treasuryAddress : null,
+      input.method === 'USDC_ONCHAIN' ? input.network.treasuryAddress : null,
     vaultAddress: input.project.vaultAddress ?? null,
     underlyingTokenAddress: input.project.contractAddress ?? null,
     shareReceiverWallet: input.payerWallet,

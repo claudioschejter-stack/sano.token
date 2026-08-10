@@ -318,22 +318,13 @@ async function attachCartGatewayCheckout(input: {
       paymentOptionRail: input.paymentOptionRail ?? checkoutRow?.providerRail ?? null
     });
   }
-  if (input.method === 'RAMP') {
-    return {
-      provider: 'ramp',
-      metadata: { configured: false, reason: 'RAMP_NOT_INTEGRATED' }
-    };
-  }
-
   return null;
 }
 
 const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
-  'COINBASE',
   'PRIVY_ONRAMP',
   'RIPIO',
   'BRIDGE',
-  'RAMP',
   'MERCADO_PAGO',
   'LOCAL_RAIL'
 ]);
@@ -423,13 +414,13 @@ export async function createCartPurchaseCheckout(input: {
   assertInvestorCheckoutEligible(user);
 
   const network =
-    input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN'
+    input.method === 'USDC_ONCHAIN'
       ? requireBaseStablecoinNetwork(input.stablecoinNetwork)
       : getStablecoinNetwork(input.stablecoinNetwork);
 
   let payerWallet: string | null = null;
   const isExternalWalletCheckout = isExternalUsdcPaymentOptionId(input.paymentOptionId);
-  if (input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN') {
+  if (input.method === 'USDC_ONCHAIN') {
     if (isExternalWalletCheckout) {
       // Tokens still credit the linked Sanova wallet; USDC may come from any connected EVM wallet.
       payerWallet = await getLinkedWalletForUser(input.userId);
@@ -454,12 +445,7 @@ export async function createCartPurchaseCheckout(input: {
 
   const batchId = `cart-${input.userId}-${Date.now().toString(36)}`;
   const expiresAt = new Date(Date.now() + paymentOrderTtlMinutes() * 60_000);
-  const payToAddress =
-    input.method === 'CUSTODIAL_STABLECOIN'
-      ? process.env.STABLECOIN_CUSTODIAL_WALLET_ADDRESS?.trim() || network.treasuryAddress
-      : input.method === 'USDC_ONCHAIN'
-        ? network.treasuryAddress
-        : null;
+  const payToAddress = input.method === 'USDC_ONCHAIN' ? network.treasuryAddress : null;
 
   // Plan OUTSIDE the interactive transaction. Risk/limits/circuit queries used to run
   // inside the 5s Prisma tx and expired mid-flight (project.findUnique after timeout).
@@ -548,11 +534,11 @@ export async function createCartPurchaseCheckout(input: {
             amountUsd,
             currency: 'USD',
             stablecoinSymbol:
-              input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN'
+              input.method === 'USDC_ONCHAIN'
                 ? network.symbol
                 : null,
             chainId:
-              input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN'
+              input.method === 'USDC_ONCHAIN'
                 ? network.chainId
                 : null,
             payerWalletAddress: payerWallet,
@@ -967,7 +953,7 @@ export async function verifyCartUsdcPayment(input: {
   if (!intents.length) {
     throw new Error('CART_BATCH_NOT_FOUND');
   }
-  const allowedMethods = new Set(['USDC_ONCHAIN', 'CUSTODIAL_STABLECOIN']);
+  const allowedMethods = new Set(['USDC_ONCHAIN']);
   if (intents.some((row) => !allowedMethods.has(row.method))) {
     throw new Error('INVALID_PAYMENT_METHOD');
   }
