@@ -67,23 +67,12 @@ jobs:
           echo "endpoints=$ENDPOINTS" >> "$GITHUB_OUTPUT"
           echo "A disparar: $ENDPOINTS"
 
+      - uses: actions/checkout@v4
+
+      # El script mira el cuerpo, no solo el código de estado: estos endpoints
+      # devuelven 200 con `ok:false` cuando una etapa se rompe, y así fue como
+      # `privyInbound` estuvo caído semanas con el workflow en verde.
       - name: Disparar
         env:
           CRON_EXTERNAL_SECRET: ${{ secrets.CRON_EXTERNAL_SECRET }}
-        run: |
-          set -uo pipefail
-          FAILED=0
-          for ENDPOINT in ${{ steps.plan.outputs.endpoints }}; do
-            echo "→ $ENDPOINT"
-            # Sin --fail: interesa ver el cuerpo de la respuesta cuando algo sale
-            # mal, no solo un exit code. Un 401 acá significa que falta el secret.
-            STATUS=$(curl --show-error --silent --max-time 280 \
-              -o /tmp/response.json -w '%{http_code}' \
-              -H "Authorization: Bearer ${CRON_EXTERNAL_SECRET}" \
-              "https://sano-token-web.vercel.app/api/cron/${ENDPOINT}") || STATUS=000
-            echo "   HTTP $STATUS"
-            head -c 2000 /tmp/response.json || true
-            echo
-            if [ "$STATUS" != "200" ]; then FAILED=1; fi
-          done
-          exit $FAILED
+        run: node scripts/ci/ping-cron-endpoint.mjs ${{ steps.plan.outputs.endpoints }}
