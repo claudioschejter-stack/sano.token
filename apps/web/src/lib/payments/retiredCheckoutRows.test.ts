@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PAYMENT_CHECKOUT_ROWS } from './paymentCheckoutCatalog';
 import { checkoutRowAllowedForMode, isRetiredCheckoutRow } from './paymentCheckoutPolicy';
+import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 
 /**
  * Fourteen half-built providers are not fourteen options: they are fourteen ways
@@ -44,9 +45,32 @@ describe('retired checkout rows', () => {
     expect(checkoutRowAllowedForMode(privyRow!, 'purchase')).toBe(true);
   });
 
-  it('retires by provider, so a row is judged by who collects the money', () => {
-    const retired = PAYMENT_CHECKOUT_ROWS.find((row) => row.provider === 'wise');
-    expect(retired).toBeDefined();
-    expect(isRetiredCheckoutRow(retired!)).toBe(true);
+  /**
+   * Antes estas filas existían y se ocultaban en runtime. Ahora no existen, que
+   * es más fuerte: una fila que no está en el catálogo no se puede mostrar por
+   * error ni mantener sin darse cuenta.
+   */
+  it('ya no tiene siquiera las filas de los proveedores retirados', () => {
+    const providers = new Set(PAYMENT_CHECKOUT_ROWS.map((row) => row.provider as string));
+    for (const removed of ['ramp', 'wise', 'astropay', 'ebanx', 'stripe', 'binance', 'coinbase', 'custodial']) {
+      expect(providers.has(removed), `${removed} sigue en el catálogo`).toBe(false);
+    }
+  });
+
+  it('tampoco tiene métodos sin cobrador detrás', () => {
+    const methods = new Set(PAYMENT_CHECKOUT_ROWS.map((row) => row.method as string));
+    for (const removed of ['STRIPE', 'RAMP', 'COINBASE', 'CUSTODIAL_STABLECOIN']) {
+      expect(methods.has(removed), `${removed} sigue en el catálogo`).toBe(false);
+    }
+  });
+
+  /**
+   * Lo que protege contra un enlace guardado no es la política sino que el id ya
+   * no resuelva a ninguna fila: sin fila no hay método que elegir.
+   */
+  it('un id retirado ya no resuelve a ninguna fila', () => {
+    for (const removed of ['binance_pay', 'binance_usdc', 'coinbase_commerce', 'wise', 'ramp', 'astropay']) {
+      expect(getPaymentCheckoutRowById(removed), `${removed} todavía resuelve`).toBeNull();
+    }
   });
 });

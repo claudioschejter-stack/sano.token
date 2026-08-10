@@ -53,13 +53,13 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
    * credentials are enough. Measuring the rail only by the aggregator flag left
    * a fully configured Macro checkout throwing `PAYMENT_METHOD_NOT_CONFIGURED`.
    */
+  /**
+   * El carril local es Macro. Los agregadores (EBANX, AstroPay) se retiraron, así
+   * que sus claves ya no lo habilitan — antes bastaba una de ellas para declarar
+   * el carril configurado sin que hubiera nadie cobrando.
+   */
   if (method === 'LOCAL_RAIL') {
-    return Boolean(
-      isMacroClickConfigured() ||
-        process.env.LOCAL_RAILS_ENABLED === 'true' ||
-        process.env.EBANX_API_KEY ||
-        process.env.ASTROPAY_API_KEY
-    );
+    return Boolean(isMacroClickConfigured() || process.env.LOCAL_RAILS_ENABLED === 'true');
   }
 
   if (method === 'BRIDGE') {
@@ -75,23 +75,13 @@ export function paymentGatewayConfigured(method: PaymentMethodId): boolean {
     return Boolean(process.env.RIPIO_CLIENT_ID && process.env.RIPIO_CLIENT_SECRET);
   }
 
-  if (method === 'RAMP') {
-    return Boolean(process.env.RAMP_API_KEY);
-  }
-
-  if (method === 'STRIPE') {
-    return false;
-  }
-
   if (method === 'MERCADO_PAGO') {
     return Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN);
   }
 
-  if (method === 'COINBASE') {
-    return Boolean(process.env.COINBASE_COMMERCE_API_KEY);
-  }
-
-  return Boolean(custodialWalletAddress());
+  // Métodos retirados (STRIPE, RAMP, COINBASE, CUSTODIAL_STABLECOIN): sin
+  // cobrador detrás, así que nunca están configurados.
+  return false;
 }
 
 export function checkoutBaseUrl(): string {

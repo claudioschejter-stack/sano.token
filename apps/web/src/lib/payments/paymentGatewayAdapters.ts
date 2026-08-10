@@ -1,5 +1,4 @@
 import { checkoutBaseUrl } from './paymentConfig';
-import { appendStripePaymentMethodTypes } from './stripeCheckoutOptions';
 import { resolveMercadoPagoChargeAmount } from './mercadoPagoCharge';
 import { mercadoPagoAccessToken, mercadoPagoCheckoutUrl, isMercadoPagoSandbox, mercadoPagoTokenLooksInvalid } from './mercadoPagoClient';
 import {
@@ -55,53 +54,6 @@ function mercadoPagoMisconfigured(accessToken: string | null): CheckoutResult | 
   return null;
 }
 
-export async function createStripeCheckout(input: CheckoutRequest): Promise<CheckoutResult> {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    return { provider: 'stripe', metadata: { configured: false } };
-  }
-
-  const params = new URLSearchParams({
-    mode: 'payment',
-    'line_items[0][price_data][currency]': 'usd',
-    'line_items[0][price_data][product_data][name]': `Sanova RWA tokens (${input.tokenCount})`,
-    'line_items[0][price_data][unit_amount]': Math.round(input.amountUsd * 100).toString(),
-    'line_items[0][quantity]': '1',
-    success_url: `${checkoutBaseUrl()}/marketplace/${input.projectId}/checkout?payment_intent=${input.paymentIntentId}&status=success`,
-    cancel_url: `${checkoutBaseUrl()}/marketplace/${input.projectId}/checkout?payment_intent=${input.paymentIntentId}&status=cancelled`,
-    client_reference_id: input.paymentIntentId,
-    'metadata[paymentIntentId]': input.paymentIntentId,
-    'metadata[projectId]': input.projectId
-  });
-
-  if (input.paymentOptionId) {
-    params.set('metadata[paymentOptionId]', input.paymentOptionId);
-  }
-
-  appendStripePaymentMethodTypes(params, input.paymentOptionId);
-
-  const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: params
-  });
-
-  if (!response.ok) {
-    return { provider: 'stripe', metadata: { configured: true, error: await response.text() } };
-  }
-
-  const data = await parseJson<{ id?: string; url?: string }>(response);
-  return {
-    provider: 'stripe',
-    providerPaymentId: data.id,
-    providerCheckoutUrl: data.url,
-    metadata: { configured: true }
-  };
-}
-
 export async function createMercadoPagoCheckout(input: CheckoutRequest): Promise<CheckoutResult> {
   const accessToken = mercadoPagoAccessToken();
   const misconfigured = mercadoPagoMisconfigured(accessToken);
@@ -145,49 +97,6 @@ export async function createMercadoPagoCheckout(input: CheckoutRequest): Promise
   };
 }
 
-export async function createCoinbaseCheckout(input: CheckoutRequest): Promise<CheckoutResult> {
-  const apiKey = process.env.COINBASE_COMMERCE_API_KEY;
-  if (!apiKey) {
-    return { provider: 'coinbase', metadata: { configured: false } };
-  }
-
-  const response = await fetch('https://api.commerce.coinbase.com/charges', {
-    method: 'POST',
-    headers: {
-      'X-CC-Api-Key': apiKey,
-      'X-CC-Version': '2018-03-22',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      name: `Sanova RWA tokens (${input.tokenCount})`,
-      description: `Project ${input.projectId}`,
-      pricing_type: 'fixed_price',
-      local_price: {
-        amount: input.amountUsd.toFixed(2),
-        currency: 'USD'
-      },
-      metadata: {
-        paymentIntentId: input.paymentIntentId,
-        projectId: input.projectId
-      },
-      redirect_url: `${checkoutBaseUrl()}/marketplace/${input.projectId}/checkout?payment_intent=${input.paymentIntentId}&status=success`,
-      cancel_url: `${checkoutBaseUrl()}/marketplace/${input.projectId}/checkout?payment_intent=${input.paymentIntentId}&status=cancelled`
-    })
-  });
-
-  if (!response.ok) {
-    return { provider: 'coinbase', metadata: { configured: true, error: await response.text() } };
-  }
-
-  const data = await parseJson<{ data?: { id?: string; hosted_url?: string } }>(response);
-  return {
-    provider: 'coinbase',
-    providerPaymentId: data.data?.id,
-    providerCheckoutUrl: data.data?.hosted_url,
-    metadata: { configured: true }
-  };
-}
-
 type CartCheckoutRequest = {
   batchId: string;
   totalUsd: number;
@@ -204,56 +113,6 @@ function cartReturnUrls(batchId: string) {
     cancel: `${base}&status=cancelled`,
     pending: `${base}&status=pending`,
     failed: `${base}&status=failed`
-  };
-}
-
-export async function createStripeCartCheckout(input: CartCheckoutRequest): Promise<CheckoutResult> {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
-  if (!secretKey) {
-    return { provider: 'stripe', metadata: { configured: false } };
-  }
-
-  const primaryIntentId = input.paymentIntentIds[0];
-  const urls = cartReturnUrls(input.batchId);
-  const params = new URLSearchParams({
-    mode: 'payment',
-    'line_items[0][price_data][currency]': 'usd',
-    'line_items[0][price_data][product_data][name]': `Sanova RWA cart (${input.totalTokens} tokens)`,
-    'line_items[0][price_data][unit_amount]': Math.round(input.totalUsd * 100).toString(),
-    'line_items[0][quantity]': '1',
-    success_url: urls.success,
-    cancel_url: urls.cancel,
-    client_reference_id: primaryIntentId,
-    'metadata[paymentIntentId]': primaryIntentId,
-    'metadata[cartBatchId]': input.batchId,
-    'metadata[paymentIntentIds]': input.paymentIntentIds.join(',')
-  });
-
-  if (input.paymentOptionId) {
-    params.set('metadata[paymentOptionId]', input.paymentOptionId);
-  }
-
-  appendStripePaymentMethodTypes(params, input.paymentOptionId);
-
-  const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${secretKey}`,
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: params
-  });
-
-  if (!response.ok) {
-    return { provider: 'stripe', metadata: { configured: true, error: await response.text() } };
-  }
-
-  const data = await parseJson<{ id?: string; url?: string }>(response);
-  return {
-    provider: 'stripe',
-    providerPaymentId: data.id,
-    providerCheckoutUrl: data.url,
-    metadata: { configured: true, cartBatchId: input.batchId, paymentOptionId: input.paymentOptionId ?? null }
   };
 }
 
@@ -429,51 +288,5 @@ export async function createMercadoPagoDepositCheckout(input: DepositCheckoutReq
       paymentOptionId: input.paymentOptionId ?? null,
       sandbox: isMercadoPagoSandbox(accessToken)
     }
-  };
-}
-
-export async function createCoinbaseCartCheckout(input: CartCheckoutRequest): Promise<CheckoutResult> {
-  const apiKey = process.env.COINBASE_COMMERCE_API_KEY;
-  if (!apiKey) {
-    return { provider: 'coinbase', metadata: { configured: false } };
-  }
-
-  const primaryIntentId = input.paymentIntentIds[0];
-  const urls = cartReturnUrls(input.batchId);
-  const response = await fetch('https://api.commerce.coinbase.com/charges', {
-    method: 'POST',
-    headers: {
-      'X-CC-Api-Key': apiKey,
-      'X-CC-Version': '2018-03-22',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      name: `Sanova RWA cart (${input.totalTokens} tokens)`,
-      description: `Multi-project purchase batch ${input.batchId}`,
-      pricing_type: 'fixed_price',
-      local_price: {
-        amount: input.totalUsd.toFixed(2),
-        currency: 'USD'
-      },
-      metadata: {
-        paymentIntentId: primaryIntentId,
-        cartBatchId: input.batchId,
-        paymentIntentIds: input.paymentIntentIds.join(',')
-      },
-      redirect_url: urls.success,
-      cancel_url: urls.cancel
-    })
-  });
-
-  if (!response.ok) {
-    return { provider: 'coinbase', metadata: { configured: true, error: await response.text() } };
-  }
-
-  const data = await parseJson<{ data?: { id?: string; hosted_url?: string } }>(response);
-  return {
-    provider: 'coinbase',
-    providerPaymentId: data.data?.id,
-    providerCheckoutUrl: data.data?.hosted_url,
-    metadata: { configured: true, cartBatchId: input.batchId }
   };
 }

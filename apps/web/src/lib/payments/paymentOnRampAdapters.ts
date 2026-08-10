@@ -2,7 +2,7 @@ import { checkoutBaseUrl } from './paymentConfig';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
 import { getStablecoinNetwork } from './stablecoinNetworks';
-import { createCoinbaseCheckout, createMercadoPagoEmbeddedDepositCheckout } from './paymentGatewayAdapters';
+import { createMercadoPagoEmbeddedDepositCheckout } from './paymentGatewayAdapters';
 import { MERCADOPAGO_WALLET_OPTION_ID } from './mercadoPagoEmbeddedService';
 import { resolveDepositMethodForUsdcBase } from './paymentCheckoutPolicy';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
@@ -160,16 +160,6 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
         paymentOptionRail: resolved.ripioRail ?? 'mercado_pago'
       });
     }
-    case 'COINBASE':
-      if (input.paymentIntentId && input.projectId) {
-        return createCoinbaseCheckout({
-          paymentIntentId: input.paymentIntentId,
-          projectId: input.projectId,
-          amountUsd: input.amountUsd,
-          tokenCount: input.tokenCount ?? 1
-        });
-      }
-      return { provider: 'coinbase', metadata: { configured: Boolean(process.env.COINBASE_COMMERCE_API_KEY) } };
     case 'PRIVY_ONRAMP':
       return createPrivyOnRampCheckout(baseInput);
     case 'RIPIO':
@@ -178,15 +168,6 @@ export async function createDepositProviderCheckout(input: OnRampRequest & {
         paymentOptionRail: checkoutRow?.providerRail ?? input.paymentOptionRail
       });
     case 'BRIDGE':
-      if (checkoutRow?.provider === 'wise') {
-        return createLocalRailCheckout({
-          depositId: input.depositId,
-          amountUsd: input.amountUsd,
-          row: checkoutRow,
-          userEmail: input.userEmail,
-          redirectPath: input.redirectPath
-        });
-      }
       return createBridgeOnRampCheckout(baseInput);
     case 'USDC_ONCHAIN':
       return { provider: 'stablecoin_onchain', metadata: { configured: true, network: 'BASE' } };

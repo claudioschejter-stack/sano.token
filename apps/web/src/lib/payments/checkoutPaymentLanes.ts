@@ -61,9 +61,6 @@ function isCardBackendOption(option: DepositPaymentOption): boolean {
     return true;
   }
   if (option.method === 'PRIVY_ONRAMP' || option.method === 'BRIDGE') {
-    return option.id !== 'coinbase_pay';
-  }
-  if (option.method === 'COINBASE' && option.provider === 'coinbase') {
     return true;
   }
   return false;
@@ -71,10 +68,6 @@ function isCardBackendOption(option: DepositPaymentOption): boolean {
 
 export function classifyCheckoutPaymentLane(option: DepositPaymentOption): CheckoutPaymentLaneId {
   if (CRYPTO_WALLET_IDS.has(option.id)) {
-    return 'crypto_wallet';
-  }
-
-  if (option.method === 'CUSTODIAL_STABLECOIN') {
     return 'crypto_wallet';
   }
 
@@ -87,8 +80,7 @@ export function classifyCheckoutPaymentLane(option: DepositPaymentOption): Check
     option.method === 'RIPIO' ||
     option.method === 'LOCAL_RAIL' ||
     option.provider === 'mercado_pago' ||
-    option.provider === 'ripio' ||
-    option.provider === 'astropay'
+    option.provider === 'ripio'
   ) {
     return 'electronic_wallet';
   }
