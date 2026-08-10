@@ -2,7 +2,6 @@ import { prisma, Prisma, type PaymentIntentStatus, type PaymentMethod } from '@s
 import { ethers } from 'ethers';
 import { assertInvestorCheckoutEligible, ensureInvestorForUser, getUserPurchaseContext } from '../investor/investorService';
 import {
-  custodialWalletAddress,
   paymentGatewayConfigured,
   paymentMinimumConfirmations,
   paymentOrderTtlMinutes,
@@ -191,18 +190,18 @@ export async function createPaymentIntent(input: {
   }
 
   const network =
-    input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN'
+    input.method === 'USDC_ONCHAIN'
       ? requireBaseStablecoinNetwork(input.stablecoinNetwork)
       : getStablecoinNetwork(input.stablecoinNetwork);
 
   let payerWallet: string | null = null;
-  if (input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN') {
+  if (input.method === 'USDC_ONCHAIN') {
     payerWallet = await resolveInvestorLinkedWallet(input.userId, input.walletAddress);
   } else {
     payerWallet = normalizeAddress(input.walletAddress, network);
   }
 
-  if ((input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN') && !payerWallet) {
+  if (input.method === 'USDC_ONCHAIN' && !payerWallet) {
     throw new Error('WALLET_REQUIRED');
   }
 
@@ -212,8 +211,7 @@ export async function createPaymentIntent(input: {
   }
   const expiresAt = new Date(Date.now() + paymentOrderTtlMinutes() * 60_000);
   const chainId = network.chainId ?? stablecoinChainId();
-  const payToAddress =
-    input.method === 'CUSTODIAL_STABLECOIN' ? custodialWalletAddress() : network.treasuryAddress;
+  const payToAddress = network.treasuryAddress;
   await assertPaymentCircuitOpen(input.projectId);
 
   const intent = await prisma.$transaction(async (tx) => {
@@ -321,8 +319,8 @@ export async function createPaymentIntent(input: {
         tokenCount: input.tokenCount,
         amountUsd,
         currency: 'USD',
-        stablecoinSymbol: input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? network.symbol : null,
-        chainId: input.method === 'USDC_ONCHAIN' || input.method === 'CUSTODIAL_STABLECOIN' ? network.chainId : null,
+        stablecoinSymbol: input.method === 'USDC_ONCHAIN' ? network.symbol : null,
+        chainId: input.method === 'USDC_ONCHAIN' ? network.chainId : null,
         payerWalletAddress: payerWallet,
         payToAddress,
         idempotencyKey,

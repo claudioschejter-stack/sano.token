@@ -74,12 +74,9 @@ export function quoteCheapestPaymentRoutes(input: CheapestPaymentRouteInput): Pa
       );
     }
     routes.push(
-      route('BRIDGE', 'bridge', 'Bridge', amountUsd, 80, 'Mas barato para on/off-ramp empresarial con volumen'),
-      route('RAMP', 'ramp', 'Ramp Network', amountUsd, 200, 'Fallback global fiat-cripto')
+      route('BRIDGE', 'bridge', 'Bridge', amountUsd, 80, 'Mas barato para on/off-ramp empresarial con volumen')
     );
   }
-
-  routes.push(route('COINBASE', 'coinbase', 'Coinbase Commerce', amountUsd, 100, 'Cripto checkout global'));
 
   const preferredNetwork = input.preferredNetwork ? getStablecoinNetwork(input.preferredNetwork).id : null;
   return routes

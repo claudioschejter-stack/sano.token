@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { isExternalUsdcPaymentOptionId } from './externalUsdcPaymentOptions';
 
 describe('isExternalUsdcPaymentOptionId', () => {
-  it('accepts Coinbase / WC / MetaMask / Binance wallet options', () => {
+  it('accepts Coinbase / WalletConnect / MetaMask wallet options', () => {
     expect(isExternalUsdcPaymentOptionId('walletconnect_usdc')).toBe(true);
     expect(isExternalUsdcPaymentOptionId('electronic_wallet')).toBe(true);
     expect(isExternalUsdcPaymentOptionId('metamask_usdc')).toBe(true);
-    expect(isExternalUsdcPaymentOptionId('binance_usdc')).toBe(true);
+    expect(isExternalUsdcPaymentOptionId('binance_usdc')).toBe(false);
   });
 
   it('rejects Sanova-linked or fiat options', () => {

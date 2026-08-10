@@ -2,8 +2,7 @@
 export const EXTERNAL_USDC_PAYMENT_OPTION_IDS = [
   'walletconnect_usdc',
   'electronic_wallet',
-  'metamask_usdc',
-  'binance_usdc'
+  'metamask_usdc'
 ] as const;
 
 export type ExternalUsdcPaymentOptionId = (typeof EXTERNAL_USDC_PAYMENT_OPTION_IDS)[number];

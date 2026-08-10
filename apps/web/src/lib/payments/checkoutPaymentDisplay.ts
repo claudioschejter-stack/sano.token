@@ -4,26 +4,16 @@ export const WALLET_CHECKOUT_ORDER = [
   'privy_usdc',
   'electronic_wallet',
   'metamask_usdc',
-  'binance_usdc',
   'walletconnect_usdc'
 ] as const;
 
-export const FIAT_ON_RAMP_SOURCE_IDS = [
-  'bridge',
-  'coinbase_commerce',
-  'coinbase_pay',
-  'binance_pay'
-] as const;
+export const FIAT_ON_RAMP_SOURCE_IDS = ['bridge'] as const;
 
-export const HIDDEN_CHECKOUT_OPTION_IDS = new Set<string>([
-  ...FIAT_ON_RAMP_SOURCE_IDS,
-  'ramp'
-]);
+export const HIDDEN_CHECKOUT_OPTION_IDS = new Set<string>([...FIAT_ON_RAMP_SOURCE_IDS]);
 
 export const INDEPENDENT_FIAT_OPTION_IDS = new Set([
   'mercadopago_wallet',
   'mercado_pago',
-  'wise',
   'privy_on_ramp'
 ]);
 
@@ -157,7 +147,6 @@ export function autoConnectWalletOptionId(optionId: string | null): boolean {
   return (
     optionId === 'privy_usdc' ||
     optionId === 'electronic_wallet' ||
-    optionId === 'metamask_usdc' ||
-    optionId === 'binance_usdc'
+    optionId === 'metamask_usdc'
   );
 }

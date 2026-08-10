@@ -29,5 +29,6 @@ export const EXPECTED_MIGRATIONS: readonly string[] = [
   '20260806010000_sanova_wallet_withdrawal_method',
   '20260806020000_bridge_customer',
   '20260807220000_email_login_verification_channel',
-  '20260808190000_rename_transak_method_to_privy_onramp'
+  '20260808190000_rename_transak_method_to_privy_onramp',
+  '20260810020000_drop_retired_payment_methods'
 ] as const;

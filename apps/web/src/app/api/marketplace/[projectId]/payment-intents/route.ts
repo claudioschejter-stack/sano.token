@@ -20,10 +20,7 @@ type CreatePaymentIntentBody = {
 const METHODS = new Set<PaymentMethod>([
   'INTERNAL_BALANCE',
   'USDC_ONCHAIN',
-  'STRIPE',
   'MERCADO_PAGO',
-  'COINBASE',
-  'CUSTODIAL_STABLECOIN',
   'PRIVY_ONRAMP',
   'BRIDGE'
 ]);

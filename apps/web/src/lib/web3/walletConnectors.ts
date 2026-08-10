@@ -5,7 +5,7 @@ import {
   MOBILE_DIRECT_WALLET_CONNECT_ID
 } from './walletConnectRegistry';
 
-export type CheckoutWalletOptionId = 'privy_usdc' | 'electronic_wallet' | 'metamask_usdc' | 'binance_usdc';
+export type CheckoutWalletOptionId = 'privy_usdc' | 'electronic_wallet' | 'metamask_usdc';
 
 export function pickCoinbaseConnector(connectors: readonly Connector[]) {
   return connectors.find(
@@ -40,17 +40,5 @@ export function pickMetaMaskConnector(connectors: readonly Connector[]) {
       connector.id === 'metaMaskSDK' ||
       connector.id === 'io.metamask' ||
       connector.name.toLowerCase().includes('metamask')
-  );
-}
-
-export function pickBinanceConnector(connectors: readonly Connector[]) {
-  return connectors.find(
-    (connector) =>
-      connector.id === 'wallet.binance.com' ||
-      connector.type === 'binanceWallet' ||
-      connector.id === 'binanceWeb3' ||
-      connector.id === 'BinanceW3WSDK' ||
-      connector.id === 'binance' ||
-      connector.name.toLowerCase().includes('binance')
   );
 }
