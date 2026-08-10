@@ -1,4 +1,4 @@
-import { prisma } from '@sanova/database';
+import { prisma, type Prisma } from '@sanova/database';
 import { notifyAutomationIssue } from '../admin/automationAlerts';
 import { deliverVaultSharesForPaymentIntent } from '../blockchain/investorVaultShareDelivery';
 import { expirePaymentIntent } from './paymentService';
@@ -50,6 +50,62 @@ export async function retryUndeliveredVaultShares(limit = 25) {
   return { attempted: results.length, results };
 }
 
+/**
+ * Cerrar los depósitos que ya vencieron y a los que nunca llegó plata.
+ *
+ * `reconcilePayments` vencía los `PaymentIntent` pero nunca los
+ * `PlatformDeposit`, así que había 18 en PENDING de hasta 72 días — todos
+ * pasados de su propio `expiresAt`, sin txHash y sin un peso recibido. Un
+ * depósito que quedó PENDING para siempre no es inofensivo: aparece en el panel
+ * como si algo estuviera por pasar y contamina cualquier lectura de pagos sin
+ * conciliar.
+ *
+ * Las condiciones son deliberadamente estrictas. Lo único que se cierra es lo que
+ * venció sin dejar rastro de dinero: con un txHash, un `confirmedAt` o esperando
+ * USDC en treasury, el depósito se queda como está, porque puede haber plata en
+ * camino y vencerlo la escondería.
+ */
+export async function expireStalePlatformDeposits(limit = 100) {
+  const stale = await prisma.platformDeposit.findMany({
+    where: {
+      status: 'PENDING',
+      expiresAt: { lte: new Date() },
+      txHash: null,
+      confirmedAt: null
+    },
+    select: { id: true, provider: true, metadata: true },
+    take: limit,
+    orderBy: { expiresAt: 'asc' }
+  });
+
+  const expired: string[] = [];
+  const skipped: string[] = [];
+
+  for (const deposit of stale) {
+    const metadata = (deposit.metadata as Record<string, unknown>) ?? {};
+    if (metadata.awaitingTreasuryUsdc === true) {
+      // El fiat ya se cobró y el USDC está en camino: no es basura, es una espera.
+      skipped.push(deposit.id);
+      continue;
+    }
+
+    await prisma.platformDeposit.update({
+      where: { id: deposit.id },
+      data: {
+        status: 'EXPIRED',
+        metadata: {
+          ...metadata,
+          expiredBy: 'reconciliation',
+          expiredAt: new Date().toISOString()
+        } as Prisma.InputJsonObject
+      }
+    });
+    expired.push(deposit.id);
+  }
+
+  return { expired: expired.length, skipped: skipped.length, expiredIds: expired };
+}
+
 export async function reconcilePayments(limit = 50) {
   const stale = await prisma.paymentIntent.findMany({
     where: {
@@ -92,5 +148,10 @@ export async function reconcilePayments(limit = 50) {
     });
   }
 
-  return { expired, suspicious: suspicious.map((intent) => intent.id), vaultShareRetries: await retryUndeliveredVaultShares(limit) };
+  return {
+    expired,
+    suspicious: suspicious.map((intent) => intent.id),
+    vaultShareRetries: await retryUndeliveredVaultShares(limit),
+    staleDeposits: await expireStalePlatformDeposits()
+  };
 }
