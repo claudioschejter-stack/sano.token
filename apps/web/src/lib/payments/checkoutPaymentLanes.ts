@@ -15,13 +15,7 @@ export type CheckoutPaymentLaneId = 'electronic_wallet' | 'crypto_wallet' | 'car
 
 const CRYPTO_WALLET_IDS = new Set<string>([...WALLET_CHECKOUT_ORDER, 'walletconnect_usdc']);
 
-const CARD_BACKEND_IDS = new Set<string>([
-  'bridge',
-  'coinbase_commerce',
-  'privy_on_ramp',
-  'ramp',
-  'wise'
-]);
+const CARD_BACKEND_IDS = new Set<string>(['bridge', 'privy_on_ramp']);
 
 const COUNTRY_LABELS: Record<string, string> = {
   AR: 'Argentina',

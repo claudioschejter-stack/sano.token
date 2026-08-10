@@ -91,7 +91,7 @@ export async function syncPaymentIntentFromProvider(input: {
 
   const provider = (current.provider ?? current.method).toLowerCase();
 
-  if (provider.includes('stripe') || current.method === 'STRIPE') {
+  if (provider.includes('stripe')) {
     const synced = await syncStripePaymentIntent({
       paymentIntentId: input.paymentIntentId,
       providerPaymentId
@@ -131,7 +131,7 @@ export async function syncCartBatchFromProvider(input: { userId: string; batchId
   }
 
   const provider = (primary.provider ?? primary.method).toLowerCase();
-  if (provider.includes('stripe') || primary.method === 'STRIPE') {
+  if (provider.includes('stripe')) {
     const session = await fetchStripeCheckoutSession(providerPaymentId);
     if (stripeSessionPaid(session)) {
       return confirmCartBatchByProvider({
