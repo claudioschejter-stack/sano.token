@@ -50,12 +50,30 @@ vez de no funcionar.
 | `sync-deposit-watch` | 6 h | Re-declara la lista de direcciones del webhook, por si se recreó. |
 | `index-token-movements` | 4 h | Reconciliación, no bloquea a nadie. |
 
-**Dos límites de GitHub Actions**, para no descubrirlos en producción:
+**Tres límites de GitHub Actions**, para no descubrirlos en producción:
 
 - los schedules **se retrasan** bajo carga; no hay garantía de puntualidad,
-- en un repo sin actividad por **60 días** GitHub los desactiva y avisa por mail.
+- cuando el retraso es grande, GitHub **descarta la corrida** en lugar de
+  encolarla,
+- en un repo sin actividad por **60 días** los desactiva y avisa por mail.
 
-Ninguno de los dos es grave *porque* los crons de Vercel siguen puestos.
+El segundo mordió el primer día. El workflow tenía cinco entradas de `cron`, una
+por grupo de endpoints, y las tres poco frecuentes (`25 */2`, `40 */6`, `50 */4`)
+**no dispararon ni una vez**: los schedules frecuentes sobreviven porque tienen
+seis oportunidades por hora, pero uno de cuatro por día se pierde entero. Por eso
+la reparación de seguridad RWA no corría nunca por este camino, y las dos únicas
+corridas del 10/08 salieron del cron diario de Vercel.
+
+Ahora hay **un solo schedule** de 10 minutos y el reparto se decide adentro del
+job, según la hora UTC: las ventanas duran una hora entera, así que si se cae un
+tick, otro de la misma hora agarra la ventana. Puede haber más de una corrida por
+ventana, y no importa: todos estos endpoints son idempotentes.
+
+| Hora UTC | Qué se dispara además de las dos de cada corrida |
+|---|---|
+| par | `expire-stale-reservations` |
+| múltiplo de 4 | `index-token-movements` |
+| 0, 6, 12, 18 | `refresh-borrow-rates`, `sync-deposit-watch` |
 
 **Costo:** los repos públicos no consumen minutos; los privados tienen 2000
 min/mes gratis. Este workflow usa del orden de 15 min/mes.
@@ -100,12 +118,60 @@ ALCHEMY_API_KEY=... DATABASE_URL="$POSTGRES_URL" \
 
 Si la primera línea dice `RPC: endpoint público de Base`, la variable no llegó.
 
+### Estado de la reparación de seguridad (2026-08-10, 12:00 UTC)
+
+La reparación **está funcionando y avanzando sola**. Corrió dos veces el 10/08
+(02:56 y 08:16 UTC) y en esas dos corridas ya arregló todo lo que tenía timelock
+corto:
+
+- El **límite diario del vault de UV3** pasó de `uint256.max` a 500 tokens. Se ve
+  en el `BALANCE_MONITOR` de las 08:15:56 (`dailyLimit=115792089…`) contra el de
+  las 08:16:17 (`dailyLimit=500000000000000000000`).
+- Las **cuatro allowlists del vault de UV3** también se aplicaron: desaparecieron
+  del reporte de las 08:16.
+
+Lo que queda son las allowlists a nivel token, que tienen timelock de 24 h y ya
+están agendadas con hora exacta:
+
+| Asset | Qué falta | Aplicable desde |
+|---|---|---|
+| `UV3RWA` | 4 allowlists del token | `2026-08-11T02:56:01Z` |
+| `ANELOUV2` | 2 allowlists (token y vault) | `2026-08-11T02:56:33Z` |
+
+**Los dos breakers siguen activos, y se liberan solos en la primera corrida de
+`refresh-borrow-rates` posterior a esas horas.** No hay nada que decidir ni
+ejecutar a mano: el timelock ya está iniciado y la corrida siguiente lo aplica.
+
+Un detalle contraintuitivo: el contador de fallos de los dos assets está en `0`.
+El breaker no se activó por fallos repetidos de automatización sino por el reporte
+de seguridad, que es otro camino.
+
+### Sobre `unknown` y la key de Alchemy
+
+El reporte distingue tres estados por chequeo: `ok`, `fail` y `unknown`. `unknown`
+es "no pude leer la cadena", y por diseño **no activa ni libera** el breaker:
+activar sobre una lectura fallida daría falsos positivos, y liberar sería peor.
+
+Eso hacía temer que sin `ALCHEMY_API_KEY` el breaker quedara trabado para siempre.
+En la práctica no está pasando: los reportes del 10/08 devuelven `fail` concretos
+con direcciones y montos, no `unknown`, y la reparación pudo leer y escribir en la
+cadena. Las lecturas andan. La key sigue valiendo la pena por cuota y latencia,
+pero no es lo que bloquea la liberación.
+
+Para ver los timelocks pendientes con su hora de ejecución sin esperar el mail:
+
+```bash
+ALCHEMY_API_KEY=... DATABASE_URL="$POSTGRES_URL" \
+  npx tsx scripts/ops/inspect-rwa-security-timelocks.ts
+```
+
 ---
 
-## 4. Borrar de Vercel las variables de dLocal
+## 4. Borrar de Vercel las variables de los proveedores retirados
 
-Desde #138 no las usa nada. Siguen cargadas y el build las viene reportando como
-no declaradas en `turbo.json`.
+Ninguna la lee nadie, así que no urge: no rompen nada y no cambian el
+comportamiento. Ensucian el panel y el build las reporta como no declaradas en
+`turbo.json`.
 
 Vercel → **Settings** → **Environment Variables** → borrar:
 
@@ -115,7 +181,20 @@ DLOCAL_X_TRANS_KEY        DLOCAL_NOTIFICATION_SECRET
 DLOCAL_SMARTFIELDS_API_KEY
 DLOCAL_API_BASE_URL       DLOCAL_CHECKOUT_BASE_URL
 DLOCAL_GO_MERCHANT_ID     DLOCAL_GO_OPEN_LINK_TOKEN
+
+STRIPE_SECRET_KEY         STRIPE_WEBHOOK_SECRET
+COINBASE_COMMERCE_API_KEY COINBASE_COMMERCE_WEBHOOK_SECRET
+RAMP_WEBHOOK_SECRET       BINANCE_PAY_API_KEY
+EBANX_WEBHOOK_SECRET      EBANX_API_BASE_URL
+ASTROPAY_WEBHOOK_SECRET
+WISE_API_KEY              WISE_RECEIVE_USD_DETAILS
+WISE_RECEIVE_EUR_DETAILS  WISE_RECEIVE_GBP_DETAILS
+STABLECOIN_CUSTODIAL_WALLET_ADDRESS
 ```
+
+Las de dLocal salieron en #138, el resto en #151 y #152. `COINBASE_ADVANCED_TRADE_API_KEY`
+**se queda**: es del rail de conversión de yield, que no tiene nada que ver con el
+checkout de Coinbase Commerce.
 
 ---
 
@@ -180,6 +259,9 @@ problema es al revés y hay que aplicar el SQL, no ajustar el checksum.
   título es lo que se publica.
 
   De paso: el nombre del token de UV2 dice `URVAN VIEW` en lugar de `URBAN VIEW`.
+  El typo está **en la cadena y es inmutable** (ERC-20 no permite renombrar), así
+  que la base se alineó a lo que dice el contrato en vez de mostrar algo distinto.
+  Se decidió dejarlo así.
 - **Fondear el CVU de Ripio con los ARS que cobra Macro.** No hay API de payout
   Macro→Ripio, así que hoy es una transferencia manual. Hay que definir quién la
   hace y con qué frecuencia, o el on-ramp queda creado esperando fiat.
