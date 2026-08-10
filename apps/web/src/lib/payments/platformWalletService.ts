@@ -8,7 +8,7 @@ import { resolveDepositMethodForUsdcBase } from './paymentCheckoutPolicy';
 import { resolveInvestorLinkedWallet } from '../investor/linkedWalletPolicy';
 import { getStablecoinNetwork } from './stablecoinNetworks';
 import { resolvePaymentCountryForUser } from './paymentCountry';
-import { isLocalRailManualResult, isRipioOnRampResult } from './stripeCheckoutOptions';
+import { isLocalRailManualResult, isRipioOnRampResult } from './checkoutResultModes';
 import type { PaymentRouteQuote } from './cheapestPaymentRouter';
 
 const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');

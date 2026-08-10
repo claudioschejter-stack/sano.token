@@ -44,8 +44,12 @@ export function isRetiredCheckoutRow(row: PaymentCheckoutRow): boolean {
 /** Mercado Pago solo para depósito; compras fiat van por on-ramp → USDC Base treasury. */
 const DEPOSIT_MP_OPTION_IDS = new Set(['mercadopago_wallet', 'mercado_pago']);
 
+/**
+ * Stripe se retiró y ya no hay filas suyas en el catálogo, pero estos ids pueden
+ * seguir llegando desde un enlace viejo, así que la política los sigue rechazando.
+ */
 export function isStripeCheckoutRow(row: PaymentCheckoutRow): boolean {
-  return row.provider === 'stripe' || STRIPE_OPTION_IDS.has(row.id);
+  return STRIPE_OPTION_IDS.has(row.id);
 }
 
 export function isPurchaseOnRampRow(row: PaymentCheckoutRow): boolean {

@@ -10,13 +10,11 @@ import {
 } from './paymentConfig';
 import { isCheckoutMethodConfigured } from './checkoutMethods';
 import {
-  createCoinbaseCartCheckout,
   createMercadoPagoCartCheckout
 } from './paymentGatewayAdapters';
 import { getPaymentCheckoutRowById } from './depositPaymentOptions';
 import { createLocalRailCheckout } from './localRailAdapter';
 import { createBridgeOnRampCheckout, createPrivyOnRampCheckout } from './paymentOnRampAdapters';
-import { createBinancePayCheckout } from './binancePayAdapter';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { createMacroClickHostedCheckout } from './macroClick/checkoutAdapter';
 import { assertPaymentCircuitOpen, assertPaymentLimits } from './paymentLimits';
@@ -42,7 +40,7 @@ import {
   type ExpectedVaultDeposit
 } from '../web3/vaultDepositPayment';
 import { getStablecoinNetwork, requireBaseStablecoinNetwork, type StablecoinNetwork } from './stablecoinNetworks';
-import { isLocalRailManualResult, isRipioOnRampResult } from './stripeCheckoutOptions';
+import { isLocalRailManualResult, isRipioOnRampResult } from './checkoutResultModes';
 import { runThrottledReservationSweep } from './throttledReservationSweep';
 import {
   isMercadoPagoEmbeddedResult,
@@ -281,16 +279,6 @@ async function attachCartGatewayCheckout(input: {
   }
 
   if (input.method === 'BRIDGE') {
-    if (checkoutRow?.provider === 'wise') {
-      return createLocalRailCheckout({
-        depositId: input.batchId,
-        amountUsd: input.totalUsd,
-        row: checkoutRow,
-        userEmail: input.userEmail,
-        redirectPath,
-        country: input.country
-      });
-    }
     return createBridgeOnRampCheckout({
       depositId: input.batchId,
       amountUsd: input.totalUsd,
@@ -299,9 +287,6 @@ async function attachCartGatewayCheckout(input: {
     });
   }
 
-  if (input.method === 'COINBASE') {
-    return createCoinbaseCartCheckout(input);
-  }
   if (input.method === 'MERCADO_PAGO') {
     return createMercadoPagoCartCheckout({
       batchId: input.batchId,
@@ -310,13 +295,6 @@ async function attachCartGatewayCheckout(input: {
       primaryProjectId: input.primaryProjectId,
       paymentIntentIds: input.paymentIntentIds,
       paymentOptionId: input.paymentOptionId ?? checkoutRow?.id ?? null
-    });
-  }
-  if (checkoutRow?.id === 'binance_pay') {
-    return createBinancePayCheckout({
-      referenceId: input.batchId,
-      amountUsd: input.totalUsd,
-      redirectPath
     });
   }
   if (input.method === 'PRIVY_ONRAMP') {

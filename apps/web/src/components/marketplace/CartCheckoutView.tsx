@@ -21,7 +21,7 @@ import {
 import { resolvePaymentCheckoutLabel } from '../../lib/payments/paymentCheckoutLabels';
 import { isExternalUsdcPaymentOptionId } from '../../lib/payments/externalUsdcPaymentOptions';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
-import { isLocalRailManualResult, isPendingManualGatewayResult, isPrivyClientFundResult, isRipioOnRampResult, isWiseManualResult } from '../../lib/payments/stripeCheckoutOptions';
+import { isPendingManualGatewayResult, isPrivyClientFundResult, isRipioOnRampResult } from '../../lib/payments/checkoutResultModes';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';
@@ -1417,7 +1417,6 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
       ? ((deposit?.metadata?.provider as Record<string, unknown> | undefined) ?? deposit?.metadata ?? null)
       : ((checkout?.paymentIntents?.[0]?.metadata as Record<string, unknown> | undefined)?.gateway as
           Record<string, unknown> | undefined) ?? null;
-  const isWisePending = isWiseManualResult(pendingManualMeta);
   const isRipioPending =
     pendingManualMeta?.mode === 'ripio_on_ramp' ||
     deposit?.provider === 'ripio' ||
@@ -1961,38 +1960,24 @@ export function CartCheckoutView({ investorName, initialMode = 'purchase' }: Car
           {status === 'pending_gateway' && pendingReference ? (
             <div className="space-y-2 rounded-lg border border-terminal-primary/30 bg-terminal-primary/10 px-4 py-3 text-sm text-terminal-text">
               <p className="font-semibold text-terminal-primary">
-                {isWisePending
-                  ? c.wisePendingTitle
-                  : isRipioPending
-                    ? 'Transferencia Ripio pendiente'
-                    : isMacroPending
-                      ? 'Completá el pago en tu banco'
-                      : c.localRailPendingTitle}
+                {isRipioPending
+                  ? 'Transferencia Ripio pendiente'
+                  : isMacroPending
+                    ? 'Completá el pago en tu banco'
+                    : c.localRailPendingTitle}
               </p>
               <p className="text-xs text-terminal-muted">
-                {isWisePending
-                  ? formatMessage(c.wisePendingBody, { reference: pendingReference })
-                  : isRipioPending
-                    ? 'Transfiere el monto en ARS con las instrucciones de abajo. Acreditamos USDC en tu wallet cuando Ripio confirme el depósito.'
-                    : formatMessage(mode === 'deposit' ? c.localRailPendingBody : c.localRailPendingPurchase, {
-                        method: selectedDepositOption?.label ?? paymentMethod,
-                        reference: pendingReference
-                      })}
+                {isRipioPending
+                  ? 'Transfiere el monto en ARS con las instrucciones de abajo. Acreditamos USDC en tu wallet cuando Ripio confirme el depósito.'
+                  : formatMessage(mode === 'deposit' ? c.localRailPendingBody : c.localRailPendingPurchase, {
+                      method: selectedDepositOption?.label ?? paymentMethod,
+                      reference: pendingReference
+                    })}
               </p>
-              {isWisePending && pendingManualMeta?.instructions ? (
-                <pre className="whitespace-pre-wrap rounded border border-terminal-border bg-white p-3 text-[11px] font-mono text-terminal-text">
-                  {String(pendingManualMeta.instructions)}
-                </pre>
-              ) : null}
               {isRipioPending && pendingManualMeta?.instructions ? (
                 <pre className="whitespace-pre-wrap rounded border border-terminal-border bg-white p-3 text-[11px] font-mono text-terminal-text">
                   {String(pendingManualMeta.instructions)}
                 </pre>
-              ) : null}
-              {isWisePending ? (
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-terminal-primary">
-                  {formatMessage(c.wiseReferenceLabel, { reference: pendingReference })}
-                </p>
               ) : null}
               {isMacroPending ? (
                 <MacroClickPayButton

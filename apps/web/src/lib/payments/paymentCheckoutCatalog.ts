@@ -8,19 +8,24 @@ export type PaymentCheckoutGroupId =
   | 'asia'
   | 'international';
 
+/**
+ * Los cobradores que la plataforma realmente tiene.
+ *
+ * Se retiraron Stripe, EBANX, AstroPay, Wise, Ramp Network, Binance y Coinbase
+ * Commerce: ninguno cobraba un peso para Sanova y varios ya estaban ocultos en
+ * runtime, así que lo único que quedaba era código y variables de entorno que
+ * hacían parecer que había más opciones de las que hay. La regla es Macro donde
+ * Macro puede cobrar, Bridge donde no, Mercado Pago en Argentina, Ripio para
+ * convertir ARS a USDC, y Privy para tarjeta y wallet.
+ *
+ * `usdc` es pago cripto directo desde una wallet conectada (MetaMask,
+ * WalletConnect, Coinbase Wallet): es conectividad de wallet, no una pasarela.
+ */
 export type PaymentProviderId =
   | 'usdc'
-  | 'stripe'
   | 'mercado_pago'
-  | 'ebanx'
-  | 'astropay'
   | 'bridge'
-  | 'wise'
   | 'ripio'
-  | 'ramp'
-  | 'binance'
-  | 'coinbase'
-  | 'custodial'
   | 'privy'
   | 'macro_click';
 
@@ -104,59 +109,6 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     fallbackNetworkUsd: 0.01,
     stablecoinNetwork: 'BASE',
     sortOrder: 15
-  },
-  {
-    id: 'binance_usdc',
-    groupId: 'linked_wallet',
-    method: 'USDC_ONCHAIN',
-    label: 'Binance Wallet',
-    provider: 'binance',
-    providerRail: 'binance_usdc',
-    fallbackFeeBps: 35,
-    fallbackGasUsd: 0.03,
-    fallbackNetworkUsd: 0.01,
-    stablecoinNetwork: 'BASE',
-    sortOrder: 20
-  },
-  {
-    id: 'coinbase_pay',
-    groupId: 'linked_wallet',
-    method: 'USDC_ONCHAIN',
-    label: 'Coinbase Pay',
-    provider: 'coinbase',
-    providerRail: 'coinbase_pay',
-    fallbackFeeBps: 90,
-    fallbackGasUsd: 0.02,
-    fallbackNetworkUsd: 0.01,
-    stablecoinNetwork: 'BASE',
-    sortOrder: 18
-  },
-  {
-    id: 'coinbase_commerce',
-    groupId: 'international',
-    method: 'COINBASE',
-    label: 'Tarjeta de débito, crédito y transferencia',
-    provider: 'coinbase',
-    providerRail: 'commerce',
-    fallbackFeeBps: 100,
-    fallbackGasUsd: 0.03,
-    fallbackNetworkUsd: 0.02,
-    stablecoinNetwork: 'BASE',
-    excludedCountries: ['AR'],
-    sortOrder: 55
-  },
-  {
-    id: 'binance_pay',
-    groupId: 'international',
-    method: 'USDC_ONCHAIN',
-    label: 'Binance Pay',
-    provider: 'binance',
-    providerRail: 'binance_pay',
-    fallbackFeeBps: 80,
-    fallbackGasUsd: 0.03,
-    fallbackNetworkUsd: 0.02,
-    stablecoinNetwork: 'BASE',
-    sortOrder: 58
   },
   {
     id: 'ripio_on_ramp',
@@ -244,33 +196,6 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     sortOrder: 114
   },
   {
-    id: 'astropay',
-    groupId: 'argentina',
-    method: 'LOCAL_RAIL',
-    label: 'AstroPay',
-    provider: 'astropay',
-    providerRail: 'wallet',
-    fallbackFeeBps: 180,
-    fallbackGasUsd: 0,
-    fallbackNetworkUsd: 0.03,
-    usesLocalCurrency: true,
-    countries: ['AR', 'BR', 'MX'],
-    sortOrder: 180
-  },
-  {
-    id: 'wise',
-    groupId: 'international',
-    method: 'BRIDGE',
-    label: 'Wise',
-    provider: 'wise',
-    providerRail: 'international_transfer',
-    fallbackFeeBps: 95,
-    fallbackGasUsd: 0.05,
-    fallbackNetworkUsd: 0.04,
-    usesLocalCurrency: true,
-    sortOrder: 500
-  },
-  {
     id: 'bridge',
     groupId: 'international',
     method: 'BRIDGE',
@@ -287,19 +212,6 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     sortOrder: 510
   },
   {
-    id: 'ramp',
-    groupId: 'international',
-    method: 'RAMP',
-    label: 'Ramp Network',
-    provider: 'ramp',
-    providerRail: 'on_ramp',
-    fallbackFeeBps: 200,
-    fallbackGasUsd: 0.07,
-    fallbackNetworkUsd: 0.04,
-    usesLocalCurrency: true,
-    sortOrder: 550
-  },
-  {
     id: 'privy_on_ramp',
     groupId: 'international',
     method: 'PRIVY_ONRAMP',
@@ -312,18 +224,6 @@ export const PAYMENT_CHECKOUT_ROWS: PaymentCheckoutRow[] = [
     stablecoinNetwork: 'BASE',
     sortOrder: 520
   },
-  {
-    id: 'loan_account',
-    groupId: 'international',
-    method: 'CUSTODIAL_STABLECOIN',
-    label: 'Cuenta de préstamo',
-    provider: 'custodial',
-    providerRail: 'custodial_balance',
-    fallbackFeeBps: 40,
-    fallbackGasUsd: 0.02,
-    fallbackNetworkUsd: 0.01,
-    sortOrder: 560
-  }
 ];
 
 export function paymentRowsForCountry(country: string): PaymentCheckoutRow[] {

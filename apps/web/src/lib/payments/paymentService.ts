@@ -12,9 +12,7 @@ import {
   usdcTokenAddress
 } from './paymentConfig';
 import {
-  createCoinbaseCheckout,
-  createMercadoPagoCheckout,
-  createStripeCheckout
+  createMercadoPagoCheckout
 } from './paymentGatewayAdapters';
 import { createBridgeOnRampCheckout, createPrivyOnRampCheckout } from './paymentOnRampAdapters';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
@@ -124,26 +122,8 @@ async function attachProviderCheckout(input: {
   userId: string;
   userEmail?: string | null;
 }) {
-  if (input.method === 'STRIPE') {
-    return createStripeCheckout({
-      paymentIntentId: input.intentId,
-      projectId: input.projectId,
-      amountUsd: input.amountUsd,
-      tokenCount: input.tokenCount
-    });
-  }
-
   if (input.method === 'MERCADO_PAGO') {
     return createMercadoPagoCheckout({
-      paymentIntentId: input.intentId,
-      projectId: input.projectId,
-      amountUsd: input.amountUsd,
-      tokenCount: input.tokenCount
-    });
-  }
-
-  if (input.method === 'COINBASE') {
-    return createCoinbaseCheckout({
       paymentIntentId: input.intentId,
       projectId: input.projectId,
       amountUsd: input.amountUsd,
@@ -179,14 +159,12 @@ async function attachProviderCheckout(input: {
   return null;
 }
 
+/** Métodos que arman un checkout con un tercero. Sin Stripe, Coinbase ni Ramp: retirados. */
 const GATEWAY_CHECKOUT_METHODS = new Set<PaymentMethod>([
-  'STRIPE',
   'MERCADO_PAGO',
-  'COINBASE',
   'PRIVY_ONRAMP',
   'RIPIO',
-  'BRIDGE',
-  'RAMP'
+  'BRIDGE'
 ]);
 
 export async function createPaymentIntent(input: {

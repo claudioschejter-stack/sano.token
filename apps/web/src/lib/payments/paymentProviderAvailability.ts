@@ -8,56 +8,26 @@ import { isPrivyOnRampConfigured } from './privyOnRampPolicy';
 import { paymentGatewayConfigured } from './paymentConfig';
 import { isMacroClickConfigured } from './macroClick/config';
 
-export function isEbanxConfigured(): boolean {
-  return Boolean(process.env.EBANX_API_KEY?.trim() || process.env.LOCAL_RAILS_ENABLED === 'true');
-}
-
-export function isLocalRailAggregatorConfigured(): boolean {
-  return isEbanxConfigured();
-}
-
-export function isAstroPayConfigured(): boolean {
-  return Boolean(process.env.ASTROPAY_API_KEY?.trim()) || isLocalRailAggregatorConfigured();
-}
-
-export function isStripeConfigured(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY?.trim());
-}
-
-export function isWiseConfigured(): boolean {
-  return Boolean(process.env.WISE_API_KEY?.trim() || process.env.BRIDGE_API_KEY?.trim());
-}
-
-export function isBinancePayConfigured(): boolean {
-  return Boolean(process.env.BINANCE_PAY_API_KEY?.trim());
-}
-
+/**
+ * Si el cobrador detrás de una fila de checkout está realmente configurado.
+ *
+ * Este switch tenía ocho ramas más —Stripe, EBANX, AstroPay, Wise, Ramp, Binance,
+ * Coinbase Commerce, custodial— y varias devolvían `true` por razones prestadas:
+ * Binance se declaraba disponible con solo tener USDC configurado, y Wise con la
+ * clave de Bridge. Una fila que se muestra y falla en el último paso le cuesta al
+ * inversor el checkout entero, así que ahora cada proveedor responde por sus
+ * propias credenciales.
+ */
 export function isPaymentProviderConfigured(provider: PaymentProviderId): boolean {
   switch (provider) {
     case 'usdc':
       return paymentGatewayConfigured('USDC_ONCHAIN');
-    case 'stripe':
-      return isStripeConfigured();
     case 'mercado_pago':
       return paymentGatewayConfigured('MERCADO_PAGO');
-    case 'ebanx':
-      return isLocalRailAggregatorConfigured();
-    case 'astropay':
-      return isAstroPayConfigured();
     case 'bridge':
       return paymentGatewayConfigured('BRIDGE');
-    case 'wise':
-      return isWiseConfigured();
     case 'ripio':
       return paymentGatewayConfigured('RIPIO');
-    case 'ramp':
-      return false;
-    case 'binance':
-      return isBinancePayConfigured() || paymentGatewayConfigured('USDC_ONCHAIN');
-    case 'coinbase':
-      return paymentGatewayConfigured('COINBASE') || paymentGatewayConfigured('USDC_ONCHAIN');
-    case 'custodial':
-      return paymentGatewayConfigured('CUSTODIAL_STABLECOIN');
     case 'privy':
       return isPrivyOnRampConfigured();
     case 'macro_click':
@@ -85,10 +55,6 @@ export function isDepositCheckoutRowConfigured(
     return isPaymentProviderConfigured('mercado_pago');
   }
 
-  if (row.provider === 'stripe') {
-    return false;
-  }
-
   if (row.method === 'USDC_ONCHAIN') {
     if (!paymentGatewayConfigured('USDC_ONCHAIN')) {
       return false;
@@ -96,15 +62,8 @@ export function isDepositCheckoutRowConfigured(
     if (row.id === 'privy_usdc' || row.provider === 'privy') {
       return isPrivyOnRampConfigured();
     }
-    if (row.id === 'binance_usdc' && isBinancePayConfigured()) {
-      return true;
-    }
-    if (row.id === 'binance_pay') {
-      return isBinancePayConfigured();
-    }
-    if (row.id === 'coinbase_pay' || row.id === 'coinbase_commerce') {
-      return isPaymentProviderConfigured('coinbase');
-    }
+    // Las demás filas USDC son wallets conectadas (MetaMask, WalletConnect,
+    // Coinbase Wallet): no hay cobrador que configurar, paga el inversor.
     return true;
   }
 
