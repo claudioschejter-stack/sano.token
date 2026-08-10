@@ -20,20 +20,23 @@ name: Scheduled maintenance (free cron)
 # Por eso los crons nativos de Vercel se dejan puestos: si esto se apaga, el
 # sistema sigue funcionando un día tarde en vez de no funcionar.
 
+# Un solo schedule, y el reparto se decide adentro del job.
+#
+# Antes había cinco entradas de `cron`, una por grupo de endpoints. Los tres
+# schedules poco frecuentes (`25 */2`, `40 */6`, `50 */4`) **no dispararon ni una
+# vez** en el primer día: GitHub retrasa los schedules bajo carga y, cuando el
+# retraso es grande, descarta la corrida en lugar de encolarla. Los frecuentes
+# sobreviven porque tienen seis oportunidades por hora; los de cuatro por día se
+# pierden enteros. Así, la reparación de seguridad RWA no corría nunca por acá.
+#
+# La forma de no depender de eso es pedir una sola frecuencia alta —la que GitHub
+# sí entrega— y derivar del reloj qué toca en cada corrida. Las ventanas son de
+# una hora entera, no de un minuto: si se cae un tick, otro de la misma hora
+# agarra la ventana. Puede haber más de una corrida por ventana, y está bien:
+# todos estos endpoints son idempotentes.
 on:
   schedule:
-    # Redes de seguridad de liquidación: cada minuto acá es plata cobrada con
-    # tokens sin entregar.
     - cron: '*/10 * * * *'
-    # La cola de automatización: su latencia se suma a todo lo demás.
-    - cron: '*/15 * * * *'
-    # Reservas vencidas bloqueando stock que otro inversor podría comprar.
-    - cron: '25 */2 * * *'
-    # Reporte + reparación de seguridad RWA, y el aviso de esquema atrasado.
-    # Cuatro por día alcanzan para converger el timelock de 1 h el mismo día.
-    - cron: '40 */6 * * *'
-    # Reconciliación de movimientos: no bloquea a nadie.
-    - cron: '50 */4 * * *'
   workflow_dispatch:
     inputs:
       endpoint:
@@ -56,14 +59,38 @@ jobs:
         id: plan
         run: |
           set -euo pipefail
-          case "${{ github.event.schedule }}" in
-            '*/10 * * * *')  ENDPOINTS='watch-awaiting-treasury-usdc' ;;
-            '*/15 * * * *')  ENDPOINTS='process-automation-jobs' ;;
-            '25 */2 * * *')  ENDPOINTS='expire-stale-reservations' ;;
-            '40 */6 * * *')  ENDPOINTS='refresh-borrow-rates sync-deposit-watch' ;;
-            '50 */4 * * *')  ENDPOINTS='index-token-movements' ;;
-            *)               ENDPOINTS='${{ github.event.inputs.endpoint }}' ;;
-          esac
+
+          if [ -n "${{ github.event.inputs.endpoint }}" ]; then
+            ENDPOINTS='${{ github.event.inputs.endpoint }}'
+            echo "Disparo manual."
+          else
+            HOUR=$(date -u +%-H)
+
+            # Cada corrida: las dos redes de seguridad donde cada minuto es plata
+            # cobrada con tokens sin entregar, o latencia que se suma a todo.
+            ENDPOINTS='watch-awaiting-treasury-usdc process-automation-jobs'
+
+            # Cada 2 h: reservas vencidas que bloquean stock que otro compraría.
+            if [ $((HOUR % 2)) -eq 0 ]; then
+              ENDPOINTS="$ENDPOINTS expire-stale-reservations"
+            fi
+
+            # Cada 4 h: reconciliación de movimientos, que no bloquea a nadie.
+            if [ $((HOUR % 4)) -eq 0 ]; then
+              ENDPOINTS="$ENDPOINTS index-token-movements"
+            fi
+
+            # Cada 6 h: reporte y reparación de seguridad RWA, aviso de esquema
+            # atrasado, y sincronización del webhook de depósitos. Es el grupo que
+            # más lee la cadena, así que no va en cada corrida: la cuota gratuita
+            # de Alchemy es finita y esto la consume.
+            if [ $((HOUR % 6)) -eq 0 ]; then
+              ENDPOINTS="$ENDPOINTS refresh-borrow-rates sync-deposit-watch"
+            fi
+
+            echo "Hora UTC $HOUR."
+          fi
+
           echo "endpoints=$ENDPOINTS" >> "$GITHUB_OUTPUT"
           echo "A disparar: $ENDPOINTS"
 

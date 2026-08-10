@@ -50,12 +50,30 @@ vez de no funcionar.
 | `sync-deposit-watch` | 6 h | Re-declara la lista de direcciones del webhook, por si se recreó. |
 | `index-token-movements` | 4 h | Reconciliación, no bloquea a nadie. |
 
-**Dos límites de GitHub Actions**, para no descubrirlos en producción:
+**Tres límites de GitHub Actions**, para no descubrirlos en producción:
 
 - los schedules **se retrasan** bajo carga; no hay garantía de puntualidad,
-- en un repo sin actividad por **60 días** GitHub los desactiva y avisa por mail.
+- cuando el retraso es grande, GitHub **descarta la corrida** en lugar de
+  encolarla,
+- en un repo sin actividad por **60 días** los desactiva y avisa por mail.
 
-Ninguno de los dos es grave *porque* los crons de Vercel siguen puestos.
+El segundo mordió el primer día. El workflow tenía cinco entradas de `cron`, una
+por grupo de endpoints, y las tres poco frecuentes (`25 */2`, `40 */6`, `50 */4`)
+**no dispararon ni una vez**: los schedules frecuentes sobreviven porque tienen
+seis oportunidades por hora, pero uno de cuatro por día se pierde entero. Por eso
+la reparación de seguridad RWA no corría nunca por este camino, y las dos únicas
+corridas del 10/08 salieron del cron diario de Vercel.
+
+Ahora hay **un solo schedule** de 10 minutos y el reparto se decide adentro del
+job, según la hora UTC: las ventanas duran una hora entera, así que si se cae un
+tick, otro de la misma hora agarra la ventana. Puede haber más de una corrida por
+ventana, y no importa: todos estos endpoints son idempotentes.
+
+| Hora UTC | Qué se dispara además de las dos de cada corrida |
+|---|---|
+| par | `expire-stale-reservations` |
+| múltiplo de 4 | `index-token-movements` |
+| 0, 6, 12, 18 | `refresh-borrow-rates`, `sync-deposit-watch` |
 
 **Costo:** los repos públicos no consumen minutos; los privados tienen 2000
 min/mes gratis. Este workflow usa del orden de 15 min/mes.
@@ -100,42 +118,47 @@ ALCHEMY_API_KEY=... DATABASE_URL="$POSTGRES_URL" \
 
 Si la primera línea dice `RPC: endpoint público de Base`, la variable no llegó.
 
-### Por qué la key de Alchemy bloquea la liberación del circuit breaker
+### Estado de la reparación de seguridad (2026-08-10, 12:00 UTC)
 
-No es solo velocidad. El reporte de seguridad distingue tres estados por chequeo:
-`ok`, `fail` y `unknown`. `unknown` es "no pude leer la cadena", y por diseño **no
-activa ni libera** el breaker: activar sobre una lectura fallida daría falsos
-positivos, y liberar sería peor.
+La reparación **está funcionando y avanzando sola**. Corrió dos veces el 10/08
+(02:56 y 08:16 UTC) y en esas dos corridas ya arregló todo lo que tenía timelock
+corto:
 
-Contra el RPC público de Base, con rate limit, muchos chequeos vuelven `unknown`.
-El resultado es que el breaker queda trabado: nunca junta un reporte limpio que
-justifique liberarlo. Cargar `ALCHEMY_API_KEY` es lo que permite que el ciclo
-cierre.
+- El **límite diario del vault de UV3** pasó de `uint256.max` a 500 tokens. Se ve
+  en el `BALANCE_MONITOR` de las 08:15:56 (`dailyLimit=115792089…`) contra el de
+  las 08:16:17 (`dailyLimit=500000000000000000000`).
+- Las **cuatro allowlists del vault de UV3** también se aplicaron: desaparecieron
+  del reporte de las 08:16.
 
-Estado verificado el 2026-08-10 a las 02:40 UTC — los dos assets siguen bloqueados:
+Lo que queda son las allowlists a nivel token, que tienen timelock de 24 h y ya
+están agendadas con hora exacta:
 
-| Asset | Token | Vault | Breaker |
-|---|---|---|---|
-| `UV3RWA` | `0x481fAa…` | `0x56dB99…` | activo |
-| `ANELOUV2` | `0x1dD753…` | `0x95F135…` | activo |
+| Asset | Qué falta | Aplicable desde |
+|---|---|---|
+| `UV3RWA` | 4 allowlists del token | `2026-08-11T02:56:01Z` |
+| `ANELOUV2` | 2 allowlists (token y vault) | `2026-08-11T02:56:33Z` |
 
-Las fallas que reportan son de allowlist (cuatro direcciones por contrato) y, en el
-vault de UV3, el límite diario en `uint256.max` en lugar de 500 tokens.
+**Los dos breakers siguen activos, y se liberan solos en la primera corrida de
+`refresh-borrow-rates` posterior a esas horas.** No hay nada que decidir ni
+ejecutar a mano: el timelock ya está iniciado y la corrida siguiente lo aplica.
 
-### Cuándo esperar la reparación
+Un detalle contraintuitivo: el contador de fallos de los dos assets está en `0`.
+El breaker no se activó por fallos repetidos de automatización sino por el reporte
+de seguridad, que es otro camino.
 
-La repara `superviseRwaSecurity`, que corre dentro de `refresh-borrow-rates`. En
-GitHub Actions está agendado `40 */6` (04:40, 10:40, 16:40, 22:40 ART), o sea
-cuatro corridas por día. La primera de esas corridas todavía no había disparado
-cuando se escribió esto: el workflow es nuevo y GitHub arranca los schedules con
-retraso.
+### Sobre `unknown` y la key de Alchemy
 
-Cada corrida hace un movimiento del timelock: una lo agenda, la siguiente lo
-aplica. Con cuatro por día, el vault de UV3 (timelock de 1 h) converge el mismo
-día; los cambios de token (24 h) tardan dos corridas separadas por un día.
+El reporte distingue tres estados por chequeo: `ok`, `fail` y `unknown`. `unknown`
+es "no pude leer la cadena", y por diseño **no activa ni libera** el breaker:
+activar sobre una lectura fallida daría falsos positivos, y liberar sería peor.
 
-Para ver el estado sin esperar el mail, el inspector lista los timelocks pendientes
-con su hora de ejecución:
+Eso hacía temer que sin `ALCHEMY_API_KEY` el breaker quedara trabado para siempre.
+En la práctica no está pasando: los reportes del 10/08 devuelven `fail` concretos
+con direcciones y montos, no `unknown`, y la reparación pudo leer y escribir en la
+cadena. Las lecturas andan. La key sigue valiendo la pena por cuota y latencia,
+pero no es lo que bloquea la liberación.
+
+Para ver los timelocks pendientes con su hora de ejecución sin esperar el mail:
 
 ```bash
 ALCHEMY_API_KEY=... DATABASE_URL="$POSTGRES_URL" \
