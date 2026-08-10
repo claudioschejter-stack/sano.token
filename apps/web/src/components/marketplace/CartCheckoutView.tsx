@@ -21,7 +21,7 @@ import {
 import { resolvePaymentCheckoutLabel } from '../../lib/payments/paymentCheckoutLabels';
 import { isExternalUsdcPaymentOptionId } from '../../lib/payments/externalUsdcPaymentOptions';
 import { collectionWalletHref } from '../../lib/navigation/collectionWalletPath';
-import { isLocalRailManualResult, isPendingManualGatewayResult, isPrivyClientFundResult, isRipioOnRampResult } from '../../lib/payments/checkoutResultModes';
+import { isPendingManualGatewayResult, isPrivyClientFundResult, isRipioOnRampResult } from '../../lib/payments/checkoutResultModes';
 import { fetchMarketplaceFeedClient } from '../../lib/marketplaceApi';
 import { useCartStore } from '../../store/useCartStore';
 import type { PublicPaymentIntent } from '../../lib/payments/paymentService';

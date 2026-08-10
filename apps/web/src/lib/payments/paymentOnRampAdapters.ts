@@ -6,7 +6,7 @@ import { createMercadoPagoEmbeddedDepositCheckout } from './paymentGatewayAdapte
 import { MERCADOPAGO_WALLET_OPTION_ID } from './mercadoPagoEmbeddedService';
 import { resolveDepositMethodForUsdcBase } from './paymentCheckoutPolicy';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
-import { isPrivyOnRampConfigured, privyFiatAssetForCountry, PRIVY_ON_RAMP_OPTION_ID } from './privyOnRampPolicy';
+import { isPrivyOnRampConfigured, privyFiatAssetForCountry } from './privyOnRampPolicy';
 import { createMacroClickHostedCheckout } from './macroClick/checkoutAdapter';
 
 type OnRampRequest = {
