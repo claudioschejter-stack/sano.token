@@ -55,6 +55,15 @@ export function isPublicBaseRpc(url: string | null | undefined): boolean {
   return PUBLIC_BASE_RPC_HOSTS.has(hostname);
 }
 
+/**
+ * True when the endpoint serves Alchemy's enhanced methods, like
+ * `alchemy_getAssetTransfers`. Callers use it to pick a cheaper path and keep the
+ * plain-JSON-RPC one as failover, so this must never guess yes.
+ */
+export function isAlchemyBaseRpc(url: string | null | undefined): boolean {
+  return isAlchemyHost(rpcHostname(url));
+}
+
 /** Alchemy from a bare key, so one variable is enough to leave the public RPC. */
 export function alchemyBaseRpcUrl(): string | null {
   const explicit = process.env.ALCHEMY_BASE_RPC_URL?.trim();
