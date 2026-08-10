@@ -27,15 +27,21 @@ const STRIPE_OPTION_IDS = new Set([
  * one list; keeping them alive is permanent work.
  */
 const PURCHASE_ON_RAMP_METHODS = new Set(['BRIDGE', 'PRIVY_ONRAMP', 'RIPIO']);
-const PURCHASE_DIRECT_USDC = new Set(['USDC_ONCHAIN', 'COINBASE']);
+const PURCHASE_DIRECT_USDC = new Set(['USDC_ONCHAIN']);
 
 /**
  * Providers that stay hidden until they work end to end. Kept as a list rather
  * than deleted so re-enabling one is a decision, not an archaeology exercise.
  */
-const RETIRED_PROVIDERS = new Set(['ramp', 'wise', 'astropay', 'ebanx']);
+/**
+ * Las filas de estos proveedores ya no existen en el catálogo, así que no hay nada
+ * que ocultar. La lista queda porque un id viejo puede llegar en un enlace
+ * guardado, y entonces conviene rechazarlo explícitamente en vez de resolverlo a
+ * cualquier otra cosa.
+ */
+const RETIRED_PROVIDERS = new Set<string>([]);
 
-const RETIRED_OPTION_IDS = new Set(['binance_pay', 'binance_usdc']);
+const RETIRED_OPTION_IDS = new Set(['binance_pay', 'binance_usdc', 'coinbase_pay', 'coinbase_commerce', 'wise', 'ramp', 'astropay', 'loan_account']);
 
 export function isRetiredCheckoutRow(row: PaymentCheckoutRow): boolean {
   return RETIRED_PROVIDERS.has(row.provider) || RETIRED_OPTION_IDS.has(row.id);
@@ -99,9 +105,6 @@ export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: Checkou
     if (DEPOSIT_MP_OPTION_IDS.has(row.id) || row.method === 'MERCADO_PAGO') {
       return false;
     }
-    if (row.method === 'CUSTODIAL_STABLECOIN') {
-      return false;
-    }
     if (row.method === 'LOCAL_RAIL') {
       return localRailCheckoutEnabled(row);
     }
@@ -109,10 +112,7 @@ export function checkoutRowAllowedForMode(row: PaymentCheckoutRow, mode: Checkou
       return true;
     }
     if (PURCHASE_DIRECT_USDC.has(row.method)) {
-      return isDirectBaseUsdcRow(row) || row.method === 'COINBASE';
-    }
-    if (row.id === 'binance_pay' || row.id === 'coinbase_commerce' || row.id === 'coinbase_pay') {
-      return true;
+      return isDirectBaseUsdcRow(row);
     }
     return row.method === 'USDC_ONCHAIN' && isDirectBaseUsdcRow(row);
   }

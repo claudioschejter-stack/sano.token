@@ -61,11 +61,7 @@ enum PaymentMethod {
   BRIDGE
   PRIVY_ONRAMP
   RIPIO
-  RAMP
-  STRIPE
   MERCADO_PAGO
-  COINBASE
-  CUSTODIAL_STABLECOIN
 }
 
 enum PaymentIntentStatus {

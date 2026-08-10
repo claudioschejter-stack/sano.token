@@ -8,11 +8,7 @@ export type PaymentMethodId =
   | 'BRIDGE'
   | 'PRIVY_ONRAMP'
   | 'RIPIO'
-  | 'RAMP'
-  | 'STRIPE'
-  | 'MERCADO_PAGO'
-  | 'COINBASE'
-  | 'CUSTODIAL_STABLECOIN';
+  | 'MERCADO_PAGO';
 
 export function paymentOrderTtlMinutes(): number {
   const raw = Number(process.env.PAYMENT_ORDER_TTL_MINUTES ?? 30);
@@ -33,10 +29,6 @@ export function usdcDecimals(): number {
 
 export function stablecoinTreasuryAddress(): string | null {
   return getStablecoinNetwork().treasuryAddress;
-}
-
-export function custodialWalletAddress(): string | null {
-  return process.env.STABLECOIN_CUSTODIAL_WALLET_ADDRESS?.trim() || stablecoinTreasuryAddress();
 }
 
 export function paymentGatewayConfigured(method: PaymentMethodId): boolean {

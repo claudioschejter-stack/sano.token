@@ -87,7 +87,7 @@ export function assertPaymentProofPresent(
   const txHash = input.txHash?.trim() || intent.txHash?.trim();
   const providerPaymentId = input.providerPaymentId?.trim() || intent.providerPaymentId?.trim();
 
-  if (intent.method === 'USDC_ONCHAIN' || intent.method === 'CUSTODIAL_STABLECOIN') {
+  if (intent.method === 'USDC_ONCHAIN') {
     if (!txHash) {
       throw new Error('PAYMENT_TX_REQUIRED');
     }

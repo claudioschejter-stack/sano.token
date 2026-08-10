@@ -5,7 +5,6 @@ import { openMobileWalletWcDeepLink, type MobileWalletTarget } from './mobileWal
 import {
   pickAndroidCoinbaseWalletConnectConnector,
   pickAndroidMetaMaskWalletConnectConnector,
-  pickBinanceConnector,
   pickCoinbaseConnector,
   pickDirectWalletConnectConnector,
   pickMetaMaskConnector,
@@ -65,9 +64,6 @@ export function resolveCheckoutWalletConnector(
       return pickCoinbaseConnector(connectors);
     case 'metamask_usdc':
       return pickMetaMaskConnector(connectors);
-    case 'binance_usdc':
-      // Native Binance W3W SDK is not registered (dead relay probes on load).
-      return pickBinanceConnector(connectors) ?? pickWalletConnectConnector(connectors);
     default:
       return undefined;
   }

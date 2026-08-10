@@ -8,15 +8,13 @@ export type PaymentIntegrationItem = {
   envKeys: string[];
 };
 
+/** Los webhooks que existen. Los de los proveedores retirados se borraron. */
 export const WEBHOOK_PATHS = {
-  stripe: '/api/webhooks/stripe',
   mercadopago: '/api/webhooks/mercadopago',
-  coinbase: '/api/webhooks/coinbase',
   bridge: '/api/webhooks/bridge',
   ripio: '/api/webhooks/ripio',
-  ebanx: '/api/webhooks/ebanx',
-  astropay: '/api/webhooks/astropay',
-  macroClick: '/api/webhooks/macro-click'
+  macroClick: '/api/webhooks/macro-click',
+  alchemy: '/api/webhooks/alchemy'
 } as const;
 
 export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
@@ -33,12 +31,6 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
       envKeys: ['BASE_USDC_TOKEN_ADDRESS', 'BASE_STABLECOIN_TREASURY_ADDRESS']
     },
     {
-      id: 'stripe',
-      label: 'Stripe',
-      configured: paymentGatewayConfigured('STRIPE'),
-      envKeys: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET']
-    },
-    {
       id: 'mercadopago',
       label: 'Mercado Pago',
       configured: paymentGatewayConfigured('MERCADO_PAGO'),
@@ -53,12 +45,6 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
           process.env.MACRO_CLICK_SECRET_KEY?.trim()
       ),
       envKeys: ['MACRO_CLICK_GUID', 'MACRO_CLICK_FRASE', 'MACRO_CLICK_SECRET_KEY', 'MACRO_CLICK_ENV']
-    },
-    {
-      id: 'coinbase',
-      label: 'Coinbase Commerce',
-      configured: paymentGatewayConfigured('COINBASE'),
-      envKeys: ['COINBASE_COMMERCE_API_KEY', 'COINBASE_COMMERCE_WEBHOOK_SECRET']
     },
     {
       id: 'bridge',
@@ -85,27 +71,9 @@ export function getPaymentsIntegrationStatus(): PaymentIntegrationItem[] {
     },
     {
       id: 'local-rails',
-      label: 'Rails locales (EBANX)',
+      label: 'Rail local de conciliación manual',
       configured: paymentGatewayConfigured('LOCAL_RAIL'),
-      envKeys: ['LOCAL_RAILS_ENABLED', 'EBANX_API_KEY', 'ASTROPAY_API_KEY']
-    },
-    {
-      id: 'astropay',
-      label: 'AstroPay',
-      configured: Boolean(process.env.ASTROPAY_API_KEY?.trim()),
-      envKeys: ['ASTROPAY_API_KEY']
-    },
-    {
-      id: 'wise',
-      label: 'Wise',
-      configured: Boolean(process.env.WISE_API_KEY?.trim() || process.env.BRIDGE_API_KEY?.trim()),
-      envKeys: ['WISE_API_KEY', 'BRIDGE_API_KEY']
-    },
-    {
-      id: 'binance-pay',
-      label: 'Binance Pay',
-      configured: Boolean(process.env.BINANCE_PAY_API_KEY?.trim()),
-      envKeys: ['BINANCE_PAY_API_KEY']
+      envKeys: ['LOCAL_RAILS_ENABLED']
     }
   ];
 }
@@ -125,16 +93,9 @@ export function getPaymentsProductionSummary(siteUrl: string) {
       networksReady.includes('BASE') &&
       integrations.some(
         (item) =>
-          [
-            'stripe',
-            'mercadopago',
-            'macro-click',
-            'ripio',
-            'local-rails',
-            'astropay',
-            'bridge',
-            'coinbase'
-          ].includes(item.id) && item.configured
+          // Con uno de estos cobrando ya se puede operar.
+          ['mercadopago', 'macro-click', 'ripio', 'local-rails', 'bridge'].includes(item.id) &&
+          item.configured
       ),
     integrations,
     missing,
