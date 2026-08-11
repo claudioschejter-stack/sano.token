@@ -3044,6 +3044,8 @@ export const en = {
       "Link your Sanova wallet in your profile for one-tap pay. Meanwhile use “My wallet”.",
     cryptoWalletAllowlistRequired:
       "Your wallet is not allowlisted yet (KYC). Finish verification or contact Sanova.",
+    cryptoWalletAllowlistUnreadable:
+      "We could not verify your allowlist status against the network right now. This is not a rejection: try again in a minute.",
     cryptoWalletVaultRecipientPending:
       "We are enabling your wallet to receive this asset's tokens. The contract enforces a 24-hour wait and we already started it: you will be able to buy as soon as it ends, with nothing to do.",
     cryptoWalletSanovaAddressLabel: "Your Sanova account address (Base · USDC)",
