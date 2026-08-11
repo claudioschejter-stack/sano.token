@@ -198,7 +198,50 @@ checkout de Coinbase Commerce.
 
 ---
 
-## 5. Aplicar migraciones cuando el aviso llegue
+## 5. Pedirle a Macro lo que falta provisionar
+
+Las credenciales de sandbox funcionan: `POST /sesion` responde *"Identificación del
+comercio correcta."* con un token de cuatro horas. Se comprueba con
+`npm run ops:check-macro`. Pero el comercio está incompleto y eso bloquea tres cosas
+que no se arreglan desde el código.
+
+**Escribir a `recaudacionesmda@macro.com.ar`** por el comercio
+`eb27e93a-4cf9-4d43-8a27-0543b3cfedde` pidiendo:
+
+1. **Provisionar una sucursal.** Sin ella, `/link-pago`, `/qr` y `/caja` devuelven
+   `No se encontró la sucursal para el comercio`. No es un campo que se pueda mandar:
+   se probaron `sucursal`, `sucursal_id`, `sucursalComercio`, `branch_id` y
+   `SucursalComercio`, y el mensaje no cambia. La API la busca del lado del comercio.
+2. **Habilitar el medio de pago de billetera**, si se quiere cobrar con MODO por QR.
+   Hoy `GET /payment-methods` devuelve nueve tarjetas y DEBIN, y ninguna billetera:
+
+   ```
+   Visa Crédito, Maestro Débito, Mastercard crédito, Visa Débito, DEBIN,
+   Cabal Débito, Tarjeta Naranja, AMEX, Cabal Crédito, Mastercard débito
+   ```
+
+3. **Un CBU o alias de prueba válido** para DEBIN. Con uno inventado la llamada pasa
+   la validación de campos y muere en `Ocurrió un error al realizar el pago.`, porque
+   no hay cuenta real de la que debitar.
+
+Lo que **sí** funciona sin nada de esto es el formulario del checkout, que es el
+camino que usa el marketplace: cobra con cualquiera de las nueve tarjetas. DEBIN
+además no depende de la sucursal, así que es el rail de transferencia que menos
+provisión necesita: le falta sólo el CBU de prueba.
+
+Y hay que declarar del lado de Macro la **URL de notificación**, que no viaja en el
+formulario:
+
+```
+https://<dominio>/api/webhooks/macro-click
+```
+
+Para simular una notificación a mano hace falta `MACRO_CLICK_SKIP_IP_CHECK=true`,
+porque el webhook sólo acepta los rangos de IP de Macro. Sólo en preview.
+
+---
+
+## 6. Aplicar migraciones cuando el aviso llegue
 
 `prisma migrate deploy` no está conectado a ningún pipeline, así que aplicar una
 migración es un paso humano. El cron diario ahora manda una alerta crítica cuando
@@ -241,7 +284,7 @@ problema es al revés y hay que aplicar el SQL, no ajustar el checksum.
 
 ---
 
-## 6. Decisiones de negocio que bloquean código
+## 7. Decisiones de negocio que bloquean código
 
 - **Renombrar UV2 y UV3 para que se distingan.** No son un duplicado: son dos
   edificios distintos en Añelo, con tokens, vaults e inversores separados.
