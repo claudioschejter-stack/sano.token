@@ -383,6 +383,14 @@ export function CryptoWalletPanel({
       if (code === 'ALLOWLIST_NOT_APPROVED' || code === 'ONCHAIN_ALLOWLIST_NOT_APPROVED') {
         return sc.cryptoWalletAllowlistRequired;
       }
+      /**
+       * No poder leer la cadena no es lo mismo que no estar habilitado. Decirle
+       * a alguien que complete un KYC que ya completó lo manda a un trámite que
+       * no existe.
+       */
+      if (code === 'ONCHAIN_ALLOWLIST_UNREADABLE') {
+        return sc.cryptoWalletAllowlistUnreadable;
+      }
       if (code === 'VAULT_RECIPIENT_NOT_ALLOWED') {
         return sc.cryptoWalletVaultRecipientPending;
       }
@@ -390,6 +398,7 @@ export function CryptoWalletPanel({
     },
     [
       sc.cryptoWalletAllowlistRequired,
+      sc.cryptoWalletAllowlistUnreadable,
       sc.cryptoWalletVaultRecipientPending,
       sc.cryptoWalletAutoSettleBalanceReadFailed,
       sc.cryptoWalletAutoSettleError,
