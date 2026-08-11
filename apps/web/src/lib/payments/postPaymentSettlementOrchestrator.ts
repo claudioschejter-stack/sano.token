@@ -13,12 +13,16 @@ import { confirmPlatformDeposit } from './platformWalletService';
 import { createRipioOnRampCheckout } from './ripioOnRampAdapter';
 import { ripioConfigured } from './ripioClient';
 import { deriveSettlementPhase, type SettlementPhase } from './settlementPhase';
+import {
+  amountToleranceMatch,
+  findTreasuryTransfersViaAlchemy,
+  findTreasuryTransfersViaLogs,
+  transferSearchStrategy,
+  type TreasuryTransferCandidate
+} from './treasuryUsdcTransferSearch';
 
 export type { SettlementPhase };
 export { deriveSettlementPhase };
-
-const USDC_TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
-const ERC20_TRANSFER_ABI = ['event Transfer(address indexed from,address indexed to,uint256 value)'];
 
 /**
  * How far back to look for the USDC that completes a fiat payment.
@@ -40,8 +44,6 @@ const MIN_LOOKBACK_BLOCKS = 3000;
 const MAX_LOOKBACK_BLOCKS = 1_296_000;
 /** Slack for block-time variance and clock skew between us and the chain. */
 const LOOKBACK_SAFETY_BLOCKS = 600;
-/** Public Base caps `eth_getLogs` at 10k blocks; stay under it on any provider. */
-const LOG_RANGE_CHUNK_BLOCKS = 9000;
 
 export function lookbackBlocksForWait(input: {
   waitingSinceMs?: number | null;
@@ -61,14 +63,6 @@ export function lookbackBlocksForWait(input: {
   );
 }
 
-function amountToleranceMatch(actual: bigint, expected: bigint): boolean {
-  if (actual === expected) return true;
-  // Allow ±1 cent of USDC (6 decimals) for FX rounding
-  const tol = 10_000n;
-  const diff = actual > expected ? actual - expected : expected - actual;
-  return diff <= tol;
-}
-
 async function findMatchingTreasuryUsdcTransfer(
   expectedAmountUsd: number,
   options: { waitingSinceMs?: number | null } = {}
@@ -83,42 +77,47 @@ async function findMatchingTreasuryUsdcTransfer(
 
   const provider = new ethers.JsonRpcProvider(network.rpcUrl);
   try {
-    const iface = new ethers.Interface(ERC20_TRANSFER_ABI);
-    const expectedTo = ethers.getAddress(network.treasuryAddress);
     const expectedAmount = ethers.parseUnits(expectedAmountUsd.toFixed(network.decimals), network.decimals);
     const latestBlock = await provider.getBlockNumber();
     const lookback = lookbackBlocksForWait({ waitingSinceMs: options.waitingSinceMs });
-    const fromBlock = Math.max(0, latestBlock - lookback);
-    const topics = [USDC_TRANSFER_TOPIC, null, ethers.zeroPadValue(expectedTo, 32)];
+    const searchParams = {
+      tokenAddress: network.tokenAddress,
+      treasuryAddress: ethers.getAddress(network.treasuryAddress),
+      fromBlock: Math.max(0, latestBlock - lookback),
+      toBlock: latestBlock
+    };
+    const matches = (value: bigint) => amountToleranceMatch(value, expectedAmount);
 
-    // Newest chunk first, so a recent transfer is found without reading the
-    // whole window.
-    let toBlock = latestBlock;
-    while (toBlock >= fromBlock) {
-      const chunkFrom = Math.max(fromBlock, toBlock - LOG_RANGE_CHUNK_BLOCKS + 1);
-      const logs = await provider.getLogs({
-        address: network.tokenAddress,
-        topics,
-        fromBlock: chunkFrom,
-        toBlock
-      });
+    /**
+     * Alchemy resuelve en una consulta lo que por `eth_getLogs` son hasta 144
+     * llamadas secuenciales, porque el endpoint público tope las ventanas en
+     * 10.000 bloques. Si no hay soporte, o si el método falla, se cae al camino de
+     * logs: esto decide si un pago se acredita y no puede quedar atado a que un
+     * proveedor responda.
+     */
+    let candidates: TreasuryTransferCandidate[] | null = null;
+    if (transferSearchStrategy(network.rpcUrl) === 'alchemy') {
+      candidates = await findTreasuryTransfersViaAlchemy(
+        (method, params) => provider.send(method, params),
+        searchParams,
+        matches
+      );
+    }
+    if (candidates === null) {
+      candidates = await findTreasuryTransfersViaLogs(
+        (filter) => provider.getLogs(filter),
+        searchParams,
+        matches
+      );
+    }
 
-      for (const log of [...logs].reverse()) {
-        const parsed = iface.parseLog({ topics: log.topics as string[], data: log.data });
-        if (!parsed) continue;
-        const value = parsed.args.value as bigint;
-        if (!amountToleranceMatch(value, expectedAmount)) continue;
-
-        const receipt = await provider.getTransactionReceipt(log.transactionHash);
-        const confirmations = receipt ? latestBlock - receipt.blockNumber + 1 : 0;
-        if (!receipt || receipt.status !== 1 || confirmations < paymentMinimumConfirmations()) {
-          continue;
-        }
-        return log.transactionHash;
+    for (const candidate of candidates) {
+      const receipt = await provider.getTransactionReceipt(candidate.transactionHash);
+      const confirmations = receipt ? latestBlock - receipt.blockNumber + 1 : 0;
+      if (!receipt || receipt.status !== 1 || confirmations < paymentMinimumConfirmations()) {
+        continue;
       }
-
-      if (chunkFrom === fromBlock) break;
-      toBlock = chunkFrom - 1;
+      return candidate.transactionHash;
     }
   } finally {
     provider.destroy();

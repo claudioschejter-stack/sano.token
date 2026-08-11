@@ -4,6 +4,11 @@ import {
   macroClickGuid,
   isMacroClickConfigured
 } from './config';
+import {
+  buildMacroClickPaymentLinkBody,
+  buildMacroClickQrBody,
+  buildMacroClickQrMultiDueBody
+} from './paymentRequestBody';
 import type {
   MacroClickApiResponse,
   MacroClickCaja,
@@ -214,43 +219,21 @@ export async function createMacroClickCardPayment(body: Record<string, unknown>)
 export async function createMacroClickPaymentLink(input: MacroClickLinkPagoRequest) {
   return authorizedFetch<MacroClickLinkPago>('/link-pago', {
     method: 'POST',
-    body: JSON.stringify({
-      monto: input.amountCents,
-      transaccionComercioId: input.commerceTransactionId,
-      descripcion: input.description,
-      notification_url: input.notificationUrl,
-      url_success: input.successUrl,
-      url_cancel: input.cancelUrl,
-      moneda: input.currency ?? 'ARS',
-      informacion: input.additionalInfo ? JSON.stringify(input.additionalInfo) : undefined
-    })
+    body: JSON.stringify(buildMacroClickPaymentLinkBody({ ...input, currency: input.currency ?? 'ARS' }))
   });
 }
 
 export async function createMacroClickQr(input: MacroClickQrRequest) {
   return authorizedFetch('/qr', {
     method: 'POST',
-    body: JSON.stringify({
-      monto: input.amountCents,
-      transaccionComercioId: input.commerceTransactionId,
-      descripcion: input.description,
-      notification_url: input.notificationUrl
-    })
+    body: JSON.stringify(buildMacroClickQrBody(input))
   });
 }
 
 export async function createMacroClickQrMultiDue(input: MacroClickQrMultiDueRequest) {
   return authorizedFetch('/qr-vencimientos-multiples', {
     method: 'POST',
-    body: JSON.stringify({
-      transaccionComercioId: input.commerceTransactionId,
-      descripcion: input.description,
-      notification_url: input.notificationUrl,
-      vencimientos: input.dues.map((d) => ({
-        fecha: d.dueDate,
-        monto: d.amountCents
-      }))
-    })
+    body: JSON.stringify(buildMacroClickQrMultiDueBody(input))
   });
 }
 
