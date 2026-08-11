@@ -3089,6 +3089,8 @@ export const es = {
       'Falta vincular tu wallet Sanova en el perfil para pagar en un toque. Mientras tanto usá «Mi wallet».',
     cryptoWalletAllowlistRequired:
       'Tu wallet aún no está habilitada (whitelist KYC). Completá la verificación o contactá a Sanova.',
+    cryptoWalletAllowlistUnreadable:
+      'No pudimos verificar tu habilitación contra la red en este momento. No es un rechazo: probá de nuevo en un minuto.',
     cryptoWalletVaultRecipientPending:
       'Estamos habilitando tu wallet para recibir los tokens de este activo. El contrato impone una espera de 24 horas y ya la iniciamos: vas a poder comprar en cuanto termine, sin hacer nada.',
     cryptoWalletSanovaAddressLabel: 'Dirección de tu cuenta Sanova (Base · USDC)',
