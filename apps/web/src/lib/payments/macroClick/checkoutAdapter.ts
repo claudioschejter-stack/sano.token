@@ -34,6 +34,19 @@ export function createMacroClickHostedCheckout(input: {
   clientIp: string;
   redirectPath?: string | null;
   fxArsPerUsd?: number;
+  /**
+   * Pesos ya calculados contra la cotización de Ripio, junto con de dónde salieron.
+   * Cuando viene, gana: el cálculo con `fxArsPerUsd` es un valor fijo que no sabe a
+   * qué precio se van a convertir esos pesos, y cobrar de menos deja a la treasury
+   * con menos USDC que los tokens que ya se entregaron.
+   */
+  arsCharge?: {
+    arsToCharge: number;
+    effectiveArsPerUsdc: number | null;
+    source: 'quote' | 'static';
+    marginPercent: number;
+    fallbackReason?: string;
+  } | null;
 }): MacroClickOnRampResult {
   if (!isMacroClickConfigured()) {
     return {
@@ -45,9 +58,15 @@ export function createMacroClickHostedCheckout(input: {
   }
 
   const currency = input.currency ?? 'ARS';
+  const quotedArs =
+    currency === 'ARS' && input.arsCharge && input.arsCharge.arsToCharge > 0
+      ? input.arsCharge.arsToCharge
+      : null;
   const fx = input.fxArsPerUsd ?? resolveArsPerUsd('MACRO_CLICK_FX_ARS');
   const localAmount =
-    currency === 'USD' ? input.amount : Number.isFinite(fx) && fx > 0 ? input.amount * fx : input.amount;
+    currency === 'USD'
+      ? input.amount
+      : (quotedArs ?? (Number.isFinite(fx) && fx > 0 ? input.amount * fx : input.amount));
 
   const commerceTransactionId = encodeMacroClickCommerceRef(
     input.referenceKind === 'deposit'
@@ -70,6 +89,15 @@ export function createMacroClickHostedCheckout(input: {
       amountUsd: input.amount,
       currency,
       localAmount,
+      /**
+       * Cómo se decidió el monto en pesos. Sin esto, un cobro hecho con la variable
+       * fija es indistinguible de uno cotizado, y el faltante en treasury aparece
+       * sin explicación.
+       */
+      arsRateSource: input.arsCharge?.source ?? 'static',
+      effectiveArsPerUsdc: input.arsCharge?.effectiveArsPerUsdc ?? null,
+      arsMarginPercent: input.arsCharge?.marginPercent ?? null,
+      arsRateFallbackReason: input.arsCharge?.fallbackReason ?? null,
       userEmail: input.userEmail ?? null
     },
     clientName: input.userEmail ?? null
