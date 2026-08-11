@@ -1,6 +1,8 @@
 import { prisma, type Prisma } from '@sanova/database';
 import { Contract, JsonRpcProvider } from 'ethers';
 import SanovaAssetTokenArtifact from '../blockchain/artifacts/SanovaAssetToken.json';
+import { resolveBaseMainnetRpcUrl } from '../blockchain/baseRpc';
+import { readWithRetry } from '../blockchain/rpcRetry';
 import { isPendingInvestorWallet } from '../investor/provisionInvestorProfile';
 
 type ProjectTokenFields = {
@@ -9,12 +11,16 @@ type ProjectTokenFields = {
   chainId: number | null;
 };
 
+/**
+ * Base mainnet se resuelve por `baseRpc`, que prefiere el endpoint dedicado sobre
+ * el público. Este módulo tenía su propia resolución leyendo solo `BASE_RPC_URL`
+ * con `https://mainnet.base.org` de fallback, así que cargar una key de Alchemy no
+ * cambiaba nada acá: la comprobación de allowlist de cada compra seguía yendo al
+ * endpoint compartido, que devuelve "missing revert data" cuando lo throttlean.
+ */
 function resolveRpcUrl(chainId: number): string {
-  if (chainId === 84532) {
-    return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
-  }
   if (chainId === 8453) {
-    return process.env.BASE_RPC_URL?.trim() || 'https://mainnet.base.org';
+    return resolveBaseMainnetRpcUrl();
   }
   return process.env.BASE_RPC_URL?.trim() || 'https://sepolia.base.org';
 }
@@ -60,7 +66,16 @@ export async function assertTokenizedPurchaseReady(input: {
   const provider = new JsonRpcProvider(resolveRpcUrl(chainId));
   try {
     const token = new Contract(tokenAddress, SanovaAssetTokenArtifact.abi, provider);
-    const approvedOnChain = Boolean(await token.kycApproved(wallet));
+    /**
+     * Con reintentos y distinguiendo "no aprobada" de "no pude leer". Antes una
+     * sola lectura throttleada tiraba el error crudo del RPC y la compra moría
+     * con un mensaje que no le dice nada al inversor ni al operador, aunque su
+     * wallet estuviera perfectamente aprobada.
+     */
+    const approvedOnChain = await readWithRetry(() => token.kycApproved(wallet), { attempts: 4 });
+    if (approvedOnChain === null) {
+      throw new Error('ONCHAIN_ALLOWLIST_UNREADABLE');
+    }
     if (!approvedOnChain) {
       throw new Error('ONCHAIN_ALLOWLIST_NOT_APPROVED');
     }
