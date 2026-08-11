@@ -56,6 +56,21 @@ export function parseFiatOnRampDisplayId(id: string | null): FiatOnRampRail | nu
   return FIAT_ON_RAMP_RAILS.includes(rail as FiatOnRampRail) ? (rail as FiatOnRampRail) : null;
 }
 
+/**
+ * Qué sub-rails ofrece cada cobrador de tarjeta.
+ *
+ * Se mostraban los tres para cualquiera. Bridge sí acepta una transferencia
+ * internacional, pero el checkout de Macro es local: ofrecerle a un inversor
+ * argentino "transferencia internacional" contra Macro es una opción que no
+ * existe, y que lo lleva a una pantalla donde no la va a encontrar.
+ */
+export function railsForCardBackend(base: DepositPaymentOption): readonly FiatOnRampRail[] {
+  if (base.provider === 'macro_click') {
+    return ['debit_card', 'credit_card'];
+  }
+  return FIAT_ON_RAMP_RAILS;
+}
+
 export function buildFiatOnRampDisplayOptions(
   base: DepositPaymentOption | null,
   labels: FiatOnRampDisplayLabels
@@ -63,13 +78,18 @@ export function buildFiatOnRampDisplayOptions(
   if (!base) {
     return [];
   }
-  return FIAT_ON_RAMP_RAILS.map((rail) => ({
+  return railsForCardBackend(base).map((rail) => ({
     ...base,
     id: buildFiatOnRampDisplayId(rail),
     label: labels[rail],
-    usesLocalCurrency: false,
-    totalLocal: null,
-    displayCurrency: 'USD'
+    /**
+     * Macro cobra en pesos, así que conserva la moneda local del backend. Forzar
+     * USD acá mostraba el precio en dólares en una pantalla que después cobra
+     * pesos.
+     */
+    usesLocalCurrency: base.provider === 'macro_click' ? base.usesLocalCurrency : false,
+    totalLocal: base.provider === 'macro_click' ? base.totalLocal : null,
+    displayCurrency: base.provider === 'macro_click' ? base.displayCurrency : 'USD'
   }));
 }
 

@@ -185,6 +185,13 @@ export async function createMacroClickRefund(body: {
   return authorizedFetch('/refund', { method: 'POST', body: JSON.stringify(body) });
 }
 
+/**
+ * DEBIN pide el email del pagador y el cuerpo no lo mandaba, así que la API lo
+ * rechazaba siempre con "El dato Email no puede ser nulo o vacío". Verificado contra
+ * el sandbox: con el email pasa la validación de campos. A diferencia del link y el
+ * QR, DEBIN no usa el envoltorio `payment_request` ni depende de que el comercio
+ * tenga sucursal.
+ */
 export async function createMacroClickDebin(input: MacroClickDebinRequest) {
   return authorizedFetch('/debin', {
     method: 'POST',
@@ -194,7 +201,9 @@ export async function createMacroClickDebin(input: MacroClickDebinRequest) {
       alias: input.cbuOrAlias,
       monto: input.amountCents,
       transaccionComercioId: input.commerceTransactionId,
-      concepto: input.concept
+      concepto: input.concept,
+      email: input.payerEmail,
+      nombreApellido: input.payerName
     })
   });
 }
