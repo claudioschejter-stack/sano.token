@@ -18,6 +18,8 @@
  * ver que no se pegó un valor cortado o con espacios.
  */
 
+import { createHash } from 'node:crypto';
+
 const ENV = (process.env.MACRO_CLICK_ENV ?? 'SANDBOX').trim().toUpperCase();
 const IS_PROD = ENV === 'PRODUCTION' || ENV === 'PROD';
 
@@ -38,9 +40,37 @@ const ENTE = process.env.MACRO_CLICK_ENTE_CODE?.trim();
 
 const TIMEOUT_MS = 20_000;
 
+/**
+ * Describir un secreto sin mostrarlo.
+ *
+ * La primera versión imprimía los primeros ocho caracteres, y para la FRASE eso es
+ * material criptográfico: son 32 bytes de clave en base64, así que ocho caracteres
+ * son seis bytes de la llave, en un log de CI o en una captura de pantalla.
+ *
+ * Lo que hacía falta era detectar un pegado mal hecho, y para eso alcanza con el
+ * largo, si quedó espacio al principio o al final, y una huella. La huella permite
+ * comparar "¿es el mismo valor que tengo en Vercel?" sin revelarlo: se calcula sobre
+ * el valor con una etiqueta fija, y son ocho hex de un sha256 sobre un secreto de
+ * alta entropía, así que no se puede volver atrás.
+ */
+function describeSecret(envKey) {
+  const raw = process.env[envKey] ?? '';
+  const trimmed = raw.trim();
+  if (!trimmed) return 'AUSENTE';
+
+  const fingerprint = createHash('sha256')
+    .update(`macro-click-fingerprint:${trimmed}`)
+    .digest('hex')
+    .slice(0, 8);
+  const whitespace = raw !== trimmed ? ' — OJO: venía con espacios alrededor' : '';
+
+  return `${trimmed.length} chars, huella ${fingerprint}${whitespace}`;
+}
+
+/** El GUID no es secreto: viaja en el formulario que se le manda al navegador. */
 function hint(value) {
   if (!value) return 'AUSENTE';
-  return `${value.length} chars, empieza con "${value.slice(0, 8)}…"`;
+  return value;
 }
 
 async function request(url, init = {}) {
@@ -73,8 +103,8 @@ console.log(`  API      ${API_BASE}`);
 console.log(`  Checkout ${CHECKOUT_URL}/`);
 console.log('\nCredenciales presentes:');
 console.log(`  MACRO_CLICK_GUID        ${hint(GUID)}`);
-console.log(`  MACRO_CLICK_FRASE       ${hint(FRASE)}`);
-console.log(`  MACRO_CLICK_SECRET_KEY  ${hint(SECRET)}`);
+console.log(`  MACRO_CLICK_FRASE       ${describeSecret('MACRO_CLICK_FRASE')}`);
+console.log(`  MACRO_CLICK_SECRET_KEY  ${describeSecret('MACRO_CLICK_SECRET_KEY')}`);
 console.log(`  MACRO_CLICK_ENTE_CODE   ${ENTE || 'sin Botón Simple'}`);
 
 if (!GUID || !FRASE || !SECRET) {
