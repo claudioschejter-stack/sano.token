@@ -9,7 +9,6 @@ import {
 
 const USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 const TREASURY = '0x1111111111111111111111111111111111111111';
-const TRANSFER_TOPIC = ethers.id('Transfer(address,address,uint256)');
 
 /** 250 USDC en unidades crudas de 6 decimales. */
 const EXPECTED = 250_000_000n;
