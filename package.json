@@ -63,7 +63,8 @@
     "i18n:translate:fix": "tsx scripts/i18n/translate-from-es.mjs",
     "blog:translate": "tsx scripts/i18n/translate-blog-from-es.mjs",
     "legal:translate": "tsx scripts/i18n/translate-legal-from-es.mjs",
-    "verify:supabase": "node scripts/verify-supabase-connectivity.mjs"
+    "verify:supabase": "node scripts/verify-supabase-connectivity.mjs",
+    "ops:check-macro": "node scripts/ops/check-macro-click.mjs"
   },
   "devDependencies": {
     "translate-google": "^1.5.0",
