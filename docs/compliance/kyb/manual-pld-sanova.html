@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>SANOVA GLOBAL S.A.S. — Manual de Prevención al Lavado de Dinero (PLD)</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #14212b;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      border-bottom: 3px solid #0f4c5c;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0 0 4px; font-size: 17pt; color: #0f4c5c; }
+    .subtitle { margin: 0; color: #555; font-size: 11pt; }
+    .meta { margin-top: 8px; font-size: 9pt; color: #666; }
+    h2 {
+      font-size: 12pt;
+      color: #0f4c5c;
+      border-left: 4px solid #5fa8d3;
+      padding-left: 10px;
+      margin: 16px 0 8px;
+    }
+    h3 { font-size: 10.5pt; margin: 12px 0 6px; color: #333; }
+    p { margin: 0 0 8px; }
+    ul, ol { margin: 0 0 10px 18px; padding: 0; }
+    li { margin-bottom: 4px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 12px;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #e8f4f8; color: #0f4c5c; }
+    .footer {
+      margin-top: 20px;
+      font-size: 8.5pt;
+      color: #666;
+      border-top: 1px solid #ddd;
+      padding-top: 8px;
+    }
+    .sign {
+      margin-top: 28px;
+      font-size: 10pt;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Manual de Prevención al Lavado de Dinero (PLD) / PLA-FT</h1>
+    <p class="subtitle">SANOVA GLOBAL S.A.S. — Política interna KYC/AML/CFT</p>
+    <p class="meta">
+      Versión 1.0 · Agosto 2026 · CUIT 30-71905084-7<br/>
+      Aprobado por: Claudio Raúl Schejter — Administrador Titular<br/>
+      Ámbito: plataforma Sanova Capital / Fideicomiso Sanova Global RWA (compartimentos privados)
+    </p>
+  </header>
+
+  <h2>1. Objetivo y alcance</h2>
+  <p>
+    Este Manual establece las políticas, controles y procedimientos que SANOVA GLOBAL S.A.S.
+    (“la Sociedad”, “el Fiduciario”) aplica para prevenir el lavado de activos y el financiamiento
+    del terrorismo (PLA/FT / AML/CFT) en la operatoria de su plataforma de tokenización RWA y
+    en la administración de compartimentos del Fideicomiso de Administración Ordinario y Privado.
+  </p>
+  <p>Aplica a: empleados, administradores, proveedores críticos de identidad/pagos, inversores y contrapartes.</p>
+
+  <h2>2. Marco normativo de referencia</h2>
+  <ul>
+    <li>Código Civil y Comercial de la Nación Argentina (fideicomiso; Arts. 1666 y ss.).</li>
+    <li>Régimen argentino de prevención de lavado de activos y financiamiento del terrorismo (UIF / normas aplicables según actividad).</li>
+    <li>Estándares internacionales FATF/GAFI (enfoque basado en riesgo).</li>
+    <li>Políticas contractuales de proveedores de pagos / money movement (p. ej. Bridge) y de identidad (Didit).</li>
+  </ul>
+
+  <h2>3. Enfoque basado en riesgo</h2>
+  <p>La Sociedad clasifica el riesgo de clientes y operaciones considerando, entre otros:</p>
+  <ul>
+    <li>Jurisdicción de residencia / nacionalidad / sede.</li>
+    <li>Tipo de persona (humana / jurídica), estructura de control y UBOs.</li>
+    <li>Monto, frecuencia y canal de fondeo (fiat on-ramp, USDC on-chain, transferencias).</li>
+    <li>Coherencia entre perfil declarado y actividad observada.</li>
+    <li>Listas de sanciones, PEP y medios adversos (vía proveedor KYC y controles propios).</li>
+  </ul>
+  <p>Clientes de mayor riesgo requieren due diligence reforzada (EDD), documentación adicional y/o rechazo.</p>
+
+  <h2>4. Conocimiento del cliente (KYC / KYB)</h2>
+  <h3>4.1 Personas humanas</h3>
+  <ul>
+    <li>Verificación de identidad digital con proveedor <strong>Didit</strong> (documento, biometría / Proof of Humanity, screening).</li>
+    <li>Validación de email y teléfono (OTP).</li>
+    <li>Vinculación de wallet operativa (Privy) solo tras KYC aprobado.</li>
+  </ul>
+  <h3>4.2 Personas jurídicas (KYB)</h3>
+  <ul>
+    <li>Estatuto / constitución, CUIT u equivalente, domicilio, representantes y UBOs.</li>
+    <li>Documentación de autoridad de quien opera la cuenta.</li>
+    <li>Screening de la entidad y de personas de control.</li>
+  </ul>
+  <h3>4.3 Resultado</h3>
+  <p>
+    Solo estados <strong>APPROVED</strong> habilitan marketplace, fondeo y alta en whitelist on-chain.
+    Estados PENDING / REJECTED / en revisión manual bloquean operaciones sensibles.
+  </p>
+
+  <h2>5. Controles técnicos obligatorios (whitelist)</h2>
+  <p>
+    Los smart contracts ERC-4626 de Sanova implementan restricciones de transferencia:
+    <strong>deposit, mint, transfer y transferFrom</strong> fallan (<em>revert</em>) si el destinatario
+    no está en lista blanca administrada por el Fiduciario / operador de compliance.
+  </p>
+  <ul>
+    <li>Inhabilita de hecho el trading en pools DEX públicos abiertos.</li>
+    <li>Asegura que solo sujetos KYC/AML y contractualizados operen tokens.</li>
+    <li>Cambios de whitelist quedan sujetos a roles / módulos de operador y gobernanza (p. ej. Safe).</li>
+  </ul>
+
+  <h2>6. Monitoreo transaccional</h2>
+  <table>
+    <thead>
+      <tr><th>Control</th><th>Descripción</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Geo-bloqueo</td>
+        <td>Registro bloqueado para jurisdicciones de alto riesgo / sancionadas (lista operativa en plataforma).</td>
+      </tr>
+      <tr>
+        <td>Gate KYC</td>
+        <td>APIs de wallet, checkout y lending exigen KYC aprobado.</td>
+      </tr>
+      <tr>
+        <td>Reconciliación on-chain</td>
+        <td>Bitácora de movimientos de shares / USDC; conciliación tesorería ↔ vaults.</td>
+      </tr>
+      <tr>
+        <td>Rieles de pago</td>
+        <td>Webhooks de proveedores (Macro, Bridge, etc.) con settlement controlado a wallets designadas.</td>
+      </tr>
+      <tr>
+        <td>Alertas / revisión</td>
+        <td>Operaciones inconsistentes, montos atípicos o alertas del proveedor se escalan a revisión manual.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>7. Origen de fondos y propósito</h2>
+  <p>
+    Los fondos recibidos vía proveedores de money movement se destinan exclusivamente a
+    suscripción / liquidación de participaciones RWA y costos asociados de plataforma.
+    Se rechazan usos ajenos (especulación FX/crypto, P2P, payouts a terceros no relacionados).
+  </p>
+
+  <h2>8. Conservación de registros</h2>
+  <p>
+    Se conservan registros de identidad, decisiones KYC, contratos fiduciarios, movimientos de
+    fondeo y eventos on-chain relevantes por el plazo legal aplicable y el exigido por
+    contrapartes reguladas, con acceso restringido al personal autorizado.
+  </p>
+
+  <h2>9. Capacitación y roles</h2>
+  <ul>
+    <li><strong>Responsable PLD / Compliance:</strong> Administrador Titular (Claudio Raúl Schejter), quien puede delegar funciones operativas en personal o proveedores especializados.</li>
+    <li>Capacitación inicial y periódica sobre tipologías de lavado, uso de herramientas KYC y escalamiento de alertas.</li>
+  </ul>
+
+  <h2>10. Reportes y cooperación</h2>
+  <p>
+    Ante indicios de operaciones sospechosas, la Sociedad procederá conforme a la normativa aplicable
+    (análisis interno, congelamiento operativo / rechazo, y reportes a autoridades competentes cuando corresponda),
+    y atenderá requerimientos de contrapartes reguladas (bancos, PSAV, Bridge u equivalentes).
+  </p>
+
+  <h2>11. Sanciones internas</h2>
+  <p>
+    El incumplimiento de este Manual por personal o proveedores puede derivar en suspensión de accesos,
+    rescisión contractual y acciones legales.
+  </p>
+
+  <div class="sign">
+    <p><strong>Aprobado y vigente a partir de agosto 2026.</strong></p>
+    <p>
+      _________________________________<br/>
+      Claudio Raúl Schejter<br/>
+      Administrador Titular — SANOVA GLOBAL S.A.S.<br/>
+      DNI 21.526.767
+    </p>
+  </div>
+
+  <p class="footer">
+    Documento confidencial — uso para expediente KYB/Compliance y control interno.
+    Complementa, no sustituye, obligaciones legales específicas que pudieran resultar aplicables.
+  </p>
+</body>
+</html>
