@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>SANOVA GLOBAL S.A.S. — Evidencia herramientas AML / KYC</title>
+  <style>
+    @page { size: A4; margin: 16mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: #14212b;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      margin: 0;
+    }
+    header {
+      border-bottom: 3px solid #0f4c5c;
+      padding-bottom: 12px;
+      margin-bottom: 18px;
+    }
+    h1 { margin: 0 0 4px; font-size: 17pt; color: #0f4c5c; }
+    .subtitle { margin: 0; color: #555; }
+    .meta { margin-top: 8px; font-size: 9pt; color: #666; }
+    h2 {
+      font-size: 12pt;
+      color: #0f4c5c;
+      border-left: 4px solid #5fa8d3;
+      padding-left: 10px;
+      margin: 16px 0 8px;
+    }
+    p { margin: 0 0 9px; }
+    ul { margin: 0 0 10px 18px; }
+    li { margin-bottom: 4px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 14px;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 7px 9px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #e8f4f8; color: #0f4c5c; }
+    .shot {
+      border: 1px dashed #999;
+      background: #f7fafc;
+      padding: 28px 12px;
+      text-align: center;
+      color: #666;
+      margin: 10px 0 14px;
+      font-size: 9.5pt;
+    }
+    .note {
+      background: #fff8e6;
+      border-left: 4px solid #e9a820;
+      padding: 10px 12px;
+      margin: 12px 0;
+      font-size: 9.5pt;
+    }
+    .footer {
+      margin-top: 20px;
+      font-size: 8.5pt;
+      color: #666;
+      border-top: 1px solid #ddd;
+      padding-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Evidencia de herramientas AML / KYC / KYB</h1>
+    <p class="subtitle">Screening, monitoreo transaccional y conocimiento del cliente — SANOVA GLOBAL S.A.S.</p>
+    <p class="meta">Documento KYB · Agosto 2026 · https://www.sanovacapital.com</p>
+  </header>
+
+  <h2>1. Resumen del stack de cumplimiento</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Capacidad</th>
+        <th>Herramienta / control</th>
+        <th>Evidencia a adjuntar</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>KYC / PoH / screening de identidad</td>
+        <td><strong>Didit</strong> (sesión hospedada, webhooks, estados APPROVED/PENDING/REJECTED)</td>
+        <td>Screenshots dashboard Didit; contrato/factura Didit; workflow ID operativo</td>
+      </tr>
+      <tr>
+        <td>KYB / onboarding inversores</td>
+        <td>Portal Sanova + gates de API (KYC obligatorio antes de wallet / checkout / lending)</td>
+        <td>Screenshots flujo onboarding; panel admin inversores</td>
+      </tr>
+      <tr>
+        <td>Geo-bloqueo / sanctions countries</td>
+        <td>Lista de países bloqueados en middleware/API de registro (IR, RU, KP, SY, CU, VE, etc.)</td>
+        <td>Screenshot config / código de política; intento de registro bloqueado</td>
+      </tr>
+      <tr>
+        <td>Whitelist / control de transferencias</td>
+        <td>Smart contracts ERC-4626 con hook KYC en deposit/mint/transfer/transferFrom</td>
+        <td>Dirección de contrato; screenshot explorer; módulo operador KYC</td>
+      </tr>
+      <tr>
+        <td>Monitoreo / liquidación</td>
+        <td>Webhooks de pagos (Macro, Bridge), reconciliación vault shares / USDC, bitácora on-chain</td>
+        <td>Screenshots admin reconciliation; Flow of Funds PDF</td>
+      </tr>
+      <tr>
+        <td>Wallets</td>
+        <td>Privy embedded wallets vinculadas post-KYC</td>
+        <td>Screenshot vinculación wallet + estado KYC</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. Flujo de conocimiento del cliente</h2>
+  <ol>
+    <li>Registro en plataforma (email/OAuth) — geo-check de país.</li>
+    <li>Verificación de contacto (OTP email / teléfono).</li>
+    <li>Sesión Didit KYC (documento + biometría / PoH + screening).</li>
+    <li>Webhook / polling de estado → solo APPROVED continúa.</li>
+    <li>Creación/vinculación de wallet Privy.</li>
+    <li>Alta on-chain en whitelist del token/vault (setKyc vía operador/compliance).</li>
+    <li>Habilitación de marketplace, fondeo y operaciones.</li>
+  </ol>
+
+  <h2>3. Controles on-chain (anti mercado secundario abierto)</h2>
+  <p>
+    La whitelist algorítmica garantiza que direcciones no verificadas no puedan recibir ni
+    transferir tokens. Esto es un control AML estructural: sin KYC no hay tenencia operativa,
+    y sin whitelist no hay circulación en pools públicos.
+  </p>
+
+  <h2>4. Espacios para capturas (completar antes de enviar)</h2>
+  <div class="shot">[PEGAR SCREENSHOT 1 — Dashboard Didit: sesión KYC / verification status]</div>
+  <div class="shot">[PEGAR SCREENSHOT 2 — Admin Sanova: inversor con KYC APPROVED + wallet vinculada]</div>
+  <div class="shot">[PEGAR SCREENSHOT 3 — Explorer / admin: dirección en whitelist (setKyc)]</div>
+  <div class="shot">[PEGAR SCREENSHOT 4 — Factura o contrato con Didit (u otro vendor AML)]</div>
+  <div class="shot">[PEGAR SCREENSHOT 5 — Panel de pagos / webhook settlement o reconciliación]</div>
+
+  <div class="note">
+    <strong>Adjuntos recomendados en el mismo correo:</strong>
+    (i) PDF Flow of Funds Bridge ya preparado en <em>docs/compliance/bridge-export/</em>;
+    (ii) facturas/contratos de Didit; (iii) capturas de las pantallas anteriores en PNG/PDF.
+  </div>
+
+  <h2>5. Declaración</h2>
+  <p>
+    Las herramientas y controles descriptos se encuentran implementados en la plataforma
+    productiva / pre-productiva de Sanova Capital como parte del programa PLD de la Sociedad.
+  </p>
+  <p style="margin-top:24px">
+    _________________________________<br/>
+    Claudio Raúl Schejter — Administrador Titular<br/>
+    SANOVA GLOBAL S.A.S.
+  </p>
+
+  <p class="footer">
+    Documento de soporte KYB. Las capturas y facturas deben anexarse para evidencia plena ante Compliance.
+  </p>
+</body>
+</html>

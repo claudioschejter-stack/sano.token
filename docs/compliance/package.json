@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "pdf:flow-of-funds": "node generate-flow-of-funds-pdf.mjs"
+    "pdf:flow-of-funds": "node generate-flow-of-funds-pdf.mjs",
+    "pdf:kyb": "node kyb/generate-kyb-pdfs.mjs"
   },
   "devDependencies": {
     "puppeteer": "^24.8.0"

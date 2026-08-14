@@ -1,0 +1,35 @@
+Estimado RS,
+
+Gusto en saludarte. Gracias por el detalle de los requerimientos de Compliance; a continuación respondo punto por punto y adjunto la documentación soporte. Si preferís revisar algún ítem de viva voz, coordinamos con gusto.
+
+1) Modelo de negocio (países, clientes, interacción y uso de la plataforma)
+Adjunto el PDF “SANOVA-KYB-Modelo-de-Negocio.pdf”. En síntesis:
+• Sanova Global S.A.S. opera una plataforma de tokenización de activos del mundo real (RWA), principalmente inmobiliarios e infraestructura en Vaca Muerta / Añelo (Neuquén), mediante tokens ERC-4626 que representan derechos de beneficio privado de compartimentos de un Fideicomiso de Administración Ordinario y Privado (CCCN Argentina).
+• Países: sede en Argentina (Tierra del Fuego). Inversores verificados principalmente en Argentina y, de forma selectiva, LATAM, EE.UU. y Europa, siempre en colocación privada. No operamos con jurisdicciones sancionadas/bloqueadas.
+• Clientes: personas humanas y jurídicas determinadas (círculo cerrado / invitados), con KYC/AML y documentación fiduciaria. Sin oferta pública.
+• Interacción: onboarding en sanovacapital.com (registro, OTP, KYC Didit, wallet Privy, checkout) y comunicación bilateral.
+• Uso de vuestra plataforma: riel de fondeo para inversores KYC-aprobados (fiat → USDC en Base → tesorería/vaults Sanova), conforme Flow of Funds. No se usa para trading especulativo, P2P ni payouts a terceros no relacionados.
+
+2) Comprobante de domicilio a nombre de la sociedad (< 3 meses)
+Tomamos nota de que el comprobante previo figura a mi nombre personal. Adjunto comprobante a nombre de SANOVA GLOBAL S.A.S. (CUIT 30-71905084-7), domicilio Bahía de los Abrigos 3173 PB, Ushuaia, Tierra del Fuego, CP 9410.
+
+3) Comprobante de patrimonio
+Adjunto [certificación contable / estados contables / acta de aporte de capital / otra documentación patrimonial — completar según el archivo que envíes].
+
+4) Manual de Prevención al Lavado de Dinero (PLD)
+Adjunto “SANOVA-Manual-PLD.pdf”.
+
+5) Evidencia de herramientas AML / screening / KYC-KYB / monitoreo
+Adjunto “SANOVA-Evidencia-AML-KYC.pdf” junto con capturas y facturas/contratos de Didit (y paneles internos de whitelist / reconciliación). El stack incluye Didit (KYC), geo-bloqueo de países de riesgo, whitelist on-chain en los contratos ERC-4626 y gates de marketplace post-KYC.
+
+6) Estructura corporativa (organigrama)
+Adjunto “SANOVA-Organigrama-Corporativo.pdf”. Administrador Titular / CEO y Compliance Officer: Claudio Raúl Schejter (DNI 21.526.767).
+
+Quedo atento a cualquier observación o pedido de ampliación.
+
+Saludos cordiales,
+
+Claudio Raúl Schejter
+Administrador Titular
+SANOVA GLOBAL S.A.S. — CUIT 30-71905084-7
+https://www.sanovacapital.com
