@@ -22,6 +22,7 @@ const LANDING_HERO_IMAGE = '/images/landing-hero-energy-yields.webp';
 import { LandingHeader } from './LandingHeader';
 import { HeroSubtitle } from './HeroSubtitle';
 import { FeaturedPropertiesSection } from './FeaturedPropertiesSection';
+import { DesktopPropertiesLanding } from './DesktopPropertiesLanding';
 import { MacroInvestmentThesis } from './MacroInvestmentThesis';
 import { MarketplaceCtaLink } from './MarketplaceCtaLink';
 import { YouTubeFeaturedSection } from './YouTubeFeaturedSection';
@@ -161,7 +162,9 @@ export function LandingPage({ initialFeed, youtubeVideos }: LandingPageProps) {
     <div className="min-h-screen overflow-x-hidden bg-white text-slate-900">
       <LandingHeader showLanguageSelector />
 
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#0A0E17] via-[#111827] to-[#1e3a5f] text-white">
+      <DesktopPropertiesLanding initialFeed={initialFeed} />
+
+      <section className="relative overflow-hidden lg:hidden bg-gradient-to-br from-[#0A0E17] via-[#111827] to-[#1e3a5f] text-white">
         <div
           className="pointer-events-none absolute inset-0 opacity-30"
           style={{
