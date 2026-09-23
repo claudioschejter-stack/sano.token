@@ -17,9 +17,18 @@ import { MarketplaceCtaLink } from './MarketplaceCtaLink';
 
 type FeaturedPropertiesSectionProps = {
   initialFeed: MarketplaceFeed;
+  /**
+   * `desktop-landing` — primary above-the-fold Propiedades experience on lg+.
+   * Hides duplicate section chrome (title already in DesktopPropertiesLanding)
+   * and surfaces more listings like vacamuertatoken.com.ar Propiedades.
+   */
+  variant?: 'section' | 'desktop-landing';
 };
 
-export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSectionProps) {
+export function FeaturedPropertiesSection({
+  initialFeed,
+  variant = 'section'
+}: FeaturedPropertiesSectionProps) {
   const router = useRouter();
   const t = useTranslation();
   const l = t.landing;
@@ -28,7 +37,11 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
   const capabilities = getMarketplaceCapabilities(role);
   const { checklist } = useAccountStatus();
   const { feed } = useMarketplaceFeed(initialFeed);
-  const featuredListings = pickFeaturedListings(feed.listings);
+  const isDesktopLanding = variant === 'desktop-landing';
+  const featuredListings = pickFeaturedListings(
+    feed.listings,
+    isDesktopLanding ? Math.max(feed.listings.length, 12) : 6
+  );
   const isGuest = !session?.user;
   const hideFinancialMetrics = isGuest;
   const guestYieldPreview = isGuest;
@@ -62,17 +75,32 @@ export function FeaturedPropertiesSection({ initialFeed }: FeaturedPropertiesSec
   }, [checklist?.operational, role]);
 
   return (
-    <section id="properties" className="bg-slate-50 py-16 md:py-20">
+    <section
+      id={isDesktopLanding ? undefined : 'properties'}
+      className={
+        isDesktopLanding
+          ? 'bg-slate-50 pb-16 pt-10 md:pb-20 md:pt-12'
+          : 'bg-slate-50 py-16 md:py-20 lg:hidden'
+      }
+    >
       <div className="mx-auto w-full max-w-7xl px-4 md:px-6">
-        <div className="flex w-full flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="w-full">
-            <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">{l.featured.title}</h2>
-            <p className="mt-2 text-base text-slate-600 md:text-lg">{l.featured.subtitle}</p>
+        {isDesktopLanding ? null : (
+          <div className="flex w-full flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="w-full">
+              <h2 className="text-3xl font-bold text-slate-900 md:text-4xl">{l.featured.title}</h2>
+              <p className="mt-2 text-base text-slate-600 md:text-lg">{l.featured.subtitle}</p>
+            </div>
+            <MarketplaceCtaLink className="md:shrink-0">{l.featured.viewAll}</MarketplaceCtaLink>
           </div>
-          <MarketplaceCtaLink className="md:shrink-0">{l.featured.viewAll}</MarketplaceCtaLink>
-        </div>
+        )}
 
-        <div className="mt-8 grid grid-cols-1 items-stretch gap-6 md:mt-10 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
+        <div
+          className={
+            isDesktopLanding
+              ? 'grid grid-cols-1 items-stretch gap-6 md:grid-cols-2 md:gap-8 lg:grid-cols-3'
+              : 'mt-8 grid grid-cols-1 items-stretch gap-6 md:mt-10 md:grid-cols-2 md:gap-8 lg:grid-cols-3'
+          }
+        >
           {featuredListings.map((listing) => (
             <PropertyCard
               key={listing.id}
